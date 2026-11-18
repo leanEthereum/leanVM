@@ -29,44 +29,43 @@ noncomputable def cxCv0 : (List CoreMode.Wit) :=
     .pre 71]
 
 noncomputable def cxCv1 : (List CoreMode.Wit) :=
-  [.run 26 [], .run 7 [], .run 27 [], .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [],
-    .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 20, .ev 21, .ev 22, .ev 23, .ev
-    24, .ev 25, .ev 26, .ev 27, .run 7 [], .run 27 [], .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run
-    30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 16, .ev 17,
-    .ev 18, .ev 19, .run 7 [], .run 27 [], .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run
-    11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 14, .ev 15, .run 7 [],
-    .run 27 [], .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12
-    [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .run 27 [], .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run
-    10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev
-    50, .ev 51, .ev 52, .ev 53, .ev 54, .ev 55, .ev 56, .ev 57, .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10
-    [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 46,
-    .ev 47, .ev 48, .ev 49, .run 8 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run 31
-    [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 44, .ev 45, .run 8 [], .run 28 [], .run
-    9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [],
-    .run 14 [], .run 28 [], .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32
-    [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 80, .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .run
-    9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [],
-    .run 14 [], .pts, .ev 76, .ev 77, .ev 78, .ev 79, .run 9 [], .run 29 [], .run 10 [], .run 30 [], .run 11 [], .run
-    31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 74, .ev 75, .run 9 [], .run 29 [],
-    .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .run
-    29 [], .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [],
-    .pts, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116, .ev 117, .run 10 [], .run 30 [], .run 11 [],
-    .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 106, .ev 107, .ev 108, .ev 109,
-    .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts,
-    .ev 104, .ev 105, .run 10 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [],
-    .run 14 [], .run 30 [], .run 11 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts,
-    .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .run 11 [], .run 31 [], .run 12 [], .run
-    32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 136, .ev 137, .ev 138, .ev 139, .run 11 [], .run 31 [], .run
-    12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .pts, .ev 134, .ev 135, .run 11 [], .run 31 [], .run 12 [],
-    .run 32 [], .run 13 [], .run 33 [], .run 14 [], .run 31 [], .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run
-    14 [], .pts, .ev 170, .ev 171, .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .run 12 [], .run 32 [], .run
-    13 [], .run 33 [], .run 14 [], .pts, .ev 166, .ev 167, .ev 168, .ev 169, .run 12 [], .run 32 [], .run 13 [], .run
-    33 [], .run 14 [], .pts, .ev 164, .ev 165, .run 12 [], .run 32 [], .run 13 [], .run 33 [], .run 14 [], .run 32 [],
-    .run 13 [], .run 33 [], .run 14 [], .pts, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204, .ev 205, .ev 206, .ev 207,
-    .run 13 [], .run 33 [], .run 14 [], .pts, .ev 196, .ev 197, .ev 198, .ev 199, .run 13 [], .run 33 [], .run 14 [],
-    .pts, .ev 194, .ev 195, .run 13 [], .run 33 [], .run 14 [], .run 33 [], .run 14 [], .pts, .ev 230, .ev 231, .ev
-    232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237, .run 14 [], .pts, .ev 226, .ev 227, .ev 228, .ev 229, .run 14
-    []]
+  [.run 22 [], .run 5 [], .run 23 [], .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9 [],
+    .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 20, .ev 21, .ev 22, .ev 23, .ev
+    24, .ev 25, .ev 26, .ev 27, .run 5 [], .run 23 [], .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run
+    26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 16, .ev 17,
+    .ev 18, .ev 19, .run 5 [], .run 23 [], .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9
+    [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 14, .ev 15, .run 5 [], .run
+    23 [], .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [],
+    .run 28 [], .run 11 [], .run 29 [], .run 12 [], .run 23 [], .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8
+    [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 50,
+    .ev 51, .ev 52, .ev 53, .ev 54, .ev 55, .ev 56, .ev 57, .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [],
+    .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 46, .ev
+    47, .ev 48, .ev 49, .run 6 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [],
+    .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 44, .ev 45, .run 6 [], .run 24 [], .run 7
+    [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run
+    12 [], .run 24 [], .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [],
+    .run 11 [], .run 29 [], .run 12 [], .pts, .ev 80, .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .run 7
+    [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run
+    12 [], .pts, .ev 76, .ev 77, .ev 78, .ev 79, .run 7 [], .run 25 [], .run 8 [], .run 26 [], .run 9 [], .run 27 [],
+    .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 74, .ev 75, .run 7 [], .run 25 [], .run 8
+    [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .run 25 [],
+    .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts,
+    .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116, .ev 117, .run 8 [], .run 26 [], .run 9 [], .run 27
+    [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 106, .ev 107, .ev 108, .ev 109, .run 8
+    [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 104,
+    .ev 105, .run 8 [], .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [],
+    .run 26 [], .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 140, .ev
+    141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .run 9 [], .run 27 [], .run 10 [], .run 28 [], .run 11
+    [], .run 29 [], .run 12 [], .pts, .ev 136, .ev 137, .ev 138, .ev 139, .run 9 [], .run 27 [], .run 10 [], .run 28
+    [], .run 11 [], .run 29 [], .run 12 [], .pts, .ev 134, .ev 135, .run 9 [], .run 27 [], .run 10 [], .run 28 [],
+    .run 11 [], .run 29 [], .run 12 [], .run 27 [], .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .pts,
+    .ev 170, .ev 171, .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .run 10 [], .run 28 [], .run 11 [], .run
+    29 [], .run 12 [], .pts, .ev 166, .ev 167, .ev 168, .ev 169, .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run
+    12 [], .pts, .ev 164, .ev 165, .run 10 [], .run 28 [], .run 11 [], .run 29 [], .run 12 [], .run 28 [], .run 11 [],
+    .run 29 [], .run 12 [], .pts, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204, .ev 205, .ev 206, .ev 207, .run 11 [],
+    .run 29 [], .run 12 [], .pts, .ev 196, .ev 197, .ev 198, .ev 199, .run 11 [], .run 29 [], .run 12 [], .pts, .ev
+    194, .ev 195, .run 11 [], .run 29 [], .run 12 [], .run 29 [], .run 12 [], .pts, .ev 230, .ev 231, .ev 232, .ev
+    233, .ev 234, .ev 235, .ev 236, .ev 237, .run 12 [], .pts, .ev 226, .ev 227, .ev 228, .ev 229, .run 12 []]
 
 noncomputable def cxCv2 : (List CoreMode.Wit) :=
   [.pre 178, .pre 179, .pre 180, .pre 181, .pre 182, .pre 183, .pre 184, .pre 185, .pre 186, .pre 187, .pre 188, .pre
@@ -74,7 +73,7 @@ noncomputable def cxCv2 : (List CoreMode.Wit) :=
     .pre 201, .pre 202, .pre 203, .pre 204, .pre 205, .pre 206, .pre 207, .pre 208, .pre 209, .pre 210, .pre 211, .pre
     212, .pre 213, .pre 214, .pre 215, .pre 216, .pre 217, .pre 218, .pre 219, .pre 220, .pre 221, .pre 222, .pre 223,
     .pre 224, .pre 225, .pre 226, .pre 227, .pre 228, .pre 229, .pre 230, .pre 231, .pre 232, .pre 233, .pre 234, .pre
-    235, .pre 236, .pre 237, .pre 238, .pre 239, .pre 240, .pre 241, .run 15 [], .run 21 [], .run 19 [], .run 16 []]
+    235, .pre 236, .pre 237, .pre 238, .pre 239, .pre 240, .pre 241, .run 15 [], .run 14 []]
 
 noncomputable def cxCtr3 : Trie (List CoreMode.Wit) :=
   (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) (.node (some cxCv1) .nil
@@ -92,13 +91,13 @@ noncomputable def cxCtr5 : Trie (List CoreMode.Wit) :=
     (some cxCv1) .nil .nil) .nil) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil))))
 
 noncomputable def cxCtr6 : Trie (List CoreMode.Wit) :=
-  (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) (.node (some [.run 20 [],
-    .run 21 []]) .nil .nil)) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)) (.node (some cxCv1) (.node
+  (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) (.node (some [.run 16 [],
+    .run 17 []]) .nil .nil)) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)) (.node (some cxCv1) (.node
     (some cxCv1) (.node (some cxCv1) .nil .nil) .nil) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)))
 
 noncomputable def cxCtr7 : Trie (List CoreMode.Wit) :=
-  (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) (.node (some [.run 15 [],
-    .run 16 []]) .nil .nil)) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)) (.node (some cxCv1) (.node
+  (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) (.node (some [.run 13 [],
+    .run 14 []]) .nil .nil)) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)) (.node (some cxCv1) (.node
     (some cxCv1) (.node (some cxCv1) .nil .nil) .nil) (.node (some cxCv1) (.node (some cxCv1) .nil .nil) .nil)))
 
 noncomputable def cxCtr8 : Trie (List CoreMode.Wit) :=

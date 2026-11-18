@@ -160,6 +160,13 @@ inductive Wit where
   witnessed by `q`, and `base`, by `q2`): the cell's index at most the upper bound's, which has an exponent by a
   fact. -/
   | prep2 (r : ℕ) (q q2 : Wit) (res : List ℕ)
+  /-- A cell of the run `⟨Q, 1, g^0, g^k⟩`, `Q` the cell of the write event `n` and the run's cells those of the
+  write events `n` to `n + k - 1`: by the facts of these residuals, or a residual placing it there. -/
+  | evs (n k : ℕ) (res : List ℕ)
+  /-- A cell `k ≥ 1` indices below the upper bound of run `r` (`c·g^(S·k) = base·hi^S`), its lower bound a
+  constant `lo`, the upper bound's exponent `y` by a fact of these residuals: in the run when `y ≥ lo + k`, else the
+  write event `ns[y]`. -/
+  | back (r : ℕ) (ns : List ℕ) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written

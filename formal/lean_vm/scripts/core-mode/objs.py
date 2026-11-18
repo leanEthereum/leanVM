@@ -59,7 +59,8 @@ def idxlike(P, b):
 
 
 def order(P, bs):
-    rank = {'ghost': 0, 'ptr': 1, 'load': 2, 'ret': 3, 'alloc': 4, 'param': 5}
+    # an allocation is always a pointer, so the other bases of a monomial over it are indices
+    rank = {'ghost': 0, 'alloc': 1, 'ptr': 2, 'load': 3, 'ret': 4, 'param': 5}
     return sorted(bs, key=lambda b: (b < GB and getattr(P, 'cur', None) is not None and idxlike(P, b),
                                      rank['ghost' if b >= GB else ('ptr' if ptrlike(P, b) else 'param') if b < P.m
                                           else P.defkind.get(b)]))

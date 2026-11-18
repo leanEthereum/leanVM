@@ -19,5515 +19,2973 @@ open LeanVM.Guest.Exec (Trie)
 
 @[expose] public section
 
-noncomputable def cxRSv1255 : CoreMode.CRes :=
-  (.under [.arm 705 18] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1256 : CoreMode.CRes :=
-  (.under [.arm 705 18] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1257 : CoreMode.CRes :=
-  (.under [.arm 705 18] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1258 : CoreMode.CRes :=
-  (.under [.arm 705 18] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1259 : CoreMode.CRes :=
-  (.under [.arm 705 18] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1260 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.lt (.num 141) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1261 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1262 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.lt (.num 71) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1263 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1264 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1265 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1266 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1267 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1268 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1269 : CoreMode.CRes :=
-  (.under [.arm 705 19] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1270 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1271 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1272 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1273 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1274 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1275 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1276 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1277 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1278 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1279 : CoreMode.CRes :=
-  (.under [.arm 705 20] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1280 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.lt (.num 161) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1281 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1282 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.lt (.num 81) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1283 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1284 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1285 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1286 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1287 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1288 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1289 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1290 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1291 : CoreMode.CRes :=
-  (.under [.arm 705 21] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1292 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.lt (.num 165) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1293 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1294 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.lt (.num 83) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1295 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1296 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1297 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1298 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1299 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1300 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1301 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1302 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1303 : CoreMode.CRes :=
-  (.under [.arm 705 22] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1304 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.lt (.num 173) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1305 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1306 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.lt (.num 87) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1307 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1308 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1309 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1310 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1311 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1312 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1313 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1314 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1315 : CoreMode.CRes :=
-  (.under [.arm 705 23] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1316 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1317 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1318 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1319 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1320 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1321 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1322 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1323 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1324 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1325 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1326 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1327 : CoreMode.CRes :=
-  (.under [.arm 705 24] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1328 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.lt (.num 193) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1329 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1330 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.lt (.num 97) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1331 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1332 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1333 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1334 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1335 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1336 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1337 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1338 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1339 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1340 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1341 : CoreMode.CRes :=
-  (.under [.arm 705 25] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1342 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.lt (.num 197) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1343 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1344 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.lt (.num 99) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1345 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1346 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1347 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1348 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1349 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1350 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1351 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1352 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1353 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1354 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1355 : CoreMode.CRes :=
-  (.under [.arm 705 26] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1356 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.lt (.num 205) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1357 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1358 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.lt (.num 103) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1359 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1360 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1361 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1362 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1363 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1364 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1365 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1366 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1367 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1368 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1369 : CoreMode.CRes :=
-  (.under [.arm 705 27] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1370 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1371 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1372 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1373 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1374 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1375 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1376 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1377 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1378 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1379 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1380 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1381 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1382 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1383 : CoreMode.CRes :=
-  (.under [.arm 705 28] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1384 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.lt (.num 225) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1385 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1386 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.lt (.num 113) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1387 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1388 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1389 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1390 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1391 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1392 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1393 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1394 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1395 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1396 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1397 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1398 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1399 : CoreMode.CRes :=
-  (.under [.arm 705 29] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1400 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.lt (.num 229) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1401 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1402 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.lt (.num 115) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1403 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1404 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1405 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1406 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1407 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1408 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1409 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1410 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1411 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1412 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1413 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1414 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1415 : CoreMode.CRes :=
-  (.under [.arm 705 30] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1416 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.lt (.num 237) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1417 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1418 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.lt (.num 119) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1419 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1420 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1421 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1422 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1423 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1424 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1425 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1426 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1427 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1428 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1429 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1430 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1431 : CoreMode.CRes :=
-  (.under [.arm 705 31] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1432 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1433 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1434 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1435 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1436 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1437 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1438 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1439 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1440 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1441 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1442 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1443 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1444 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1445 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1446 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(702, 1)], 238⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1447 : CoreMode.CRes :=
-  (.under [.arm 705 32] (.subR ⟨⟨[(703, 1)], 112⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1448 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.lt (.num 257) (.mono ⟨[(704, 8)], 0⟩)))
-
-noncomputable def cxRSv1449 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 14⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1450 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.lt (.num 129) (.mono ⟨[(704, 4)], 0⟩)))
-
-noncomputable def cxRSv1451 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1452 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 46⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1453 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 16⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1454 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 78⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1455 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 32⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1456 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 110⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1457 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 48⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1458 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 142⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1459 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 64⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1460 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 174⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1461 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 80⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1462 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 206⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1463 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 96⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1464 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(702, 1)], 238⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    8)], 0⟩)⟩))
-
-noncomputable def cxRSv1465 : CoreMode.CRes :=
-  (.under [.arm 705 33] (.subR ⟨⟨[(703, 1)], 112⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(704,
-    4)], 0⟩)⟩))
-
-noncomputable def cxRSv1466 : CoreMode.CRes :=
-  (.under [.arm 714 1] (.lt (.num 1) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1467 : CoreMode.CRes :=
-  (.under [.arm 714 1] (.lt (.num 1) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1468 : CoreMode.CRes :=
-  (.under [.arm 714 2] (.lt (.num 5) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1469 : CoreMode.CRes :=
-  (.under [.arm 714 2] (.lt (.num 3) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1470 : CoreMode.CRes :=
-  (.under [.arm 714 3] (.lt (.num 13) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1471 : CoreMode.CRes :=
-  (.under [.arm 714 3] (.lt (.num 7) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1472 : CoreMode.CRes :=
-  (.under [.arm 714 4] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1473 : CoreMode.CRes :=
-  (.under [.arm 714 4] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1474 : CoreMode.CRes :=
-  (.under [.arm 714 5] (.lt (.num 33) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1475 : CoreMode.CRes :=
-  (.under [.arm 714 5] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1476 : CoreMode.CRes :=
-  (.under [.arm 714 5] (.lt (.num 17) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1477 : CoreMode.CRes :=
-  (.under [.arm 714 5] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1478 : CoreMode.CRes :=
-  (.under [.arm 714 6] (.lt (.num 37) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1479 : CoreMode.CRes :=
-  (.under [.arm 714 6] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1480 : CoreMode.CRes :=
-  (.under [.arm 714 6] (.lt (.num 19) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1481 : CoreMode.CRes :=
-  (.under [.arm 714 6] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1482 : CoreMode.CRes :=
-  (.under [.arm 714 7] (.lt (.num 45) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1483 : CoreMode.CRes :=
-  (.under [.arm 714 7] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1484 : CoreMode.CRes :=
-  (.under [.arm 714 7] (.lt (.num 23) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1485 : CoreMode.CRes :=
-  (.under [.arm 714 7] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1486 : CoreMode.CRes :=
-  (.under [.arm 714 8] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1487 : CoreMode.CRes :=
-  (.under [.arm 714 8] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1488 : CoreMode.CRes :=
-  (.under [.arm 714 8] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1489 : CoreMode.CRes :=
-  (.under [.arm 714 8] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1490 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.lt (.num 65) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1491 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1492 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.lt (.num 33) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1493 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1494 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1495 : CoreMode.CRes :=
-  (.under [.arm 714 9] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1496 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.lt (.num 69) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1497 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1498 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.lt (.num 35) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1499 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1500 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1501 : CoreMode.CRes :=
-  (.under [.arm 714 10] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1502 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.lt (.num 77) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1503 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1504 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.lt (.num 39) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1505 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1506 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1507 : CoreMode.CRes :=
-  (.under [.arm 714 11] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1508 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1509 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1510 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1511 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1512 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1513 : CoreMode.CRes :=
-  (.under [.arm 714 12] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1514 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.lt (.num 97) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1515 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1516 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.lt (.num 49) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1517 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1518 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1519 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1520 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1521 : CoreMode.CRes :=
-  (.under [.arm 714 13] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1522 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.lt (.num 101) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1523 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1524 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.lt (.num 51) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1525 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1526 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1527 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1528 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1529 : CoreMode.CRes :=
-  (.under [.arm 714 14] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1530 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.lt (.num 109) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1531 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1532 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.lt (.num 55) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1533 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1534 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1535 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1536 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1537 : CoreMode.CRes :=
-  (.under [.arm 714 15] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1538 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1539 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1540 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1541 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1542 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1543 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1544 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1545 : CoreMode.CRes :=
-  (.under [.arm 714 16] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1546 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.lt (.num 129) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1547 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1548 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.lt (.num 65) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1549 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1550 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1551 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1552 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1553 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1554 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1555 : CoreMode.CRes :=
-  (.under [.arm 714 17] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1556 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.lt (.num 133) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1557 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1558 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.lt (.num 67) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1559 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1560 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1561 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1562 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1563 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1564 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1565 : CoreMode.CRes :=
-  (.under [.arm 714 18] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1566 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.lt (.num 141) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1567 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1568 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.lt (.num 71) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1569 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1570 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1571 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1572 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1573 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1574 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1575 : CoreMode.CRes :=
-  (.under [.arm 714 19] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1576 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1577 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1578 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1579 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1580 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1581 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1582 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1583 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1584 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1585 : CoreMode.CRes :=
-  (.under [.arm 714 20] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1586 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.lt (.num 161) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1587 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1588 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.lt (.num 81) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1589 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1590 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1591 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1592 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1593 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1594 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1595 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1596 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1597 : CoreMode.CRes :=
-  (.under [.arm 714 21] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1598 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.lt (.num 165) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1599 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1600 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.lt (.num 83) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1601 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1602 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1603 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1604 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1605 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1606 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1607 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1608 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1609 : CoreMode.CRes :=
-  (.under [.arm 714 22] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1610 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.lt (.num 173) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1611 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1612 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.lt (.num 87) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1613 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1614 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1615 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1616 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1617 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1618 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1619 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1620 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1621 : CoreMode.CRes :=
-  (.under [.arm 714 23] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1622 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1623 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1624 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1625 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1626 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1627 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1628 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1629 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1630 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1631 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1632 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1633 : CoreMode.CRes :=
-  (.under [.arm 714 24] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1634 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.lt (.num 193) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1635 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1636 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.lt (.num 97) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1637 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1638 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1639 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1640 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1641 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1642 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1643 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1644 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1645 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1646 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1647 : CoreMode.CRes :=
-  (.under [.arm 714 25] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1648 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.lt (.num 197) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1649 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1650 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.lt (.num 99) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1651 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1652 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1653 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1654 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1655 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1656 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1657 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1658 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1659 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1660 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1661 : CoreMode.CRes :=
-  (.under [.arm 714 26] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1662 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.lt (.num 205) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1663 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1664 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.lt (.num 103) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1665 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1666 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1667 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1668 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1669 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1670 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1671 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1672 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1673 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1674 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1675 : CoreMode.CRes :=
-  (.under [.arm 714 27] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1676 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1677 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1678 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1679 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1680 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1681 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1682 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1683 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1684 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1685 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1686 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1687 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1688 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1689 : CoreMode.CRes :=
-  (.under [.arm 714 28] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1690 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.lt (.num 225) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1691 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1692 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.lt (.num 113) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1693 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1694 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1695 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1696 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1697 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1698 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1699 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1700 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1701 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1702 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1703 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1704 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1705 : CoreMode.CRes :=
-  (.under [.arm 714 29] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1706 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.lt (.num 229) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1707 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1708 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.lt (.num 115) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1709 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1710 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1711 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1712 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1713 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1714 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1715 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1716 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1717 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1718 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1719 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1720 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1721 : CoreMode.CRes :=
-  (.under [.arm 714 30] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1722 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.lt (.num 237) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1723 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1724 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.lt (.num 119) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1725 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1726 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1727 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1728 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1729 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1730 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1731 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1732 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1733 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1734 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1735 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1736 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1737 : CoreMode.CRes :=
-  (.under [.arm 714 31] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1738 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1739 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1740 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1741 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1742 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1743 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1744 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1745 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1746 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1747 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1748 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1749 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1750 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1751 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1752 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(702, 1)], 526⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1753 : CoreMode.CRes :=
-  (.under [.arm 714 32] (.subR ⟨⟨[(703, 1)], 256⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1754 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.lt (.num 257) (.mono ⟨[(713, 8)], 0⟩)))
-
-noncomputable def cxRSv1755 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 302⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1756 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.lt (.num 129) (.mono ⟨[(713, 4)], 0⟩)))
-
-noncomputable def cxRSv1757 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1758 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 334⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1759 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 160⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1760 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 366⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1761 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1762 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 398⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1763 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 192⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1764 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 430⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1765 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 208⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1766 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 462⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1767 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 224⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1768 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 494⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1769 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1770 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(702, 1)], 526⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(713, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1771 : CoreMode.CRes :=
-  (.under [.arm 714 33] (.subR ⟨⟨[(703, 1)], 256⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 144⟩, 1, (.num 0), (.mono
-    ⟨[(713, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1772 : CoreMode.CRes :=
-  (.under [.arm 727 1] (.lt (.num 1) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1773 : CoreMode.CRes :=
-  (.under [.arm 727 1] (.lt (.num 1) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1774 : CoreMode.CRes :=
-  (.under [.arm 727 2] (.lt (.num 5) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1775 : CoreMode.CRes :=
-  (.under [.arm 727 2] (.lt (.num 3) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1776 : CoreMode.CRes :=
-  (.under [.arm 727 3] (.lt (.num 13) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1777 : CoreMode.CRes :=
-  (.under [.arm 727 3] (.lt (.num 7) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1778 : CoreMode.CRes :=
-  (.under [.arm 727 4] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1779 : CoreMode.CRes :=
-  (.under [.arm 727 4] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1780 : CoreMode.CRes :=
-  (.under [.arm 727 5] (.lt (.num 33) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1781 : CoreMode.CRes :=
-  (.under [.arm 727 5] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1782 : CoreMode.CRes :=
-  (.under [.arm 727 5] (.lt (.num 17) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1783 : CoreMode.CRes :=
-  (.under [.arm 727 5] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1784 : CoreMode.CRes :=
-  (.under [.arm 727 6] (.lt (.num 37) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1785 : CoreMode.CRes :=
-  (.under [.arm 727 6] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1786 : CoreMode.CRes :=
-  (.under [.arm 727 6] (.lt (.num 19) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1787 : CoreMode.CRes :=
-  (.under [.arm 727 6] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1788 : CoreMode.CRes :=
-  (.under [.arm 727 7] (.lt (.num 45) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1789 : CoreMode.CRes :=
-  (.under [.arm 727 7] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1790 : CoreMode.CRes :=
-  (.under [.arm 727 7] (.lt (.num 23) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1791 : CoreMode.CRes :=
-  (.under [.arm 727 7] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1792 : CoreMode.CRes :=
-  (.under [.arm 727 8] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1793 : CoreMode.CRes :=
-  (.under [.arm 727 8] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1794 : CoreMode.CRes :=
-  (.under [.arm 727 8] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1795 : CoreMode.CRes :=
-  (.under [.arm 727 8] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1796 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.lt (.num 65) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1797 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1798 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.lt (.num 33) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1799 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1800 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1801 : CoreMode.CRes :=
-  (.under [.arm 727 9] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1802 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.lt (.num 69) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1803 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1804 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.lt (.num 35) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1805 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1806 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1807 : CoreMode.CRes :=
-  (.under [.arm 727 10] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1808 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.lt (.num 77) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1809 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1810 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.lt (.num 39) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1811 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1812 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1813 : CoreMode.CRes :=
-  (.under [.arm 727 11] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1814 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1815 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1816 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1817 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1818 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1819 : CoreMode.CRes :=
-  (.under [.arm 727 12] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1820 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.lt (.num 97) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1821 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1822 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.lt (.num 49) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1823 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1824 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1825 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1826 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1827 : CoreMode.CRes :=
-  (.under [.arm 727 13] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1828 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.lt (.num 101) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1829 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1830 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.lt (.num 51) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1831 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1832 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1833 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1834 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1835 : CoreMode.CRes :=
-  (.under [.arm 727 14] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1836 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.lt (.num 109) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1837 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1838 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.lt (.num 55) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1839 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1840 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1841 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1842 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1843 : CoreMode.CRes :=
-  (.under [.arm 727 15] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1844 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1845 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1846 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1847 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1848 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1849 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1850 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1851 : CoreMode.CRes :=
-  (.under [.arm 727 16] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1852 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.lt (.num 129) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1853 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1854 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.lt (.num 65) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1855 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1856 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1857 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1858 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1859 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1860 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1861 : CoreMode.CRes :=
-  (.under [.arm 727 17] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1862 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.lt (.num 133) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1863 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1864 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.lt (.num 67) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1865 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1866 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1867 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1868 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1869 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1870 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1871 : CoreMode.CRes :=
-  (.under [.arm 727 18] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1872 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.lt (.num 141) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1873 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1874 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.lt (.num 71) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1875 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1876 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1877 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1878 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1879 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1880 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1881 : CoreMode.CRes :=
-  (.under [.arm 727 19] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1882 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1883 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1884 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1885 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1886 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1887 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1888 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1889 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1890 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1891 : CoreMode.CRes :=
-  (.under [.arm 727 20] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1892 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.lt (.num 161) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1893 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1894 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.lt (.num 81) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1895 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1896 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1897 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1898 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1899 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1900 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1901 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1902 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1903 : CoreMode.CRes :=
-  (.under [.arm 727 21] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1904 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.lt (.num 165) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1905 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1906 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.lt (.num 83) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1907 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1908 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1909 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1910 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1911 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1912 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1913 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1914 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1915 : CoreMode.CRes :=
-  (.under [.arm 727 22] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1916 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.lt (.num 173) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1917 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1918 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.lt (.num 87) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1919 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1920 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1921 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1922 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1923 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1924 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1925 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1926 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1927 : CoreMode.CRes :=
-  (.under [.arm 727 23] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1928 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1929 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1930 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1931 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1932 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1933 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1934 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1935 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1936 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1937 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1938 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1939 : CoreMode.CRes :=
-  (.under [.arm 727 24] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1940 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.lt (.num 193) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1941 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1942 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.lt (.num 97) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1943 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1944 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1945 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1946 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1947 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1948 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1949 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1950 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1951 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1952 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1953 : CoreMode.CRes :=
-  (.under [.arm 727 25] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1954 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.lt (.num 197) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1955 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1956 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.lt (.num 99) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1957 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1958 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1959 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1960 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1961 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1962 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1963 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1964 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1965 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1966 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1967 : CoreMode.CRes :=
-  (.under [.arm 727 26] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1968 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.lt (.num 205) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1969 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1970 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.lt (.num 103) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1971 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1972 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1973 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1974 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1975 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1976 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1977 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1978 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1979 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1980 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1981 : CoreMode.CRes :=
-  (.under [.arm 727 27] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1982 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1983 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1984 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1985 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1986 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1987 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1988 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1989 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1990 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1991 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1992 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1993 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1994 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1995 : CoreMode.CRes :=
-  (.under [.arm 727 28] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv1996 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.lt (.num 225) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv1997 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv1998 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.lt (.num 113) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv1999 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2000 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2001 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2002 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2003 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2004 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2005 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2006 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2007 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2008 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2009 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2010 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2011 : CoreMode.CRes :=
-  (.under [.arm 727 29] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2012 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.lt (.num 229) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv2013 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2014 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.lt (.num 115) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv2015 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2016 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2017 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2018 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2019 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2020 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2021 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2022 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2023 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2024 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2025 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2026 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2027 : CoreMode.CRes :=
-  (.under [.arm 727 30] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2028 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.lt (.num 237) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv2029 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2030 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.lt (.num 119) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv2031 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2032 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2033 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2034 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2035 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2036 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2037 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2038 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2039 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2040 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2041 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2042 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2043 : CoreMode.CRes :=
-  (.under [.arm 727 31] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2044 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2045 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2046 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2047 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2048 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2049 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2050 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2051 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2052 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2053 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2054 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2055 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2056 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2057 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2058 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(702, 1)], 814⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2059 : CoreMode.CRes :=
-  (.under [.arm 727 32] (.subR ⟨⟨[(703, 1)], 400⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2060 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.lt (.num 257) (.mono ⟨[(726, 8)], 0⟩)))
-
-noncomputable def cxRSv2061 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 590⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2062 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.lt (.num 129) (.mono ⟨[(726, 4)], 0⟩)))
-
-noncomputable def cxRSv2063 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2064 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 622⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2065 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2066 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 654⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2067 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 320⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2068 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 686⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2069 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 336⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2070 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 718⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2071 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 352⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2072 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 750⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2073 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2074 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 782⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2075 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 384⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2076 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(702, 1)], 814⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(726, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2077 : CoreMode.CRes :=
-  (.under [.arm 727 33] (.subR ⟨⟨[(703, 1)], 400⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 288⟩, 1, (.num 0), (.mono
-    ⟨[(726, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2078 : CoreMode.CRes :=
-  (.under [.arm 740 1] (.lt (.num 1) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2079 : CoreMode.CRes :=
-  (.under [.arm 740 1] (.lt (.num 1) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2080 : CoreMode.CRes :=
-  (.under [.arm 740 2] (.lt (.num 5) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2081 : CoreMode.CRes :=
-  (.under [.arm 740 2] (.lt (.num 3) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2082 : CoreMode.CRes :=
-  (.under [.arm 740 3] (.lt (.num 13) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2083 : CoreMode.CRes :=
-  (.under [.arm 740 3] (.lt (.num 7) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2084 : CoreMode.CRes :=
-  (.under [.arm 740 4] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2085 : CoreMode.CRes :=
-  (.under [.arm 740 4] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2086 : CoreMode.CRes :=
-  (.under [.arm 740 5] (.lt (.num 33) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2087 : CoreMode.CRes :=
-  (.under [.arm 740 5] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2088 : CoreMode.CRes :=
-  (.under [.arm 740 5] (.lt (.num 17) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2089 : CoreMode.CRes :=
-  (.under [.arm 740 5] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2090 : CoreMode.CRes :=
-  (.under [.arm 740 6] (.lt (.num 37) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2091 : CoreMode.CRes :=
-  (.under [.arm 740 6] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2092 : CoreMode.CRes :=
-  (.under [.arm 740 6] (.lt (.num 19) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2093 : CoreMode.CRes :=
-  (.under [.arm 740 6] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2094 : CoreMode.CRes :=
-  (.under [.arm 740 7] (.lt (.num 45) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2095 : CoreMode.CRes :=
-  (.under [.arm 740 7] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2096 : CoreMode.CRes :=
-  (.under [.arm 740 7] (.lt (.num 23) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2097 : CoreMode.CRes :=
-  (.under [.arm 740 7] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2098 : CoreMode.CRes :=
-  (.under [.arm 740 8] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2099 : CoreMode.CRes :=
-  (.under [.arm 740 8] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2100 : CoreMode.CRes :=
-  (.under [.arm 740 8] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2101 : CoreMode.CRes :=
-  (.under [.arm 740 8] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2102 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.lt (.num 65) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2103 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2104 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.lt (.num 33) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2105 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2106 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2107 : CoreMode.CRes :=
-  (.under [.arm 740 9] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2108 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.lt (.num 69) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2109 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2110 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.lt (.num 35) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2111 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2112 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2113 : CoreMode.CRes :=
-  (.under [.arm 740 10] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2114 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.lt (.num 77) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2115 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2116 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.lt (.num 39) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2117 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2118 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2119 : CoreMode.CRes :=
-  (.under [.arm 740 11] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2120 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2121 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2122 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2123 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2124 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2125 : CoreMode.CRes :=
-  (.under [.arm 740 12] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2126 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.lt (.num 97) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2127 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2128 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.lt (.num 49) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2129 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2130 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2131 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2132 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2133 : CoreMode.CRes :=
-  (.under [.arm 740 13] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2134 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.lt (.num 101) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2135 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2136 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.lt (.num 51) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2137 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2138 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2139 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2140 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2141 : CoreMode.CRes :=
-  (.under [.arm 740 14] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2142 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.lt (.num 109) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2143 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2144 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.lt (.num 55) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2145 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2146 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2147 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2148 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2149 : CoreMode.CRes :=
-  (.under [.arm 740 15] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2150 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2151 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2152 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2153 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2154 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2155 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2156 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2157 : CoreMode.CRes :=
-  (.under [.arm 740 16] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2158 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.lt (.num 129) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2159 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2160 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.lt (.num 65) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2161 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2162 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2163 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2164 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2165 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2166 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2167 : CoreMode.CRes :=
-  (.under [.arm 740 17] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2168 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.lt (.num 133) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2169 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2170 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.lt (.num 67) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2171 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2172 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2173 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2174 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2175 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2176 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2177 : CoreMode.CRes :=
-  (.under [.arm 740 18] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2178 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.lt (.num 141) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2179 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2180 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.lt (.num 71) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2181 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2182 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2183 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2184 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2185 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2186 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2187 : CoreMode.CRes :=
-  (.under [.arm 740 19] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2188 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2189 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2190 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2191 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2192 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2193 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2194 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2195 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2196 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2197 : CoreMode.CRes :=
-  (.under [.arm 740 20] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2198 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.lt (.num 161) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2199 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2200 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.lt (.num 81) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2201 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2202 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2203 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2204 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2205 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2206 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2207 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2208 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2209 : CoreMode.CRes :=
-  (.under [.arm 740 21] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2210 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.lt (.num 165) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2211 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2212 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.lt (.num 83) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2213 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2214 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2215 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2216 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2217 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2218 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2219 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2220 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2221 : CoreMode.CRes :=
-  (.under [.arm 740 22] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2222 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.lt (.num 173) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2223 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2224 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.lt (.num 87) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2225 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2226 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2227 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2228 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2229 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2230 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2231 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2232 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2233 : CoreMode.CRes :=
-  (.under [.arm 740 23] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2234 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2235 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2236 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2237 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2238 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2239 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2240 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2241 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2242 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2243 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2244 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2245 : CoreMode.CRes :=
-  (.under [.arm 740 24] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2246 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.lt (.num 193) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2247 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2248 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.lt (.num 97) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2249 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2250 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2251 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2252 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2253 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2254 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2255 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2256 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2257 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2258 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2259 : CoreMode.CRes :=
-  (.under [.arm 740 25] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2260 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.lt (.num 197) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2261 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2262 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.lt (.num 99) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2263 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2264 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2265 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2266 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2267 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2268 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2269 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2270 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2271 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2272 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2273 : CoreMode.CRes :=
-  (.under [.arm 740 26] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2274 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.lt (.num 205) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2275 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2276 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.lt (.num 103) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2277 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2278 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2279 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2280 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2281 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2282 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2283 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2284 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2285 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2286 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2287 : CoreMode.CRes :=
-  (.under [.arm 740 27] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2288 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2289 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2290 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2291 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2292 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2293 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2294 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2295 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2296 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2297 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2298 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2299 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2300 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2301 : CoreMode.CRes :=
-  (.under [.arm 740 28] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2302 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.lt (.num 225) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2303 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2304 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.lt (.num 113) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2305 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2306 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2307 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2308 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2309 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2310 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2311 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2312 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2313 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2314 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2315 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2316 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2317 : CoreMode.CRes :=
-  (.under [.arm 740 29] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2318 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.lt (.num 229) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2319 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2320 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.lt (.num 115) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2321 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2322 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2323 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2324 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2325 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2326 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2327 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2328 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2329 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2330 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2331 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2332 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2333 : CoreMode.CRes :=
-  (.under [.arm 740 30] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2334 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.lt (.num 237) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2335 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2336 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.lt (.num 119) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2337 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2338 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2339 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2340 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2341 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2342 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2343 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2344 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2345 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2346 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2347 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2348 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2349 : CoreMode.CRes :=
-  (.under [.arm 740 31] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2350 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2351 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2352 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2353 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2354 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2355 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2356 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2357 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2358 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2359 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2360 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2361 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2362 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2363 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2364 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(702, 1)], 1102⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2365 : CoreMode.CRes :=
-  (.under [.arm 740 32] (.subR ⟨⟨[(703, 1)], 544⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2366 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.lt (.num 257) (.mono ⟨[(739, 8)], 0⟩)))
-
-noncomputable def cxRSv2367 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 878⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2368 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.lt (.num 129) (.mono ⟨[(739, 4)], 0⟩)))
-
-noncomputable def cxRSv2369 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2370 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 910⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2371 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 448⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2372 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 942⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2373 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 464⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2374 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 974⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2375 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 480⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2376 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 1006⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2377 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2378 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 1038⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2379 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 512⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2380 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 1070⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2381 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 528⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2382 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(702, 1)], 1102⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 864⟩, 1, (.num 0), (.mono
-    ⟨[(739, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2383 : CoreMode.CRes :=
-  (.under [.arm 740 33] (.subR ⟨⟨[(703, 1)], 544⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 432⟩, 1, (.num 0), (.mono
-    ⟨[(739, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2384 : CoreMode.CRes :=
-  (.under [.arm 753 1] (.lt (.num 1) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2385 : CoreMode.CRes :=
-  (.under [.arm 753 1] (.lt (.num 1) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2386 : CoreMode.CRes :=
-  (.under [.arm 753 2] (.lt (.num 5) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2387 : CoreMode.CRes :=
-  (.under [.arm 753 2] (.lt (.num 3) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2388 : CoreMode.CRes :=
-  (.under [.arm 753 3] (.lt (.num 13) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2389 : CoreMode.CRes :=
-  (.under [.arm 753 3] (.lt (.num 7) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2390 : CoreMode.CRes :=
-  (.under [.arm 753 4] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2391 : CoreMode.CRes :=
-  (.under [.arm 753 4] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2392 : CoreMode.CRes :=
-  (.under [.arm 753 5] (.lt (.num 33) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2393 : CoreMode.CRes :=
-  (.under [.arm 753 5] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2394 : CoreMode.CRes :=
-  (.under [.arm 753 5] (.lt (.num 17) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2395 : CoreMode.CRes :=
-  (.under [.arm 753 5] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2396 : CoreMode.CRes :=
-  (.under [.arm 753 6] (.lt (.num 37) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2397 : CoreMode.CRes :=
-  (.under [.arm 753 6] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2398 : CoreMode.CRes :=
-  (.under [.arm 753 6] (.lt (.num 19) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2399 : CoreMode.CRes :=
-  (.under [.arm 753 6] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2400 : CoreMode.CRes :=
-  (.under [.arm 753 7] (.lt (.num 45) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2401 : CoreMode.CRes :=
-  (.under [.arm 753 7] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2402 : CoreMode.CRes :=
-  (.under [.arm 753 7] (.lt (.num 23) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2403 : CoreMode.CRes :=
-  (.under [.arm 753 7] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2404 : CoreMode.CRes :=
-  (.under [.arm 753 8] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2405 : CoreMode.CRes :=
-  (.under [.arm 753 8] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2406 : CoreMode.CRes :=
-  (.under [.arm 753 8] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2407 : CoreMode.CRes :=
-  (.under [.arm 753 8] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2408 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.lt (.num 65) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2409 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2410 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.lt (.num 33) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2411 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2412 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2413 : CoreMode.CRes :=
-  (.under [.arm 753 9] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2414 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.lt (.num 69) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2415 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2416 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.lt (.num 35) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2417 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2418 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2419 : CoreMode.CRes :=
-  (.under [.arm 753 10] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2420 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.lt (.num 77) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2421 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2422 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.lt (.num 39) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2423 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2424 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2425 : CoreMode.CRes :=
-  (.under [.arm 753 11] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2426 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2427 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2428 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2429 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2430 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2431 : CoreMode.CRes :=
-  (.under [.arm 753 12] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2432 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.lt (.num 97) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2433 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2434 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.lt (.num 49) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2435 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2436 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2437 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2438 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2439 : CoreMode.CRes :=
-  (.under [.arm 753 13] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2440 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.lt (.num 101) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2441 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2442 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.lt (.num 51) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2443 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2444 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2445 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2446 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2447 : CoreMode.CRes :=
-  (.under [.arm 753 14] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2448 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.lt (.num 109) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2449 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2450 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.lt (.num 55) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2451 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2452 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2453 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2454 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2455 : CoreMode.CRes :=
-  (.under [.arm 753 15] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2456 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2457 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2458 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2459 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2460 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2461 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2462 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2463 : CoreMode.CRes :=
-  (.under [.arm 753 16] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2464 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.lt (.num 129) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2465 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2466 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.lt (.num 65) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2467 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2468 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2469 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2470 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2471 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2472 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2473 : CoreMode.CRes :=
-  (.under [.arm 753 17] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2474 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.lt (.num 133) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2475 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2476 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.lt (.num 67) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2477 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2478 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2479 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2480 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2481 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2482 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2483 : CoreMode.CRes :=
-  (.under [.arm 753 18] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2484 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.lt (.num 141) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2485 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2486 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.lt (.num 71) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2487 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2488 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2489 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2490 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2491 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2492 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2493 : CoreMode.CRes :=
-  (.under [.arm 753 19] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2494 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2495 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2496 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2497 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2498 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2499 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2500 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2501 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2502 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2503 : CoreMode.CRes :=
-  (.under [.arm 753 20] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2504 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.lt (.num 161) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2505 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2506 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.lt (.num 81) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2507 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2508 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2509 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2510 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2511 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2512 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2513 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2514 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2515 : CoreMode.CRes :=
-  (.under [.arm 753 21] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2516 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.lt (.num 165) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2517 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2518 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.lt (.num 83) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2519 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2520 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2521 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2522 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2523 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2524 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2525 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2526 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2527 : CoreMode.CRes :=
-  (.under [.arm 753 22] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2528 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.lt (.num 173) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2529 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2530 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.lt (.num 87) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2531 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2532 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2533 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2534 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2535 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2536 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2537 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2538 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2539 : CoreMode.CRes :=
-  (.under [.arm 753 23] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2540 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2541 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2542 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2543 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2544 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2545 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2546 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2547 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2548 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2549 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2550 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2551 : CoreMode.CRes :=
-  (.under [.arm 753 24] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2552 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.lt (.num 193) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2553 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2554 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.lt (.num 97) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2555 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2556 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2557 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2558 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2559 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2560 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2561 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2562 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2563 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2564 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2565 : CoreMode.CRes :=
-  (.under [.arm 753 25] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2566 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.lt (.num 197) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2567 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2568 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.lt (.num 99) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2569 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2570 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2571 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2572 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2573 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2574 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2575 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2576 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2577 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2578 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2579 : CoreMode.CRes :=
-  (.under [.arm 753 26] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2580 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.lt (.num 205) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2581 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2582 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.lt (.num 103) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2583 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2584 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2585 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2586 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2587 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2588 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2589 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2590 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2591 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2592 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2593 : CoreMode.CRes :=
-  (.under [.arm 753 27] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2594 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2595 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2596 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2597 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2598 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2599 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2600 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2601 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2602 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2603 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2604 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2605 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2606 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2607 : CoreMode.CRes :=
-  (.under [.arm 753 28] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2608 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.lt (.num 225) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2609 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2610 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.lt (.num 113) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2611 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2612 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2613 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2614 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2615 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2616 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2617 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2618 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2619 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2620 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2621 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2622 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2623 : CoreMode.CRes :=
-  (.under [.arm 753 29] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2624 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.lt (.num 229) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2625 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2626 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.lt (.num 115) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2627 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2628 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2629 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2630 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2631 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2632 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2633 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2634 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2635 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2636 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2637 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2638 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2639 : CoreMode.CRes :=
-  (.under [.arm 753 30] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2640 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.lt (.num 237) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2641 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2642 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.lt (.num 119) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2643 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2644 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2645 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2646 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2647 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2648 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2649 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2650 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2651 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2652 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2653 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2654 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2655 : CoreMode.CRes :=
-  (.under [.arm 753 31] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2656 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2657 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2658 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2659 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2660 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2661 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2662 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2663 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2664 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2665 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2666 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2667 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2668 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2669 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2670 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(702, 1)], 1390⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2671 : CoreMode.CRes :=
-  (.under [.arm 753 32] (.subR ⟨⟨[(703, 1)], 688⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2672 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.lt (.num 257) (.mono ⟨[(752, 8)], 0⟩)))
-
-noncomputable def cxRSv2673 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1166⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2674 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.lt (.num 129) (.mono ⟨[(752, 4)], 0⟩)))
-
-noncomputable def cxRSv2675 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2676 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1198⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2677 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 592⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2678 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1230⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2679 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 608⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2680 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1262⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2681 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 624⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2682 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1294⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2683 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 640⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2684 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1326⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2685 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 656⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
-
-noncomputable def cxRSv2686 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(702, 1)], 1358⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(702, 1)], 1152⟩, 1, (.num 0), (.mono
-    ⟨[(752, 8)], 0⟩)⟩))
-
-noncomputable def cxRSv2687 : CoreMode.CRes :=
-  (.under [.arm 753 33] (.subR ⟨⟨[(703, 1)], 672⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(703, 1)], 576⟩, 1, (.num 0), (.mono
-    ⟨[(752, 4)], 0⟩)⟩))
+noncomputable def cxRStr3066 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 13) (.val
+    9)))) .nil .nil) (.node (some cxRSv2540) .nil .nil)) (.node (some cxRSv271) (.node (some cxRSv1516) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    12) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv759) (.node (some cxRSv2028) .nil .nil) .nil)))
+
+noncomputable def cxRStr3067 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2796) .nil .nil)) (.node (some cxRSv513) (.node (some cxRSv1772) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 23) (.val 9)))) (.node (some cxRSv1260) .nil .nil) .nil) (.node (some cxRSv1005) (.node (some cxRSv2284)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3068 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2668) .nil .nil)) (.node (some cxRSv391) (.node (some cxRSv1644) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 5) (.val 9)))) (.node (some cxRSv1132) .nil .nil) .nil) (.node (some (.under [.arm 795 30] (.lt (.val 27)
+    (.val 9)))) (.node (some cxRSv2156) .nil .nil) .nil)))
+
+noncomputable def cxRStr3069 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 21)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2924) .nil .nil)) (.node (some cxRSv635) (.node (some cxRSv1900) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 6) (.val 9)))) (.node (some cxRSv153) (.node (some
+    cxRSv1388) .nil .nil) .nil) (.node (some (.under [.arm 27 3] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2412)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3070 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2604) .nil .nil)) (.node (some cxRSv331) (.node (some cxRSv1580) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 13) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv821) (.node (some cxRSv2092) .nil .nil) .nil)))
+
+noncomputable def cxRStr3071 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 33 5] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 18)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2860) .nil .nil)) (.node (some cxRSv575) (.node (some cxRSv1836) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 22) (.val 9)))) (.node (some cxRSv97) (.node (some
+    cxRSv1324) .nil .nil) .nil) (.node (some cxRSv1067) (.node (some cxRSv2348) .nil .nil) .nil)))
+
+noncomputable def cxRStr3072 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2732) .nil .nil)) (.node (some cxRSv451) (.node (some cxRSv1708) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 16) (.val 9)))) (.node (some cxRSv1196) .nil .nil) .nil) (.node (some cxRSv943) (.node (some cxRSv2220) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3073 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 3] (.lt (.num 2)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv697) (.node (some cxRSv1964) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 14] (.lt (.num 0) (.val 9)))) (.node (some cxRSv211) (.node (some cxRSv1452) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2476) .nil .nil) .nil)))
+
+noncomputable def cxRStr3074 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 13) (.val 9)))) cxRStr3066 cxRStr3067) (.node (some (.under [.arm 28
+    27] (.lt (.num 0) (.val 9)))) cxRStr3068 cxRStr3069)) (.node (some (.under [.arm 28 18] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 11) (.val 9)))) cxRStr3070 cxRStr3071) (.node (some (.under [.arm 28
+    29] (.lt (.num 9) (.val 9)))) cxRStr3072 cxRStr3073)))
+
+noncomputable def cxRStr3075 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2572) .nil .nil)) (.node (some cxRSv301) (.node (some cxRSv1548) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 3) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv789) (.node (some cxRSv2060) .nil .nil) .nil)))
+
+noncomputable def cxRStr3076 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 24) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2828) .nil .nil)) (.node (some cxRSv543) (.node (some cxRSv1804) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 795 3] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1292) .nil .nil) .nil) (.node (some cxRSv1037) (.node (some cxRSv2316)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3077 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2700) .nil .nil)) (.node (some cxRSv421) (.node (some cxRSv1676) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 11) (.val 9)))) (.node (some cxRSv1164) .nil .nil) .nil) (.node (some cxRSv913) (.node (some cxRSv2188) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3078 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 21)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2956) .nil .nil)) (.node (some cxRSv667) (.node (some cxRSv1932) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 4) (.val 9)))) (.node (some cxRSv181) (.node (some
+    cxRSv1420) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2444)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3079 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2636) .nil .nil)) (.node (some cxRSv361) (.node (some cxRSv1612) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 22) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv851) (.node (some cxRSv2124) .nil .nil) .nil)))
+
+noncomputable def cxRStr3080 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 20)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2892) .nil .nil)) (.node (some cxRSv605) (.node (some cxRSv1868) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 25) (.val 9)))) (.node (some cxRSv125) (.node (some
+    cxRSv1356) .nil .nil) .nil) (.node (some cxRSv1099) (.node (some cxRSv2380) .nil .nil) .nil)))
+
+noncomputable def cxRStr3081 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2764) .nil .nil)) (.node (some cxRSv483) (.node (some cxRSv1740) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 20) (.val 9)))) (.node (some cxRSv1228) .nil .nil) .nil) (.node (some cxRSv975) (.node (some cxRSv2252) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3082 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 33 18] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 1)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv727) (.node (some cxRSv1996) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 16] (.lt (.num 3) (.val 9)))) (.node (some cxRSv241) (.node (some cxRSv1484) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 14] (.lt (.num 10) (.val 9)))) (.node (some cxRSv2508) .nil .nil) .nil)))
+
+noncomputable def cxRStr3083 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 2) (.val 9)))) cxRStr3075 cxRStr3076) (.node (some (.under
+    [.arm 28 28] (.lt (.num 5) (.val 9)))) cxRStr3077 cxRStr3078)) (.node (some (.under [.arm 28 20] (.lt (.num 1)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 19) (.val 9)))) cxRStr3079 cxRStr3080) (.node (some
+    (.under [.arm 28 30] (.lt (.num 12) (.val 9)))) cxRStr3081 cxRStr3082)))
+
+noncomputable def cxRStr3084 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 4] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 5) (.val
+    9)))) .nil .nil) (.node (some cxRSv2532) .nil .nil)) (.node (some cxRSv263) (.node (some cxRSv1508) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 4)
+    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv751)
+    (.node (some cxRSv2020) .nil .nil) .nil)))
+
+noncomputable def cxRStr3085 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2788) .nil .nil)) (.node (some cxRSv505) (.node (some cxRSv1764) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 15) (.val 9)))) (.node (some cxRSv1252) .nil .nil) .nil) (.node (some cxRSv999) (.node (some cxRSv2276) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3086 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2660) .nil .nil)) (.node (some cxRSv383) (.node (some cxRSv1636) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 22) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 18) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv875) (.node (some cxRSv2148) .nil .nil) .nil)))
+
+noncomputable def cxRStr3087 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2916) .nil .nil)) (.node (some cxRSv627) (.node (some cxRSv1892) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 4) (.val 9)))) (.node (some cxRSv145) (.node (some
+    cxRSv1380) .nil .nil) .nil) (.node (some cxRSv1123) (.node (some cxRSv2404) .nil .nil) .nil)))
+
+noncomputable def cxRStr3088 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 18)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2596) .nil .nil)) (.node (some cxRSv323) (.node (some cxRSv1572) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv813) (.node (some cxRSv2084) .nil .nil) .nil)))
+
+noncomputable def cxRStr3089 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 33 2] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2852) .nil .nil)) (.node (some cxRSv567) (.node (some cxRSv1828) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 795 6] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1316) .nil .nil) .nil) (.node (some cxRSv1061) (.node (some cxRSv2340)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3090 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2724) .nil .nil)) (.node (some cxRSv445) (.node (some cxRSv1700) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 8) (.val 9)))) (.node (some cxRSv1188) .nil .nil) .nil) (.node (some cxRSv937) (.node (some cxRSv2212) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3091 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 823 13] (.lt (.num
+    31) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv689) (.node (some cxRSv1956) .nil .nil) .nil)) (.node (some
+    (.under [.arm 32 13] (.lt (.num 5) (.val 9)))) (.node (some cxRSv203) (.node (some cxRSv1444) .nil .nil) .nil)
+    (.node (some (.under [.arm 27 11] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2468) .nil .nil) .nil)))
+
+noncomputable def cxRStr3092 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 7] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 5) (.val 9)))) cxRStr3084 cxRStr3085) (.node (some (.under [.arm 28
+    26] (.lt (.num 18) (.val 9)))) cxRStr3086 cxRStr3087)) (.node (some (.under [.arm 28 17] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 3) (.val 9)))) cxRStr3088 cxRStr3089) (.node (some (.under
+    [.arm 28 29] (.lt (.num 1) (.val 9)))) cxRStr3090 cxRStr3091)))
+
+noncomputable def cxRStr3093 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 4) (.val
+    9)))) .nil .nil) (.node (some cxRSv2564) .nil .nil)) (.node (some cxRSv293) (.node (some cxRSv1540) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    16) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv781) (.node (some cxRSv2052) .nil .nil) .nil)))
+
+noncomputable def cxRStr3094 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2820) .nil .nil)) (.node (some cxRSv535) (.node (some cxRSv1796) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 10) (.val 9)))) (.node (some cxRSv69) (.node (some
+    cxRSv1284) .nil .nil) .nil) (.node (some cxRSv1029) (.node (some cxRSv2308) .nil .nil) .nil)))
+
+noncomputable def cxRStr3095 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2692) .nil .nil)) (.node (some cxRSv413) (.node (some cxRSv1668) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 3) (.val 9)))) (.node (some cxRSv1156) .nil .nil) .nil) (.node (some cxRSv905) (.node (some cxRSv2180) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3096 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 31 3] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2948) .nil .nil)) (.node (some cxRSv659) (.node (some cxRSv1924) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 6) (.val 9)))) (.node (some cxRSv175) (.node (some
+    cxRSv1412) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2436)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3097 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    11) (.val 9)))) .nil .nil) (.node (some cxRSv2628) .nil .nil)) (.node (some cxRSv353) (.node (some cxRSv1604) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv843) (.node (some cxRSv2116) .nil .nil) .nil)))
+
+noncomputable def cxRStr3098 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 27) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2884) .nil .nil)) (.node (some cxRSv597) (.node (some cxRSv1860) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 17) (.val 9)))) (.node (some cxRSv117) (.node (some
+    cxRSv1348) .nil .nil) .nil) (.node (some cxRSv1091) (.node (some cxRSv2372) .nil .nil) .nil)))
+
+noncomputable def cxRStr3099 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2756) .nil .nil)) (.node (some cxRSv475) (.node (some cxRSv1732) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 12) (.val 9)))) (.node (some cxRSv1220) .nil .nil) .nil) (.node (some cxRSv967) (.node (some cxRSv2244) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3100 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 7] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 1) (.val
+    9)))) .nil .nil) .nil) (.node (some (.under [.arm 795 27] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1988) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 15] (.lt (.num 10) (.val 9)))) (.node (some cxRSv233) (.node (some
+    cxRSv1476) .nil .nil) .nil) (.node (some (.under [.arm 27 14] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2500)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3101 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 16) (.val 9)))) cxRStr3093 cxRStr3094) (.node (some (.under
+    [.arm 28 27] (.lt (.num 24) (.val 9)))) cxRStr3095 cxRStr3096)) (.node (some (.under [.arm 28 19] (.lt (.num 12)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 11) (.val 9)))) cxRStr3097 cxRStr3098) (.node (some
+    (.under [.arm 28 30] (.lt (.num 4) (.val 9)))) cxRStr3099 cxRStr3100)))
+
+noncomputable def cxRStr3102 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 7] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 5) (.val
+    9)))) .nil .nil) (.node (some cxRSv2548) .nil .nil)) (.node (some cxRSv279) (.node (some cxRSv1524) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    0) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv767) (.node (some cxRSv2036) .nil .nil) .nil)))
+
+noncomputable def cxRStr3103 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2804) .nil .nil)) (.node (some cxRSv521) (.node (some cxRSv1780) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 21) (.val 9)))) (.node (some cxRSv53) (.node (some
+    cxRSv1268) .nil .nil) .nil) (.node (some cxRSv1013) (.node (some cxRSv2292) .nil .nil) .nil)))
+
+noncomputable def cxRStr3104 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2676) .nil .nil)) (.node (some cxRSv399) (.node (some cxRSv1652) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 13) (.val 9)))) (.node (some cxRSv1140) .nil .nil) .nil) (.node (some cxRSv889) (.node (some cxRSv2164) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3105 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 29)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2932) .nil .nil)) (.node (some cxRSv643) (.node (some cxRSv1908) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 795 11] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1396) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 3)
+    (.val 9)))) (.node (some cxRSv2420) .nil .nil) .nil)))
+
+noncomputable def cxRStr3106 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2612) .nil .nil)) (.node (some cxRSv339) (.node (some cxRSv1588) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv827) (.node (some cxRSv2100) .nil .nil) .nil)))
+
+noncomputable def cxRStr3107 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 26)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2868) .nil .nil)) (.node (some cxRSv581) (.node (some cxRSv1844) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 1) (.val 9)))) (.node (some cxRSv103) (.node (some
+    cxRSv1332) .nil .nil) .nil) (.node (some cxRSv1075) (.node (some cxRSv2356) .nil .nil) .nil)))
+
+noncomputable def cxRStr3108 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2740) .nil .nil)) (.node (some cxRSv459) (.node (some cxRSv1716) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 24) (.val 9)))) (.node (some cxRSv1204) .nil .nil) .nil) (.node (some cxRSv951) (.node (some cxRSv2228) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3109 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 3] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 3) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv705) (.node (some cxRSv1972) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 8) (.val 9)))) (.node (some cxRSv219) (.node (some cxRSv1460) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 12] (.lt (.num 11) (.val 9)))) (.node (some cxRSv2484) .nil .nil) .nil)))
+
+noncomputable def cxRStr3110 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 0) (.val 9)))) cxRStr3102 cxRStr3103) (.node (some (.under
+    [.arm 28 27] (.lt (.num 8) (.val 9)))) cxRStr3104 cxRStr3105)) (.node (some (.under [.arm 28 18] (.lt (.num 14)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 19) (.val 9)))) cxRStr3106 cxRStr3107) (.node (some
+    (.under [.arm 28 29] (.lt (.num 17) (.val 9)))) cxRStr3108 cxRStr3109)))
+
+noncomputable def cxRStr3111 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2580) .nil .nil)) (.node (some cxRSv309) (.node (some cxRSv1556) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 11) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv797) (.node (some cxRSv2068) .nil .nil) .nil)))
+
+noncomputable def cxRStr3112 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    23) (.val 9)))) .nil .nil) (.node (some cxRSv2836) .nil .nil)) (.node (some cxRSv551) (.node (some cxRSv1812) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 26) (.val 9)))) (.node (some cxRSv77) (.node (some
+    cxRSv1300) .nil .nil) .nil) (.node (some cxRSv1045) (.node (some cxRSv2324) .nil .nil) .nil)))
+
+noncomputable def cxRStr3113 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2708) .nil .nil)) (.node (some cxRSv429) (.node (some cxRSv1684) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 19) (.val 9)))) (.node (some cxRSv1172) .nil .nil) .nil) (.node (some cxRSv921) (.node (some cxRSv2196) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3114 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 27 33] (.lt (.num 29) (.val 9)))) .nil .nil) (.node (some (.lt (.val 2932) (.val
+    2545))) .nil .nil)) (.node (some cxRSv673) (.node (some cxRSv1940) .nil .nil) .nil))
+
+noncomputable def cxRStr3115 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 28] (.lt (.num 13) (.val 9)))) cxRStr3113 (.node (some (.under [.arm 29 30] (.lt (.num
+    3) (.val 9)))) cxRStr3114 (.node (some (.under [.arm 32 12] (.lt (.num 1) (.val 9)))) (.node (some cxRSv189)
+    (.node (some cxRSv1428) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 0) (.val 9)))) (.node (some
+    cxRSv2452) .nil .nil) .nil))))
+
+noncomputable def cxRStr3116 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2644) .nil .nil)) (.node (some cxRSv369) (.node (some cxRSv1620) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 6) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv859) (.node (some cxRSv2132) .nil .nil) .nil)))
+
+noncomputable def cxRStr3117 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 28)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2900) .nil .nil)) (.node (some cxRSv613) (.node (some cxRSv1876) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 3] (.lt (.num 0) (.val 9)))) (.node (some cxRSv131) (.node (some
+    cxRSv1364) .nil .nil) .nil) (.node (some cxRSv1107) (.node (some cxRSv2388) .nil .nil) .nil)))
+
+noncomputable def cxRStr3118 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 24] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 32 28] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 27 27] (.lt (.num 14) (.val 9)))) .nil .nil) (.node (some cxRSv2772) .nil .nil))
+    (.node (some (.under [.arm 795 22] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1748) .nil .nil) .nil))
+
+noncomputable def cxRStr3119 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 9] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 0) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv735) (.node (some cxRSv2004) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 11) (.val 9)))) (.node (some cxRSv249) (.node (some cxRSv1492) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2516) .nil .nil) .nil)))
+
+noncomputable def cxRStr3120 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 29 22] (.lt (.num 15) (.val
+    9)))) cxRStr3118 (.node (some (.under [.arm 31 26] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 29]
+    (.lt (.num 28) (.val 9)))) (.node (some cxRSv1236) .nil .nil) .nil) (.node (some cxRSv983) (.node (some cxRSv2260)
+    .nil .nil) .nil))) cxRStr3119)
+
+noncomputable def cxRStr3121 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 10) (.val 9)))) cxRStr3111 cxRStr3112) cxRStr3115) (.node (some
+    (.under [.arm 28 20] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 2) (.val 9))))
+    cxRStr3116 cxRStr3117) cxRStr3120))
+
+noncomputable def cxRStr3122 : Trie CoreMode.CRes :=
+  (.node (some cxRSv3) (.node (some cxRSv7) (.node (some cxRSv15) (.node (some cxRSv31) cxRStr2979 cxRStr2989) (.node
+    (some cxRSv47) cxRStr2998 cxRStr3007)) (.node (some cxRSv23) (.node (some cxRSv39) cxRStr3016 cxRStr3026) (.node
+    (some (.under [.arm 28 3] (.lt (.num 0) (.val 9)))) cxRStr3035 cxRStr3045))) (.node (some cxRSv11) (.node (some
+    cxRSv19) (.node (some cxRSv35) cxRStr3056 cxRStr3065) (.node (some cxRSv51) cxRStr3074 cxRStr3083)) (.node (some
+    cxRSv27) (.node (some cxRSv43) cxRStr3092 cxRStr3101) (.node (some (.under [.arm 28 4] (.lt (.num 1) (.val 9))))
+    cxRStr3110 cxRStr3121))))
+
+noncomputable def cxRStr3123 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 30 9] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2522) .nil .nil)) (.node (some cxRSv253) (.node (some cxRSv1498) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 13] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
+    (.num 13) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv741) (.node (some cxRSv2010) .nil .nil) .nil)))
+
+noncomputable def cxRStr3124 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 23) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2778) .nil .nil)) (.node (some cxRSv495) (.node (some cxRSv1754) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 5) (.val 9)))) (.node (some cxRSv1242) .nil .nil) .nil) (.node (some cxRSv989) (.node (some cxRSv2266) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3125 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2650) .nil .nil)) (.node (some cxRSv375) (.node (some cxRSv1626) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv865) (.node (some cxRSv2138) .nil .nil) .nil)))
+
+noncomputable def cxRStr3126 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 21) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2906) .nil .nil)) (.node (some cxRSv619) (.node (some cxRSv1882) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 4] (.lt (.num 3) (.val 9)))) (.node (some cxRSv137) (.node (some
+    cxRSv1370) .nil .nil) .nil) (.node (some cxRSv1113) (.node (some cxRSv2394) .nil .nil) .nil)))
+
+noncomputable def cxRStr3127 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2586) .nil .nil)) (.node (some cxRSv313) (.node (some cxRSv1562) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 17) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv803) (.node (some cxRSv2074) .nil .nil) .nil)))
+
+noncomputable def cxRStr3128 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2842) .nil .nil)) (.node (some cxRSv557) (.node (some cxRSv1818) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 795 5] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1306) .nil .nil) .nil) (.node (some cxRSv1051) (.node (some cxRSv2330)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3129 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2714) .nil .nil)) (.node (some cxRSv435) (.node (some cxRSv1690) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 25) (.val 9)))) (.node (some cxRSv1178) .nil .nil) .nil) (.node (some cxRSv927) (.node (some cxRSv2202) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3130 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 7] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 16] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 823 3] (.lt (.num 21) (.val 9)))) .nil .nil) (.node (some (.lt (.val 3692) (.val
+    2545))) .nil .nil)) (.node (some cxRSv679) (.node (some cxRSv1946) .nil .nil) .nil))
+
+noncomputable def cxRStr3131 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 28] (.lt (.num 19) (.val 9)))) cxRStr3129 (.node (some (.under [.arm 29 30] (.lt (.num
+    9) (.val 9)))) cxRStr3130 (.node (some (.under [.arm 32 12] (.lt (.num 7) (.val 9)))) (.node (some cxRSv195)
+    (.node (some cxRSv1434) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 6) (.val 9)))) (.node (some
+    cxRSv2458) .nil .nil) .nil))))
+
+noncomputable def cxRStr3132 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 5] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 12] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 28 20] (.lt (.num 15) (.val 9)))) cxRStr3123 cxRStr3124) (.node (some (.under
+    [.arm 28 26] (.lt (.num 8) (.val 9)))) cxRStr3125 cxRStr3126)) (.node (some (.under [.arm 28 17] (.lt (.num 5)
+    (.val 9)))) (.node (some (.under [.arm 28 23] (.lt (.num 16) (.val 9)))) cxRStr3127 cxRStr3128) cxRStr3131))
+
+noncomputable def cxRStr3133 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 16] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 822 13] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
+    28] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2042) .nil .nil) .nil))
+
+noncomputable def cxRStr3134 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2554) .nil .nil)) (.node (some cxRSv283) (.node (some cxRSv1530) .nil
+    .nil) .nil)) cxRStr3133)
+
+noncomputable def cxRStr3135 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    25) (.val 9)))) .nil .nil) (.node (some cxRSv2810) .nil .nil)) (.node (some cxRSv527) (.node (some cxRSv1786) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 0) (.val 9)))) (.node (some cxRSv59) (.node (some
+    cxRSv1274) .nil .nil) .nil) (.node (some cxRSv1019) (.node (some cxRSv2298) .nil .nil) .nil)))
+
+noncomputable def cxRStr3136 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    22) (.val 9)))) .nil .nil) (.node (some cxRSv2682) .nil .nil)) (.node (some cxRSv405) (.node (some cxRSv1658) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 19) (.val 9)))) (.node (some cxRSv1146) .nil .nil) .nil) (.node (some cxRSv895) (.node (some cxRSv2170) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3137 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 24) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2938) .nil .nil)) (.node (some cxRSv649) (.node (some cxRSv1914) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 5) (.val 9)))) (.node (some cxRSv165) (.node (some
+    cxRSv1402) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2426)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3138 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2618) .nil .nil)) (.node (some cxRSv343) (.node (some cxRSv1594) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv833) (.node (some cxRSv2106) .nil .nil) .nil)))
+
+noncomputable def cxRStr3139 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2874) .nil .nil)) (.node (some cxRSv587) (.node (some cxRSv1850) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 7) (.val 9)))) (.node (some cxRSv109) (.node (some
+    cxRSv1338) .nil .nil) .nil) (.node (some cxRSv1081) (.node (some cxRSv2362) .nil .nil) .nil)))
+
+noncomputable def cxRStr3140 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2746) .nil .nil)) (.node (some cxRSv465) (.node (some cxRSv1722) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 2) (.val 9)))) (.node (some cxRSv1210) .nil .nil) .nil) (.node (some cxRSv957) (.node (some cxRSv2234) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3141 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 5] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 4) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv711) (.node (some cxRSv1978) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 0) (.val 9)))) (.node (some cxRSv225) (.node (some cxRSv1466) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2490) .nil .nil) .nil)))
+
+noncomputable def cxRStr3142 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 6) (.val 9)))) cxRStr3134 cxRStr3135) (.node (some (.under
+    [.arm 28 27] (.lt (.num 14) (.val 9)))) cxRStr3136 cxRStr3137)) (.node (some (.under [.arm 28 19] (.lt (.num 2)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 1) (.val 9)))) cxRStr3138 cxRStr3139) (.node (some
+    (.under [.arm 28 29] (.lt (.num 23) (.val 9)))) cxRStr3140 cxRStr3141)))
+
+noncomputable def cxRStr3143 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 5] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 11) (.val
+    9)))) .nil .nil) (.node (some cxRSv2538) .nil .nil)) (.node (some cxRSv269) (.node (some cxRSv1514) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    10) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv757) (.node (some cxRSv2026) .nil .nil) .nil)))
+
+noncomputable def cxRStr3144 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2794) .nil .nil)) (.node (some cxRSv511) (.node (some cxRSv1770) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 21) (.val 9)))) (.node (some cxRSv1258) .nil .nil) .nil) (.node (some cxRSv1003) (.node (some cxRSv2282)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3145 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2666) .nil .nil)) (.node (some cxRSv389) (.node (some cxRSv1642) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 3) (.val 9)))) (.node (some cxRSv1130) .nil .nil) .nil) (.node (some cxRSv881) (.node (some cxRSv2154) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3146 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 19)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2922) .nil .nil)) (.node (some cxRSv633) (.node (some cxRSv1898) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 4) (.val 9)))) (.node (some cxRSv151) (.node (some
+    cxRSv1386) .nil .nil) .nil) (.node (some (.under [.arm 27 3] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2410)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3147 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2602) .nil .nil)) (.node (some cxRSv329) (.node (some cxRSv1578) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 11) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv819) (.node (some cxRSv2090) .nil .nil) .nil)))
+
+noncomputable def cxRStr3148 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 4] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 16)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2858) .nil .nil)) (.node (some cxRSv573) (.node (some cxRSv1834) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 20) (.val 9)))) (.node (some cxRSv95) (.node (some
+    cxRSv1322) .nil .nil) .nil) (.node (some cxRSv1065) (.node (some cxRSv2346) .nil .nil) .nil)))
+
+noncomputable def cxRStr3149 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 22] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 32 26] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 27 25] (.lt (.num 23) (.val 9)))) .nil .nil) (.node (some cxRSv2730) .nil .nil))
+    (.node (some (.under [.arm 795 21] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1706) .nil .nil) .nil))
+
+noncomputable def cxRStr3150 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 822 3] (.lt (.num 0)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv695) (.node (some cxRSv1962) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 13] (.lt (.num 11) (.val 9)))) (.node (some cxRSv209) (.node (some cxRSv1450) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2474) .nil .nil) .nil)))
+
+noncomputable def cxRStr3151 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 29] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 29 20] (.lt (.num 14) (.val
+    9)))) cxRStr3149 (.node (some (.under [.arm 31 24] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 33 28]
+    (.lt (.num 14) (.val 9)))) (.node (some cxRSv1194) .nil .nil) .nil) (.node (some cxRSv941) (.node (some cxRSv2218)
+    .nil .nil) .nil))) cxRStr3150)
+
+noncomputable def cxRStr3152 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 11) (.val 9)))) cxRStr3143 cxRStr3144) (.node (some (.under [.arm 28
+    26] (.lt (.num 24) (.val 9)))) cxRStr3145 cxRStr3146)) (.node (some (.under [.arm 28 18] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 9) (.val 9)))) cxRStr3147 cxRStr3148) cxRStr3151))
+
+noncomputable def cxRStr3153 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2570) .nil .nil)) (.node (some cxRSv299) (.node (some cxRSv1546) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 1) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv787) (.node (some cxRSv2058) .nil .nil) .nil)))
+
+noncomputable def cxRStr3154 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2826) .nil .nil)) (.node (some cxRSv541) (.node (some cxRSv1802) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 16) (.val 9)))) (.node (some cxRSv71) (.node (some
+    cxRSv1290) .nil .nil) .nil) (.node (some cxRSv1035) (.node (some cxRSv2314) .nil .nil) .nil)))
+
+noncomputable def cxRStr3155 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2698) .nil .nil)) (.node (some cxRSv419) (.node (some cxRSv1674) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 9) (.val 9)))) (.node (some cxRSv1162) .nil .nil) .nil) (.node (some cxRSv911) (.node (some cxRSv2186) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3156 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2954) .nil .nil)) (.node (some cxRSv665) (.node (some cxRSv1930) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 795 12] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1418) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 7)
+    (.val 9)))) (.node (some cxRSv2442) .nil .nil) .nil)))
+
+noncomputable def cxRStr3157 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2634) .nil .nil)) (.node (some cxRSv359) (.node (some cxRSv1610) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 20) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv849) (.node (some cxRSv2122) .nil .nil) .nil)))
+
+noncomputable def cxRStr3158 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 18)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2890) .nil .nil)) (.node (some cxRSv603) (.node (some cxRSv1866) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 23) (.val 9)))) (.node (some cxRSv123) (.node (some
+    cxRSv1354) .nil .nil) .nil) (.node (some cxRSv1097) (.node (some cxRSv2378) .nil .nil) .nil)))
+
+noncomputable def cxRStr3159 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2762) .nil .nil)) (.node (some cxRSv481) (.node (some cxRSv1738) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 18) (.val 9)))) (.node (some cxRSv1226) .nil .nil) .nil) (.node (some cxRSv973) (.node (some cxRSv2250) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3160 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 7] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 7) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv725) (.node (some cxRSv1994) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 1) (.val 9)))) (.node (some cxRSv239) (.node (some cxRSv1482) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2506) .nil .nil) .nil)))
+
+noncomputable def cxRStr3161 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 0) (.val 9)))) cxRStr3153 cxRStr3154) (.node (some (.under
+    [.arm 28 28] (.lt (.num 3) (.val 9)))) cxRStr3155 cxRStr3156)) (.node (some (.under [.arm 28 19] (.lt (.num 18)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 17) (.val 9)))) cxRStr3157 cxRStr3158) (.node (some
+    (.under [.arm 28 30] (.lt (.num 10) (.val 9)))) cxRStr3159 cxRStr3160)))
+
+noncomputable def cxRStr3162 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 3] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 3) (.val
+    9)))) .nil .nil) (.node (some cxRSv2530) .nil .nil)) (.node (some cxRSv261) (.node (some cxRSv1506) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 2)
+    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv749)
+    (.node (some cxRSv2018) .nil .nil) .nil)))
+
+noncomputable def cxRStr3163 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2786) .nil .nil)) (.node (some cxRSv503) (.node (some cxRSv1762) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 13) (.val 9)))) (.node (some cxRSv1250) .nil .nil) .nil) (.node (some cxRSv997) (.node (some cxRSv2274) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3164 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2658) .nil .nil)) (.node (some cxRSv381) (.node (some cxRSv1634) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 20) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 16) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv873) (.node (some cxRSv2146) .nil .nil) .nil)))
+
+noncomputable def cxRStr3165 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2914) .nil .nil)) (.node (some cxRSv625) (.node (some cxRSv1890) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 2) (.val 9)))) (.node (some cxRSv143) (.node (some
+    cxRSv1378) .nil .nil) .nil) (.node (some cxRSv1121) (.node (some cxRSv2402) .nil .nil) .nil)))
+
+noncomputable def cxRStr3166 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2594) .nil .nil)) (.node (some cxRSv321) (.node (some cxRSv1570) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 3) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv811) (.node (some cxRSv2082) .nil .nil) .nil)))
+
+noncomputable def cxRStr3167 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 33 1] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2850) .nil .nil)) (.node (some cxRSv565) (.node (some cxRSv1826) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 12) (.val 9)))) (.node (some cxRSv89) (.node (some
+    cxRSv1314) .nil .nil) .nil) (.node (some cxRSv1059) (.node (some cxRSv2338) .nil .nil) .nil)))
+
+noncomputable def cxRStr3168 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2722) .nil .nil)) (.node (some cxRSv443) (.node (some cxRSv1698) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 6) (.val 9)))) (.node (some cxRSv1186) .nil .nil) .nil) (.node (some cxRSv935) (.node (some cxRSv2210) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3169 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 823 11] (.lt (.num
+    29) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv687) (.node (some cxRSv1954) .nil .nil) .nil)) (.node (some
+    (.under [.arm 32 13] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 795 13] (.lt (.val 27) (.val 9))))
+    (.node (some cxRSv1442) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 4) (.val 9)))) (.node (some
+    cxRSv2466) .nil .nil) .nil)))
+
+noncomputable def cxRStr3170 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 7] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 3) (.val 9)))) cxRStr3162 cxRStr3163) (.node (some (.under [.arm 28
+    26] (.lt (.num 16) (.val 9)))) cxRStr3164 cxRStr3165)) (.node (some (.under [.arm 28 17] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 1) (.val 9)))) cxRStr3166 cxRStr3167) (.node (some (.under
+    [.arm 28 28] (.lt (.num 27) (.val 9)))) cxRStr3168 cxRStr3169)))
+
+noncomputable def cxRStr3171 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 2) (.val
+    9)))) .nil .nil) (.node (some cxRSv2562) .nil .nil)) (.node (some cxRSv291) (.node (some cxRSv1538) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    14) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv779) (.node (some cxRSv2050) .nil .nil) .nil)))
+
+noncomputable def cxRStr3172 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2818) .nil .nil)) (.node (some cxRSv533) (.node (some cxRSv1794) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 8) (.val 9)))) (.node (some cxRSv67) (.node (some
+    cxRSv1282) .nil .nil) .nil) (.node (some cxRSv1027) (.node (some cxRSv2306) .nil .nil) .nil)))
+
+noncomputable def cxRStr3173 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 32 25] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 27 24] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2690) .nil .nil))
+    (.node (some (.under [.arm 795 20] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1666) .nil .nil) .nil))
+
+noncomputable def cxRStr3174 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 31 2] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2946) .nil .nil)) (.node (some cxRSv657) (.node (some cxRSv1922) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 4) (.val 9)))) (.node (some cxRSv173) (.node (some
+    cxRSv1410) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2434)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3175 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 27] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 29 18] (.lt (.num 11) (.val
+    9)))) cxRStr3173 (.node (some (.under [.arm 31 23] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 27]
+    (.lt (.num 1) (.val 9)))) (.node (some cxRSv1154) .nil .nil) .nil) (.node (some cxRSv903) (.node (some cxRSv2178)
+    .nil .nil) .nil))) cxRStr3174)
+
+noncomputable def cxRStr3176 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2626) .nil .nil)) (.node (some cxRSv351) (.node (some cxRSv1602) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv841) (.node (some cxRSv2114) .nil .nil) .nil)))
+
+noncomputable def cxRStr3177 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 25) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2882) .nil .nil)) (.node (some cxRSv595) (.node (some cxRSv1858) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 15) (.val 9)))) (.node (some cxRSv115) (.node (some
+    cxRSv1346) .nil .nil) .nil) (.node (some cxRSv1089) (.node (some cxRSv2370) .nil .nil) .nil)))
+
+noncomputable def cxRStr3178 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    22) (.val 9)))) .nil .nil) (.node (some cxRSv2754) .nil .nil)) (.node (some cxRSv473) (.node (some cxRSv1730) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 10) (.val 9)))) (.node (some cxRSv1218) .nil .nil) .nil) (.node (some cxRSv965) (.node (some cxRSv2242) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3179 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 6) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv719) (.node (some cxRSv1986) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 8) (.val 9)))) (.node (some cxRSv231) (.node (some cxRSv1474) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2498) .nil .nil) .nil)))
+
+noncomputable def cxRStr3180 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 14) (.val 9)))) cxRStr3171 cxRStr3172) cxRStr3175) (.node (some
+    (.under [.arm 28 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 9) (.val 9))))
+    cxRStr3176 cxRStr3177) (.node (some (.under [.arm 28 30] (.lt (.num 2) (.val 9)))) cxRStr3178 cxRStr3179)))
+
+noncomputable def cxRStr3181 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 3) (.val
+    9)))) .nil .nil) (.node (some cxRSv2546) .nil .nil)) (.node (some cxRSv277) (.node (some cxRSv1522) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    18) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv765) (.node (some cxRSv2034) .nil .nil) .nil)))
+
+noncomputable def cxRStr3182 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 23) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2802) .nil .nil)) (.node (some cxRSv519) (.node (some cxRSv1778) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 29) (.val 9)))) (.node (some cxRSv1266) .nil .nil) .nil) (.node (some cxRSv1011) (.node (some cxRSv2290)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3183 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2674) .nil .nil)) (.node (some cxRSv397) (.node (some cxRSv1650) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 11) (.val 9)))) (.node (some cxRSv1138) .nil .nil) .nil) (.node (some cxRSv887) (.node (some cxRSv2162) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3184 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 27)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2930) .nil .nil)) (.node (some cxRSv641) (.node (some cxRSv1906) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 5) (.val 9)))) (.node (some cxRSv159) (.node (some
+    cxRSv1394) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2418)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3185 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 19] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 822 17] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
+    29] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2098) .nil .nil) .nil))
+
+noncomputable def cxRStr3186 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    13) (.val 9)))) .nil .nil) (.node (some cxRSv2610) .nil .nil)) (.node (some cxRSv337) (.node (some cxRSv1586) .nil
+    .nil) .nil)) cxRStr3185)
+
+noncomputable def cxRStr3187 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 24)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2866) .nil .nil)) (.node (some cxRSv579) (.node (some cxRSv1842) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 28) (.val 9)))) (.node (some cxRSv101) (.node (some
+    cxRSv1330) .nil .nil) .nil) (.node (some cxRSv1073) (.node (some cxRSv2354) .nil .nil) .nil)))
+
+noncomputable def cxRStr3188 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2738) .nil .nil)) (.node (some cxRSv457) (.node (some cxRSv1714) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 22) (.val 9)))) (.node (some cxRSv1202) .nil .nil) .nil) (.node (some cxRSv949) (.node (some cxRSv2226) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3189 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 3] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 1) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv703) (.node (some cxRSv1970) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 6) (.val 9)))) (.node (some cxRSv217) (.node (some cxRSv1458) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 12] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2482) .nil .nil) .nil)))
+
+noncomputable def cxRStr3190 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 19) (.val 9)))) cxRStr3181 cxRStr3182) (.node (some (.under
+    [.arm 28 27] (.lt (.num 6) (.val 9)))) cxRStr3183 cxRStr3184)) (.node (some (.under [.arm 28 18] (.lt (.num 12)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 17) (.val 9)))) cxRStr3186 cxRStr3187) (.node (some
+    (.under [.arm 28 29] (.lt (.num 15) (.val 9)))) cxRStr3188 cxRStr3189)))
+
+noncomputable def cxRStr3191 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2578) .nil .nil)) (.node (some cxRSv307) (.node (some cxRSv1554) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv795) (.node (some cxRSv2066) .nil .nil) .nil)))
+
+noncomputable def cxRStr3192 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2834) .nil .nil)) (.node (some cxRSv549) (.node (some cxRSv1810) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 795 4] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1298) .nil .nil) .nil) (.node (some cxRSv1043) (.node (some cxRSv2322)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3193 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    23) (.val 9)))) .nil .nil) (.node (some cxRSv2706) .nil .nil)) (.node (some cxRSv427) (.node (some cxRSv1682) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 17) (.val 9)))) (.node (some cxRSv1170) .nil .nil) .nil) (.node (some cxRSv919) (.node (some cxRSv2194) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3194 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 27 33] (.lt (.num 27) (.val 9)))) .nil .nil) (.node (some (.lt (.val 2545) (.mono ⟨[(9,
+    1)], 1⟩))) .nil .nil)) (.node (some cxRSv671) (.node (some cxRSv1938) .nil .nil) .nil))
+
+noncomputable def cxRStr3195 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 28] (.lt (.num 11) (.val 9)))) cxRStr3193 (.node (some (.under [.arm 29 30] (.lt (.num
+    1) (.val 9)))) cxRStr3194 (.node (some (.under [.arm 32 11] (.lt (.num 10) (.val 9)))) (.node (some cxRSv187)
+    (.node (some cxRSv1426) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 7) (.val 9)))) (.node (some
+    cxRSv2450) .nil .nil) .nil))))
+
+noncomputable def cxRStr3196 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2642) .nil .nil)) (.node (some cxRSv367) (.node (some cxRSv1618) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv857) (.node (some cxRSv2130) .nil .nil) .nil)))
+
+noncomputable def cxRStr3197 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 26)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2898) .nil .nil)) (.node (some cxRSv611) (.node (some cxRSv1874) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 2] (.lt (.num 0) (.val 9)))) (.node (some cxRSv129) (.node (some
+    cxRSv1362) .nil .nil) .nil) (.node (some cxRSv1105) (.node (some cxRSv2386) .nil .nil) .nil)))
+
+noncomputable def cxRStr3198 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2770) .nil .nil)) (.node (some cxRSv489) (.node (some cxRSv1746) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 26) (.val 9)))) (.node (some cxRSv1234) .nil .nil) .nil) (.node (some cxRSv981) (.node (some cxRSv2258) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3199 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 7) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv733) (.node (some cxRSv2002) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 9) (.val 9)))) (.node (some cxRSv247) (.node (some cxRSv1490) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2514) .nil .nil) .nil)))
+
+noncomputable def cxRStr3200 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 8) (.val 9)))) cxRStr3191 cxRStr3192) cxRStr3195) (.node (some
+    (.under [.arm 28 20] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 0) (.val 9))))
+    cxRStr3196 cxRStr3197) (.node (some (.under [.arm 28 30] (.lt (.num 18) (.val 9)))) cxRStr3198 cxRStr3199)))
+
+noncomputable def cxRStr3201 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 1] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 14) (.val
+    9)))) .nil .nil) (.node (some cxRSv2526) .nil .nil)) (.node (some cxRSv257) (.node (some cxRSv1502) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt (.num
+    17) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv745) (.node (some cxRSv2014) .nil .nil) .nil)))
+
+noncomputable def cxRStr3202 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2782) .nil .nil)) (.node (some cxRSv499) (.node (some cxRSv1758) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 9) (.val 9)))) (.node (some cxRSv1246) .nil .nil) .nil) (.node (some cxRSv993) (.node (some cxRSv2270) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3203 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2654) .nil .nil)) (.node (some cxRSv377) (.node (some cxRSv1630) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv869) (.node (some cxRSv2142) .nil .nil) .nil)))
+
+noncomputable def cxRStr3204 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 29] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 33 11] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 27 32] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2910) .nil .nil))
+    (.node (some (.under [.arm 795 25] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1886) .nil .nil) .nil))
+
+noncomputable def cxRStr3205 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 26] (.lt (.num 12) (.val 9)))) cxRStr3203 (.node (some (.under [.arm 29 28] (.lt (.num
+    6) (.val 9)))) cxRStr3204 (.node (some (.under [.arm 32 5] (.lt (.num 3) (.val 9)))) (.node (some cxRSv141) (.node
+    (some cxRSv1374) .nil .nil) .nil) (.node (some cxRSv1117) (.node (some cxRSv2398) .nil .nil) .nil))))
+
+noncomputable def cxRStr3206 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2590) .nil .nil)) (.node (some cxRSv317) (.node (some cxRSv1566) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv807) (.node (some cxRSv2078) .nil .nil) .nil)))
+
+noncomputable def cxRStr3207 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2846) .nil .nil)) (.node (some cxRSv561) (.node (some cxRSv1822) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 8) (.val 9)))) (.node (some cxRSv85) (.node (some
+    cxRSv1310) .nil .nil) .nil) (.node (some cxRSv1055) (.node (some cxRSv2334) .nil .nil) .nil)))
+
+noncomputable def cxRStr3208 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2718) .nil .nil)) (.node (some cxRSv439) (.node (some cxRSv1694) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 2) (.val 9)))) (.node (some cxRSv1182) .nil .nil) .nil) (.node (some cxRSv931) (.node (some cxRSv2206) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3209 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 8] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 16] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 823 7] (.lt (.num 25) (.val 9)))) .nil .nil) (.node (some (.lt (.val 5945) (.val
+    2545))) .nil .nil)) (.node (some cxRSv683) (.node (some cxRSv1950) .nil .nil) .nil))
+
+noncomputable def cxRStr3210 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 28] (.lt (.num 23) (.val 9)))) cxRStr3208 (.node (some (.under [.arm 29 30] (.lt (.num
+    13) (.val 9)))) cxRStr3209 (.node (some (.under [.arm 32 12] (.lt (.num 11) (.val 9)))) (.node (some cxRSv199)
+    (.node (some cxRSv1438) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 0) (.val 9)))) (.node (some
+    cxRSv2462) .nil .nil) .nil))))
+
+noncomputable def cxRStr3211 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 28 20] (.lt (.num 19) (.val 9)))) cxRStr3201 cxRStr3202) cxRStr3205) (.node (some
+    (.under [.arm 28 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 23] (.lt (.num 20) (.val 9))))
+    cxRStr3206 cxRStr3207) cxRStr3210))
+
+noncomputable def cxRStr3212 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 15) (.val
+    9)))) .nil .nil) (.node (some cxRSv2558) .nil .nil)) (.node (some cxRSv287) (.node (some cxRSv1534) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    10) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv775) (.node (some cxRSv2046) .nil .nil) .nil)))
+
+noncomputable def cxRStr3213 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2814) .nil .nil)) (.node (some cxRSv531) (.node (some cxRSv1790) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 4) (.val 9)))) (.node (some cxRSv63) (.node (some
+    cxRSv1278) .nil .nil) .nil) (.node (some cxRSv1023) (.node (some cxRSv2302) .nil .nil) .nil)))
+
+noncomputable def cxRStr3214 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2686) .nil .nil)) (.node (some cxRSv409) (.node (some cxRSv1662) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 23) (.val 9)))) (.node (some cxRSv1150) .nil .nil) .nil) (.node (some cxRSv899) (.node (some cxRSv2174) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3215 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 28) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2942) .nil .nil)) (.node (some cxRSv653) (.node (some cxRSv1918) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 0) (.val 9)))) (.node (some cxRSv169) (.node (some
+    cxRSv1406) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2430)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3216 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2622) .nil .nil)) (.node (some cxRSv347) (.node (some cxRSv1598) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv837) (.node (some cxRSv2110) .nil .nil) .nil)))
+
+noncomputable def cxRStr3217 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 21) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2878) .nil .nil)) (.node (some cxRSv591) (.node (some cxRSv1854) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 795 8] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1342) .nil .nil) .nil) (.node (some cxRSv1085) (.node (some cxRSv2366)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3218 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2750) .nil .nil)) (.node (some cxRSv469) (.node (some cxRSv1726) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 6) (.val 9)))) (.node (some cxRSv1214) .nil .nil) .nil) (.node (some cxRSv961) (.node (some cxRSv2238) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3219 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 2) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv715) (.node (some cxRSv1982) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 4) (.val 9)))) (.node (some cxRSv227) (.node (some cxRSv1470) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2494) .nil .nil) .nil)))
+
+noncomputable def cxRStr3220 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 10) (.val 9)))) cxRStr3212 cxRStr3213) (.node (some (.under
+    [.arm 28 27] (.lt (.num 18) (.val 9)))) cxRStr3214 cxRStr3215)) (.node (some (.under [.arm 28 19] (.lt (.num 6)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 5) (.val 9)))) cxRStr3216 cxRStr3217) (.node (some
+    (.under [.arm 28 29] (.lt (.num 27) (.val 9)))) cxRStr3218 cxRStr3219)))
+
+noncomputable def cxRStr3221 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 15) (.val
+    9)))) .nil .nil) (.node (some cxRSv2542) .nil .nil)) (.node (some cxRSv273) (.node (some cxRSv1518) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    14) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv761) (.node (some cxRSv2030) .nil .nil) .nil)))
+
+noncomputable def cxRStr3222 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2798) .nil .nil)) (.node (some cxRSv515) (.node (some cxRSv1774) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 25) (.val 9)))) (.node (some cxRSv1262) .nil .nil) .nil) (.node (some cxRSv1007) (.node (some cxRSv2286)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3223 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2670) .nil .nil)) (.node (some cxRSv393) (.node (some cxRSv1646) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 7) (.val 9)))) (.node (some cxRSv1134) .nil .nil) .nil) (.node (some cxRSv883) (.node (some cxRSv2158) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3224 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num
+    23) (.val 9)))) .nil .nil) (.node (some cxRSv2926) .nil .nil)) (.node (some cxRSv637) (.node (some cxRSv1902) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 1) (.val 9)))) (.node (some cxRSv155) (.node (some
+    cxRSv1390) .nil .nil) .nil) (.node (some (.under [.arm 27 4] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2414)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3225 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2606) .nil .nil)) (.node (some cxRSv333) (.node (some cxRSv1582) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 15) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv823) (.node (some cxRSv2094) .nil .nil) .nil)))
+
+noncomputable def cxRStr3226 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 28] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 5] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 27 30] (.lt (.num 20) (.val 9)))) .nil .nil) (.node (some cxRSv2862) .nil .nil)) (.node
+    (some (.under [.arm 795 24] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1838) .nil .nil) .nil))
+
+noncomputable def cxRStr3227 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 24] (.lt (.num 13) (.val 9)))) cxRStr3225 (.node (some (.under [.arm 29 26] (.lt (.num
+    11) (.val 9)))) cxRStr3226 (.node (some (.under [.arm 31 29] (.lt (.num 24) (.val 9)))) (.node (some cxRSv99)
+    (.node (some cxRSv1326) .nil .nil) .nil) (.node (some cxRSv1069) (.node (some cxRSv2350) .nil .nil) .nil))))
+
+noncomputable def cxRStr3228 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2734) .nil .nil)) (.node (some cxRSv453) (.node (some cxRSv1710) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 18) (.val 9)))) (.node (some cxRSv1198) .nil .nil) .nil) (.node (some cxRSv945) (.node (some cxRSv2222) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3229 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 29) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 822 4] (.lt (.num 1)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv699) (.node (some cxRSv1966) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 14] (.lt (.num 2) (.val 9)))) (.node (some cxRSv213) (.node (some cxRSv1454) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2478) .nil .nil) .nil)))
+
+noncomputable def cxRStr3230 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 15) (.val 9)))) cxRStr3221 cxRStr3222) (.node (some (.under [.arm 28
+    27] (.lt (.num 2) (.val 9)))) cxRStr3223 cxRStr3224)) (.node (some (.under [.arm 28 18] (.lt (.num 8) (.val 9))))
+    cxRStr3227 (.node (some (.under [.arm 28 29] (.lt (.num 11) (.val 9)))) cxRStr3228 cxRStr3229)))
+
+noncomputable def cxRStr3231 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2574) .nil .nil)) (.node (some cxRSv303) (.node (some cxRSv1550) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv791) (.node (some cxRSv2062) .nil .nil) .nil)))
+
+noncomputable def cxRStr3232 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2830) .nil .nil)) (.node (some cxRSv545) (.node (some cxRSv1806) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 20) (.val 9)))) (.node (some cxRSv73) (.node (some
+    cxRSv1294) .nil .nil) .nil) (.node (some cxRSv1039) (.node (some cxRSv2318) .nil .nil) .nil)))
+
+noncomputable def cxRStr3233 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2702) .nil .nil)) (.node (some cxRSv423) (.node (some cxRSv1678) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 13) (.val 9)))) (.node (some cxRSv1166) .nil .nil) .nil) (.node (some cxRSv915) (.node (some cxRSv2190) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3234 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 23)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2958) .nil .nil)) (.node (some cxRSv669) (.node (some cxRSv1934) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 6) (.val 9)))) (.node (some cxRSv183) (.node (some
+    cxRSv1422) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2446)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3235 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2638) .nil .nil)) (.node (some cxRSv363) (.node (some cxRSv1614) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv853) (.node (some cxRSv2126) .nil .nil) .nil)))
+
+noncomputable def cxRStr3236 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 22)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2894) .nil .nil)) (.node (some cxRSv607) (.node (some cxRSv1870) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 795 9] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1358) .nil .nil) .nil) (.node (some cxRSv1101) (.node (some cxRSv2382)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3237 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2766) .nil .nil)) (.node (some cxRSv485) (.node (some cxRSv1742) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 22) (.val 9)))) (.node (some cxRSv1230) .nil .nil) .nil) (.node (some cxRSv977) (.node (some cxRSv2254) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3238 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 3) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv729) (.node (some cxRSv1998) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 5) (.val 9)))) (.node (some cxRSv243) (.node (some cxRSv1486) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 12) (.val 9)))) (.node (some cxRSv2510) .nil .nil) .nil)))
+
+noncomputable def cxRStr3239 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 4) (.val 9)))) cxRStr3231 cxRStr3232) (.node (some (.under
+    [.arm 28 28] (.lt (.num 7) (.val 9)))) cxRStr3233 cxRStr3234)) (.node (some (.under [.arm 28 20] (.lt (.num 3)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 21) (.val 9)))) cxRStr3235 cxRStr3236) (.node (some
+    (.under [.arm 28 30] (.lt (.num 14) (.val 9)))) cxRStr3237 cxRStr3238)))
+
+noncomputable def cxRStr3240 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 4] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 7) (.val
+    9)))) .nil .nil) (.node (some cxRSv2534) .nil .nil)) (.node (some cxRSv265) (.node (some cxRSv1510) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    6) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv753) (.node (some cxRSv2022) .nil .nil) .nil)))
+
+noncomputable def cxRStr3241 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2790) .nil .nil)) (.node (some cxRSv507) (.node (some cxRSv1766) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 17) (.val 9)))) (.node (some cxRSv1254) .nil .nil) .nil) (.node (some (.under [.arm 795 32] (.lt (.val 27)
+    (.val 9)))) (.node (some cxRSv2278) .nil .nil) .nil)))
+
+noncomputable def cxRStr3242 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2662) .nil .nil)) (.node (some cxRSv385) (.node (some cxRSv1638) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 24) (.val 9)))) (.node (some cxRSv1126) .nil .nil) .nil) (.node (some cxRSv877) (.node (some cxRSv2150) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3243 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2918) .nil .nil)) (.node (some cxRSv629) (.node (some cxRSv1894) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 0) (.val 9)))) (.node (some cxRSv147) (.node (some
+    cxRSv1382) .nil .nil) .nil) (.node (some cxRSv1125) (.node (some cxRSv2406) .nil .nil) .nil)))
+
+noncomputable def cxRStr3244 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2598) .nil .nil)) (.node (some cxRSv325) (.node (some cxRSv1574) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv815) (.node (some cxRSv2086) .nil .nil) .nil)))
+
+noncomputable def cxRStr3245 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 24) (.val
+    9)))) (.node (some (.under [.arm 33 3] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2854) .nil .nil)) (.node (some cxRSv569) (.node (some cxRSv1830) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 16) (.val 9)))) (.node (some cxRSv91) (.node (some
+    cxRSv1318) .nil .nil) .nil) (.node (some (.under [.arm 795 33] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2342)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3246 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2726) .nil .nil)) (.node (some cxRSv447) (.node (some cxRSv1702) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 10) (.val 9)))) (.node (some cxRSv1190) .nil .nil) .nil) (.node (some cxRSv939) (.node (some cxRSv2214) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3247 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 12) (.val 9)))) (.node (some (.lt (.val 823) (.num 15))) .nil
+    .nil) .nil) (.node (some cxRSv691) (.node (some cxRSv1958) .nil .nil) .nil)) (.node (some (.under [.arm 32 13]
+    (.lt (.num 7) (.val 9)))) (.node (some cxRSv205) (.node (some cxRSv1446) .nil .nil) .nil) (.node (some (.under
+    [.arm 27 11] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2470) .nil .nil) .nil)))
+
+noncomputable def cxRStr3248 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 7] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 7) (.val 9)))) cxRStr3240 cxRStr3241) (.node (some (.under
+    [.arm 28 26] (.lt (.num 20) (.val 9)))) cxRStr3242 cxRStr3243)) (.node (some (.under [.arm 28 18] (.lt (.num 0)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 5) (.val 9)))) cxRStr3244 cxRStr3245) (.node (some
+    (.under [.arm 28 29] (.lt (.num 3) (.val 9)))) cxRStr3246 cxRStr3247)))
+
+noncomputable def cxRStr3249 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 6) (.val
+    9)))) .nil .nil) (.node (some cxRSv2566) .nil .nil)) (.node (some cxRSv295) (.node (some cxRSv1542) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    18) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv783) (.node (some cxRSv2054) .nil .nil) .nil)))
+
+noncomputable def cxRStr3250 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2822) .nil .nil)) (.node (some cxRSv537) (.node (some cxRSv1798) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 795 1] (.lt
+    (.val 27) (.val 9)))) (.node (some cxRSv1286) .nil .nil) .nil) (.node (some cxRSv1031) (.node (some cxRSv2310)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3251 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2694) .nil .nil)) (.node (some cxRSv415) (.node (some cxRSv1670) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 5) (.val 9)))) (.node (some cxRSv1158) .nil .nil) .nil) (.node (some cxRSv907) (.node (some cxRSv2182) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3252 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 31 4] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2950) .nil .nil)) (.node (some cxRSv661) (.node (some cxRSv1926) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 8) (.val 9)))) (.node (some cxRSv177) (.node (some
+    cxRSv1414) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2438)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3253 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    13) (.val 9)))) .nil .nil) (.node (some cxRSv2630) .nil .nil)) (.node (some cxRSv355) (.node (some cxRSv1606) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv845) (.node (some cxRSv2118) .nil .nil) .nil)))
+
+noncomputable def cxRStr3254 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 14)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2886) .nil .nil)) (.node (some cxRSv599) (.node (some cxRSv1862) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 19) (.val 9)))) (.node (some cxRSv119) (.node (some
+    cxRSv1350) .nil .nil) .nil) (.node (some cxRSv1093) (.node (some cxRSv2374) .nil .nil) .nil)))
+
+noncomputable def cxRStr3255 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2758) .nil .nil)) (.node (some cxRSv477) (.node (some cxRSv1734) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 14) (.val 9)))) (.node (some cxRSv1222) .nil .nil) .nil) (.node (some cxRSv969) (.node (some cxRSv2246) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3256 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 7] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 3) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv721) (.node (some cxRSv1990) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 12) (.val 9)))) (.node (some cxRSv235) (.node (some cxRSv1478) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2502) .nil .nil) .nil)))
+
+noncomputable def cxRStr3257 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 18) (.val 9)))) cxRStr3249 cxRStr3250) (.node (some (.under
+    [.arm 28 27] (.lt (.num 26) (.val 9)))) cxRStr3251 cxRStr3252)) (.node (some (.under [.arm 28 19] (.lt (.num 14)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 13) (.val 9)))) cxRStr3253 cxRStr3254) (.node (some
+    (.under [.arm 28 30] (.lt (.num 6) (.val 9)))) cxRStr3255 cxRStr3256)))
+
+noncomputable def cxRStr3258 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 32 18] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 27 17] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2550) .nil .nil))
+    (.node (some (.under [.arm 795 16] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1526) .nil .nil) .nil))
+
+noncomputable def cxRStr3259 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 7] (.lt (.num 3) (.val 9)))) cxRStr3258 (.node (some (.under [.arm 31 15] (.lt (.num 13)
+    (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt
+    (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv769) (.node (some cxRSv2038) .nil .nil) .nil)))
+
+noncomputable def cxRStr3260 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2806) .nil .nil)) (.node (some cxRSv523) (.node (some cxRSv1782) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 23) (.val 9)))) (.node (some cxRSv55) (.node (some
+    cxRSv1270) .nil .nil) .nil) (.node (some cxRSv1015) (.node (some cxRSv2294) .nil .nil) .nil)))
+
+noncomputable def cxRStr3261 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2678) .nil .nil)) (.node (some cxRSv401) (.node (some cxRSv1654) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 15) (.val 9)))) (.node (some cxRSv1142) .nil .nil) .nil) (.node (some cxRSv891) (.node (some cxRSv2166) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3262 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 31)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2934) .nil .nil)) (.node (some cxRSv645) (.node (some cxRSv1910) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 1) (.val 9)))) (.node (some cxRSv161) (.node (some
+    cxRSv1398) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2422)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3263 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2614) .nil .nil)) (.node (some cxRSv341) (.node (some cxRSv1590) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv829) (.node (some cxRSv2102) .nil .nil) .nil)))
+
+noncomputable def cxRStr3264 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 28)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2870) .nil .nil)) (.node (some cxRSv583) (.node (some cxRSv1846) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 3) (.val 9)))) (.node (some cxRSv105) (.node (some
+    cxRSv1334) .nil .nil) .nil) (.node (some cxRSv1077) (.node (some cxRSv2358) .nil .nil) .nil)))
+
+noncomputable def cxRStr3265 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2742) .nil .nil)) (.node (some cxRSv461) (.node (some cxRSv1718) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 26) (.val 9)))) (.node (some cxRSv1206) .nil .nil) .nil) (.node (some cxRSv953) (.node (some cxRSv2230) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3266 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 4] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 0) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv707) (.node (some cxRSv1974) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 10) (.val 9)))) (.node (some cxRSv221) (.node (some cxRSv1462) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2486) .nil .nil) .nil)))
+
+noncomputable def cxRStr3267 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 28 22] (.lt (.num 2) (.val 9)))) cxRStr3259 cxRStr3260) (.node (some (.under [.arm 28
+    27] (.lt (.num 10) (.val 9)))) cxRStr3261 cxRStr3262)) (.node (some (.under [.arm 28 18] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 21) (.val 9)))) cxRStr3263 cxRStr3264) (.node (some (.under
+    [.arm 28 29] (.lt (.num 19) (.val 9)))) cxRStr3265 cxRStr3266)))
+
+noncomputable def cxRStr3268 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 32 20] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 27 19] (.lt (.num 4) (.val 9)))) .nil .nil) (.node (some cxRSv2582) .nil .nil))
+    (.node (some (.under [.arm 795 17] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1558) .nil .nil) .nil))
+
+noncomputable def cxRStr3269 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 1) (.val 9)))) cxRStr3268 (.node (some (.under [.arm 31 17] (.lt (.num
+    14) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 822 15]
+    (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv799) (.node (some cxRSv2070) .nil .nil) .nil)))
+
+noncomputable def cxRStr3270 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    25) (.val 9)))) .nil .nil) (.node (some cxRSv2838) .nil .nil)) (.node (some cxRSv553) (.node (some cxRSv1814) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 0) (.val 9)))) (.node (some cxRSv79) (.node (some
+    cxRSv1302) .nil .nil) .nil) (.node (some cxRSv1047) (.node (some cxRSv2326) .nil .nil) .nil)))
+
+noncomputable def cxRStr3271 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2710) .nil .nil)) (.node (some cxRSv431) (.node (some cxRSv1686) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 21) (.val 9)))) (.node (some cxRSv1174) .nil .nil) .nil) (.node (some cxRSv923) (.node (some cxRSv2198) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3272 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 7] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 27 33] (.lt (.num 31) (.val 9)))) .nil .nil) (.node (some (.lt (.val 3221) (.val
+    2545))) .nil .nil)) (.node (some cxRSv675) (.node (some cxRSv1942) .nil .nil) .nil))
+
+noncomputable def cxRStr3273 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 28] (.lt (.num 15) (.val 9)))) cxRStr3271 (.node (some (.under [.arm 29 30] (.lt (.num
+    5) (.val 9)))) cxRStr3272 (.node (some (.under [.arm 32 12] (.lt (.num 3) (.val 9)))) (.node (some cxRSv191)
+    (.node (some cxRSv1430) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 2) (.val 9)))) (.node (some
+    cxRSv2454) .nil .nil) .nil))))
+
+noncomputable def cxRStr3274 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2646) .nil .nil)) (.node (some cxRSv371) (.node (some cxRSv1622) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv861) (.node (some cxRSv2134) .nil .nil) .nil)))
+
+noncomputable def cxRStr3275 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 30)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2902) .nil .nil)) (.node (some cxRSv615) (.node (some cxRSv1878) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 3] (.lt (.num 2) (.val 9)))) (.node (some cxRSv133) (.node (some
+    cxRSv1366) .nil .nil) .nil) (.node (some cxRSv1109) (.node (some cxRSv2390) .nil .nil) .nil)))
+
+noncomputable def cxRStr3276 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2774) .nil .nil)) (.node (some cxRSv491) (.node (some cxRSv1750) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 1) (.val 9)))) (.node (some cxRSv1238) .nil .nil) .nil) (.node (some cxRSv985) (.node (some cxRSv2262) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3277 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 2) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv737) (.node (some cxRSv2006) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 13) (.val 9)))) (.node (some cxRSv251) (.node (some cxRSv1494) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2518) .nil .nil) .nil)))
+
+noncomputable def cxRStr3278 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 17] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 12) (.val 9)))) cxRStr3269 cxRStr3270) cxRStr3273) (.node (some
+    (.under [.arm 28 20] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 4) (.val 9))))
+    cxRStr3274 cxRStr3275) (.node (some (.under [.arm 28 30] (.lt (.num 22) (.val 9)))) cxRStr3276 cxRStr3277)))
+
+noncomputable def cxRStr3279 : Trie CoreMode.CRes :=
+  (.node (some cxRSv13) (.node (some cxRSv21) (.node (some cxRSv37) cxRStr3211 cxRStr3220) (.node (some (.under [.arm 28
+    2] (.lt (.num 0) (.val 9)))) cxRStr3230 cxRStr3239)) (.node (some cxRSv29) (.node (some cxRSv45) cxRStr3248
+    cxRStr3257) (.node (some (.under [.arm 28 4] (.lt (.num 3) (.val 9)))) cxRStr3267 cxRStr3278)))
+
+noncomputable def cxRStr3280 : Trie CoreMode.CRes :=
+  (.node (some cxRSv5) (.node (some cxRSv9) (.node (some cxRSv17) (.node (some cxRSv33) cxRStr3132 cxRStr3142) (.node
+    (some cxRSv49) cxRStr3152 cxRStr3161)) (.node (some cxRSv25) (.node (some cxRSv41) cxRStr3170 cxRStr3180) (.node
+    (some (.under [.arm 28 3] (.lt (.num 2) (.val 9)))) cxRStr3190 cxRStr3200))) cxRStr3279)
+
+noncomputable def cxRStr3281 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 30 9] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2521) .nil .nil)) (.node (some cxRSv252) (.node (some cxRSv1497) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 13] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
+    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv740) (.node (some cxRSv2009) .nil .nil) .nil)))
+
+noncomputable def cxRStr3282 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2777) .nil .nil)) (.node (some cxRSv494) (.node (some cxRSv1753) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 4) (.val 9)))) (.node (some cxRSv1241) .nil .nil) .nil) (.node (some cxRSv988) (.node (some cxRSv2265) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3283 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    11) (.val 9)))) .nil .nil) (.node (some cxRSv2649) .nil .nil)) (.node (some cxRSv374) (.node (some cxRSv1625) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 11) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv864) (.node (some cxRSv2137) .nil .nil) .nil)))
+
+noncomputable def cxRStr3284 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2905) .nil .nil)) (.node (some cxRSv618) (.node (some cxRSv1881) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 4] (.lt (.num 2) (.val 9)))) (.node (some cxRSv136) (.node (some
+    cxRSv1369) .nil .nil) .nil) (.node (some cxRSv1112) (.node (some cxRSv2393) .nil .nil) .nil)))
+
+noncomputable def cxRStr3285 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2585) .nil .nil)) (.node (some cxRSv312) (.node (some cxRSv1561) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv802) (.node (some cxRSv2073) .nil .nil) .nil)))
+
+noncomputable def cxRStr3286 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    28) (.val 9)))) .nil .nil) (.node (some cxRSv2841) .nil .nil)) (.node (some cxRSv556) (.node (some cxRSv1817) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 795 5] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1305) .nil .nil) .nil) (.node (some cxRSv1050) (.node (some cxRSv2329)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3287 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2713) .nil .nil)) (.node (some cxRSv434) (.node (some cxRSv1689) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 24) (.val 9)))) (.node (some cxRSv1177) .nil .nil) .nil) (.node (some cxRSv926) (.node (some cxRSv2201) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3288 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 15] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 823 2] (.lt (.num 20)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2965) .nil .nil)) (.node (some cxRSv678) (.node (some cxRSv1945) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 6) (.val 9)))) (.node (some cxRSv194) (.node (some
+    cxRSv1433) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2457)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3289 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 5] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 12] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 28 20] (.lt (.num 14) (.val 9)))) cxRStr3281 cxRStr3282) (.node (some (.under
+    [.arm 28 26] (.lt (.num 7) (.val 9)))) cxRStr3283 cxRStr3284)) (.node (some (.under [.arm 28 17] (.lt (.num 4)
+    (.val 9)))) (.node (some (.under [.arm 28 23] (.lt (.num 15) (.val 9)))) cxRStr3285 cxRStr3286) (.node (some
+    (.under [.arm 28 28] (.lt (.num 18) (.val 9)))) cxRStr3287 cxRStr3288)))
+
+noncomputable def cxRStr3290 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 16] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 822 13] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
+    28] (.lt (.val 27) (.num 34)))) (.node (some cxRSv2041) .nil .nil) .nil))
+
+noncomputable def cxRStr3291 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 7] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2553) .nil .nil)) (.node (some cxRSv282) (.node (some cxRSv1529) .nil
+    .nil) .nil)) cxRStr3290)
+
+noncomputable def cxRStr3292 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2809) .nil .nil)) (.node (some cxRSv526) (.node (some cxRSv1785) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 26) (.val 9)))) (.node (some cxRSv58) (.node (some
+    cxRSv1273) .nil .nil) .nil) (.node (some cxRSv1018) (.node (some cxRSv2297) .nil .nil) .nil)))
+
+noncomputable def cxRStr3293 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2681) .nil .nil)) (.node (some cxRSv404) (.node (some cxRSv1657) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 18) (.val 9)))) (.node (some cxRSv1145) .nil .nil) .nil) (.node (some cxRSv894) (.node (some cxRSv2169) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3294 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 23) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2937) .nil .nil)) (.node (some cxRSv648) (.node (some cxRSv1913) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 4) (.val 9)))) (.node (some cxRSv164) (.node (some
+    cxRSv1401) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2425)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3295 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2617) .nil .nil)) (.node (some cxRSv342) (.node (some cxRSv1593) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 3) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv832) (.node (some cxRSv2105) .nil .nil) .nil)))
+
+noncomputable def cxRStr3296 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2873) .nil .nil)) (.node (some cxRSv586) (.node (some cxRSv1849) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 6) (.val 9)))) (.node (some cxRSv108) (.node (some
+    cxRSv1337) .nil .nil) .nil) (.node (some cxRSv1080) (.node (some cxRSv2361) .nil .nil) .nil)))
+
+noncomputable def cxRStr3297 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2745) .nil .nil)) (.node (some cxRSv464) (.node (some cxRSv1721) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 1) (.val 9)))) (.node (some cxRSv1209) .nil .nil) .nil) (.node (some cxRSv956) (.node (some cxRSv2233) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3298 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 5] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 3) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv710) (.node (some cxRSv1977) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 13) (.val 9)))) (.node (some cxRSv224) (.node (some cxRSv1465) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2489) .nil .nil) .nil)))
+
+noncomputable def cxRStr3299 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 28 22] (.lt (.num 5) (.val 9)))) cxRStr3291 cxRStr3292) (.node (some (.under [.arm 28
+    27] (.lt (.num 13) (.val 9)))) cxRStr3293 cxRStr3294)) (.node (some (.under [.arm 28 19] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 28 25] (.lt (.num 0) (.val 9)))) cxRStr3295 cxRStr3296) (.node (some (.under [.arm 28
+    29] (.lt (.num 22) (.val 9)))) cxRStr3297 cxRStr3298)))
+
+noncomputable def cxRStr3300 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 5] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2537) .nil .nil)) (.node (some cxRSv268) (.node (some cxRSv1513) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt
+    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv756) (.node (some cxRSv2025) .nil .nil) .nil)))
+
+noncomputable def cxRStr3301 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2793) .nil .nil)) (.node (some cxRSv510) (.node (some cxRSv1769) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 20) (.val 9)))) (.node (some cxRSv1257) .nil .nil) .nil) (.node (some cxRSv1002) (.node (some cxRSv2281)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3302 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2665) .nil .nil)) (.node (some cxRSv388) (.node (some cxRSv1641) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 2) (.val 9)))) (.node (some cxRSv1129) .nil .nil) .nil) (.node (some cxRSv880) (.node (some cxRSv2153) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3303 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 18)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2921) .nil .nil)) (.node (some cxRSv632) (.node (some cxRSv1897) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 3) (.val 9)))) (.node (some cxRSv150) (.node (some
+    cxRSv1385) .nil .nil) .nil) (.node (some (.under [.arm 27 2] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2409)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3304 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2601) .nil .nil)) (.node (some cxRSv328) (.node (some cxRSv1577) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 10) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv818) (.node (some cxRSv2089) .nil .nil) .nil)))
+
+noncomputable def cxRStr3305 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 4] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2857) .nil .nil)) (.node (some cxRSv572) (.node (some cxRSv1833) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 19) (.val 9)))) (.node (some cxRSv94) (.node (some
+    cxRSv1321) .nil .nil) .nil) (.node (some cxRSv1064) (.node (some cxRSv2345) .nil .nil) .nil)))
+
+noncomputable def cxRStr3306 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 22] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 32 26] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 27 25] (.lt (.num 22) (.val 9)))) .nil .nil) (.node (some cxRSv2729) .nil .nil))
+    (.node (some (.under [.arm 795 21] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1705) .nil .nil) .nil))
+
+noncomputable def cxRStr3307 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 2] (.lt (.num 1)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv694) (.node (some cxRSv1961) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 13] (.lt (.num 10) (.val 9)))) (.node (some cxRSv208) (.node (some cxRSv1449) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2473) .nil .nil) .nil)))
+
+noncomputable def cxRStr3308 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 29] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 29 20] (.lt (.num 13) (.val
+    9)))) cxRStr3306 (.node (some (.under [.arm 31 24] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 28]
+    (.lt (.num 13) (.val 9)))) (.node (some cxRSv1193) .nil .nil) .nil) (.node (some cxRSv940) (.node (some cxRSv2217)
+    .nil .nil) .nil))) cxRStr3307)
+
+noncomputable def cxRStr3309 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 10) (.val 9)))) cxRStr3300 cxRStr3301) (.node (some (.under [.arm 28
+    26] (.lt (.num 23) (.val 9)))) cxRStr3302 cxRStr3303)) (.node (some (.under [.arm 28 18] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 8) (.val 9)))) cxRStr3304 cxRStr3305) cxRStr3308))
+
+noncomputable def cxRStr3310 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2569) .nil .nil)) (.node (some cxRSv298) (.node (some cxRSv1545) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv786) (.node (some cxRSv2057) .nil .nil) .nil)))
+
+noncomputable def cxRStr3311 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 21) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2825) .nil .nil)) (.node (some cxRSv540) (.node (some cxRSv1801) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 15) (.val 9)))) (.node (some cxRSv70) (.node (some
+    cxRSv1289) .nil .nil) .nil) (.node (some cxRSv1034) (.node (some cxRSv2313) .nil .nil) .nil)))
+
+noncomputable def cxRStr3312 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2697) .nil .nil)) (.node (some cxRSv418) (.node (some cxRSv1673) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 8) (.val 9)))) (.node (some cxRSv1161) .nil .nil) .nil) (.node (some cxRSv910) (.node (some cxRSv2185) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3313 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 31 4] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2953) .nil .nil)) (.node (some cxRSv664) (.node (some cxRSv1929) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 795 12] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1417) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 6)
+    (.val 9)))) (.node (some cxRSv2441) .nil .nil) .nil)))
+
+noncomputable def cxRStr3314 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2633) .nil .nil)) (.node (some cxRSv358) (.node (some cxRSv1609) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv848) (.node (some cxRSv2121) .nil .nil) .nil)))
+
+noncomputable def cxRStr3315 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 17)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2889) .nil .nil)) (.node (some cxRSv602) (.node (some cxRSv1865) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 22) (.val 9)))) (.node (some cxRSv122) (.node (some
+    cxRSv1353) .nil .nil) .nil) (.node (some cxRSv1096) (.node (some cxRSv2377) .nil .nil) .nil)))
+
+noncomputable def cxRStr3316 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2761) .nil .nil)) (.node (some cxRSv480) (.node (some cxRSv1737) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 17) (.val 9)))) (.node (some cxRSv1225) .nil .nil) .nil) (.node (some cxRSv972) (.node (some cxRSv2249) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3317 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 7] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 6) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv724) (.node (some cxRSv1993) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 0) (.val 9)))) (.node (some cxRSv238) (.node (some cxRSv1481) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 7) (.val 9)))) (.node (some cxRSv2505) .nil .nil) .nil)))
+
+noncomputable def cxRStr3318 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 21) (.val 9)))) cxRStr3310 cxRStr3311) (.node (some (.under
+    [.arm 28 28] (.lt (.num 2) (.val 9)))) cxRStr3312 cxRStr3313)) (.node (some (.under [.arm 28 19] (.lt (.num 17)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 16) (.val 9)))) cxRStr3314 cxRStr3315) (.node (some
+    (.under [.arm 28 30] (.lt (.num 9) (.val 9)))) cxRStr3316 cxRStr3317)))
+
+noncomputable def cxRStr3319 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 3] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 2) (.val
+    9)))) .nil .nil) (.node (some cxRSv2529) .nil .nil)) (.node (some cxRSv260) (.node (some cxRSv1505) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 1)
+    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv748)
+    (.node (some cxRSv2017) .nil .nil) .nil)))
+
+noncomputable def cxRStr3320 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2785) .nil .nil)) (.node (some cxRSv502) (.node (some cxRSv1761) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 12) (.val 9)))) (.node (some cxRSv1249) .nil .nil) .nil) (.node (some cxRSv996) (.node (some cxRSv2273) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3321 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2657) .nil .nil)) (.node (some cxRSv380) (.node (some cxRSv1633) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv872) (.node (some cxRSv2145) .nil .nil) .nil)))
+
+noncomputable def cxRStr3322 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 28) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2913) .nil .nil)) (.node (some cxRSv624) (.node (some cxRSv1889) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 1) (.val 9)))) (.node (some cxRSv142) (.node (some
+    cxRSv1377) .nil .nil) .nil) (.node (some cxRSv1120) (.node (some cxRSv2401) .nil .nil) .nil)))
+
+noncomputable def cxRStr3323 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2593) .nil .nil)) (.node (some cxRSv320) (.node (some cxRSv1569) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 2) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv810) (.node (some cxRSv2081) .nil .nil) .nil)))
+
+noncomputable def cxRStr3324 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 29) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2849) .nil .nil)) (.node (some cxRSv564) (.node (some cxRSv1825) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 11) (.val 9)))) (.node (some cxRSv88) (.node (some
+    cxRSv1313) .nil .nil) .nil) (.node (some cxRSv1058) (.node (some cxRSv2337) .nil .nil) .nil)))
+
+noncomputable def cxRStr3325 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2721) .nil .nil)) (.node (some cxRSv442) (.node (some cxRSv1697) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 5) (.val 9)))) (.node (some cxRSv1185) .nil .nil) .nil) (.node (some cxRSv934) (.node (some cxRSv2209) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3326 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 823 10] (.lt (.num
+    28) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv686) (.node (some cxRSv1953) .nil .nil) .nil)) (.node (some
+    (.under [.arm 32 13] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 795 13] (.lt (.val 27) (.num 34))))
+    (.node (some cxRSv1441) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 3) (.val 9)))) (.node (some
+    cxRSv2465) .nil .nil) .nil)))
+
+noncomputable def cxRStr3327 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 2) (.val 9)))) cxRStr3319 cxRStr3320) (.node (some (.under [.arm 28
+    26] (.lt (.num 15) (.val 9)))) cxRStr3321 cxRStr3322)) (.node (some (.under [.arm 28 17] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 0) (.val 9)))) cxRStr3323 cxRStr3324) (.node (some (.under
+    [.arm 28 28] (.lt (.num 26) (.val 9)))) cxRStr3325 cxRStr3326)))
+
+noncomputable def cxRStr3328 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 1) (.val
+    9)))) .nil .nil) (.node (some cxRSv2561) .nil .nil)) (.node (some cxRSv290) (.node (some cxRSv1537) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    13) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv778) (.node (some cxRSv2049) .nil .nil) .nil)))
+
+noncomputable def cxRStr3329 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2817) .nil .nil)) (.node (some cxRSv532) (.node (some cxRSv1793) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 7) (.val 9)))) (.node (some cxRSv66) (.node (some
+    cxRSv1281) .nil .nil) .nil) (.node (some cxRSv1026) (.node (some cxRSv2305) .nil .nil) .nil)))
+
+noncomputable def cxRStr3330 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 21] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 32 25] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 27 24] (.lt (.num 6) (.val 9)))) .nil .nil) (.node (some cxRSv2689) .nil .nil))
+    (.node (some (.under [.arm 795 20] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1665) .nil .nil) .nil))
+
+noncomputable def cxRStr3331 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 31 2] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2945) .nil .nil)) (.node (some cxRSv656) (.node (some cxRSv1921) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 3) (.val 9)))) (.node (some cxRSv172) (.node (some
+    cxRSv1409) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2433)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3332 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 27] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 29 18] (.lt (.num 10) (.val
+    9)))) cxRStr3330 (.node (some (.under [.arm 31 23] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 27]
+    (.lt (.num 0) (.val 9)))) (.node (some cxRSv1153) .nil .nil) .nil) (.node (some cxRSv902) (.node (some cxRSv2177)
+    .nil .nil) .nil))) cxRStr3331)
+
+noncomputable def cxRStr3333 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2625) .nil .nil)) (.node (some cxRSv350) (.node (some cxRSv1601) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 11) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv840) (.node (some cxRSv2113) .nil .nil) .nil)))
+
+noncomputable def cxRStr3334 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 24) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2881) .nil .nil)) (.node (some cxRSv594) (.node (some cxRSv1857) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 14) (.val 9)))) (.node (some cxRSv114) (.node (some
+    cxRSv1345) .nil .nil) .nil) (.node (some cxRSv1088) (.node (some cxRSv2369) .nil .nil) .nil)))
+
+noncomputable def cxRStr3335 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 21) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2753) .nil .nil)) (.node (some cxRSv472) (.node (some cxRSv1729) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 9) (.val 9)))) (.node (some cxRSv1217) .nil .nil) .nil) (.node (some cxRSv964) (.node (some cxRSv2241) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3336 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 33 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 5)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv718) (.node (some cxRSv1985) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 15] (.lt (.num 7) (.val 9)))) (.node (some cxRSv230) (.node (some cxRSv1473) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 13] (.lt (.num 12) (.val 9)))) (.node (some cxRSv2497) .nil .nil) .nil)))
+
+noncomputable def cxRStr3337 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 13) (.val 9)))) cxRStr3328 cxRStr3329) cxRStr3332) (.node (some
+    (.under [.arm 28 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 8) (.val 9))))
+    cxRStr3333 cxRStr3334) (.node (some (.under [.arm 28 30] (.lt (.num 1) (.val 9)))) cxRStr3335 cxRStr3336)))
+
+noncomputable def cxRStr3338 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 2) (.val
+    9)))) .nil .nil) (.node (some cxRSv2545) .nil .nil)) (.node (some cxRSv276) (.node (some cxRSv1521) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    17) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv764) (.node (some cxRSv2033) .nil .nil) .nil)))
+
+noncomputable def cxRStr3339 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2801) .nil .nil)) (.node (some cxRSv518) (.node (some cxRSv1777) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 28) (.val 9)))) (.node (some cxRSv1265) .nil .nil) .nil) (.node (some cxRSv1010) (.node (some cxRSv2289)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3340 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    13) (.val 9)))) .nil .nil) (.node (some cxRSv2673) .nil .nil)) (.node (some cxRSv396) (.node (some cxRSv1649) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 10) (.val 9)))) (.node (some cxRSv1137) .nil .nil) .nil) (.node (some cxRSv886) (.node (some cxRSv2161) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3341 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 26)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2929) .nil .nil)) (.node (some cxRSv640) (.node (some cxRSv1905) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 4) (.val 9)))) (.node (some cxRSv158) (.node (some
+    cxRSv1393) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2417)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3342 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 822 17] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
+    29] (.lt (.val 27) (.num 34)))) (.node (some cxRSv2097) .nil .nil) .nil))
+
+noncomputable def cxRStr3343 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2609) .nil .nil)) (.node (some cxRSv336) (.node (some cxRSv1585) .nil
+    .nil) .nil)) cxRStr3342)
+
+noncomputable def cxRStr3344 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 23)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2865) .nil .nil)) (.node (some cxRSv578) (.node (some cxRSv1841) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 27) (.val 9)))) (.node (some cxRSv100) (.node (some
+    cxRSv1329) .nil .nil) .nil) (.node (some cxRSv1072) (.node (some cxRSv2353) .nil .nil) .nil)))
+
+noncomputable def cxRStr3345 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2737) .nil .nil)) (.node (some cxRSv456) (.node (some cxRSv1713) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 21) (.val 9)))) (.node (some cxRSv1201) .nil .nil) .nil) (.node (some cxRSv948) (.node (some cxRSv2225) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3346 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 2] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 0) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv702) (.node (some cxRSv1969) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 5) (.val 9)))) (.node (some cxRSv216) (.node (some cxRSv1457) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 12] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2481) .nil .nil) .nil)))
+
+noncomputable def cxRStr3347 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 18) (.val 9)))) cxRStr3338 cxRStr3339) (.node (some (.under [.arm 28
+    27] (.lt (.num 5) (.val 9)))) cxRStr3340 cxRStr3341)) (.node (some (.under [.arm 28 18] (.lt (.num 11) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 16) (.val 9)))) cxRStr3343 cxRStr3344) (.node (some (.under [.arm 28
+    29] (.lt (.num 14) (.val 9)))) cxRStr3345 cxRStr3346)))
+
+noncomputable def cxRStr3348 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 17)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2577) .nil .nil)) (.node (some cxRSv306) (.node (some cxRSv1553) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv794) (.node (some cxRSv2065) .nil .nil) .nil)))
+
+noncomputable def cxRStr3349 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2833) .nil .nil)) (.node (some cxRSv548) (.node (some cxRSv1809) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 795 4] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1297) .nil .nil) .nil) (.node (some cxRSv1042) (.node (some cxRSv2321)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3350 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    22) (.val 9)))) .nil .nil) (.node (some cxRSv2705) .nil .nil)) (.node (some cxRSv426) (.node (some cxRSv1681) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 16) (.val 9)))) (.node (some cxRSv1169) .nil .nil) .nil) (.node (some cxRSv918) (.node (some cxRSv2193) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3351 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 6] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 33 15] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 26) (.val
+    9)))) .nil .nil) (.node (some cxRSv2961) .nil .nil)) (.node (some cxRSv670) (.node (some cxRSv1937) .nil .nil)
+    .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 9) (.val 9)))) (.node (some cxRSv186) (.node (some cxRSv1425)
+    .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2449) .nil .nil)
+    .nil)))
+
+noncomputable def cxRStr3352 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2641) .nil .nil)) (.node (some cxRSv366) (.node (some cxRSv1617) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 3) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 17) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv856) (.node (some cxRSv2129) .nil .nil) .nil)))
+
+noncomputable def cxRStr3353 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 25)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2897) .nil .nil)) (.node (some cxRSv610) (.node (some cxRSv1873) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 1] (.lt (.num 0) (.val 9)))) (.node (some cxRSv128) (.node (some
+    cxRSv1361) .nil .nil) .nil) (.node (some cxRSv1104) (.node (some cxRSv2385) .nil .nil) .nil)))
+
+noncomputable def cxRStr3354 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2769) .nil .nil)) (.node (some cxRSv488) (.node (some cxRSv1745) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 25) (.val 9)))) (.node (some cxRSv1233) .nil .nil) .nil) (.node (some cxRSv980) (.node (some cxRSv2257) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3355 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 6) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv732) (.node (some cxRSv2001) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 8) (.val 9)))) (.node (some cxRSv246) (.node (some cxRSv1489) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2513) .nil .nil) .nil)))
+
+noncomputable def cxRStr3356 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 7) (.val 9)))) cxRStr3348 cxRStr3349) (.node (some (.under
+    [.arm 28 28] (.lt (.num 10) (.val 9)))) cxRStr3350 cxRStr3351)) (.node (some (.under [.arm 28 20] (.lt (.num 6)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 24) (.val 9)))) cxRStr3352 cxRStr3353) (.node (some
+    (.under [.arm 28 30] (.lt (.num 17) (.val 9)))) cxRStr3354 cxRStr3355)))
+
+noncomputable def cxRStr3357 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 29) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2525) .nil .nil)) (.node (some cxRSv256) (.node (some cxRSv1501) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
+    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv744) (.node (some cxRSv2013) .nil .nil) .nil)))
+
+noncomputable def cxRStr3358 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    23) (.val 9)))) .nil .nil) (.node (some cxRSv2781) .nil .nil)) (.node (some cxRSv498) (.node (some cxRSv1757) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 8) (.val 9)))) (.node (some cxRSv1245) .nil .nil) .nil) (.node (some cxRSv992) (.node (some cxRSv2269) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3359 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2653) .nil .nil)) (.node (some cxRSv376) (.node (some cxRSv1629) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 15) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv868) (.node (some cxRSv2141) .nil .nil) .nil)))
+
+noncomputable def cxRStr3360 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 29] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 33 11] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 27 32] (.lt (.num 6) (.val 9)))) .nil .nil) (.node (some cxRSv2909) .nil .nil))
+    (.node (some (.under [.arm 795 25] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1885) .nil .nil) .nil))
+
+noncomputable def cxRStr3361 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 26] (.lt (.num 11) (.val 9)))) cxRStr3359 (.node (some (.under [.arm 29 28] (.lt (.num
+    5) (.val 9)))) cxRStr3360 (.node (some (.under [.arm 32 5] (.lt (.num 2) (.val 9)))) (.node (some cxRSv140) (.node
+    (some cxRSv1373) .nil .nil) .nil) (.node (some cxRSv1116) (.node (some cxRSv2397) .nil .nil) .nil))))
+
+noncomputable def cxRStr3362 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
+    11) (.val 9)))) .nil .nil) (.node (some cxRSv2589) .nil .nil)) (.node (some cxRSv316) (.node (some cxRSv1565) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 20) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv806) (.node (some cxRSv2077) .nil .nil) .nil)))
+
+noncomputable def cxRStr3363 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2845) .nil .nil)) (.node (some cxRSv560) (.node (some cxRSv1821) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 7) (.val 9)))) (.node (some cxRSv84) (.node (some
+    cxRSv1309) .nil .nil) .nil) (.node (some cxRSv1054) (.node (some cxRSv2333) .nil .nil) .nil)))
+
+noncomputable def cxRStr3364 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2717) .nil .nil)) (.node (some cxRSv438) (.node (some cxRSv1693) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 1) (.val 9)))) (.node (some cxRSv1181) .nil .nil) .nil) (.node (some cxRSv930) (.node (some cxRSv2205) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3365 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 823 6] (.lt (.num 24)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2967) .nil .nil)) (.node (some cxRSv682) (.node (some cxRSv1949) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 10) (.val 9)))) (.node (some cxRSv198) (.node (some
+    cxRSv1437) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2461)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3366 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 28 20] (.lt (.num 18) (.val 9)))) cxRStr3357 cxRStr3358) cxRStr3361) (.node (some
+    (.under [.arm 28 17] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 23] (.lt (.num 19) (.val 9))))
+    cxRStr3362 cxRStr3363) (.node (some (.under [.arm 28 28] (.lt (.num 22) (.val 9)))) cxRStr3364 cxRStr3365)))
+
+noncomputable def cxRStr3367 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 14) (.val
+    9)))) .nil .nil) (.node (some cxRSv2557) .nil .nil)) (.node (some cxRSv286) (.node (some cxRSv1533) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 9)
+    (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv774)
+    (.node (some cxRSv2045) .nil .nil) .nil)))
+
+noncomputable def cxRStr3368 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2813) .nil .nil)) (.node (some cxRSv530) (.node (some cxRSv1789) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 3) (.val 9)))) (.node (some cxRSv62) (.node (some
+    cxRSv1277) .nil .nil) .nil) (.node (some cxRSv1022) (.node (some cxRSv2301) .nil .nil) .nil)))
+
+noncomputable def cxRStr3369 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2685) .nil .nil)) (.node (some cxRSv408) (.node (some cxRSv1661) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 22) (.val 9)))) (.node (some cxRSv1149) .nil .nil) .nil) (.node (some cxRSv898) (.node (some cxRSv2173) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3370 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 27) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2941) .nil .nil)) (.node (some cxRSv652) (.node (some cxRSv1917) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 8) (.val 9)))) (.node (some cxRSv168) (.node (some
+    cxRSv1405) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2429)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3371 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2621) .nil .nil)) (.node (some cxRSv346) (.node (some cxRSv1597) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv836) (.node (some cxRSv2109) .nil .nil) .nil)))
+
+noncomputable def cxRStr3372 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2877) .nil .nil)) (.node (some cxRSv590) (.node (some cxRSv1853) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 795 8] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1341) .nil .nil) .nil) (.node (some cxRSv1084) (.node (some cxRSv2365)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3373 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2749) .nil .nil)) (.node (some cxRSv468) (.node (some cxRSv1725) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 5) (.val 9)))) (.node (some cxRSv1213) .nil .nil) .nil) (.node (some cxRSv960) (.node (some cxRSv2237) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3374 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 1) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv714) (.node (some cxRSv1981) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 3) (.val 9)))) (.node (some cxRSv226) (.node (some cxRSv1469) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2493) .nil .nil) .nil)))
+
+noncomputable def cxRStr3375 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 9) (.val 9)))) cxRStr3367 cxRStr3368) (.node (some (.under
+    [.arm 28 27] (.lt (.num 17) (.val 9)))) cxRStr3369 cxRStr3370)) (.node (some (.under [.arm 28 19] (.lt (.num 5)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 4) (.val 9)))) cxRStr3371 cxRStr3372) (.node (some
+    (.under [.arm 28 29] (.lt (.num 26) (.val 9)))) cxRStr3373 cxRStr3374)))
+
+noncomputable def cxRStr3376 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 14) (.val
+    9)))) .nil .nil) (.node (some cxRSv2541) .nil .nil)) (.node (some cxRSv272) (.node (some cxRSv1517) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    13) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv760) (.node (some cxRSv2029) .nil .nil) .nil)))
+
+noncomputable def cxRStr3377 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2797) .nil .nil)) (.node (some cxRSv514) (.node (some cxRSv1773) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 24) (.val 9)))) (.node (some cxRSv1261) .nil .nil) .nil) (.node (some cxRSv1006) (.node (some cxRSv2285)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3378 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2669) .nil .nil)) (.node (some cxRSv392) (.node (some cxRSv1645) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 6) (.val 9)))) (.node (some cxRSv1133) .nil .nil) .nil) (.node (some cxRSv882) (.node (some cxRSv2157) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3379 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 22)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2925) .nil .nil)) (.node (some cxRSv636) (.node (some cxRSv1901) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 0) (.val 9)))) (.node (some cxRSv154) (.node (some
+    cxRSv1389) .nil .nil) .nil) (.node (some (.under [.arm 27 4] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2413)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3380 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2605) .nil .nil)) (.node (some cxRSv332) (.node (some cxRSv1581) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv822) (.node (some cxRSv2093) .nil .nil) .nil)))
+
+noncomputable def cxRStr3381 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 28] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 5] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 27 30] (.lt (.num 19) (.val 9)))) .nil .nil) (.node (some cxRSv2861) .nil .nil)) (.node
+    (some (.under [.arm 795 24] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1837) .nil .nil) .nil))
+
+noncomputable def cxRStr3382 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 24] (.lt (.num 12) (.val 9)))) cxRStr3380 (.node (some (.under [.arm 29 26] (.lt (.num
+    10) (.val 9)))) cxRStr3381 (.node (some (.under [.arm 31 29] (.lt (.num 23) (.val 9)))) (.node (some cxRSv98)
+    (.node (some cxRSv1325) .nil .nil) .nil) (.node (some cxRSv1068) (.node (some cxRSv2349) .nil .nil) .nil))))
+
+noncomputable def cxRStr3383 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2733) .nil .nil)) (.node (some cxRSv452) (.node (some cxRSv1709) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 17) (.val 9)))) (.node (some cxRSv1197) .nil .nil) .nil) (.node (some cxRSv944) (.node (some cxRSv2221) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3384 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 28) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 822 4] (.lt (.num 0)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv698) (.node (some cxRSv1965) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 14] (.lt (.num 1) (.val 9)))) (.node (some cxRSv212) (.node (some cxRSv1453) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2477) .nil .nil) .nil)))
+
+noncomputable def cxRStr3385 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 14) (.val 9)))) cxRStr3376 cxRStr3377) (.node (some (.under [.arm 28
+    27] (.lt (.num 1) (.val 9)))) cxRStr3378 cxRStr3379)) (.node (some (.under [.arm 28 18] (.lt (.num 7) (.val 9))))
+    cxRStr3382 (.node (some (.under [.arm 28 29] (.lt (.num 10) (.val 9)))) cxRStr3383 cxRStr3384)))
+
+noncomputable def cxRStr3386 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
+    13) (.val 9)))) .nil .nil) (.node (some cxRSv2573) .nil .nil)) (.node (some cxRSv302) (.node (some cxRSv1549) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv790) (.node (some cxRSv2061) .nil .nil) .nil)))
+
+noncomputable def cxRStr3387 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 25) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 16)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2829) .nil .nil)) (.node (some cxRSv544) (.node (some cxRSv1805) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 19) (.val 9)))) (.node (some cxRSv72) (.node (some
+    cxRSv1293) .nil .nil) .nil) (.node (some cxRSv1038) (.node (some cxRSv2317) .nil .nil) .nil)))
+
+noncomputable def cxRStr3388 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2701) .nil .nil)) (.node (some cxRSv422) (.node (some cxRSv1677) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 12) (.val 9)))) (.node (some cxRSv1165) .nil .nil) .nil) (.node (some cxRSv914) (.node (some cxRSv2189) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3389 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 22)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2957) .nil .nil)) (.node (some cxRSv668) (.node (some cxRSv1933) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 5) (.val 9)))) (.node (some cxRSv182) (.node (some
+    cxRSv1421) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2445)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3390 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2637) .nil .nil)) (.node (some cxRSv362) (.node (some cxRSv1613) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 23) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv852) (.node (some cxRSv2125) .nil .nil) .nil)))
+
+noncomputable def cxRStr3391 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 21)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2893) .nil .nil)) (.node (some cxRSv606) (.node (some cxRSv1869) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 795 9] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1357) .nil .nil) .nil) (.node (some cxRSv1100) (.node (some cxRSv2381)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3392 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2765) .nil .nil)) (.node (some cxRSv484) (.node (some cxRSv1741) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 21) (.val 9)))) (.node (some cxRSv1229) .nil .nil) .nil) (.node (some cxRSv976) (.node (some cxRSv2253) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3393 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 33 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 2)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv728) (.node (some cxRSv1997) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 16] (.lt (.num 4) (.val 9)))) (.node (some cxRSv242) (.node (some cxRSv1485) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 14] (.lt (.num 11) (.val 9)))) (.node (some cxRSv2509) .nil .nil) .nil)))
+
+noncomputable def cxRStr3394 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 3) (.val 9)))) cxRStr3386 cxRStr3387) (.node (some (.under
+    [.arm 28 28] (.lt (.num 6) (.val 9)))) cxRStr3388 cxRStr3389)) (.node (some (.under [.arm 28 20] (.lt (.num 2)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 20) (.val 9)))) cxRStr3390 cxRStr3391) (.node (some
+    (.under [.arm 28 30] (.lt (.num 13) (.val 9)))) cxRStr3392 cxRStr3393)))
+
+noncomputable def cxRStr3395 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 4] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 6) (.val
+    9)))) .nil .nil) (.node (some cxRSv2533) .nil .nil)) (.node (some cxRSv264) (.node (some cxRSv1509) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    5) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv752) (.node (some cxRSv2021) .nil .nil) .nil)))
+
+noncomputable def cxRStr3396 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2789) .nil .nil)) (.node (some cxRSv506) (.node (some cxRSv1765) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 16) (.val 9)))) (.node (some cxRSv1253) .nil .nil) .nil) (.node (some (.under [.arm 795 32] (.lt (.val 27)
+    (.num 34)))) (.node (some cxRSv2277) .nil .nil) .nil)))
+
+noncomputable def cxRStr3397 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2661) .nil .nil)) (.node (some cxRSv384) (.node (some cxRSv1637) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 23) (.val 9)))) (.node (some (.lt (.num 19) (.num 20))) .nil .nil) .nil) (.node (some cxRSv876) (.node (some
+    cxRSv2149) .nil .nil) .nil)))
+
+noncomputable def cxRStr3398 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 14)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2917) .nil .nil)) (.node (some cxRSv628) (.node (some cxRSv1893) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 5) (.val 9)))) (.node (some cxRSv146) (.node (some
+    cxRSv1381) .nil .nil) .nil) (.node (some cxRSv1124) (.node (some cxRSv2405) .nil .nil) .nil)))
+
+noncomputable def cxRStr3399 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2597) .nil .nil)) (.node (some cxRSv324) (.node (some cxRSv1573) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 6) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv814) (.node (some cxRSv2085) .nil .nil) .nil)))
+
+noncomputable def cxRStr3400 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 23) (.val
+    9)))) (.node (some (.under [.arm 33 3] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2853) .nil .nil)) (.node (some cxRSv568) (.node (some cxRSv1829) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 15) (.val 9)))) (.node (some cxRSv90) (.node (some
+    cxRSv1317) .nil .nil) .nil) (.node (some (.under [.arm 795 33] (.lt (.val 27) (.num 34)))) (.node (some cxRSv2341)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3401 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2725) .nil .nil)) (.node (some cxRSv446) (.node (some cxRSv1701) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 9) (.val 9)))) (.node (some cxRSv1189) .nil .nil) .nil) (.node (some cxRSv938) (.node (some cxRSv2213) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3402 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 823 14] (.lt (.num
+    32) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv690) (.node (some cxRSv1957) .nil .nil) .nil)) (.node (some
+    (.under [.arm 32 13] (.lt (.num 6) (.val 9)))) (.node (some cxRSv204) (.node (some cxRSv1445) .nil .nil) .nil)
+    (.node (some (.under [.arm 27 11] (.lt (.num 7) (.val 9)))) (.node (some cxRSv2469) .nil .nil) .nil)))
+
+noncomputable def cxRStr3403 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 7] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 6) (.val 9)))) cxRStr3395 cxRStr3396) (.node (some (.under
+    [.arm 28 26] (.lt (.num 19) (.val 9)))) cxRStr3397 cxRStr3398)) (.node (some (.under [.arm 28 17] (.lt (.num 16)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 4) (.val 9)))) cxRStr3399 cxRStr3400) (.node (some
+    (.under [.arm 28 29] (.lt (.num 2) (.val 9)))) cxRStr3401 cxRStr3402)))
+
+noncomputable def cxRStr3404 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 5) (.val
+    9)))) .nil .nil) (.node (some cxRSv2565) .nil .nil)) (.node (some cxRSv294) (.node (some cxRSv1541) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    17) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv782) (.node (some cxRSv2053) .nil .nil) .nil)))
+
+noncomputable def cxRStr3405 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2821) .nil .nil)) (.node (some cxRSv536) (.node (some cxRSv1797) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 795 1] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1285) .nil .nil) .nil) (.node (some cxRSv1030) (.node (some cxRSv2309)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3406 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2693) .nil .nil)) (.node (some cxRSv414) (.node (some cxRSv1669) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 4) (.val 9)))) (.node (some cxRSv1157) .nil .nil) .nil) (.node (some cxRSv906) (.node (some cxRSv2181) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3407 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 31 3] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 14)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2949) .nil .nil)) (.node (some cxRSv660) (.node (some cxRSv1925) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 7) (.val 9)))) (.node (some cxRSv176) (.node (some
+    cxRSv1413) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2437)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3408 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2629) .nil .nil)) (.node (some cxRSv354) (.node (some cxRSv1605) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 15) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv844) (.node (some cxRSv2117) .nil .nil) .nil)))
+
+noncomputable def cxRStr3409 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2885) .nil .nil)) (.node (some cxRSv598) (.node (some cxRSv1861) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 18) (.val 9)))) (.node (some cxRSv118) (.node (some
+    cxRSv1349) .nil .nil) .nil) (.node (some cxRSv1092) (.node (some cxRSv2373) .nil .nil) .nil)))
+
+noncomputable def cxRStr3410 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    25) (.val 9)))) .nil .nil) (.node (some cxRSv2757) .nil .nil)) (.node (some cxRSv476) (.node (some cxRSv1733) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 13) (.val 9)))) (.node (some cxRSv1221) .nil .nil) .nil) (.node (some cxRSv968) (.node (some cxRSv2245) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3411 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 7] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 2) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv720) (.node (some cxRSv1989) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 11) (.val 9)))) (.node (some cxRSv234) (.node (some cxRSv1477) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2501) .nil .nil) .nil)))
+
+noncomputable def cxRStr3412 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 17) (.val 9)))) cxRStr3404 cxRStr3405) (.node (some (.under
+    [.arm 28 27] (.lt (.num 25) (.val 9)))) cxRStr3406 cxRStr3407)) (.node (some (.under [.arm 28 19] (.lt (.num 13)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 12) (.val 9)))) cxRStr3408 cxRStr3409) (.node (some
+    (.under [.arm 28 30] (.lt (.num 5) (.val 9)))) cxRStr3410 cxRStr3411)))
+
+noncomputable def cxRStr3413 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 12] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 32 18] (.lt (.num 11) (.val
+    9)))) (.node (some (.under [.arm 27 17] (.lt (.num 6) (.val 9)))) .nil .nil) (.node (some cxRSv2549) .nil .nil))
+    (.node (some (.under [.arm 795 16] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1525) .nil .nil) .nil))
+
+noncomputable def cxRStr3414 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 7] (.lt (.num 2) (.val 9)))) cxRStr3413 (.node (some (.under [.arm 31 15] (.lt (.num 12)
+    (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt
+    (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv768) (.node (some cxRSv2037) .nil .nil) .nil)))
+
+noncomputable def cxRStr3415 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2805) .nil .nil)) (.node (some cxRSv522) (.node (some cxRSv1781) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 22) (.val 9)))) (.node (some cxRSv54) (.node (some
+    cxRSv1269) .nil .nil) .nil) (.node (some cxRSv1014) (.node (some cxRSv2293) .nil .nil) .nil)))
+
+noncomputable def cxRStr3416 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2677) .nil .nil)) (.node (some cxRSv400) (.node (some cxRSv1653) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 14) (.val 9)))) (.node (some cxRSv1141) .nil .nil) .nil) (.node (some cxRSv890) (.node (some cxRSv2165) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3417 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 30)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2933) .nil .nil)) (.node (some cxRSv644) (.node (some cxRSv1909) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 0) (.val 9)))) (.node (some cxRSv160) (.node (some
+    cxRSv1397) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2421)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3418 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2613) .nil .nil)) (.node (some cxRSv340) (.node (some cxRSv1589) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 22) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv828) (.node (some cxRSv2101) .nil .nil) .nil)))
+
+noncomputable def cxRStr3419 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 27)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2869) .nil .nil)) (.node (some cxRSv582) (.node (some cxRSv1845) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 2) (.val 9)))) (.node (some cxRSv104) (.node (some
+    cxRSv1333) .nil .nil) .nil) (.node (some cxRSv1076) (.node (some cxRSv2357) .nil .nil) .nil)))
+
+noncomputable def cxRStr3420 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2741) .nil .nil)) (.node (some cxRSv460) (.node (some cxRSv1717) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 25) (.val 9)))) (.node (some cxRSv1205) .nil .nil) .nil) (.node (some cxRSv952) (.node (some cxRSv2229) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3421 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 4] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 4) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv706) (.node (some cxRSv1973) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 9) (.val 9)))) (.node (some cxRSv220) (.node (some cxRSv1461) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2485) .nil .nil) .nil)))
+
+noncomputable def cxRStr3422 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 9] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 1) (.val 9)))) cxRStr3414 cxRStr3415) (.node (some (.under
+    [.arm 28 27] (.lt (.num 9) (.val 9)))) cxRStr3416 cxRStr3417)) (.node (some (.under [.arm 28 18] (.lt (.num 15)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 20) (.val 9)))) cxRStr3418 cxRStr3419) (.node (some
+    (.under [.arm 28 29] (.lt (.num 18) (.val 9)))) cxRStr3420 cxRStr3421)))
+
+noncomputable def cxRStr3423 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 14] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 32 20] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 27 19] (.lt (.num 3) (.val 9)))) .nil .nil) (.node (some cxRSv2581) .nil .nil))
+    (.node (some (.under [.arm 795 17] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1557) .nil .nil) .nil))
+
+noncomputable def cxRStr3424 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 0) (.val 9)))) cxRStr3423 (.node (some (.under [.arm 31 17] (.lt (.num
+    13) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 822 15]
+    (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv798) (.node (some cxRSv2069) .nil .nil) .nil)))
+
+noncomputable def cxRStr3425 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2837) .nil .nil)) (.node (some cxRSv552) (.node (some cxRSv1813) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 27) (.val 9)))) (.node (some cxRSv78) (.node (some
+    cxRSv1301) .nil .nil) .nil) (.node (some cxRSv1046) (.node (some cxRSv2325) .nil .nil) .nil)))
+
+noncomputable def cxRStr3426 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2709) .nil .nil)) (.node (some cxRSv430) (.node (some cxRSv1685) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 20) (.val 9)))) (.node (some cxRSv1173) .nil .nil) .nil) (.node (some cxRSv922) (.node (some cxRSv2197) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3427 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 33 15] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 30)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2963) .nil .nil)) (.node (some cxRSv674) (.node (some cxRSv1941) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 2) (.val 9)))) (.node (some cxRSv190) (.node (some
+    cxRSv1429) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2453)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3428 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2645) .nil .nil)) (.node (some cxRSv370) (.node (some cxRSv1621) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv860) (.node (some cxRSv2133) .nil .nil) .nil)))
+
+noncomputable def cxRStr3429 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 29)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2901) .nil .nil)) (.node (some cxRSv614) (.node (some cxRSv1877) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 3] (.lt (.num 1) (.val 9)))) (.node (some cxRSv132) (.node (some
+    cxRSv1365) .nil .nil) .nil) (.node (some cxRSv1108) (.node (some cxRSv2389) .nil .nil) .nil)))
+
+noncomputable def cxRStr3430 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2773) .nil .nil)) (.node (some cxRSv490) (.node (some cxRSv1749) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 0) (.val 9)))) (.node (some cxRSv1237) .nil .nil) .nil) (.node (some cxRSv984) (.node (some cxRSv2261) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3431 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 9] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 1) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv736) (.node (some cxRSv2005) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 12) (.val 9)))) (.node (some cxRSv250) (.node (some cxRSv1493) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2517) .nil .nil) .nil)))
+
+noncomputable def cxRStr3432 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 17] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 11) (.val 9)))) cxRStr3424 cxRStr3425) (.node (some (.under
+    [.arm 28 28] (.lt (.num 14) (.val 9)))) cxRStr3426 cxRStr3427)) (.node (some (.under [.arm 28 20] (.lt (.num 10)
+    (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 3) (.val 9)))) cxRStr3428 cxRStr3429) (.node (some
+    (.under [.arm 28 30] (.lt (.num 21) (.val 9)))) cxRStr3430 cxRStr3431)))
+
+noncomputable def cxRStr3433 : Trie CoreMode.CRes :=
+  (.node (some cxRSv12) (.node (some cxRSv20) (.node (some cxRSv36) cxRStr3366 cxRStr3375) (.node (some (.under [.arm 28
+    1] (.lt (.num 0) (.val 9)))) cxRStr3385 cxRStr3394)) (.node (some cxRSv28) (.node (some cxRSv44) cxRStr3403
+    cxRStr3412) (.node (some (.under [.arm 28 4] (.lt (.num 2) (.val 9)))) cxRStr3422 cxRStr3432)))
+
+noncomputable def cxRStr3434 : Trie CoreMode.CRes :=
+  (.node (some cxRSv4) (.node (some cxRSv8) (.node (some cxRSv16) (.node (some cxRSv32) cxRStr3289 cxRStr3299) (.node
+    (some cxRSv48) cxRStr3309 cxRStr3318)) (.node (some cxRSv24) (.node (some cxRSv40) cxRStr3327 cxRStr3337) (.node
+    (some (.under [.arm 28 3] (.lt (.num 1) (.val 9)))) cxRStr3347 cxRStr3356))) cxRStr3433)
+
+noncomputable def cxRStr3435 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 30 9] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2523) .nil .nil)) (.node (some cxRSv254) (.node (some cxRSv1499) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
+    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv742) (.node (some cxRSv2011) .nil .nil) .nil)))
+
+noncomputable def cxRStr3436 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2779) .nil .nil)) (.node (some cxRSv496) (.node (some cxRSv1755) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 6) (.val 9)))) (.node (some cxRSv1243) .nil .nil) .nil) (.node (some cxRSv990) (.node (some cxRSv2267) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3437 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 32 23] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 27 22] (.lt (.num 13) (.val 9)))) .nil .nil) (.node (some cxRSv2651) .nil .nil))
+    (.node (some (.under [.arm 795 19] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1627) .nil .nil) .nil))
+
+noncomputable def cxRStr3438 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 5) (.val 9)))) cxRStr3437 (.node (some (.under [.arm 31 21] (.lt (.num 9)
+    (.val 9)))) (.node (some (.under [.arm 33 25] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt
+    (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv866) (.node (some cxRSv2139) .nil .nil) .nil)))
+
+noncomputable def cxRStr3439 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2907) .nil .nil)) (.node (some cxRSv620) (.node (some cxRSv1883) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 5] (.lt (.num 0) (.val 9)))) (.node (some cxRSv138) (.node (some
+    cxRSv1371) .nil .nil) .nil) (.node (some cxRSv1114) (.node (some cxRSv2395) .nil .nil) .nil)))
+
+noncomputable def cxRStr3440 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2587) .nil .nil)) (.node (some cxRSv314) (.node (some cxRSv1563) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 18) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv804) (.node (some cxRSv2075) .nil .nil) .nil)))
+
+noncomputable def cxRStr3441 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2843) .nil .nil)) (.node (some cxRSv558) (.node (some cxRSv1819) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 5) (.val 9)))) (.node (some cxRSv82) (.node (some
+    cxRSv1307) .nil .nil) .nil) (.node (some cxRSv1052) (.node (some cxRSv2331) .nil .nil) .nil)))
+
+noncomputable def cxRStr3442 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2715) .nil .nil)) (.node (some cxRSv436) (.node (some cxRSv1691) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 26) (.val 9)))) (.node (some cxRSv1179) .nil .nil) .nil) (.node (some cxRSv928) (.node (some cxRSv2203) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3443 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 823 4] (.lt (.num 22)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2966) .nil .nil)) (.node (some cxRSv680) (.node (some cxRSv1947) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 8) (.val 9)))) (.node (some cxRSv196) (.node (some
+    cxRSv1435) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 7) (.val 9)))) (.node (some cxRSv2459)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3444 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 0) (.val 9))))
+    (.node (some (.under [.arm 28 20] (.lt (.num 16) (.val 9)))) cxRStr3435 cxRStr3436) (.node (some (.under [.arm 28
+    26] (.lt (.num 9) (.val 9)))) cxRStr3438 cxRStr3439)) (.node (some (.under [.arm 28 17] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 28 23] (.lt (.num 17) (.val 9)))) cxRStr3440 cxRStr3441) (.node (some (.under [.arm 28
+    28] (.lt (.num 20) (.val 9)))) cxRStr3442 cxRStr3443)))
+
+noncomputable def cxRStr3445 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 18] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2555) .nil .nil)) (.node (some cxRSv284) (.node (some cxRSv1531) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt
+    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv772) (.node (some cxRSv2043) .nil .nil) .nil)))
+
+noncomputable def cxRStr3446 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 24] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
+    26) (.val 9)))) .nil .nil) (.node (some cxRSv2811) .nil .nil)) (.node (some cxRSv528) (.node (some cxRSv1787) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 1) (.val 9)))) (.node (some cxRSv60) (.node (some
+    cxRSv1275) .nil .nil) .nil) (.node (some cxRSv1020) (.node (some cxRSv2299) .nil .nil) .nil)))
+
+noncomputable def cxRStr3447 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2683) .nil .nil)) (.node (some cxRSv406) (.node (some cxRSv1659) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 20) (.val 9)))) (.node (some cxRSv1147) .nil .nil) .nil) (.node (some cxRSv896) (.node (some cxRSv2171) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3448 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 25) (.val
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2939) .nil .nil)) (.node (some cxRSv650) (.node (some cxRSv1915) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 6) (.val 9)))) (.node (some cxRSv166) (.node (some
+    cxRSv1403) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2427)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3449 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2619) .nil .nil)) (.node (some cxRSv344) (.node (some cxRSv1595) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv834) (.node (some cxRSv2107) .nil .nil) .nil)))
+
+noncomputable def cxRStr3450 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2875) .nil .nil)) (.node (some cxRSv588) (.node (some cxRSv1851) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 8) (.val 9)))) (.node (some cxRSv110) (.node (some
+    cxRSv1339) .nil .nil) .nil) (.node (some cxRSv1082) (.node (some cxRSv2363) .nil .nil) .nil)))
+
+noncomputable def cxRStr3451 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 15) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2747) .nil .nil)) (.node (some cxRSv466) (.node (some cxRSv1723) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 3) (.val 9)))) (.node (some cxRSv1211) .nil .nil) .nil) (.node (some cxRSv958) (.node (some cxRSv2235) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3452 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 5] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 5) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv712) (.node (some cxRSv1979) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 795 14] (.lt (.val 27) (.num 34)))) (.node (some
+    cxRSv1467) .nil .nil) .nil) (.node (some (.under [.arm 27 13] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2491)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3453 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 7) (.val 9)))) cxRStr3445 cxRStr3446) (.node (some (.under
+    [.arm 28 27] (.lt (.num 15) (.val 9)))) cxRStr3447 cxRStr3448)) (.node (some (.under [.arm 28 19] (.lt (.num 3)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 2) (.val 9)))) cxRStr3449 cxRStr3450) (.node (some
+    (.under [.arm 28 29] (.lt (.num 24) (.val 9)))) cxRStr3451 cxRStr3452)))
+
+noncomputable def cxRStr3454 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 5] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 12) (.val
+    9)))) .nil .nil) (.node (some cxRSv2539) .nil .nil)) (.node (some cxRSv270) (.node (some cxRSv1515) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    11) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv758) (.node (some cxRSv2027) .nil .nil) .nil)))
+
+noncomputable def cxRStr3455 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 16) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2795) .nil .nil)) (.node (some cxRSv512) (.node (some cxRSv1771) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 22) (.val 9)))) (.node (some cxRSv1259) .nil .nil) .nil) (.node (some cxRSv1004) (.node (some cxRSv2283)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3456 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2667) .nil .nil)) (.node (some cxRSv390) (.node (some cxRSv1643) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 4) (.val 9)))) (.node (some cxRSv1131) .nil .nil) .nil) (.node (some (.under [.arm 795 30] (.lt (.val 27)
+    (.num 34)))) (.node (some cxRSv2155) .nil .nil) .nil)))
+
+noncomputable def cxRStr3457 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 20)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2923) .nil .nil)) (.node (some cxRSv634) (.node (some cxRSv1899) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 5) (.val 9)))) (.node (some cxRSv152) (.node (some
+    cxRSv1387) .nil .nil) .nil) (.node (some (.under [.arm 27 3] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2411)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3458 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 12] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 4) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2603) .nil .nil)) (.node (some cxRSv330) (.node (some cxRSv1579) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv820) (.node (some cxRSv2091) .nil .nil) .nil)))
+
+noncomputable def cxRStr3459 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 26] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 33 4] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 17)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2859) .nil .nil)) (.node (some cxRSv574) (.node (some cxRSv1835) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 21) (.val 9)))) (.node (some cxRSv96) (.node (some
+    cxRSv1323) .nil .nil) .nil) (.node (some cxRSv1066) (.node (some cxRSv2347) .nil .nil) .nil)))
+
+noncomputable def cxRStr3460 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 21) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2731) .nil .nil)) (.node (some cxRSv450) (.node (some cxRSv1707) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 15) (.val 9)))) (.node (some cxRSv1195) .nil .nil) .nil) (.node (some cxRSv942) (.node (some cxRSv2219) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3461 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 822 3] (.lt (.num 1)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv696) (.node (some cxRSv1963) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 13] (.lt (.num 12) (.val 9)))) (.node (some cxRSv210) (.node (some cxRSv1451) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 12] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2475) .nil .nil) .nil)))
+
+noncomputable def cxRStr3462 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 8] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 3) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 12) (.val 9)))) cxRStr3454 cxRStr3455) (.node (some (.under [.arm 28
+    26] (.lt (.num 25) (.val 9)))) cxRStr3456 cxRStr3457)) (.node (some (.under [.arm 28 18] (.lt (.num 5) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 10) (.val 9)))) cxRStr3458 cxRStr3459) (.node (some (.under [.arm 28
+    29] (.lt (.num 8) (.val 9)))) cxRStr3460 cxRStr3461)))
+
+noncomputable def cxRStr3463 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 10] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
+    11) (.val 9)))) .nil .nil) (.node (some cxRSv2571) .nil .nil)) (.node (some cxRSv300) (.node (some cxRSv1547) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 2) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv788) (.node (some cxRSv2059) .nil .nil) .nil)))
+
+noncomputable def cxRStr3464 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 23) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 14)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2827) .nil .nil)) (.node (some cxRSv542) (.node (some cxRSv1803) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 795 3] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1291) .nil .nil) .nil) (.node (some cxRSv1036) (.node (some cxRSv2315)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3465 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2699) .nil .nil)) (.node (some cxRSv420) (.node (some cxRSv1675) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 10) (.val 9)))) (.node (some cxRSv1163) .nil .nil) .nil) (.node (some cxRSv912) (.node (some cxRSv2187) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3466 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 20)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2955) .nil .nil)) (.node (some cxRSv666) (.node (some cxRSv1931) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 3) (.val 9)))) (.node (some cxRSv180) (.node (some
+    cxRSv1419) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2443)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3467 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 15] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2635) .nil .nil)) (.node (some cxRSv360) (.node (some cxRSv1611) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv850) (.node (some cxRSv2123) .nil .nil) .nil)))
+
+noncomputable def cxRStr3468 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 19)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2891) .nil .nil)) (.node (some cxRSv604) (.node (some cxRSv1867) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 24) (.val 9)))) (.node (some cxRSv124) (.node (some
+    cxRSv1355) .nil .nil) .nil) (.node (some cxRSv1098) (.node (some cxRSv2379) .nil .nil) .nil)))
+
+noncomputable def cxRStr3469 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 22] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2763) .nil .nil)) (.node (some cxRSv482) (.node (some cxRSv1739) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 19) (.val 9)))) (.node (some cxRSv1227) .nil .nil) .nil) (.node (some cxRSv974) (.node (some cxRSv2251) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3470 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 0) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv726) (.node (some cxRSv1995) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 2) (.val 9)))) (.node (some cxRSv240) (.node (some cxRSv1483) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2507) .nil .nil) .nil)))
+
+noncomputable def cxRStr3471 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 11] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 1) (.val 9)))) cxRStr3463 cxRStr3464) (.node (some (.under
+    [.arm 28 28] (.lt (.num 4) (.val 9)))) cxRStr3465 cxRStr3466)) (.node (some (.under [.arm 28 20] (.lt (.num 0)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 18) (.val 9)))) cxRStr3467 cxRStr3468) (.node (some
+    (.under [.arm 28 30] (.lt (.num 11) (.val 9)))) cxRStr3469 cxRStr3470)))
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

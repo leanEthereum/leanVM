@@ -78,6 +78,8 @@ FEATURES = {
     'perm': 'a constant cell of an own buffer written at hinted indices: one of those cells, a residual `perm`',
     'ptsrun-long': 'a run met by its points up to 4096 cells (not 64), and long blocks of guaranteed points also '
                    'guaranteed as runs',
+    'asm': 'a guarantee assembled at return: a run whose bound carries a constant `g^-k`, restated from `k` cells '
+           'earlier, joined with the points before and after it',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -1382,7 +1384,9 @@ class Pass:
                 w = self.cover(sts[0], t, ('ret',), allow_pre=False)
             else:
                 t = self.trR(st, r, ps, vs)
-                w = self.cover_run(sts[0], t, ('ret',)) if t is not None else None
+                # an assembled guarantee (`assemble`): its parts are in scope, it is not a run there
+                asm = 'asm' in F and t is not None and t in assemble(self, sts[0])
+                w = ('asm',) if asm else self.cover_run(sts[0], t, ('ret',)) if t is not None else None
             ws.append(('postR', w if w is not None else ('miss', r)))
         self.at_tail = False
         return ws
@@ -1667,6 +1671,58 @@ def loop_params(key):
 MAXPTS = 4096
 
 
+def gf_mulx(w, k):
+    """`w·x^k` in `GF(2^64)` (`x^64 = x^4 + x^3 + x + 1`; `g` is `x`)."""
+    for _ in range(k):
+        w <<= 1
+        if w >> 64:
+            w ^= (1 << 64) | 0x1B
+    return w
+
+
+def neg_pows(P):
+    """The values a constant `g^-k` (`k < 64`) defines: value -> `k`."""
+    out = getattr(P, 'negpows', None)
+    if out is None:
+        out = {}
+        for s in stmts(CORE[P.key][1]):
+            if s[0] == 'a' and s[1][0] == 'const' and s[1][2][1] == 0 and s[1][2][0] not in POWS:
+                for k in range(1, 64):
+                    if gf_mulx(s[1][2][0], k) == 1:
+                        out[s[1][1]] = k
+                        break
+        P.negpows = out
+    return out
+
+
+def assemble(P, st):
+    """Runs `⟨Q, 1, 0, X·v⟩` in scope, `v` a constant `g^-k` and `Q` `k` cells past `B`: the same cells as
+    `⟨B, 1, g^k, X⟩`; with the points `B·g^i`, `i < k`, before them and the points `B·X·g^i` after them, the run
+    `⟨B, 1, 0, X·g^t⟩` (`t` those after)."""
+    neg = neg_pows(P)
+    if not neg:
+        return []
+    out = []
+    for r, _ in st.runs:
+        Q, S, lo, hi = r
+        if S != 1 or lo != num(0):
+            continue
+        vs = [(b, e) for b, e in hi[0] if b in neg and e == 1]
+        if len(vs) != 1:
+            continue
+        k = neg[vs[0][0]]
+        X = mk(tuple(x for x in hi[0] if x != vs[0]), hi[1])
+        if Q[1] < k or not X[0] or any(shift(Q, i - k) not in st.pts for i in range(k)):
+            continue
+        B = shift(Q, -k)
+        top = mmul(B, X)
+        t = 0
+        while shift(top, t) in st.pts and t < 64:
+            t += 1
+        out.append((B, 1, num(0), shift(X, t)))
+    return out
+
+
 def retsig(P, G):
     """Guarantees at return: cells, runs, heap words, pointer facts over the parameters and returned words, on every
     path; returned words' monomials over the parameters."""
@@ -1736,6 +1792,11 @@ def retsig(P, G):
             t = tuple(rename(x) if x[0] else x for x in (r[0], r[2], r[3]))
             if None not in t and t[0][0]:
                 rs.add((t[0], r[1], t[1], t[2]))
+        if 'asm' in F:
+            for r in assemble(P, st):
+                t = tuple(rename(x) if x[0] else x for x in (r[0], r[2], r[3]))
+                if None not in t and t[0][0]:
+                    rs.add((t[0], r[1], t[1], t[2]))
         postR = rs if postR is None else postR & rs
         rss.append(rs)
         hv = set()

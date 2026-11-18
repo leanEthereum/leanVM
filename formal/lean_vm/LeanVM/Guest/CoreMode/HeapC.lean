@@ -578,7 +578,8 @@ def hiOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : 
   eqV E Q.hi R.hi || hasF F Q.hi R.hi ||
   (Nat.blt 0 Q.hi.off && hasF F ⟨Q.hi.bases, Q.hi.off - 1⟩ R.hi) ||
   (Q.hi.bases.isEmpty && R.hi.bases.isEmpty && Nat.ble Q.hi.off R.hi.off && Nat.blt R.hi.off capE) ||
-  (Q.hi.bases.isEmpty && Nat.blt Q.hi.off capE && hasFC F (Q.hi.off - 1) R.hi)
+  (Q.hi.bases.isEmpty && Nat.blt Q.hi.off capE && hasFC F (Q.hi.off - 1) R.hi) ||
+  hasF F Q.hi (R.hi.shift 1)
 
 /-- **A run inside a run in scope.** -/
 def runRun (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
@@ -822,6 +823,31 @@ noncomputable def permW (st : CSt) : List CCell → List ℕ → Bool
     | none => false) && permW st cs ns
   | _, _ => false
 
+/-- The write events `n + t`, `t < k`, at the cells `Q·g^t`. -/
+noncomputable def evsW (st : CSt) (Q : CCell) (n : ℕ) : ℕ → Bool
+  | 0 => true
+  | k + 1 => evsW st Q n k && (match getF st.sc (n + k) with
+    | some c' => c'.beq (Q.shift k)
+    | none => false)
+
+/-- The run `⟨Q, 1, g^0, g^k⟩`. -/
+def evsR (Q : CCell) (k : ℕ) : PRun := ⟨Q, 1, ⟨[], 0⟩, ⟨[], k⟩⟩
+
+/-- The cells a cell `k` indices below the upper bound of `R` is at when the upper bound's exponent `y` is too small
+for the run to hold it, from `y = y0`: `base·g^(S·y - S·k)`, the write events `ns`. -/
+noncomputable def backW (st : CSt) (R : PRun) (k : ℕ) : ℕ → List ℕ → Bool
+  | _, [] => true
+  | y, n :: ns => Nat.ble (R.stride * k) (R.base.off + R.stride * y) &&
+      (match getF st.sc n with
+        | some c' => c'.beq ⟨R.base.bases, R.base.off + R.stride * y - R.stride * k⟩
+        | none => false) && backW st R k (y + 1) ns
+
+/-- **A cell `k ≥ 1` indices below the upper bound, whatever its exponent**: a constant lower bound `lo`, the upper
+bound with an exponent, and one write event for each exponent below `lo + k`. -/
+def backC (F : List (CCell × CCell)) (R : PRun) (c : CCell) (ns : List ℕ) : Bool :=
+  Nat.blt 0 (backK R c) && (c.shift (R.stride * backK R c)).beq (R.base.mul (R.hi.pow R.stride)) &&
+    R.lo.bases.isEmpty && Nat.blt R.lo.off capE && hasExp F R.hi && Nat.beq ns.length (R.lo.off + backK R c)
+
 /-- The point before a run: its base over `g^stride`. -/
 def prepQ (R : PRun) : CCell := ⟨R.base.bases, R.base.off - R.stride⟩
 
@@ -881,6 +907,13 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
     | none => false
   | .prep2 r q q2 res => match getF st.rs r with
     | some R => prepIdx2 (facts X st.env res) R c && ptOk X st (prepQ R) q && ptOk X st R.base q2
+    | none => false
+  | .back r ns res => match getF st.rs r with
+    | some R => backC (facts X st.env res) R c ns && backW st R (backK R c) 0 ns
+    | none => false
+  | .evs n k res => match getF st.sc n with
+    | some Q => Nat.blt k capE && evsW st Q n k &&
+        (ptRun (facts X st.env res) (evsR Q k) c || subPt X (facts X st.env res) st.env res (evsR Q k) c)
     | none => false
   | _ => false
 

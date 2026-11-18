@@ -147,6 +147,19 @@ theorem rep_succ {x : E} {y : ℕ} (h : rep x = some y) (hy : y + 1 < capE) :
   obtain ⟨-, rfl⟩ := rep_spec h
   rw [← ofK_mul', addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex, rep_of hy]
 
+theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
+  pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
+
+/-- The exponent of a word, one less than that of the word times `g` when that is positive. -/
+theorem rep_of_shift {w : ℕ → E} {c : CCell} {y : ℕ} (h : rep ((c.shift 1).valW w) = some y) (hy : 0 < y) :
+    rep (c.valW w) = some (y - 1) := by
+  obtain ⟨hyc, hv⟩ := rep_spec h
+  rw [valW_shift] at hv
+  have : c.valW w = ofK (addressOfIndex (y - 1)) := by
+    refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hv.trans ?_)
+    rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hy]
+  rw [this, rep_of (by omega)]
+
 end Rep
 
 /-! ## Runs and facts -/
@@ -331,7 +344,7 @@ theorem runRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell ×
   have hi : ∃ rh, rep (R.hi.valW w) = some rh ∧ qh ≤ rh := by
     unfold hiOk at hhi
     simp only [Bool.or_eq_true, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hhi
-    rcases hhi with ((((h | h) | ⟨h0, h⟩) | ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩) | ⟨⟨h1, h2⟩, h3⟩)
+    rcases hhi with (((((h | h) | ⟨h0, h⟩) | ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩) | ⟨⟨h1, h2⟩, h3⟩) | h)
     · exact ⟨qh, by rw [← eqV_ok hE h]; exact hqh, le_rfl⟩
     · obtain ⟨ya, yb, ha, hb', hab⟩ := hasF_ok hF h
       rw [hqh, Option.some.injEq] at ha
@@ -347,6 +360,9 @@ theorem runRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell ×
     · obtain ⟨yb, hb', hkb⟩ := hasFC_ok hF h3
       rw [rep_nil h1 h2, Option.some.injEq] at hqh
       exact ⟨yb, hb', by omega⟩
+    · obtain ⟨ya, yb, ha, hb', hab⟩ := hasF_ok hF h
+      rw [hqh, Option.some.injEq] at ha
+      exact ⟨yb - 1, rep_of_shift hb' (by omega), by omega⟩
   obtain ⟨rl, hrl, hl⟩ := lo
   obtain ⟨rh, hrh, hh⟩ := hi
   rw [hb, hS] at hx
@@ -406,9 +422,6 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
       rwa [hl0] at this
     · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
-
-theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
-  pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
 
 /-- **A cell of a run extended by its point after it**: in the run, or that point. -/
 theorem app_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
@@ -1200,6 +1213,80 @@ theorem permW_ok {st : CSt} (hs : StOk rd W σ st) : ∀ {cs : List CCell} {ns :
     · exact permW_ok hs h2 c0 hc0
   | [], _ :: _, h, _, _ | _ :: _, [], h, _, _ => by simp [permW] at h
 
+theorem evsW_ok {st : CSt} (hs : StOk rd W σ st) {Q : CCell} {n : ℕ} :
+    ∀ {k : ℕ}, evsW st Q n k = true → ∀ t < k, W ((Q.shift t).addr σ)
+  | 0, _, t, ht => absurd ht (Nat.not_lt_zero _)
+  | k + 1, h, t, ht => by
+    simp only [evsW, Bool.and_eq_true] at h
+    rcases Nat.lt_succ_iff_lt_or_eq.mp ht with ht | rfl
+    · exact evsW_ok hs h.1 t ht
+    · cases hn : getF st.sc (n + t) with
+      | none => rw [hn] at h; exact absurd h.2 (by simp)
+      | some c' => rw [hn] at h; rw [← CCell.beq_eq h.2]; exact hs.sc _ c' hn
+
+/-- **The run of consecutive write events** written. -/
+theorem evs_run {st : CSt} (hs : StOk rd W σ st) {Q : CCell} {n k : ℕ} (h : evsW st Q n k = true)
+    (hk : k < capE) : RunF W (vw σ) (evsR Q k).base (evsR Q k).stride (evsR Q k).lo (evsR Q k).hi := by
+  rintro x ⟨ylo, yhi, j, -, hhi, -, h2, hx⟩
+  rw [show (evsR Q k).hi = ⟨[], k⟩ from rfl, rep_const hk, Option.some.injEq] at hhi
+  have := evsW_ok hs h j (by omega)
+  rw [addr_eq, CCell.addrW, valW_shift] at this
+  rw [hx, show (evsR Q k).base = Q from rfl, show (evsR Q k).stride = 1 from rfl, one_mul]
+  exact this
+
+theorem backW_ok {st : CSt} (hs : StOk rd W σ st) {R : PRun} {k : ℕ} :
+    ∀ {y0 : ℕ} {ns : List ℕ}, backW st R k y0 ns = true → ∀ i < ns.length,
+      R.stride * k ≤ R.base.off + R.stride * (y0 + i) ∧
+        W ((⟨R.base.bases, R.base.off + R.stride * (y0 + i) - R.stride * k⟩ : CCell).addr σ)
+  | _, [], _, i, hi => absurd hi (Nat.not_lt_zero _)
+  | y0, n :: ns, h, i, hi => by
+    simp only [backW, Bool.and_eq_true, Nat.ble_eq] at h
+    obtain ⟨⟨h1, h2⟩, h3⟩ := h
+    cases i with
+    | zero =>
+      refine ⟨by simpa using h1, ?_⟩
+      cases hn : getF st.sc n with
+      | none => rw [hn] at h2; cases h2
+      | some c' => rw [hn] at h2; rw [Nat.add_zero, ← CCell.beq_eq h2]; exact hs.sc n c' hn
+    | succ i =>
+      have := backW_ok hs h3 i (by simp only [List.length_cons] at hi; omega)
+      rwa [show y0 + 1 + i = y0 + (i + 1) by omega] at this
+
+/-- **A cell some indices below a run's upper bound**: in the run, or one of the write events. -/
+theorem back_ok {st : CSt} (hs : StOk rd W σ st) {F : List (CCell × CCell)} (hF : FOk (vw σ) F) {R : PRun}
+    (hR : RunF W (vw σ) R.base R.stride R.lo R.hi) {c : CCell} {ns : List ℕ} (h : backC F R c ns = true)
+    (hw : backW st R (backK R c) 0 ns = true) : W (c.addr σ) := by
+  unfold backC at h
+  simp only [Bool.and_eq_true, Nat.blt_eq] at h
+  obtain ⟨⟨⟨⟨⟨hk, hc⟩, hlb⟩, hlc⟩, hex⟩, hlen⟩ := h
+  have hlen := Nat.eq_of_beq_eq_true hlen
+  set k := backK R c
+  obtain ⟨yh, hyh⟩ := hasExp_ok hF hex
+  have hhv := (rep_spec hyh).2
+  have hcv : c.valW (vw σ) * ofK (addressOfIndex (R.stride * k)) =
+      R.base.valW (vw σ) * ofK (addressOfIndex (R.stride * yh)) := by
+    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex,
+      ← pow_mul, mul_comm yh]
+  have hne := ofK_gpow_ne_zero (R.stride * k)
+  rcases Nat.lt_or_ge yh (R.lo.off + k) with hlt | hge
+  · obtain ⟨hle, hW⟩ := backW_ok hs hw yh (by omega)
+    rw [Nat.zero_add] at hle hW
+    have hv : c.valW (vw σ) =
+        (⟨R.base.bases, R.base.off + R.stride * yh - R.stride * k⟩ : CCell).valW (vw σ) := by
+      refine mul_right_cancel₀ hne ?_
+      rw [hcv]
+      simp only [CCell.valW, mul_assoc, ← ofK_mul', addressOfIndex, ← pow_add]
+      rw [Nat.sub_add_cancel hle]
+    rw [addr_eq, CCell.addrW, hv, ← CCell.addrW, ← addr_eq]
+    exact hW
+  · rw [addr_eq]
+    refine hR _ ⟨R.lo.off, yh, yh - k, rep_nil hlb hlc, hyh, by omega, by omega, ?_⟩
+    have hv : c.valW (vw σ) = R.base.valW (vw σ) * ofK (addressOfIndex (R.stride * (yh - k))) := by
+      refine mul_right_cancel₀ hne ?_
+      rw [hcv, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
+        Nat.sub_add_cancel (by omega : k ≤ yh)]
+    rw [CCell.addrW, hv]
+
 /-- **A cell's witness**: the cell written. -/
 theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
     (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st) {c : CCell} {w : Wit}
@@ -1311,6 +1398,27 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       rw [addr_eq]
       exact prep2_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1.1 (by rw [← addr_eq]; exact ih h.1.2)
         (by rw [← addr_eq]; exact ih2 h.2)
+  | back r ns res =>
+    simp only [ptOk] at h
+    cases hr : getF st.rs r with
+    | none => rw [hr] at h; cases h
+    | some R =>
+      rw [hr] at h
+      simp only [Bool.and_eq_true] at h
+      exact back_ok hs (facts_ok hX hs.env res) (hs.rs r R hr) h.1 h.2
+  | evs n k res =>
+    simp only [ptOk] at h
+    cases hn : getF st.sc n with
+    | none => rw [hn] at h; cases h
+    | some Q =>
+      rw [hn] at h
+      simp only [Bool.and_eq_true, Nat.blt_eq] at h
+      obtain ⟨⟨hk, he⟩, h⟩ := h
+      have hR := evs_run hs he hk
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · rw [addr_eq]
+        exact ptRun_ok (facts_ok hX hs.env res) hR h
+      · exact subPt_ok hX hs.env (facts_ok hX hs.env res) hR h
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -1349,6 +1457,8 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | catM => simp [rnOk] at h
   | mrgE => simp [rnOk] at h
   | ab => simp [rnOk] at h
+  | evs => simp [rnOk] at h
+  | back => simp [rnOk] at h
 
 /-- The cells past a word, each witnessed: written. -/
 theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -2321,6 +2431,8 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .catM _ _ _ => hs
   | .mrgE _ _ _ => hs
   | .ab _ _ _ => hs
+  | .evs _ _ _ => hs
+  | .back _ _ _ => hs
 
 /-- **The runs at a word read**: the cell `c` holding `m`'s word, its runs at words into the run scope. -/
 theorem promoteQ_ok {st : CSt} (hs : StOk rd W σ st) {c m : CCell} (hm : rd (c.addr σ) = some (m.valW (vw σ))) :

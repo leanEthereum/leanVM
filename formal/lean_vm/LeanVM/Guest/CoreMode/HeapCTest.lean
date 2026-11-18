@@ -1780,6 +1780,74 @@ theorem rdw_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdw hRdw = true := by d
 theorem rdw_bad : heapOkC Data.powTree (fun _ ↦ .empty) rdw { hRdw with sig := { sRdw with gw := [] } } = false := by
   decide +kernel
 
+/-- Writes `p·g^[0, 3)` then reads `p·i`, `e(i) < 3` by a residual: the run of the three write events (`evs`). -/
+def evsRd : Fn where
+  name := "evsRd"
+  params := [.n 0, .n 1]
+  body := [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 0) 1), .atom (.load (.n 4) (.n 0) 2),
+    .atom (.mul (.n 5) (.n 0) (.n 1)), .atom (.load (.n 6) (.n 5) 0), .ret []]
+
+def hEvsRd : HCert where
+  sig := {}
+  reads := [(6, [(5, 0, .evs 0 3 [0])])]
+  res := [.lt (.val 1) (.num 3)]
+  rets := [[]]
+
+theorem evsRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) evsRd hEvsRd = true := by decide +kernel
+
+/-- `e(i) < 4`: `p·g^3` is not written. -/
+theorem evsRd_far : heapOkC Data.powTree (fun _ ↦ .empty) evsRd
+    { hEvsRd with reads := [(6, [(5, 0, .evs 0 4 [0])])], res := [.lt (.val 1) (.num 4)] } = false := by
+  decide +kernel
+
+/-- From the second event: its cells are `p·g^[1, 3)`, not from `p`. -/
+theorem evsRd_shift : heapOkC Data.powTree (fun _ ↦ .empty) evsRd
+    { hEvsRd with reads := [(6, [(5, 0, .evs 1 2 [0])])], res := [.lt (.val 1) (.num 2)] } = false := by
+  decide +kernel
+
+/-- Writes `p·g^0` and `p·g`, has `p·g·g^[1, e(n))` and reads `p·n`: in the run when `e(n) ≥ 2`, else one of the
+two points (`back`). -/
+def backRd : Fn where
+  name := "backRd"
+  params := [.n 0, .n 1]
+  body := [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 0) 1),
+    .atom (.mul (.n 4) (.n 0) (.n 1)), .atom (.load (.n 5) (.n 4) 0), .ret []]
+
+def hBackRd : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 1⟩, 1, .num 1, .val 1⟩] }
+  reads := [(5, [(4, 0, .back 0 [0, 1] [0])])]
+  res := [.lt (.val 1) (.num 100)]
+  rets := [[]]
+
+theorem backRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) backRd hBackRd = true := by decide +kernel
+
+/-- Without the point for `e(n) = 1`. -/
+theorem backRd_short : heapOkC Data.powTree (fun _ ↦ .empty) backRd
+    { hBackRd with reads := [(5, [(4, 0, .back 0 [0] [0])])] } = false := by decide +kernel
+
+/-- The points in the wrong order. -/
+theorem backRd_swap : heapOkC Data.powTree (fun _ ↦ .empty) backRd
+    { hBackRd with reads := [(5, [(4, 0, .back 0 [1, 0] [0])])] } = false := by decide +kernel
+
+/-- Guarantees `p·g^[0, e(n))` from `p·g^[0, 40)`, `e(n) < 41` by a fact (`hiOk`, the upper bound's next). -/
+def hiLe : Fn where
+  name := "hiLe"
+  params := [.n 0, .n 1]
+  body := [.ret []]
+
+def hHiLe : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 40⟩], postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := []
+  res := [.lt (.val 1) (.num 41)]
+  rets := [[.run 0 [0]]]
+
+theorem hiLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) hiLe hHiLe = true := by decide +kernel
+
+/-- `e(n) < 42` is not enough. -/
+theorem hiLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) hiLe { hHiLe with res := [.lt (.val 1) (.num 42)] } =
+    false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test

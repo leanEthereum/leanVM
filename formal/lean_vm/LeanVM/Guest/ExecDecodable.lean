@@ -24,9 +24,53 @@ open LeanVM.Prover.Exec
 
 @[expose] public section
 
-/-- **Every instruction of every guest function has its operands below `2^28`.** -/
-theorem functions_offSmall : Data.functions.all (fun f ↦ f.chunks.all (·.all offSmall)) = true := by
+private theorem all_drop_step {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
+    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
+    (l.drop (n * k)).all p = true := by
+  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
+  rwa [Nat.mul_succ] at ht
+
+/-- A function's instructions have their operands below `2^28`. -/
+def fnOffSmall (f : CompiledFunction) : Bool := f.chunks.all (·.all offSmall)
+
+private theorem offSmall0 : ((Data.functions.drop (200 * 0)).take 200).all fnOffSmall = true := by
   decide +kernel
+
+private theorem offSmall1 : ((Data.functions.drop (200 * 1)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall2 : ((Data.functions.drop (200 * 2)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall3 : ((Data.functions.drop (200 * 3)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall4 : ((Data.functions.drop (200 * 4)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall5 : ((Data.functions.drop (200 * 5)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall6 : ((Data.functions.drop (200 * 6)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall7 : ((Data.functions.drop (200 * 7)).take 200).all fnOffSmall = true := by
+  decide +kernel
+
+private theorem offSmall8 : (Data.functions.drop (200 * 8)).all fnOffSmall = true := by
+  decide +kernel
+
+/-- **Every instruction of every guest function has its operands below `2^28`**, 200 functions at a time. -/
+theorem functions_offSmall : Data.functions.all (fun f ↦ f.chunks.all (·.all offSmall)) = true :=
+  all_drop_step (k := 0) offSmall0 <|
+    all_drop_step offSmall1 <|
+    all_drop_step offSmall2 <|
+    all_drop_step offSmall3 <|
+    all_drop_step offSmall4 <|
+    all_drop_step offSmall5 <|
+    all_drop_step offSmall6 <|
+    all_drop_step offSmall7 <|
+    offSmall8
 
 theorem listElementOrDefault_of {α : Type} {p : α → Prop} {d : α} (hd : p d) :
     ∀ (l : List α) (n : ℕ), (∀ x ∈ l, p x) → p (listElementOrDefault l n d)

@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 * `armExactS g`: `g` is `opening_round`, a deployed grind check or an entry of `lpTable`: the callees whose exactness
   the arm's composition carries;
 * `armExactOk name j`: function `j` is named `name`, its computed hints are pinned by the next atom, and each of its
-  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExactA`, `ArmExactB`);
+  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExactA`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
 * `armExact_find`: such a function's paths that hold are exact, and its callees not `armExactS` exact for free;
   `armExact_every`: so a valid node of it whose `armExactS` callees' predicates give `Every` exact is exact at every
   node.
@@ -41,6 +41,23 @@ noncomputable def armExactOk (name : String) (j : ℕ) : Bool :=
   | some fn => fn.name == name && Stmt.blockNextOk isComputed pinsInverse fn.body &&
       (Stmt.blockCallees fn.body).all fun g => armExactS g || exactCallee j g
   | none => false
+
+/-- **`armExactOk` from its parts**, the callees' check decided apart (`ArmExactB`, `ArmExactC`, in chunks: one
+kernel check of a large arm's callees at once holds too much memory). -/
+theorem armExactOk_of {name : String} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
+    (hn : (fn.name == name) = true) (hp : Stmt.blockNextOk isComputed pinsInverse fn.body = true)
+    (hc : (Stmt.blockCallees fn.body).all (fun g => armExactS g || exactCallee j g) = true) :
+    armExactOk name j = true := by
+  unfold armExactOk
+  rw [hj]
+  simp only [hn, hp, hc, Bool.and_self]
+
+/-- A list's `all` from its chunk at `n * k` and the rest after it. -/
+theorem all_drop_chunk {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
+    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
+    (l.drop (n * k)).all p = true := by
+  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
+  rwa [Nat.mul_succ] at ht
 
 theorem armExact_find {name : String} {j : ℕ} (h : armExactOk name j = true) :
     ∃ fn, coreProgram.find? name = some fn ∧ Stmt.blockNextOk isComputed pinsInverse fn.body = true ∧
