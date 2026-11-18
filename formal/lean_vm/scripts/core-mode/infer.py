@@ -305,6 +305,7 @@ class Pass:
         self.retvals = None
         self.adds = {}
         self.ltprov = {}
+        self.ltkey = {}
         self.eqs = []
         self.defs = {}
         for s in stmts(self.body):
@@ -345,10 +346,21 @@ class Pass:
         return all(b < self.m for b, _ in c[0])
 
     def addres(self, r):
-        if r not in self.res:
-            self.res.append(r)
-            self.stats['res-' + r[0]] += 1
-        return self.res.index(r)
+        """A residual's index; `e(a·g^k) < e(b)` for the largest `k` asked of one `a`, `b` (the reads of one run at
+        several offsets ask one bound)."""
+        if r in self.res:
+            return self.res.index(r)
+        if r[0] == 'lt' and r[1][1] < 2 ** 40:
+            key = (r[1][0], r[2], r[3:])
+            i = self.ltkey.get(key)
+            if i is not None:
+                if self.res[i][1][1] < r[1][1]:
+                    self.res[i] = r
+                return i
+            self.ltkey[key] = len(self.res)
+        self.res.append(r)
+        self.stats['res-' + r[0]] += 1
+        return len(self.res) - 1
 
     # -- exponent facts
     def lt(self, st, a, b, used=None):
@@ -410,7 +422,8 @@ class Pass:
             k = do // S
         else:
             neg = ORD - do
-            if neg % S:
+            if neg % S or not rest:
+                # a constant index below the run's base: not one of its cells
                 return None
             k = -(neg // S)
         return mk(tuple((b, e // S) for b, e in rest.items()), k)
@@ -460,7 +473,7 @@ class Pass:
                 if used is not None:
                     used.extend(u)
                 return r, rw, j, True, True
-            if best is None:
+            if best is None and not (not okl and not j[0] and not r[2][0]) and not (not okh and not j[0] and not r[3][0]):
                 best = (r, rw, j, okl, okh)
         return best
 
@@ -741,7 +754,8 @@ class Pass:
             if okl and okh:
                 self.stats['wr-run'] += 1
                 return ('run', rw, [])
-            if best is None or (okl or okh) and not (best[2] or best[3]):
+            false = (not okl and not jl[0] and not R[2][0]) or (not okh and not jh[0] and not R[3][0])
+            if not false and (best is None or (okl or okh) and not (best[2] or best[3])):
                 best = (R, rw, okl, okh, jl, jh)
         if n is not None and n <= 64 and not lo[0] and 'ptsrun' in F:
             ws = []
@@ -935,6 +949,9 @@ class Pass:
             elif k == 'dispatch':
                 self.dispatch(st, s)
             elif k == 'ret':
+                if 'rules' in F:
+                    import rules
+                    rules.derive(self, st)
                 if self.retvals is None:
                     self.retvals = s[1]
                 self.rets.append((st, s[1]))
@@ -1051,20 +1068,22 @@ class Pass:
             return
         by = collections.defaultdict(set)
         for c in outs[-1].pts:
-            if c[1] < 2 ** 20 and c[0]:
+            if c[1] < 2 ** 20 and c[0] and c not in st.pts:
                 by[c[0]].add(c[1])
         for Q, offs in by.items():
-            d = None
+            ns = []
             for j, t in enumerate(outs):
                 n = 0
                 while (Q, n) in t.pts:
                     n += 1
-                d = n - j if d is None else min(d, n - j)
-            if d is None or d < 0 or all(((Q, 0) in t.pts) for t in outs[:1]) and d == 0 and len(offs) < 2:
+                ns.append(n)
+            K = (ns[-1] - ns[0]) // (len(outs) - 1)
+            if K < 1:
                 continue
-            if d + len(outs) - 1 < 2:
+            d = min(n - K * j for j, n in enumerate(ns))
+            if d < 0 or K * (len(outs) - 1) + d < 2:
                 continue
-            r = ((Q, 0), 1, num(0), shift(xm, d))
+            r = ((Q, 0), 1, num(0), shift(mpow(xm, K), d))
             self.stats['arm-block'] += 1
             self.pushR(st, r)
 
@@ -1276,6 +1295,48 @@ def run_all(rules=True):
     return out, time.time() - t
 
 
+def used_res(P):
+    """The residuals the witnesses use (a derived run's, transitively)."""
+    out = set()
+
+    def w_(w):
+        if not isinstance(w, tuple) or not w:
+            return
+        k = w[0]
+        if k == 'run':
+            rw = w[1]
+            if isinstance(rw, tuple) and rw[0] == 'derived':
+                add(rw[1])
+            for i in w[2]:
+                add(i)
+        elif k == 'sub':
+            w_(w[1])
+            for i in w[2]:
+                add(i)
+        elif k == 'pts':
+            for x in w[1]:
+                w_(x)
+
+    def add(i):
+        if i in out:
+            return
+        out.add(i)
+        r = P.res[i]
+        if r[0] == 'sub' and len(r) > 3:
+            for part in r[2]:
+                pass
+
+    for w in P.reads.values():
+        w_(w)
+    for f, ws in P.calls:
+        for _, w in ws or ():
+            w_(w)
+    for ws in P.ret_wits:
+        for _, w in ws:
+            w_(w)
+    return out
+
+
 def misses(P):
     """Guarantees and tail preconditions without a witness at the fixpoint."""
     n = 0
@@ -1321,8 +1382,10 @@ def report(res):
     if ms:
         unc['miss (a guarantee or tail precondition)'] = ms
     print('  uncovered', sum(unc.values()), 'in', len(res) - len(clean), 'functions:', dict(unc.most_common()))
-    print('  residuals', sum(len(P.res) for P in res.values()), 'in', sum(1 for P in res.values() if P.res),
-          'functions', dict(collections.Counter(r[0] for P in res.values() for r in P.res)))
+    U = {k: used_res(P) for k, P in res.items()}
+    print('  residuals used', sum(len(u) for u in U.values()), 'in', sum(1 for u in U.values() if u), 'functions',
+          dict(collections.Counter(res[k].res[i][0] + ':' + (res[k].res[i][3] if len(res[k].res[i]) > 3 and
+                                   isinstance(res[k].res[i][3], str) else '') for k, u in U.items() for i in u)))
     print('  stats', dict(sorted(tot.items())))
     fam = collections.Counter()
     for k, P in res.items():
@@ -1333,8 +1396,9 @@ def report(res):
         print(f'    {c:30s} {k:40s} {n}')
     rf = collections.Counter()
     for k, P in res.items():
-        for r in P.res:
-            rf[(r[0] if r[0] != 'rule' else r[1], k.split('__L')[0])] += 1
+        for i in U[k]:
+            r = P.res[i]
+            rf[(r[0] + (':' + r[3] if len(r) > 3 and isinstance(r[3], str) else ''), k.split('__L')[0])] += 1
     print('  residuals by kind and family (top 30):', rf.most_common(30))
     return clean, closed
 

@@ -21,16 +21,21 @@ def split_index(P, c):
 
 
 def bound_of(P, st, x):
-    """A constant `N` with `e(x) < N` known, and the residuals that give it."""
+    """A bound `B` with `e(x) < e(B)` known, a constant (the least) or else a monomial over the parameters (a range
+    check against an argument), and the residuals that give it."""
     best = None
     for a, b in st.lts:
-        if a == base(x) and not b[0] and b[1] < 2 ** 20:
-            if best is None or b[1] < best:
-                best = b[1]
+        if a != base(x):
+            continue
+        if not b[0] and b[1] < 2 ** 20:
+            if best is None or best[0] or b[1] < best[1]:
+                best = b
+        elif b[0] and P.iface(b) and best is None and not (P.loop and any(v == P.sig.ctr for v, _ in b[0])):
+            best = b
     if best is None:
         return None
     used = []
-    P.lt(st, base(x), num(best), used)
+    P.lt(st, base(x), best, used)
     return best, used
 
 
@@ -43,7 +48,7 @@ def tab_idx(P, st, c, site):
     if b is None:
         return None
     N, used = b
-    r = (shift(Q, o), S, num(0), num(N))
+    r = (shift(Q, o), S, num(0), N)
     if r not in P.sig.preR:
         P.sig.preR.append(r)
     APPLIED['tabIdx'] = APPLIED.get('tabIdx', 0) + 1
@@ -81,6 +86,54 @@ def lin_sub(P, st, r, site, conds):
             APPLIED['linSub'] = APPLIED.get('linSub', 0) + 1
             return ('sub', w, [k])
     return None
+
+
+def derive(P, st):
+    """Runs implied by runs in scope, each a `Res.sub` of index arithmetic (true of all words): `merge`, the `S`
+    residues `T·g^d`, `d < S`, of stride `S` over `[lo, hi)` are `T` over `[S·lo, S·hi)`; `concat`, `T` over `[0, A)`
+    then `T·A` over `[0, B)` are `T` over `[0, A·B)`; `rename`, a bound `M^k` with `M = p` (an `assert ==`) is `p^k`."""
+    from infer import mmul, mpow
+    have = {r for r, _ in st.runs}
+    new = []
+    by = {}
+    for r in have:
+        Q, S, lo, hi = r
+        if S > 1 and Q[1] < S:
+            by.setdefault(((Q[0], 0), S, lo, hi), set()).add(Q[1])
+    for (T, S, lo, hi), ds in by.items():
+        if len(ds) == S:
+            R = (T, 1, mpow(lo, S), mpow(hi, S))
+            if R not in have:
+                new.append((R, [((T[0], d), S, lo, hi) for d in range(S)], 'merge'))
+    ones = [r for r in have if r[1] == 1 and r[2] == num(0)] + [x[0] for x in new if x[0][1] == 1 and x[0][2] == num(0)]
+    for a in ones:
+        for b in ones:
+            if b[0] == mmul(a[0], a[3]) and a[3][0]:
+                R = (a[0], 1, num(0), mmul(a[3], b[3]))
+                if R not in have:
+                    new.append((R, [a, b], 'concat'))
+    out = []
+    for R, parts, why in new:
+        for x, y in P.eqs:
+            for M, pm in ((x, y), (y, x)):
+                if len(pm[0]) == 1 and pm[0][0][1] == 1 and pm[0][0][0] < P.m and pm[1] == 0 and M[0]:
+                    k = None
+                    dm, dh = dict(M[0]), dict(R[3][0])
+                    if set(dm) == set(dh) and R[3][1] == 0:
+                        ks = {dh[v] // dm[v] for v in dm if dh[v] % dm[v] == 0}
+                        if len(ks) == 1 and all(dh[v] == dm[v] * list(ks)[0] for v in dm):
+                            k = ks.pop()
+                    if k:
+                        R2 = (R[0], 1, R[2], mpow(pm, k))
+                        out.append((R2, [R], 'rename'))
+        out.append((R, parts, why))
+    for R, parts, why in out:
+        if R in have:
+            continue
+        have.add(R)
+        i = P.addres(('sub', R, tuple(parts), why))
+        st.runs.append((R, ('derived', i)))
+        P.stats['derive-' + why] += 1
 
 
 def run(P, st, r, site, conds):
