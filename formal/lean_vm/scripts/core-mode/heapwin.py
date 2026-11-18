@@ -181,7 +181,7 @@ def emit(k, H, sts, cs, names, po):
     ok += f'\nset_option Elab.async false\n\nnamespace {ns}.HeapW\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
     ok += (f'/-- The parameters, the tail\'s shape, the entry state. -/\ntheorem head_ok : headOk Data.powTree sigW core '
            f'hcert {lei} {cs[-1]} st0 = true := by\n  decide +kernel\n\n')
-    ok += (f'/-- The tail call and the guarantees at `ret []`. -/\ntheorem tail_ok : tailOk Data.powTree sigW core hcert '
+    ok += (f'/-- The tail call and the guarantees at `ret []`. -/\ntheorem tail_ok : tailOkW Data.powTree sigW core hcert '
            f'{lei} st{n} = true := by\n  decide +kernel\n\n')
     ok += f'end\nend {ns}.HeapW\n\nnamespace {ns}\n\n@[expose] public section\n\n'
     lst = ', '.join(f'({cs[i]}, HeapW.st{i})' for i in range(1, n + 1))

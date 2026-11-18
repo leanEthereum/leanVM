@@ -35,7 +35,7 @@ theorem head_ok : headOk Data.powTree sigW core hcert (.val 1) 327 st0 = true :=
   decide +kernel
 
 /-- The tail call and the guarantees at `ret []`. -/
-theorem tail_ok : tailOk Data.powTree sigW core hcert (.val 1) st14 = true := by
+theorem tail_ok : tailOkW Data.powTree sigW core hcert (.val 1) st14 = true := by
   decide +kernel
 
 end
