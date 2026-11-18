@@ -196,15 +196,18 @@ fn forged_lean_sphincs_hints_are_rejected() {
 }
 
 /// A leanXMSS signature's leaf index and codeword are bound in-circuit: a node whose
-/// hints change the index, dispatch a path window other than the index's, or
-/// dispatch a digit group other than the digest's fails the guest's run.
+/// hints change any shift of the index, dispatch a path window other than the
+/// index's, or dispatch a digit group other than the digest's fails the guest's run.
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
     let signers = get_signers::<StableProver>(1);
-    let forgeries: [Forgery; 3] = [
+    let forgeries: [Forgery; 6] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[1] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[2] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_digits", 0)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_digits", 1)[7] *= count(1)),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, &[], signers.clone(), vec![], &[]);
