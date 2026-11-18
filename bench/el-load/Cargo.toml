@@ -4,11 +4,19 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 
-# Its own workspace: revm stays out of leanVM's.
+# Its own workspace: reth stays out of leanVM's.
 [workspace]
 
+# reth's stateless validation, as reth's last release with it (v1.10.2) ships it.
 [dependencies]
-revm = "43"
+reth-stateless = { git = "https://github.com/paradigmxyz/reth", tag = "v1.10.2" }
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth", tag = "v1.10.2" }
+reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth", tag = "v1.10.2" }
+reth-ethereum-primitives = { git = "https://github.com/paradigmxyz/reth", tag = "v1.10.2" }
+alloy-consensus = "1.4.3"
+alloy-primitives = { version = "1.5.0", features = ["k256"] }
+alloy-rpc-types-eth = { version = "1.4.3", features = ["serde"] }
+alloy-rlp = "0.3.10"
 serde_json = "1"
 
 [profile.release]

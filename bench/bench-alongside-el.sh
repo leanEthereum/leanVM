@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # The 16-to-1 recursion of bench.sh, at 4 threads, while an execution client's load runs alongside it: el-load
-# re-executes mainnet blocks (bench/el-load), a slot's worth of gas per slot over 4 workers. One run per core
-# configuration below; prints the proving time and the EVM's slot times for each.
+# validates mainnet blocks as a stateless reth node does (bench/el-load), a slot's worth of gas per slot over 4 workers.
+# One run per core configuration below; prints the proving time and the execution client's slot times for each.
 # Usage: [EL_GAS_PER_SLOT=200000000] [EL_SLOT_MS=12000] bench/bench-alongside-el.sh [stable|experimental] [log file]
-# EL_SLOT_MS=0 runs the slots back to back, so the EVM runs throughout the proofs.
+# EL_SLOT_MS=0 runs the slots back to back, so the execution client works throughout the proofs.
 set -uo pipefail
 
 PROVER=${1:-experimental}
@@ -36,18 +36,18 @@ P=$(cpus "$(cat /sys/devices/cpu_core/cpus 2>/dev/null || cat /sys/devices/syste
 E=$(cpus "$(cat /sys/devices/cpu_atom/cpus 2>/dev/null || true)")
 echo "performance CPUs: $P; efficiency CPUs: ${E:-none}; $GAS gas per slot, slots of $SLOT_MS ms" | tee -a "$LOG"
 
-# name | leanVM's CPUs | the EVM's CPUs ("" for no EVM, "any" for unpinned)
+# name | leanVM's CPUs | the execution client's CPUs ("" for none, "any" for unpinned)
 CONFIGS=(
   "leanVM alone, 4 P|$(take "$P" 4)|"
   "leanVM alone, unpinned|any|"
   "both unpinned|any|any"
-  "4 P leanVM, 4 P EVM|$(take "$P" 4)|$(skip_take "$P" 4 4)"
-  "4 P leanVM, EVM unpinned|$(take "$P" 4)|any"
+  "4 P leanVM, 4 P EL|$(take "$P" 4)|$(skip_take "$P" 4 4)"
+  "4 P leanVM, EL unpinned|$(take "$P" 4)|any"
 )
 [ -n "$E" ] && CONFIGS+=(
-  "4 P leanVM, 4 E EVM|$(take "$P" 4)|$(take "$E" 4)"
-  "4 E leanVM, 4 P EVM|$(take "$E" 4)|$(take "$P" 4)"
-  "leanVM unpinned, 4 E EVM|any|$(take "$E" 4)"
+  "4 P leanVM, 4 E EL|$(take "$P" 4)|$(take "$E" 4)"
+  "4 E leanVM, 4 P EL|$(take "$E" 4)|$(take "$P" 4)"
+  "leanVM unpinned, 4 E EL|any|$(take "$E" 4)"
 )
 
 # The prefix that pins a command to CPUs, none for "any". taskset execs the command, so `$!` is the command's own PID.
@@ -55,7 +55,7 @@ on() { [ "$1" = any ] || echo "taskset -c $1"; }
 
 for config in "${CONFIGS[@]}"; do
   IFS='|' read -r name lean el <<<"$config"
-  echo "=== $name: leanVM on ${lean}, EVM on ${el:-nothing} ===" | tee -a "$LOG"
+  echo "=== $name: leanVM on ${lean}, EL on ${el:-nothing} ===" | tee -a "$LOG"
   EL_PID=
   : >"$EL_OUT"
   if [ -n "$el" ]; then
@@ -74,7 +74,7 @@ for config in "${CONFIGS[@]}"; do
 done
 
 {
-  echo "| configuration | 16-to-1 proving time ($PROVER, 4 threads) | EVM slots ($GAS gas, 4 workers) |"
+  echo "| configuration | 16-to-1 proving time ($PROVER, 4 threads) | EL slots ($GAS gas, 4 workers) |"
   echo "| --- | --- | --- |"
   cat "$RESULTS"
 } | tee -a "$LOG"
