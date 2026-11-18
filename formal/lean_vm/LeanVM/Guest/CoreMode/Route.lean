@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
+public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.LoopBC
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.B2C.Cells
@@ -19,7 +20,8 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
 honest frames have them (`honB`): its body the core route's shape, its parameters `V.n k` at cells `2 + k`, its returned values at
-their cells, each dereferenced pointer at its certificate cell within the frame, no hint-only cell; not `main`, no chained `match`.
+their cells, each dereferenced pointer at its certificate cell within the frame, no hint-only cell; not `main`, no chained `match`;
+and its heap certificate's residuals of the families the honest frames make true (`resOk`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -78,7 +80,7 @@ noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
   ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
-    honB j Cf.fn = true
+    (honB j Cf.fn && resOk Cf) = true
 
 
 /-- **Core data of the deployed guest**, from the tables' entries of function `j` and its checks. -/
@@ -89,7 +91,7 @@ theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P :
     (hfn : cf = Cf.fn)
     (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
       f.instructionCount = Cf.X)
-    (hb : honB j Cf.fn = true) : CfOk Cf := by
+    (hb : (honB j Cf.fn && resOk Cf) = true) : CfOk Cf := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, -⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl

@@ -28,36 +28,6 @@ end
 
 end LeanVM.Guest.Fn.«column_selector__L17»
 
-namespace LeanVM.Guest.Fn.«grind_check__L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `grind_check__L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 432) (d := Data.adviceFn432) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L3»
-
-namespace LeanVM.Guest.Fn.«grind_check__L25»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `grind_check__L25`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 445) (d := Data.adviceFn445) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L25»
-
 namespace LeanVM.Guest.Fn.«verify_sub»
 
 open LeanVM.Guest LeanVM.Guest.Exec

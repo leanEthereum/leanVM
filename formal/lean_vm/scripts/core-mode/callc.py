@@ -235,7 +235,7 @@ def exp_bounds(h, args, body, np, expc):
                     raise No('callee bound not a constant power')
 
 
-def infer_one(k, S):
+def infer_one(k, S, allow=None):
     EM = _em()
     params, body = CORE[k]
     np = len(params)
@@ -287,7 +287,7 @@ def infer_one(k, S):
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     if EM.check(k, H, sigOf) is not None:
         raise No('recheck')
-    if H.res:
+    if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
     return dict(cert=H, cs=hs)
 
@@ -305,6 +305,9 @@ def results(verbose=False):
             why[str(e).split(':')[0]] += 1
             if verbose and '--why' in ARGV:
                 print(k, e)
+    # bodies closed only with residuals of families (`callcres.py`, `CoreMode/CoreRes.lean`)
+    import callcres
+    callcres.extend(out, why, S, verbose)
     if verbose:
         print('calls: %d of %d candidates' % (len(out), len(candidates())), dict(why.most_common()))
     return out, why

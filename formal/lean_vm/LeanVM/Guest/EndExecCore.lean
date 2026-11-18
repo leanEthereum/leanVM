@@ -12,6 +12,7 @@ public import LeanVM.Guest.EndExecRKid
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.JumpCellsDeployed
 public import LeanVM.Guest.EndExecLoop
+public import LeanVM.Guest.EndExecCoreRes
 
 /-!
 # The core route's honest frames
@@ -22,7 +23,8 @@ is an honest instance (`RefOk.frames`) of the function at that entry (the alignm
 `res_of_top`'s argument; entries distinct, `fnOf_entry_inj`), a node of a valid tree, so its path's
 events hold (`insts_good`); its frame holds each value the path names at its certificate cell
 (`FrameHolds.val`), which are the alignment context's cells (`locAt_ofData`) for its pointers, and
-`2 + k` for its parameters (`honB`).
+`2 + k` for its parameters (`honB`); its heap certificate's residuals, of families (`resOk`), hold at its
+valuation (`resOk_sound`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -327,6 +329,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   subst hjj
   rw [hc0] at hfn
   -- the honest valuation
+  rw [Bool.and_eq_true] at hb0
+  obtain ⟨hb0, hres0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
@@ -334,7 +338,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩⟩
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_, ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -479,6 +483,20 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
+  · -- its residuals, of families (`resOk`), true along its path on the reference
+    have hwC : walk e.σ Cf.fn.body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
+    refine resOk_sound (by have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size; omega) r.img hres0 hwC
+      fun e0 he0 ↦ ?_
+    rcases insts_good (P := coreProgram) _ _ _ (hXh.covers.valid hH.toHonest) e.I hI with ⟨args, rets, hv⟩ |
+      ⟨f', σ', hph⟩
+    · rw [hIt] at hv
+      obtain ⟨fn', hfind, -, es', vs', hw', -, hh', -⟩ := hv
+      rw [hE.find, Option.some.injEq] at hfind
+      subst hfind
+      rw [hw, Memory.Out.ret.injEq] at hw'
+      obtain ⟨rfl, -⟩ := hw'
+      exact hh' e0 he0
+    · rw [hIt] at hph; cases hph
 
 end
 

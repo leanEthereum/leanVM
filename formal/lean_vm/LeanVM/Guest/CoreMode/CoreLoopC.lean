@@ -164,7 +164,6 @@ certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsBL`),
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
-  res : Cf.H.res = []
   body : loopBC Cf.fn = true
   calls : callsBL Cf = true
   top : Cf.fn.body.all topOk = true
@@ -307,7 +306,7 @@ theorem stmts_of_mem {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {ss
 words and its termination fact holding: every event's needs written before it, its guarantees at
 return. -/
 theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {rd : Reader} {es : List Ev}
-    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) {s : St}
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) (hR : ResF Cf.H σ) {s : St}
     (hP : ParAt K.F.sig Cf.fn.params.length s (Cf.fn.params.map σ)) (hT : ∀ p ∈ K.F.sig.term, LTF s p.1 p.2) :
     ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧ PostOkW Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
   have hs := sigLP_of hok.sig
@@ -340,7 +339,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
         · rw [hs.hretEq] at hp; cases hp
     | _ => trivial
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
-    (resF_nil hok.res σ) (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The tail call -/
@@ -448,7 +447,7 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     {s s1 s' : St} (hfp1 : s1.fp = s.fp) (hle : s.mem ≤ s'.mem) (hf' : Fine (refMem img) s')
     (hu' : s'.mem.used ≤ 2 ^ κ) {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
-    (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
+    (hR0 : ResF Cf.H σ0) (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x)
     (hPN : ParAt K.F.sig Cf.fn.params.length (stOf s'.mem s'.fp) (args.map σ0))
     (hP0 : ParAt K.F.sig Cf.fn.params.length (stOf s.mem s.fp) (Cf.fn.params.map σ0))
@@ -493,7 +492,7 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
           rw [hsigf]
           exact ⟨hs.hpostP, hs.inPost⟩
   have hhB := holds_memRd hok hb hh0 heq hWc hcs hsame
-  obtain ⟨-, hposts⟩ := loopC_heap hok hb hhB hP0 hT
+  obtain ⟨-, hposts⟩ := loopC_heap hok hb hhB hR0 hP0 hT
   simp only [PostOkW, List.map_nil, List.append_nil] at hposts
   -- what the path writes, at the later memory's reader
   have hWB := writtenC_swap (es := pre ++ evs) hWc hsame hs.hpreP hs.inPre fun f a r he ↦
@@ -531,7 +530,7 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hent0 : 0 ∈ Cf.frame.sig.entry) (hent1 : 1 ∈ Cf.frame.sig.entry)
     {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
-    (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
+    (hR0 : ResF Cf.H σ0) (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
     (hrw0 : ReadsOkC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es))
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x)
     (hnargs : ∀ k (hk : k < args.length), Rd img (s.fp + S) (2 + k) = some (σ0 args[k]))
@@ -553,7 +552,7 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
       simpa using hnargs b hba
   have hsigf : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hb0 : s.fp < 2 ^ 28 := by unfold maxCells at hfp0; omega
-  refine ⟨hpc', hwN, fun o ho ↦ ?_, back_nextC hok hκ hfp1 hle hf' hu' hb hh0 heq hWc hPN hP0 hT hcs, ?_⟩
+  refine ⟨hpc', hwN, fun o ho ↦ ?_, back_nextC hok hκ hfp1 hle hf' hu' hb hh0 hR0 heq hWc hPN hP0 hT hcs, ?_⟩
   · -- the header copied
     have hwo : ∀ o ∈ K.F.sig.entry, s'.mem.written (s1.fp + o) = true := fun o ho ↦ by
       rw [hfp1]; exact written_mono hle (hwE o ho)
@@ -632,7 +631,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     fun hσ ↦ parAt_of hκ hs.agree hs.fp hwE (hws0 hσ)
   have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
       (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-    fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hPs hσ) hT).1
+    fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 hσ.res (hPs hσ) hT).1
   have hhd : ∀ j, (Cf.d.2.2.lookup (Cf.X.entry + j)).getD [] = Mode.hintsAt Cf.frame.hints (Cf.frame.entry + j) :=
     fun j ↦ by rw [lookupD_hintsAt, hok.dhints, hok.xentry, hok.fentry]
   have hlen : Cf.frame.len = K.code.length := hok.flen
@@ -1034,7 +1033,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       fun hσ ↦ parAt_of hκ hs0.agree hs0.fp hwE (hws0 hσ)
     have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
         (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-      fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hPs hσ) hT).1
+      fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 hσ.res (hPs hσ) hT).1
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -1215,7 +1214,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
           obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-          obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 (hPs hσ0) hT
+          obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 hσ0.res (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
@@ -1292,8 +1291,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           .tail hok.sigE fun hTE ↦ tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
-            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
-            hargs (hPs hσ0) hT hcs
+            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 hσ0.res (by simpa using heq) hrw0 hWc
+            (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
         cases hjo with
         | ret _ _ hr =>
           obtain ⟨c', hc'⟩ := hr

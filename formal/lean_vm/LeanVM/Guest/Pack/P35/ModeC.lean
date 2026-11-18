@@ -24,6 +24,25 @@ public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P61».ModeSig
 public import LeanVM.Guest.Pack.«P62».ModeSig
 
+namespace LeanVM.Guest.Fn.«assert_small_g_power»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `assert_small_g_power`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `assert_small_g_power`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨19293, 57, Fn.«assert_small_g_power».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«assert_small_g_power»
+
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L6»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -59,6 +78,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L14»
+
+namespace LeanVM.Guest.Fn.«column_selector__L24»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L24`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L24`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨211363, 21, Fn.«column_selector__L24».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L24»
 
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L22»
 

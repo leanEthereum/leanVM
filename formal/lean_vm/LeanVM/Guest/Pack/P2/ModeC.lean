@@ -136,6 +136,24 @@ end
 
 end LeanVM.Guest.Fn.«da_column_offsets_loop3»
 
+namespace LeanVM.Guest.Fn.«grind_check__L28»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `grind_check__L28`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `grind_check__L28`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨254549, 38, Fn.«grind_check__L28».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«grind_check__L28»
+
 namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

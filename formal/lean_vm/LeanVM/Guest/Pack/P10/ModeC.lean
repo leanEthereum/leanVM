@@ -94,6 +94,24 @@ end
 
 end LeanVM.Guest.Fn.«index_mle__L8»
 
+namespace LeanVM.Guest.Fn.«grind_check__L15»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `grind_check__L15`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `grind_check__L15`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨211564, 45, Fn.«grind_check__L15».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«grind_check__L15»
+
 namespace LeanVM.Guest.Fn.«bus_grind_check__L5»
 
 open LeanVM.Guest LeanVM.Guest.Exec

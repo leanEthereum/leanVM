@@ -285,7 +285,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_positions__L4_L14_L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -354,7 +354,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -423,7 +423,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L19_L7_L4_L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -492,7 +492,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -561,7 +561,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -623,7 +623,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `da_levels__L128_L7_loop3`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -688,7 +687,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `level_residual__L25_L6_L4_L2_loop1`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -753,7 +751,6 @@ theorem loop_shape : CoreMode.loopShapeOkC cfun = true := by
 /-- `level_positions__L13_L20_L2_loop0`: the kernel's checks of the core route for a loop helper with calls, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   body := by decide +kernel
   calls := by decide +kernel
   top := by decide +kernel
@@ -822,7 +819,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `level_residual__L28_L9_L4_L2_loop1`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -887,7 +883,6 @@ theorem loop_shape : CoreMode.loopShapeOkC cfun = true := by
 /-- `level_positions__L6_L21_L3_loop0`: the kernel's checks of the core route for a loop helper with calls, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   body := by decide +kernel
   calls := by decide +kernel
   top := by decide +kernel
@@ -956,7 +951,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `level_residual__L109_L20_L6_L3_loop1`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -1021,7 +1015,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `level_residual__L28_L12_L4_L2_loop1`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -1086,7 +1079,6 @@ theorem loop_shape : CoreMode.loopShapeOkC cfun = true := by
 /-- `level_positions__L6_L23_L5_loop0`: the kernel's checks of the core route for a loop helper with calls, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   body := by decide +kernel
   calls := by decide +kernel
   top := by decide +kernel
@@ -1155,7 +1147,6 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 /-- `level_residual__L23_L15_L4_L2_loop1`: the kernel's checks of the core route for a loop helper, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   ders := rfl
   nofa := by decide +kernel
   cs := rfl
@@ -1220,7 +1211,6 @@ theorem loop_shape : CoreMode.loopShapeOkC cfun = true := by
 /-- `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0`: the kernel's checks of the core route for a loop helper with calls, tied to its mode certificate. -/
 theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
-  res := rfl
   body := by decide +kernel
   calls := by decide +kernel
   top := by decide +kernel

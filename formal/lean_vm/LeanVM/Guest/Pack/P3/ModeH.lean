@@ -13,21 +13,6 @@ public import LeanVM.Guest.Pack.«P3».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«grind_check__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `grind_check__L30`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 450) (d := Data.adviceFn450) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L30»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
 
 open LeanVM.Guest LeanVM.Guest.Exec

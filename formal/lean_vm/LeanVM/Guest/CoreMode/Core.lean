@@ -29,7 +29,8 @@ it promises its callers (`post`, with their witnesses).
 
 `HonF img Cf fp σ`: `σ` is the valuation of an honest instance of `Cf.fn` in frame `fp` of the
 reference image `img`: its path returns with its events holding, each `load`'s pointer at its cell
-(`X.locAt`), each parameter at its cell `2 + k`, each returned value at its cell.
+(`X.locAt`), each parameter at its cell `2 + k`, each returned value at its cell, its heap
+certificate's residuals true at it (`res`, from the honest tree).
 
 `CoreAt img Cf code i s`: frame `s.fp` at offset `i`: the frame walk's state there holds (`AtF`), the
 entry cells are written, and for every honest valuation of the frame, its path splits at the
@@ -137,6 +138,8 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
     Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
+  /-- Its heap certificate's residuals, at it. -/
+  res : ResF Cf.H σ
 
 /-- The frame cell a run bound's exponent is of, if any. -/
 def boundCells : Mode.Idx → List ℕ
@@ -651,12 +654,13 @@ def noFA (body : List Stmt) : Bool :=
 
 /-- **The heap check of a function on the core route**: milestone 1's (`heapOk`, `postOk`, straight
 line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
-signatures `Cf.sigOf`, no termination fact or residual, no callee's returned word's monomial). -/
+signatures `Cf.sigOf`, no termination fact, no callee's returned word's monomial; its residuals hold at
+the honest valuations, `HonF.res`). -/
 inductive HeapK (Cf : CFun) : Prop
   | m1 : heapOk Cf.pows (fun _ ↦ .empty) Cf.fn Cf.H = true → postOk Cf.pows Cf.H Cf.post Cf.fn.body = true →
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty) = true →
       Cf.H.sig.retM = [] → HeapK Cf
-  | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → Cf.H.res = [] → callsB Cf = true →
+  | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
       Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
 
 /-- **The kernel's checks of a function on the core route**, and its ties to its mode certificate

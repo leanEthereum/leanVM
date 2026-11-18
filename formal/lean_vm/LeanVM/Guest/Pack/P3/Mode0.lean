@@ -15,29 +15,6 @@ public import LeanVM.Guest.Pack.«P3».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«grind_check__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L30`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L30`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨254625, 38, Fn.«grind_check__L30».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 30 11 3),
-    (.windowsExp 2 (.stack 4) 3 63 1 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L30`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L30»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
 
 open LeanVM.Guest LeanVM.Guest.Exec
