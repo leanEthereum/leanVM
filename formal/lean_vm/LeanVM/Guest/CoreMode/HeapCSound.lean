@@ -650,18 +650,18 @@ def PfOk (rd : Reader) (W : K → Prop) (σ : Val) (pf : Trie (CCell × List ℕ
 def PrOk (rd : Reader) (W : K → Prop) (σ : Val) (pr : Trie (PRun × List ℕ)) : Prop :=
   ∀ n p, getF pr n = some p → ∀ a, RunSet (vw σ) p.1.base p.1.stride p.1.lo p.1.hi a → ∀ x, PtrSet rd a p.2 x → W x
 
-/-- **A dispatch arm's guarantees under its selector hold**: written if the selector's word is `g^j`. -/
-def CdEOk (rd : Reader) (W : K → Prop) (σ : Val) (e : CdE) : Prop :=
+/-- **A dispatch arm's guarantees hold**: written. -/
+def CdAOk (rd : Reader) (W : K → Prop) (σ : Val) (e : CdA) : Prop :=
   (∀ c ∈ e.cs, W (c.addr σ)) ∧ (∀ q ∈ e.rs, RunF W (vw σ) q.base q.stride q.lo q.hi) ∧
     (∀ p ∈ e.ps, ∀ x, PtrSet rd (p.1.addr σ) p.2 x → W x) ∧
     ∀ p ∈ e.prs, ∀ a, RunSet (vw σ) p.1.base p.1.stride p.1.lo p.1.hi a → ∀ x, PtrSet rd a p.2 x → W x
 
-/-- **The guarantees under selectors hold.** -/
+/-- **The guarantees under selectors hold**: a dispatch's arm `j`'s where the selector's word is `g^j`. -/
 def CdOk (rd : Reader) (W : K → Prop) (σ : Val) (cd : List CdE) : Prop :=
-  ∀ e ∈ cd, e.mx.valW (vw σ) = ofK (addressOfIndex e.j) → CdEOk rd W σ e
+  ∀ e ∈ cd, ∀ j a, nth e.arms j = some a → e.mx.valW (vw σ) = ofK (addressOfIndex j) → CdAOk rd W σ a
 
 theorem CdOk.mono (hw : ∀ x, W x → W' x) {cd : List CdE} (h : CdOk rd W σ cd) : CdOk rd W' σ cd :=
-  fun e he hj ↦ let ⟨h1, h2, h3, h4⟩ := h e he hj
+  fun e he j a ha hj ↦ let ⟨h1, h2, h3, h4⟩ := h e he j a ha hj
     ⟨fun c hc ↦ hw _ (h1 c hc), fun q hq ↦ (h2 q hq).mono hw, fun p hp x hx ↦ hw _ (h3 p hp x hx),
       fun p hp a ha x hx ↦ hw _ (h4 p hp a ha x hx)⟩
 
@@ -1774,16 +1774,19 @@ theorem condSt_ok {mx : CCell} {j : ℕ} (hj : mx.valW (vw σ) = ofK (addressOfI
   | [], _, _, hs => hs
   | e :: l, hl, st, hs => by
     simp only [condSt]
-    cases hb : (e.mx.beq mx && Nat.beq e.j j) with
+    cases hb : e.mx.beq mx with
     | false => exact condSt_ok hj hcd l (fun e' h ↦ hl e' (List.mem_cons_of_mem _ h)) hs
     | true =>
-      rw [Bool.cond_true, CSt.seq_eq]
-      simp only [Bool.and_eq_true] at hb
-      obtain ⟨h1, h2, h3, h4⟩ := hcd e (hl e List.mem_cons_self)
-        (by rw [CCell.beq_eq hb.1, Nat.eq_of_beq_eq_true hb.2]; exact hj)
-      exact condSt_ok hj hcd l (fun e' h ↦ hl e' (List.mem_cons_of_mem _ h))
-        (pushPRL_ok (pushRL_ok (pushPL_ok (pushL_ok hs (fun _ h ↦ h) h1) (fun _ h ↦ h) h3) (fun _ h ↦ h) h2)
-          (fun _ h ↦ h) h4)
+      rw [Bool.cond_true]
+      cases ha : nth e.arms j with
+      | none => exact condSt_ok hj hcd l (fun e' h ↦ hl e' (List.mem_cons_of_mem _ h)) hs
+      | some a =>
+        simp only [CSt.seq_eq]
+        obtain ⟨h1, h2, h3, h4⟩ := hcd e (hl e List.mem_cons_self) j a ha
+          (by rw [CCell.beq_eq hb]; exact hj)
+        exact condSt_ok hj hcd l (fun e' h ↦ hl e' (List.mem_cons_of_mem _ h))
+          (pushPRL_ok (pushRL_ok (pushPL_ok (pushL_ok hs (fun _ h ↦ h) h1) (fun _ h ↦ h) h3) (fun _ h ↦ h) h2)
+            (fun _ h ↦ h) h4)
 
 end Inv
 
@@ -2700,8 +2703,8 @@ theorem instArms_mem {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : Lis
 theorem postE_ok {G : HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws)) {cs : List CCell}
     {rs : List PRun} {ps : List (CCell × List ℕ)} {prs : List (PRun × List ℕ)} (h1 : instAll ms G.post = some cs)
     (h2 : instAllR ms G.postR = some rs) (h3 : instPP ms G.postP = some ps) (h4 : instPRL ms G.postPR = some prs)
-    {W' : K → Prop} (hW : ∀ x, PostSet rd G ws x → W' x) (mx : CCell) (j : ℕ) :
-    CdEOk rd W' σ ⟨mx, j, cs, rs, ps, prs⟩ := by
+    {W' : K → Prop} (hW : ∀ x, PostSet rd G ws x → W' x) :
+    CdAOk rd W' σ ⟨cs, rs, ps, prs⟩ := by
   refine ⟨fun c hc ↦ ?_, fun q hq x hx ↦ ?_, fun p hp x hx ↦ ?_, fun p hp a ha x hx ↦ ?_⟩
   · obtain ⟨c0, hc0, hi⟩ := instAll_ok h1 c hc
     refine hW _ (Or.inl (Or.inl ⟨c0, hc0, ?_⟩))
@@ -2717,21 +2720,23 @@ theorem postE_ok {G : HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) 
     rw [← he]
     exact hx
 
-theorem condE_mem {sigOf : String → HSig} {ms : List CCell} {mx : CCell} : ∀ {j : ℕ} {gs : List String} {e : CdE},
-    e ∈ condE sigOf ms mx j gs → e.mx = mx ∧ ∃ k, ∃ hk : k < gs.length, e.j = j + k ∧
-      instAll ms (sigOf gs[k]).post = some e.cs ∧ instAllR ms (sigOf gs[k]).postR = some e.rs ∧
-      instPP ms (sigOf gs[k]).postP = some e.ps ∧ instPRL ms (sigOf gs[k]).postPR = some e.prs
-  | _, [], _, he => by simp [condE] at he
-  | j, g :: gs, e, he => by
-    simp only [condE] at he
+theorem condE_nth {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : List String} {k : ℕ} {a : CdA},
+    nth (condE sigOf ms gs) k = some a → ∃ hk : k < gs.length, a = ⟨[], [], [], []⟩ ∨
+      (instAll ms (sigOf gs[k]).post = some a.cs ∧ instAllR ms (sigOf gs[k]).postR = some a.rs ∧
+      instPP ms (sigOf gs[k]).postP = some a.ps ∧ instPRL ms (sigOf gs[k]).postPR = some a.prs)
+  | [], _, _, he => by simp [condE, nth] at he
+  | g :: gs, 0, a, he => by
+    simp only [condE, nth, Option.some.injEq] at he
+    refine ⟨by simp, ?_⟩
     split at he
     · rename_i cs rs ps prs h1 h2 h3 h4
-      rcases List.mem_cons.mp he with rfl | he
-      · exact ⟨rfl, 0, by simp, by simp, h1, h2, h3, h4⟩
-      · obtain ⟨hm, k, hk, hj, e1, e2, e3, e4⟩ := condE_mem he
-        exact ⟨hm, k + 1, by simpa using hk, by rw [hj]; omega, e1, e2, e3, e4⟩
-    · obtain ⟨hm, k, hk, hj, e1, e2, e3, e4⟩ := condE_mem he
-      exact ⟨hm, k + 1, by simpa using hk, by rw [hj]; omega, e1, e2, e3, e4⟩
+      subst he
+      exact Or.inr ⟨h1, h2, h3, h4⟩
+    · exact Or.inl he.symm
+  | g :: gs, k + 1, a, he => by
+    simp only [condE, nth] at he
+    obtain ⟨hk, h⟩ := condE_nth he
+    exact ⟨by simpa using hk, by simpa using h⟩
 
 theorem addCd_ok {st : CSt} (hs : StOk rd W σ st) {l : List CdE} (hl : CdOk rd W σ l) : StOk rd W σ (st.addCd l) :=
   ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, hs.src, hs.pf, hs.pr, fun e he ↦ (List.mem_append.mp he).elim (hs.cd e) (hl e), hs.eqs⟩
@@ -3065,16 +3070,20 @@ theorem dispC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
                   · cases hb : Nat.blt fs.length capE with
                     | false => intro e he; simp at he
                     | true =>
-                      intro e he hj
-                      rw [Bool.cond_true] at he
-                      obtain ⟨hme, k, hk, hjk, e1', e2', e3', e4'⟩ := condE_mem he
+                      intro e he k a ha hj
+                      rw [Bool.cond_true, List.mem_singleton] at he
+                      subst he
+                      obtain ⟨hk, ha'⟩ := condE_nth ha
                       have hlt := Nat.blt_eq.mp hb
                       rw [capE_eq] at hlt
                       have hki : k = i := gpow_inj_lt (by omega) (by omega)
-                        (by rw [← Nat.zero_add k, ← hjk, ← hj, hme, hmxv, hxi])
+                        (by rw [← hj, hmxv, hxi])
                       subst hki
+                      rcases ha' with rfl | ⟨e1', e2', e3', e4'⟩
+                      · exact ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h,
+                          fun _ h ↦ by simp at h⟩
                       rw [hgi, hX.sigOf] at e1' e2' e3' e4'
-                      exact postE_ok hm e1' e2' e3' e4' (fun x hx ↦ Or.inr hx) _ _
+                      exact postE_ok hm e1' e2' e3' e4' (fun x hx ↦ Or.inr hx)
                   refine pushRL_ok ?_ (fun _ h ↦ h) fun q hq ↦ ?_
                   swap
                   · -- the blocks' runs: the taken arm's, its index the selector's exponent

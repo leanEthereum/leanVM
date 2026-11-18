@@ -109,7 +109,7 @@ theorem heapOkC_of_winsF {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H 
   simp only [Trie.seq_eq]
   have hX : (⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
       trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
-      keysT H.eqs .nil, H.fas⟩ : CX) = cxOf pows sigOf f H := rfl
+      keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
   simp only
   rw [hc]
