@@ -132,8 +132,8 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let n_positions = 1usize << k_code;
     let row_words = n_lanes.next_multiple_of(ROW_LANES).min(1usize << log_batch_size);
 
-    // Leaves are hashed as the encode finishes each block of rows.
-    let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
+    // Leaves are hashed as the encode finishes each block of rows, from their data lanes on.
+    let tree = merkle::MerkleBuilder::new(n_positions, row_words, n_lanes, 1usize << log_batch_size);
     let ntt = AdditiveNttF64::standard(k_code);
     let span = tracing::info_span!(
         "NTT",
@@ -197,7 +197,9 @@ impl LigeroWitness {
                 .iter()
                 .flat_map(|&q| row(q).as_chunks::<2>().0.iter().map(|w| F128::new(w[0].0, w[1].0))),
         );
-        let paths = self.tree.open(queries, row_words, row_words, &group_rows, row);
+        let paths = self
+            .tree
+            .open(queries, row_words, row_words, row_words, &group_rows, row);
         (rows, paths)
     }
 
@@ -226,7 +228,7 @@ pub(crate) fn ligero_commit_ext(
 
     // One leaf per row, its F128s as K words: hashed as the encode finishes each block.
     let row_words = 2 * num_interleaved;
-    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
+    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words, row_words);
     let codeword = tracing::info_span!(
         "NTT",
         kind = "extension encode",
@@ -892,7 +894,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                     let zeros = std::iter::repeat_n(F128::ZERO, num_interleaved_0 - n_lanes);
                     rows.extend(image(q).iter().rev().map(|&k| F128::from(k)).chain(zeros));
                 }
-                ps.hint_merkle(l0_tree.open(&queries, row_words, num_interleaved_0, &group_rows, image));
+                let paths = l0_tree.open(&queries, row_words, n_lanes, num_interleaved_0, &group_rows, image);
+                ps.hint_merkle(paths);
                 // Nothing reads the L0 codeword, its stack or its tree again.
                 drop((prover_data, std::mem::take(&mut stack)));
                 rows

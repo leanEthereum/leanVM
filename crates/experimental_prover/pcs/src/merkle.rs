@@ -38,7 +38,7 @@ const STAGE_TILE_BYTES: usize = 16 << 10;
 
 /// A Merkle tree filled one aligned block of leaves at a time, from any thread.
 ///
-/// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
+/// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`, and a row may lead with zero words of its own.
 ///
 /// Blocks must all have the same power-of-two size, and together cover every leaf once.
 pub(crate) struct MerkleBuilder {
@@ -50,20 +50,21 @@ pub(crate) struct MerkleBuilder {
 }
 
 impl MerkleBuilder {
-    /// An empty tree of `num_leaves` leaves of `leaf_words`, each committing `row_words`.
+    /// An empty tree of `num_leaves` leaves of `leaf_words`, each committing `row_words`, of which all but the last
+    /// `data_words` are zero.
     ///
     /// A tree of `CUT_FROM` leaves or more is cut, so its blocks must hold whole leaf groups.
-    pub fn new(num_leaves: usize, row_words: usize, leaf_words: usize) -> Self {
+    pub fn new(num_leaves: usize, row_words: usize, data_words: usize, leaf_words: usize) -> Self {
         let cut = if num_leaves >= CUT_FROM { CUT } else { 0 };
-        Self::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, cut)
+        Self::with_bytes(num_leaves, 8 * row_words, 8 * data_words, 8 * leaf_words, cut)
     }
 
-    fn with_bytes(num_leaves: usize, row_bytes: usize, leaf_bytes: usize, cut: usize) -> Self {
+    fn with_bytes(num_leaves: usize, row_bytes: usize, data_bytes: usize, leaf_bytes: usize, cut: usize) -> Self {
         assert!(num_leaves.is_power_of_two(), "num_leaves must be power of 2");
         Self {
             nodes: Nodes::new(num_leaves, cut),
             cut,
-            leaves: LeafHasher::new(row_bytes, leaf_bytes),
+            leaves: LeafHasher::new(row_bytes, data_bytes, leaf_bytes),
             progress: Progress::new(num_leaves),
         }
     }
@@ -341,12 +342,13 @@ impl CutTree {
 
     /// The paths of `positions`, with `row(q)` the row at `q`.
     ///
-    /// `group_rows` are the full rows of [`Self::group_positions`], `row_words` each, back to back, hashed
-    /// as the leaves `zeros(leaf_words - row_words) ‖ row`.
+    /// `group_rows` are the full rows of [`Self::group_positions`], `row_words` each, all but the last `data_words`
+    /// of each zero, back to back, hashed as the leaves `zeros(leaf_words - row_words) ‖ row`.
     pub fn open<'a>(
         &self,
         positions: &[usize],
         row_words: usize,
+        data_words: usize,
         leaf_words: usize,
         group_rows: &[F64],
         row: impl Fn(usize) -> &'a [F64],
@@ -362,7 +364,8 @@ impl CutTree {
             let mut nodes = Nodes::new(n, 0);
             // SAFETY: the nodes are ours alone, the climb writes every level it reads, and the levels kept are written.
             unsafe {
-                LeafHasher::new(8 * row_words, 8 * leaf_words).hash(cast_slice(group_rows), nodes.level_mut(0, 0, n));
+                LeafHasher::new(8 * row_words, 8 * data_words, 8 * leaf_words)
+                    .hash(cast_slice(group_rows), nodes.level_mut(0, 0, n));
                 nodes.climb(0, 0, n, self.cut);
                 nodes.tree.truncate(Self::start(n, self.cut));
                 nodes.assume_init()
@@ -385,14 +388,15 @@ impl CutTree {
 
 /// How rows become leaf digests, chosen once from the leaf shape.
 ///
-/// Whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
+/// Whole blocks of leading zeros, the row's own included, are one sponge state, absorbed once for every leaf.
 enum LeafHasher {
     /// Past the shared prefix, each row is its own image.
     Direct {
         row_bytes: usize,
         state: [u64; STATE_LANES],
     },
-    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
+    /// The rest of the padding does not fill a block, or the row leads with more zeros than the image, so each row's
+    /// image is laid out in a tile first.
     Staged {
         row_bytes: usize,
         image: usize,
@@ -401,9 +405,11 @@ enum LeafHasher {
 }
 
 impl LeafHasher {
-    fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
-        assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
-        let zero_blocks = (leaf_bytes - row_bytes) / RATE;
+    /// Rows of `row_bytes`, zero but for their last `data_bytes`, hashed as leaves of `leaf_bytes`.
+    fn new(row_bytes: usize, data_bytes: usize, leaf_bytes: usize) -> Self {
+        assert!(0 < data_bytes && data_bytes <= row_bytes, "a row holds its data");
+        assert!(row_bytes <= leaf_bytes, "a leaf holds its row");
+        let zero_blocks = (leaf_bytes - data_bytes) / RATE;
         let state = zero_prefix_state(zero_blocks);
         let image = leaf_bytes - zero_blocks * RATE;
         if image == row_bytes {
@@ -460,14 +466,16 @@ impl Tile {
         Self([0; STAGE_TILE_BYTES / 8])
     }
 
-    /// Lay each `row_bytes` row at the end of its own `image`-byte slot, and return the slots.
+    /// Lay each `row_bytes` row, cut to its last `image` bytes when longer (the rest is zeros), at the end of its own
+    /// `image`-byte slot, and return the slots.
     ///
-    /// The bytes before each row are never written, so they stay zero.
+    /// A slot's bytes before its row are never written, so they stay zero.
     fn extend(&mut self, rows: &[u8], row_bytes: usize, image: usize) -> &[u8] {
         let tile: &mut [u8] = cast_slice_mut(&mut self.0);
         let n = rows.len() / row_bytes;
+        let take = row_bytes.min(image);
         for (slot, row) in tile.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
-            slot[image - row_bytes..].copy_from_slice(row);
+            slot[image - take..].copy_from_slice(&row[row_bytes - take..]);
         }
         &tile[..n * image]
     }
@@ -486,15 +494,22 @@ mod tests {
     /// The tree over `num_leaves` equal byte leaves, each hashed as [`primitives::hash::hash`] of its bytes.
     fn merkle_tree(data: &[u8], num_leaves: usize) -> Vec<Hash> {
         let leaf_bytes = data.len() / num_leaves;
-        let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes, 0);
+        let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes, leaf_bytes, 0);
         builder.absorb_all(data);
         builder.finish().nodes
     }
 
-    /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
-    fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {
+    /// The tree over `num_leaves` rows of `row_words`, all but the last `data_words` of each zero, each hashed as
+    /// `zeros(leaf_words - row_words) ‖ row`.
+    fn merkle_tree_padded_rows(
+        data: &[F64],
+        num_leaves: usize,
+        row_words: usize,
+        data_words: usize,
+        leaf_words: usize,
+    ) -> Vec<Hash> {
         assert_eq!(data.len(), row_words * num_leaves);
-        let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, 0);
+        let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * data_words, 8 * leaf_words, 0);
         builder.absorb_all(cast_slice(data));
         builder.finish().nodes
     }
@@ -549,26 +564,37 @@ mod tests {
     #[test]
     fn padded_rows_tree_matches_full_width() {
         // Invariant: each leaf hashes as its zero-extended row, however the prefix splits.
-        for (num_leaves, row_words, leaf_words) in [
+        for (num_leaves, row_words, data_words, leaf_words) in [
             // Nothing to pad.
-            (8usize, 64usize, 64usize),
-            (1024, 8, 8),
+            (8usize, 64usize, 64usize, 64usize),
+            (1024, 8, 8, 8),
             // A shared prefix plus a partial block, staged.
-            (2048, 37, 64),
-            (256, 27, 64),
-            (64, 1, 64),
+            (2048, 37, 37, 64),
+            (256, 27, 27, 64),
+            (64, 1, 1, 64),
             // A prefix of whole blocks: the rows are hashed where they lie.
-            (256, 30, 64),
-            (1 << 14, 47, 64),
+            (256, 30, 30, 64),
+            (1 << 14, 47, 47, 64),
             // A prefix shorter than one block: nothing shared, still staged.
-            (32, 5, 8),
-            (256, 61, 64),
+            (32, 5, 5, 8),
+            (256, 61, 61, 64),
             // Leaves that are not a whole number of blocks.
-            (16, 3, 5),
-            (64, 7, 40),
+            (16, 3, 3, 5),
+            (64, 7, 7, 40),
+            // Rows that lead with zeros: a shared prefix that reaches into them, or stops short of them.
+            (1 << 10, 48, 46, 64),
+            (256, 32, 30, 64),
+            (256, 44, 42, 64),
+            (64, 8, 5, 8),
         ] {
             let data: Vec<F64> = (0..row_words * num_leaves)
-                .map(|i| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1))
+                .map(|i| {
+                    if i % row_words < row_words - data_words {
+                        F64::ZERO
+                    } else {
+                        F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1)
+                    }
+                })
                 .collect();
             let want = merkle_tree_sequential(
                 data.chunks(row_words).map(|row| {
@@ -579,9 +605,9 @@ mod tests {
                 num_leaves,
             );
             assert_eq!(
-                &merkle_tree_padded_rows(&data, num_leaves, row_words, leaf_words)[..],
+                &merkle_tree_padded_rows(&data, num_leaves, row_words, data_words, leaf_words)[..],
                 &want[..],
-                "num_leaves={num_leaves} row_words={row_words} leaf_words={leaf_words}"
+                "num_leaves={num_leaves} row_words={row_words} data_words={data_words} leaf_words={leaf_words}"
             );
         }
     }
@@ -589,13 +615,24 @@ mod tests {
     #[test]
     fn cut_tree_opens_like_the_full_tree() {
         // Invariant: opening through the cut tree gives the paths of the full tree.
-        for (num_leaves, row_words, leaf_words) in [(256usize, 8usize, 16usize), (1 << 10, 24, 24), (32, 8, 8)] {
+        for (num_leaves, row_words, data_words, leaf_words) in [
+            (256usize, 8usize, 8usize, 16usize),
+            (1 << 10, 24, 24, 24),
+            (32, 8, 8, 8),
+            (256, 48, 45, 64),
+        ] {
             let data: Vec<F64> = (0..row_words * num_leaves)
-                .map(|i| F64(i as u64 * 0x9E37_79B9 + 1))
+                .map(|i| {
+                    if i % row_words < row_words - data_words {
+                        F64::ZERO
+                    } else {
+                        F64(i as u64 * 0x9E37_79B9 + 1)
+                    }
+                })
                 .collect();
-            let full = merkle_tree_padded_rows(&data, num_leaves, row_words, leaf_words);
+            let full = merkle_tree_padded_rows(&data, num_leaves, row_words, data_words, leaf_words);
             let row = |q: usize| &data[q * row_words..][..row_words];
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, CUT);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * data_words, 8 * leaf_words, CUT);
             builder.absorb_all(cast_slice(&data));
             let cut = builder.finish();
             assert_eq!(cut.root(), *full.last().unwrap());
@@ -606,7 +643,7 @@ mod tests {
             ] {
                 let group = cut.group_positions(&positions);
                 let rows: Vec<F64> = group.iter().flat_map(|&q| row(q)).copied().collect();
-                let got = cut.open(&positions, row_words, leaf_words, &rows, row);
+                let got = cut.open(&positions, row_words, data_words, leaf_words, &rows, row);
                 let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
                 let node = |level: usize, i: usize| full[level_start(level) + i];
                 let row = |q| row(q).iter().map(|word| word.0);
@@ -623,9 +660,9 @@ mod tests {
         // Invariant: the tree does not depend on the block size the encode picks.
         let (num_leaves, row_words) = (1usize << 12, 6usize);
         let data: Vec<F64> = (0..row_words * num_leaves).map(|i| F64(i as u64 * 7 + 1)).collect();
-        let want = merkle_tree_padded_rows(&data, num_leaves, row_words, row_words);
+        let want = merkle_tree_padded_rows(&data, num_leaves, row_words, row_words, row_words);
         for log_block in [0usize, 3, 5, 6, 9, 12] {
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 0);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 8 * row_words, 0);
             // Blocks arrive out of order, as the encode's tasks finish.
             for b in (0..num_leaves >> log_block).rev() {
                 let rows = row_words << log_block;
@@ -635,7 +672,7 @@ mod tests {
         }
         // A cut tree is the full tree without its lowest levels, whatever the block size.
         for log_block in [4usize, 5, 9, 12] {
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, CUT);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 8 * row_words, CUT);
             for b in (0..num_leaves >> log_block).rev() {
                 let rows = row_words << log_block;
                 builder.absorb(b << log_block, &data[b * rows..][..rows]);
@@ -652,7 +689,7 @@ mod tests {
     #[should_panic(expected = "every leaf absorbed")]
     fn a_missing_block_is_rejected() {
         let data = vec![F64::ZERO; 8 * 16];
-        let builder = MerkleBuilder::new(16, 8, 8);
+        let builder = MerkleBuilder::new(16, 8, 8, 8);
         builder.absorb(0, &data[..64]);
         let _ = builder.finish();
     }
@@ -661,7 +698,7 @@ mod tests {
     #[should_panic(expected = "a block absorbed twice")]
     fn a_repeated_block_is_rejected() {
         let data = vec![F64::ZERO; 8 * 16];
-        let builder = MerkleBuilder::new(16, 8, 8);
+        let builder = MerkleBuilder::new(16, 8, 8, 8);
         builder.absorb(8, &data[..64]);
         builder.absorb(8, &data[..64]);
     }
