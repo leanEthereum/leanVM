@@ -137,7 +137,7 @@ theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : 
     (hfall : ∀ s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 → Moves M s s1 →
       OpModed M s1 (opOfOff K.code[i]) →
       runOp C s1 (opOfOff K.code[i]) = .ok s' → s'.pc = s.pc + 1 → s'.fp = s.fp → Fine M s' →
-      s.mem ≤ s'.mem → AtOff K.E K.F K.code (i + 1) s' → Inv { s' with steps := s'.steps + 1 })
+      s1.mem ≤ s'.mem → AtOff K.E K.F K.code (i + 1) s' → Inv { s' with steps := s'.steps + 1 })
     (hjump : ∀ c d f A go A' s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 →
       K.code[i] = .jump c d f → Moves M s s1 →
       OpModed M s1 (.jump c d f) → Holds s1 A →
@@ -168,7 +168,7 @@ theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : 
       hm.fine.agree.used hE1 hA2 (by rw [hpc1]; exact h3)).2 hnj e'
     obtain ⟨hpc', hfp'⟩ := runOp_nj hg1 hm.fine.fp (by rw [hpc1]; exact hsz) hnj e'
     exact hfall s1 _ hP1 hm hmo e' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf'
-      (Mem.le_trans hm.le hle') (hnext _ ⟨A3, List.mem_singleton_self _, hH'⟩)
+      hle' (hnext _ ⟨A3, List.mem_singleton_self _, hH'⟩)
   · have hop : opOfOff K.code[i] = .jump c d f := by rw [hins]; rfl
     obtain ⟨hreads, -⟩ := stepOp_sound (C := C) (s' := s1) hg1 hm.fine.fp (by rw [hpc1]; exact hsz)
       hm.fine.agree.used hE1 hA2 (by rw [hpc1]; exact h3)
@@ -184,7 +184,7 @@ theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : 
         · exact List.mem_singleton_self _
         · exact hm' fun ht ↦ condOf_true hA2 ht hvc rfl
       exact hfall s1 _ hP1 hm (hop ▸ hmo) e' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf'
-        (Mem.le_trans hm.le hle') (hnext _ ⟨_, hmem, hL.mono hle' hfp'⟩)
+        hle' (hnext _ ⟨_, hmem, hL.mono hle' hfp'⟩)
     · rcases hc with ⟨hf0, -⟩ | ⟨go, A', hj, -, hcj⟩
       · exact absurd (condOf_false hA2 hf0 hvc) hne
       · exact hjump c d f A2 go A' s1 s' hP1 hins hm hmo hA2 hj

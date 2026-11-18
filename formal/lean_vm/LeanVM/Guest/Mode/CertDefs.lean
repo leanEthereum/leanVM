@@ -11,7 +11,8 @@ The mode walk's certificates are assembled pack by pack (`Pack/*/ModeCert.lean`,
 `scripts/mode-cert/gen.py`) into `ModeCerts` (`Mode/Certs.lean`). Each certificate contributes facts
 of its own: `CertSt`, decided by the kernel or by `rfl` (its length, its program, a loop's tail
 call and runs, its termination facts' cells); `CertWalk`, its walk and its hints the advice's (from
-its pack's checks, or a hypothesis, `WalkHyp`, `HintsHyp`); `FnLink`, its code a function of the
+its pack's checks), which give its frame interface (`fnSpec_walk`, `FnSpec`, or a hypothesis for a
+function the walk does not check); `FnLink`, its code a function of the
 guest's table; `SigsIn`, each callee signature its environment holds a certificate's. `Trie.entries`
 lists a trie's entries, so that the signatures an environment holds are a list (`mem_entries`), and
 `nodupB` decides that a list of entries has no duplicate, as a bit set.
@@ -92,6 +93,20 @@ def CertWalk (K : Cert) : Prop := WalkHyp K ∧ HintsHyp K
 /-- **A certificate's code is a guest function's**, its operands small. -/
 def FnLink (K : Cert) : Prop :=
   (∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc) ∧ K.code.all offSmall = true
+
+theorem staticB_spec {K : Cert} (h : staticB K = true) :
+    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = 430 ∧ K.E.jtHi = jtEnd ∧
+      K.E.halt = 524287 ∧ loopRngB K.F.sig = true ∧ termFr K.F.sig = true := by
+  simpa only [staticB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, and_assoc] using h
+
+theorem loopRng_of {G : Sig} (h : loopRngB G = true) :
+    ∀ r ∈ G.postL ++ G.postLP.map (·.1), (r.lo, r.hi) ∈ G.term := fun r hr ↦
+  of_decide_eq_true (List.all_eq_true.1 h r hr)
+
+/-- **A function on the walk meets its frame interface**: its static facts, its walk and its hints. -/
+theorem fnSpec_walk {K : Cert} (hst : CertSt K) (hw : CertWalk K) : FnSpec K :=
+  have h := staticB_spec hst.b
+  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1)
 
 /-- A callee's signature at entry `p.1` is `p.2`, a certificate's among `Ks`, not `main`'s. -/
 def SigIn (Ks : List Cert) (p : ℕ × Sig) : Prop :=

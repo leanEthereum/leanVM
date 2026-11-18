@@ -51,10 +51,11 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
   Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil)
 
-/-- The certificates' walks and hints. -/
-theorem certs_walk :
-    ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨Fn.«verify_sig_lean_sphincs».modeOk, Fn.«verify_sig_lean_sphincs».modeHintsOk⟩)
+/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
+theorem certs_spec :
+    ∀ K ∈ certs, Mode.FnSpec K :=
+  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_sig_lean_sphincs».modeOk,
+    Fn.«verify_sig_lean_sphincs».modeHintsOk⟩)
     (Mode.fa_nil)
 
 end

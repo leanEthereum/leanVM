@@ -86,11 +86,12 @@ abbrev YFin (r : Ref) (s : St) : Prop := YCur alignA r s ∧ YAlloc alignA r s
 
 /-- **The facts the executor's completeness on the guest still rests on.** -/
 structure OpenGaps : Prop where
-  /-- Mode walk track: the walks (`walk … = true`) the kernel does not check (`Mode.ModeHyps`,
-  generated from `infer.py`'s `HELD_NS`, now empty). -/
+  /-- Mode track: the functions' frame interfaces (`Mode.FnSpec`) the kernel does not check
+  (`Mode.ModeHyps`, one per function whose walk or hints are held, now none). -/
   modeHyps : Mode.ModeHyps
 
-/-- **No open fact is left**: the kernel checks every walk, so `Mode.ModeHyps` has no field. -/
+/-- **No open fact is left**: the kernel checks every walk, which gives every function's frame
+interface, so `Mode.ModeHyps` has no field. -/
 theorem openGaps : OpenGaps := ⟨⟨⟩⟩
 
 /-! ## The assembly -/

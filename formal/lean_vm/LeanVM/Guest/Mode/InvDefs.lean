@@ -6,16 +6,17 @@ public import LeanVM.Prover.ExecuteComplete
 /-!
 # The invariant's parts
 
-The executor's stack, read from the frame headers, as the mode walk knows it. An activation (`Act`)
-is a function's certificate with its frames: the top one, and below it a loop's earlier iterations
-(`Iter`: the frame, the walk's state at its tail call, the offset of the next frame), the first one
-the frame its caller named. `ActOk`: the iterations chain to the first frame (`Chain`, `IterOk`), each
-frame having its function's termination facts (`TermAt`). `Below`: each activation but `main`'s, at
-the bottom in frame `0`, returns, by its top frame's header, into the one below it, suspended at a
-call (`Susp`) whose walk goes on (`Resume`) once the callee guarantees its signature's facts.
-`StackAt`: the top activation's top frame is at an offset its walk reaches (`AtOff`). Every fact reads
-only the memory and frames, so it holds of a larger memory (`*.mono`). `ProgOk`: the certificates
-the stack is made of, tied to the executor and to each other.
+The executor's stack, read from the frame headers, for any frame predicate `Q K i s` (function `K`'s
+frame `s.fp` at offset `i`: the mode walk's `AtOff`, or the core route's). An activation (`Act`) is a
+function's certificate with its frames: the top one, and below it a loop's earlier iterations (`Iter`:
+the frame), the first one the frame its caller named. `ActOk`: the iterations chain to the first frame
+(`Chain`, `IterOk`: each iteration returns what the next one does, `Back`), each frame having its
+function's termination facts (`TermAt`). `Below`: each activation but `main`'s, at the bottom in frame
+`0`, returns, by its top frame's header, into the one below it, suspended at a call (`Susp`) whose
+frame predicate holds again (`Resume`) once the callee guarantees its signature's facts (`RetAll`).
+`StackAt`: the top activation's top frame satisfies `Q` at its offset. Every fact reads only the
+memory and frames, so it holds of a larger memory (`*.mono`). `ProgOk`: the certificates the stack is
+made of, their code the executor's (`CodeOk`) and tied to each other.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -31,24 +32,26 @@ def stOf (m : Mem) (fp : ℕ) : St := ⟨m, Dlog.empty, 0, fp, 0, ∅, 0⟩
 /-- The signature's termination facts hold at frame `fp`. -/
 def TermAt (m : Mem) (fp : ℕ) (G : Sig) : Prop := ∀ p ∈ G.term, LTF (stOf m fp) p.1 p.2
 
-/-- A loop's earlier iteration: its frame, the walk's state at its tail call, the next frame's
-offset. -/
+/-- **What a function guarantees at its return** in frame `fp`: its signature's facts and its loop's
+runs. -/
+def RetAll (m : Mem) (fp : ℕ) (G : Sig) : Prop :=
+  RetHolds (stOf m fp) G ∧ (∀ r ∈ G.postL, RW (stOf m fp) r) ∧ ∀ q ∈ G.postLP, PW (stOf m fp) q.1 q.2
+
+/-- A loop's iteration in frame `fp` guarantees at its return what the next one, in frame `nx`, does,
+in any memory past `m`. -/
+def Back (m : Mem) (G : Sig) (fp nx : ℕ) : Prop :=
+  ∀ m', m ≤ m' → m'.WF → m'.used ≤ maxCells → RetAll m' nx G → RetAll m' fp G
+
+/-- A loop's earlier iteration: its frame. -/
 structure Iter where
   fp : ℕ
-  A : Abs
-  e : ℕ
 
 /-- Iteration `it` of a loop of `K`, its next frame `nx`. -/
 structure IterOk (m : Mem) (Kc : Cert) (it : Iter) (nx : ℕ) : Prop where
-  holds : Holds (stOf m it.fp) it.A
-  next : (g : K) ^ nx = g ^ (it.fp + it.e)
   fp : it.fp < maxCells
-  nx : nx < maxCells
-  loop : loopOk it.A Kc.F.sig = true
-  runs : ∀ r ∈ Kc.F.sig.postL ++ Kc.F.sig.postLP.map (·.1),
-    trRngUp it.A (.own it.e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
   term : TermAt m it.fp Kc.F.sig
-  stay : retStay it.A it.e Kc.F.sig = true
+  back : Back m Kc.F.sig it.fp nx
+  nx : nx < maxCells
 
 /-- The iterations below frame `top` chain down to the first frame `fp0`, the latest first. -/
 def Chain (m : Mem) (K : Cert) : List Iter → ℕ → ℕ → Prop
@@ -71,30 +74,31 @@ structure ActOk (Ks : List Cert) (m : Mem) (a : Act) : Prop where
   fp : a.fp < maxCells
 
 /-- **A suspended caller goes on**: once the callee of signature `G` in frame `fpE` guarantees its
-facts in a memory past `m0`, the caller's walk, in frame `fpC`, is at offset `ro`. -/
-def Resume (K : Cert) (fpC ro : ℕ) (G : Sig) (fpE : ℕ) (m0 : Mem) : Prop :=
+facts in a memory past `m0`, the caller's frame predicate `Q`, in frame `fpC`, holds at offset `ro`. -/
+def Resume (Q : ℕ → St → Prop) (fpC ro : ℕ) (G : Sig) (fpE : ℕ) (m0 : Mem) : Prop :=
   ∀ m, m0 ≤ m → m.WF → m.used ≤ maxCells → fpE < maxCells → fpC < maxCells →
     RetHolds (stOf m fpE) G → (∀ r ∈ G.postL, RW (stOf m fpE) r) →
     (∀ q ∈ G.postLP, PW (stOf m fpE) q.1 q.2) → TermAt m fpE G →
-    AtOff K.E K.F K.code ro (stOf m fpC)
+    Q ro (stOf m fpC)
 
 /-- Activation `b` is suspended at a call into a callee of signature `G` in frame `fpE`, which
 returns to pc `r`. -/
-def Susp (m : Mem) (b : Act) (r : ℕ) (G : Sig) (fpE : ℕ) : Prop :=
-  ∃ ro m0, r = b.K.F.entry + ro ∧ ro < b.K.code.length ∧ m0 ≤ m ∧ Resume b.K b.fp ro G fpE m0
+def Susp (Q : Cert → ℕ → St → Prop) (m : Mem) (b : Act) (r : ℕ) (G : Sig) (fpE : ℕ) : Prop :=
+  ∃ ro m0, r = b.K.F.entry + ro ∧ ro < b.K.code.length ∧ m0 ≤ m ∧ Resume (Q b.K) b.fp ro G fpE m0
 
 /-- The activations below `a`: none, `a` being `main`'s in frame `0`, or one suspended at the call
 `a`'s header returns to, and those below it. -/
-def Below (Ks : List Cert) (Km : Cert) (m : Mem) : Act → List Act → Prop
+def Below (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (m : Mem) : Act → List Act → Prop
   | a, [] => a.K = Km ∧ a.its = [] ∧ a.fp = 0
   | a, b :: rest => a.K.F.main = false ∧ ∃ r, m.get (a.fp + 0) = some (ofK (g ^ r)) ∧
-      m.get (a.fp + 1) = some (ofK (g ^ b.fp)) ∧ Susp m b r a.K.F.sig a.fp0 ∧ ActOk Ks m b ∧
-      Below Ks Km m b rest
+      m.get (a.fp + 1) = some (ofK (g ^ b.fp)) ∧ Susp Q m b r a.K.F.sig a.fp0 ∧ ActOk Ks m b ∧
+      Below Q Ks Km m b rest
 
-/-- **The stack**: the top activation's top frame is the executor's, at an offset its walk reaches. -/
-def StackAt (Ks : List Cert) (Km : Cert) (s : St) : Prop :=
+/-- **The stack**: the top activation's top frame is the executor's, its frame predicate holding at
+its offset. -/
+def StackAt (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (s : St) : Prop :=
   ∃ a rest i, ActOk Ks s.mem a ∧ a.fp = s.fp ∧ i < a.K.code.length ∧ s.pc = a.K.F.entry + i ∧
-    AtOff a.K.E a.K.F a.K.code i s ∧ Below Ks Km s.mem a rest
+    Q a.K i s ∧ Below Q Ks Km s.mem a rest
 
 /-- The jump table is written: its cells, with their targets' powers. -/
 def JtMem (E0 : Env) (m : Mem) : Prop :=
@@ -109,12 +113,17 @@ def Halted (prog : LeanIsaProgram) (s : St) : Prop :=
 def StartMain (Km : Cert) (E0 : Env) (s : St) : Prop :=
   s.pc = Km.F.entry ∧ s.fp = 0 ∧ JtMem E0 s.mem ∧ Holds s (entryAbs Km.E Km.F.sig)
 
-/-- **The certificates**: each one's walk tied to the executor, their entries distinct, the
-signatures each names its callee's, their program the same, `main` never returning or called, a
-loop's runs ranging over its termination facts, and no walk falling through its function's end. -/
+/-- A certificate's code is the executor's at its pcs. -/
+structure CodeOk (C : Ctx) (K : Cert) : Prop where
+  ops : ∀ i (hi : i < K.code.length), C.ops[K.F.entry + i]? = some (opOfOff K.code[i])
+
+theorem CertOk.code {C : Ctx} {K : Cert} (h : CertOk C K) : CodeOk C K := ⟨h.ops⟩
+
+/-- **The certificates**: each one's code the executor's, their entries distinct, the signatures each
+names its callee's, their program the same, `main` never returning or called. -/
 structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) (E0 : Env) :
     Prop where
-  ok : ∀ K ∈ Ks, CertOk C K
+  ok : ∀ K ∈ Ks, CodeOk C K
   ne : ∀ K ∈ Ks, 0 < K.code.length
   uniq : ∀ K ∈ Ks, ∀ K' ∈ Ks, K.F.entry = K'.F.entry → K = K'
   sigs : ∀ K ∈ Ks, ∀ t G, K.E.sigs.get t = some G →
@@ -128,8 +137,6 @@ structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) 
   mainF : Km.F.main = true
   mainRet : ∀ (i c : ℕ), Km.code[i]? ≠ some (OffsetInstruction.jump c 0 1)
   mainTerm : Km.F.sig.term = []
-  loopRng : ∀ K ∈ Ks, ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term
-  endOk : ∀ K ∈ Ks, ∀ cur pend, preAt K.E K.F K.code K.code.length = some (cur, pend) → cur = []
 
 /-! ## Facts read off the memory and the frame -/
 
@@ -155,10 +162,34 @@ theorem TermAt.mono {m m' : Mem} (hle : m ≤ m') {fp : ℕ} {G : Sig} (h : Term
     TermAt m' fp G :=
   fun p hp ↦ (h p hp).mem hle
 
+theorem RetHolds.mono {s s' : St} (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) {G : Sig}
+    (h : RetHolds s G) : RetHolds s' G := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  refine ⟨fun o ho ↦ hfp ▸ written_mono hle (h1 o ho), fun k hk ↦ (h2 k hk).mono hle hfp,
+    fun r hr ↦ (h3 r hr).mono hle hfp, fun q hq ↦ (h4 q hq).mono hle hfp, fun p hp ↦ ?_,
+    fun p hp ↦ (h6 p hp).mono hle hfp, fun q hq ↦ (h7 q hq).mono hle hfp⟩
+  obtain ⟨u, hu, hmu⟩ := h5 p hp
+  exact ⟨u, by rw [hfp]; exact hle.get _ _ hu, hmu.mono hle hfp⟩
+
+theorem RetAll.mono {m m' : Mem} (hle : m ≤ m') {fp : ℕ} {G : Sig} (h : RetAll m fp G) : RetAll m' fp G :=
+  ⟨RetHolds.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl h.1,
+    fun r hr ↦ RW.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl (h.2.1 r hr),
+    fun q hq ↦ PW.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl (h.2.2 q hq)⟩
+
+/-- `RetAll` read off a state's memory and frame. -/
+theorem retAll_of {s : St} {G : Sig} (hR : RetHolds s G) (hL : ∀ r ∈ G.postL, RW s r)
+    (hLP : ∀ q ∈ G.postLP, PW s q.1 q.2) : RetAll s.mem s.fp G :=
+  ⟨RetHolds.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl hR,
+    fun r hr ↦ RW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hL r hr),
+    fun q hq ↦ PW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hLP q hq)⟩
+
+theorem Back.mono {m m' : Mem} (hle : m ≤ m') {G : Sig} {fp nx : ℕ} (h : Back m G fp nx) :
+    Back m' G fp nx :=
+  fun m'' h2 ↦ h m'' (Mem.le_trans hle h2)
+
 theorem IterOk.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} {it : Iter} {nx : ℕ}
     (h : IterOk m K it nx) : IterOk m' K it nx :=
-  ⟨Holds.mono (s := stOf m it.fp) (s' := stOf m' it.fp) hle rfl h.holds, h.next, h.fp, h.nx, h.loop,
-    h.runs, h.term.mono hle, h.stay⟩
+  ⟨h.fp, h.term.mono hle, h.back.mono hle, h.nx⟩
 
 theorem Chain.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} :
     ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → Chain m' K its top fp0
@@ -169,13 +200,13 @@ theorem ActOk.mono {Ks : List Cert} {m m' : Mem} (hle : m ≤ m') {a : Act} (h :
     ActOk Ks m' a :=
   ⟨h.mem, h.chain.mono hle, h.term.mono hle, h.fp⟩
 
-theorem Susp.mono {m m' : Mem} (hle : m ≤ m') {b : Act} {r : ℕ} {G : Sig} {fpE : ℕ}
-    (h : Susp m b r G fpE) : Susp m' b r G fpE :=
+theorem Susp.mono {Q : Cert → ℕ → St → Prop} {m m' : Mem} (hle : m ≤ m') {b : Act} {r : ℕ} {G : Sig}
+    {fpE : ℕ} (h : Susp Q m b r G fpE) : Susp Q m' b r G fpE :=
   let ⟨ro, m0, h1, h2, h3, h4⟩ := h
   ⟨ro, m0, h1, h2, Mem.le_trans h3 hle, h4⟩
 
-theorem Below.mono {Ks : List Cert} {Km : Cert} {m m' : Mem} (hle : m ≤ m') :
-    ∀ {a : Act} {rest : List Act}, Below Ks Km m a rest → Below Ks Km m' a rest
+theorem Below.mono {Q : Cert → ℕ → St → Prop} {Ks : List Cert} {Km : Cert} {m m' : Mem} (hle : m ≤ m') :
+    ∀ {a : Act} {rest : List Act}, Below Q Ks Km m a rest → Below Q Ks Km m' a rest
   | _, [], h => h
   | _, _ :: _, ⟨h1, r, h2, h3, h4, h5, h6⟩ =>
     ⟨h1, r, hle.get _ _ h2, hle.get _ _ h3, h4.mono hle, h5.mono hle, Below.mono hle h6⟩
@@ -218,12 +249,16 @@ theorem entryAbs_congr {E E' : Env} (h3 : E.jtLo = E'.jtLo) (h4 : E.jtHi = E'.jt
   rw [h3, h4]
 
 /-- A function's pcs are the executor's: below its size. -/
-theorem cert_pc {C : Ctx} {K : Cert} (hK : CertOk C K) {i : ℕ} (hi : i < K.code.length) :
+theorem code_pc {C : Ctx} {K : Cert} (hK : CodeOk C K) {i : ℕ} (hi : i < K.code.length) :
     K.F.entry + i < C.ops.size := by
   have h0 := hK.ops i hi
   by_contra hn
   rw [Array.getElem?_eq_none (by omega)] at h0
   cases h0
+
+theorem cert_pc {C : Ctx} {K : Cert} (hK : CertOk C K) {i : ℕ} (hi : i < K.code.length) :
+    K.F.entry + i < C.ops.size :=
+  code_pc hK.code hi
 
 /-! ## The chain of a loop's iterations -/
 
@@ -238,35 +273,13 @@ theorem Chain.term {m : Mem} {K : Cert} :
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, _ => Chain.term h2 h1.term
 
-/-- The frame `nx`, the next iteration's, as a callee's of iteration `it`'s. -/
-theorem IterOk.frames {m : Mem} {K : Cert} {it : Iter} {nx : ℕ} (h : IterOk m K it nx)
-    (hwf : m.WF) (hu : m.used ≤ maxCells) : Frames (stOf m it.fp) (stOf m nx) (.own it.e) := by
-  have hm := MonoVal.own (s := stOf m it.fp) it.e
-  change MonoVal (stOf m it.fp) (.own it.e) (ofK (g ^ (it.fp + it.e))) at hm
-  rw [← h.next] at hm
-  exact ⟨rfl, hm, h.nx, h.fp, hwf, hu⟩
-
-/-- **A loop's guarantees at return, down its iterations**: each iteration returns where its tail
-call's does, and its guarantees are the next one's (`retStay`). -/
-theorem Chain.ret {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → RetHolds (stOf m top) K.F.sig →
-      RetHolds (stOf m fp0) K.F.sig
+/-- **A loop's guarantees at return, down its iterations**: each iteration returns what the next one
+does (`Back`). -/
+theorem Chain.back {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → RetAll m top K.F.sig →
+      RetAll m fp0 K.F.sig
   | [], _, _, h, ht => h ▸ ht
-  | _ :: _, _, _, ⟨h1, h2⟩, ht => Chain.ret hwf hu h2 (retStay_sound h1.holds (h1.frames hwf hu) h1.stay ht)
-
-/-- **A loop's runs, down its iterations**: the runs at the top frame give them at the first. -/
-theorem Chain.runs {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 →
-      (∀ r ∈ K.F.sig.postL, RW (stOf m top) r) → (∀ q ∈ K.F.sig.postLP, PW (stOf m top) q.1 q.2) →
-      (∀ r ∈ K.F.sig.postL, RW (stOf m fp0) r) ∧ ∀ q ∈ K.F.sig.postLP, PW (stOf m fp0) q.1 q.2
-  | [], _, _, h, hR, hP => h ▸ ⟨hR, hP⟩
-  | it :: its, top, fp0, ⟨h1, h2⟩, hR, hP => by
-    have F := h1.frames hwf hu
-    obtain ⟨hpt, hptP⟩ := loopOk_sound h1.holds h1.fp hwf hu h1.loop
-    refine Chain.runs hwf hu h2 (fun r hr ↦ ?_) (fun q hq ↦ ?_)
-    · exact loop_step h1.holds F (h1.runs r (List.mem_append_left _ hr)) (hR r hr) (hpt r hr)
-    · exact loop_stepP h1.holds F
-        (h1.runs q.1 (List.mem_append_right _ (List.mem_map_of_mem hq))) (hP q hq) (hptP q hq)
+  | _ :: _, _, _, ⟨h1, h2⟩, ht => Chain.back hwf hu h2 (h1.back m (Mem.le_refl _) hwf hu ht)
 
 /-- **The exiting iteration's runs**: at a return the walk accepts, each run ranging over a
 termination fact is its point. -/

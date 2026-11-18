@@ -18,8 +18,9 @@ public import Statement.LeanVmGuestCompleteness
 # The executor on the guest
 
 The chain: a node within the budget has a reference run (`ref_exists`, `EndExecRef.lean`); the
-executor run on the guest's advice (`guestAdvice`) follows it (`execute_complete_guest`, the mode
-walk's invariant `guestInv` and its rule `inv_rule`), so it returns a valid execution committing no
+executor run on the guest's advice (`guestAdvice`) follows it (`execute_complete_guest`, the
+invariant `guestInv` and its rule `inv_rule_of_specs`, each function's frame interface `FnSpec`, the
+mode walk's), so it returns a valid execution committing no
 more cells than the reference, at most `2^30` (`execute_guest_complete`, `guestExecution_complete`).
 
 What the chain rests on and is not yet proved is `ExecGaps Ks Km E0 X Pro`, for the mode walk's
@@ -119,13 +120,13 @@ theorem logMemorySize_le_28 {prog : LeanIsaProgram} {e : Execution prog}
 
 /-! ## The certificates -/
 
-/-- **The mode walk's certificates, closed**: each is a guest function's (its code and entry), its
-walk accepting its code, of its length, its operands below `2^28` and its hints the advice's; and
+/-- **The certificates, closed**: each is a guest function's (its code and entry), its operands below
+`2^28`, its frame meeting its interface (`FnSpec`: the mode walk's, or later the core route's); and
 they are tied to each other as `ProgOk` asks. -/
 structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   fn : ∀ K ∈ Ks, ∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc ∧
-    walk K.E K.F K.code = true ∧ K.F.len = K.code.length ∧ K.code.all offSmall = true ∧
-    HintsOk K.F Data.adviceHints
+    K.code.all offSmall = true
+  spec : ∀ K ∈ Ks, FnSpec K
   ne : ∀ K ∈ Ks, 0 < K.code.length
   uniq : ∀ K ∈ Ks, ∀ K' ∈ Ks, K.F.entry = K'.F.entry → K = K'
   sigs : ∀ K ∈ Ks, ∀ t G, K.E.sigs.get t = some G →
@@ -139,17 +140,14 @@ structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Pro
   mainF : Km.F.main = true
   mainRet : ∀ (i c : ℕ), Km.code[i]? ≠ some (OffsetInstruction.jump c 0 1)
   mainTerm : Km.F.sig.term = []
-  loopRng : ∀ K ∈ Ks, ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term
-  endOk : ∀ K ∈ Ks, ∀ cur pend, preAt K.E K.F K.code K.code.length = some (cur, pend) → cur = []
   termFr : ∀ K ∈ Ks, Mode.termFr K.F.sig = true
 
-/-- **The certificates tied to the executor**, run on any advice with the guest's hints. -/
+/-- **The certificates tied to the executor**, run on any advice. -/
 theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : ModeCerts Ks Km E0) {adv : Advice}
-    {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) :
-    ProgOk guestProgram C Ks Km E0 where
+    {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C) : ProgOk guestProgram C Ks Km E0 where
   ok K hK := by
-    obtain ⟨f, hf, hcode, hentry, hw, hlen, hs, hh⟩ := h.fn K hK
-    exact certOk_fn hC ha hf hcode hentry hw hlen hs hh
+    obtain ⟨f, hf, hcode, hentry, hs⟩ := h.fn K hK
+    exact codeOk_fn hC hf hcode hentry hs
   ne := h.ne
   uniq := h.uniq
   sigs := h.sigs
@@ -161,8 +159,6 @@ theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : Mo
   mainF := h.mainF
   mainRet := h.mainRet
   mainTerm := h.mainTerm
-  loopRng := h.loopRng
-  endOk := h.endOk
 
 /-! ## What is not yet proved -/
 
@@ -215,9 +211,10 @@ prologue's states `Pro`, each read at a node's reference run `r` (`Ref.Ok`) and 
 tables `C` for its advice. `X` is read at the states where an instruction starts, before its hints;
 a hint's obligation is at the state its predecessors at that pc reach. -/
 structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro : Ref → St → Prop) : Prop where
-  /-- Every function the run enters passes the mode walk, its certificate kernel-checked and tied
-  to the others (the mode walk track: `scripts/mode-cert/gen.py`, the walk closed on its remaining
-  functions, the heavy functions' checks, the certificates assembled). -/
+  /-- Every function the run enters meets its frame interface (`FnSpec`: the mode walk, its
+  certificate kernel-checked), its certificate tied to the others (the mode walk track:
+  `scripts/mode-cert/gen.py`, the walk closed on its remaining functions, the heavy functions'
+  checks, the certificates assembled). -/
   certs : ModeCerts Ks Km E0
   /-- The children's loop, `main_loop2` and `main_loop3` complete by trees exact on the memory
   (the exactness track: `Budget.mainExactHyp_of_l5`, the children's loop's E form). -/
@@ -285,8 +282,9 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
     show Data.adviceMainFrame < maxCells
     decide
   obtain ⟨t, he, hv, -, -, -, -, hsz⟩ := execute_complete_guest (Ks := Ks) (Km := Km) (E0 := E0)
-    (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
-    (fun C hC ↦ progOk_of G.certs hC rfl)
+    (Q := guestQ (refMem r.img)) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
+    (fun C hC ↦ progOk_of G.certs hC)
+    (fun C hC K hK ↦ G.certs.spec K hK r.adv C hC rfl ((progOk_of G.certs hC).ok K hK) (refMem r.img))
     (fun C hC ↦
       { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
           have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp

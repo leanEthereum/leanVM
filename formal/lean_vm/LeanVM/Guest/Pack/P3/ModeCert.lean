@@ -537,44 +537,59 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
 
-/-- The certificates' walks and hints. -/
-theorem certs_walk :
-    ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨Fn.«verify_keccak».modeOk, Fn.«verify_keccak».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«eq_prefix_run__L16».modeOk, Fn.«eq_prefix_run__L16».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«plus_one_run__L10».modeOk, Fn.«plus_one_run__L10».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«plus_one_run__L29».modeOk, Fn.«plus_one_run__L29».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«grind_check__L30».modeOk, Fn.«grind_check__L30».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L44_L10_L4_L2».modeOk,
+/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
+theorem certs_spec :
+    ∀ K ∈ certs, Mode.FnSpec K :=
+  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_keccak».modeOk,
+    Fn.«verify_keccak».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«eq_prefix_run__L16».modeOk,
+    Fn.«eq_prefix_run__L16».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«plus_one_run__L10».modeOk,
+    Fn.«plus_one_run__L10».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«plus_one_run__L29».modeOk,
+    Fn.«plus_one_run__L29».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«grind_check__L30».modeOk,
+    Fn.«grind_check__L30».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«level_residual__L44_L10_L4_L2».modeOk,
     Fn.«level_residual__L44_L10_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6)
+    ⟨Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7)
+    ⟨Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L73_L15_L6_L3».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«level_residual__L73_L15_L6_L3».modeOk,
     Fn.«level_residual__L73_L15_L6_L3».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9)
+    ⟨Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L25_L13_L4_L2».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10) ⟨Fn.«level_residual__L25_L13_L4_L2».modeOk,
     Fn.«level_residual__L25_L13_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_positions__L9_L23_L5».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11) ⟨Fn.«level_positions__L9_L23_L5».modeOk,
     Fn.«level_positions__L9_L23_L5».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_positions__L14_L27_L3».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem12) ⟨Fn.«level_positions__L14_L27_L3».modeOk,
     Fn.«level_positions__L14_L27_L3».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13)
+    ⟨Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«da_levels__L32_L5_loop3».modeOk, Fn.«da_levels__L32_L5_loop3».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem14) ⟨Fn.«da_levels__L32_L5_loop3».modeOk,
+    Fn.«da_levels__L32_L5_loop3».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem15)
+    ⟨Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L19_L6_L4_L2_loop0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem16)
+    ⟨Fn.«level_residual__L19_L6_L4_L2_loop0».modeOk,
     Fn.«level_residual__L19_L6_L4_L2_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«decode_query_windows__L23_L5».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem17) ⟨Fn.«decode_query_windows__L23_L5».modeOk,
     Fn.«decode_query_windows__L23_L5».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L73_L23_L6_L3_loop0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem18)
+    ⟨Fn.«level_residual__L73_L23_L6_L3_loop0».modeOk,
     Fn.«level_residual__L73_L23_L6_L3_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_positions__L6_L24_L6_loop0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem19)
+    ⟨Fn.«level_positions__L6_L24_L6_loop0».modeOk,
     Fn.«level_positions__L6_L24_L6_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«level_residual__L55_L20_L4_L2_loop0».modeOk,
+    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem20)
+    ⟨Fn.«level_residual__L55_L20_L4_L2_loop0».modeOk,
     Fn.«level_residual__L55_L20_L4_L2_loop0».modeHintsOk⟩)
     (Mode.fa_nil)))))))))))))))))))))
 

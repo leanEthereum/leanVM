@@ -114,7 +114,7 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
     omega
   -- the instruction at `i` on the reference
   obtain ⟨C, hC⟩ := ctx_of_complete (adv := r.adv) guest_decodable
-  have hop := ((progOk_of certs hC rfl).ok K hK).ops i hi
+  have hop := ((progOk_of certs hC).ok K hK).ops i hi
   rw [← hpc] at hop
   have hκ := logMemorySize_le_28 (e := r.exec) hr.size
   have hrop : ∀ ins, K.code[i]? = some ins → ROp (refMem r.img) e.I.fp ins := fun ins hins ↦ by

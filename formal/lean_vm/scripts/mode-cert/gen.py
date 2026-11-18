@@ -592,7 +592,7 @@ def hintsFiles(p, mods, ns, fnMod):
 
 def dataFile(p, ns, R):
     """The data of the pack's functions the kernel does not check (`ModeX`): failing or too costly, each
-    entering `ModeCerts` through a hypothesis (`Mode.WalkHyp`)."""
+    entering `ModeCerts` through a hypothesis (its frame interface, `Mode.FnSpec`)."""
     mod = 'LeanVM.Guest.Pack.«%s».ModeX' % p
     out = [header(mod, "The mode walk data of compiled functions whose walks are hypotheses, unchecked.")]
     out.append(importLines(imports(p, ns)))
@@ -634,12 +634,13 @@ def chain(ps):
     return out
 
 
-def hypName(n, kind): return '«%s»' % n if kind == 'walk' else '«%s hints»' % n
+def hypName(n): return '«%s»' % n
 
 
 def certFile(p, ns, mods, walkH, hintsH):
-    """The pack's certificates (`Mode.Cert`), their static facts, walks and callee signatures as
-    lists, the walks and hints not checked as hypotheses."""
+    """The pack's certificates (`Mode.Cert`), their static facts, frame interfaces (`Mode.FnSpec`, by
+    their walks and hints, `Mode.fnSpec_walk`) and callee signatures as lists, the frame interfaces of
+    functions whose walks or hints are not checked as hypotheses."""
     mod = 'LeanVM.Guest.Pack.«%s».ModeCert' % p
     out = [header(mod, "The mode walk's certificates of compiled functions, with what each contributes to `ModeCerts`.")]
     out.append(importLines({'LeanVM.Guest.Mode.CertDefs'} | {'LeanVM.Guest.Pack.«%s».%s' % (p, m) for m in mods}))
@@ -659,13 +660,13 @@ def certFile(p, ns, mods, walkH, hintsH):
         out.append('theorem mem%d : %s.modeCert ∈ certs := %s\n\n' % (k, fnq(n), memProof(k)))
     out.append('/-- The certificates\' static facts. -/\ntheorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=\n  %s\n\n' % chain(
         ['⟨by decide +kernel, rfl, rfl⟩'] * len(ns)))
-    hs = [(n, 'walk') for n in ns if n in walkH] + [(n, 'hints') for n in ns if n in hintsH]
-    args = ''.join(' (%s : Mode.%s %s.modeCert)' % (hypName(n, k), 'WalkHyp' if k == 'walk' else 'HintsHyp', fnq(n)) for n, k in hs)
-    def wp(n):
-        return '⟨%s, %s⟩' % (hypName(n, 'walk') if n in walkH else '%s.modeOk' % fnq(n),
-                             hypName(n, 'hints') if n in hintsH else '%s.modeHintsOk' % fnq(n))
-    out.append('/-- The certificates\' walks and hints. -/\ntheorem certs_walk%s :\n    ∀ K ∈ certs, Mode.CertWalk K :=\n  %s\n\n' % (
-        args, chain([wp(n) for n in ns])))
+    held = [n for n in ns if n in walkH or n in hintsH]
+    args = ''.join(' (%s : Mode.FnSpec %s.modeCert)' % (hypName(n), fnq(n)) for n in held)
+    def sp(k, n):
+        if n in held: return hypName(n)
+        return 'Mode.fnSpec_walk (certs_st _ mem%d) ⟨%s.modeOk, %s.modeHintsOk⟩' % (k, fnq(n), fnq(n))
+    out.append('/-- The certificates\' frame interfaces: by their walks and hints, or hypotheses. -/\ntheorem certs_spec%s :\n    ∀ K ∈ certs, Mode.FnSpec K :=\n  %s\n\n' % (
+        args, chain([sp(k, n) for k, n in enumerate(ns)])))
     out.append('end\n\nend LeanVM.Guest.ModePack.«%s»\n' % p)
     return ''.join(out)
 
@@ -712,7 +713,7 @@ GROUP = 16
 def assemblyFiles(packList, walkH, hintsH, R):
     """`Mode/Certs/List.lean` (the certificates, each one's membership, no entry repeated),
     `Mode/Certs/Sig{k}.lean` (callee signatures and the function table, pack by pack) and
-    `Mode/Certs.lean` (`ModeHyps`, the hypotheses, and `ModeCerts` from them)."""
+    `Mode/Certs.lean` (`ModeHyps`, the frame interfaces not checked, and `ModeCerts` from them)."""
     base = os.path.join(I.data.ROOT, 'Mode')
     files = {}
     PL = plumbs()
@@ -767,31 +768,30 @@ def assemblyFiles(packList, walkH, hintsH, R):
                 I.fns[n]['ns'], n, j, j, j, j, I.fns[n]['ns']))
         files[os.path.join(base, 'Certs', 'Sig%d.lean' % c)] = ''.join(out)
     # the hypotheses and the closed certificates
-    hs = [(n, 'walk') for n in sorted(walkH)] + [(n, 'hints') for n in sorted(hintsH)]
-    out = [header('LeanVM.Guest.Mode.Certs', "The mode walk's certificates closed (`ModeCerts`), from the walks and hints the kernel does not check.")]
+    held = sorted(walkH | hintsH)
+    out = [header('LeanVM.Guest.Mode.Certs', "The certificates closed (`ModeCerts`), from the frame interfaces the kernel does not check.")]
     out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | {'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))}))
     out.append('\nset_option Elab.async false\n')
     out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\npublic section\n\n')
-    out.append('/-- **The walks and hints the kernel does not check**, one per function: a walk failing or too\n    costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/\nstructure ModeHyps : Prop where\n')
-    for n, k in hs:
-        out.append('  %s : %s %s.modeCert\n' % (hypName(n, k), 'WalkHyp' if k == 'walk' else 'HintsHyp', fnq(n)))
+    out.append('/-- **The frame interfaces the kernel does not check**, one per function (`FnSpec K`, for its\n    frame predicate `guestQ`): a function whose walk fails or is too costly to check, or whose\n    hints are too costly to check in one piece. -/\nstructure ModeHyps : Prop where\n')
+    for n in held:
+        out.append('  %s : FnSpec %s.modeCert\n' % (hypName(n), fnq(n)))
     out.append('\n')
-    def packWalk(p):
-        ns = packList[p]
-        a = ''.join(' h.%s' % hypName(n, k) for k, H in (('walk', walkH), ('hints', hintsH)) for n in ns if n in H)
-        return 'ModePack.«%s».certs_walk%s' % (p, a)
+    def packSpec(p):
+        a = ''.join(' h.%s' % hypName(n) for n in packList[p] if n in walkH or n in hintsH)
+        return 'ModePack.«%s».certs_spec%s' % (p, a)
     G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
     for g, ps in enumerate(G):
-        body = chain([packWalk(p) for p in ps])
-        out.append('theorem guestGroup_walk%d (%s : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, CertWalk K :=\n  %s\n\n' % (
+        body = chain([packSpec(p) for p in ps])
+        out.append('theorem guestGroup_spec%d (%s : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, FnSpec K :=\n  %s\n\n' % (
             g, 'h' if ' h.' in body else '_h', g, body))
     def two(f):
         return 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
-    out.append('theorem guestCerts_walk (h : ModeHyps) : ∀ K ∈ guestCerts, CertWalk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
-        ['guestGroup_walk%d h' % g for g in range(len(G))]))
+    out.append('theorem guestCerts_spec (h : ModeHyps) : ∀ K ∈ guestCerts, FnSpec K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+        ['guestGroup_spec%d h' % g for g in range(len(G))]))
     out.append('theorem guestCerts_sigs : ∀ K ∈ guestCerts, SigsIn guestCerts K :=\n  %s\n\n' % two('ModePack.«%s».certs_sigs'))
     out.append('theorem guestCerts_fn : ∀ K ∈ guestCerts, FnLink K :=\n  %s\n\n' % two('ModePack.«%s».certs_fn'))
-    out.append('/-- **The certificates closed**, given the walks and hints the kernel does not check. -/\ntheorem modeCerts_guest (h : ModeHyps) :\n    EndExec.ModeCerts guestCerts Fn.«main».modeCert guestE0 :=\n  modeCerts_of guestCerts_st (guestCerts_walk h) guestCerts_fn guestCerts_sigs guestCerts_nodup\n    Fn.«main».modeCert_in rfl (by decide +kernel) rfl\n\n')
+    out.append('/-- **The certificates closed**, given the frame interfaces the kernel does not check. -/\ntheorem modeCerts_guest (h : ModeHyps) :\n    EndExec.ModeCerts guestCerts Fn.«main».modeCert guestE0 :=\n  modeCerts_of guestCerts_st (guestCerts_spec h) guestCerts_fn guestCerts_sigs guestCerts_nodup\n    Fn.«main».modeCert_in rfl (by decide +kernel) rfl\n\n')
     out.append('/-- No certificate\'s entry is `__jump_tables`\'s. -/\ntheorem guestCerts_entry_ne : ∀ K ∈ guestCerts, K.F.entry ≠ 0 := entry_ne_zero guestCerts_st\n\n')
     out.append('/-- **`main`\'s certificate starts as the prologue leaves it.** -/\ntheorem mainOk_guestCerts : EndExec.MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl\n\n')
     out.append('end\n\nend LeanVM.Guest.Mode\n')
