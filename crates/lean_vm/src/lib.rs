@@ -3,10 +3,12 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! By default it proves and verifies in this process, on the stable prover, or with the `experimental_prover` feature
-//! on the experimental one (the same proofs, byte for byte). With the `sidecar` feature, it proves and verifies only
-//! through the sidecar (`bins/leanvm-sidecar`), with `sidecar::Client` and proofs as their bytes, and runs no prover
-//! itself.
+//! Where proofs are made and checked:
+//! - by default, in this process, on the stable prover;
+//! - with the `experimental_prover` feature, in this process, on the experimental prover (the same proofs);
+//! - with the `sidecar` feature, in a second process, the sidecar, which you launch with
+//!   `cargo run --release -p leanvm-sidecar -- --socket <path>` (`bins/leanvm-sidecar`): this process sends it proving
+//!   and verification requests through `sidecar::Client`.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 

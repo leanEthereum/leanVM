@@ -25,7 +25,7 @@ It runs the stable prover, or, built with `--features experimental_prover`, the 
 
 ## Clients
 
-From Rust, `lean_vm = { features = ["sidecar"] }` runs no prover, and `lean_vm::sidecar::Client` proves and verifies, with the library's arguments, blobs as they are and proofs as bytes:
+From Rust, with `lean_vm = { features = ["sidecar"] }`, the client neither proves nor verifies itself: `lean_vm::sidecar::Client` does both, with the library's arguments, blobs as they are and proofs as bytes:
 
 ```rust
 let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock")?;
