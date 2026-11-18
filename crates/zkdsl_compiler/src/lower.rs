@@ -787,8 +787,18 @@ impl FnLower<'_> {
         self.emit(LOp::Jump { oc: one, od: entry, of });
     }
 
-    /// The dispatch every `match` lowers through: read slot `x` of the match's jump
-    /// table and jump there ([`Self::table_jump`]). Every non-final arm exits to the
+    /// Jump, in this frame, through slot `x` of the `n`-slot table at `first`: one `DISPATCH`, which also holds
+    /// `log x < n`, so a `match` needs no range check of its own.
+    fn dispatch(&mut self, xo: Off, first: usize, n: usize) {
+        self.emit(LOp::Dispatch {
+            x: xo,
+            first: first as u32,
+            bound: n as u32,
+        });
+    }
+
+    /// The dispatch every `match` lowers through: one `DISPATCH` on the match's jump
+    /// table ([`Self::dispatch`]). Every non-final arm exits to the
     /// join or, chained ([`ChainNext`]), every arm ends in the next match's dispatch.
     /// `body` lowers arm `j`, with its own branch-local scope.
     ///
@@ -817,7 +827,7 @@ impl FnLower<'_> {
             None => {
                 let first = self.tables.slots.len();
                 self.tables.slots.extend((0..n).map(|_| KVal::At(name.clone(), 0)));
-                self.table_jump(xo, first, one, sfp);
+                self.dispatch(xo, first, n);
                 first
             }
         };
@@ -839,7 +849,7 @@ impl FnLower<'_> {
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
             if let (Some(nx), Some(nf)) = (&next, next_first) {
-                self.table_jump(nx.xo, nf, one, sfp);
+                self.dispatch(nx.xo, nf, nx.n);
             } else if j + 1 != n {
                 self.emit(LOp::Jump {
                     oc: one,

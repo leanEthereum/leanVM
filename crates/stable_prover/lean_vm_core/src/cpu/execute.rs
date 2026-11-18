@@ -483,8 +483,15 @@ pub fn execute(
         .then(|| vec![0u64; program.prog.len()]);
 
     let mut bytecode_count: Vec<u32> = vec![0; program.prog.len()];
-    let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
-        (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak, mut dispatch) = (
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
     let (mut pc, mut fp) = (0u32, 0u32);
     let mut steps = 0usize;
     loop {
@@ -667,6 +674,34 @@ pub fn execute(
                 });
                 pc += 1;
             }
+            Op::Dispatch { x, table, bound } => {
+                let ax = at(fp, x)?;
+                let v = in_k("DISPATCH index", m.read(ax)).map_err(fail)?;
+                let n = g.log_below(v, bound as usize).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH index",
+                        value: v,
+                    })
+                })?;
+                let (slot, lo, hi) = (at(table, n)?, at(0, n)?, at(0, bound - 1 - n)?);
+                let d = in_k("DISPATCH target", m.read(slot)).map_err(fail)?;
+                dispatch.push(Prow {
+                    pc,
+                    fp,
+                    n,
+                    rx: m.bump_access_count(ax),
+                    rdest: m.bump_access_count(slot),
+                    rlo: m.bump_access_count(lo),
+                    rhi: m.bump_access_count(hi),
+                    bytecode_read,
+                });
+                pc = g.log_below(d, program.prog.len()).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH target",
+                        value: d,
+                    })
+                })?;
+            }
         }
         steps += 1;
     }
@@ -682,6 +717,7 @@ pub fn execute(
         deref,
         jump,
         keccak,
+        dispatch,
         bytecode_count,
         counts,
     };

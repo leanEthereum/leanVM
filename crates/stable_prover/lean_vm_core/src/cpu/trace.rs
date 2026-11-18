@@ -40,6 +40,18 @@ pub(crate) struct Jrow {
     pub(crate) rf: u32,
     pub(crate) bytecode_read: u32,
 }
+/// `DISPATCH` row: the index `n` it dispatched on, and the counts of the index cell, the slot, and the cells at
+/// `g^n` and `g^(bound-1-n)`.
+pub(crate) struct Prow {
+    pub(crate) pc: u32,
+    pub(crate) fp: u32,
+    pub(crate) n: u32,
+    pub(crate) rx: u32,
+    pub(crate) rdest: u32,
+    pub(crate) rlo: u32,
+    pub(crate) rhi: u32,
+    pub(crate) bytecode_read: u32,
+}
 
 /// `KECCAK` row: the per-cell memory access counts, in the order the table flushes
 /// them (`tables::KeccakOp::cell`): the four `m` cells, the four `tail` cells, `b8`, the
@@ -59,6 +71,7 @@ pub(crate) struct Trace {
     pub(crate) deref: Vec<Drow>,
     pub(crate) jump: Vec<Jrow>,
     pub(crate) keccak: Vec<Krow>,
+    pub(crate) dispatch: Vec<Prow>,
     pub(crate) bytecode_count: Vec<u32>, // per-pc execution count; the column holds g^{A[pc]}
     /// One past the highest access count, of a cell or a pc: the `g`-powers a fill looks up.
     pub(crate) counts: usize,
@@ -74,6 +87,7 @@ impl Trace {
             self.deref.len(),
             self.jump.len(),
             self.keccak.len(),
+            self.dispatch.len(),
         ]
     }
 }

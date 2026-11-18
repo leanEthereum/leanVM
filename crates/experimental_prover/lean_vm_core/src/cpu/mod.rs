@@ -27,7 +27,7 @@ pub use execute::{ExecError, Execution, Fault, Memory, execute};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Jrow, Krow, Prow, Rows, Srow, Trace, Xrow};
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) by
 /// writing them onto the scalar stream, which binds them into the state and lets the
@@ -618,7 +618,11 @@ mod tests {
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
         let exec = execute(&jumping, &[], pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
-        assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
+        assert_eq!(
+            exec.rows(),
+            [0, 0, 3, 0, 2, 0, 0],
+            "XOR, MUL, SET, DEREF, JUMP, KECCAK, DISPATCH"
+        );
         let (proof, _) = prove(&jumping, &[], pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 

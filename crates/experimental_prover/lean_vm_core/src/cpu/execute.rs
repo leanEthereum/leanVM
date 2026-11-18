@@ -919,6 +919,7 @@ pub(super) fn walk<M: Machine>(
         mut deref,
         mut jump,
         mut keccak,
+        mut dispatch,
     } = std::mem::replace(&mut r.rows, RowSet::new());
     let stopped = loop {
         if pc >= ending_pc {
@@ -1377,6 +1378,39 @@ pub(super) fn walk<M: Machine>(
                 });
                 pc += 1;
             }
+            Op::Dispatch { x, table, bound } => {
+                let ax = at(fp, x)?;
+                let (v, rx) = m.read(ax);
+                let v = in_k("DISPATCH index", v).map_err(fail)?;
+                let n = m.g_log_below(v, bound as usize).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH index",
+                        value: v,
+                    })
+                })?;
+                let (slot, lo, hi) = (at(table, n)?, at(0, n)?, at(0, bound - 1 - n)?);
+                let (d, rdest) = m.read(slot);
+                let d = in_k("DISPATCH target", d).map_err(fail)?;
+                // The cells at `g^n` and `g^(bound-1-n)` are read only for their addresses.
+                let (rlo, rhi) = (m.bump(lo), m.bump(hi));
+                m.row(Table::Dispatch, dispatch.len());
+                dispatch.push(Prow {
+                    pc,
+                    fp,
+                    n,
+                    rx,
+                    rdest,
+                    rlo,
+                    rhi,
+                    bytecode_read,
+                });
+                pc = m.g_log_below(d, program.prog.len()).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH target",
+                        value: d,
+                    })
+                })?;
+            }
         }
         steps += 1;
     };
@@ -1389,6 +1423,7 @@ pub(super) fn walk<M: Machine>(
         deref,
         jump,
         keccak,
+        dispatch,
     };
     Ok(stopped)
 }

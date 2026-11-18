@@ -3868,8 +3868,8 @@ def verify_lean_xmss(signer, tags):
         else:
             keccak([pp, idx + TW_MSG], [root, rho], digest)
 
-        # The codeword: LX_DIGIT_GROUP digits at a time, hinted in the exponent, range
-        # checked and dispatched once, the arm walking every chain's remaining steps
+        # The codeword: LX_DIGIT_GROUP digits at a time, hinted in the exponent and
+        # dispatched once (the dispatch holds the group below its arm count), the arm walking every chain's remaining steps
         # and folding its digits in: their sums into a product that must be the
         # target sum, and the digits, each where the digest holds it, into D, which
         # also checks the digits past LX_V are zero.
@@ -3881,8 +3881,6 @@ def verify_lean_xmss(signer, tags):
         encoded = 0
         groups = StackBuf(LX_DIGIT_DISPATCHES)
         hint_witness(groups, "lx_digits")
-        for p in unroll(0, LX_DIGIT_DISPATCHES - 1):
-            assert log(groups[p]) < LX_DIGIT_GROUPS
         assert log(groups[LX_DIGIT_DISPATCHES - 1]) < LX_TAIL_GROUPS
         # Back to back, each arm entering the next dispatch. The last group's table is as
         # wide as the others, its range check what keeps it to LX_DIGIT_TAIL digits.
@@ -3898,7 +3896,6 @@ def verify_lean_xmss(signer, tags):
         for v in unroll(0, LX_LAYER_WINDOWS):
             w = layer * LX_LAYER_WINDOWS + v
             out = StackBuf(1)
-            assert log(windows[w]) < LX_WINDOW_ARMS
             if const(w + 1 == LX_WINDOWS):
                 his[w] = match(log(windows[w]), range(0, LX_WINDOW_ARMS), lambda k: lx_top_window(cur, pp, powers, his, out, w, k))
             else:
@@ -4077,11 +4074,9 @@ def sp_wots(pp, a0, a1, encoding):
     # leanXMSS walk reads is unused here and `powers` stands in for it.
     for p in unroll(0, SP_V // DIGIT_GROUP):
         group = hint_witness("digits")
-        assert log(group) < DIGIT_GROUPS
         digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(at, pp, walks, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
     # The chain the groups leave over.
     group = hint_witness("digits")
-    assert log(group) < CHAIN_LENGTH
     digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(at, pp, walks, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert encoded == encoding
     assert digit_product == GEN ** SP_TARGET_SUM

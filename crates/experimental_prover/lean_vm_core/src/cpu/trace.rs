@@ -51,6 +51,20 @@ pub(crate) struct Jrow {
     pub(crate) rf: u32,
     pub(crate) bytecode_read: u32,
 }
+/// `DISPATCH` row: the index `n` it dispatched on, and the counts of the index cell, the slot, and the cells at
+/// `g^n` and `g^(bound-1-n)`.
+#[derive(Clone, Copy)]
+#[cfg_attr(test, derive(PartialEq))]
+pub(crate) struct Prow {
+    pub(crate) pc: u32,
+    pub(crate) fp: u32,
+    pub(crate) n: u32,
+    pub(crate) rx: u32,
+    pub(crate) rdest: u32,
+    pub(crate) rlo: u32,
+    pub(crate) rhi: u32,
+    pub(crate) bytecode_read: u32,
+}
 
 /// `KECCAK` row: the per-cell memory access counts, in the order the table flushes
 /// them (`tables::KeccakOp::cell`): the four `m` cells, the four `tail` cells, `b8`, the
@@ -102,6 +116,10 @@ row!(Jrow, |r, i| [&mut r.rc, &mut r.rd, &mut r.rf]
     .nth(i)
     .unwrap());
 row!(Krow, |r, i| &mut r.r[i]);
+row!(Prow, |r, i| [&mut r.rx, &mut r.rdest, &mut r.rlo, &mut r.rhi]
+    .into_iter()
+    .nth(i)
+    .unwrap());
 
 /// An instruction table.
 #[derive(Clone, Copy)]
@@ -112,6 +130,7 @@ pub(crate) enum Table {
     Deref,
     Jump,
     Keccak,
+    Dispatch,
 }
 
 /// Rows in fixed-size chunks, so the trace grows without ever moving what it holds:
@@ -202,6 +221,7 @@ pub(crate) struct RowSet {
     pub(crate) deref: Rows<Drow>,
     pub(crate) jump: Rows<Jrow>,
     pub(crate) keccak: Rows<Krow>,
+    pub(crate) dispatch: Rows<Prow>,
 }
 
 impl RowSet {
@@ -213,6 +233,7 @@ impl RowSet {
             deref: Rows::new(),
             jump: Rows::new(),
             keccak: Rows::new(),
+            dispatch: Rows::new(),
         }
     }
 
@@ -225,6 +246,7 @@ impl RowSet {
             Table::Deref => self.deref.get_mut(row).count(i),
             Table::Jump => self.jump.get_mut(row).count(i),
             Table::Keccak => self.keccak.get_mut(row).count(i),
+            Table::Dispatch => self.dispatch.get_mut(row).count(i),
         }
     }
 
@@ -236,6 +258,7 @@ impl RowSet {
         self.deref.append(parts, |p| &p.deref);
         self.jump.append(parts, |p| &p.jump);
         self.keccak.append(parts, |p| &p.keccak);
+        self.dispatch.append(parts, |p| &p.dispatch);
     }
 }
 
@@ -247,6 +270,7 @@ pub(crate) struct Trace {
     pub(crate) deref: Rows<Drow>,
     pub(crate) jump: Rows<Jrow>,
     pub(crate) keccak: Rows<Krow>,
+    pub(crate) dispatch: Rows<Prow>,
     pub(crate) bytecode_count: Vec<u32>, // per-pc execution count; the column holds g^{A[pc]}
     /// One past the highest access count, of a cell or a pc: the `g`-powers a fill looks up.
     pub(crate) counts: usize,
@@ -261,6 +285,7 @@ impl Trace {
             deref,
             jump,
             keccak,
+            dispatch,
         } = rows;
         Self {
             xor,
@@ -269,6 +294,7 @@ impl Trace {
             deref,
             jump,
             keccak,
+            dispatch,
             bytecode_count,
             counts,
         }
@@ -283,6 +309,7 @@ impl Trace {
             self.deref.len(),
             self.jump.len(),
             self.keccak.len(),
+            self.dispatch.len(),
         ]
     }
 }

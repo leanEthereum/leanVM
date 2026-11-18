@@ -119,6 +119,14 @@ pub enum Op {
         out_odd: bool,
         out_cells: OutCells,
     },
+    /// `DISPATCH`: `x = mem[fp·g^x]` is `g^n` for some `n < bound`, and control moves to the pc held at
+    /// `mem[g^(table + n)]`, the frame unchanged. `n < bound` is checked by reading the cells at `g^n` and at
+    /// `g^(bound - 1 - n)`, both of which must be addresses.
+    Dispatch {
+        x: u32,
+        table: u32,
+        bound: u32,
+    },
 }
 
 /// How many of a `KECCAK`'s thirteen output cells it writes, from `out` on: the first, the first two (a

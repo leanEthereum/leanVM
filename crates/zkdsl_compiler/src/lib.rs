@@ -282,6 +282,9 @@ pub fn disassemble(prog: &[Op]) -> String {
                     layout(*in_odd)
                 )
             }
+            Op::Dispatch { x, table, bound } => {
+                format!("DISPATCH pc=*(fp[{x}]·g^{table}), log fp[{x}] < {bound}")
+            }
         };
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
     }
@@ -340,6 +343,11 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             oc: *oc,
             od: *od,
             of: *of,
+        },
+        LOp::Dispatch { x, first, bound } => Op::Dispatch {
+            x: *x,
+            table: tables + first,
+            bound: *bound,
         },
         LOp::Keccak {
             m,

@@ -4,7 +4,7 @@ use crate::{CompiledProgram, Op};
 use std::ops::Deref;
 use std::sync::OnceLock;
 use verifier::K;
-use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
+use verifier::layout::{BUS_BITS, OP_DEREF, OP_DISPATCH, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
 /// Operand slots of a bytecode tuple, after the opcode.
 const BYTECODE_OPERANDS: usize = 12;
@@ -98,6 +98,7 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
                 &[in_odd, out_odd, out_two, out_all].map(flag),
             )
         }
+        Op::Dispatch { x, table, bound } => put(OP_DISPATCH, &[x, table, bound - 1], &[]),
     }
     tuple
 }

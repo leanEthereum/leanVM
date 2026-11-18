@@ -517,7 +517,7 @@ Five builtins have the prover compute the values at witness generation instead o
 | `assert a != b` | 3 (`XOR`, `MUL`, `SET`), no branch, one hinted inverse |
 | `assert log x < k` | 3 (+1 `SET` amortized per bound per frame; a runtime bound costs 1 `MUL` instead) |
 | `if a == b: …` | 3 (+2 to skip a non-empty `else`; +2 amortized `self-fp` per branching function); **0 if the condition is compile-time** |
-| `… = match(log(x), …)` | ≈ 7 for the dispatch + the arm; results written into the targets directly. Uniform-call arms (`lambda k: f(a, b, k)`) **fuse**: one shared frame + dispatch to entry, each arm just `SET`+`JUMP`; `@inline` arms run in place, with no frame |
+| `… = match(log(x), …)` | 1 `DISPATCH` + the arm when the arms are `@inline` or bodies: it also checks `log x` below the arm count, so no range check is needed. Uniform-call arms (`lambda k: f(a, b, k)`) **fuse**: one shared frame + dispatch to entry (a `DEREF` and a `JUMP`, no range check of its own), each arm just `SET`+`JUMP` |
 | function call | ≈ `n_args + n_returns + 4` (0 when the callee is `@inline`) |
 | `mul_range` iteration | body + ≈ 1 `MUL` + 1 `XOR` + call overhead |
 | `unroll` iteration | body only (compile-time replication) |
