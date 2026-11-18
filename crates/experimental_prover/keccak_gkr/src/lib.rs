@@ -89,7 +89,8 @@
 //!
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
-//! (`skip_gfni`).
+//! (`skip_gfni`); with AVX2 and PCLMULQDQ but no GFNI, by carry-less products on a row's shared
+//! cofactors (`skip_clmul`).
 //!
 //! With AVX2, the third walk weights each byte of a block's bits by a byte map, a GFNI affine map or two nibble
 //! lookups, into its field element (`table_maps`).
@@ -118,6 +119,13 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "pclmulqdq",
+    not(target_feature = "gfni")
+))]
+mod skip_clmul;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
