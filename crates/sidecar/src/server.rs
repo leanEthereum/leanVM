@@ -72,11 +72,11 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
 }
 
 /// A fresh process's first proofs are slower, touching memory the allocator then keeps: this pays for it before the
-/// first request, with a discarded leaf and a full recursion over it, at the highest rate, whose memory is the
-/// largest. A blob is the one input that needs no key.
+/// first request, with a discarded leaf and a full recursion over it, at rate 1/4, the one used in practice (a higher
+/// rate still pays for its extra memory on its first proof). A blob is the one input that needs no key.
 fn warm_up<P: Prover>() {
     let blobs = lean_da::BlobMatrix::build(&[[0; lean_da::BLOB_SYMBOLS]]).expect("one blob");
-    let rate = aggregation::MAX_LOG_INV_RATE;
+    let rate = 2;
     let leaf = aggregation::aggregate::<P>(&[], vec![], vec![], Some(&blobs), OutputClaims::All, rate)
         .expect("the warm-up's leaf proves");
     let children = vec![(leaf.0, leaf.1); aggregation::MAX_RECURSIONS];

@@ -57,7 +57,7 @@ On each connection the sidecar first sends a hello frame. The client then sends 
 | program | 32 bytes | the aggregation program's Fiat-Shamir IV, `Bytecode::fiat_shamir_iv` |
 | prover | bytes | `stable` or `experimental` |
 
-Every version keeps the magic and the version first. A client checks them, the verifier tag and the program, and disconnects if any differs from what it expects: a proof for another verifier or another build's program does not verify with its library. A client must not send a request body longer than the max request: the sidecar would close the connection without reading it, and the client could fail mid-write.
+Every version keeps the magic and the version first. A client checks them and the verifier tag, and disconnects if any differs from what it expects: a proof for another verifier does not verify. The program identifies the leanVM build: a client that also verifies with the library checks it too, since another build's proofs do not verify there. A client must not send a request body longer than the max request: the sidecar would close the connection without reading it, and the client could fail mid-write.
 
 ### Requests
 
