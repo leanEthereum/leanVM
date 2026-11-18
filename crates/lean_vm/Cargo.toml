@@ -27,3 +27,7 @@ default = ["prover"]
 prover = ["dep:isa", "dep:aggregation", "dep:lean_da", "dep:stable_lean_vm_core"]
 # Prove with the experimental tree rather than the stable one.
 experimental_prover = ["prover", "dep:experimental_lean_vm_core"]
+
+[[test]]
+name = "api"
+required-features = ["prover"]

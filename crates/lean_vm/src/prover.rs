@@ -19,7 +19,8 @@ pub mod lean_da {
 }
 
 /// Call this function before generating / verifying proofs: it starts the prover's thread pool, with `threads` threads
-/// (0: one per core), and builds the aggregation program.
+/// (0: one per core), and builds the aggregation program. With `experimental_prover`, `threads` counts the performance
+/// cores' workers, beside which the pool adds the efficiency cores'.
 ///
 /// # Panics
 /// If the pool already runs with another thread count.

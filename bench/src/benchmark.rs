@@ -232,8 +232,8 @@ pub fn run_recursion<P: Prover>(
     );
 }
 
-/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims, then its proof's
-/// bytes after their length.
+/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims and its proof's bytes, each after
+/// its length.
 fn write_leaves<P: Prover>(
     n: usize,
     per_leaf: usize,
