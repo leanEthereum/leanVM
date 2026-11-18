@@ -240,7 +240,7 @@ theorem chkC_append (X : CX) : ∀ (ss₁ ss₂ : List Stmt) (st : CSt), endsRet
       cases atomC X st a <;> simp [CSt.seq_eq, ih]
     | ite c z n =>
       simp only [List.cons_append, chkC]
-      cases h1 : chkC (X.ext (czero c)) z st with
+      cases h1 : chkC (X.ext (czero c)) z (zeroEq st c) with
       | none => rfl
       | some s1 =>
         simp only
@@ -317,9 +317,29 @@ its keys, so this is the pass's trie of those entries), the serials, the guarant
 equations. What the generated windows state their cut points' states with. -/
 noncomputable def mkCSt (env sc : List (ℕ × CCell)) (rs : List (ℕ × PRun)) (ad sv : List (ℕ × (CCell × CCell)))
     (src : List (ℕ × CCell)) (pf : List (ℕ × (CCell × List ℕ))) (pr : List (ℕ × (PRun × List ℕ))) (n nr nc nt : ℕ)
-    (cd : List CdE) (eqs : List (CCell × CCell)) : CSt :=
+    (cd : List CdE) (eqs : List (CCell × CCell)) (dq : List (CCell × PRun) := []) : CSt :=
   ⟨insL env .nil, insL sc .nil, insL rs .nil, insL ad .nil, insL sv .nil, insL src .nil, insL pf .nil, insL pr .nil,
-    n, nr, nc, nt, cd, eqs⟩
+    n, nr, nc, nt, cd, eqs, dq⟩
+
+/-! ## The context stated
+
+Every window builds `cxOf`'s tries from the certificate (`withCx`), which for a large certificate costs more than
+the window's pass. The tries can be stated once instead, as literals (`cxOf_lit`, each equation decided once),
+after which a window reads them at no building cost (`withCx_cx`). -/
+
+/-- **The context with its tries stated.** -/
+theorem cxOf_lit {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
+    {R : Trie (List (ℕ × ℕ × Wit))} {P : Trie CCell} {C T : Trie (List Wit)} {RS : Trie CRes} {DV HV EQ : Trie Unit}
+    (hR : H.readT = R) (hP : trieFrom H.sig.pre 0 .nil = P) (hC : trieFrom H.calls 0 .nil = C)
+    (hT : trieFrom H.rets 0 .nil = T) (hRS : trieFrom H.res 0 .nil = RS) (hDV : keysT H.divs .nil = DV)
+    (hHV : keysT H.hvs .nil = HV) (hEQ : keysT H.eqs .nil = EQ) :
+    cxOf pows sigOf f H = ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ := by
+  subst hR hP hC hT hRS hDV hHV hEQ; rfl
+
+/-- `withCx` at a stated context. -/
+theorem withCx_cx {β : Type} {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {X0 : CX}
+    (h : cxOf pows sigOf f H = X0) (k : CX → β) : withCx pows sigOf f H k = k X0 := by
+  rw [withCx_eq, h]
 
 /-! ## A loop helper assembled -/
 
@@ -331,7 +351,7 @@ noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) &&
     decide (H.sig.term = [(.val 0, ei)]) &&
-    H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty &&
+    H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && H.sig.postQ.isEmpty &&
     f.params.all okV && noGhostL (f.body.drop (f.body.length - 2)) &&
     faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
     (match endOf ei with
@@ -357,7 +377,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
     (ht : tailOkW pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
   simp only [headOk, Bool.and_eq_true, decide_eq_true_eq, withCx_eq] at hh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpq⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
   obtain ⟨hc, hnr, hng, -⟩ := winsOk_chain l 0 S0 hw
   rw [hl] at hc hnr hng
   simp only [List.drop_zero, Nat.sub_zero] at hc hnr hng
@@ -379,7 +399,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
       keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
   simp only [Bool.and_eq_true]
-  refine ⟨⟨⟨hrm, hpv⟩, hre⟩, ?_⟩
+  refine ⟨⟨⟨⟨hrm, hpv⟩, hre⟩, hpq⟩, ?_⟩
   -- the tail's shape
   revert hlt
   split

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L4».St
+public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L4».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -35,7 +35,8 @@ noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some �
     .nil,
     0, 0, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«walk_path__L24_L4».HeapW

@@ -46,7 +46,8 @@ noncomputable def st4 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr8),
     .nil,
     0, 0, 0, 0,
     st4_cd,
-    st4_eqs⟩
+    st4_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«sp_wots».HeapW

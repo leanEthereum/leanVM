@@ -38,7 +38,8 @@ noncomputable def st22 : CSt := ⟨tr77,
     .nil,
     4, 1, 0, 0,
     st22_cd,
-    st22_eqs⟩
+    st22_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

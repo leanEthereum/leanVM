@@ -51,7 +51,8 @@ noncomputable def st3 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr6),
     .nil,
     0, 0, 0, 0,
     st3_cd,
-    st3_eqs⟩
+    st3_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«sp_wots».HeapW

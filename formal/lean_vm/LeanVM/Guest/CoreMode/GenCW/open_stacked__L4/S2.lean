@@ -1448,7 +1448,8 @@ noncomputable def st2 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr124 tr146),
     .nil,
     476, 10, 53, 0,
     st2_cd,
-    st2_eqs⟩
+    st2_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L4».HeapW

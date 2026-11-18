@@ -635,7 +635,8 @@ noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr13 (.node (s
     .nil,
     196, 10, 31, 0,
     st1_cd,
-    st1_eqs⟩
+    st1_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L4».HeapW

@@ -300,7 +300,8 @@ noncomputable def st16 : CSt := ⟨tr26,
     .nil,
     4, 1, 0, 0,
     st16_cd,
-    st16_eqs⟩
+    st16_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

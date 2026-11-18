@@ -53,7 +53,7 @@ def fitBL (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
-    h.retM.isEmpty &&
+    (h.retM.isEmpty && h.postQ.isEmpty) &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
       | none => false) || hpIn G na true h.preP h.pre m) &&
@@ -140,9 +140,25 @@ def rdFree : Stmt → Bool
   | .atom (.rangeCheck ..) | .atom (.touch ..) | .atom (.frameAddr ..) => false
   | _ => true
 
+/-- A loop helper's heap check (`heapOkC`'s loop branch) states no guarantee at a word (`postQ`). -/
+theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC pows sigOf f H = true) {G : Mode.Sig} {np : ℕ}
+    (ht : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ H.sig.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
+      idxT G np hi = some ei) : H.sig.postQ = [] := by
+  obtain ⟨-, ei, -, ht, -⟩ := ht
+  unfold heapOkC at hok
+  simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at hok
+  obtain ⟨-, hc⟩ := hok
+  split at hc
+  · rw [ht] at hc
+    simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
+    exact hc.1.2
+  · cases hc
+
 /-- A call whose callee guarantees no pointer cell, each of its pointer runs' runs among its runs. -/
 noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
-  | .call g _ _ => (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
+  | .call g _ _ => (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postQ.isEmpty &&
+      (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
   | _ => true
 
 /-- **No pointer fact on the loop's path**: no pointer run of its own, no callee's pointer run (its pointer
@@ -436,7 +452,8 @@ are among the signatures' runs. -/
 theorem writtenC_swap {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ : Val} {ws0 : List E}
     {es : List Ev} {m : Mem} (hW : ∀ x, WrittenC sigOf H rd' σ ws0 es x → WrK m x)
     (hsame : ∀ y, WrK m y → rd y = rd' y) (hpre : H.sig.preP = []) (hpreIn : ∀ p ∈ H.sig.prePR, p.1 ∈ H.sig.preR)
-    (hcalls : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ ∀ p ∈ (sigOf f).postPR, p.1 ∈ (sigOf f).postR) :
+    (hcalls : ∀ f a r, Ev.call f a r ∈ es → ((sigOf f).postP = [] ∧ (sigOf f).postQ = []) ∧
+      ∀ p ∈ (sigOf f).postPR, p.1 ∈ (sigOf f).postR) :
     ∀ x, WrittenC sigOf H rd σ ws0 es x → WrK m x := by
   intro x hx
   rcases hx with (hS | hP) | ⟨e, he, hwe⟩
@@ -449,21 +466,22 @@ theorem writtenC_swap {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {�
   · cases e with
     | atom a => exact hW x (Or.inr ⟨.atom a, he, hwe⟩)
     | call f a r =>
-      obtain ⟨hPf, hPRf⟩ := hcalls f a r he
-      rcases hwe with hS | hP
+      obtain ⟨⟨hPf, hQf⟩, hPRf⟩ := hcalls f a r he
+      rcases hwe with hS | hP | ⟨p, hp, -⟩
       · exact hW x (Or.inr ⟨_, he, Or.inl hS⟩)
       · rcases hP with ⟨p, hp, -⟩ | ⟨p, hp, b, hb', w, hw, o, ho, hx⟩
         · rw [hPf] at hp; cases hp
         · have hwa : WrK m b := hW b (Or.inr ⟨_, he, Or.inl (Or.inr ⟨p.1, hPRf p hp, hb'⟩)⟩)
           rw [hsame b hwa] at hw
-          exact hW x (Or.inr ⟨_, he, Or.inr (Or.inr ⟨p, hp, b, hb', w, hw, o, ho, hx⟩)⟩)
+          exact hW x (Or.inr ⟨_, he, Or.inr (Or.inl (Or.inr ⟨p, hp, b, hb', w, hw, o, ho, hx⟩))⟩)
+      · rw [hQf] at hp; cases hp
     | _ => cases hwe
 
 /-- **Written, through no reader**: with no pointer fact of the signature's or the calls' callees', the
 cells the events write are the same through any reader. -/
 theorem writtenC_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ : Val} {ws0 : List E}
     {es : List Ev} (hpP : H.sig.preP = []) (hpPR : H.sig.prePR = [])
-    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = []) {x : K}
+    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = [] ∧ (sigOf f).postQ = []) {x : K}
     (h : WrittenC sigOf H rd σ ws0 es x) : WrittenC sigOf H rd' σ ws0 es x := by
   rcases h with (hS | hP) | ⟨e, he, hwe⟩
   · exact Or.inl (Or.inl hS)
@@ -473,22 +491,22 @@ theorem writtenC_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ 
   · cases e with
     | atom a => exact Or.inr ⟨.atom a, he, hwe⟩
     | call f a r =>
-      obtain ⟨h1, h2⟩ := hc f a r he
-      rcases hwe with hS | hP
+      obtain ⟨h1, h2, h3⟩ := hc f a r he
+      rcases hwe with hS | (⟨p, hp, -⟩ | ⟨p, hp, -⟩) | ⟨p, hp, -⟩
       · exact Or.inr ⟨_, he, Or.inl hS⟩
-      · rcases hP with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
-        · rw [h1] at hp; cases hp
-        · rw [h2] at hp; cases hp
+      · rw [h1] at hp; cases hp
+      · rw [h2] at hp; cases hp
+      · rw [h3] at hp; cases hp
     | _ => cases hwe
 
 /-- `PostOkW` through no reader (`writtenC_rd`), no pointer guarantee of the signature's. -/
 theorem postOkW_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ : Val} {ws0 : List E}
     {es : List Ev} {vs : List V} (hpP : H.sig.preP = []) (hpPR : H.sig.prePR = []) (hqP : H.sig.postP = [])
-    (hqPR : H.sig.postPR = [])
-    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = [])
+    (hqPR : H.sig.postPR = []) (hqQ : H.sig.postQ = [])
+    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = [] ∧ (sigOf f).postQ = [])
     (h : PostOkW sigOf H rd σ ws0 es vs) : PostOkW sigOf H rd' σ ws0 es vs := by
   refine ⟨⟨fun c hc' ↦ writtenC_rd hpP hpPR hc (h.1.1 c hc'), fun r hr x hx ↦ writtenC_rd hpP hpPR hc
-    (h.1.2 r hr x hx)⟩, fun x hx ↦ ?_⟩
+    (h.1.2 r hr x hx)⟩, fun x hx ↦ ?_, fun x ⟨p, hp, _⟩ ↦ by rw [hqQ] at hp; cases hp⟩
   rcases hx with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
   · rw [hqP] at hp; cases hp
   · rw [hqPR] at hp; cases hp
@@ -549,7 +567,8 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     have hb' := hb
     rw [hbody, walk_loopC σ0 pre0 hpre0, Out.ret.injEq] at hb'
     exact hb'.1.symm
-  have hcalls : ∀ f a r, Ev.call f a r ∈ pre ++ es → (Cf.sigOf f).postP = [] ∧
+  have hpQ : Cf.H.sig.postQ = [] := postQ_of_loop hok.heap hs.term
+  have hcalls : ∀ f a r, Ev.call f a r ∈ pre ++ es → ((Cf.sigOf f).postP = [] ∧ (Cf.sigOf f).postQ = []) ∧
       ∀ p ∈ (Cf.sigOf f).postPR, p.1 ∈ (Cf.sigOf f).postR := fun f a r he ↦ by
     rw [hev] at he
     rcases List.mem_append.mp he with he | he
@@ -567,13 +586,14 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
           simp only [Ev.call.injEq] at he
           obtain ⟨rfl, -, -⟩ := he
           rw [hsigf]
-          exact ⟨hs.hpostP, hs.inPost⟩
+          exact ⟨⟨hs.hpostP, hpQ⟩, hs.inPost⟩
   have hposts : PostOkW Cf.sigOf Cf.H (memRd m' img.read) σ0 (Cf.fn.params.map σ0) (pre ++ es) [] := by
     rcases Bool.or_eq_true_iff.mp hok.rdFree with hrf | hnp
     · exact (loopC_heap hok hb (holds_memRd hok hrf hb hh0 heq hWc hcs hsame) hR0 hP0 hT).2
     · simp only [noPtrL, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hnp
       obtain ⟨⟨hpPR, hqPR⟩, hcPR⟩ := hnp
-      refine postOkW_rd hs.hpreP hpPR hs.hpostP hqPR (fun f a r he ↦ ⟨(hcalls f a r he).1, ?_⟩)
+      refine postOkW_rd hs.hpreP hpPR hs.hpostP hqPR hpQ
+        (fun f a r he ↦ ⟨(hcalls f a r he).1.1, ?_, (hcalls f a r he).1.2⟩)
         (loopC_heap hok hb hh0 hR0 hP0 hT).2
       rw [hev] at he
       rcases List.mem_append.mp he with he | he
@@ -611,7 +631,7 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
   exact retAll_of_wrkP hs hP1 (fun p hp ↦ by rw [hfp1]; exact Mode.LTF.mem (Mem.le_trans hle hm') (hT p hp))
     (by rw [hfp1]; exact hX.mono (s := stOf s'.mem s.fp) (s' := stOf m' s.fp) hm' rfl)
     (fun c hc ↦ hWall _ (hposts.1.1 c hc)) (fun r hr x hx ↦ hWall x (hposts.1.2 r hr x hx))
-    (rdM_memRd m' img.read) fun x hx ↦ hWall x (hposts.2 x hx)
+    (rdM_memRd m' img.read) fun x hx ↦ hWall x (hposts.2.1 x hx)
 
 /-- **A loop's tail call taken**, into frame `s.fp + S` of the honest tree: `tail_next` for a loop
 helper with calls, pointer runs included. -/
@@ -748,7 +768,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   cases hst'
   rw [hna, hnr'] at hfit
   simp only [fitBL, Bool.and_eq_true, List.isEmpty_iff, List.contains_iff_mem, List.all_eq_true] at hfit
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, hG0⟩, hG1⟩, hhpostP⟩, hhpostPR⟩, hhretM⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, hG0⟩, hG1⟩, hhpostP⟩, hhpostPR⟩, ⟨-, hhpostQ⟩⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
     hhpostR⟩, hhgh⟩ := hfit
   have hpe : s'.pc = t := by
     have := rd_get hκ hm.fine sod (by rw [hm.fp]; exact hσ0.jc.pcw od t hpt) h0
@@ -986,6 +1006,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
             (List.mem_append.mp hr).elim (hR.2.2.1 r) (hL r)
           have hPL : ∀ q ∈ G.postP ++ G.postLP, Mode.PW (Mode.stOf m s'.fp) q.1 q.2 := fun q hq ↦
             (List.mem_append.mp hq).elim (hR.2.2.2.1 q) (hLP q)
+          replace hwe := hwe.imp_right fun h ↦ h.resolve_right fun ⟨q, hq, _⟩ ↦ by rw [hhpostQ] at hq; cases hq
           rcases hwe with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | (⟨p, hp, hps⟩ | ⟨p, hp, a, ha', hpa⟩)
           · rcases Bool.or_eq_true_iff.mp (hhpost c hc) with h | h
             · obtain ⟨m0, hm0', hmc⟩ := List.any_eq_true.mp h
@@ -1383,7 +1404,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
               (fun o ho ↦ written_mono hm.le (hwE o ho)) _
           exact retAll_of_wrkP hs (hP1 hσ0) hT1 hX1 (fun c hc ↦ W1 _ (hposts.1.1 c hc))
             (fun r hr x hx ↦ W1 x (hposts.1.2 r hr x hx)) (rdM_img hκ hm.fine.agree hu1)
-            fun x hx ↦ W1 x (hposts.2 x hx)
+            fun x hx ↦ W1 x (hposts.2.1 x hx)
       · -- the tail call
         obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
         obtain ⟨c, f, args, pos', hcm, hloc, -, hrn, as, hpairs, hsplit⟩ :=

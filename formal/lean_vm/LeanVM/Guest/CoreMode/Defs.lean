@@ -148,6 +148,13 @@ inductive Wit where
   `⟨q, stride, 0, j + d⟩` (its witnesses follow the arm's `vp` points), so after the dispatch the run
   `⟨q, stride, g^0, x·g^d⟩` is written, `x` the selector. -/
   | ab (q : CCell) (stride d : ℕ)
+  /-- A cell of a run in scope of lower bound `g^0` extended by the point after it (`base·hi^stride`, witnessed
+  by `q`): the cell's index below the upper bound's next by a fact of these residuals. -/
+  | app (r : ℕ) (q : Wit) (res : List ℕ)
+  /-- Leading the witnesses of a guarantee run `j` of a `callIf`'s callee kept after it (its witnesses follow):
+  where the call is not entered, the run `⟨b, stride, lo, hi⟩`, its bounds and base those of run `j` by the
+  guard's equation, is written. -/
+  | keep (j : ℕ) (b lo hi : CCell)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
@@ -175,6 +182,9 @@ structure HSig where
   ghosts : ℕ := 0
   /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
   retEq : List (CCell × CCell) := []
+  /-- Runs at words at return: `(c, r)`, with `w` the word at the cell `c`, the cells `w·b·g^(S·j)`, `lo ≤ j < hi`
+  (`r = ⟨b, S, lo, hi⟩`) written; `c`, `b`, `lo`, `hi` over slots. -/
+  postQ : List (CCell × CRun) := []
   deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/
@@ -208,6 +218,9 @@ structure HCert where
   /-- Words at cells (`HeapC.lean`, `DB`): value `DB + k` is the word at the cell `ders[k]`, over this
   function's values; callees' ghost monomials (`gargs`) may name it. -/
   ders : List CCell := []
+  /-- `ite`s whose continuation the pass checks in each branch, by their guard's value number (`HeapC.lean`,
+  `dupB`): a top-level `ite c z n` followed by `ss` is checked as `ite c (z ++ ss) (n ++ ss)`. -/
+  dups : List ℕ := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

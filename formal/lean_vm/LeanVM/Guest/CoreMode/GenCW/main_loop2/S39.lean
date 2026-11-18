@@ -121,7 +121,8 @@ noncomputable def st39 : CSt := ⟨tr189,
     .nil,
     5, 1, 0, 0,
     st39_cd,
-    st39_eqs⟩
+    st39_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

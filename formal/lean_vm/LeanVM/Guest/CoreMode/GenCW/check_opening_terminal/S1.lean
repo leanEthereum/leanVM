@@ -398,7 +398,8 @@ noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some �
     .nil,
     271, 34, 20, 0,
     st1_cd,
-    st1_eqs⟩
+    st1_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«check_opening_terminal».HeapW

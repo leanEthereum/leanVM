@@ -439,7 +439,8 @@ noncomputable def st6 : CSt := ⟨tr260,
     .nil,
     343, 34, 92, 0,
     st6_cd,
-    st6_eqs⟩
+    st6_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«check_opening_terminal».HeapW

@@ -502,7 +502,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · rfl
       · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noMatch hl)
     simp only [hnl, Bool.or_false] at hbody hselB
-    simp only [CoreMode.bodyC, Bool.and_eq_true] at hbody
+    simp only [CoreMode.bodyCore, Bool.and_eq_true] at hbody
     obtain ⟨hc, a, ha, hu⟩ := Bridge.selGo_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x arms hm
     rcases ha with ha | ha
     · cases ha

@@ -2102,7 +2102,8 @@ noncomputable def st4 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr1321 tr1335)
     .nil,
     469, 1, 0, 0,
     st4_cd,
-    st4_eqs⟩
+    st4_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW

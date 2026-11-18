@@ -207,6 +207,9 @@ holding the parameters. -/
 theorem postSet_of_retAll {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigL G h np) {m : Mem} {fp : ℕ} {ws : List E}
     (hP : ParAt G np (stOf m fp) ws) (hR : RetAll m fp G) {rd : Reader} :
     ∀ x, PostSet rd h ws x → WrK m x := by
+  intro x hx
+  replace hx := hx.imp_right fun h ↦ h.resolve_right fun ⟨q, hq, _⟩ ↦ by rw [hs.hpostQ] at hq; cases hq
+  revert x hx
   rintro x ((⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | (⟨p, hp, -⟩ | ⟨p, hp, -⟩))
   · obtain ⟨m0, hm0, hmc⟩ := (mapM_mem hs.post).1 c hc
     exact hw_slotT hP hmc (hR.1.2.1 m0 hm0)

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L1».St
+public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L1».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -50,7 +50,8 @@ noncomputable def st0 : CSt := ⟨tr0,
     .nil,
     0, 9, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L1».HeapW

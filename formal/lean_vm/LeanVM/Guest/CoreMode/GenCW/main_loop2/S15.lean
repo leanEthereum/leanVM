@@ -39,7 +39,8 @@ noncomputable def st15 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     4, 1, 0, 0,
     st15_cd,
-    st15_eqs⟩
+    st15_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

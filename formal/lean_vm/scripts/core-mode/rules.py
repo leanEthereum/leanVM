@@ -119,12 +119,21 @@ def derive(P, st):
             if R not in have:
                 new.append((R, [((T[0], d), S, lo, hi) for d in range(S)], 'merge'))
     ones = [r for r in have if r[1] == 1 and r[2] == num(0)] + [x[0] for x in new if x[0][1] == 1 and x[0][2] == num(0)]
-    for a in ones:
-        for b in ones:
-            if b[0] == mmul(a[0], a[3]) and a[3][0]:
-                R = (a[0], 1, num(0), mmul(a[3], b[3]))
-                if R not in have:
-                    new.append((R, [a, b], 'concat'))
+    # a function whose continuation is in each branch (`dup`): concatenations of concatenations, to its guarantee
+    for _ in range(3 if getattr(P, 'dups', None) else 1):
+        seen = {x[0] for x in new}
+        more = []
+        for a in ones:
+            for b in ones:
+                if b[0] == mmul(a[0], a[3]) and a[3][0]:
+                    R = (a[0], 1, num(0), mmul(a[3], b[3]))
+                    if R not in have and R not in seen:
+                        seen.add(R)
+                        more.append((R, [a, b], 'concat'))
+        if not more:
+            break
+        new += more
+        ones += [x[0] for x in more]
     out = []
     for R, parts, why in new:
         for x, y in P.eqs:

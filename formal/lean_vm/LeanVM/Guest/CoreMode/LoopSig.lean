@@ -74,7 +74,7 @@ def sigOkL (G : Mode.Sig) (h : HSig) (np : ℕ) : Bool :=
   G.ret.isEmpty && G.postP.isEmpty && G.postLP.isEmpty && G.preP.isEmpty && G.retV.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty &&
     h.preP.isEmpty && h.prePR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.retM.isEmpty &&
-    h.postV.isEmpty && h.retEq.isEmpty && Nat.beq h.ghosts 0 &&
+    (h.postV.isEmpty && h.postQ.isEmpty) && h.retEq.isEmpty && Nat.beq h.ghosts 0 &&
     (match G.term, h.term with
       | [(lo, hi)], [(.val 0, ei)] => decide (lo = .ex (.fr 2) 0) && parCell G np 2 && decide (idxT G np hi = some ei)
       | _, _ => false) &&
@@ -245,6 +245,7 @@ structure SigL (G : Mode.Sig) (h : HSig) (np : ℕ) : Prop where
   hpostPR : h.postPR = []
   hretM : h.retM = []
   hpostV : h.postV = []
+  hpostQ : h.postQ = []
   hretEq : h.retEq = []
   hghost : h.ghosts = 0
   term : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ h.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
@@ -261,7 +262,7 @@ theorem sigL_of {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : sigOkL G h np = true)
   simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq, List.all_eq_true] at hs
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩, h14⟩, h15⟩,
     hterm⟩, hpre⟩, hpreR⟩, hpost⟩, hpostR⟩, hk1⟩, hk2⟩ := hs
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, by simpa using h15, ?_, hpre, hpreR, hpost,
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13.1, h13.2, h14, by simpa using h15, ?_, hpre, hpreR, hpost,
     hpostR, hk1, hk2⟩
   split at hterm
   · rename_i lo hi ei hG hh
