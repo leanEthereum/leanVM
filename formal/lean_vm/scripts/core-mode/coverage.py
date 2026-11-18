@@ -34,7 +34,8 @@ def census_sets():
 CONFIGS = {
     'lean': set(),
     'lean+callIfR': {'callIfR'},
-    'requested': {'callIfR', 'retM', 'hv', 'join', 'cond', 'idx', 'div'},
+    'lean+callIfR+rules+idx': {'callIfR', 'rules', 'idx'},
+    'requested': {'callIfR', 'retM', 'hv', 'join', 'cond', 'idx', 'div', 'rules'},
     'full': set(I.FEATURES),
 }
 
@@ -49,7 +50,7 @@ def main():
         I.F.update(feats)
         res, dt = I.run_all()
         clean, closed = I.closure(res)
-        nres = {k: len(P.res) for k, P in res.items()}
+        nres = {k: len(I.used_res(P)) for k, P in res.items()}
         print(f'{name} ({",".join(sorted(feats)) or "heapOkC"}; {dt:.1f} s): witnessed / closed / residuals / uncovered reads')
         for s, ks in scopes.items():
             unc = sum(len(res[k].unc) + I.misses(res[k]) for k in ks)
