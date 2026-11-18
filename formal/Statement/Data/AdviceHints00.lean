@@ -4367,17 +4367,17 @@ def adviceFn36 : ℕ × ℕ × List (ℕ × List Hint) :=
     (64143, [(.alloc 117 903)]),
     (64232, [(.allocFrames 167 190 2 (LeanVM.Parameters.K.ofBits 0x1) 190)])])
 
-/-- `__loop0`: its entry, length and hints by pc. -/
+/-- `__loop0_main`: its entry, length and hints by pc. -/
 def adviceFn37 : ℕ × ℕ × List (ℕ × List Hint) :=
   (64273, 20, [(64277, [(.witnessHeap "dup_claims" 10 0 4)]),
     (64281, [(.frameAddress 18)])])
 
-/-- `__loop1`: its entry, length and hints by pc. -/
+/-- `__loop1_main`: its entry, length and hints by pc. -/
 def adviceFn38 : ℕ × ℕ × List (ℕ × List Hint) :=
   (64293, 20, [(64297, [(.witnessHeap "dup_claims" 10 0 4)]),
     (64301, [(.frameAddress 18)])])
 
-/-- `__loop2`: its hints by pc, part 0. -/
+/-- `__loop2_main`: its hints by pc, part 0. -/
 def adviceFn39p0 : List (ℕ × List Hint) :=
   [(64313, [(.witnessStack "raw_index" 59 1)]),
     (64324, [(.witnessStack "lx_index" 70 4), (.witnessStack "lx_windows" 74 4)]),
@@ -4636,7 +4636,7 @@ def adviceFn39p0 : List (ℕ × List Hint) :=
     (65358, [(.witnessStack "chain_starts" 116 1), (.witnessStack "chain_starts" 355 1)]),
     (65359, [(.witnessStack "chain_starts" 356 1)])]
 
-/-- `__loop2`: its hints by pc, part 1. -/
+/-- `__loop2_main`: its hints by pc, part 1. -/
 def adviceFn39p1 : List (ℕ × List Hint) :=
   [(65362, [(.witnessStack "chain_starts" 357 1)]),
     (65369, [(.witnessStack "chain_starts" 355 1)]),
@@ -4895,7 +4895,7 @@ def adviceFn39p1 : List (ℕ × List Hint) :=
     (66243, [(.witnessStack "chain_starts" 355 1)]),
     (66245, [(.witnessStack "chain_starts" 356 1)])]
 
-/-- `__loop2`: its hints by pc, part 2. -/
+/-- `__loop2_main`: its hints by pc, part 2. -/
 def adviceFn39p2 : List (ℕ × List Hint) :=
   [(66246, [(.witnessStack "chain_starts" 357 1)]),
     (66248, [(.witnessStack "chain_starts" 358 1)]),
@@ -5154,7 +5154,7 @@ def adviceFn39p2 : List (ℕ × List Hint) :=
     (67018, [(.witnessStack "chain_starts" 125 1)]),
     (67023, [(.witnessStack "chain_starts" 116 1), (.witnessStack "chain_starts" 355 1)])]
 
-/-- `__loop2`: its hints by pc, part 3. -/
+/-- `__loop2_main`: its hints by pc, part 3. -/
 def adviceFn39p3 : List (ℕ × List Hint) :=
   [(67025, [(.witnessStack "chain_starts" 356 1)]),
     (67026, [(.witnessStack "chain_starts" 125 1)]),
@@ -5413,7 +5413,7 @@ def adviceFn39p3 : List (ℕ × List Hint) :=
     (67922, [(.witnessStack "chain_starts" 364 1)]),
     (67924, [(.witnessStack "chain_starts" 134 1), (.witnessStack "chain_starts" 365 1)])]
 
-/-- `__loop2`: its hints by pc, part 4. -/
+/-- `__loop2_main`: its hints by pc, part 4. -/
 def adviceFn39p4 : List (ℕ × List Hint) :=
   [(67932, [(.witnessStack "chain_starts" 128 1), (.witnessStack "chain_starts" 363 1)]),
     (67934, [(.witnessStack "chain_starts" 134 1), (.witnessStack "chain_starts" 364 1)]),
@@ -5672,7 +5672,7 @@ def adviceFn39p4 : List (ℕ × List Hint) :=
     (68844, [(.witnessStack "chain_starts" 366 1)]),
     (68850, [(.witnessStack "chain_starts" 128 1), (.witnessStack "chain_starts" 363 1)])]
 
-/-- `__loop2`: its hints by pc, part 5. -/
+/-- `__loop2_main`: its hints by pc, part 5. -/
 def adviceFn39p5 : List (ℕ × List Hint) :=
   [(68852, [(.witnessStack "chain_starts" 364 1)]),
     (68855, [(.witnessStack "chain_starts" 365 1)]),
@@ -5931,7 +5931,7 @@ def adviceFn39p5 : List (ℕ × List Hint) :=
     (69658, [(.witnessStack "chain_starts" 137 1)]),
     (69663, [(.witnessStack "chain_starts" 363 1)])]
 
-/-- `__loop2`: its hints by pc, part 6. -/
+/-- `__loop2_main`: its hints by pc, part 6. -/
 def adviceFn39p6 : List (ℕ × List Hint) :=
   [(69665, [(.witnessStack "chain_starts" 364 1)]),
     (69667, [(.witnessStack "chain_starts" 365 1)]),
@@ -6190,7 +6190,7 @@ def adviceFn39p6 : List (ℕ × List Hint) :=
     (70501, [(.witnessStack "chain_starts" 373 1)]),
     (70502, [(.witnessStack "chain_starts" 374 1)])]
 
-/-- `__loop2`: its hints by pc, part 7. -/
+/-- `__loop2_main`: its hints by pc, part 7. -/
 def adviceFn39p7 : List (ℕ × List Hint) :=
   [(70510, [(.witnessStack "chain_starts" 140 1), (.witnessStack "chain_starts" 371 1)]),
     (70513, [(.witnessStack "chain_starts" 372 1)]),
@@ -6449,7 +6449,7 @@ def adviceFn39p7 : List (ℕ × List Hint) :=
     (71418, [(.witnessStack "chain_starts" 146 1), (.witnessStack "chain_starts" 373 1)]),
     (71425, [(.witnessStack "chain_starts" 371 1)])]
 
-/-- `__loop2`: its hints by pc, part 8. -/
+/-- `__loop2_main`: its hints by pc, part 8. -/
 def adviceFn39p8 : List (ℕ × List Hint) :=
   [(71427, [(.witnessStack "chain_starts" 372 1)]),
     (71430, [(.witnessStack "chain_starts" 146 1), (.witnessStack "chain_starts" 373 1)]),
@@ -6708,7 +6708,7 @@ def adviceFn39p8 : List (ℕ × List Hint) :=
     (72275, [(.witnessStack "chain_starts" 373 1)]),
     (72278, [(.witnessStack "chain_starts" 149 1)])]
 
-/-- `__loop2`: its hints by pc, part 9. -/
+/-- `__loop2_main`: its hints by pc, part 9. -/
 def adviceFn39p9 : List (ℕ × List Hint) :=
   [(72283, [(.witnessStack "chain_starts" 140 1), (.witnessStack "chain_starts" 371 1)]),
     (72286, [(.witnessStack "chain_starts" 372 1)]),
@@ -6967,7 +6967,7 @@ def adviceFn39p9 : List (ℕ × List Hint) :=
     (73081, [(.witnessStack "chain_starts" 381 1)]),
     (73083, [(.witnessStack "chain_starts" 382 1)])]
 
-/-- `__loop2`: its hints by pc, part 10. -/
+/-- `__loop2_main`: its hints by pc, part 10. -/
 def adviceFn39p10 : List (ℕ × List Hint) :=
   [(73091, [(.witnessStack "chain_starts" 379 1)]),
     (73093, [(.witnessStack "chain_starts" 380 1)]),
@@ -7226,7 +7226,7 @@ def adviceFn39p10 : List (ℕ × List Hint) :=
     (74025, [(.witnessStack "chain_starts" 381 1)]),
     (74032, [(.witnessStack "chain_starts" 379 1)])]
 
-/-- `__loop2`: its hints by pc, part 11. -/
+/-- `__loop2_main`: its hints by pc, part 11. -/
 def adviceFn39p11 : List (ℕ × List Hint) :=
   [(74033, [(.witnessStack "chain_starts" 155 1), (.witnessStack "chain_starts" 380 1)]),
     (74035, [(.witnessStack "chain_starts" 381 1)]),
@@ -7485,7 +7485,7 @@ def adviceFn39p11 : List (ℕ × List Hint) :=
     (74873, [(.witnessStack "chain_starts" 152 1), (.witnessStack "chain_starts" 379 1)]),
     (74874, [(.witnessStack "chain_starts" 380 1)])]
 
-/-- `__loop2`: its hints by pc, part 12. -/
+/-- `__loop2_main`: its hints by pc, part 12. -/
 def adviceFn39p12 : List (ℕ × List Hint) :=
   [(74875, [(.witnessStack "chain_starts" 381 1)]),
     (74881, [(.witnessStack "chain_starts" 379 1)]),
@@ -7744,7 +7744,7 @@ def adviceFn39p12 : List (ℕ × List Hint) :=
     (75644, [(.witnessStack "chain_starts" 155 1), (.witnessStack "chain_starts" 158 1), (.witnessStack "chain_starts" 161 1)]),
     (75649, [(.witnessStack "chain_starts" 379 1)])]
 
-/-- `__loop2`: its hints by pc, part 13. -/
+/-- `__loop2_main`: its hints by pc, part 13. -/
 def adviceFn39p13 : List (ℕ × List Hint) :=
   [(75651, [(.witnessStack "chain_starts" 155 1), (.witnessStack "chain_starts" 158 1), (.witnessStack "chain_starts" 161 1)]),
     (75656, [(.witnessStack "chain_starts" 379 1)]),
@@ -8003,7 +8003,7 @@ def adviceFn39p13 : List (ℕ × List Hint) :=
     (76617, [(.witnessStack "chain_starts" 164 1), (.witnessStack "chain_starts" 387 1)]),
     (76618, [(.witnessStack "chain_starts" 388 1)])]
 
-/-- `__loop2`: its hints by pc, part 14. -/
+/-- `__loop2_main`: its hints by pc, part 14. -/
 def adviceFn39p14 : List (ℕ × List Hint) :=
   [(76621, [(.witnessStack "chain_starts" 389 1)]),
     (76628, [(.witnessStack "chain_starts" 387 1)]),
@@ -8262,7 +8262,7 @@ def adviceFn39p14 : List (ℕ × List Hint) :=
     (77502, [(.witnessStack "chain_starts" 387 1)]),
     (77504, [(.witnessStack "chain_starts" 388 1)])]
 
-/-- `__loop2`: its hints by pc, part 15. -/
+/-- `__loop2_main`: its hints by pc, part 15. -/
 def adviceFn39p15 : List (ℕ × List Hint) :=
   [(77505, [(.witnessStack "chain_starts" 389 1)]),
     (77507, [(.witnessStack "chain_starts" 390 1)]),
@@ -8521,7 +8521,7 @@ def adviceFn39p15 : List (ℕ × List Hint) :=
     (78277, [(.witnessStack "chain_starts" 173 1)]),
     (78282, [(.witnessStack "chain_starts" 164 1), (.witnessStack "chain_starts" 387 1)])]
 
-/-- `__loop2`: its hints by pc, part 16. -/
+/-- `__loop2_main`: its hints by pc, part 16. -/
 def adviceFn39p16 : List (ℕ × List Hint) :=
   [(78284, [(.witnessStack "chain_starts" 388 1)]),
     (78285, [(.witnessStack "chain_starts" 173 1)]),
@@ -8780,7 +8780,7 @@ def adviceFn39p16 : List (ℕ × List Hint) :=
     (79181, [(.witnessStack "chain_starts" 396 1)]),
     (79183, [(.witnessStack "chain_starts" 182 1), (.witnessStack "chain_starts" 397 1)])]
 
-/-- `__loop2`: its hints by pc, part 17. -/
+/-- `__loop2_main`: its hints by pc, part 17. -/
 def adviceFn39p17 : List (ℕ × List Hint) :=
   [(79191, [(.witnessStack "chain_starts" 176 1), (.witnessStack "chain_starts" 395 1)]),
     (79193, [(.witnessStack "chain_starts" 182 1), (.witnessStack "chain_starts" 396 1)]),
@@ -9039,7 +9039,7 @@ def adviceFn39p17 : List (ℕ × List Hint) :=
     (80104, [(.witnessStack "chain_starts" 398 1)]),
     (80110, [(.witnessStack "chain_starts" 176 1), (.witnessStack "chain_starts" 395 1)])]
 
-/-- `__loop2`: its hints by pc, part 18. -/
+/-- `__loop2_main`: its hints by pc, part 18. -/
 def adviceFn39p18 : List (ℕ × List Hint) :=
   [(80112, [(.witnessStack "chain_starts" 396 1)]),
     (80115, [(.witnessStack "chain_starts" 397 1)]),
@@ -9298,7 +9298,7 @@ def adviceFn39p18 : List (ℕ × List Hint) :=
     (80918, [(.witnessStack "chain_starts" 185 1)]),
     (80923, [(.witnessStack "chain_starts" 395 1)])]
 
-/-- `__loop2`: its hints by pc, part 19. -/
+/-- `__loop2_main`: its hints by pc, part 19. -/
 def adviceFn39p19 : List (ℕ × List Hint) :=
   [(80925, [(.witnessStack "chain_starts" 396 1)]),
     (80927, [(.witnessStack "chain_starts" 397 1)]),
@@ -9557,7 +9557,7 @@ def adviceFn39p19 : List (ℕ × List Hint) :=
     (81761, [(.witnessStack "chain_starts" 405 1)]),
     (81762, [(.witnessStack "chain_starts" 406 1)])]
 
-/-- `__loop2`: its hints by pc, part 20. -/
+/-- `__loop2_main`: its hints by pc, part 20. -/
 def adviceFn39p20 : List (ℕ × List Hint) :=
   [(81770, [(.witnessStack "chain_starts" 188 1), (.witnessStack "chain_starts" 403 1)]),
     (81773, [(.witnessStack "chain_starts" 404 1)]),
@@ -9816,7 +9816,7 @@ def adviceFn39p20 : List (ℕ × List Hint) :=
     (82678, [(.witnessStack "chain_starts" 194 1), (.witnessStack "chain_starts" 405 1)]),
     (82685, [(.witnessStack "chain_starts" 403 1)])]
 
-/-- `__loop2`: its hints by pc, part 21. -/
+/-- `__loop2_main`: its hints by pc, part 21. -/
 def adviceFn39p21 : List (ℕ × List Hint) :=
   [(82687, [(.witnessStack "chain_starts" 404 1)]),
     (82690, [(.witnessStack "chain_starts" 194 1), (.witnessStack "chain_starts" 405 1)]),
@@ -10075,7 +10075,7 @@ def adviceFn39p21 : List (ℕ × List Hint) :=
     (83535, [(.witnessStack "chain_starts" 405 1)]),
     (83538, [(.witnessStack "chain_starts" 197 1)])]
 
-/-- `__loop2`: its hints by pc, part 22. -/
+/-- `__loop2_main`: its hints by pc, part 22. -/
 def adviceFn39p22 : List (ℕ × List Hint) :=
   [(83543, [(.witnessStack "chain_starts" 188 1), (.witnessStack "chain_starts" 403 1)]),
     (83546, [(.witnessStack "chain_starts" 404 1)]),
@@ -10334,7 +10334,7 @@ def adviceFn39p22 : List (ℕ × List Hint) :=
     (84339, [(.witnessStack "chain_starts" 413 1)]),
     (84341, [(.witnessStack "chain_starts" 414 1)])]
 
-/-- `__loop2`: its hints by pc, part 23. -/
+/-- `__loop2_main`: its hints by pc, part 23. -/
 def adviceFn39p23 : List (ℕ × List Hint) :=
   [(84349, [(.witnessStack "chain_starts" 411 1)]),
     (84351, [(.witnessStack "chain_starts" 412 1)]),
@@ -10593,7 +10593,7 @@ def adviceFn39p23 : List (ℕ × List Hint) :=
     (85281, [(.witnessStack "chain_starts" 413 1)]),
     (85288, [(.witnessStack "chain_starts" 411 1)])]
 
-/-- `__loop2`: its hints by pc, part 24. -/
+/-- `__loop2_main`: its hints by pc, part 24. -/
 def adviceFn39p24 : List (ℕ × List Hint) :=
   [(85289, [(.witnessStack "chain_starts" 203 1), (.witnessStack "chain_starts" 412 1)]),
     (85291, [(.witnessStack "chain_starts" 413 1)]),
@@ -10852,7 +10852,7 @@ def adviceFn39p24 : List (ℕ × List Hint) :=
     (86128, [(.witnessStack "chain_starts" 200 1), (.witnessStack "chain_starts" 411 1)]),
     (86129, [(.witnessStack "chain_starts" 412 1)])]
 
-/-- `__loop2`: its hints by pc, part 25. -/
+/-- `__loop2_main`: its hints by pc, part 25. -/
 def adviceFn39p25 : List (ℕ × List Hint) :=
   [(86130, [(.witnessStack "chain_starts" 413 1)]),
     (86136, [(.witnessStack "chain_starts" 411 1)]),
@@ -11111,7 +11111,7 @@ def adviceFn39p25 : List (ℕ × List Hint) :=
     (86899, [(.witnessStack "chain_starts" 203 1), (.witnessStack "chain_starts" 206 1), (.witnessStack "chain_starts" 209 1)]),
     (86904, [(.witnessStack "chain_starts" 411 1)])]
 
-/-- `__loop2`: its hints by pc, part 26. -/
+/-- `__loop2_main`: its hints by pc, part 26. -/
 def adviceFn39p26 : List (ℕ × List Hint) :=
   [(86906, [(.witnessStack "chain_starts" 203 1), (.witnessStack "chain_starts" 206 1), (.witnessStack "chain_starts" 209 1)]),
     (86911, [(.witnessStack "chain_starts" 411 1)]),

@@ -30,7 +30,8 @@ namespace LeanVM.Guest.Fn.«main_loop3»
 
 @[expose] public section
 
-/-- `__loop3`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop3_main`: its entry, the cells and heap facts it needs at entry and guarantees at return.
+    -/
 noncomputable def modeSig : Mode.Sig :=
   ⟨178532, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), [], [⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.ex (.fr
     4) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.ex (.fr 4) 0), 4, 1⟩, ⟨⟨0, 0, [((.fr 7),
@@ -455,7 +456,8 @@ namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop61`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop0_level_positions__L4_L14_L2`: its entry, the cells and heap facts it needs at entry and
+    guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
   ⟨279924, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
     2), 5), ((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 2), 5), ((.fr 4),
@@ -520,7 +522,8 @@ namespace LeanVM.Guest.Fn.«level_residual__L25_L9_L4_L2_loop1»
 
 @[expose] public section
 
-/-- `__loop184`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop1_level_residual__L25_L9_L4_L2`: its entry, the cells and heap facts it needs at entry
+    and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
   ⟨315406, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), [⟨0, 0, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0, 0,
     [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
@@ -541,7 +544,8 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L15_L4_L2_loop1»
 
 @[expose] public section
 
-/-- `__loop247`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop1_level_residual__L37_L15_L4_L2`: its entry, the cells and heap facts it needs at entry
+    and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
   ⟨336987, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0,
@@ -564,7 +568,8 @@ namespace LeanVM.Guest.Fn.«level_residual__L19_L7_L4_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop257`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop0_level_residual__L19_L7_L4_L2`: its entry, the cells and heap facts it needs at entry
+    and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
   ⟨340032, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), [⟨0, 0, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0, 0,
     [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0, 1, [((.fr

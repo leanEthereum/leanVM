@@ -140,7 +140,7 @@ open LeanVM.Guest
 /-- `level_positions__L19_L26_L2`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_positions__L19_L26_L2».cert.locs [] Fn.«level_positions__L19_L26_L2».code.entryPc false
-    Fn.«level_positions__L19_L26_L2».plumb Data.powTree Data.jtTrie [("__loop379", 379061), ("decode_query_windows__L26_L2", 365068)] 524287 Fn.«level_positions__L19_L26_L2».code.instructionCount
+    Fn.«level_positions__L19_L26_L2».plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L19_L26_L2", 379061), ("decode_query_windows__L26_L2", 365068)] 524287 Fn.«level_positions__L19_L26_L2».code.instructionCount
 
 end
 
@@ -169,7 +169,7 @@ open LeanVM.Guest
 /-- `level_positions__L6_L17_L5_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_positions__L6_L17_L5_loop0».cert.locs [] Fn.«level_positions__L6_L17_L5_loop0».code.entryPc false
-    Fn.«level_positions__L6_L17_L5_loop0».plumb Data.powTree Data.jtTrie [("__loop97", 289883), ("decode_query_windows__L17_L5", 275754)] 524287 Fn.«level_positions__L6_L17_L5_loop0».code.instructionCount
+    Fn.«level_positions__L6_L17_L5_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L6_L17_L5", 289883), ("decode_query_windows__L17_L5", 275754)] 524287 Fn.«level_positions__L6_L17_L5_loop0».code.instructionCount
 
 end
 
@@ -198,7 +198,7 @@ open LeanVM.Guest
 /-- `level_positions__L9_L24_L6_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_positions__L9_L24_L6_loop0».cert.locs [] Fn.«level_positions__L9_L24_L6_loop0».code.entryPc false
-    Fn.«level_positions__L9_L24_L6_loop0».plumb Data.powTree Data.jtTrie [("__loop381", 379741), ("decode_query_windows__L24_L6", 341076)] 524287 Fn.«level_positions__L9_L24_L6_loop0».code.instructionCount
+    Fn.«level_positions__L9_L24_L6_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L9_L24_L6", 379741), ("decode_query_windows__L24_L6", 341076)] 524287 Fn.«level_positions__L9_L24_L6_loop0».code.instructionCount
 
 end
 
@@ -285,7 +285,7 @@ open LeanVM.Guest
 /-- `level_residual__L218_L23_L6_L3_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L218_L23_L6_L3_loop0».cert.locs [] Fn.«level_residual__L218_L23_L6_L3_loop0».code.entryPc false
-    Fn.«level_residual__L218_L23_L6_L3_loop0».plumb Data.powTree Data.jtTrie [("__loop387", 380123)] 524287 Fn.«level_residual__L218_L23_L6_L3_loop0».code.instructionCount
+    Fn.«level_residual__L218_L23_L6_L3_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L218_L23_L6_L3", 380123)] 524287 Fn.«level_residual__L218_L23_L6_L3_loop0».code.instructionCount
 
 end
 
@@ -314,7 +314,7 @@ open LeanVM.Guest
 /-- `level_residual__L23_L12_L4_L2_loop1`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L23_L12_L4_L2_loop1».cert.locs [] Fn.«level_residual__L23_L12_L4_L2_loop1».code.entryPc false
-    Fn.«level_residual__L23_L12_L4_L2_loop1».plumb Data.powTree Data.jtTrie [("__loop291", 351103)] 524287 Fn.«level_residual__L23_L12_L4_L2_loop1».code.instructionCount
+    Fn.«level_residual__L23_L12_L4_L2_loop1».plumb Data.powTree Data.jtTrie [("__loop1_level_residual__L23_L12_L4_L2", 351103)] 524287 Fn.«level_residual__L23_L12_L4_L2_loop1».code.instructionCount
 
 end
 
@@ -343,7 +343,7 @@ open LeanVM.Guest
 /-- `level_residual__L25_L12_L4_L2`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L25_L12_L4_L2».cert.locs [] Fn.«level_residual__L25_L12_L4_L2».code.entryPc false
-    Fn.«level_residual__L25_L12_L4_L2».plumb Data.powTree Data.jtTrie [("__loop288", 349918), ("__loop289", 350454)] 524287 Fn.«level_residual__L25_L12_L4_L2».code.instructionCount
+    Fn.«level_residual__L25_L12_L4_L2».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L25_L12_L4_L2", 349918), ("__loop1_level_residual__L25_L12_L4_L2", 350454)] 524287 Fn.«level_residual__L25_L12_L4_L2».code.instructionCount
 
 end
 
@@ -372,7 +372,7 @@ open LeanVM.Guest
 /-- `level_residual__L25_L8_L4_L2_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L25_L8_L4_L2_loop0».cert.locs [] Fn.«level_residual__L25_L8_L4_L2_loop0».code.entryPc false
-    Fn.«level_residual__L25_L8_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop151", 305569)] 524287 Fn.«level_residual__L25_L8_L4_L2_loop0».code.instructionCount
+    Fn.«level_residual__L25_L8_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L25_L8_L4_L2", 305569)] 524287 Fn.«level_residual__L25_L8_L4_L2_loop0».code.instructionCount
 
 end
 
@@ -401,7 +401,7 @@ open LeanVM.Guest
 /-- `level_residual__L28_L15_L4_L2_loop1`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L28_L15_L4_L2_loop1».cert.locs [] Fn.«level_residual__L28_L15_L4_L2_loop1».code.entryPc false
-    Fn.«level_residual__L28_L15_L4_L2_loop1».plumb Data.powTree Data.jtTrie [("__loop403", 388874)] 524287 Fn.«level_residual__L28_L15_L4_L2_loop1».code.instructionCount
+    Fn.«level_residual__L28_L15_L4_L2_loop1».plumb Data.powTree Data.jtTrie [("__loop1_level_residual__L28_L15_L4_L2", 388874)] 524287 Fn.«level_residual__L28_L15_L4_L2_loop1».code.instructionCount
 
 end
 
@@ -430,7 +430,7 @@ open LeanVM.Guest
 /-- `level_residual__L28_L7_L4_L2_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L28_L7_L4_L2_loop0».cert.locs [] Fn.«level_residual__L28_L7_L4_L2_loop0».code.entryPc false
-    Fn.«level_residual__L28_L7_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop117", 296169)] 524287 Fn.«level_residual__L28_L7_L4_L2_loop0».code.instructionCount
+    Fn.«level_residual__L28_L7_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L28_L7_L4_L2", 296169)] 524287 Fn.«level_residual__L28_L7_L4_L2_loop0».code.instructionCount
 
 end
 
@@ -459,7 +459,7 @@ open LeanVM.Guest
 /-- `level_residual__L37_L14_L4_L2_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L37_L14_L4_L2_loop0».cert.locs [] Fn.«level_residual__L37_L14_L4_L2_loop0».code.entryPc false
-    Fn.«level_residual__L37_L14_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop209", 322424)] 524287 Fn.«level_residual__L37_L14_L4_L2_loop0».code.instructionCount
+    Fn.«level_residual__L37_L14_L4_L2_loop0».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L37_L14_L4_L2", 322424)] 524287 Fn.«level_residual__L37_L14_L4_L2_loop0».code.instructionCount
 
 end
 
@@ -488,7 +488,7 @@ open LeanVM.Guest
 /-- `level_residual__L44_L11_L4_L2`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«level_residual__L44_L11_L4_L2».cert.locs [] Fn.«level_residual__L44_L11_L4_L2».code.entryPc false
-    Fn.«level_residual__L44_L11_L4_L2».plumb Data.powTree Data.jtTrie [("__loop111", 294083), ("__loop112", 294585)] 524287 Fn.«level_residual__L44_L11_L4_L2».code.instructionCount
+    Fn.«level_residual__L44_L11_L4_L2».plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L44_L11_L4_L2", 294083), ("__loop1_level_residual__L44_L11_L4_L2", 294585)] 524287 Fn.«level_residual__L44_L11_L4_L2».code.instructionCount
 
 end
 
@@ -517,7 +517,7 @@ open LeanVM.Guest
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».cert.locs [] Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».code.entryPc false
-    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».plumb Data.powTree Data.jtTrie [("__loop487", 426003), ("walk_path__L18_L2", 419891)] 524287 Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».code.instructionCount
+    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 426003), ("walk_path__L18_L2", 419891)] 524287 Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».code.instructionCount
 
 end
 

@@ -17,7 +17,7 @@ set_option maxRecDepth 20000
 
 @[expose] public section
 
-/-- `__loop2` from offset 83968. -/
+/-- `__loop2_main` from offset 83968. -/
 def f39c41 : List OffsetInstruction := [
   .mul 1136 86 1144,
   .set 1150 0 182,
@@ -2068,7 +2068,7 @@ def f39c41 : List OffsetInstruction := [
   .keccak 69 843 962 39 103 102 104 963 false false .one,
   .mul 1144 86 1152]
 
-/-- `__loop2` from offset 86016. -/
+/-- `__loop2_main` from offset 86016. -/
 def f39c42 : List OffsetInstruction := [
   .set 1158 0 28160,
   .xor 1145 1158 1153,
@@ -4119,7 +4119,7 @@ def f39c42 : List OffsetInstruction := [
   .keccak 69 843 965 40 103 102 104 966 false false .one,
   .keccak 69 843 1164 42 103 102 104 972 false false .one]
 
-/-- `__loop2` from offset 88064. -/
+/-- `__loop2_main` from offset 88064. -/
 def f39c43 : List OffsetInstruction := [
   .keccak 69 841 1165 43 103 102 104 973 false false .one,
   .keccak 69 842 973 43 103 102 104 974 false false .one,
@@ -6170,7 +6170,7 @@ def f39c43 : List OffsetInstruction := [
   .keccak 69 843 1163 40 103 102 104 966 false false .one,
   .keccak 69 843 1164 41 103 102 104 969 false false .one]
 
-/-- `__loop2` from offset 90112. -/
+/-- `__loop2_main` from offset 90112. -/
 def f39c44 : List OffsetInstruction := [
   .keccak 69 843 1165 42 103 102 104 972 false false .one,
   .mul 1152 87 1160,
@@ -8221,7 +8221,7 @@ def f39c44 : List OffsetInstruction := [
   .jump 101 1170 58,
   .keccak 69 842 1171 44 103 102 104 977 false false .one]
 
-/-- `__loop2` from offset 92160. -/
+/-- `__loop2_main` from offset 92160. -/
 def f39c45 : List OffsetInstruction := [
   .keccak 69 843 977 44 103 102 104 978 false false .one,
   .keccak 69 842 1172 46 103 102 104 983 false false .one,
@@ -10272,7 +10272,7 @@ def f39c45 : List OffsetInstruction := [
   .xor 1169 1182 1177,
   .deref 1031 9796 1178 .cell]
 
-/-- `__loop2` from offset 94208. -/
+/-- `__loop2_main` from offset 94208. -/
 def f39c46 : List OffsetInstruction := [
   .jump 101 1178 58,
   .keccak 69 841 1179 48 103 102 104 988 false false .one,
@@ -12323,7 +12323,7 @@ def f39c46 : List OffsetInstruction := [
   .keccak 69 841 1190 55 103 102 104 1009 false false .one,
   .keccak 69 842 1009 55 103 102 104 1010 false false .one]
 
-/-- `__loop2` from offset 96256. -/
+/-- `__loop2_main` from offset 96256. -/
 def f39c47 : List OffsetInstruction := [
   .keccak 69 843 1010 55 103 102 104 1011 false false .one,
   .mul 1176 81 1184,
@@ -14374,7 +14374,7 @@ def f39c47 : List OffsetInstruction := [
   .keccak 69 842 1189 54 103 102 104 1007 false false .one,
   .keccak 69 843 1007 54 103 102 104 1008 false false .one]
 
-/-- `__loop2` from offset 98304. -/
+/-- `__loop2_main` from offset 98304. -/
 def f39c48 : List OffsetInstruction := [
   .mul 1176 82 1184,
   .set 1190 0 228698418577408,

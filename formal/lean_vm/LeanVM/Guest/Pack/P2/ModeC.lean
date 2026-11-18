@@ -140,7 +140,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop28`: the program its certificate shares. -/
+/-- `__loop3_da_column_offsets`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
@@ -148,7 +148,8 @@ noncomputable def modeEnv : Mode.Env :=
     none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil)))) .nil)) .nil) .nil))
     .nil)))) .nil) .nil) .nil) .nil)), 524287⟩
 
-/-- `__loop28`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop3_da_column_offsets`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨250592, 49, Fn.«da_column_offsets_loop3».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -427,7 +428,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop163`: the program its certificate shares. -/
+/-- `__loop0_level_positions__L4_L19_L7`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
@@ -439,7 +440,8 @@ noncomputable def modeEnv : Mode.Env :=
     (some Fn.«decode_query_windows__L19_L7».modeSig) .nil .nil) .nil) .nil) .nil))) .nil)) .nil)
     .nil))) .nil) .nil) .nil) .nil))) .nil), 524287⟩
 
-/-- `__loop163`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_level_positions__L4_L19_L7`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨307587, 50, Fn.«level_positions__L4_L19_L7_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -453,7 +455,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop312`: the program its certificate shares. -/
+/-- `__loop1_level_residual__L73_L21_L6_L3`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
@@ -461,7 +463,8 @@ noncomputable def modeEnv : Mode.Env :=
     none .nil (.node none (.node (some Fn.«level_residual__L73_L21_L6_L3_loop1».modeSig) .nil .nil)
     .nil)) .nil)))) .nil) .nil) .nil))) .nil))) .nil) .nil)) .nil), 524287⟩
 
-/-- `__loop312`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop1_level_residual__L73_L21_L6_L3`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨356785, 174, Fn.«level_residual__L73_L21_L6_L3_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -493,7 +496,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop471`: the program its certificate shares. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`: the program its certificate
+    shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
@@ -505,7 +509,8 @@ noncomputable def modeEnv : Mode.Env :=
     Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil)
     .nil)) .nil))) .nil) .nil))))) .nil) .nil)) .nil) .nil), 524287⟩
 
-/-- `__loop471`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`: its entry, length and signature;
+    on the core route, nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨416227, 604, Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».modeSig, .nil, .nil,
     .nil, false, .nil⟩

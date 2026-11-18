@@ -18,7 +18,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop2`: its hints at offsets 75000 to 100000 are the advice's. -/
+/-- `__loop2_main`: its hints at offsets 75000 to 100000 are the advice's. -/
 theorem modeHP3 :
     Mode.hintsChk modeFun.hints modeFun.entry ((Data.adviceFn39.2.2.drop 20793).take (28166 -
     20793)) 75000 (100000 - 75000) = true := by

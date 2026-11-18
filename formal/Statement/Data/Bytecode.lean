@@ -192,25 +192,25 @@ def f35 : CompiledFunction :=
 def f36 : CompiledFunction :=
   ⟨"aggregate_claims", 64040, 233, [f36c0]⟩
 
-/-- `__loop0`: pc 64273 to 64293. -/
+/-- `__loop0_main`: pc 64273 to 64293. -/
 def f37 : CompiledFunction :=
-  ⟨"__loop0", 64273, 20, [f37c0]⟩
+  ⟨"__loop0_main", 64273, 20, [f37c0]⟩
 
-/-- `__loop1`: pc 64293 to 64313. -/
+/-- `__loop1_main`: pc 64293 to 64313. -/
 def f38 : CompiledFunction :=
-  ⟨"__loop1", 64293, 20, [f38c0]⟩
+  ⟨"__loop1_main", 64293, 20, [f38c0]⟩
 
-/-- `__loop2`: pc 64313 to 178532. -/
+/-- `__loop2_main`: pc 64313 to 178532. -/
 def f39 : CompiledFunction :=
-  ⟨"__loop2", 64313, 114219, [f39c0, f39c1, f39c2, f39c3, f39c4, f39c5, f39c6, f39c7, f39c8, f39c9, f39c10, f39c11, f39c12, f39c13, f39c14, f39c15, f39c16, f39c17, f39c18, f39c19, f39c20, f39c21, f39c22, f39c23, f39c24, f39c25, f39c26, f39c27, f39c28, f39c29, f39c30, f39c31, f39c32, f39c33, f39c34, f39c35, f39c36, f39c37, f39c38, f39c39, f39c40, f39c41, f39c42, f39c43, f39c44, f39c45, f39c46, f39c47, f39c48, f39c49, f39c50, f39c51, f39c52, f39c53, f39c54, f39c55]⟩
+  ⟨"__loop2_main", 64313, 114219, [f39c0, f39c1, f39c2, f39c3, f39c4, f39c5, f39c6, f39c7, f39c8, f39c9, f39c10, f39c11, f39c12, f39c13, f39c14, f39c15, f39c16, f39c17, f39c18, f39c19, f39c20, f39c21, f39c22, f39c23, f39c24, f39c25, f39c26, f39c27, f39c28, f39c29, f39c30, f39c31, f39c32, f39c33, f39c34, f39c35, f39c36, f39c37, f39c38, f39c39, f39c40, f39c41, f39c42, f39c43, f39c44, f39c45, f39c46, f39c47, f39c48, f39c49, f39c50, f39c51, f39c52, f39c53, f39c54, f39c55]⟩
 
-/-- `__loop3`: pc 178532 to 178568. -/
+/-- `__loop3_main`: pc 178532 to 178568. -/
 def f40 : CompiledFunction :=
-  ⟨"__loop3", 178532, 36, [f40c0]⟩
+  ⟨"__loop3_main", 178532, 36, [f40c0]⟩
 
-/-- `__loop4`: pc 178568 to 178664. -/
+/-- `__loop4_main`: pc 178568 to 178664. -/
 def f41 : CompiledFunction :=
-  ⟨"__loop4", 178568, 96, [f41c0]⟩
+  ⟨"__loop4_main", 178568, 96, [f41c0]⟩
 
 /-- `eq_prefix_run__L0`: pc 178664 to 178668. -/
 def f42 : CompiledFunction :=
@@ -376,9 +376,9 @@ def f81 : CompiledFunction :=
 def f82 : CompiledFunction :=
   ⟨"eq_prefix_run__L40", 182724, 204, [f82c0]⟩
 
-/-- `__loop5`: pc 182928 to 182962. -/
+/-- `__loop0_rs_eq_run`: pc 182928 to 182962. -/
 def f83 : CompiledFunction :=
-  ⟨"__loop5", 182928, 34, [f83c0]⟩
+  ⟨"__loop0_rs_eq_run", 182928, 34, [f83c0]⟩
 
 /-- `rs_eq_rows__L0`: pc 182962 to 182965. -/
 def f84 : CompiledFunction :=
@@ -416,17 +416,17 @@ def f91 : CompiledFunction :=
 def f92 : CompiledFunction :=
   ⟨"grind_check__L7", 189300, 52, [f92c0]⟩
 
-/-- `__loop6`: pc 189352 to 189579. -/
+/-- `__loop0_verify_bus_gkr`: pc 189352 to 189579. -/
 def f93 : CompiledFunction :=
-  ⟨"__loop6", 189352, 227, [f93c0]⟩
+  ⟨"__loop0_verify_bus_gkr", 189352, 227, [f93c0]⟩
 
-/-- `__loop7`: pc 189579 to 189599. -/
+/-- `__loop1_verify_bus_gkr`: pc 189579 to 189599. -/
 def f94 : CompiledFunction :=
-  ⟨"__loop7", 189579, 20, [f94c0]⟩
+  ⟨"__loop1_verify_bus_gkr", 189579, 20, [f94c0]⟩
 
-/-- `__loop8`: pc 189599 to 189732. -/
+/-- `__loop0_shared_selector_tables`: pc 189599 to 189732. -/
 def f95 : CompiledFunction :=
-  ⟨"__loop8", 189599, 133, [f95c0]⟩
+  ⟨"__loop0_shared_selector_tables", 189599, 133, [f95c0]⟩
 
 /-- `sel_partial_nibble__L0`: pc 189732 to 189735. -/
 def f96 : CompiledFunction :=
@@ -1112,17 +1112,17 @@ def f265 : CompiledFunction :=
 def f266 : CompiledFunction :=
   ⟨"block_selector_tab__L33", 206086, 94, [f266c0]⟩
 
-/-- `__loop9`: pc 206180 to 206224. -/
+/-- `__loop0_verify_tables`: pc 206180 to 206224. -/
 def f267 : CompiledFunction :=
-  ⟨"__loop9", 206180, 44, [f267c0]⟩
+  ⟨"__loop0_verify_tables", 206180, 44, [f267c0]⟩
 
-/-- `__loop10`: pc 206224 to 206248. -/
+/-- `__loop1_verify_tables`: pc 206224 to 206248. -/
 def f268 : CompiledFunction :=
-  ⟨"__loop10", 206224, 24, [f268c0]⟩
+  ⟨"__loop1_verify_tables", 206224, 24, [f268c0]⟩
 
-/-- `__loop11`: pc 206248 to 206268. -/
+/-- `__loop0_verify_keccak`: pc 206248 to 206268. -/
 def f269 : CompiledFunction :=
-  ⟨"__loop11", 206248, 20, [f269c0]⟩
+  ⟨"__loop0_verify_keccak", 206248, 20, [f269c0]⟩
 
 /-- `keccak_layer__L1`: pc 206268 to 207714. -/
 def f270 : CompiledFunction :=
@@ -1136,25 +1136,25 @@ def f271 : CompiledFunction :=
 def f272 : CompiledFunction :=
   ⟨"keccak_plain_rounds__L6_L0", 209489, 105, [f272c0]⟩
 
-/-- `__loop12`: pc 209594 to 209614. -/
+/-- `__loop1_verify_keccak`: pc 209594 to 209614. -/
 def f273 : CompiledFunction :=
-  ⟨"__loop12", 209594, 20, [f273c0]⟩
+  ⟨"__loop1_verify_keccak", 209594, 20, [f273c0]⟩
 
 /-- `keccak_plain_rounds__L4_L1`: pc 209614 to 209695. -/
 def f274 : CompiledFunction :=
   ⟨"keccak_plain_rounds__L4_L1", 209614, 81, [f274c0]⟩
 
-/-- `__loop13`: pc 209695 to 209715. -/
+/-- `__loop2_verify_keccak`: pc 209695 to 209715. -/
 def f275 : CompiledFunction :=
-  ⟨"__loop13", 209695, 20, [f275c0]⟩
+  ⟨"__loop2_verify_keccak", 209695, 20, [f275c0]⟩
 
-/-- `__loop14`: pc 209715 to 210081. -/
+/-- `__loop0_ring_switch_target`: pc 209715 to 210081. -/
 def f276 : CompiledFunction :=
-  ⟨"__loop14", 209715, 366, [f276c0]⟩
+  ⟨"__loop0_ring_switch_target", 209715, 366, [f276c0]⟩
 
-/-- `__loop15`: pc 210081 to 210103. -/
+/-- `__loop0_check_opening_terminal`: pc 210081 to 210103. -/
 def f277 : CompiledFunction :=
-  ⟨"__loop15", 210081, 22, [f277c0]⟩
+  ⟨"__loop0_check_opening_terminal", 210081, 22, [f277c0]⟩
 
 /-- `column_selector__L0`: pc 210103 to 210178. -/
 def f278 : CompiledFunction :=
@@ -1444,13 +1444,13 @@ def f348 : CompiledFunction :=
 def f349 : CompiledFunction :=
   ⟨"open_stacked__L10", 231760, 2496, [f349c0, f349c1]⟩
 
-/-- `__loop16`: pc 234256 to 235498. -/
+/-- `__loop0_claim_list_digest`: pc 234256 to 235498. -/
 def f350 : CompiledFunction :=
-  ⟨"__loop16", 234256, 1242, [f350c0]⟩
+  ⟨"__loop0_claim_list_digest", 234256, 1242, [f350c0]⟩
 
-/-- `__loop17`: pc 235498 to 235701. -/
+/-- `__loop1_claim_list_digest`: pc 235498 to 235701. -/
 def f351 : CompiledFunction :=
-  ⟨"__loop17", 235498, 203, [f351c0]⟩
+  ⟨"__loop1_claim_list_digest", 235498, 203, [f351c0]⟩
 
 /-- `claim_list_last__L0`: pc 235701 to 235726. -/
 def f352 : CompiledFunction :=
@@ -1520,13 +1520,13 @@ def f367 : CompiledFunction :=
 def f368 : CompiledFunction :=
   ⟨"claim_list_last__L16", 237138, 166, [f368c0]⟩
 
-/-- `__loop18`: pc 237304 to 239770. -/
+/-- `__loop0_child_claim_list_any`: pc 237304 to 239770. -/
 def f369 : CompiledFunction :=
-  ⟨"__loop18", 237304, 2466, [f369c0, f369c1]⟩
+  ⟨"__loop0_child_claim_list_any", 237304, 2466, [f369c0, f369c1]⟩
 
-/-- `__loop19`: pc 239770 to 240126. -/
+/-- `__loop1_child_claim_list_any`: pc 239770 to 240126. -/
 def f370 : CompiledFunction :=
-  ⟨"__loop19", 239770, 356, [f370c0]⟩
+  ⟨"__loop1_child_claim_list_any", 239770, 356, [f370c0]⟩
 
 /-- `child_claim_list_last__L0`: pc 240126 to 240151. -/
 def f371 : CompiledFunction :=
@@ -1596,13 +1596,13 @@ def f386 : CompiledFunction :=
 def f387 : CompiledFunction :=
   ⟨"child_claim_list_last__L16", 242642, 310, [f387c0]⟩
 
-/-- `__loop20`: pc 242952 to 245009. -/
+/-- `__loop0_child_claim_list_mono`: pc 242952 to 245009. -/
 def f388 : CompiledFunction :=
-  ⟨"__loop20", 242952, 2057, [f388c0, f388c1]⟩
+  ⟨"__loop0_child_claim_list_mono", 242952, 2057, [f388c0, f388c1]⟩
 
-/-- `__loop21`: pc 245009 to 245316. -/
+/-- `__loop1_child_claim_list_mono`: pc 245009 to 245316. -/
 def f389 : CompiledFunction :=
-  ⟨"__loop21", 245009, 307, [f389c0]⟩
+  ⟨"__loop1_child_claim_list_mono", 245009, 307, [f389c0]⟩
 
 /-- `child_claim_list_mono_last__L0`: pc 245316 to 245346. -/
 def f390 : CompiledFunction :=
@@ -1672,9 +1672,9 @@ def f405 : CompiledFunction :=
 def f406 : CompiledFunction :=
   ⟨"child_claim_list_mono_last__L16", 247628, 272, [f406c0]⟩
 
-/-- `__loop22`: pc 247900 to 247927. -/
+/-- `__loop0_da_verify`: pc 247900 to 247927. -/
 def f407 : CompiledFunction :=
-  ⟨"__loop22", 247900, 27, [f407c0]⟩
+  ⟨"__loop0_da_verify", 247900, 27, [f407c0]⟩
 
 /-- `da_levels__L32_L5`: pc 247927 to 247981. -/
 def f408 : CompiledFunction :=
@@ -1684,13 +1684,13 @@ def f408 : CompiledFunction :=
 def f409 : CompiledFunction :=
   ⟨"da_expand__L6_L7", 247981, 658, [f409c0]⟩
 
-/-- `__loop23`: pc 248639 to 248663. -/
+/-- `__loop0_da_pad`: pc 248639 to 248663. -/
 def f410 : CompiledFunction :=
-  ⟨"__loop23", 248639, 24, [f410c0]⟩
+  ⟨"__loop0_da_pad", 248639, 24, [f410c0]⟩
 
-/-- `__loop24`: pc 248663 to 248697. -/
+/-- `__loop0_da_verify_blob`: pc 248663 to 248697. -/
 def f411 : CompiledFunction :=
-  ⟨"__loop24", 248663, 34, [f411c0]⟩
+  ⟨"__loop0_da_verify_blob", 248663, 34, [f411c0]⟩
 
 /-- `da_levels__L128_L7`: pc 248697 to 248771. -/
 def f412 : CompiledFunction :=
@@ -1708,61 +1708,61 @@ def f414 : CompiledFunction :=
 def f415 : CompiledFunction :=
   ⟨"da_factors__L6_L7_L128", 249941, 504, [f415c0]⟩
 
-/-- `__loop25`: pc 250445 to 250494. -/
+/-- `__loop0_da_column_offsets`: pc 250445 to 250494. -/
 def f416 : CompiledFunction :=
-  ⟨"__loop25", 250445, 49, [f416c0]⟩
+  ⟨"__loop0_da_column_offsets", 250445, 49, [f416c0]⟩
 
-/-- `__loop26`: pc 250494 to 250543. -/
+/-- `__loop1_da_column_offsets`: pc 250494 to 250543. -/
 def f417 : CompiledFunction :=
-  ⟨"__loop26", 250494, 49, [f417c0]⟩
+  ⟨"__loop1_da_column_offsets", 250494, 49, [f417c0]⟩
 
-/-- `__loop27`: pc 250543 to 250592. -/
+/-- `__loop2_da_column_offsets`: pc 250543 to 250592. -/
 def f418 : CompiledFunction :=
-  ⟨"__loop27", 250543, 49, [f418c0]⟩
+  ⟨"__loop2_da_column_offsets", 250543, 49, [f418c0]⟩
 
-/-- `__loop28`: pc 250592 to 250641. -/
+/-- `__loop3_da_column_offsets`: pc 250592 to 250641. -/
 def f419 : CompiledFunction :=
-  ⟨"__loop28", 250592, 49, [f419c0]⟩
+  ⟨"__loop3_da_column_offsets", 250592, 49, [f419c0]⟩
 
-/-- `__loop29`: pc 250641 to 250690. -/
+/-- `__loop4_da_column_offsets`: pc 250641 to 250690. -/
 def f420 : CompiledFunction :=
-  ⟨"__loop29", 250641, 49, [f420c0]⟩
+  ⟨"__loop4_da_column_offsets", 250641, 49, [f420c0]⟩
 
-/-- `__loop30`: pc 250690 to 250739. -/
+/-- `__loop5_da_column_offsets`: pc 250690 to 250739. -/
 def f421 : CompiledFunction :=
-  ⟨"__loop30", 250690, 49, [f421c0]⟩
+  ⟨"__loop5_da_column_offsets", 250690, 49, [f421c0]⟩
 
-/-- `__loop31`: pc 250739 to 250788. -/
+/-- `__loop6_da_column_offsets`: pc 250739 to 250788. -/
 def f422 : CompiledFunction :=
-  ⟨"__loop31", 250739, 49, [f422c0]⟩
+  ⟨"__loop6_da_column_offsets", 250739, 49, [f422c0]⟩
 
-/-- `__loop32`: pc 250788 to 251016. -/
+/-- `__loop0_aggregate_claims`: pc 250788 to 251016. -/
 def f423 : CompiledFunction :=
-  ⟨"__loop32", 250788, 228, [f423c0]⟩
+  ⟨"__loop0_aggregate_claims", 250788, 228, [f423c0]⟩
 
 /-- `grind_check__L2`: pc 251016 to 251068. -/
 def f424 : CompiledFunction :=
   ⟨"grind_check__L2", 251016, 52, [f424c0]⟩
 
-/-- `__loop33`: pc 251068 to 251104. -/
+/-- `__loop1_aggregate_claims`: pc 251068 to 251104. -/
 def f425 : CompiledFunction :=
-  ⟨"__loop33", 251068, 36, [f425c0]⟩
+  ⟨"__loop1_aggregate_claims", 251068, 36, [f425c0]⟩
 
 /-- `batch_sumcheck__L23`: pc 251104 to 251490. -/
 def f426 : CompiledFunction :=
   ⟨"batch_sumcheck__L23", 251104, 386, [f426c0]⟩
 
-/-- `__loop34`: pc 251490 to 251683. -/
+/-- `__loop2_aggregate_claims`: pc 251490 to 251683. -/
 def f427 : CompiledFunction :=
-  ⟨"__loop34", 251490, 193, [f427c0]⟩
+  ⟨"__loop2_aggregate_claims", 251490, 193, [f427c0]⟩
 
 /-- `rs_eq_rows__L8`: pc 251683 to 253360. -/
 def f428 : CompiledFunction :=
   ⟨"rs_eq_rows__L8", 251683, 1677, [f428c0]⟩
 
-/-- `__loop35`: pc 253360 to 253454. -/
+/-- `__loop0___loop0_verify_bus_gkr`: pc 253360 to 253454. -/
 def f429 : CompiledFunction :=
-  ⟨"__loop35", 253360, 94, [f429c0]⟩
+  ⟨"__loop0___loop0_verify_bus_gkr", 253360, 94, [f429c0]⟩
 
 /-- `gkr_rounds__L2`: pc 253454 to 253530. -/
 def f430 : CompiledFunction :=
@@ -1776,21 +1776,21 @@ def f431 : CompiledFunction :=
 def f432 : CompiledFunction :=
   ⟨"grind_check__L3", 253579, 52, [f432c0]⟩
 
-/-- `__loop36`: pc 253631 to 253812. -/
+/-- `__loop0_keccak_layer__L1`: pc 253631 to 253812. -/
 def f433 : CompiledFunction :=
-  ⟨"__loop36", 253631, 181, [f433c0]⟩
+  ⟨"__loop0_keccak_layer__L1", 253631, 181, [f433c0]⟩
 
-/-- `__loop37`: pc 253812 to 253871. -/
+/-- `__loop1_keccak_layer__L1`: pc 253812 to 253871. -/
 def f434 : CompiledFunction :=
-  ⟨"__loop37", 253812, 59, [f434c0]⟩
+  ⟨"__loop1_keccak_layer__L1", 253812, 59, [f434c0]⟩
 
-/-- `__loop38`: pc 253871 to 254052. -/
+/-- `__loop0_keccak_layer__L0`: pc 253871 to 254052. -/
 def f435 : CompiledFunction :=
-  ⟨"__loop38", 253871, 181, [f435c0]⟩
+  ⟨"__loop0_keccak_layer__L0", 253871, 181, [f435c0]⟩
 
-/-- `__loop39`: pc 254052 to 254111. -/
+/-- `__loop1_keccak_layer__L0`: pc 254052 to 254111. -/
 def f436 : CompiledFunction :=
-  ⟨"__loop39", 254052, 59, [f436c0]⟩
+  ⟨"__loop1_keccak_layer__L0", 254052, 59, [f436c0]⟩
 
 /-- `grind_check__L17`: pc 254111 to 254156. -/
 def f437 : CompiledFunction :=
@@ -3784,85 +3784,85 @@ def f933 : CompiledFunction :=
 def f934 : CompiledFunction :=
   ⟨"level_residual__L16_L8_L4_L2", 274648, 24, [f934c0]⟩
 
-/-- `__loop40`: pc 274672 to 274705. -/
+/-- `__loop0_da_levels__L32_L5`: pc 274672 to 274705. -/
 def f935 : CompiledFunction :=
-  ⟨"__loop40", 274672, 33, [f935c0]⟩
+  ⟨"__loop0_da_levels__L32_L5", 274672, 33, [f935c0]⟩
 
-/-- `__loop41`: pc 274705 to 274740. -/
+/-- `__loop1_da_levels__L32_L5`: pc 274705 to 274740. -/
 def f936 : CompiledFunction :=
-  ⟨"__loop41", 274705, 35, [f936c0]⟩
+  ⟨"__loop1_da_levels__L32_L5", 274705, 35, [f936c0]⟩
 
-/-- `__loop42`: pc 274740 to 274775. -/
+/-- `__loop2_da_levels__L32_L5`: pc 274740 to 274775. -/
 def f937 : CompiledFunction :=
-  ⟨"__loop42", 274740, 35, [f937c0]⟩
+  ⟨"__loop2_da_levels__L32_L5", 274740, 35, [f937c0]⟩
 
-/-- `__loop43`: pc 274775 to 274810. -/
+/-- `__loop3_da_levels__L32_L5`: pc 274775 to 274810. -/
 def f938 : CompiledFunction :=
-  ⟨"__loop43", 274775, 35, [f938c0]⟩
+  ⟨"__loop3_da_levels__L32_L5", 274775, 35, [f938c0]⟩
 
-/-- `__loop44`: pc 274810 to 274845. -/
+/-- `__loop4_da_levels__L32_L5`: pc 274810 to 274845. -/
 def f939 : CompiledFunction :=
-  ⟨"__loop44", 274810, 35, [f939c0]⟩
+  ⟨"__loop4_da_levels__L32_L5", 274810, 35, [f939c0]⟩
 
-/-- `__loop45`: pc 274845 to 274878. -/
+/-- `__loop0_da_levels__L128_L7`: pc 274845 to 274878. -/
 def f940 : CompiledFunction :=
-  ⟨"__loop45", 274845, 33, [f940c0]⟩
+  ⟨"__loop0_da_levels__L128_L7", 274845, 33, [f940c0]⟩
 
-/-- `__loop46`: pc 274878 to 274913. -/
+/-- `__loop1_da_levels__L128_L7`: pc 274878 to 274913. -/
 def f941 : CompiledFunction :=
-  ⟨"__loop46", 274878, 35, [f941c0]⟩
+  ⟨"__loop1_da_levels__L128_L7", 274878, 35, [f941c0]⟩
 
-/-- `__loop47`: pc 274913 to 274948. -/
+/-- `__loop2_da_levels__L128_L7`: pc 274913 to 274948. -/
 def f942 : CompiledFunction :=
-  ⟨"__loop47", 274913, 35, [f942c0]⟩
+  ⟨"__loop2_da_levels__L128_L7", 274913, 35, [f942c0]⟩
 
-/-- `__loop48`: pc 274948 to 274983. -/
+/-- `__loop3_da_levels__L128_L7`: pc 274948 to 274983. -/
 def f943 : CompiledFunction :=
-  ⟨"__loop48", 274948, 35, [f943c0]⟩
+  ⟨"__loop3_da_levels__L128_L7", 274948, 35, [f943c0]⟩
 
-/-- `__loop49`: pc 274983 to 275018. -/
+/-- `__loop4_da_levels__L128_L7`: pc 274983 to 275018. -/
 def f944 : CompiledFunction :=
-  ⟨"__loop49", 274983, 35, [f944c0]⟩
+  ⟨"__loop4_da_levels__L128_L7", 274983, 35, [f944c0]⟩
 
-/-- `__loop50`: pc 275018 to 275053. -/
+/-- `__loop5_da_levels__L128_L7`: pc 275018 to 275053. -/
 def f945 : CompiledFunction :=
-  ⟨"__loop50", 275018, 35, [f945c0]⟩
+  ⟨"__loop5_da_levels__L128_L7", 275018, 35, [f945c0]⟩
 
-/-- `__loop51`: pc 275053 to 275088. -/
+/-- `__loop6_da_levels__L128_L7`: pc 275053 to 275088. -/
 def f946 : CompiledFunction :=
-  ⟨"__loop51", 275053, 35, [f946c0]⟩
+  ⟨"__loop6_da_levels__L128_L7", 275053, 35, [f946c0]⟩
 
 /-- `decode_query_windows__L15_L3`: pc 275088 to 275390. -/
 def f947 : CompiledFunction :=
   ⟨"decode_query_windows__L15_L3", 275088, 302, [f947c0]⟩
 
-/-- `__loop52`: pc 275390 to 275439. -/
+/-- `__loop0_level_positions__L28_L15_L3`: pc 275390 to 275439. -/
 def f948 : CompiledFunction :=
-  ⟨"__loop52", 275390, 49, [f948c0]⟩
+  ⟨"__loop0_level_positions__L28_L15_L3", 275390, 49, [f948c0]⟩
 
 /-- `decode_query_windows__L16_L4`: pc 275439 to 275705. -/
 def f949 : CompiledFunction :=
   ⟨"decode_query_windows__L16_L4", 275439, 266, [f949c0]⟩
 
-/-- `__loop53`: pc 275705 to 275754. -/
+/-- `__loop0_level_positions__L14_L16_L4`: pc 275705 to 275754. -/
 def f950 : CompiledFunction :=
-  ⟨"__loop53", 275705, 49, [f950c0]⟩
+  ⟨"__loop0_level_positions__L14_L16_L4", 275705, 49, [f950c0]⟩
 
 /-- `decode_query_windows__L17_L5`: pc 275754 to 276009. -/
 def f951 : CompiledFunction :=
   ⟨"decode_query_windows__L17_L5", 275754, 255, [f951c0]⟩
 
-/-- `__loop54`: pc 276009 to 276060. -/
+/-- `__loop0_level_positions__L11_L17_L5`: pc 276009 to 276060. -/
 def f952 : CompiledFunction :=
-  ⟨"__loop54", 276009, 51, [f952c0]⟩
+  ⟨"__loop0_level_positions__L11_L17_L5", 276009, 51, [f952c0]⟩
 
 /-- `decode_query_windows__L18_L6`: pc 276060 to 276320. -/
 def f953 : CompiledFunction :=
   ⟨"decode_query_windows__L18_L6", 276060, 260, [f953c0]⟩
 
-/-- `__loop55`: pc 276320 to 276371. -/
+/-- `__loop0_level_positions__L8_L18_L6`: pc 276320 to 276371. -/
 def f954 : CompiledFunction :=
-  ⟨"__loop55", 276320, 51, [f954c0]⟩
+  ⟨"__loop0_level_positions__L8_L18_L6", 276320, 51, [f954c0]⟩
 
 /-- `verify_merkle_cap__L3`: pc 276371 to 276453. -/
 def f955 : CompiledFunction :=
@@ -3900,21 +3900,21 @@ def f962 : CompiledFunction :=
 def f963 : CompiledFunction :=
   ⟨"decode_query_windows__L14_L2", 278947, 322, [f963c0]⟩
 
-/-- `__loop56`: pc 279269 to 279319. -/
+/-- `__loop0_level_positions__L7_L14_L2`: pc 279269 to 279319. -/
 def f964 : CompiledFunction :=
-  ⟨"__loop56", 279269, 50, [f964c0]⟩
+  ⟨"__loop0_level_positions__L7_L14_L2", 279269, 50, [f964c0]⟩
 
-/-- `__loop57`: pc 279319 to 279368. -/
+/-- `__loop0_level_positions__L6_L15_L3`: pc 279319 to 279368. -/
 def f965 : CompiledFunction :=
-  ⟨"__loop57", 279319, 49, [f965c0]⟩
+  ⟨"__loop0_level_positions__L6_L15_L3", 279319, 49, [f965c0]⟩
 
-/-- `__loop58`: pc 279368 to 279417. -/
+/-- `__loop0_level_positions__L5_L16_L4`: pc 279368 to 279417. -/
 def f966 : CompiledFunction :=
-  ⟨"__loop58", 279368, 49, [f966c0]⟩
+  ⟨"__loop0_level_positions__L5_L16_L4", 279368, 49, [f966c0]⟩
 
-/-- `__loop59`: pc 279417 to 279468. -/
+/-- `__loop0_level_positions__L5_L17_L5`: pc 279417 to 279468. -/
 def f967 : CompiledFunction :=
-  ⟨"__loop59", 279417, 51, [f967c0]⟩
+  ⟨"__loop0_level_positions__L5_L17_L5", 279417, 51, [f967c0]⟩
 
 /-- `verify_merkle_cap__L2`: pc 279468 to 279506. -/
 def f968 : CompiledFunction :=
@@ -3940,21 +3940,21 @@ def f972 : CompiledFunction :=
 def f973 : CompiledFunction :=
   ⟨"decode_query_windows__L13_L7", 279606, 268, [f973c0]⟩
 
-/-- `__loop60`: pc 279874 to 279924. -/
+/-- `__loop0_level_positions__L4_L13_L7`: pc 279874 to 279924. -/
 def f974 : CompiledFunction :=
-  ⟨"__loop60", 279874, 50, [f974c0]⟩
+  ⟨"__loop0_level_positions__L4_L13_L7", 279874, 50, [f974c0]⟩
 
-/-- `__loop61`: pc 279924 to 279974. -/
+/-- `__loop0_level_positions__L4_L14_L2`: pc 279924 to 279974. -/
 def f975 : CompiledFunction :=
-  ⟨"__loop61", 279924, 50, [f975c0]⟩
+  ⟨"__loop0_level_positions__L4_L14_L2", 279924, 50, [f975c0]⟩
 
-/-- `__loop62`: pc 279974 to 280023. -/
+/-- `__loop0_level_positions__L4_L15_L3`: pc 279974 to 280023. -/
 def f976 : CompiledFunction :=
-  ⟨"__loop62", 279974, 49, [f976c0]⟩
+  ⟨"__loop0_level_positions__L4_L15_L3", 279974, 49, [f976c0]⟩
 
-/-- `__loop63`: pc 280023 to 280072. -/
+/-- `__loop0_level_positions__L3_L16_L4`: pc 280023 to 280072. -/
 def f977 : CompiledFunction :=
-  ⟨"__loop63", 280023, 49, [f977c0]⟩
+  ⟨"__loop0_level_positions__L3_L16_L4", 280023, 49, [f977c0]⟩
 
 /-- `verify_merkle_cap__L7`: pc 280072 to 281474. -/
 def f978 : CompiledFunction :=
@@ -3968,21 +3968,21 @@ def f979 : CompiledFunction :=
 def f980 : CompiledFunction :=
   ⟨"decode_query_windows__L12_L6", 281499, 294, [f980c0]⟩
 
-/-- `__loop64`: pc 281793 to 281842. -/
+/-- `__loop0_level_positions__L3_L12_L6`: pc 281793 to 281842. -/
 def f981 : CompiledFunction :=
-  ⟨"__loop64", 281793, 49, [f981c0]⟩
+  ⟨"__loop0_level_positions__L3_L12_L6", 281793, 49, [f981c0]⟩
 
-/-- `__loop65`: pc 281842 to 281892. -/
+/-- `__loop0_level_positions__L3_L13_L7`: pc 281842 to 281892. -/
 def f982 : CompiledFunction :=
-  ⟨"__loop65", 281842, 50, [f982c0]⟩
+  ⟨"__loop0_level_positions__L3_L13_L7", 281842, 50, [f982c0]⟩
 
-/-- `__loop66`: pc 281892 to 281942. -/
+/-- `__loop0_level_positions__L3_L14_L2`: pc 281892 to 281942. -/
 def f983 : CompiledFunction :=
-  ⟨"__loop66", 281892, 50, [f983c0]⟩
+  ⟨"__loop0_level_positions__L3_L14_L2", 281892, 50, [f983c0]⟩
 
-/-- `__loop67`: pc 281942 to 281991. -/
+/-- `__loop0_level_positions__L3_L15_L3`: pc 281942 to 281991. -/
 def f984 : CompiledFunction :=
-  ⟨"__loop67", 281942, 49, [f984c0]⟩
+  ⟨"__loop0_level_positions__L3_L15_L3", 281942, 49, [f984c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`: pc 281991 to 282014. -/
 def f985 : CompiledFunction :=
@@ -4000,117 +4000,117 @@ def f987 : CompiledFunction :=
 def f988 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1", 282060, 23, [f988c0]⟩
 
-/-- `__loop68`: pc 282083 to 282729. -/
+/-- `__loop0_level_residual__L219_L14_L6_L3`: pc 282083 to 282729. -/
 def f989 : CompiledFunction :=
-  ⟨"__loop68", 282083, 646, [f989c0]⟩
+  ⟨"__loop0_level_residual__L219_L14_L6_L3", 282083, 646, [f989c0]⟩
 
-/-- `__loop69`: pc 282729 to 282861. -/
+/-- `__loop1_level_residual__L219_L14_L6_L3`: pc 282729 to 282861. -/
 def f990 : CompiledFunction :=
-  ⟨"__loop69", 282729, 132, [f990c0]⟩
+  ⟨"__loop1_level_residual__L219_L14_L6_L3", 282729, 132, [f990c0]⟩
 
-/-- `__loop70`: pc 282861 to 283507. -/
+/-- `__loop0_level_residual__L109_L14_L6_L3`: pc 282861 to 283507. -/
 def f991 : CompiledFunction :=
-  ⟨"__loop70", 282861, 646, [f991c0]⟩
+  ⟨"__loop0_level_residual__L109_L14_L6_L3", 282861, 646, [f991c0]⟩
 
-/-- `__loop71`: pc 283507 to 283639. -/
+/-- `__loop1_level_residual__L109_L14_L6_L3`: pc 283507 to 283639. -/
 def f992 : CompiledFunction :=
-  ⟨"__loop71", 283507, 132, [f992c0]⟩
+  ⟨"__loop1_level_residual__L109_L14_L6_L3", 283507, 132, [f992c0]⟩
 
-/-- `__loop72`: pc 283639 to 284285. -/
+/-- `__loop0_level_residual__L73_L14_L6_L3`: pc 283639 to 284285. -/
 def f993 : CompiledFunction :=
-  ⟨"__loop72", 283639, 646, [f993c0]⟩
+  ⟨"__loop0_level_residual__L73_L14_L6_L3", 283639, 646, [f993c0]⟩
 
-/-- `__loop73`: pc 284285 to 284417. -/
+/-- `__loop1_level_residual__L73_L14_L6_L3`: pc 284285 to 284417. -/
 def f994 : CompiledFunction :=
-  ⟨"__loop73", 284285, 132, [f994c0]⟩
+  ⟨"__loop1_level_residual__L73_L14_L6_L3", 284285, 132, [f994c0]⟩
 
-/-- `__loop74`: pc 284417 to 285063. -/
+/-- `__loop0_level_residual__L55_L14_L6_L3`: pc 284417 to 285063. -/
 def f995 : CompiledFunction :=
-  ⟨"__loop74", 284417, 646, [f995c0]⟩
+  ⟨"__loop0_level_residual__L55_L14_L6_L3", 284417, 646, [f995c0]⟩
 
-/-- `__loop75`: pc 285063 to 285195. -/
+/-- `__loop1_level_residual__L55_L14_L6_L3`: pc 285063 to 285195. -/
 def f996 : CompiledFunction :=
-  ⟨"__loop75", 285063, 132, [f996c0]⟩
+  ⟨"__loop1_level_residual__L55_L14_L6_L3", 285063, 132, [f996c0]⟩
 
-/-- `__loop76`: pc 285195 to 285663. -/
+/-- `__loop0_level_residual__L55_L10_L4_L2`: pc 285195 to 285663. -/
 def f997 : CompiledFunction :=
-  ⟨"__loop76", 285195, 468, [f997c0]⟩
+  ⟨"__loop0_level_residual__L55_L10_L4_L2", 285195, 468, [f997c0]⟩
 
-/-- `__loop77`: pc 285663 to 285764. -/
+/-- `__loop1_level_residual__L55_L10_L4_L2`: pc 285663 to 285764. -/
 def f998 : CompiledFunction :=
-  ⟨"__loop77", 285663, 101, [f998c0]⟩
+  ⟨"__loop1_level_residual__L55_L10_L4_L2", 285663, 101, [f998c0]⟩
 
-/-- `__loop78`: pc 285764 to 286232. -/
+/-- `__loop0_level_residual__L44_L10_L4_L2`: pc 285764 to 286232. -/
 def f999 : CompiledFunction :=
-  ⟨"__loop78", 285764, 468, [f999c0]⟩
+  ⟨"__loop0_level_residual__L44_L10_L4_L2", 285764, 468, [f999c0]⟩
 
-/-- `__loop79`: pc 286232 to 286333. -/
+/-- `__loop1_level_residual__L44_L10_L4_L2`: pc 286232 to 286333. -/
 def f1000 : CompiledFunction :=
-  ⟨"__loop79", 286232, 101, [f1000c0]⟩
+  ⟨"__loop1_level_residual__L44_L10_L4_L2", 286232, 101, [f1000c0]⟩
 
-/-- `__loop80`: pc 286333 to 286801. -/
+/-- `__loop0_level_residual__L37_L10_L4_L2`: pc 286333 to 286801. -/
 def f1001 : CompiledFunction :=
-  ⟨"__loop80", 286333, 468, [f1001c0]⟩
+  ⟨"__loop0_level_residual__L37_L10_L4_L2", 286333, 468, [f1001c0]⟩
 
-/-- `__loop81`: pc 286801 to 286902. -/
+/-- `__loop1_level_residual__L37_L10_L4_L2`: pc 286801 to 286902. -/
 def f1002 : CompiledFunction :=
-  ⟨"__loop81", 286801, 101, [f1002c0]⟩
+  ⟨"__loop1_level_residual__L37_L10_L4_L2", 286801, 101, [f1002c0]⟩
 
-/-- `__loop82`: pc 286902 to 287370. -/
+/-- `__loop0_level_residual__L32_L10_L4_L2`: pc 286902 to 287370. -/
 def f1003 : CompiledFunction :=
-  ⟨"__loop82", 286902, 468, [f1003c0]⟩
+  ⟨"__loop0_level_residual__L32_L10_L4_L2", 286902, 468, [f1003c0]⟩
 
-/-- `__loop83`: pc 287370 to 287702. -/
+/-- `__loop0_level_residual__L33_L6_L4_L2`: pc 287370 to 287702. -/
 def f1004 : CompiledFunction :=
-  ⟨"__loop83", 287370, 332, [f1004c0]⟩
+  ⟨"__loop0_level_residual__L33_L6_L4_L2", 287370, 332, [f1004c0]⟩
 
-/-- `__loop84`: pc 287702 to 287779. -/
+/-- `__loop1_level_residual__L33_L6_L4_L2`: pc 287702 to 287779. -/
 def f1005 : CompiledFunction :=
-  ⟨"__loop84", 287702, 77, [f1005c0]⟩
+  ⟨"__loop1_level_residual__L33_L6_L4_L2", 287702, 77, [f1005c0]⟩
 
-/-- `__loop85`: pc 287779 to 288111. -/
+/-- `__loop0_level_residual__L29_L6_L4_L2`: pc 287779 to 288111. -/
 def f1006 : CompiledFunction :=
-  ⟨"__loop85", 287779, 332, [f1006c0]⟩
+  ⟨"__loop0_level_residual__L29_L6_L4_L2", 287779, 332, [f1006c0]⟩
 
-/-- `__loop86`: pc 288111 to 288188. -/
+/-- `__loop1_level_residual__L29_L6_L4_L2`: pc 288111 to 288188. -/
 def f1007 : CompiledFunction :=
-  ⟨"__loop86", 288111, 77, [f1007c0]⟩
+  ⟨"__loop1_level_residual__L29_L6_L4_L2", 288111, 77, [f1007c0]⟩
 
-/-- `__loop87`: pc 288188 to 288520. -/
+/-- `__loop0_level_residual__L25_L6_L4_L2`: pc 288188 to 288520. -/
 def f1008 : CompiledFunction :=
-  ⟨"__loop87", 288188, 332, [f1008c0]⟩
+  ⟨"__loop0_level_residual__L25_L6_L4_L2", 288188, 332, [f1008c0]⟩
 
-/-- `__loop88`: pc 288520 to 288597. -/
+/-- `__loop1_level_residual__L25_L6_L4_L2`: pc 288520 to 288597. -/
 def f1009 : CompiledFunction :=
-  ⟨"__loop88", 288520, 77, [f1009c0]⟩
+  ⟨"__loop1_level_residual__L25_L6_L4_L2", 288520, 77, [f1009c0]⟩
 
-/-- `__loop89`: pc 288597 to 288929. -/
+/-- `__loop0_level_residual__L23_L6_L4_L2`: pc 288597 to 288929. -/
 def f1010 : CompiledFunction :=
-  ⟨"__loop89", 288597, 332, [f1010c0]⟩
+  ⟨"__loop0_level_residual__L23_L6_L4_L2", 288597, 332, [f1010c0]⟩
 
-/-- `__loop90`: pc 288929 to 289006. -/
+/-- `__loop1_level_residual__L23_L6_L4_L2`: pc 288929 to 289006. -/
 def f1011 : CompiledFunction :=
-  ⟨"__loop90", 288929, 77, [f1011c0]⟩
+  ⟨"__loop1_level_residual__L23_L6_L4_L2", 288929, 77, [f1011c0]⟩
 
-/-- `__loop91`: pc 289006 to 289055. -/
+/-- `__loop0_level_positions__L28_L16_L4`: pc 289006 to 289055. -/
 def f1012 : CompiledFunction :=
-  ⟨"__loop91", 289006, 49, [f1012c0]⟩
+  ⟨"__loop0_level_positions__L28_L16_L4", 289006, 49, [f1012c0]⟩
 
-/-- `__loop92`: pc 289055 to 289106. -/
+/-- `__loop0_level_positions__L16_L17_L5`: pc 289055 to 289106. -/
 def f1013 : CompiledFunction :=
-  ⟨"__loop92", 289055, 51, [f1013c0]⟩
+  ⟨"__loop0_level_positions__L16_L17_L5", 289055, 51, [f1013c0]⟩
 
-/-- `__loop93`: pc 289106 to 289157. -/
+/-- `__loop0_level_positions__L11_L18_L6`: pc 289106 to 289157. -/
 def f1014 : CompiledFunction :=
-  ⟨"__loop93", 289106, 51, [f1014c0]⟩
+  ⟨"__loop0_level_positions__L11_L18_L6", 289106, 51, [f1014c0]⟩
 
 /-- `decode_query_windows__L19_L7`: pc 289157 to 289390. -/
 def f1015 : CompiledFunction :=
   ⟨"decode_query_windows__L19_L7", 289157, 233, [f1015c0]⟩
 
-/-- `__loop94`: pc 289390 to 289440. -/
+/-- `__loop0_level_positions__L10_L19_L7`: pc 289390 to 289440. -/
 def f1016 : CompiledFunction :=
-  ⟨"__loop94", 289390, 50, [f1016c0]⟩
+  ⟨"__loop0_level_positions__L10_L19_L7", 289390, 50, [f1016c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`: pc 289440 to 289465. -/
 def f1017 : CompiledFunction :=
@@ -4120,33 +4120,33 @@ def f1017 : CompiledFunction :=
 def f1018 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0", 289465, 320, [f1018c0]⟩
 
-/-- `__loop95`: pc 289785 to 289834. -/
+/-- `__loop0_level_positions__L7_L15_L3`: pc 289785 to 289834. -/
 def f1019 : CompiledFunction :=
-  ⟨"__loop95", 289785, 49, [f1019c0]⟩
+  ⟨"__loop0_level_positions__L7_L15_L3", 289785, 49, [f1019c0]⟩
 
-/-- `__loop96`: pc 289834 to 289883. -/
+/-- `__loop0_level_positions__L6_L16_L4`: pc 289834 to 289883. -/
 def f1020 : CompiledFunction :=
-  ⟨"__loop96", 289834, 49, [f1020c0]⟩
+  ⟨"__loop0_level_positions__L6_L16_L4", 289834, 49, [f1020c0]⟩
 
-/-- `__loop97`: pc 289883 to 289934. -/
+/-- `__loop0_level_positions__L6_L17_L5`: pc 289883 to 289934. -/
 def f1021 : CompiledFunction :=
-  ⟨"__loop97", 289883, 51, [f1021c0]⟩
+  ⟨"__loop0_level_positions__L6_L17_L5", 289883, 51, [f1021c0]⟩
 
-/-- `__loop98`: pc 289934 to 289985. -/
+/-- `__loop0_level_positions__L5_L18_L6`: pc 289934 to 289985. -/
 def f1022 : CompiledFunction :=
-  ⟨"__loop98", 289934, 51, [f1022c0]⟩
+  ⟨"__loop0_level_positions__L5_L18_L6", 289934, 51, [f1022c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0`: pc 289985 to 290010. -/
 def f1023 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0", 289985, 25, [f1023c0]⟩
 
-/-- `__loop99`: pc 290010 to 290059. -/
+/-- `__loop0_level_positions__L4_L16_L4`: pc 290010 to 290059. -/
 def f1024 : CompiledFunction :=
-  ⟨"__loop99", 290010, 49, [f1024c0]⟩
+  ⟨"__loop0_level_positions__L4_L16_L4", 290010, 49, [f1024c0]⟩
 
-/-- `__loop100`: pc 290059 to 290110. -/
+/-- `__loop0_level_positions__L4_L17_L5`: pc 290059 to 290110. -/
 def f1025 : CompiledFunction :=
-  ⟨"__loop100", 290059, 51, [f1025c0]⟩
+  ⟨"__loop0_level_positions__L4_L17_L5", 290059, 51, [f1025c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1`: pc 290110 to 290133. -/
 def f1026 : CompiledFunction :=
@@ -4164,113 +4164,113 @@ def f1028 : CompiledFunction :=
 def f1029 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1", 290179, 23, [f1029c0]⟩
 
-/-- `__loop101`: pc 290202 to 290882. -/
+/-- `__loop0_level_residual__L218_L15_L6_L3`: pc 290202 to 290882. -/
 def f1030 : CompiledFunction :=
-  ⟨"__loop101", 290202, 680, [f1030c0]⟩
+  ⟨"__loop0_level_residual__L218_L15_L6_L3", 290202, 680, [f1030c0]⟩
 
-/-- `__loop102`: pc 290882 to 291020. -/
+/-- `__loop1_level_residual__L218_L15_L6_L3`: pc 290882 to 291020. -/
 def f1031 : CompiledFunction :=
-  ⟨"__loop102", 290882, 138, [f1031c0]⟩
+  ⟨"__loop1_level_residual__L218_L15_L6_L3", 290882, 138, [f1031c0]⟩
 
-/-- `__loop103`: pc 291020 to 291700. -/
+/-- `__loop0_level_residual__L109_L15_L6_L3`: pc 291020 to 291700. -/
 def f1032 : CompiledFunction :=
-  ⟨"__loop103", 291020, 680, [f1032c0]⟩
+  ⟨"__loop0_level_residual__L109_L15_L6_L3", 291020, 680, [f1032c0]⟩
 
-/-- `__loop104`: pc 291700 to 291838. -/
+/-- `__loop1_level_residual__L109_L15_L6_L3`: pc 291700 to 291838. -/
 def f1033 : CompiledFunction :=
-  ⟨"__loop104", 291700, 138, [f1033c0]⟩
+  ⟨"__loop1_level_residual__L109_L15_L6_L3", 291700, 138, [f1033c0]⟩
 
-/-- `__loop105`: pc 291838 to 292518. -/
+/-- `__loop0_level_residual__L73_L15_L6_L3`: pc 291838 to 292518. -/
 def f1034 : CompiledFunction :=
-  ⟨"__loop105", 291838, 680, [f1034c0]⟩
+  ⟨"__loop0_level_residual__L73_L15_L6_L3", 291838, 680, [f1034c0]⟩
 
-/-- `__loop106`: pc 292518 to 292656. -/
+/-- `__loop1_level_residual__L73_L15_L6_L3`: pc 292518 to 292656. -/
 def f1035 : CompiledFunction :=
-  ⟨"__loop106", 292518, 138, [f1035c0]⟩
+  ⟨"__loop1_level_residual__L73_L15_L6_L3", 292518, 138, [f1035c0]⟩
 
-/-- `__loop107`: pc 292656 to 293336. -/
+/-- `__loop0_level_residual__L55_L15_L6_L3`: pc 292656 to 293336. -/
 def f1036 : CompiledFunction :=
-  ⟨"__loop107", 292656, 680, [f1036c0]⟩
+  ⟨"__loop0_level_residual__L55_L15_L6_L3", 292656, 680, [f1036c0]⟩
 
-/-- `__loop108`: pc 293336 to 293474. -/
+/-- `__loop1_level_residual__L55_L15_L6_L3`: pc 293336 to 293474. -/
 def f1037 : CompiledFunction :=
-  ⟨"__loop108", 293336, 138, [f1037c0]⟩
+  ⟨"__loop1_level_residual__L55_L15_L6_L3", 293336, 138, [f1037c0]⟩
 
-/-- `__loop109`: pc 293474 to 293976. -/
+/-- `__loop0_level_residual__L55_L11_L4_L2`: pc 293474 to 293976. -/
 def f1038 : CompiledFunction :=
-  ⟨"__loop109", 293474, 502, [f1038c0]⟩
+  ⟨"__loop0_level_residual__L55_L11_L4_L2", 293474, 502, [f1038c0]⟩
 
-/-- `__loop110`: pc 293976 to 294083. -/
+/-- `__loop1_level_residual__L55_L11_L4_L2`: pc 293976 to 294083. -/
 def f1039 : CompiledFunction :=
-  ⟨"__loop110", 293976, 107, [f1039c0]⟩
+  ⟨"__loop1_level_residual__L55_L11_L4_L2", 293976, 107, [f1039c0]⟩
 
-/-- `__loop111`: pc 294083 to 294585. -/
+/-- `__loop0_level_residual__L44_L11_L4_L2`: pc 294083 to 294585. -/
 def f1040 : CompiledFunction :=
-  ⟨"__loop111", 294083, 502, [f1040c0]⟩
+  ⟨"__loop0_level_residual__L44_L11_L4_L2", 294083, 502, [f1040c0]⟩
 
-/-- `__loop112`: pc 294585 to 294692. -/
+/-- `__loop1_level_residual__L44_L11_L4_L2`: pc 294585 to 294692. -/
 def f1041 : CompiledFunction :=
-  ⟨"__loop112", 294585, 107, [f1041c0]⟩
+  ⟨"__loop1_level_residual__L44_L11_L4_L2", 294585, 107, [f1041c0]⟩
 
-/-- `__loop113`: pc 294692 to 295194. -/
+/-- `__loop0_level_residual__L37_L11_L4_L2`: pc 294692 to 295194. -/
 def f1042 : CompiledFunction :=
-  ⟨"__loop113", 294692, 502, [f1042c0]⟩
+  ⟨"__loop0_level_residual__L37_L11_L4_L2", 294692, 502, [f1042c0]⟩
 
-/-- `__loop114`: pc 295194 to 295301. -/
+/-- `__loop1_level_residual__L37_L11_L4_L2`: pc 295194 to 295301. -/
 def f1043 : CompiledFunction :=
-  ⟨"__loop114", 295194, 107, [f1043c0]⟩
+  ⟨"__loop1_level_residual__L37_L11_L4_L2", 295194, 107, [f1043c0]⟩
 
-/-- `__loop115`: pc 295301 to 295803. -/
+/-- `__loop0_level_residual__L32_L11_L4_L2`: pc 295301 to 295803. -/
 def f1044 : CompiledFunction :=
-  ⟨"__loop115", 295301, 502, [f1044c0]⟩
+  ⟨"__loop0_level_residual__L32_L11_L4_L2", 295301, 502, [f1044c0]⟩
 
-/-- `__loop116`: pc 295803 to 296169. -/
+/-- `__loop0_level_residual__L32_L7_L4_L2`: pc 295803 to 296169. -/
 def f1045 : CompiledFunction :=
-  ⟨"__loop116", 295803, 366, [f1045c0]⟩
+  ⟨"__loop0_level_residual__L32_L7_L4_L2", 295803, 366, [f1045c0]⟩
 
-/-- `__loop117`: pc 296169 to 296535. -/
+/-- `__loop0_level_residual__L28_L7_L4_L2`: pc 296169 to 296535. -/
 def f1046 : CompiledFunction :=
-  ⟨"__loop117", 296169, 366, [f1046c0]⟩
+  ⟨"__loop0_level_residual__L28_L7_L4_L2", 296169, 366, [f1046c0]⟩
 
-/-- `__loop118`: pc 296535 to 296618. -/
+/-- `__loop1_level_residual__L28_L7_L4_L2`: pc 296535 to 296618. -/
 def f1047 : CompiledFunction :=
-  ⟨"__loop118", 296535, 83, [f1047c0]⟩
+  ⟨"__loop1_level_residual__L28_L7_L4_L2", 296535, 83, [f1047c0]⟩
 
-/-- `__loop119`: pc 296618 to 296984. -/
+/-- `__loop0_level_residual__L25_L7_L4_L2`: pc 296618 to 296984. -/
 def f1048 : CompiledFunction :=
-  ⟨"__loop119", 296618, 366, [f1048c0]⟩
+  ⟨"__loop0_level_residual__L25_L7_L4_L2", 296618, 366, [f1048c0]⟩
 
-/-- `__loop120`: pc 296984 to 297067. -/
+/-- `__loop1_level_residual__L25_L7_L4_L2`: pc 296984 to 297067. -/
 def f1049 : CompiledFunction :=
-  ⟨"__loop120", 296984, 83, [f1049c0]⟩
+  ⟨"__loop1_level_residual__L25_L7_L4_L2", 296984, 83, [f1049c0]⟩
 
-/-- `__loop121`: pc 297067 to 297433. -/
+/-- `__loop0_level_residual__L23_L7_L4_L2`: pc 297067 to 297433. -/
 def f1050 : CompiledFunction :=
-  ⟨"__loop121", 297067, 366, [f1050c0]⟩
+  ⟨"__loop0_level_residual__L23_L7_L4_L2", 297067, 366, [f1050c0]⟩
 
-/-- `__loop122`: pc 297433 to 297516. -/
+/-- `__loop1_level_residual__L23_L7_L4_L2`: pc 297433 to 297516. -/
 def f1051 : CompiledFunction :=
-  ⟨"__loop122", 297433, 83, [f1051c0]⟩
+  ⟨"__loop1_level_residual__L23_L7_L4_L2", 297433, 83, [f1051c0]⟩
 
-/-- `__loop123`: pc 297516 to 297567. -/
+/-- `__loop0_level_positions__L32_L17_L5`: pc 297516 to 297567. -/
 def f1052 : CompiledFunction :=
-  ⟨"__loop123", 297516, 51, [f1052c0]⟩
+  ⟨"__loop0_level_positions__L32_L17_L5", 297516, 51, [f1052c0]⟩
 
-/-- `__loop124`: pc 297567 to 297618. -/
+/-- `__loop0_level_positions__L16_L18_L6`: pc 297567 to 297618. -/
 def f1053 : CompiledFunction :=
-  ⟨"__loop124", 297567, 51, [f1053c0]⟩
+  ⟨"__loop0_level_positions__L16_L18_L6", 297567, 51, [f1053c0]⟩
 
-/-- `__loop125`: pc 297618 to 297668. -/
+/-- `__loop0_level_positions__L13_L19_L7`: pc 297618 to 297668. -/
 def f1054 : CompiledFunction :=
-  ⟨"__loop125", 297618, 50, [f1054c0]⟩
+  ⟨"__loop0_level_positions__L13_L19_L7", 297618, 50, [f1054c0]⟩
 
 /-- `decode_query_windows__L20_L2`: pc 297668 to 297950. -/
 def f1055 : CompiledFunction :=
   ⟨"decode_query_windows__L20_L2", 297668, 282, [f1055c0]⟩
 
-/-- `__loop126`: pc 297950 to 298000. -/
+/-- `__loop0_level_positions__L10_L20_L2`: pc 297950 to 298000. -/
 def f1056 : CompiledFunction :=
-  ⟨"__loop126", 297950, 50, [f1056c0]⟩
+  ⟨"__loop0_level_positions__L10_L20_L2", 297950, 50, [f1056c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: pc 298000 to 298025. -/
 def f1057 : CompiledFunction :=
@@ -4280,33 +4280,33 @@ def f1057 : CompiledFunction :=
 def f1058 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0", 298025, 320, [f1058c0]⟩
 
-/-- `__loop127`: pc 298345 to 298394. -/
+/-- `__loop0_level_positions__L7_L16_L4`: pc 298345 to 298394. -/
 def f1059 : CompiledFunction :=
-  ⟨"__loop127", 298345, 49, [f1059c0]⟩
+  ⟨"__loop0_level_positions__L7_L16_L4", 298345, 49, [f1059c0]⟩
 
-/-- `__loop128`: pc 298394 to 298445. -/
+/-- `__loop0_level_positions__L7_L17_L5`: pc 298394 to 298445. -/
 def f1060 : CompiledFunction :=
-  ⟨"__loop128", 298394, 51, [f1060c0]⟩
+  ⟨"__loop0_level_positions__L7_L17_L5", 298394, 51, [f1060c0]⟩
 
-/-- `__loop129`: pc 298445 to 298496. -/
+/-- `__loop0_level_positions__L6_L18_L6`: pc 298445 to 298496. -/
 def f1061 : CompiledFunction :=
-  ⟨"__loop129", 298445, 51, [f1061c0]⟩
+  ⟨"__loop0_level_positions__L6_L18_L6", 298445, 51, [f1061c0]⟩
 
-/-- `__loop130`: pc 298496 to 298546. -/
+/-- `__loop0_level_positions__L6_L19_L7`: pc 298496 to 298546. -/
 def f1062 : CompiledFunction :=
-  ⟨"__loop130", 298496, 50, [f1062c0]⟩
+  ⟨"__loop0_level_positions__L6_L19_L7", 298496, 50, [f1062c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0`: pc 298546 to 298571. -/
 def f1063 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0", 298546, 25, [f1063c0]⟩
 
-/-- `__loop131`: pc 298571 to 298622. -/
+/-- `__loop0_level_positions__L4_L18_L6`: pc 298571 to 298622. -/
 def f1064 : CompiledFunction :=
-  ⟨"__loop131", 298571, 51, [f1064c0]⟩
+  ⟨"__loop0_level_positions__L4_L18_L6", 298571, 51, [f1064c0]⟩
 
-/-- `__loop132`: pc 298622 to 298673. -/
+/-- `__loop0_level_positions__L3_L17_L5`: pc 298622 to 298673. -/
 def f1065 : CompiledFunction :=
-  ⟨"__loop132", 298622, 51, [f1065c0]⟩
+  ⟨"__loop0_level_positions__L3_L17_L5", 298622, 51, [f1065c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1`: pc 298673 to 298696. -/
 def f1066 : CompiledFunction :=
@@ -4324,113 +4324,113 @@ def f1068 : CompiledFunction :=
 def f1069 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1", 298742, 23, [f1069c0]⟩
 
-/-- `__loop133`: pc 298765 to 299479. -/
+/-- `__loop0_level_residual__L218_L16_L6_L3`: pc 298765 to 299479. -/
 def f1070 : CompiledFunction :=
-  ⟨"__loop133", 298765, 714, [f1070c0]⟩
+  ⟨"__loop0_level_residual__L218_L16_L6_L3", 298765, 714, [f1070c0]⟩
 
-/-- `__loop134`: pc 299479 to 299623. -/
+/-- `__loop1_level_residual__L218_L16_L6_L3`: pc 299479 to 299623. -/
 def f1071 : CompiledFunction :=
-  ⟨"__loop134", 299479, 144, [f1071c0]⟩
+  ⟨"__loop1_level_residual__L218_L16_L6_L3", 299479, 144, [f1071c0]⟩
 
-/-- `__loop135`: pc 299623 to 300337. -/
+/-- `__loop0_level_residual__L109_L16_L6_L3`: pc 299623 to 300337. -/
 def f1072 : CompiledFunction :=
-  ⟨"__loop135", 299623, 714, [f1072c0]⟩
+  ⟨"__loop0_level_residual__L109_L16_L6_L3", 299623, 714, [f1072c0]⟩
 
-/-- `__loop136`: pc 300337 to 300481. -/
+/-- `__loop1_level_residual__L109_L16_L6_L3`: pc 300337 to 300481. -/
 def f1073 : CompiledFunction :=
-  ⟨"__loop136", 300337, 144, [f1073c0]⟩
+  ⟨"__loop1_level_residual__L109_L16_L6_L3", 300337, 144, [f1073c0]⟩
 
-/-- `__loop137`: pc 300481 to 301195. -/
+/-- `__loop0_level_residual__L73_L16_L6_L3`: pc 300481 to 301195. -/
 def f1074 : CompiledFunction :=
-  ⟨"__loop137", 300481, 714, [f1074c0]⟩
+  ⟨"__loop0_level_residual__L73_L16_L6_L3", 300481, 714, [f1074c0]⟩
 
-/-- `__loop138`: pc 301195 to 301339. -/
+/-- `__loop1_level_residual__L73_L16_L6_L3`: pc 301195 to 301339. -/
 def f1075 : CompiledFunction :=
-  ⟨"__loop138", 301195, 144, [f1075c0]⟩
+  ⟨"__loop1_level_residual__L73_L16_L6_L3", 301195, 144, [f1075c0]⟩
 
-/-- `__loop139`: pc 301339 to 302053. -/
+/-- `__loop0_level_residual__L55_L16_L6_L3`: pc 301339 to 302053. -/
 def f1076 : CompiledFunction :=
-  ⟨"__loop139", 301339, 714, [f1076c0]⟩
+  ⟨"__loop0_level_residual__L55_L16_L6_L3", 301339, 714, [f1076c0]⟩
 
-/-- `__loop140`: pc 302053 to 302197. -/
+/-- `__loop1_level_residual__L55_L16_L6_L3`: pc 302053 to 302197. -/
 def f1077 : CompiledFunction :=
-  ⟨"__loop140", 302053, 144, [f1077c0]⟩
+  ⟨"__loop1_level_residual__L55_L16_L6_L3", 302053, 144, [f1077c0]⟩
 
-/-- `__loop141`: pc 302197 to 302733. -/
+/-- `__loop0_level_residual__L55_L12_L4_L2`: pc 302197 to 302733. -/
 def f1078 : CompiledFunction :=
-  ⟨"__loop141", 302197, 536, [f1078c0]⟩
+  ⟨"__loop0_level_residual__L55_L12_L4_L2", 302197, 536, [f1078c0]⟩
 
-/-- `__loop142`: pc 302733 to 302846. -/
+/-- `__loop1_level_residual__L55_L12_L4_L2`: pc 302733 to 302846. -/
 def f1079 : CompiledFunction :=
-  ⟨"__loop142", 302733, 113, [f1079c0]⟩
+  ⟨"__loop1_level_residual__L55_L12_L4_L2", 302733, 113, [f1079c0]⟩
 
-/-- `__loop143`: pc 302846 to 303382. -/
+/-- `__loop0_level_residual__L44_L12_L4_L2`: pc 302846 to 303382. -/
 def f1080 : CompiledFunction :=
-  ⟨"__loop143", 302846, 536, [f1080c0]⟩
+  ⟨"__loop0_level_residual__L44_L12_L4_L2", 302846, 536, [f1080c0]⟩
 
-/-- `__loop144`: pc 303382 to 303495. -/
+/-- `__loop1_level_residual__L44_L12_L4_L2`: pc 303382 to 303495. -/
 def f1081 : CompiledFunction :=
-  ⟨"__loop144", 303382, 113, [f1081c0]⟩
+  ⟨"__loop1_level_residual__L44_L12_L4_L2", 303382, 113, [f1081c0]⟩
 
-/-- `__loop145`: pc 303495 to 304031. -/
+/-- `__loop0_level_residual__L37_L12_L4_L2`: pc 303495 to 304031. -/
 def f1082 : CompiledFunction :=
-  ⟨"__loop145", 303495, 536, [f1082c0]⟩
+  ⟨"__loop0_level_residual__L37_L12_L4_L2", 303495, 536, [f1082c0]⟩
 
-/-- `__loop146`: pc 304031 to 304144. -/
+/-- `__loop1_level_residual__L37_L12_L4_L2`: pc 304031 to 304144. -/
 def f1083 : CompiledFunction :=
-  ⟨"__loop146", 304031, 113, [f1083c0]⟩
+  ⟨"__loop1_level_residual__L37_L12_L4_L2", 304031, 113, [f1083c0]⟩
 
-/-- `__loop147`: pc 304144 to 304680. -/
+/-- `__loop0_level_residual__L32_L12_L4_L2`: pc 304144 to 304680. -/
 def f1084 : CompiledFunction :=
-  ⟨"__loop147", 304144, 536, [f1084c0]⟩
+  ⟨"__loop0_level_residual__L32_L12_L4_L2", 304144, 536, [f1084c0]⟩
 
-/-- `__loop148`: pc 304680 to 305080. -/
+/-- `__loop0_level_residual__L32_L8_L4_L2`: pc 304680 to 305080. -/
 def f1085 : CompiledFunction :=
-  ⟨"__loop148", 304680, 400, [f1085c0]⟩
+  ⟨"__loop0_level_residual__L32_L8_L4_L2", 304680, 400, [f1085c0]⟩
 
-/-- `__loop149`: pc 305080 to 305480. -/
+/-- `__loop0_level_residual__L28_L8_L4_L2`: pc 305080 to 305480. -/
 def f1086 : CompiledFunction :=
-  ⟨"__loop149", 305080, 400, [f1086c0]⟩
+  ⟨"__loop0_level_residual__L28_L8_L4_L2", 305080, 400, [f1086c0]⟩
 
-/-- `__loop150`: pc 305480 to 305569. -/
+/-- `__loop1_level_residual__L28_L8_L4_L2`: pc 305480 to 305569. -/
 def f1087 : CompiledFunction :=
-  ⟨"__loop150", 305480, 89, [f1087c0]⟩
+  ⟨"__loop1_level_residual__L28_L8_L4_L2", 305480, 89, [f1087c0]⟩
 
-/-- `__loop151`: pc 305569 to 305969. -/
+/-- `__loop0_level_residual__L25_L8_L4_L2`: pc 305569 to 305969. -/
 def f1088 : CompiledFunction :=
-  ⟨"__loop151", 305569, 400, [f1088c0]⟩
+  ⟨"__loop0_level_residual__L25_L8_L4_L2", 305569, 400, [f1088c0]⟩
 
-/-- `__loop152`: pc 305969 to 306058. -/
+/-- `__loop1_level_residual__L25_L8_L4_L2`: pc 305969 to 306058. -/
 def f1089 : CompiledFunction :=
-  ⟨"__loop152", 305969, 89, [f1089c0]⟩
+  ⟨"__loop1_level_residual__L25_L8_L4_L2", 305969, 89, [f1089c0]⟩
 
-/-- `__loop153`: pc 306058 to 306458. -/
+/-- `__loop0_level_residual__L23_L8_L4_L2`: pc 306058 to 306458. -/
 def f1090 : CompiledFunction :=
-  ⟨"__loop153", 306058, 400, [f1090c0]⟩
+  ⟨"__loop0_level_residual__L23_L8_L4_L2", 306058, 400, [f1090c0]⟩
 
-/-- `__loop154`: pc 306458 to 306547. -/
+/-- `__loop1_level_residual__L23_L8_L4_L2`: pc 306458 to 306547. -/
 def f1091 : CompiledFunction :=
-  ⟨"__loop154", 306458, 89, [f1091c0]⟩
+  ⟨"__loop1_level_residual__L23_L8_L4_L2", 306458, 89, [f1091c0]⟩
 
-/-- `__loop155`: pc 306547 to 306598. -/
+/-- `__loop0_level_positions__L32_L18_L6`: pc 306547 to 306598. -/
 def f1092 : CompiledFunction :=
-  ⟨"__loop155", 306547, 51, [f1092c0]⟩
+  ⟨"__loop0_level_positions__L32_L18_L6", 306547, 51, [f1092c0]⟩
 
-/-- `__loop156`: pc 306598 to 306648. -/
+/-- `__loop0_level_positions__L19_L19_L7`: pc 306598 to 306648. -/
 def f1093 : CompiledFunction :=
-  ⟨"__loop156", 306598, 50, [f1093c0]⟩
+  ⟨"__loop0_level_positions__L19_L19_L7", 306598, 50, [f1093c0]⟩
 
-/-- `__loop157`: pc 306648 to 306698. -/
+/-- `__loop0_level_positions__L13_L20_L2`: pc 306648 to 306698. -/
 def f1094 : CompiledFunction :=
-  ⟨"__loop157", 306648, 50, [f1094c0]⟩
+  ⟨"__loop0_level_positions__L13_L20_L2", 306648, 50, [f1094c0]⟩
 
 /-- `decode_query_windows__L21_L3`: pc 306698 to 306965. -/
 def f1095 : CompiledFunction :=
   ⟨"decode_query_windows__L21_L3", 306698, 267, [f1095c0]⟩
 
-/-- `__loop158`: pc 306965 to 307015. -/
+/-- `__loop0_level_positions__L10_L21_L3`: pc 306965 to 307015. -/
 def f1096 : CompiledFunction :=
-  ⟨"__loop158", 306965, 50, [f1096c0]⟩
+  ⟨"__loop0_level_positions__L10_L21_L3", 306965, 50, [f1096c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: pc 307015 to 307040. -/
 def f1097 : CompiledFunction :=
@@ -4440,33 +4440,33 @@ def f1097 : CompiledFunction :=
 def f1098 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 307040, 320, [f1098c0]⟩
 
-/-- `__loop159`: pc 307360 to 307411. -/
+/-- `__loop0_level_positions__L8_L17_L5`: pc 307360 to 307411. -/
 def f1099 : CompiledFunction :=
-  ⟨"__loop159", 307360, 51, [f1099c0]⟩
+  ⟨"__loop0_level_positions__L8_L17_L5", 307360, 51, [f1099c0]⟩
 
-/-- `__loop160`: pc 307411 to 307462. -/
+/-- `__loop0_level_positions__L7_L18_L6`: pc 307411 to 307462. -/
 def f1100 : CompiledFunction :=
-  ⟨"__loop160", 307411, 51, [f1100c0]⟩
+  ⟨"__loop0_level_positions__L7_L18_L6", 307411, 51, [f1100c0]⟩
 
-/-- `__loop161`: pc 307462 to 307512. -/
+/-- `__loop0_level_positions__L7_L19_L7`: pc 307462 to 307512. -/
 def f1101 : CompiledFunction :=
-  ⟨"__loop161", 307462, 50, [f1101c0]⟩
+  ⟨"__loop0_level_positions__L7_L19_L7", 307462, 50, [f1101c0]⟩
 
-/-- `__loop162`: pc 307512 to 307562. -/
+/-- `__loop0_level_positions__L6_L20_L2`: pc 307512 to 307562. -/
 def f1102 : CompiledFunction :=
-  ⟨"__loop162", 307512, 50, [f1102c0]⟩
+  ⟨"__loop0_level_positions__L6_L20_L2", 307512, 50, [f1102c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0`: pc 307562 to 307587. -/
 def f1103 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 307562, 25, [f1103c0]⟩
 
-/-- `__loop163`: pc 307587 to 307637. -/
+/-- `__loop0_level_positions__L4_L19_L7`: pc 307587 to 307637. -/
 def f1104 : CompiledFunction :=
-  ⟨"__loop163", 307587, 50, [f1104c0]⟩
+  ⟨"__loop0_level_positions__L4_L19_L7", 307587, 50, [f1104c0]⟩
 
-/-- `__loop164`: pc 307637 to 307688. -/
+/-- `__loop0_level_positions__L3_L18_L6`: pc 307637 to 307688. -/
 def f1105 : CompiledFunction :=
-  ⟨"__loop164", 307637, 51, [f1105c0]⟩
+  ⟨"__loop0_level_positions__L3_L18_L6", 307637, 51, [f1105c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1`: pc 307688 to 307711. -/
 def f1106 : CompiledFunction :=
@@ -4484,113 +4484,113 @@ def f1108 : CompiledFunction :=
 def f1109 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1", 307757, 23, [f1109c0]⟩
 
-/-- `__loop165`: pc 307780 to 308528. -/
+/-- `__loop0_level_residual__L218_L17_L6_L3`: pc 307780 to 308528. -/
 def f1110 : CompiledFunction :=
-  ⟨"__loop165", 307780, 748, [f1110c0]⟩
+  ⟨"__loop0_level_residual__L218_L17_L6_L3", 307780, 748, [f1110c0]⟩
 
-/-- `__loop166`: pc 308528 to 308678. -/
+/-- `__loop1_level_residual__L218_L17_L6_L3`: pc 308528 to 308678. -/
 def f1111 : CompiledFunction :=
-  ⟨"__loop166", 308528, 150, [f1111c0]⟩
+  ⟨"__loop1_level_residual__L218_L17_L6_L3", 308528, 150, [f1111c0]⟩
 
-/-- `__loop167`: pc 308678 to 309426. -/
+/-- `__loop0_level_residual__L109_L17_L6_L3`: pc 308678 to 309426. -/
 def f1112 : CompiledFunction :=
-  ⟨"__loop167", 308678, 748, [f1112c0]⟩
+  ⟨"__loop0_level_residual__L109_L17_L6_L3", 308678, 748, [f1112c0]⟩
 
-/-- `__loop168`: pc 309426 to 309576. -/
+/-- `__loop1_level_residual__L109_L17_L6_L3`: pc 309426 to 309576. -/
 def f1113 : CompiledFunction :=
-  ⟨"__loop168", 309426, 150, [f1113c0]⟩
+  ⟨"__loop1_level_residual__L109_L17_L6_L3", 309426, 150, [f1113c0]⟩
 
-/-- `__loop169`: pc 309576 to 310324. -/
+/-- `__loop0_level_residual__L73_L17_L6_L3`: pc 309576 to 310324. -/
 def f1114 : CompiledFunction :=
-  ⟨"__loop169", 309576, 748, [f1114c0]⟩
+  ⟨"__loop0_level_residual__L73_L17_L6_L3", 309576, 748, [f1114c0]⟩
 
-/-- `__loop170`: pc 310324 to 310474. -/
+/-- `__loop1_level_residual__L73_L17_L6_L3`: pc 310324 to 310474. -/
 def f1115 : CompiledFunction :=
-  ⟨"__loop170", 310324, 150, [f1115c0]⟩
+  ⟨"__loop1_level_residual__L73_L17_L6_L3", 310324, 150, [f1115c0]⟩
 
-/-- `__loop171`: pc 310474 to 311222. -/
+/-- `__loop0_level_residual__L55_L17_L6_L3`: pc 310474 to 311222. -/
 def f1116 : CompiledFunction :=
-  ⟨"__loop171", 310474, 748, [f1116c0]⟩
+  ⟨"__loop0_level_residual__L55_L17_L6_L3", 310474, 748, [f1116c0]⟩
 
-/-- `__loop172`: pc 311222 to 311372. -/
+/-- `__loop1_level_residual__L55_L17_L6_L3`: pc 311222 to 311372. -/
 def f1117 : CompiledFunction :=
-  ⟨"__loop172", 311222, 150, [f1117c0]⟩
+  ⟨"__loop1_level_residual__L55_L17_L6_L3", 311222, 150, [f1117c0]⟩
 
-/-- `__loop173`: pc 311372 to 311942. -/
+/-- `__loop0_level_residual__L55_L13_L4_L2`: pc 311372 to 311942. -/
 def f1118 : CompiledFunction :=
-  ⟨"__loop173", 311372, 570, [f1118c0]⟩
+  ⟨"__loop0_level_residual__L55_L13_L4_L2", 311372, 570, [f1118c0]⟩
 
-/-- `__loop174`: pc 311942 to 312061. -/
+/-- `__loop1_level_residual__L55_L13_L4_L2`: pc 311942 to 312061. -/
 def f1119 : CompiledFunction :=
-  ⟨"__loop174", 311942, 119, [f1119c0]⟩
+  ⟨"__loop1_level_residual__L55_L13_L4_L2", 311942, 119, [f1119c0]⟩
 
-/-- `__loop175`: pc 312061 to 312631. -/
+/-- `__loop0_level_residual__L44_L13_L4_L2`: pc 312061 to 312631. -/
 def f1120 : CompiledFunction :=
-  ⟨"__loop175", 312061, 570, [f1120c0]⟩
+  ⟨"__loop0_level_residual__L44_L13_L4_L2", 312061, 570, [f1120c0]⟩
 
-/-- `__loop176`: pc 312631 to 312750. -/
+/-- `__loop1_level_residual__L44_L13_L4_L2`: pc 312631 to 312750. -/
 def f1121 : CompiledFunction :=
-  ⟨"__loop176", 312631, 119, [f1121c0]⟩
+  ⟨"__loop1_level_residual__L44_L13_L4_L2", 312631, 119, [f1121c0]⟩
 
-/-- `__loop177`: pc 312750 to 313320. -/
+/-- `__loop0_level_residual__L37_L13_L4_L2`: pc 312750 to 313320. -/
 def f1122 : CompiledFunction :=
-  ⟨"__loop177", 312750, 570, [f1122c0]⟩
+  ⟨"__loop0_level_residual__L37_L13_L4_L2", 312750, 570, [f1122c0]⟩
 
-/-- `__loop178`: pc 313320 to 313439. -/
+/-- `__loop1_level_residual__L37_L13_L4_L2`: pc 313320 to 313439. -/
 def f1123 : CompiledFunction :=
-  ⟨"__loop178", 313320, 119, [f1123c0]⟩
+  ⟨"__loop1_level_residual__L37_L13_L4_L2", 313320, 119, [f1123c0]⟩
 
-/-- `__loop179`: pc 313439 to 314009. -/
+/-- `__loop0_level_residual__L32_L13_L4_L2`: pc 313439 to 314009. -/
 def f1124 : CompiledFunction :=
-  ⟨"__loop179", 313439, 570, [f1124c0]⟩
+  ⟨"__loop0_level_residual__L32_L13_L4_L2", 313439, 570, [f1124c0]⟩
 
-/-- `__loop180`: pc 314009 to 314443. -/
+/-- `__loop0_level_residual__L32_L9_L4_L2`: pc 314009 to 314443. -/
 def f1125 : CompiledFunction :=
-  ⟨"__loop180", 314009, 434, [f1125c0]⟩
+  ⟨"__loop0_level_residual__L32_L9_L4_L2", 314009, 434, [f1125c0]⟩
 
-/-- `__loop181`: pc 314443 to 314877. -/
+/-- `__loop0_level_residual__L28_L9_L4_L2`: pc 314443 to 314877. -/
 def f1126 : CompiledFunction :=
-  ⟨"__loop181", 314443, 434, [f1126c0]⟩
+  ⟨"__loop0_level_residual__L28_L9_L4_L2", 314443, 434, [f1126c0]⟩
 
-/-- `__loop182`: pc 314877 to 314972. -/
+/-- `__loop1_level_residual__L28_L9_L4_L2`: pc 314877 to 314972. -/
 def f1127 : CompiledFunction :=
-  ⟨"__loop182", 314877, 95, [f1127c0]⟩
+  ⟨"__loop1_level_residual__L28_L9_L4_L2", 314877, 95, [f1127c0]⟩
 
-/-- `__loop183`: pc 314972 to 315406. -/
+/-- `__loop0_level_residual__L25_L9_L4_L2`: pc 314972 to 315406. -/
 def f1128 : CompiledFunction :=
-  ⟨"__loop183", 314972, 434, [f1128c0]⟩
+  ⟨"__loop0_level_residual__L25_L9_L4_L2", 314972, 434, [f1128c0]⟩
 
-/-- `__loop184`: pc 315406 to 315501. -/
+/-- `__loop1_level_residual__L25_L9_L4_L2`: pc 315406 to 315501. -/
 def f1129 : CompiledFunction :=
-  ⟨"__loop184", 315406, 95, [f1129c0]⟩
+  ⟨"__loop1_level_residual__L25_L9_L4_L2", 315406, 95, [f1129c0]⟩
 
-/-- `__loop185`: pc 315501 to 315935. -/
+/-- `__loop0_level_residual__L23_L9_L4_L2`: pc 315501 to 315935. -/
 def f1130 : CompiledFunction :=
-  ⟨"__loop185", 315501, 434, [f1130c0]⟩
+  ⟨"__loop0_level_residual__L23_L9_L4_L2", 315501, 434, [f1130c0]⟩
 
-/-- `__loop186`: pc 315935 to 316030. -/
+/-- `__loop1_level_residual__L23_L9_L4_L2`: pc 315935 to 316030. -/
 def f1131 : CompiledFunction :=
-  ⟨"__loop186", 315935, 95, [f1131c0]⟩
+  ⟨"__loop1_level_residual__L23_L9_L4_L2", 315935, 95, [f1131c0]⟩
 
-/-- `__loop187`: pc 316030 to 316080. -/
+/-- `__loop0_level_positions__L37_L19_L7`: pc 316030 to 316080. -/
 def f1132 : CompiledFunction :=
-  ⟨"__loop187", 316030, 50, [f1132c0]⟩
+  ⟨"__loop0_level_positions__L37_L19_L7", 316030, 50, [f1132c0]⟩
 
-/-- `__loop188`: pc 316080 to 316130. -/
+/-- `__loop0_level_positions__L19_L20_L2`: pc 316080 to 316130. -/
 def f1133 : CompiledFunction :=
-  ⟨"__loop188", 316080, 50, [f1133c0]⟩
+  ⟨"__loop0_level_positions__L19_L20_L2", 316080, 50, [f1133c0]⟩
 
-/-- `__loop189`: pc 316130 to 316180. -/
+/-- `__loop0_level_positions__L13_L21_L3`: pc 316130 to 316180. -/
 def f1134 : CompiledFunction :=
-  ⟨"__loop189", 316130, 50, [f1134c0]⟩
+  ⟨"__loop0_level_positions__L13_L21_L3", 316130, 50, [f1134c0]⟩
 
 /-- `decode_query_windows__L22_L4`: pc 316180 to 316427. -/
 def f1135 : CompiledFunction :=
   ⟨"decode_query_windows__L22_L4", 316180, 247, [f1135c0]⟩
 
-/-- `__loop190`: pc 316427 to 316475. -/
+/-- `__loop0_level_positions__L11_L22_L4`: pc 316427 to 316475. -/
 def f1136 : CompiledFunction :=
-  ⟨"__loop190", 316427, 48, [f1136c0]⟩
+  ⟨"__loop0_level_positions__L11_L22_L4", 316427, 48, [f1136c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: pc 316475 to 316500. -/
 def f1137 : CompiledFunction :=
@@ -4600,33 +4600,33 @@ def f1137 : CompiledFunction :=
 def f1138 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0", 316500, 320, [f1138c0]⟩
 
-/-- `__loop191`: pc 316820 to 316870. -/
+/-- `__loop0_level_positions__L8_L19_L7`: pc 316820 to 316870. -/
 def f1139 : CompiledFunction :=
-  ⟨"__loop191", 316820, 50, [f1139c0]⟩
+  ⟨"__loop0_level_positions__L8_L19_L7", 316820, 50, [f1139c0]⟩
 
-/-- `__loop192`: pc 316870 to 316920. -/
+/-- `__loop0_level_positions__L7_L20_L2`: pc 316870 to 316920. -/
 def f1140 : CompiledFunction :=
-  ⟨"__loop192", 316870, 50, [f1140c0]⟩
+  ⟨"__loop0_level_positions__L7_L20_L2", 316870, 50, [f1140c0]⟩
 
-/-- `__loop193`: pc 316920 to 316970. -/
+/-- `__loop0_level_positions__L6_L21_L3`: pc 316920 to 316970. -/
 def f1141 : CompiledFunction :=
-  ⟨"__loop193", 316920, 50, [f1141c0]⟩
+  ⟨"__loop0_level_positions__L6_L21_L3", 316920, 50, [f1141c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0`: pc 316970 to 316995. -/
 def f1142 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 316970, 25, [f1142c0]⟩
 
-/-- `__loop194`: pc 316995 to 317045. -/
+/-- `__loop0_level_positions__L5_L19_L7`: pc 316995 to 317045. -/
 def f1143 : CompiledFunction :=
-  ⟨"__loop194", 316995, 50, [f1143c0]⟩
+  ⟨"__loop0_level_positions__L5_L19_L7", 316995, 50, [f1143c0]⟩
 
-/-- `__loop195`: pc 317045 to 317095. -/
+/-- `__loop0_level_positions__L4_L20_L2`: pc 317045 to 317095. -/
 def f1144 : CompiledFunction :=
-  ⟨"__loop195", 317045, 50, [f1144c0]⟩
+  ⟨"__loop0_level_positions__L4_L20_L2", 317045, 50, [f1144c0]⟩
 
-/-- `__loop196`: pc 317095 to 317145. -/
+/-- `__loop0_level_positions__L3_L19_L7`: pc 317095 to 317145. -/
 def f1145 : CompiledFunction :=
-  ⟨"__loop196", 317095, 50, [f1145c0]⟩
+  ⟨"__loop0_level_positions__L3_L19_L7", 317095, 50, [f1145c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: pc 317145 to 317168. -/
 def f1146 : CompiledFunction :=
@@ -4640,137 +4640,137 @@ def f1147 : CompiledFunction :=
 def f1148 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1", 317191, 23, [f1148c0]⟩
 
-/-- `__loop197`: pc 317214 to 317996. -/
+/-- `__loop0_level_residual__L218_L18_L6_L3`: pc 317214 to 317996. -/
 def f1149 : CompiledFunction :=
-  ⟨"__loop197", 317214, 782, [f1149c0]⟩
+  ⟨"__loop0_level_residual__L218_L18_L6_L3", 317214, 782, [f1149c0]⟩
 
-/-- `__loop198`: pc 317996 to 318152. -/
+/-- `__loop1_level_residual__L218_L18_L6_L3`: pc 317996 to 318152. -/
 def f1150 : CompiledFunction :=
-  ⟨"__loop198", 317996, 156, [f1150c0]⟩
+  ⟨"__loop1_level_residual__L218_L18_L6_L3", 317996, 156, [f1150c0]⟩
 
-/-- `__loop199`: pc 318152 to 318934. -/
+/-- `__loop0_level_residual__L109_L18_L6_L3`: pc 318152 to 318934. -/
 def f1151 : CompiledFunction :=
-  ⟨"__loop199", 318152, 782, [f1151c0]⟩
+  ⟨"__loop0_level_residual__L109_L18_L6_L3", 318152, 782, [f1151c0]⟩
 
-/-- `__loop200`: pc 318934 to 319090. -/
+/-- `__loop1_level_residual__L109_L18_L6_L3`: pc 318934 to 319090. -/
 def f1152 : CompiledFunction :=
-  ⟨"__loop200", 318934, 156, [f1152c0]⟩
+  ⟨"__loop1_level_residual__L109_L18_L6_L3", 318934, 156, [f1152c0]⟩
 
-/-- `__loop201`: pc 319090 to 319872. -/
+/-- `__loop0_level_residual__L73_L18_L6_L3`: pc 319090 to 319872. -/
 def f1153 : CompiledFunction :=
-  ⟨"__loop201", 319090, 782, [f1153c0]⟩
+  ⟨"__loop0_level_residual__L73_L18_L6_L3", 319090, 782, [f1153c0]⟩
 
-/-- `__loop202`: pc 319872 to 320028. -/
+/-- `__loop1_level_residual__L73_L18_L6_L3`: pc 319872 to 320028. -/
 def f1154 : CompiledFunction :=
-  ⟨"__loop202", 319872, 156, [f1154c0]⟩
+  ⟨"__loop1_level_residual__L73_L18_L6_L3", 319872, 156, [f1154c0]⟩
 
-/-- `__loop203`: pc 320028 to 320810. -/
+/-- `__loop0_level_residual__L55_L18_L6_L3`: pc 320028 to 320810. -/
 def f1155 : CompiledFunction :=
-  ⟨"__loop203", 320028, 782, [f1155c0]⟩
+  ⟨"__loop0_level_residual__L55_L18_L6_L3", 320028, 782, [f1155c0]⟩
 
-/-- `__loop204`: pc 320810 to 320966. -/
+/-- `__loop1_level_residual__L55_L18_L6_L3`: pc 320810 to 320966. -/
 def f1156 : CompiledFunction :=
-  ⟨"__loop204", 320810, 156, [f1156c0]⟩
+  ⟨"__loop1_level_residual__L55_L18_L6_L3", 320810, 156, [f1156c0]⟩
 
-/-- `__loop205`: pc 320966 to 321570. -/
+/-- `__loop0_level_residual__L55_L14_L4_L2`: pc 320966 to 321570. -/
 def f1157 : CompiledFunction :=
-  ⟨"__loop205", 320966, 604, [f1157c0]⟩
+  ⟨"__loop0_level_residual__L55_L14_L4_L2", 320966, 604, [f1157c0]⟩
 
-/-- `__loop206`: pc 321570 to 321695. -/
+/-- `__loop1_level_residual__L55_L14_L4_L2`: pc 321570 to 321695. -/
 def f1158 : CompiledFunction :=
-  ⟨"__loop206", 321570, 125, [f1158c0]⟩
+  ⟨"__loop1_level_residual__L55_L14_L4_L2", 321570, 125, [f1158c0]⟩
 
-/-- `__loop207`: pc 321695 to 322299. -/
+/-- `__loop0_level_residual__L44_L14_L4_L2`: pc 321695 to 322299. -/
 def f1159 : CompiledFunction :=
-  ⟨"__loop207", 321695, 604, [f1159c0]⟩
+  ⟨"__loop0_level_residual__L44_L14_L4_L2", 321695, 604, [f1159c0]⟩
 
-/-- `__loop208`: pc 322299 to 322424. -/
+/-- `__loop1_level_residual__L44_L14_L4_L2`: pc 322299 to 322424. -/
 def f1160 : CompiledFunction :=
-  ⟨"__loop208", 322299, 125, [f1160c0]⟩
+  ⟨"__loop1_level_residual__L44_L14_L4_L2", 322299, 125, [f1160c0]⟩
 
-/-- `__loop209`: pc 322424 to 323028. -/
+/-- `__loop0_level_residual__L37_L14_L4_L2`: pc 322424 to 323028. -/
 def f1161 : CompiledFunction :=
-  ⟨"__loop209", 322424, 604, [f1161c0]⟩
+  ⟨"__loop0_level_residual__L37_L14_L4_L2", 322424, 604, [f1161c0]⟩
 
-/-- `__loop210`: pc 323028 to 323153. -/
+/-- `__loop1_level_residual__L37_L14_L4_L2`: pc 323028 to 323153. -/
 def f1162 : CompiledFunction :=
-  ⟨"__loop210", 323028, 125, [f1162c0]⟩
+  ⟨"__loop1_level_residual__L37_L14_L4_L2", 323028, 125, [f1162c0]⟩
 
-/-- `__loop211`: pc 323153 to 323757. -/
+/-- `__loop0_level_residual__L32_L14_L4_L2`: pc 323153 to 323757. -/
 def f1163 : CompiledFunction :=
-  ⟨"__loop211", 323153, 604, [f1163c0]⟩
+  ⟨"__loop0_level_residual__L32_L14_L4_L2", 323153, 604, [f1163c0]⟩
 
-/-- `__loop212`: pc 323757 to 324225. -/
+/-- `__loop0_level_residual__L28_L10_L4_L2`: pc 323757 to 324225. -/
 def f1164 : CompiledFunction :=
-  ⟨"__loop212", 323757, 468, [f1164c0]⟩
+  ⟨"__loop0_level_residual__L28_L10_L4_L2", 323757, 468, [f1164c0]⟩
 
-/-- `__loop213`: pc 324225 to 324326. -/
+/-- `__loop1_level_residual__L28_L10_L4_L2`: pc 324225 to 324326. -/
 def f1165 : CompiledFunction :=
-  ⟨"__loop213", 324225, 101, [f1165c0]⟩
+  ⟨"__loop1_level_residual__L28_L10_L4_L2", 324225, 101, [f1165c0]⟩
 
-/-- `__loop214`: pc 324326 to 324794. -/
+/-- `__loop0_level_residual__L25_L10_L4_L2`: pc 324326 to 324794. -/
 def f1166 : CompiledFunction :=
-  ⟨"__loop214", 324326, 468, [f1166c0]⟩
+  ⟨"__loop0_level_residual__L25_L10_L4_L2", 324326, 468, [f1166c0]⟩
 
-/-- `__loop215`: pc 324794 to 324895. -/
+/-- `__loop1_level_residual__L25_L10_L4_L2`: pc 324794 to 324895. -/
 def f1167 : CompiledFunction :=
-  ⟨"__loop215", 324794, 101, [f1167c0]⟩
+  ⟨"__loop1_level_residual__L25_L10_L4_L2", 324794, 101, [f1167c0]⟩
 
-/-- `__loop216`: pc 324895 to 325363. -/
+/-- `__loop0_level_residual__L23_L10_L4_L2`: pc 324895 to 325363. -/
 def f1168 : CompiledFunction :=
-  ⟨"__loop216", 324895, 468, [f1168c0]⟩
+  ⟨"__loop0_level_residual__L23_L10_L4_L2", 324895, 468, [f1168c0]⟩
 
-/-- `__loop217`: pc 325363 to 325464. -/
+/-- `__loop1_level_residual__L23_L10_L4_L2`: pc 325363 to 325464. -/
 def f1169 : CompiledFunction :=
-  ⟨"__loop217", 325363, 101, [f1169c0]⟩
+  ⟨"__loop1_level_residual__L23_L10_L4_L2", 325363, 101, [f1169c0]⟩
 
-/-- `__loop218`: pc 325464 to 325796. -/
+/-- `__loop0_level_residual__L21_L6_L4_L2`: pc 325464 to 325796. -/
 def f1170 : CompiledFunction :=
-  ⟨"__loop218", 325464, 332, [f1170c0]⟩
+  ⟨"__loop0_level_residual__L21_L6_L4_L2", 325464, 332, [f1170c0]⟩
 
-/-- `__loop219`: pc 325796 to 325873. -/
+/-- `__loop1_level_residual__L21_L6_L4_L2`: pc 325796 to 325873. -/
 def f1171 : CompiledFunction :=
-  ⟨"__loop219", 325796, 77, [f1171c0]⟩
+  ⟨"__loop1_level_residual__L21_L6_L4_L2", 325796, 77, [f1171c0]⟩
 
-/-- `__loop220`: pc 325873 to 326205. -/
+/-- `__loop0_level_residual__L19_L6_L4_L2`: pc 325873 to 326205. -/
 def f1172 : CompiledFunction :=
-  ⟨"__loop220", 325873, 332, [f1172c0]⟩
+  ⟨"__loop0_level_residual__L19_L6_L4_L2", 325873, 332, [f1172c0]⟩
 
-/-- `__loop221`: pc 326205 to 326282. -/
+/-- `__loop1_level_residual__L19_L6_L4_L2`: pc 326205 to 326282. -/
 def f1173 : CompiledFunction :=
-  ⟨"__loop221", 326205, 77, [f1173c0]⟩
+  ⟨"__loop1_level_residual__L19_L6_L4_L2", 326205, 77, [f1173c0]⟩
 
-/-- `__loop222`: pc 326282 to 326614. -/
+/-- `__loop0_level_residual__L18_L6_L4_L2`: pc 326282 to 326614. -/
 def f1174 : CompiledFunction :=
-  ⟨"__loop222", 326282, 332, [f1174c0]⟩
+  ⟨"__loop0_level_residual__L18_L6_L4_L2", 326282, 332, [f1174c0]⟩
 
-/-- `__loop223`: pc 326614 to 326691. -/
+/-- `__loop1_level_residual__L18_L6_L4_L2`: pc 326614 to 326691. -/
 def f1175 : CompiledFunction :=
-  ⟨"__loop223", 326614, 77, [f1175c0]⟩
+  ⟨"__loop1_level_residual__L18_L6_L4_L2", 326614, 77, [f1175c0]⟩
 
 /-- `decode_query_windows__L20_L8`: pc 326691 to 326930. -/
 def f1176 : CompiledFunction :=
   ⟨"decode_query_windows__L20_L8", 326691, 239, [f1176c0]⟩
 
-/-- `__loop224`: pc 326930 to 326980. -/
+/-- `__loop0_level_positions__L37_L20_L8`: pc 326930 to 326980. -/
 def f1177 : CompiledFunction :=
-  ⟨"__loop224", 326930, 50, [f1177c0]⟩
+  ⟨"__loop0_level_positions__L37_L20_L8", 326930, 50, [f1177c0]⟩
 
-/-- `__loop225`: pc 326980 to 327030. -/
+/-- `__loop0_level_positions__L19_L21_L3`: pc 326980 to 327030. -/
 def f1178 : CompiledFunction :=
-  ⟨"__loop225", 326980, 50, [f1178c0]⟩
+  ⟨"__loop0_level_positions__L19_L21_L3", 326980, 50, [f1178c0]⟩
 
-/-- `__loop226`: pc 327030 to 327078. -/
+/-- `__loop0_level_positions__L15_L22_L4`: pc 327030 to 327078. -/
 def f1179 : CompiledFunction :=
-  ⟨"__loop226", 327030, 48, [f1179c0]⟩
+  ⟨"__loop0_level_positions__L15_L22_L4", 327030, 48, [f1179c0]⟩
 
 /-- `decode_query_windows__L23_L5`: pc 327078 to 327304. -/
 def f1180 : CompiledFunction :=
   ⟨"decode_query_windows__L23_L5", 327078, 226, [f1180c0]⟩
 
-/-- `__loop227`: pc 327304 to 327352. -/
+/-- `__loop0_level_positions__L11_L23_L5`: pc 327304 to 327352. -/
 def f1181 : CompiledFunction :=
-  ⟨"__loop227", 327304, 48, [f1181c0]⟩
+  ⟨"__loop0_level_positions__L11_L23_L5", 327304, 48, [f1181c0]⟩
 
 /-- `verify_merkle_cap__L8`: pc 327352 to 330162. -/
 def f1182 : CompiledFunction :=
@@ -4784,33 +4784,33 @@ def f1183 : CompiledFunction :=
 def f1184 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0", 330187, 320, [f1184c0]⟩
 
-/-- `__loop228`: pc 330507 to 330557. -/
+/-- `__loop0_level_positions__L8_L20_L2`: pc 330507 to 330557. -/
 def f1185 : CompiledFunction :=
-  ⟨"__loop228", 330507, 50, [f1185c0]⟩
+  ⟨"__loop0_level_positions__L8_L20_L2", 330507, 50, [f1185c0]⟩
 
-/-- `__loop229`: pc 330557 to 330607. -/
+/-- `__loop0_level_positions__L7_L21_L3`: pc 330557 to 330607. -/
 def f1186 : CompiledFunction :=
-  ⟨"__loop229", 330557, 50, [f1186c0]⟩
+  ⟨"__loop0_level_positions__L7_L21_L3", 330557, 50, [f1186c0]⟩
 
-/-- `__loop230`: pc 330607 to 330655. -/
+/-- `__loop0_level_positions__L7_L22_L4`: pc 330607 to 330655. -/
 def f1187 : CompiledFunction :=
-  ⟨"__loop230", 330607, 48, [f1187c0]⟩
+  ⟨"__loop0_level_positions__L7_L22_L4", 330607, 48, [f1187c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0`: pc 330655 to 330680. -/
 def f1188 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655, 25, [f1188c0]⟩
 
-/-- `__loop231`: pc 330680 to 330730. -/
+/-- `__loop0_level_positions__L5_L20_L2`: pc 330680 to 330730. -/
 def f1189 : CompiledFunction :=
-  ⟨"__loop231", 330680, 50, [f1189c0]⟩
+  ⟨"__loop0_level_positions__L5_L20_L2", 330680, 50, [f1189c0]⟩
 
-/-- `__loop232`: pc 330730 to 330780. -/
+/-- `__loop0_level_positions__L4_L21_L3`: pc 330730 to 330780. -/
 def f1190 : CompiledFunction :=
-  ⟨"__loop232", 330730, 50, [f1190c0]⟩
+  ⟨"__loop0_level_positions__L4_L21_L3", 330730, 50, [f1190c0]⟩
 
-/-- `__loop233`: pc 330780 to 330830. -/
+/-- `__loop0_level_positions__L3_L20_L2`: pc 330780 to 330830. -/
 def f1191 : CompiledFunction :=
-  ⟨"__loop233", 330780, 50, [f1191c0]⟩
+  ⟨"__loop0_level_positions__L3_L20_L2", 330780, 50, [f1191c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1`: pc 330830 to 330853. -/
 def f1192 : CompiledFunction :=
@@ -4824,133 +4824,133 @@ def f1193 : CompiledFunction :=
 def f1194 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1", 330876, 23, [f1194c0]⟩
 
-/-- `__loop234`: pc 330899 to 331715. -/
+/-- `__loop0_level_residual__L218_L19_L6_L3`: pc 330899 to 331715. -/
 def f1195 : CompiledFunction :=
-  ⟨"__loop234", 330899, 816, [f1195c0]⟩
+  ⟨"__loop0_level_residual__L218_L19_L6_L3", 330899, 816, [f1195c0]⟩
 
-/-- `__loop235`: pc 331715 to 331877. -/
+/-- `__loop1_level_residual__L218_L19_L6_L3`: pc 331715 to 331877. -/
 def f1196 : CompiledFunction :=
-  ⟨"__loop235", 331715, 162, [f1196c0]⟩
+  ⟨"__loop1_level_residual__L218_L19_L6_L3", 331715, 162, [f1196c0]⟩
 
-/-- `__loop236`: pc 331877 to 332693. -/
+/-- `__loop0_level_residual__L109_L19_L6_L3`: pc 331877 to 332693. -/
 def f1197 : CompiledFunction :=
-  ⟨"__loop236", 331877, 816, [f1197c0]⟩
+  ⟨"__loop0_level_residual__L109_L19_L6_L3", 331877, 816, [f1197c0]⟩
 
-/-- `__loop237`: pc 332693 to 332855. -/
+/-- `__loop1_level_residual__L109_L19_L6_L3`: pc 332693 to 332855. -/
 def f1198 : CompiledFunction :=
-  ⟨"__loop237", 332693, 162, [f1198c0]⟩
+  ⟨"__loop1_level_residual__L109_L19_L6_L3", 332693, 162, [f1198c0]⟩
 
-/-- `__loop238`: pc 332855 to 333671. -/
+/-- `__loop0_level_residual__L73_L19_L6_L3`: pc 332855 to 333671. -/
 def f1199 : CompiledFunction :=
-  ⟨"__loop238", 332855, 816, [f1199c0]⟩
+  ⟨"__loop0_level_residual__L73_L19_L6_L3", 332855, 816, [f1199c0]⟩
 
-/-- `__loop239`: pc 333671 to 333833. -/
+/-- `__loop1_level_residual__L73_L19_L6_L3`: pc 333671 to 333833. -/
 def f1200 : CompiledFunction :=
-  ⟨"__loop239", 333671, 162, [f1200c0]⟩
+  ⟨"__loop1_level_residual__L73_L19_L6_L3", 333671, 162, [f1200c0]⟩
 
-/-- `__loop240`: pc 333833 to 334649. -/
+/-- `__loop0_level_residual__L55_L19_L6_L3`: pc 333833 to 334649. -/
 def f1201 : CompiledFunction :=
-  ⟨"__loop240", 333833, 816, [f1201c0]⟩
+  ⟨"__loop0_level_residual__L55_L19_L6_L3", 333833, 816, [f1201c0]⟩
 
-/-- `__loop241`: pc 334649 to 334811. -/
+/-- `__loop1_level_residual__L55_L19_L6_L3`: pc 334649 to 334811. -/
 def f1202 : CompiledFunction :=
-  ⟨"__loop241", 334649, 162, [f1202c0]⟩
+  ⟨"__loop1_level_residual__L55_L19_L6_L3", 334649, 162, [f1202c0]⟩
 
-/-- `__loop242`: pc 334811 to 335449. -/
+/-- `__loop0_level_residual__L55_L15_L4_L2`: pc 334811 to 335449. -/
 def f1203 : CompiledFunction :=
-  ⟨"__loop242", 334811, 638, [f1203c0]⟩
+  ⟨"__loop0_level_residual__L55_L15_L4_L2", 334811, 638, [f1203c0]⟩
 
-/-- `__loop243`: pc 335449 to 335580. -/
+/-- `__loop1_level_residual__L55_L15_L4_L2`: pc 335449 to 335580. -/
 def f1204 : CompiledFunction :=
-  ⟨"__loop243", 335449, 131, [f1204c0]⟩
+  ⟨"__loop1_level_residual__L55_L15_L4_L2", 335449, 131, [f1204c0]⟩
 
-/-- `__loop244`: pc 335580 to 336218. -/
+/-- `__loop0_level_residual__L44_L15_L4_L2`: pc 335580 to 336218. -/
 def f1205 : CompiledFunction :=
-  ⟨"__loop244", 335580, 638, [f1205c0]⟩
+  ⟨"__loop0_level_residual__L44_L15_L4_L2", 335580, 638, [f1205c0]⟩
 
-/-- `__loop245`: pc 336218 to 336349. -/
+/-- `__loop1_level_residual__L44_L15_L4_L2`: pc 336218 to 336349. -/
 def f1206 : CompiledFunction :=
-  ⟨"__loop245", 336218, 131, [f1206c0]⟩
+  ⟨"__loop1_level_residual__L44_L15_L4_L2", 336218, 131, [f1206c0]⟩
 
-/-- `__loop246`: pc 336349 to 336987. -/
+/-- `__loop0_level_residual__L37_L15_L4_L2`: pc 336349 to 336987. -/
 def f1207 : CompiledFunction :=
-  ⟨"__loop246", 336349, 638, [f1207c0]⟩
+  ⟨"__loop0_level_residual__L37_L15_L4_L2", 336349, 638, [f1207c0]⟩
 
-/-- `__loop247`: pc 336987 to 337118. -/
+/-- `__loop1_level_residual__L37_L15_L4_L2`: pc 336987 to 337118. -/
 def f1208 : CompiledFunction :=
-  ⟨"__loop247", 336987, 131, [f1208c0]⟩
+  ⟨"__loop1_level_residual__L37_L15_L4_L2", 336987, 131, [f1208c0]⟩
 
-/-- `__loop248`: pc 337118 to 337756. -/
+/-- `__loop0_level_residual__L32_L15_L4_L2`: pc 337118 to 337756. -/
 def f1209 : CompiledFunction :=
-  ⟨"__loop248", 337118, 638, [f1209c0]⟩
+  ⟨"__loop0_level_residual__L32_L15_L4_L2", 337118, 638, [f1209c0]⟩
 
-/-- `__loop249`: pc 337756 to 338258. -/
+/-- `__loop0_level_residual__L28_L11_L4_L2`: pc 337756 to 338258. -/
 def f1210 : CompiledFunction :=
-  ⟨"__loop249", 337756, 502, [f1210c0]⟩
+  ⟨"__loop0_level_residual__L28_L11_L4_L2", 337756, 502, [f1210c0]⟩
 
-/-- `__loop250`: pc 338258 to 338365. -/
+/-- `__loop1_level_residual__L28_L11_L4_L2`: pc 338258 to 338365. -/
 def f1211 : CompiledFunction :=
-  ⟨"__loop250", 338258, 107, [f1211c0]⟩
+  ⟨"__loop1_level_residual__L28_L11_L4_L2", 338258, 107, [f1211c0]⟩
 
-/-- `__loop251`: pc 338365 to 338867. -/
+/-- `__loop0_level_residual__L25_L11_L4_L2`: pc 338365 to 338867. -/
 def f1212 : CompiledFunction :=
-  ⟨"__loop251", 338365, 502, [f1212c0]⟩
+  ⟨"__loop0_level_residual__L25_L11_L4_L2", 338365, 502, [f1212c0]⟩
 
-/-- `__loop252`: pc 338867 to 338974. -/
+/-- `__loop1_level_residual__L25_L11_L4_L2`: pc 338867 to 338974. -/
 def f1213 : CompiledFunction :=
-  ⟨"__loop252", 338867, 107, [f1213c0]⟩
+  ⟨"__loop1_level_residual__L25_L11_L4_L2", 338867, 107, [f1213c0]⟩
 
-/-- `__loop253`: pc 338974 to 339476. -/
+/-- `__loop0_level_residual__L23_L11_L4_L2`: pc 338974 to 339476. -/
 def f1214 : CompiledFunction :=
-  ⟨"__loop253", 338974, 502, [f1214c0]⟩
+  ⟨"__loop0_level_residual__L23_L11_L4_L2", 338974, 502, [f1214c0]⟩
 
-/-- `__loop254`: pc 339476 to 339583. -/
+/-- `__loop1_level_residual__L23_L11_L4_L2`: pc 339476 to 339583. -/
 def f1215 : CompiledFunction :=
-  ⟨"__loop254", 339476, 107, [f1215c0]⟩
+  ⟨"__loop1_level_residual__L23_L11_L4_L2", 339476, 107, [f1215c0]⟩
 
-/-- `__loop255`: pc 339583 to 339949. -/
+/-- `__loop0_level_residual__L21_L7_L4_L2`: pc 339583 to 339949. -/
 def f1216 : CompiledFunction :=
-  ⟨"__loop255", 339583, 366, [f1216c0]⟩
+  ⟨"__loop0_level_residual__L21_L7_L4_L2", 339583, 366, [f1216c0]⟩
 
-/-- `__loop256`: pc 339949 to 340032. -/
+/-- `__loop1_level_residual__L21_L7_L4_L2`: pc 339949 to 340032. -/
 def f1217 : CompiledFunction :=
-  ⟨"__loop256", 339949, 83, [f1217c0]⟩
+  ⟨"__loop1_level_residual__L21_L7_L4_L2", 339949, 83, [f1217c0]⟩
 
-/-- `__loop257`: pc 340032 to 340398. -/
+/-- `__loop0_level_residual__L19_L7_L4_L2`: pc 340032 to 340398. -/
 def f1218 : CompiledFunction :=
-  ⟨"__loop257", 340032, 366, [f1218c0]⟩
+  ⟨"__loop0_level_residual__L19_L7_L4_L2", 340032, 366, [f1218c0]⟩
 
-/-- `__loop258`: pc 340398 to 340481. -/
+/-- `__loop1_level_residual__L19_L7_L4_L2`: pc 340398 to 340481. -/
 def f1219 : CompiledFunction :=
-  ⟨"__loop258", 340398, 83, [f1219c0]⟩
+  ⟨"__loop1_level_residual__L19_L7_L4_L2", 340398, 83, [f1219c0]⟩
 
-/-- `__loop259`: pc 340481 to 340847. -/
+/-- `__loop0_level_residual__L18_L7_L4_L2`: pc 340481 to 340847. -/
 def f1220 : CompiledFunction :=
-  ⟨"__loop259", 340481, 366, [f1220c0]⟩
+  ⟨"__loop0_level_residual__L18_L7_L4_L2", 340481, 366, [f1220c0]⟩
 
-/-- `__loop260`: pc 340847 to 340930. -/
+/-- `__loop1_level_residual__L18_L7_L4_L2`: pc 340847 to 340930. -/
 def f1221 : CompiledFunction :=
-  ⟨"__loop260", 340847, 83, [f1221c0]⟩
+  ⟨"__loop1_level_residual__L18_L7_L4_L2", 340847, 83, [f1221c0]⟩
 
-/-- `__loop261`: pc 340930 to 340980. -/
+/-- `__loop0_level_positions__L37_L21_L3`: pc 340930 to 340980. -/
 def f1222 : CompiledFunction :=
-  ⟨"__loop261", 340930, 50, [f1222c0]⟩
+  ⟨"__loop0_level_positions__L37_L21_L3", 340930, 50, [f1222c0]⟩
 
-/-- `__loop262`: pc 340980 to 341028. -/
+/-- `__loop0_level_positions__L22_L22_L4`: pc 340980 to 341028. -/
 def f1223 : CompiledFunction :=
-  ⟨"__loop262", 340980, 48, [f1223c0]⟩
+  ⟨"__loop0_level_positions__L22_L22_L4", 340980, 48, [f1223c0]⟩
 
-/-- `__loop263`: pc 341028 to 341076. -/
+/-- `__loop0_level_positions__L15_L23_L5`: pc 341028 to 341076. -/
 def f1224 : CompiledFunction :=
-  ⟨"__loop263", 341028, 48, [f1224c0]⟩
+  ⟨"__loop0_level_positions__L15_L23_L5", 341028, 48, [f1224c0]⟩
 
 /-- `decode_query_windows__L24_L6`: pc 341076 to 341317. -/
 def f1225 : CompiledFunction :=
   ⟨"decode_query_windows__L24_L6", 341076, 241, [f1225c0]⟩
 
-/-- `__loop264`: pc 341317 to 341365. -/
+/-- `__loop0_level_positions__L11_L24_L6`: pc 341317 to 341365. -/
 def f1226 : CompiledFunction :=
-  ⟨"__loop264", 341317, 48, [f1226c0]⟩
+  ⟨"__loop0_level_positions__L11_L24_L6", 341317, 48, [f1226c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: pc 341365 to 341390. -/
 def f1227 : CompiledFunction :=
@@ -4960,33 +4960,33 @@ def f1227 : CompiledFunction :=
 def f1228 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 341390, 320, [f1228c0]⟩
 
-/-- `__loop265`: pc 341710 to 341760. -/
+/-- `__loop0_level_positions__L8_L21_L3`: pc 341710 to 341760. -/
 def f1229 : CompiledFunction :=
-  ⟨"__loop265", 341710, 50, [f1229c0]⟩
+  ⟨"__loop0_level_positions__L8_L21_L3", 341710, 50, [f1229c0]⟩
 
-/-- `__loop266`: pc 341760 to 341808. -/
+/-- `__loop0_level_positions__L8_L22_L4`: pc 341760 to 341808. -/
 def f1230 : CompiledFunction :=
-  ⟨"__loop266", 341760, 48, [f1230c0]⟩
+  ⟨"__loop0_level_positions__L8_L22_L4", 341760, 48, [f1230c0]⟩
 
-/-- `__loop267`: pc 341808 to 341856. -/
+/-- `__loop0_level_positions__L7_L23_L5`: pc 341808 to 341856. -/
 def f1231 : CompiledFunction :=
-  ⟨"__loop267", 341808, 48, [f1231c0]⟩
+  ⟨"__loop0_level_positions__L7_L23_L5", 341808, 48, [f1231c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: pc 341856 to 341881. -/
 def f1232 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856, 25, [f1232c0]⟩
 
-/-- `__loop268`: pc 341881 to 341931. -/
+/-- `__loop0_level_positions__L5_L21_L3`: pc 341881 to 341931. -/
 def f1233 : CompiledFunction :=
-  ⟨"__loop268", 341881, 50, [f1233c0]⟩
+  ⟨"__loop0_level_positions__L5_L21_L3", 341881, 50, [f1233c0]⟩
 
-/-- `__loop269`: pc 341931 to 341979. -/
+/-- `__loop0_level_positions__L5_L22_L4`: pc 341931 to 341979. -/
 def f1234 : CompiledFunction :=
-  ⟨"__loop269", 341931, 48, [f1234c0]⟩
+  ⟨"__loop0_level_positions__L5_L22_L4", 341931, 48, [f1234c0]⟩
 
-/-- `__loop270`: pc 341979 to 342029. -/
+/-- `__loop0_level_positions__L3_L21_L3`: pc 341979 to 342029. -/
 def f1235 : CompiledFunction :=
-  ⟨"__loop270", 341979, 50, [f1235c0]⟩
+  ⟨"__loop0_level_positions__L3_L21_L3", 341979, 50, [f1235c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1`: pc 342029 to 342052. -/
 def f1236 : CompiledFunction :=
@@ -5000,133 +5000,133 @@ def f1237 : CompiledFunction :=
 def f1238 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1", 342075, 23, [f1238c0]⟩
 
-/-- `__loop271`: pc 342098 to 342948. -/
+/-- `__loop0_level_residual__L218_L20_L6_L3`: pc 342098 to 342948. -/
 def f1239 : CompiledFunction :=
-  ⟨"__loop271", 342098, 850, [f1239c0]⟩
+  ⟨"__loop0_level_residual__L218_L20_L6_L3", 342098, 850, [f1239c0]⟩
 
-/-- `__loop272`: pc 342948 to 343116. -/
+/-- `__loop1_level_residual__L218_L20_L6_L3`: pc 342948 to 343116. -/
 def f1240 : CompiledFunction :=
-  ⟨"__loop272", 342948, 168, [f1240c0]⟩
+  ⟨"__loop1_level_residual__L218_L20_L6_L3", 342948, 168, [f1240c0]⟩
 
-/-- `__loop273`: pc 343116 to 343966. -/
+/-- `__loop0_level_residual__L109_L20_L6_L3`: pc 343116 to 343966. -/
 def f1241 : CompiledFunction :=
-  ⟨"__loop273", 343116, 850, [f1241c0]⟩
+  ⟨"__loop0_level_residual__L109_L20_L6_L3", 343116, 850, [f1241c0]⟩
 
-/-- `__loop274`: pc 343966 to 344134. -/
+/-- `__loop1_level_residual__L109_L20_L6_L3`: pc 343966 to 344134. -/
 def f1242 : CompiledFunction :=
-  ⟨"__loop274", 343966, 168, [f1242c0]⟩
+  ⟨"__loop1_level_residual__L109_L20_L6_L3", 343966, 168, [f1242c0]⟩
 
-/-- `__loop275`: pc 344134 to 344984. -/
+/-- `__loop0_level_residual__L73_L20_L6_L3`: pc 344134 to 344984. -/
 def f1243 : CompiledFunction :=
-  ⟨"__loop275", 344134, 850, [f1243c0]⟩
+  ⟨"__loop0_level_residual__L73_L20_L6_L3", 344134, 850, [f1243c0]⟩
 
-/-- `__loop276`: pc 344984 to 345152. -/
+/-- `__loop1_level_residual__L73_L20_L6_L3`: pc 344984 to 345152. -/
 def f1244 : CompiledFunction :=
-  ⟨"__loop276", 344984, 168, [f1244c0]⟩
+  ⟨"__loop1_level_residual__L73_L20_L6_L3", 344984, 168, [f1244c0]⟩
 
-/-- `__loop277`: pc 345152 to 346002. -/
+/-- `__loop0_level_residual__L55_L20_L6_L3`: pc 345152 to 346002. -/
 def f1245 : CompiledFunction :=
-  ⟨"__loop277", 345152, 850, [f1245c0]⟩
+  ⟨"__loop0_level_residual__L55_L20_L6_L3", 345152, 850, [f1245c0]⟩
 
-/-- `__loop278`: pc 346002 to 346170. -/
+/-- `__loop1_level_residual__L55_L20_L6_L3`: pc 346002 to 346170. -/
 def f1246 : CompiledFunction :=
-  ⟨"__loop278", 346002, 168, [f1246c0]⟩
+  ⟨"__loop1_level_residual__L55_L20_L6_L3", 346002, 168, [f1246c0]⟩
 
-/-- `__loop279`: pc 346170 to 346842. -/
+/-- `__loop0_level_residual__L55_L16_L4_L2`: pc 346170 to 346842. -/
 def f1247 : CompiledFunction :=
-  ⟨"__loop279", 346170, 672, [f1247c0]⟩
+  ⟨"__loop0_level_residual__L55_L16_L4_L2", 346170, 672, [f1247c0]⟩
 
-/-- `__loop280`: pc 346842 to 346979. -/
+/-- `__loop1_level_residual__L55_L16_L4_L2`: pc 346842 to 346979. -/
 def f1248 : CompiledFunction :=
-  ⟨"__loop280", 346842, 137, [f1248c0]⟩
+  ⟨"__loop1_level_residual__L55_L16_L4_L2", 346842, 137, [f1248c0]⟩
 
-/-- `__loop281`: pc 346979 to 347651. -/
+/-- `__loop0_level_residual__L44_L16_L4_L2`: pc 346979 to 347651. -/
 def f1249 : CompiledFunction :=
-  ⟨"__loop281", 346979, 672, [f1249c0]⟩
+  ⟨"__loop0_level_residual__L44_L16_L4_L2", 346979, 672, [f1249c0]⟩
 
-/-- `__loop282`: pc 347651 to 347788. -/
+/-- `__loop1_level_residual__L44_L16_L4_L2`: pc 347651 to 347788. -/
 def f1250 : CompiledFunction :=
-  ⟨"__loop282", 347651, 137, [f1250c0]⟩
+  ⟨"__loop1_level_residual__L44_L16_L4_L2", 347651, 137, [f1250c0]⟩
 
-/-- `__loop283`: pc 347788 to 348460. -/
+/-- `__loop0_level_residual__L37_L16_L4_L2`: pc 347788 to 348460. -/
 def f1251 : CompiledFunction :=
-  ⟨"__loop283", 347788, 672, [f1251c0]⟩
+  ⟨"__loop0_level_residual__L37_L16_L4_L2", 347788, 672, [f1251c0]⟩
 
-/-- `__loop284`: pc 348460 to 348597. -/
+/-- `__loop1_level_residual__L37_L16_L4_L2`: pc 348460 to 348597. -/
 def f1252 : CompiledFunction :=
-  ⟨"__loop284", 348460, 137, [f1252c0]⟩
+  ⟨"__loop1_level_residual__L37_L16_L4_L2", 348460, 137, [f1252c0]⟩
 
-/-- `__loop285`: pc 348597 to 349269. -/
+/-- `__loop0_level_residual__L32_L16_L4_L2`: pc 348597 to 349269. -/
 def f1253 : CompiledFunction :=
-  ⟨"__loop285", 348597, 672, [f1253c0]⟩
+  ⟨"__loop0_level_residual__L32_L16_L4_L2", 348597, 672, [f1253c0]⟩
 
-/-- `__loop286`: pc 349269 to 349805. -/
+/-- `__loop0_level_residual__L28_L12_L4_L2`: pc 349269 to 349805. -/
 def f1254 : CompiledFunction :=
-  ⟨"__loop286", 349269, 536, [f1254c0]⟩
+  ⟨"__loop0_level_residual__L28_L12_L4_L2", 349269, 536, [f1254c0]⟩
 
-/-- `__loop287`: pc 349805 to 349918. -/
+/-- `__loop1_level_residual__L28_L12_L4_L2`: pc 349805 to 349918. -/
 def f1255 : CompiledFunction :=
-  ⟨"__loop287", 349805, 113, [f1255c0]⟩
+  ⟨"__loop1_level_residual__L28_L12_L4_L2", 349805, 113, [f1255c0]⟩
 
-/-- `__loop288`: pc 349918 to 350454. -/
+/-- `__loop0_level_residual__L25_L12_L4_L2`: pc 349918 to 350454. -/
 def f1256 : CompiledFunction :=
-  ⟨"__loop288", 349918, 536, [f1256c0]⟩
+  ⟨"__loop0_level_residual__L25_L12_L4_L2", 349918, 536, [f1256c0]⟩
 
-/-- `__loop289`: pc 350454 to 350567. -/
+/-- `__loop1_level_residual__L25_L12_L4_L2`: pc 350454 to 350567. -/
 def f1257 : CompiledFunction :=
-  ⟨"__loop289", 350454, 113, [f1257c0]⟩
+  ⟨"__loop1_level_residual__L25_L12_L4_L2", 350454, 113, [f1257c0]⟩
 
-/-- `__loop290`: pc 350567 to 351103. -/
+/-- `__loop0_level_residual__L23_L12_L4_L2`: pc 350567 to 351103. -/
 def f1258 : CompiledFunction :=
-  ⟨"__loop290", 350567, 536, [f1258c0]⟩
+  ⟨"__loop0_level_residual__L23_L12_L4_L2", 350567, 536, [f1258c0]⟩
 
-/-- `__loop291`: pc 351103 to 351216. -/
+/-- `__loop1_level_residual__L23_L12_L4_L2`: pc 351103 to 351216. -/
 def f1259 : CompiledFunction :=
-  ⟨"__loop291", 351103, 113, [f1259c0]⟩
+  ⟨"__loop1_level_residual__L23_L12_L4_L2", 351103, 113, [f1259c0]⟩
 
-/-- `__loop292`: pc 351216 to 351616. -/
+/-- `__loop0_level_residual__L21_L8_L4_L2`: pc 351216 to 351616. -/
 def f1260 : CompiledFunction :=
-  ⟨"__loop292", 351216, 400, [f1260c0]⟩
+  ⟨"__loop0_level_residual__L21_L8_L4_L2", 351216, 400, [f1260c0]⟩
 
-/-- `__loop293`: pc 351616 to 351705. -/
+/-- `__loop1_level_residual__L21_L8_L4_L2`: pc 351616 to 351705. -/
 def f1261 : CompiledFunction :=
-  ⟨"__loop293", 351616, 89, [f1261c0]⟩
+  ⟨"__loop1_level_residual__L21_L8_L4_L2", 351616, 89, [f1261c0]⟩
 
-/-- `__loop294`: pc 351705 to 352105. -/
+/-- `__loop0_level_residual__L19_L8_L4_L2`: pc 351705 to 352105. -/
 def f1262 : CompiledFunction :=
-  ⟨"__loop294", 351705, 400, [f1262c0]⟩
+  ⟨"__loop0_level_residual__L19_L8_L4_L2", 351705, 400, [f1262c0]⟩
 
-/-- `__loop295`: pc 352105 to 352194. -/
+/-- `__loop1_level_residual__L19_L8_L4_L2`: pc 352105 to 352194. -/
 def f1263 : CompiledFunction :=
-  ⟨"__loop295", 352105, 89, [f1263c0]⟩
+  ⟨"__loop1_level_residual__L19_L8_L4_L2", 352105, 89, [f1263c0]⟩
 
-/-- `__loop296`: pc 352194 to 352594. -/
+/-- `__loop0_level_residual__L18_L8_L4_L2`: pc 352194 to 352594. -/
 def f1264 : CompiledFunction :=
-  ⟨"__loop296", 352194, 400, [f1264c0]⟩
+  ⟨"__loop0_level_residual__L18_L8_L4_L2", 352194, 400, [f1264c0]⟩
 
-/-- `__loop297`: pc 352594 to 352683. -/
+/-- `__loop1_level_residual__L18_L8_L4_L2`: pc 352594 to 352683. -/
 def f1265 : CompiledFunction :=
-  ⟨"__loop297", 352594, 89, [f1265c0]⟩
+  ⟨"__loop1_level_residual__L18_L8_L4_L2", 352594, 89, [f1265c0]⟩
 
-/-- `__loop298`: pc 352683 to 352731. -/
+/-- `__loop0_level_positions__L44_L22_L4`: pc 352683 to 352731. -/
 def f1266 : CompiledFunction :=
-  ⟨"__loop298", 352683, 48, [f1266c0]⟩
+  ⟨"__loop0_level_positions__L44_L22_L4", 352683, 48, [f1266c0]⟩
 
-/-- `__loop299`: pc 352731 to 352779. -/
+/-- `__loop0_level_positions__L22_L23_L5`: pc 352731 to 352779. -/
 def f1267 : CompiledFunction :=
-  ⟨"__loop299", 352731, 48, [f1267c0]⟩
+  ⟨"__loop0_level_positions__L22_L23_L5", 352731, 48, [f1267c0]⟩
 
-/-- `__loop300`: pc 352779 to 352827. -/
+/-- `__loop0_level_positions__L15_L24_L6`: pc 352779 to 352827. -/
 def f1268 : CompiledFunction :=
-  ⟨"__loop300", 352779, 48, [f1268c0]⟩
+  ⟨"__loop0_level_positions__L15_L24_L6", 352779, 48, [f1268c0]⟩
 
 /-- `decode_query_windows__L25_L7`: pc 352827 to 353058. -/
 def f1269 : CompiledFunction :=
   ⟨"decode_query_windows__L25_L7", 352827, 231, [f1269c0]⟩
 
-/-- `__loop301`: pc 353058 to 353106. -/
+/-- `__loop0_level_positions__L11_L25_L7`: pc 353058 to 353106. -/
 def f1270 : CompiledFunction :=
-  ⟨"__loop301", 353058, 48, [f1270c0]⟩
+  ⟨"__loop0_level_positions__L11_L25_L7", 353058, 48, [f1270c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`: pc 353106 to 353131. -/
 def f1271 : CompiledFunction :=
@@ -5136,29 +5136,29 @@ def f1271 : CompiledFunction :=
 def f1272 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 353131, 320, [f1272c0]⟩
 
-/-- `__loop302`: pc 353451 to 353499. -/
+/-- `__loop0_level_positions__L9_L22_L4`: pc 353451 to 353499. -/
 def f1273 : CompiledFunction :=
-  ⟨"__loop302", 353451, 48, [f1273c0]⟩
+  ⟨"__loop0_level_positions__L9_L22_L4", 353451, 48, [f1273c0]⟩
 
-/-- `__loop303`: pc 353499 to 353547. -/
+/-- `__loop0_level_positions__L8_L23_L5`: pc 353499 to 353547. -/
 def f1274 : CompiledFunction :=
-  ⟨"__loop303", 353499, 48, [f1274c0]⟩
+  ⟨"__loop0_level_positions__L8_L23_L5", 353499, 48, [f1274c0]⟩
 
-/-- `__loop304`: pc 353547 to 353595. -/
+/-- `__loop0_level_positions__L7_L24_L6`: pc 353547 to 353595. -/
 def f1275 : CompiledFunction :=
-  ⟨"__loop304", 353547, 48, [f1275c0]⟩
+  ⟨"__loop0_level_positions__L7_L24_L6", 353547, 48, [f1275c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: pc 353595 to 353620. -/
 def f1276 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595, 25, [f1276c0]⟩
 
-/-- `__loop305`: pc 353620 to 353668. -/
+/-- `__loop0_level_positions__L5_L23_L5`: pc 353620 to 353668. -/
 def f1277 : CompiledFunction :=
-  ⟨"__loop305", 353620, 48, [f1277c0]⟩
+  ⟨"__loop0_level_positions__L5_L23_L5", 353620, 48, [f1277c0]⟩
 
-/-- `__loop306`: pc 353668 to 353716. -/
+/-- `__loop0_level_positions__L4_L22_L4`: pc 353668 to 353716. -/
 def f1278 : CompiledFunction :=
-  ⟨"__loop306", 353668, 48, [f1278c0]⟩
+  ⟨"__loop0_level_positions__L4_L22_L4", 353668, 48, [f1278c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1`: pc 353716 to 353739. -/
 def f1279 : CompiledFunction :=
@@ -5172,133 +5172,133 @@ def f1280 : CompiledFunction :=
 def f1281 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1", 353762, 23, [f1281c0]⟩
 
-/-- `__loop307`: pc 353785 to 354669. -/
+/-- `__loop0_level_residual__L218_L21_L6_L3`: pc 353785 to 354669. -/
 def f1282 : CompiledFunction :=
-  ⟨"__loop307", 353785, 884, [f1282c0]⟩
+  ⟨"__loop0_level_residual__L218_L21_L6_L3", 353785, 884, [f1282c0]⟩
 
-/-- `__loop308`: pc 354669 to 354843. -/
+/-- `__loop1_level_residual__L218_L21_L6_L3`: pc 354669 to 354843. -/
 def f1283 : CompiledFunction :=
-  ⟨"__loop308", 354669, 174, [f1283c0]⟩
+  ⟨"__loop1_level_residual__L218_L21_L6_L3", 354669, 174, [f1283c0]⟩
 
-/-- `__loop309`: pc 354843 to 355727. -/
+/-- `__loop0_level_residual__L109_L21_L6_L3`: pc 354843 to 355727. -/
 def f1284 : CompiledFunction :=
-  ⟨"__loop309", 354843, 884, [f1284c0]⟩
+  ⟨"__loop0_level_residual__L109_L21_L6_L3", 354843, 884, [f1284c0]⟩
 
-/-- `__loop310`: pc 355727 to 355901. -/
+/-- `__loop1_level_residual__L109_L21_L6_L3`: pc 355727 to 355901. -/
 def f1285 : CompiledFunction :=
-  ⟨"__loop310", 355727, 174, [f1285c0]⟩
+  ⟨"__loop1_level_residual__L109_L21_L6_L3", 355727, 174, [f1285c0]⟩
 
-/-- `__loop311`: pc 355901 to 356785. -/
+/-- `__loop0_level_residual__L73_L21_L6_L3`: pc 355901 to 356785. -/
 def f1286 : CompiledFunction :=
-  ⟨"__loop311", 355901, 884, [f1286c0]⟩
+  ⟨"__loop0_level_residual__L73_L21_L6_L3", 355901, 884, [f1286c0]⟩
 
-/-- `__loop312`: pc 356785 to 356959. -/
+/-- `__loop1_level_residual__L73_L21_L6_L3`: pc 356785 to 356959. -/
 def f1287 : CompiledFunction :=
-  ⟨"__loop312", 356785, 174, [f1287c0]⟩
+  ⟨"__loop1_level_residual__L73_L21_L6_L3", 356785, 174, [f1287c0]⟩
 
-/-- `__loop313`: pc 356959 to 357843. -/
+/-- `__loop0_level_residual__L55_L21_L6_L3`: pc 356959 to 357843. -/
 def f1288 : CompiledFunction :=
-  ⟨"__loop313", 356959, 884, [f1288c0]⟩
+  ⟨"__loop0_level_residual__L55_L21_L6_L3", 356959, 884, [f1288c0]⟩
 
-/-- `__loop314`: pc 357843 to 358017. -/
+/-- `__loop1_level_residual__L55_L21_L6_L3`: pc 357843 to 358017. -/
 def f1289 : CompiledFunction :=
-  ⟨"__loop314", 357843, 174, [f1289c0]⟩
+  ⟨"__loop1_level_residual__L55_L21_L6_L3", 357843, 174, [f1289c0]⟩
 
-/-- `__loop315`: pc 358017 to 358723. -/
+/-- `__loop0_level_residual__L55_L17_L4_L2`: pc 358017 to 358723. -/
 def f1290 : CompiledFunction :=
-  ⟨"__loop315", 358017, 706, [f1290c0]⟩
+  ⟨"__loop0_level_residual__L55_L17_L4_L2", 358017, 706, [f1290c0]⟩
 
-/-- `__loop316`: pc 358723 to 358866. -/
+/-- `__loop1_level_residual__L55_L17_L4_L2`: pc 358723 to 358866. -/
 def f1291 : CompiledFunction :=
-  ⟨"__loop316", 358723, 143, [f1291c0]⟩
+  ⟨"__loop1_level_residual__L55_L17_L4_L2", 358723, 143, [f1291c0]⟩
 
-/-- `__loop317`: pc 358866 to 359572. -/
+/-- `__loop0_level_residual__L44_L17_L4_L2`: pc 358866 to 359572. -/
 def f1292 : CompiledFunction :=
-  ⟨"__loop317", 358866, 706, [f1292c0]⟩
+  ⟨"__loop0_level_residual__L44_L17_L4_L2", 358866, 706, [f1292c0]⟩
 
-/-- `__loop318`: pc 359572 to 359715. -/
+/-- `__loop1_level_residual__L44_L17_L4_L2`: pc 359572 to 359715. -/
 def f1293 : CompiledFunction :=
-  ⟨"__loop318", 359572, 143, [f1293c0]⟩
+  ⟨"__loop1_level_residual__L44_L17_L4_L2", 359572, 143, [f1293c0]⟩
 
-/-- `__loop319`: pc 359715 to 360421. -/
+/-- `__loop0_level_residual__L37_L17_L4_L2`: pc 359715 to 360421. -/
 def f1294 : CompiledFunction :=
-  ⟨"__loop319", 359715, 706, [f1294c0]⟩
+  ⟨"__loop0_level_residual__L37_L17_L4_L2", 359715, 706, [f1294c0]⟩
 
-/-- `__loop320`: pc 360421 to 360564. -/
+/-- `__loop1_level_residual__L37_L17_L4_L2`: pc 360421 to 360564. -/
 def f1295 : CompiledFunction :=
-  ⟨"__loop320", 360421, 143, [f1295c0]⟩
+  ⟨"__loop1_level_residual__L37_L17_L4_L2", 360421, 143, [f1295c0]⟩
 
-/-- `__loop321`: pc 360564 to 361270. -/
+/-- `__loop0_level_residual__L32_L17_L4_L2`: pc 360564 to 361270. -/
 def f1296 : CompiledFunction :=
-  ⟨"__loop321", 360564, 706, [f1296c0]⟩
+  ⟨"__loop0_level_residual__L32_L17_L4_L2", 360564, 706, [f1296c0]⟩
 
-/-- `__loop322`: pc 361270 to 361840. -/
+/-- `__loop0_level_residual__L28_L13_L4_L2`: pc 361270 to 361840. -/
 def f1297 : CompiledFunction :=
-  ⟨"__loop322", 361270, 570, [f1297c0]⟩
+  ⟨"__loop0_level_residual__L28_L13_L4_L2", 361270, 570, [f1297c0]⟩
 
-/-- `__loop323`: pc 361840 to 361959. -/
+/-- `__loop1_level_residual__L28_L13_L4_L2`: pc 361840 to 361959. -/
 def f1298 : CompiledFunction :=
-  ⟨"__loop323", 361840, 119, [f1298c0]⟩
+  ⟨"__loop1_level_residual__L28_L13_L4_L2", 361840, 119, [f1298c0]⟩
 
-/-- `__loop324`: pc 361959 to 362529. -/
+/-- `__loop0_level_residual__L25_L13_L4_L2`: pc 361959 to 362529. -/
 def f1299 : CompiledFunction :=
-  ⟨"__loop324", 361959, 570, [f1299c0]⟩
+  ⟨"__loop0_level_residual__L25_L13_L4_L2", 361959, 570, [f1299c0]⟩
 
-/-- `__loop325`: pc 362529 to 362648. -/
+/-- `__loop1_level_residual__L25_L13_L4_L2`: pc 362529 to 362648. -/
 def f1300 : CompiledFunction :=
-  ⟨"__loop325", 362529, 119, [f1300c0]⟩
+  ⟨"__loop1_level_residual__L25_L13_L4_L2", 362529, 119, [f1300c0]⟩
 
-/-- `__loop326`: pc 362648 to 363218. -/
+/-- `__loop0_level_residual__L23_L13_L4_L2`: pc 362648 to 363218. -/
 def f1301 : CompiledFunction :=
-  ⟨"__loop326", 362648, 570, [f1301c0]⟩
+  ⟨"__loop0_level_residual__L23_L13_L4_L2", 362648, 570, [f1301c0]⟩
 
-/-- `__loop327`: pc 363218 to 363337. -/
+/-- `__loop1_level_residual__L23_L13_L4_L2`: pc 363218 to 363337. -/
 def f1302 : CompiledFunction :=
-  ⟨"__loop327", 363218, 119, [f1302c0]⟩
+  ⟨"__loop1_level_residual__L23_L13_L4_L2", 363218, 119, [f1302c0]⟩
 
-/-- `__loop328`: pc 363337 to 363771. -/
+/-- `__loop0_level_residual__L21_L9_L4_L2`: pc 363337 to 363771. -/
 def f1303 : CompiledFunction :=
-  ⟨"__loop328", 363337, 434, [f1303c0]⟩
+  ⟨"__loop0_level_residual__L21_L9_L4_L2", 363337, 434, [f1303c0]⟩
 
-/-- `__loop329`: pc 363771 to 363866. -/
+/-- `__loop1_level_residual__L21_L9_L4_L2`: pc 363771 to 363866. -/
 def f1304 : CompiledFunction :=
-  ⟨"__loop329", 363771, 95, [f1304c0]⟩
+  ⟨"__loop1_level_residual__L21_L9_L4_L2", 363771, 95, [f1304c0]⟩
 
-/-- `__loop330`: pc 363866 to 364300. -/
+/-- `__loop0_level_residual__L19_L9_L4_L2`: pc 363866 to 364300. -/
 def f1305 : CompiledFunction :=
-  ⟨"__loop330", 363866, 434, [f1305c0]⟩
+  ⟨"__loop0_level_residual__L19_L9_L4_L2", 363866, 434, [f1305c0]⟩
 
-/-- `__loop331`: pc 364300 to 364395. -/
+/-- `__loop1_level_residual__L19_L9_L4_L2`: pc 364300 to 364395. -/
 def f1306 : CompiledFunction :=
-  ⟨"__loop331", 364300, 95, [f1306c0]⟩
+  ⟨"__loop1_level_residual__L19_L9_L4_L2", 364300, 95, [f1306c0]⟩
 
-/-- `__loop332`: pc 364395 to 364829. -/
+/-- `__loop0_level_residual__L18_L9_L4_L2`: pc 364395 to 364829. -/
 def f1307 : CompiledFunction :=
-  ⟨"__loop332", 364395, 434, [f1307c0]⟩
+  ⟨"__loop0_level_residual__L18_L9_L4_L2", 364395, 434, [f1307c0]⟩
 
-/-- `__loop333`: pc 364829 to 364924. -/
+/-- `__loop1_level_residual__L18_L9_L4_L2`: pc 364829 to 364924. -/
 def f1308 : CompiledFunction :=
-  ⟨"__loop333", 364829, 95, [f1308c0]⟩
+  ⟨"__loop1_level_residual__L18_L9_L4_L2", 364829, 95, [f1308c0]⟩
 
-/-- `__loop334`: pc 364924 to 364972. -/
+/-- `__loop0_level_positions__L44_L23_L5`: pc 364924 to 364972. -/
 def f1309 : CompiledFunction :=
-  ⟨"__loop334", 364924, 48, [f1309c0]⟩
+  ⟨"__loop0_level_positions__L44_L23_L5", 364924, 48, [f1309c0]⟩
 
-/-- `__loop335`: pc 364972 to 365020. -/
+/-- `__loop0_level_positions__L22_L24_L6`: pc 364972 to 365020. -/
 def f1310 : CompiledFunction :=
-  ⟨"__loop335", 364972, 48, [f1310c0]⟩
+  ⟨"__loop0_level_positions__L22_L24_L6", 364972, 48, [f1310c0]⟩
 
-/-- `__loop336`: pc 365020 to 365068. -/
+/-- `__loop0_level_positions__L15_L25_L7`: pc 365020 to 365068. -/
 def f1311 : CompiledFunction :=
-  ⟨"__loop336", 365020, 48, [f1311c0]⟩
+  ⟨"__loop0_level_positions__L15_L25_L7", 365020, 48, [f1311c0]⟩
 
 /-- `decode_query_windows__L26_L2`: pc 365068 to 365299. -/
 def f1312 : CompiledFunction :=
   ⟨"decode_query_windows__L26_L2", 365068, 231, [f1312c0]⟩
 
-/-- `__loop337`: pc 365299 to 365347. -/
+/-- `__loop0_level_positions__L14_L26_L2`: pc 365299 to 365347. -/
 def f1313 : CompiledFunction :=
-  ⟨"__loop337", 365299, 48, [f1313c0]⟩
+  ⟨"__loop0_level_positions__L14_L26_L2", 365299, 48, [f1313c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: pc 365347 to 365372. -/
 def f1314 : CompiledFunction :=
@@ -5308,37 +5308,37 @@ def f1314 : CompiledFunction :=
 def f1315 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 365372, 320, [f1315c0]⟩
 
-/-- `__loop338`: pc 365692 to 365740. -/
+/-- `__loop0_level_positions__L9_L23_L5`: pc 365692 to 365740. -/
 def f1316 : CompiledFunction :=
-  ⟨"__loop338", 365692, 48, [f1316c0]⟩
+  ⟨"__loop0_level_positions__L9_L23_L5", 365692, 48, [f1316c0]⟩
 
-/-- `__loop339`: pc 365740 to 365788. -/
+/-- `__loop0_level_positions__L8_L24_L6`: pc 365740 to 365788. -/
 def f1317 : CompiledFunction :=
-  ⟨"__loop339", 365740, 48, [f1317c0]⟩
+  ⟨"__loop0_level_positions__L8_L24_L6", 365740, 48, [f1317c0]⟩
 
-/-- `__loop340`: pc 365788 to 365836. -/
+/-- `__loop0_level_positions__L7_L25_L7`: pc 365788 to 365836. -/
 def f1318 : CompiledFunction :=
-  ⟨"__loop340", 365788, 48, [f1318c0]⟩
+  ⟨"__loop0_level_positions__L7_L25_L7", 365788, 48, [f1318c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0`: pc 365836 to 365861. -/
 def f1319 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 365836, 25, [f1319c0]⟩
 
-/-- `__loop341`: pc 365861 to 365909. -/
+/-- `__loop0_level_positions__L6_L22_L4`: pc 365861 to 365909. -/
 def f1320 : CompiledFunction :=
-  ⟨"__loop341", 365861, 48, [f1320c0]⟩
+  ⟨"__loop0_level_positions__L6_L22_L4", 365861, 48, [f1320c0]⟩
 
-/-- `__loop342`: pc 365909 to 365957. -/
+/-- `__loop0_level_positions__L5_L24_L6`: pc 365909 to 365957. -/
 def f1321 : CompiledFunction :=
-  ⟨"__loop342", 365909, 48, [f1321c0]⟩
+  ⟨"__loop0_level_positions__L5_L24_L6", 365909, 48, [f1321c0]⟩
 
-/-- `__loop343`: pc 365957 to 366005. -/
+/-- `__loop0_level_positions__L4_L23_L5`: pc 365957 to 366005. -/
 def f1322 : CompiledFunction :=
-  ⟨"__loop343", 365957, 48, [f1322c0]⟩
+  ⟨"__loop0_level_positions__L4_L23_L5", 365957, 48, [f1322c0]⟩
 
-/-- `__loop344`: pc 366005 to 366053. -/
+/-- `__loop0_level_positions__L3_L22_L4`: pc 366005 to 366053. -/
 def f1323 : CompiledFunction :=
-  ⟨"__loop344", 366005, 48, [f1323c0]⟩
+  ⟨"__loop0_level_positions__L3_L22_L4", 366005, 48, [f1323c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1`: pc 366053 to 366076. -/
 def f1324 : CompiledFunction :=
@@ -5352,153 +5352,153 @@ def f1325 : CompiledFunction :=
 def f1326 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", 366099, 23, [f1326c0]⟩
 
-/-- `__loop345`: pc 366122 to 367040. -/
+/-- `__loop0_level_residual__L218_L22_L6_L3`: pc 366122 to 367040. -/
 def f1327 : CompiledFunction :=
-  ⟨"__loop345", 366122, 918, [f1327c0]⟩
+  ⟨"__loop0_level_residual__L218_L22_L6_L3", 366122, 918, [f1327c0]⟩
 
-/-- `__loop346`: pc 367040 to 367220. -/
+/-- `__loop1_level_residual__L218_L22_L6_L3`: pc 367040 to 367220. -/
 def f1328 : CompiledFunction :=
-  ⟨"__loop346", 367040, 180, [f1328c0]⟩
+  ⟨"__loop1_level_residual__L218_L22_L6_L3", 367040, 180, [f1328c0]⟩
 
-/-- `__loop347`: pc 367220 to 368138. -/
+/-- `__loop0_level_residual__L109_L22_L6_L3`: pc 367220 to 368138. -/
 def f1329 : CompiledFunction :=
-  ⟨"__loop347", 367220, 918, [f1329c0]⟩
+  ⟨"__loop0_level_residual__L109_L22_L6_L3", 367220, 918, [f1329c0]⟩
 
-/-- `__loop348`: pc 368138 to 368318. -/
+/-- `__loop1_level_residual__L109_L22_L6_L3`: pc 368138 to 368318. -/
 def f1330 : CompiledFunction :=
-  ⟨"__loop348", 368138, 180, [f1330c0]⟩
+  ⟨"__loop1_level_residual__L109_L22_L6_L3", 368138, 180, [f1330c0]⟩
 
-/-- `__loop349`: pc 368318 to 369236. -/
+/-- `__loop0_level_residual__L73_L22_L6_L3`: pc 368318 to 369236. -/
 def f1331 : CompiledFunction :=
-  ⟨"__loop349", 368318, 918, [f1331c0]⟩
+  ⟨"__loop0_level_residual__L73_L22_L6_L3", 368318, 918, [f1331c0]⟩
 
-/-- `__loop350`: pc 369236 to 369416. -/
+/-- `__loop1_level_residual__L73_L22_L6_L3`: pc 369236 to 369416. -/
 def f1332 : CompiledFunction :=
-  ⟨"__loop350", 369236, 180, [f1332c0]⟩
+  ⟨"__loop1_level_residual__L73_L22_L6_L3", 369236, 180, [f1332c0]⟩
 
-/-- `__loop351`: pc 369416 to 370334. -/
+/-- `__loop0_level_residual__L55_L22_L6_L3`: pc 369416 to 370334. -/
 def f1333 : CompiledFunction :=
-  ⟨"__loop351", 369416, 918, [f1333c0]⟩
+  ⟨"__loop0_level_residual__L55_L22_L6_L3", 369416, 918, [f1333c0]⟩
 
-/-- `__loop352`: pc 370334 to 370514. -/
+/-- `__loop1_level_residual__L55_L22_L6_L3`: pc 370334 to 370514. -/
 def f1334 : CompiledFunction :=
-  ⟨"__loop352", 370334, 180, [f1334c0]⟩
+  ⟨"__loop1_level_residual__L55_L22_L6_L3", 370334, 180, [f1334c0]⟩
 
-/-- `__loop353`: pc 370514 to 371254. -/
+/-- `__loop0_level_residual__L55_L18_L4_L2`: pc 370514 to 371254. -/
 def f1335 : CompiledFunction :=
-  ⟨"__loop353", 370514, 740, [f1335c0]⟩
+  ⟨"__loop0_level_residual__L55_L18_L4_L2", 370514, 740, [f1335c0]⟩
 
-/-- `__loop354`: pc 371254 to 371403. -/
+/-- `__loop1_level_residual__L55_L18_L4_L2`: pc 371254 to 371403. -/
 def f1336 : CompiledFunction :=
-  ⟨"__loop354", 371254, 149, [f1336c0]⟩
+  ⟨"__loop1_level_residual__L55_L18_L4_L2", 371254, 149, [f1336c0]⟩
 
-/-- `__loop355`: pc 371403 to 372143. -/
+/-- `__loop0_level_residual__L44_L18_L4_L2`: pc 371403 to 372143. -/
 def f1337 : CompiledFunction :=
-  ⟨"__loop355", 371403, 740, [f1337c0]⟩
+  ⟨"__loop0_level_residual__L44_L18_L4_L2", 371403, 740, [f1337c0]⟩
 
-/-- `__loop356`: pc 372143 to 372292. -/
+/-- `__loop1_level_residual__L44_L18_L4_L2`: pc 372143 to 372292. -/
 def f1338 : CompiledFunction :=
-  ⟨"__loop356", 372143, 149, [f1338c0]⟩
+  ⟨"__loop1_level_residual__L44_L18_L4_L2", 372143, 149, [f1338c0]⟩
 
-/-- `__loop357`: pc 372292 to 373032. -/
+/-- `__loop0_level_residual__L37_L18_L4_L2`: pc 372292 to 373032. -/
 def f1339 : CompiledFunction :=
-  ⟨"__loop357", 372292, 740, [f1339c0]⟩
+  ⟨"__loop0_level_residual__L37_L18_L4_L2", 372292, 740, [f1339c0]⟩
 
-/-- `__loop358`: pc 373032 to 373181. -/
+/-- `__loop1_level_residual__L37_L18_L4_L2`: pc 373032 to 373181. -/
 def f1340 : CompiledFunction :=
-  ⟨"__loop358", 373032, 149, [f1340c0]⟩
+  ⟨"__loop1_level_residual__L37_L18_L4_L2", 373032, 149, [f1340c0]⟩
 
-/-- `__loop359`: pc 373181 to 373921. -/
+/-- `__loop0_level_residual__L32_L18_L4_L2`: pc 373181 to 373921. -/
 def f1341 : CompiledFunction :=
-  ⟨"__loop359", 373181, 740, [f1341c0]⟩
+  ⟨"__loop0_level_residual__L32_L18_L4_L2", 373181, 740, [f1341c0]⟩
 
-/-- `__loop360`: pc 373921 to 374525. -/
+/-- `__loop0_level_residual__L28_L14_L4_L2`: pc 373921 to 374525. -/
 def f1342 : CompiledFunction :=
-  ⟨"__loop360", 373921, 604, [f1342c0]⟩
+  ⟨"__loop0_level_residual__L28_L14_L4_L2", 373921, 604, [f1342c0]⟩
 
-/-- `__loop361`: pc 374525 to 374650. -/
+/-- `__loop1_level_residual__L28_L14_L4_L2`: pc 374525 to 374650. -/
 def f1343 : CompiledFunction :=
-  ⟨"__loop361", 374525, 125, [f1343c0]⟩
+  ⟨"__loop1_level_residual__L28_L14_L4_L2", 374525, 125, [f1343c0]⟩
 
-/-- `__loop362`: pc 374650 to 375254. -/
+/-- `__loop0_level_residual__L25_L14_L4_L2`: pc 374650 to 375254. -/
 def f1344 : CompiledFunction :=
-  ⟨"__loop362", 374650, 604, [f1344c0]⟩
+  ⟨"__loop0_level_residual__L25_L14_L4_L2", 374650, 604, [f1344c0]⟩
 
-/-- `__loop363`: pc 375254 to 375379. -/
+/-- `__loop1_level_residual__L25_L14_L4_L2`: pc 375254 to 375379. -/
 def f1345 : CompiledFunction :=
-  ⟨"__loop363", 375254, 125, [f1345c0]⟩
+  ⟨"__loop1_level_residual__L25_L14_L4_L2", 375254, 125, [f1345c0]⟩
 
-/-- `__loop364`: pc 375379 to 375983. -/
+/-- `__loop0_level_residual__L23_L14_L4_L2`: pc 375379 to 375983. -/
 def f1346 : CompiledFunction :=
-  ⟨"__loop364", 375379, 604, [f1346c0]⟩
+  ⟨"__loop0_level_residual__L23_L14_L4_L2", 375379, 604, [f1346c0]⟩
 
-/-- `__loop365`: pc 375983 to 376108. -/
+/-- `__loop1_level_residual__L23_L14_L4_L2`: pc 375983 to 376108. -/
 def f1347 : CompiledFunction :=
-  ⟨"__loop365", 375983, 125, [f1347c0]⟩
+  ⟨"__loop1_level_residual__L23_L14_L4_L2", 375983, 125, [f1347c0]⟩
 
-/-- `__loop366`: pc 376108 to 376576. -/
+/-- `__loop0_level_residual__L21_L10_L4_L2`: pc 376108 to 376576. -/
 def f1348 : CompiledFunction :=
-  ⟨"__loop366", 376108, 468, [f1348c0]⟩
+  ⟨"__loop0_level_residual__L21_L10_L4_L2", 376108, 468, [f1348c0]⟩
 
-/-- `__loop367`: pc 376576 to 376677. -/
+/-- `__loop1_level_residual__L21_L10_L4_L2`: pc 376576 to 376677. -/
 def f1349 : CompiledFunction :=
-  ⟨"__loop367", 376576, 101, [f1349c0]⟩
+  ⟨"__loop1_level_residual__L21_L10_L4_L2", 376576, 101, [f1349c0]⟩
 
-/-- `__loop368`: pc 376677 to 377145. -/
+/-- `__loop0_level_residual__L19_L10_L4_L2`: pc 376677 to 377145. -/
 def f1350 : CompiledFunction :=
-  ⟨"__loop368", 376677, 468, [f1350c0]⟩
+  ⟨"__loop0_level_residual__L19_L10_L4_L2", 376677, 468, [f1350c0]⟩
 
-/-- `__loop369`: pc 377145 to 377246. -/
+/-- `__loop1_level_residual__L19_L10_L4_L2`: pc 377145 to 377246. -/
 def f1351 : CompiledFunction :=
-  ⟨"__loop369", 377145, 101, [f1351c0]⟩
+  ⟨"__loop1_level_residual__L19_L10_L4_L2", 377145, 101, [f1351c0]⟩
 
-/-- `__loop370`: pc 377246 to 377714. -/
+/-- `__loop0_level_residual__L18_L10_L4_L2`: pc 377246 to 377714. -/
 def f1352 : CompiledFunction :=
-  ⟨"__loop370", 377246, 468, [f1352c0]⟩
+  ⟨"__loop0_level_residual__L18_L10_L4_L2", 377246, 468, [f1352c0]⟩
 
-/-- `__loop371`: pc 377714 to 377815. -/
+/-- `__loop1_level_residual__L18_L10_L4_L2`: pc 377714 to 377815. -/
 def f1353 : CompiledFunction :=
-  ⟨"__loop371", 377714, 101, [f1353c0]⟩
+  ⟨"__loop1_level_residual__L18_L10_L4_L2", 377714, 101, [f1353c0]⟩
 
-/-- `__loop372`: pc 377815 to 378147. -/
+/-- `__loop0_level_residual__L17_L6_L4_L2`: pc 377815 to 378147. -/
 def f1354 : CompiledFunction :=
-  ⟨"__loop372", 377815, 332, [f1354c0]⟩
+  ⟨"__loop0_level_residual__L17_L6_L4_L2", 377815, 332, [f1354c0]⟩
 
-/-- `__loop373`: pc 378147 to 378224. -/
+/-- `__loop1_level_residual__L17_L6_L4_L2`: pc 378147 to 378224. -/
 def f1355 : CompiledFunction :=
-  ⟨"__loop373", 378147, 77, [f1355c0]⟩
+  ⟨"__loop1_level_residual__L17_L6_L4_L2", 378147, 77, [f1355c0]⟩
 
-/-- `__loop374`: pc 378224 to 378556. -/
+/-- `__loop0_level_residual__L16_L6_L4_L2`: pc 378224 to 378556. -/
 def f1356 : CompiledFunction :=
-  ⟨"__loop374", 378224, 332, [f1356c0]⟩
+  ⟨"__loop0_level_residual__L16_L6_L4_L2", 378224, 332, [f1356c0]⟩
 
-/-- `__loop375`: pc 378556 to 378888. -/
+/-- `__loop0_level_residual__L15_L6_L4_L2`: pc 378556 to 378888. -/
 def f1357 : CompiledFunction :=
-  ⟨"__loop375", 378556, 332, [f1357c0]⟩
+  ⟨"__loop0_level_residual__L15_L6_L4_L2", 378556, 332, [f1357c0]⟩
 
-/-- `__loop376`: pc 378888 to 378965. -/
+/-- `__loop1_level_residual__L15_L6_L4_L2`: pc 378888 to 378965. -/
 def f1358 : CompiledFunction :=
-  ⟨"__loop376", 378888, 77, [f1358c0]⟩
+  ⟨"__loop1_level_residual__L15_L6_L4_L2", 378888, 77, [f1358c0]⟩
 
-/-- `__loop377`: pc 378965 to 379013. -/
+/-- `__loop0_level_positions__L44_L24_L6`: pc 378965 to 379013. -/
 def f1359 : CompiledFunction :=
-  ⟨"__loop377", 378965, 48, [f1359c0]⟩
+  ⟨"__loop0_level_positions__L44_L24_L6", 378965, 48, [f1359c0]⟩
 
-/-- `__loop378`: pc 379013 to 379061. -/
+/-- `__loop0_level_positions__L22_L25_L7`: pc 379013 to 379061. -/
 def f1360 : CompiledFunction :=
-  ⟨"__loop378", 379013, 48, [f1360c0]⟩
+  ⟨"__loop0_level_positions__L22_L25_L7", 379013, 48, [f1360c0]⟩
 
-/-- `__loop379`: pc 379061 to 379109. -/
+/-- `__loop0_level_positions__L19_L26_L2`: pc 379061 to 379109. -/
 def f1361 : CompiledFunction :=
-  ⟨"__loop379", 379061, 48, [f1361c0]⟩
+  ⟨"__loop0_level_positions__L19_L26_L2", 379061, 48, [f1361c0]⟩
 
 /-- `decode_query_windows__L27_L3`: pc 379109 to 379348. -/
 def f1362 : CompiledFunction :=
   ⟨"decode_query_windows__L27_L3", 379109, 239, [f1362c0]⟩
 
-/-- `__loop380`: pc 379348 to 379396. -/
+/-- `__loop0_level_positions__L14_L27_L3`: pc 379348 to 379396. -/
 def f1363 : CompiledFunction :=
-  ⟨"__loop380", 379348, 48, [f1363c0]⟩
+  ⟨"__loop0_level_positions__L14_L27_L3", 379348, 48, [f1363c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`: pc 379396 to 379421. -/
 def f1364 : CompiledFunction :=
@@ -5508,33 +5508,33 @@ def f1364 : CompiledFunction :=
 def f1365 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 379421, 320, [f1365c0]⟩
 
-/-- `__loop381`: pc 379741 to 379789. -/
+/-- `__loop0_level_positions__L9_L24_L6`: pc 379741 to 379789. -/
 def f1366 : CompiledFunction :=
-  ⟨"__loop381", 379741, 48, [f1366c0]⟩
+  ⟨"__loop0_level_positions__L9_L24_L6", 379741, 48, [f1366c0]⟩
 
-/-- `__loop382`: pc 379789 to 379837. -/
+/-- `__loop0_level_positions__L8_L25_L7`: pc 379789 to 379837. -/
 def f1367 : CompiledFunction :=
-  ⟨"__loop382", 379789, 48, [f1367c0]⟩
+  ⟨"__loop0_level_positions__L8_L25_L7", 379789, 48, [f1367c0]⟩
 
-/-- `__loop383`: pc 379837 to 379885. -/
+/-- `__loop0_level_positions__L8_L26_L2`: pc 379837 to 379885. -/
 def f1368 : CompiledFunction :=
-  ⟨"__loop383", 379837, 48, [f1368c0]⟩
+  ⟨"__loop0_level_positions__L8_L26_L2", 379837, 48, [f1368c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: pc 379885 to 379910. -/
 def f1369 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", 379885, 25, [f1369c0]⟩
 
-/-- `__loop384`: pc 379910 to 379958. -/
+/-- `__loop0_level_positions__L6_L23_L5`: pc 379910 to 379958. -/
 def f1370 : CompiledFunction :=
-  ⟨"__loop384", 379910, 48, [f1370c0]⟩
+  ⟨"__loop0_level_positions__L6_L23_L5", 379910, 48, [f1370c0]⟩
 
-/-- `__loop385`: pc 379958 to 380006. -/
+/-- `__loop0_level_positions__L5_L25_L7`: pc 379958 to 380006. -/
 def f1371 : CompiledFunction :=
-  ⟨"__loop385", 379958, 48, [f1371c0]⟩
+  ⟨"__loop0_level_positions__L5_L25_L7", 379958, 48, [f1371c0]⟩
 
-/-- `__loop386`: pc 380006 to 380054. -/
+/-- `__loop0_level_positions__L4_L24_L6`: pc 380006 to 380054. -/
 def f1372 : CompiledFunction :=
-  ⟨"__loop386", 380006, 48, [f1372c0]⟩
+  ⟨"__loop0_level_positions__L4_L24_L6", 380006, 48, [f1372c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1`: pc 380054 to 380077. -/
 def f1373 : CompiledFunction :=
@@ -5548,145 +5548,145 @@ def f1374 : CompiledFunction :=
 def f1375 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", 380100, 23, [f1375c0]⟩
 
-/-- `__loop387`: pc 380123 to 381075. -/
+/-- `__loop0_level_residual__L218_L23_L6_L3`: pc 380123 to 381075. -/
 def f1376 : CompiledFunction :=
-  ⟨"__loop387", 380123, 952, [f1376c0]⟩
+  ⟨"__loop0_level_residual__L218_L23_L6_L3", 380123, 952, [f1376c0]⟩
 
-/-- `__loop388`: pc 381075 to 381261. -/
+/-- `__loop1_level_residual__L218_L23_L6_L3`: pc 381075 to 381261. -/
 def f1377 : CompiledFunction :=
-  ⟨"__loop388", 381075, 186, [f1377c0]⟩
+  ⟨"__loop1_level_residual__L218_L23_L6_L3", 381075, 186, [f1377c0]⟩
 
-/-- `__loop389`: pc 381261 to 382213. -/
+/-- `__loop0_level_residual__L109_L23_L6_L3`: pc 381261 to 382213. -/
 def f1378 : CompiledFunction :=
-  ⟨"__loop389", 381261, 952, [f1378c0]⟩
+  ⟨"__loop0_level_residual__L109_L23_L6_L3", 381261, 952, [f1378c0]⟩
 
-/-- `__loop390`: pc 382213 to 382399. -/
+/-- `__loop1_level_residual__L109_L23_L6_L3`: pc 382213 to 382399. -/
 def f1379 : CompiledFunction :=
-  ⟨"__loop390", 382213, 186, [f1379c0]⟩
+  ⟨"__loop1_level_residual__L109_L23_L6_L3", 382213, 186, [f1379c0]⟩
 
-/-- `__loop391`: pc 382399 to 383351. -/
+/-- `__loop0_level_residual__L73_L23_L6_L3`: pc 382399 to 383351. -/
 def f1380 : CompiledFunction :=
-  ⟨"__loop391", 382399, 952, [f1380c0]⟩
+  ⟨"__loop0_level_residual__L73_L23_L6_L3", 382399, 952, [f1380c0]⟩
 
-/-- `__loop392`: pc 383351 to 383537. -/
+/-- `__loop1_level_residual__L73_L23_L6_L3`: pc 383351 to 383537. -/
 def f1381 : CompiledFunction :=
-  ⟨"__loop392", 383351, 186, [f1381c0]⟩
+  ⟨"__loop1_level_residual__L73_L23_L6_L3", 383351, 186, [f1381c0]⟩
 
-/-- `__loop393`: pc 383537 to 384489. -/
+/-- `__loop0_level_residual__L55_L23_L6_L3`: pc 383537 to 384489. -/
 def f1382 : CompiledFunction :=
-  ⟨"__loop393", 383537, 952, [f1382c0]⟩
+  ⟨"__loop0_level_residual__L55_L23_L6_L3", 383537, 952, [f1382c0]⟩
 
-/-- `__loop394`: pc 384489 to 384675. -/
+/-- `__loop1_level_residual__L55_L23_L6_L3`: pc 384489 to 384675. -/
 def f1383 : CompiledFunction :=
-  ⟨"__loop394", 384489, 186, [f1383c0]⟩
+  ⟨"__loop1_level_residual__L55_L23_L6_L3", 384489, 186, [f1383c0]⟩
 
-/-- `__loop395`: pc 384675 to 385449. -/
+/-- `__loop0_level_residual__L55_L19_L4_L2`: pc 384675 to 385449. -/
 def f1384 : CompiledFunction :=
-  ⟨"__loop395", 384675, 774, [f1384c0]⟩
+  ⟨"__loop0_level_residual__L55_L19_L4_L2", 384675, 774, [f1384c0]⟩
 
-/-- `__loop396`: pc 385449 to 385604. -/
+/-- `__loop1_level_residual__L55_L19_L4_L2`: pc 385449 to 385604. -/
 def f1385 : CompiledFunction :=
-  ⟨"__loop396", 385449, 155, [f1385c0]⟩
+  ⟨"__loop1_level_residual__L55_L19_L4_L2", 385449, 155, [f1385c0]⟩
 
-/-- `__loop397`: pc 385604 to 386378. -/
+/-- `__loop0_level_residual__L44_L19_L4_L2`: pc 385604 to 386378. -/
 def f1386 : CompiledFunction :=
-  ⟨"__loop397", 385604, 774, [f1386c0]⟩
+  ⟨"__loop0_level_residual__L44_L19_L4_L2", 385604, 774, [f1386c0]⟩
 
-/-- `__loop398`: pc 386378 to 386533. -/
+/-- `__loop1_level_residual__L44_L19_L4_L2`: pc 386378 to 386533. -/
 def f1387 : CompiledFunction :=
-  ⟨"__loop398", 386378, 155, [f1387c0]⟩
+  ⟨"__loop1_level_residual__L44_L19_L4_L2", 386378, 155, [f1387c0]⟩
 
-/-- `__loop399`: pc 386533 to 387307. -/
+/-- `__loop0_level_residual__L37_L19_L4_L2`: pc 386533 to 387307. -/
 def f1388 : CompiledFunction :=
-  ⟨"__loop399", 386533, 774, [f1388c0]⟩
+  ⟨"__loop0_level_residual__L37_L19_L4_L2", 386533, 774, [f1388c0]⟩
 
-/-- `__loop400`: pc 387307 to 387462. -/
+/-- `__loop1_level_residual__L37_L19_L4_L2`: pc 387307 to 387462. -/
 def f1389 : CompiledFunction :=
-  ⟨"__loop400", 387307, 155, [f1389c0]⟩
+  ⟨"__loop1_level_residual__L37_L19_L4_L2", 387307, 155, [f1389c0]⟩
 
-/-- `__loop401`: pc 387462 to 388236. -/
+/-- `__loop0_level_residual__L32_L19_L4_L2`: pc 387462 to 388236. -/
 def f1390 : CompiledFunction :=
-  ⟨"__loop401", 387462, 774, [f1390c0]⟩
+  ⟨"__loop0_level_residual__L32_L19_L4_L2", 387462, 774, [f1390c0]⟩
 
-/-- `__loop402`: pc 388236 to 388874. -/
+/-- `__loop0_level_residual__L28_L15_L4_L2`: pc 388236 to 388874. -/
 def f1391 : CompiledFunction :=
-  ⟨"__loop402", 388236, 638, [f1391c0]⟩
+  ⟨"__loop0_level_residual__L28_L15_L4_L2", 388236, 638, [f1391c0]⟩
 
-/-- `__loop403`: pc 388874 to 389005. -/
+/-- `__loop1_level_residual__L28_L15_L4_L2`: pc 388874 to 389005. -/
 def f1392 : CompiledFunction :=
-  ⟨"__loop403", 388874, 131, [f1392c0]⟩
+  ⟨"__loop1_level_residual__L28_L15_L4_L2", 388874, 131, [f1392c0]⟩
 
-/-- `__loop404`: pc 389005 to 389643. -/
+/-- `__loop0_level_residual__L25_L15_L4_L2`: pc 389005 to 389643. -/
 def f1393 : CompiledFunction :=
-  ⟨"__loop404", 389005, 638, [f1393c0]⟩
+  ⟨"__loop0_level_residual__L25_L15_L4_L2", 389005, 638, [f1393c0]⟩
 
-/-- `__loop405`: pc 389643 to 389774. -/
+/-- `__loop1_level_residual__L25_L15_L4_L2`: pc 389643 to 389774. -/
 def f1394 : CompiledFunction :=
-  ⟨"__loop405", 389643, 131, [f1394c0]⟩
+  ⟨"__loop1_level_residual__L25_L15_L4_L2", 389643, 131, [f1394c0]⟩
 
-/-- `__loop406`: pc 389774 to 390412. -/
+/-- `__loop0_level_residual__L23_L15_L4_L2`: pc 389774 to 390412. -/
 def f1395 : CompiledFunction :=
-  ⟨"__loop406", 389774, 638, [f1395c0]⟩
+  ⟨"__loop0_level_residual__L23_L15_L4_L2", 389774, 638, [f1395c0]⟩
 
-/-- `__loop407`: pc 390412 to 390543. -/
+/-- `__loop1_level_residual__L23_L15_L4_L2`: pc 390412 to 390543. -/
 def f1396 : CompiledFunction :=
-  ⟨"__loop407", 390412, 131, [f1396c0]⟩
+  ⟨"__loop1_level_residual__L23_L15_L4_L2", 390412, 131, [f1396c0]⟩
 
-/-- `__loop408`: pc 390543 to 391045. -/
+/-- `__loop0_level_residual__L21_L11_L4_L2`: pc 390543 to 391045. -/
 def f1397 : CompiledFunction :=
-  ⟨"__loop408", 390543, 502, [f1397c0]⟩
+  ⟨"__loop0_level_residual__L21_L11_L4_L2", 390543, 502, [f1397c0]⟩
 
-/-- `__loop409`: pc 391045 to 391152. -/
+/-- `__loop1_level_residual__L21_L11_L4_L2`: pc 391045 to 391152. -/
 def f1398 : CompiledFunction :=
-  ⟨"__loop409", 391045, 107, [f1398c0]⟩
+  ⟨"__loop1_level_residual__L21_L11_L4_L2", 391045, 107, [f1398c0]⟩
 
-/-- `__loop410`: pc 391152 to 391654. -/
+/-- `__loop0_level_residual__L19_L11_L4_L2`: pc 391152 to 391654. -/
 def f1399 : CompiledFunction :=
-  ⟨"__loop410", 391152, 502, [f1399c0]⟩
+  ⟨"__loop0_level_residual__L19_L11_L4_L2", 391152, 502, [f1399c0]⟩
 
-/-- `__loop411`: pc 391654 to 391761. -/
+/-- `__loop1_level_residual__L19_L11_L4_L2`: pc 391654 to 391761. -/
 def f1400 : CompiledFunction :=
-  ⟨"__loop411", 391654, 107, [f1400c0]⟩
+  ⟨"__loop1_level_residual__L19_L11_L4_L2", 391654, 107, [f1400c0]⟩
 
-/-- `__loop412`: pc 391761 to 392263. -/
+/-- `__loop0_level_residual__L18_L11_L4_L2`: pc 391761 to 392263. -/
 def f1401 : CompiledFunction :=
-  ⟨"__loop412", 391761, 502, [f1401c0]⟩
+  ⟨"__loop0_level_residual__L18_L11_L4_L2", 391761, 502, [f1401c0]⟩
 
-/-- `__loop413`: pc 392263 to 392370. -/
+/-- `__loop1_level_residual__L18_L11_L4_L2`: pc 392263 to 392370. -/
 def f1402 : CompiledFunction :=
-  ⟨"__loop413", 392263, 107, [f1402c0]⟩
+  ⟨"__loop1_level_residual__L18_L11_L4_L2", 392263, 107, [f1402c0]⟩
 
-/-- `__loop414`: pc 392370 to 392736. -/
+/-- `__loop0_level_residual__L17_L7_L4_L2`: pc 392370 to 392736. -/
 def f1403 : CompiledFunction :=
-  ⟨"__loop414", 392370, 366, [f1403c0]⟩
+  ⟨"__loop0_level_residual__L17_L7_L4_L2", 392370, 366, [f1403c0]⟩
 
-/-- `__loop415`: pc 392736 to 392819. -/
+/-- `__loop1_level_residual__L17_L7_L4_L2`: pc 392736 to 392819. -/
 def f1404 : CompiledFunction :=
-  ⟨"__loop415", 392736, 83, [f1404c0]⟩
+  ⟨"__loop1_level_residual__L17_L7_L4_L2", 392736, 83, [f1404c0]⟩
 
-/-- `__loop416`: pc 392819 to 393185. -/
+/-- `__loop0_level_residual__L16_L7_L4_L2`: pc 392819 to 393185. -/
 def f1405 : CompiledFunction :=
-  ⟨"__loop416", 392819, 366, [f1405c0]⟩
+  ⟨"__loop0_level_residual__L16_L7_L4_L2", 392819, 366, [f1405c0]⟩
 
-/-- `__loop417`: pc 393185 to 393233. -/
+/-- `__loop0_level_positions__L44_L25_L7`: pc 393185 to 393233. -/
 def f1406 : CompiledFunction :=
-  ⟨"__loop417", 393185, 48, [f1406c0]⟩
+  ⟨"__loop0_level_positions__L44_L25_L7", 393185, 48, [f1406c0]⟩
 
-/-- `__loop418`: pc 393233 to 393281. -/
+/-- `__loop0_level_positions__L28_L26_L2`: pc 393233 to 393281. -/
 def f1407 : CompiledFunction :=
-  ⟨"__loop418", 393233, 48, [f1407c0]⟩
+  ⟨"__loop0_level_positions__L28_L26_L2", 393233, 48, [f1407c0]⟩
 
-/-- `__loop419`: pc 393281 to 393329. -/
+/-- `__loop0_level_positions__L19_L27_L3`: pc 393281 to 393329. -/
 def f1408 : CompiledFunction :=
-  ⟨"__loop419", 393281, 48, [f1408c0]⟩
+  ⟨"__loop0_level_positions__L19_L27_L3", 393281, 48, [f1408c0]⟩
 
 /-- `decode_query_windows__L28_L4`: pc 393329 to 393568. -/
 def f1409 : CompiledFunction :=
   ⟨"decode_query_windows__L28_L4", 393329, 239, [f1409c0]⟩
 
-/-- `__loop420`: pc 393568 to 393616. -/
+/-- `__loop0_level_positions__L14_L28_L4`: pc 393568 to 393616. -/
 def f1410 : CompiledFunction :=
-  ⟨"__loop420", 393568, 48, [f1410c0]⟩
+  ⟨"__loop0_level_positions__L14_L28_L4", 393568, 48, [f1410c0]⟩
 
 /-- `opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`: pc 393616 to 393641. -/
 def f1411 : CompiledFunction :=
@@ -5696,37 +5696,37 @@ def f1411 : CompiledFunction :=
 def f1412 : CompiledFunction :=
   ⟨"opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0", 393641, 320, [f1412c0]⟩
 
-/-- `__loop421`: pc 393961 to 394009. -/
+/-- `__loop0_level_positions__L9_L25_L7`: pc 393961 to 394009. -/
 def f1413 : CompiledFunction :=
-  ⟨"__loop421", 393961, 48, [f1413c0]⟩
+  ⟨"__loop0_level_positions__L9_L25_L7", 393961, 48, [f1413c0]⟩
 
-/-- `__loop422`: pc 394009 to 394057. -/
+/-- `__loop0_level_positions__L10_L26_L2`: pc 394009 to 394057. -/
 def f1414 : CompiledFunction :=
-  ⟨"__loop422", 394009, 48, [f1414c0]⟩
+  ⟨"__loop0_level_positions__L10_L26_L2", 394009, 48, [f1414c0]⟩
 
-/-- `__loop423`: pc 394057 to 394105. -/
+/-- `__loop0_level_positions__L8_L27_L3`: pc 394057 to 394105. -/
 def f1415 : CompiledFunction :=
-  ⟨"__loop423", 394057, 48, [f1415c0]⟩
+  ⟨"__loop0_level_positions__L8_L27_L3", 394057, 48, [f1415c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0`: pc 394105 to 394130. -/
 def f1416 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0", 394105, 25, [f1416c0]⟩
 
-/-- `__loop424`: pc 394130 to 394178. -/
+/-- `__loop0_level_positions__L6_L24_L6`: pc 394130 to 394178. -/
 def f1417 : CompiledFunction :=
-  ⟨"__loop424", 394130, 48, [f1417c0]⟩
+  ⟨"__loop0_level_positions__L6_L24_L6", 394130, 48, [f1417c0]⟩
 
-/-- `__loop425`: pc 394178 to 394226. -/
+/-- `__loop0_level_positions__L6_L26_L2`: pc 394178 to 394226. -/
 def f1418 : CompiledFunction :=
-  ⟨"__loop425", 394178, 48, [f1418c0]⟩
+  ⟨"__loop0_level_positions__L6_L26_L2", 394178, 48, [f1418c0]⟩
 
-/-- `__loop426`: pc 394226 to 394274. -/
+/-- `__loop0_level_positions__L4_L25_L7`: pc 394226 to 394274. -/
 def f1419 : CompiledFunction :=
-  ⟨"__loop426", 394226, 48, [f1419c0]⟩
+  ⟨"__loop0_level_positions__L4_L25_L7", 394226, 48, [f1419c0]⟩
 
-/-- `__loop427`: pc 394274 to 394322. -/
+/-- `__loop0_level_positions__L3_L23_L5`: pc 394274 to 394322. -/
 def f1420 : CompiledFunction :=
-  ⟨"__loop427", 394274, 48, [f1420c0]⟩
+  ⟨"__loop0_level_positions__L3_L23_L5", 394274, 48, [f1420c0]⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1`: pc 394322 to 394345. -/
 def f1421 : CompiledFunction :=
@@ -5740,485 +5740,485 @@ def f1422 : CompiledFunction :=
 def f1423 : CompiledFunction :=
   ⟨"opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1", 394368, 23, [f1423c0]⟩
 
-/-- `__loop428`: pc 394391 to 395377. -/
+/-- `__loop0_level_residual__L218_L24_L6_L3`: pc 394391 to 395377. -/
 def f1424 : CompiledFunction :=
-  ⟨"__loop428", 394391, 986, [f1424c0]⟩
+  ⟨"__loop0_level_residual__L218_L24_L6_L3", 394391, 986, [f1424c0]⟩
 
-/-- `__loop429`: pc 395377 to 395569. -/
+/-- `__loop1_level_residual__L218_L24_L6_L3`: pc 395377 to 395569. -/
 def f1425 : CompiledFunction :=
-  ⟨"__loop429", 395377, 192, [f1425c0]⟩
+  ⟨"__loop1_level_residual__L218_L24_L6_L3", 395377, 192, [f1425c0]⟩
 
-/-- `__loop430`: pc 395569 to 396555. -/
+/-- `__loop0_level_residual__L109_L24_L6_L3`: pc 395569 to 396555. -/
 def f1426 : CompiledFunction :=
-  ⟨"__loop430", 395569, 986, [f1426c0]⟩
+  ⟨"__loop0_level_residual__L109_L24_L6_L3", 395569, 986, [f1426c0]⟩
 
-/-- `__loop431`: pc 396555 to 396747. -/
+/-- `__loop1_level_residual__L109_L24_L6_L3`: pc 396555 to 396747. -/
 def f1427 : CompiledFunction :=
-  ⟨"__loop431", 396555, 192, [f1427c0]⟩
+  ⟨"__loop1_level_residual__L109_L24_L6_L3", 396555, 192, [f1427c0]⟩
 
-/-- `__loop432`: pc 396747 to 397733. -/
+/-- `__loop0_level_residual__L73_L24_L6_L3`: pc 396747 to 397733. -/
 def f1428 : CompiledFunction :=
-  ⟨"__loop432", 396747, 986, [f1428c0]⟩
+  ⟨"__loop0_level_residual__L73_L24_L6_L3", 396747, 986, [f1428c0]⟩
 
-/-- `__loop433`: pc 397733 to 397925. -/
+/-- `__loop1_level_residual__L73_L24_L6_L3`: pc 397733 to 397925. -/
 def f1429 : CompiledFunction :=
-  ⟨"__loop433", 397733, 192, [f1429c0]⟩
+  ⟨"__loop1_level_residual__L73_L24_L6_L3", 397733, 192, [f1429c0]⟩
 
-/-- `__loop434`: pc 397925 to 398911. -/
+/-- `__loop0_level_residual__L55_L24_L6_L3`: pc 397925 to 398911. -/
 def f1430 : CompiledFunction :=
-  ⟨"__loop434", 397925, 986, [f1430c0]⟩
+  ⟨"__loop0_level_residual__L55_L24_L6_L3", 397925, 986, [f1430c0]⟩
 
-/-- `__loop435`: pc 398911 to 399103. -/
+/-- `__loop1_level_residual__L55_L24_L6_L3`: pc 398911 to 399103. -/
 def f1431 : CompiledFunction :=
-  ⟨"__loop435", 398911, 192, [f1431c0]⟩
+  ⟨"__loop1_level_residual__L55_L24_L6_L3", 398911, 192, [f1431c0]⟩
 
-/-- `__loop436`: pc 399103 to 399911. -/
+/-- `__loop0_level_residual__L55_L20_L4_L2`: pc 399103 to 399911. -/
 def f1432 : CompiledFunction :=
-  ⟨"__loop436", 399103, 808, [f1432c0]⟩
+  ⟨"__loop0_level_residual__L55_L20_L4_L2", 399103, 808, [f1432c0]⟩
 
-/-- `__loop437`: pc 399911 to 400072. -/
+/-- `__loop1_level_residual__L55_L20_L4_L2`: pc 399911 to 400072. -/
 def f1433 : CompiledFunction :=
-  ⟨"__loop437", 399911, 161, [f1433c0]⟩
+  ⟨"__loop1_level_residual__L55_L20_L4_L2", 399911, 161, [f1433c0]⟩
 
-/-- `__loop438`: pc 400072 to 400880. -/
+/-- `__loop0_level_residual__L44_L20_L4_L2`: pc 400072 to 400880. -/
 def f1434 : CompiledFunction :=
-  ⟨"__loop438", 400072, 808, [f1434c0]⟩
+  ⟨"__loop0_level_residual__L44_L20_L4_L2", 400072, 808, [f1434c0]⟩
 
-/-- `__loop439`: pc 400880 to 401041. -/
+/-- `__loop1_level_residual__L44_L20_L4_L2`: pc 400880 to 401041. -/
 def f1435 : CompiledFunction :=
-  ⟨"__loop439", 400880, 161, [f1435c0]⟩
+  ⟨"__loop1_level_residual__L44_L20_L4_L2", 400880, 161, [f1435c0]⟩
 
-/-- `__loop440`: pc 401041 to 401849. -/
+/-- `__loop0_level_residual__L37_L20_L4_L2`: pc 401041 to 401849. -/
 def f1436 : CompiledFunction :=
-  ⟨"__loop440", 401041, 808, [f1436c0]⟩
+  ⟨"__loop0_level_residual__L37_L20_L4_L2", 401041, 808, [f1436c0]⟩
 
-/-- `__loop441`: pc 401849 to 402010. -/
+/-- `__loop1_level_residual__L37_L20_L4_L2`: pc 401849 to 402010. -/
 def f1437 : CompiledFunction :=
-  ⟨"__loop441", 401849, 161, [f1437c0]⟩
+  ⟨"__loop1_level_residual__L37_L20_L4_L2", 401849, 161, [f1437c0]⟩
 
-/-- `__loop442`: pc 402010 to 402818. -/
+/-- `__loop0_level_residual__L32_L20_L4_L2`: pc 402010 to 402818. -/
 def f1438 : CompiledFunction :=
-  ⟨"__loop442", 402010, 808, [f1438c0]⟩
+  ⟨"__loop0_level_residual__L32_L20_L4_L2", 402010, 808, [f1438c0]⟩
 
-/-- `__loop443`: pc 402818 to 403490. -/
+/-- `__loop0_level_residual__L28_L16_L4_L2`: pc 402818 to 403490. -/
 def f1439 : CompiledFunction :=
-  ⟨"__loop443", 402818, 672, [f1439c0]⟩
+  ⟨"__loop0_level_residual__L28_L16_L4_L2", 402818, 672, [f1439c0]⟩
 
-/-- `__loop444`: pc 403490 to 403627. -/
+/-- `__loop1_level_residual__L28_L16_L4_L2`: pc 403490 to 403627. -/
 def f1440 : CompiledFunction :=
-  ⟨"__loop444", 403490, 137, [f1440c0]⟩
+  ⟨"__loop1_level_residual__L28_L16_L4_L2", 403490, 137, [f1440c0]⟩
 
-/-- `__loop445`: pc 403627 to 404299. -/
+/-- `__loop0_level_residual__L25_L16_L4_L2`: pc 403627 to 404299. -/
 def f1441 : CompiledFunction :=
-  ⟨"__loop445", 403627, 672, [f1441c0]⟩
+  ⟨"__loop0_level_residual__L25_L16_L4_L2", 403627, 672, [f1441c0]⟩
 
-/-- `__loop446`: pc 404299 to 404436. -/
+/-- `__loop1_level_residual__L25_L16_L4_L2`: pc 404299 to 404436. -/
 def f1442 : CompiledFunction :=
-  ⟨"__loop446", 404299, 137, [f1442c0]⟩
+  ⟨"__loop1_level_residual__L25_L16_L4_L2", 404299, 137, [f1442c0]⟩
 
-/-- `__loop447`: pc 404436 to 405108. -/
+/-- `__loop0_level_residual__L23_L16_L4_L2`: pc 404436 to 405108. -/
 def f1443 : CompiledFunction :=
-  ⟨"__loop447", 404436, 672, [f1443c0]⟩
+  ⟨"__loop0_level_residual__L23_L16_L4_L2", 404436, 672, [f1443c0]⟩
 
-/-- `__loop448`: pc 405108 to 405245. -/
+/-- `__loop1_level_residual__L23_L16_L4_L2`: pc 405108 to 405245. -/
 def f1444 : CompiledFunction :=
-  ⟨"__loop448", 405108, 137, [f1444c0]⟩
+  ⟨"__loop1_level_residual__L23_L16_L4_L2", 405108, 137, [f1444c0]⟩
 
-/-- `__loop449`: pc 405245 to 405781. -/
+/-- `__loop0_level_residual__L21_L12_L4_L2`: pc 405245 to 405781. -/
 def f1445 : CompiledFunction :=
-  ⟨"__loop449", 405245, 536, [f1445c0]⟩
+  ⟨"__loop0_level_residual__L21_L12_L4_L2", 405245, 536, [f1445c0]⟩
 
-/-- `__loop450`: pc 405781 to 405894. -/
+/-- `__loop1_level_residual__L21_L12_L4_L2`: pc 405781 to 405894. -/
 def f1446 : CompiledFunction :=
-  ⟨"__loop450", 405781, 113, [f1446c0]⟩
+  ⟨"__loop1_level_residual__L21_L12_L4_L2", 405781, 113, [f1446c0]⟩
 
-/-- `__loop451`: pc 405894 to 406430. -/
+/-- `__loop0_level_residual__L19_L12_L4_L2`: pc 405894 to 406430. -/
 def f1447 : CompiledFunction :=
-  ⟨"__loop451", 405894, 536, [f1447c0]⟩
+  ⟨"__loop0_level_residual__L19_L12_L4_L2", 405894, 536, [f1447c0]⟩
 
-/-- `__loop452`: pc 406430 to 406543. -/
+/-- `__loop1_level_residual__L19_L12_L4_L2`: pc 406430 to 406543. -/
 def f1448 : CompiledFunction :=
-  ⟨"__loop452", 406430, 113, [f1448c0]⟩
+  ⟨"__loop1_level_residual__L19_L12_L4_L2", 406430, 113, [f1448c0]⟩
 
-/-- `__loop453`: pc 406543 to 407079. -/
+/-- `__loop0_level_residual__L18_L12_L4_L2`: pc 406543 to 407079. -/
 def f1449 : CompiledFunction :=
-  ⟨"__loop453", 406543, 536, [f1449c0]⟩
+  ⟨"__loop0_level_residual__L18_L12_L4_L2", 406543, 536, [f1449c0]⟩
 
-/-- `__loop454`: pc 407079 to 407192. -/
+/-- `__loop1_level_residual__L18_L12_L4_L2`: pc 407079 to 407192. -/
 def f1450 : CompiledFunction :=
-  ⟨"__loop454", 407079, 113, [f1450c0]⟩
+  ⟨"__loop1_level_residual__L18_L12_L4_L2", 407079, 113, [f1450c0]⟩
 
-/-- `__loop455`: pc 407192 to 407592. -/
+/-- `__loop0_level_residual__L17_L8_L4_L2`: pc 407192 to 407592. -/
 def f1451 : CompiledFunction :=
-  ⟨"__loop455", 407192, 400, [f1451c0]⟩
+  ⟨"__loop0_level_residual__L17_L8_L4_L2", 407192, 400, [f1451c0]⟩
 
-/-- `__loop456`: pc 407592 to 407681. -/
+/-- `__loop1_level_residual__L17_L8_L4_L2`: pc 407592 to 407681. -/
 def f1452 : CompiledFunction :=
-  ⟨"__loop456", 407592, 89, [f1452c0]⟩
+  ⟨"__loop1_level_residual__L17_L8_L4_L2", 407592, 89, [f1452c0]⟩
 
-/-- `__loop457`: pc 407681 to 408081. -/
+/-- `__loop0_level_residual__L16_L8_L4_L2`: pc 407681 to 408081. -/
 def f1453 : CompiledFunction :=
-  ⟨"__loop457", 407681, 400, [f1453c0]⟩
+  ⟨"__loop0_level_residual__L16_L8_L4_L2", 407681, 400, [f1453c0]⟩
 
 /-- `walk_path__L12_L3`: pc 408081 to 409259. -/
 def f1454 : CompiledFunction :=
   ⟨"walk_path__L12_L3", 408081, 1178, [f1454c0]⟩
 
-/-- `__loop458`: pc 409259 to 409863. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0`: pc 409259 to 409863. -/
 def f1455 : CompiledFunction :=
-  ⟨"__loop458", 409259, 604, [f1455c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0", 409259, 604, [f1455c0]⟩
 
 /-- `walk_path__L12_L4`: pc 409863 to 411041. -/
 def f1456 : CompiledFunction :=
   ⟨"walk_path__L12_L4", 409863, 1178, [f1456c0]⟩
 
-/-- `__loop459`: pc 411041 to 411645. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`: pc 411041 to 411645. -/
 def f1457 : CompiledFunction :=
-  ⟨"__loop459", 411041, 604, [f1457c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0", 411041, 604, [f1457c0]⟩
 
 /-- `walk_path__L12_L5`: pc 411645 to 412823. -/
 def f1458 : CompiledFunction :=
   ⟨"walk_path__L12_L5", 411645, 1178, [f1458c0]⟩
 
-/-- `__loop460`: pc 412823 to 413427. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: pc 412823 to 413427. -/
 def f1459 : CompiledFunction :=
-  ⟨"__loop460", 412823, 604, [f1459c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0", 412823, 604, [f1459c0]⟩
 
 /-- `walk_path__L12_L6`: pc 413427 to 414605. -/
 def f1460 : CompiledFunction :=
   ⟨"walk_path__L12_L6", 413427, 1178, [f1460c0]⟩
 
-/-- `__loop461`: pc 414605 to 415209. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: pc 414605 to 415209. -/
 def f1461 : CompiledFunction :=
-  ⟨"__loop461", 414605, 604, [f1461c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0", 414605, 604, [f1461c0]⟩
 
-/-- `__loop462`: pc 415209 to 415311. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0`: pc 415209 to 415311. -/
 def f1462 : CompiledFunction :=
-  ⟨"__loop462", 415209, 102, [f1462c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0", 415209, 102, [f1462c0]⟩
 
-/-- `__loop463`: pc 415311 to 415413. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0`: pc 415311 to 415413. -/
 def f1463 : CompiledFunction :=
-  ⟨"__loop463", 415311, 102, [f1463c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0", 415311, 102, [f1463c0]⟩
 
-/-- `__loop464`: pc 415413 to 415515. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0`: pc 415413 to 415515. -/
 def f1464 : CompiledFunction :=
-  ⟨"__loop464", 415413, 102, [f1464c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0", 415413, 102, [f1464c0]⟩
 
-/-- `__loop465`: pc 415515 to 415617. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0`: pc 415515 to 415617. -/
 def f1465 : CompiledFunction :=
-  ⟨"__loop465", 415515, 102, [f1465c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0", 415515, 102, [f1465c0]⟩
 
-/-- `__loop466`: pc 415617 to 415719. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0`: pc 415617 to 415719. -/
 def f1466 : CompiledFunction :=
-  ⟨"__loop466", 415617, 102, [f1466c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0", 415617, 102, [f1466c0]⟩
 
-/-- `__loop467`: pc 415719 to 415846. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`: pc 415719 to 415846. -/
 def f1467 : CompiledFunction :=
-  ⟨"__loop467", 415719, 127, [f1467c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1", 415719, 127, [f1467c0]⟩
 
-/-- `__loop468`: pc 415846 to 415973. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1`: pc 415846 to 415973. -/
 def f1468 : CompiledFunction :=
-  ⟨"__loop468", 415846, 127, [f1468c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1", 415846, 127, [f1468c0]⟩
 
-/-- `__loop469`: pc 415973 to 416100. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`: pc 415973 to 416100. -/
 def f1469 : CompiledFunction :=
-  ⟨"__loop469", 415973, 127, [f1469c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1", 415973, 127, [f1469c0]⟩
 
-/-- `__loop470`: pc 416100 to 416227. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1`: pc 416100 to 416227. -/
 def f1470 : CompiledFunction :=
-  ⟨"__loop470", 416100, 127, [f1470c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1", 416100, 127, [f1470c0]⟩
 
-/-- `__loop471`: pc 416227 to 416831. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`: pc 416227 to 416831. -/
 def f1471 : CompiledFunction :=
-  ⟨"__loop471", 416227, 604, [f1471c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0", 416227, 604, [f1471c0]⟩
 
 /-- `walk_path__L12_L7`: pc 416831 to 418009. -/
 def f1472 : CompiledFunction :=
   ⟨"walk_path__L12_L7", 416831, 1178, [f1472c0]⟩
 
-/-- `__loop472`: pc 418009 to 418613. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: pc 418009 to 418613. -/
 def f1473 : CompiledFunction :=
-  ⟨"__loop472", 418009, 604, [f1473c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0", 418009, 604, [f1473c0]⟩
 
-/-- `__loop473`: pc 418613 to 418715. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0`: pc 418613 to 418715. -/
 def f1474 : CompiledFunction :=
-  ⟨"__loop473", 418613, 102, [f1474c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0", 418613, 102, [f1474c0]⟩
 
-/-- `__loop474`: pc 418715 to 418858. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1`: pc 418715 to 418858. -/
 def f1475 : CompiledFunction :=
-  ⟨"__loop474", 418715, 143, [f1475c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1", 418715, 143, [f1475c0]⟩
 
-/-- `__loop475`: pc 418858 to 419001. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1`: pc 418858 to 419001. -/
 def f1476 : CompiledFunction :=
-  ⟨"__loop475", 418858, 143, [f1476c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1", 418858, 143, [f1476c0]⟩
 
-/-- `__loop476`: pc 419001 to 419144. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: pc 419001 to 419144. -/
 def f1477 : CompiledFunction :=
-  ⟨"__loop476", 419001, 143, [f1477c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", 419001, 143, [f1477c0]⟩
 
-/-- `__loop477`: pc 419144 to 419287. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1`: pc 419144 to 419287. -/
 def f1478 : CompiledFunction :=
-  ⟨"__loop477", 419144, 143, [f1478c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1", 419144, 143, [f1478c0]⟩
 
-/-- `__loop478`: pc 419287 to 419891. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: pc 419287 to 419891. -/
 def f1479 : CompiledFunction :=
-  ⟨"__loop478", 419287, 604, [f1479c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0", 419287, 604, [f1479c0]⟩
 
 /-- `walk_path__L18_L2`: pc 419891 to 421648. -/
 def f1480 : CompiledFunction :=
   ⟨"walk_path__L18_L2", 419891, 1757, [f1480c0]⟩
 
-/-- `__loop479`: pc 421648 to 422252. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0`: pc 421648 to 422252. -/
 def f1481 : CompiledFunction :=
-  ⟨"__loop479", 421648, 604, [f1481c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0", 421648, 604, [f1481c0]⟩
 
-/-- `__loop480`: pc 422252 to 422354. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0`: pc 422252 to 422354. -/
 def f1482 : CompiledFunction :=
-  ⟨"__loop480", 422252, 102, [f1482c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0", 422252, 102, [f1482c0]⟩
 
-/-- `__loop481`: pc 422354 to 422525. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1`: pc 422354 to 422525. -/
 def f1483 : CompiledFunction :=
-  ⟨"__loop481", 422354, 171, [f1483c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1", 422354, 171, [f1483c0]⟩
 
-/-- `__loop482`: pc 422525 to 422696. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1`: pc 422525 to 422696. -/
 def f1484 : CompiledFunction :=
-  ⟨"__loop482", 422525, 171, [f1484c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1", 422525, 171, [f1484c0]⟩
 
-/-- `__loop483`: pc 422696 to 422867. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1`: pc 422696 to 422867. -/
 def f1485 : CompiledFunction :=
-  ⟨"__loop483", 422696, 171, [f1485c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1", 422696, 171, [f1485c0]⟩
 
-/-- `__loop484`: pc 422867 to 423038. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1`: pc 422867 to 423038. -/
 def f1486 : CompiledFunction :=
-  ⟨"__loop484", 422867, 171, [f1486c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1", 422867, 171, [f1486c0]⟩
 
-/-- `__loop485`: pc 423038 to 423642. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: pc 423038 to 423642. -/
 def f1487 : CompiledFunction :=
-  ⟨"__loop485", 423038, 604, [f1487c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0", 423038, 604, [f1487c0]⟩
 
 /-- `walk_path__L18_L3`: pc 423642 to 425399. -/
 def f1488 : CompiledFunction :=
   ⟨"walk_path__L18_L3", 423642, 1757, [f1488c0]⟩
 
-/-- `__loop486`: pc 425399 to 426003. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: pc 425399 to 426003. -/
 def f1489 : CompiledFunction :=
-  ⟨"__loop486", 425399, 604, [f1489c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 425399, 604, [f1489c0]⟩
 
-/-- `__loop487`: pc 426003 to 426105. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0`: pc 426003 to 426105. -/
 def f1490 : CompiledFunction :=
-  ⟨"__loop487", 426003, 102, [f1490c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 426003, 102, [f1490c0]⟩
 
-/-- `__loop488`: pc 426105 to 426328. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1`: pc 426105 to 426328. -/
 def f1491 : CompiledFunction :=
-  ⟨"__loop488", 426105, 223, [f1491c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1", 426105, 223, [f1491c0]⟩
 
-/-- `__loop489`: pc 426328 to 426551. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1`: pc 426328 to 426551. -/
 def f1492 : CompiledFunction :=
-  ⟨"__loop489", 426328, 223, [f1492c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1", 426328, 223, [f1492c0]⟩
 
-/-- `__loop490`: pc 426551 to 426774. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1`: pc 426551 to 426774. -/
 def f1493 : CompiledFunction :=
-  ⟨"__loop490", 426551, 223, [f1493c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1", 426551, 223, [f1493c0]⟩
 
-/-- `__loop491`: pc 426774 to 426997. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1`: pc 426774 to 426997. -/
 def f1494 : CompiledFunction :=
-  ⟨"__loop491", 426774, 223, [f1494c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1", 426774, 223, [f1494c0]⟩
 
-/-- `__loop492`: pc 426997 to 427601. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: pc 426997 to 427601. -/
 def f1495 : CompiledFunction :=
-  ⟨"__loop492", 426997, 604, [f1495c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0", 426997, 604, [f1495c0]⟩
 
 /-- `walk_path__L18_L4`: pc 427601 to 429358. -/
 def f1496 : CompiledFunction :=
   ⟨"walk_path__L18_L4", 427601, 1757, [f1496c0]⟩
 
-/-- `__loop493`: pc 429358 to 429962. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`: pc 429358 to 429962. -/
 def f1497 : CompiledFunction :=
-  ⟨"__loop493", 429358, 604, [f1497c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0", 429358, 604, [f1497c0]⟩
 
-/-- `__loop494`: pc 429962 to 430064. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0`: pc 429962 to 430064. -/
 def f1498 : CompiledFunction :=
-  ⟨"__loop494", 429962, 102, [f1498c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 429962, 102, [f1498c0]⟩
 
-/-- `__loop495`: pc 430064 to 430191. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: pc 430064 to 430191. -/
 def f1499 : CompiledFunction :=
-  ⟨"__loop495", 430064, 127, [f1499c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1", 430064, 127, [f1499c0]⟩
 
-/-- `__loop496`: pc 430191 to 430318. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1`: pc 430191 to 430318. -/
 def f1500 : CompiledFunction :=
-  ⟨"__loop496", 430191, 127, [f1500c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1", 430191, 127, [f1500c0]⟩
 
-/-- `__loop497`: pc 430318 to 430445. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`: pc 430318 to 430445. -/
 def f1501 : CompiledFunction :=
-  ⟨"__loop497", 430318, 127, [f1501c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1", 430318, 127, [f1501c0]⟩
 
-/-- `__loop498`: pc 430445 to 431049. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0`: pc 430445 to 431049. -/
 def f1502 : CompiledFunction :=
-  ⟨"__loop498", 430445, 604, [f1502c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0", 430445, 604, [f1502c0]⟩
 
 /-- `walk_path__L18_L5`: pc 431049 to 432806. -/
 def f1503 : CompiledFunction :=
   ⟨"walk_path__L18_L5", 431049, 1757, [f1503c0]⟩
 
-/-- `__loop499`: pc 432806 to 433410. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: pc 432806 to 433410. -/
 def f1504 : CompiledFunction :=
-  ⟨"__loop499", 432806, 604, [f1504c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0", 432806, 604, [f1504c0]⟩
 
-/-- `__loop500`: pc 433410 to 433512. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0`: pc 433410 to 433512. -/
 def f1505 : CompiledFunction :=
-  ⟨"__loop500", 433410, 102, [f1505c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 433410, 102, [f1505c0]⟩
 
-/-- `__loop501`: pc 433512 to 433655. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1`: pc 433512 to 433655. -/
 def f1506 : CompiledFunction :=
-  ⟨"__loop501", 433512, 143, [f1506c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1", 433512, 143, [f1506c0]⟩
 
-/-- `__loop502`: pc 433655 to 433798. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1`: pc 433655 to 433798. -/
 def f1507 : CompiledFunction :=
-  ⟨"__loop502", 433655, 143, [f1507c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1", 433655, 143, [f1507c0]⟩
 
-/-- `__loop503`: pc 433798 to 433941. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1`: pc 433798 to 433941. -/
 def f1508 : CompiledFunction :=
-  ⟨"__loop503", 433798, 143, [f1508c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1", 433798, 143, [f1508c0]⟩
 
-/-- `__loop504`: pc 433941 to 434545. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: pc 433941 to 434545. -/
 def f1509 : CompiledFunction :=
-  ⟨"__loop504", 433941, 604, [f1509c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 433941, 604, [f1509c0]⟩
 
 /-- `walk_path__L18_L6`: pc 434545 to 436302. -/
 def f1510 : CompiledFunction :=
   ⟨"walk_path__L18_L6", 434545, 1757, [f1510c0]⟩
 
-/-- `__loop505`: pc 436302 to 436906. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`: pc 436302 to 436906. -/
 def f1511 : CompiledFunction :=
-  ⟨"__loop505", 436302, 604, [f1511c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 436302, 604, [f1511c0]⟩
 
-/-- `__loop506`: pc 436906 to 437008. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: pc 436906 to 437008. -/
 def f1512 : CompiledFunction :=
-  ⟨"__loop506", 436906, 102, [f1512c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 436906, 102, [f1512c0]⟩
 
-/-- `__loop507`: pc 437008 to 437179. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1`: pc 437008 to 437179. -/
 def f1513 : CompiledFunction :=
-  ⟨"__loop507", 437008, 171, [f1513c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1", 437008, 171, [f1513c0]⟩
 
-/-- `__loop508`: pc 437179 to 437350. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1`: pc 437179 to 437350. -/
 def f1514 : CompiledFunction :=
-  ⟨"__loop508", 437179, 171, [f1514c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1", 437179, 171, [f1514c0]⟩
 
-/-- `__loop509`: pc 437350 to 437521. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`: pc 437350 to 437521. -/
 def f1515 : CompiledFunction :=
-  ⟨"__loop509", 437350, 171, [f1515c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1", 437350, 171, [f1515c0]⟩
 
-/-- `__loop510`: pc 437521 to 438125. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`: pc 437521 to 438125. -/
 def f1516 : CompiledFunction :=
-  ⟨"__loop510", 437521, 604, [f1516c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0", 437521, 604, [f1516c0]⟩
 
 /-- `walk_path__L18_L7`: pc 438125 to 439882. -/
 def f1517 : CompiledFunction :=
   ⟨"walk_path__L18_L7", 438125, 1757, [f1517c0]⟩
 
-/-- `__loop511`: pc 439882 to 440486. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`: pc 439882 to 440486. -/
 def f1518 : CompiledFunction :=
-  ⟨"__loop511", 439882, 604, [f1518c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 439882, 604, [f1518c0]⟩
 
-/-- `__loop512`: pc 440486 to 440588. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: pc 440486 to 440588. -/
 def f1519 : CompiledFunction :=
-  ⟨"__loop512", 440486, 102, [f1519c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 440486, 102, [f1519c0]⟩
 
-/-- `__loop513`: pc 440588 to 440811. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1`: pc 440588 to 440811. -/
 def f1520 : CompiledFunction :=
-  ⟨"__loop513", 440588, 223, [f1520c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1", 440588, 223, [f1520c0]⟩
 
-/-- `__loop514`: pc 440811 to 441034. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1`: pc 440811 to 441034. -/
 def f1521 : CompiledFunction :=
-  ⟨"__loop514", 440811, 223, [f1521c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1", 440811, 223, [f1521c0]⟩
 
-/-- `__loop515`: pc 441034 to 441257. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1`: pc 441034 to 441257. -/
 def f1522 : CompiledFunction :=
-  ⟨"__loop515", 441034, 223, [f1522c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1", 441034, 223, [f1522c0]⟩
 
-/-- `__loop516`: pc 441257 to 441861. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: pc 441257 to 441861. -/
 def f1523 : CompiledFunction :=
-  ⟨"__loop516", 441257, 604, [f1523c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0", 441257, 604, [f1523c0]⟩
 
 /-- `walk_path__L24_L2`: pc 441861 to 444197. -/
 def f1524 : CompiledFunction :=
   ⟨"walk_path__L24_L2", 441861, 2336, [f1524c0, f1524c1]⟩
 
-/-- `__loop517`: pc 444197 to 444801. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0`: pc 444197 to 444801. -/
 def f1525 : CompiledFunction :=
-  ⟨"__loop517", 444197, 604, [f1525c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 444197, 604, [f1525c0]⟩
 
-/-- `__loop518`: pc 444801 to 444903. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0`: pc 444801 to 444903. -/
 def f1526 : CompiledFunction :=
-  ⟨"__loop518", 444801, 102, [f1526c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 444801, 102, [f1526c0]⟩
 
-/-- `__loop519`: pc 444903 to 445030. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1`: pc 444903 to 445030. -/
 def f1527 : CompiledFunction :=
-  ⟨"__loop519", 444903, 127, [f1527c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1", 444903, 127, [f1527c0]⟩
 
-/-- `__loop520`: pc 445030 to 445157. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1`: pc 445030 to 445157. -/
 def f1528 : CompiledFunction :=
-  ⟨"__loop520", 445030, 127, [f1528c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1", 445030, 127, [f1528c0]⟩
 
-/-- `__loop521`: pc 445157 to 445284. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1`: pc 445157 to 445284. -/
 def f1529 : CompiledFunction :=
-  ⟨"__loop521", 445157, 127, [f1529c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", 445157, 127, [f1529c0]⟩
 
-/-- `__loop522`: pc 445284 to 445888. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`: pc 445284 to 445888. -/
 def f1530 : CompiledFunction :=
-  ⟨"__loop522", 445284, 604, [f1530c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 445284, 604, [f1530c0]⟩
 
 /-- `walk_path__L24_L3`: pc 445888 to 448224. -/
 def f1531 : CompiledFunction :=
   ⟨"walk_path__L24_L3", 445888, 2336, [f1531c0, f1531c1]⟩
 
-/-- `__loop523`: pc 448224 to 448828. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0`: pc 448224 to 448828. -/
 def f1532 : CompiledFunction :=
-  ⟨"__loop523", 448224, 604, [f1532c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 448224, 604, [f1532c0]⟩
 
-/-- `__loop524`: pc 448828 to 448930. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: pc 448828 to 448930. -/
 def f1533 : CompiledFunction :=
-  ⟨"__loop524", 448828, 102, [f1533c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", 448828, 102, [f1533c0]⟩
 
-/-- `__loop525`: pc 448930 to 449073. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1`: pc 448930 to 449073. -/
 def f1534 : CompiledFunction :=
-  ⟨"__loop525", 448930, 143, [f1534c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1", 448930, 143, [f1534c0]⟩
 
-/-- `__loop526`: pc 449073 to 449216. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1`: pc 449073 to 449216. -/
 def f1535 : CompiledFunction :=
-  ⟨"__loop526", 449073, 143, [f1535c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1", 449073, 143, [f1535c0]⟩
 
-/-- `__loop527`: pc 449216 to 449359. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1`: pc 449216 to 449359. -/
 def f1536 : CompiledFunction :=
-  ⟨"__loop527", 449216, 143, [f1536c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", 449216, 143, [f1536c0]⟩
 
-/-- `__loop528`: pc 449359 to 449963. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`: pc 449359 to 449963. -/
 def f1537 : CompiledFunction :=
-  ⟨"__loop528", 449359, 604, [f1537c0]⟩
+  ⟨"__loop0_opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 449359, 604, [f1537c0]⟩
 
 /-- `walk_path__L24_L4`: pc 449963 to 452299. -/
 def f1538 : CompiledFunction :=
   ⟨"walk_path__L24_L4", 449963, 2336, [f1538c0, f1538c1]⟩
 
-/-- `__loop529`: pc 452299 to 452903. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0`: pc 452299 to 452903. -/
 def f1539 : CompiledFunction :=
-  ⟨"__loop529", 452299, 604, [f1539c0]⟩
+  ⟨"__loop0_opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0", 452299, 604, [f1539c0]⟩
 
-/-- `__loop530`: pc 452903 to 453005. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0`: pc 452903 to 453005. -/
 def f1540 : CompiledFunction :=
-  ⟨"__loop530", 452903, 102, [f1540c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0", 452903, 102, [f1540c0]⟩
 
-/-- `__loop531`: pc 453005 to 453176. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1`: pc 453005 to 453176. -/
 def f1541 : CompiledFunction :=
-  ⟨"__loop531", 453005, 171, [f1541c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1", 453005, 171, [f1541c0]⟩
 
-/-- `__loop532`: pc 453176 to 453347. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1`: pc 453176 to 453347. -/
 def f1542 : CompiledFunction :=
-  ⟨"__loop532", 453176, 171, [f1542c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1", 453176, 171, [f1542c0]⟩
 
-/-- `__loop533`: pc 453347 to 453518. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1`: pc 453347 to 453518. -/
 def f1543 : CompiledFunction :=
-  ⟨"__loop533", 453347, 171, [f1543c0]⟩
+  ⟨"__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1", 453347, 171, [f1543c0]⟩
 
 /-- `walk_path__L12_L2`: pc 453518 to 454696. -/
 def f1544 : CompiledFunction :=

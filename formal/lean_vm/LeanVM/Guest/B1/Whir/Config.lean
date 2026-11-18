@@ -176,8 +176,5 @@ def natStrAux : Nat → Nat → String
 importing modules); `natStr_eq` proves them equal. -/
 def natStr (n : Nat) : String := natStrAux (n + 1) n
 
-/-- The name of the loop helper `__loop{n}`. -/
-def loopName (n : Nat) : String := "__loop" ++ natStr n
-
 end
 end LeanVM.Guest.B1.Whir

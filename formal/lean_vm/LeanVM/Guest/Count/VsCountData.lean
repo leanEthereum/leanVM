@@ -37,16 +37,16 @@ def ccmJ : List ℕ := [389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 4
 def lsJ : ℕ := 22
 
 /-- The children's claim lists' loops: `child_claim_list_any`'s per `136` and per `17` claims, `child_claim_list_mono`'s. -/
-def ccLpNames : List String := ["__loop18", "__loop19", "__loop20", "__loop21"]
+def ccLpNames : List String := ["__loop0_child_claim_list_any", "__loop1_child_claim_list_any", "__loop0_child_claim_list_mono", "__loop1_child_claim_list_mono"]
 
 /-- Their core indices. -/
 def ccLpJ : List ℕ := [368, 369, 387, 388]
 
-/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
+/-- The core indices of `verify_sub`, `child_claim_list_digest`, `main_loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
 def omJ : List ℕ := [18, 24, 40, 25, 26]
 
 /-- Their names. -/
-def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4", "child_claim_list_any", "child_claim_list_mono"]
+def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4_main", "child_claim_list_any", "child_claim_list_mono"]
 
 /-- `open_stacked__L{c}`'s instructions, by `c`. -/
 def kcOsT : Opcode → List ℕ

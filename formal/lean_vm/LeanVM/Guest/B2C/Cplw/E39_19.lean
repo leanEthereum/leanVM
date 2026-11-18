@@ -14,7 +14,7 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop2`, window 19: one `match`, by 8 groups of arms. -/
+/-- `__loop2_main`, window 19: one `match`, by 8 groups of arms. -/
 theorem cw39_19_0 : cplWin 39 19 0 = true :=
   cplWin_of_split [(1, 33, 47, 1536, 0, 47), (33, 65, 1583, 1536, 0, 47), (65, 97, 3119, 1536, 0, 47), (97, 129, 4655, 1536, 0, 47), (129, 161, 6191, 1536, 0, 47), (161, 193, 7727, 1536, 0, 47), (193, 225, 9263, 1536, 0, 47), (225, 256, 10799, 1488, 0, 47)]
     (1, 33, 47, 1536, 0, 47) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by

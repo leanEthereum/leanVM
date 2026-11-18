@@ -17,7 +17,7 @@ set_option maxRecDepth 20000
 
 @[expose] public section
 
-/-- `__loop433` from offset 0. -/
+/-- `__loop1_level_residual__L73_L24_L6_L3` from offset 0. -/
 def f1429c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -212,7 +212,7 @@ def f1429c0 : List OffsetInstruction := [
   .jump 196 199 198,
   .jump 19 0 1]
 
-/-- `__loop434` from offset 0. -/
+/-- `__loop0_level_residual__L55_L24_L6_L3` from offset 0. -/
 def f1430c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -1201,7 +1201,7 @@ def f1430c0 : List OffsetInstruction := [
   .jump 1074 1077 1076,
   .jump 24 0 1]
 
-/-- `__loop435` from offset 0. -/
+/-- `__loop1_level_residual__L55_L24_L6_L3` from offset 0. -/
 def f1431c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -1396,7 +1396,7 @@ def f1431c0 : List OffsetInstruction := [
   .jump 196 199 198,
   .jump 19 0 1]
 
-/-- `__loop436` from offset 0. -/
+/-- `__loop0_level_residual__L55_L20_L4_L2` from offset 0. -/
 def f1432c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -2207,7 +2207,7 @@ def f1432c0 : List OffsetInstruction := [
   .jump 920 923 922,
   .jump 24 0 1]
 
-/-- `__loop437` from offset 0. -/
+/-- `__loop1_level_residual__L55_L20_L4_L2` from offset 0. -/
 def f1433c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -2371,7 +2371,7 @@ def f1433c0 : List OffsetInstruction := [
   .jump 168 171 170,
   .jump 19 0 1]
 
-/-- `__loop438` from offset 0. -/
+/-- `__loop0_level_residual__L44_L20_L4_L2` from offset 0. -/
 def f1434c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -3182,7 +3182,7 @@ def f1434c0 : List OffsetInstruction := [
   .jump 920 923 922,
   .jump 24 0 1]
 
-/-- `__loop439` from offset 0. -/
+/-- `__loop1_level_residual__L44_L20_L4_L2` from offset 0. -/
 def f1435c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -3346,7 +3346,7 @@ def f1435c0 : List OffsetInstruction := [
   .jump 168 171 170,
   .jump 19 0 1]
 
-/-- `__loop440` from offset 0. -/
+/-- `__loop0_level_residual__L37_L20_L4_L2` from offset 0. -/
 def f1436c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -4157,7 +4157,7 @@ def f1436c0 : List OffsetInstruction := [
   .jump 920 923 922,
   .jump 24 0 1]
 
-/-- `__loop441` from offset 0. -/
+/-- `__loop1_level_residual__L37_L20_L4_L2` from offset 0. -/
 def f1437c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -4321,7 +4321,7 @@ def f1437c0 : List OffsetInstruction := [
   .jump 168 171 170,
   .jump 19 0 1]
 
-/-- `__loop442` from offset 0. -/
+/-- `__loop0_level_residual__L32_L20_L4_L2` from offset 0. -/
 def f1438c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -5132,7 +5132,7 @@ def f1438c0 : List OffsetInstruction := [
   .jump 920 923 922,
   .jump 24 0 1]
 
-/-- `__loop443` from offset 0. -/
+/-- `__loop0_level_residual__L28_L16_L4_L2` from offset 0. -/
 def f1439c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -5807,7 +5807,7 @@ def f1439c0 : List OffsetInstruction := [
   .jump 784 787 786,
   .jump 24 0 1]
 
-/-- `__loop444` from offset 0. -/
+/-- `__loop1_level_residual__L28_L16_L4_L2` from offset 0. -/
 def f1440c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -5947,7 +5947,7 @@ def f1440c0 : List OffsetInstruction := [
   .jump 144 147 146,
   .jump 19 0 1]
 
-/-- `__loop445` from offset 0. -/
+/-- `__loop0_level_residual__L25_L16_L4_L2` from offset 0. -/
 def f1441c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -6622,7 +6622,7 @@ def f1441c0 : List OffsetInstruction := [
   .jump 784 787 786,
   .jump 24 0 1]
 
-/-- `__loop446` from offset 0. -/
+/-- `__loop1_level_residual__L25_L16_L4_L2` from offset 0. -/
 def f1442c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -6762,7 +6762,7 @@ def f1442c0 : List OffsetInstruction := [
   .jump 144 147 146,
   .jump 19 0 1]
 
-/-- `__loop447` from offset 0. -/
+/-- `__loop0_level_residual__L23_L16_L4_L2` from offset 0. -/
 def f1443c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -7437,7 +7437,7 @@ def f1443c0 : List OffsetInstruction := [
   .jump 784 787 786,
   .jump 24 0 1]
 
-/-- `__loop448` from offset 0. -/
+/-- `__loop1_level_residual__L23_L16_L4_L2` from offset 0. -/
 def f1444c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -7577,7 +7577,7 @@ def f1444c0 : List OffsetInstruction := [
   .jump 144 147 146,
   .jump 19 0 1]
 
-/-- `__loop449` from offset 0. -/
+/-- `__loop0_level_residual__L21_L12_L4_L2` from offset 0. -/
 def f1445c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -8116,7 +8116,7 @@ def f1445c0 : List OffsetInstruction := [
   .jump 648 651 650,
   .jump 24 0 1]
 
-/-- `__loop450` from offset 0. -/
+/-- `__loop1_level_residual__L21_L12_L4_L2` from offset 0. -/
 def f1446c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -8232,7 +8232,7 @@ def f1446c0 : List OffsetInstruction := [
   .jump 120 123 122,
   .jump 19 0 1]
 
-/-- `__loop451` from offset 0. -/
+/-- `__loop0_level_residual__L19_L12_L4_L2` from offset 0. -/
 def f1447c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -8771,7 +8771,7 @@ def f1447c0 : List OffsetInstruction := [
   .jump 648 651 650,
   .jump 24 0 1]
 
-/-- `__loop452` from offset 0. -/
+/-- `__loop1_level_residual__L19_L12_L4_L2` from offset 0. -/
 def f1448c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -8887,7 +8887,7 @@ def f1448c0 : List OffsetInstruction := [
   .jump 120 123 122,
   .jump 19 0 1]
 
-/-- `__loop453` from offset 0. -/
+/-- `__loop0_level_residual__L18_L12_L4_L2` from offset 0. -/
 def f1449c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -9426,7 +9426,7 @@ def f1449c0 : List OffsetInstruction := [
   .jump 648 651 650,
   .jump 24 0 1]
 
-/-- `__loop454` from offset 0. -/
+/-- `__loop1_level_residual__L18_L12_L4_L2` from offset 0. -/
 def f1450c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -9542,7 +9542,7 @@ def f1450c0 : List OffsetInstruction := [
   .jump 120 123 122,
   .jump 19 0 1]
 
-/-- `__loop455` from offset 0. -/
+/-- `__loop0_level_residual__L17_L8_L4_L2` from offset 0. -/
 def f1451c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -9945,7 +9945,7 @@ def f1451c0 : List OffsetInstruction := [
   .jump 512 515 514,
   .jump 24 0 1]
 
-/-- `__loop456` from offset 0. -/
+/-- `__loop1_level_residual__L17_L8_L4_L2` from offset 0. -/
 def f1452c0 : List OffsetInstruction := [
   .mul 4 2 10,
   .mul 10 2 11,
@@ -10037,7 +10037,7 @@ def f1452c0 : List OffsetInstruction := [
   .jump 96 99 98,
   .jump 19 0 1]
 
-/-- `__loop457` from offset 0. -/
+/-- `__loop0_level_residual__L16_L8_L4_L2` from offset 0. -/
 def f1453c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,
@@ -11621,7 +11621,7 @@ def f1454c0 : List OffsetInstruction := [
   .deref 152 17 130 .cell,
   .jump 106 0 1]
 
-/-- `__loop458` from offset 0. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0` from offset 0. -/
 def f1455c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,
@@ -13409,7 +13409,7 @@ def f1456c0 : List OffsetInstruction := [
   .deref 152 33 130 .cell,
   .jump 106 0 1]
 
-/-- `__loop459` from offset 0. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0` from offset 0. -/
 def f1457c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,
@@ -15197,7 +15197,7 @@ def f1458c0 : List OffsetInstruction := [
   .deref 152 65 130 .cell,
   .jump 106 0 1]
 
-/-- `__loop460` from offset 0. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0` from offset 0. -/
 def f1459c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,

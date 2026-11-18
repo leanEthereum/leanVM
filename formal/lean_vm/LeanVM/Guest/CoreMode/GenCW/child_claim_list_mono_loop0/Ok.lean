@@ -45,7 +45,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 /-- `child_claim_list_mono_loop0`: the heap check, in 11 windows. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
-    | "__loop20" => Fn.«child_claim_list_mono_loop0».hcert.sig | _ => .empty)
+    | "__loop0_child_claim_list_mono" => Fn.«child_claim_list_mono_loop0».hcert.sig | _ => .empty)
     core hcert = true :=
   CoreMode.heapOkC_of_wins (l := [(579, HeapW.st1), (786, HeapW.st2), (929, HeapW.st3), (1040, HeapW.st4), (1138, HeapW.st5), (1217, HeapW.st6), (1293, HeapW.st7), (1359, HeapW.st8), (1416, HeapW.st9), (1479, HeapW.st10), (2182, HeapW.st11)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,

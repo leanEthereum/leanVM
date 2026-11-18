@@ -19,6 +19,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 noncomputable def anyLink : Link := ⟨[
   (name% «child_claim_list_any_loop0», 3, 6),
   (name% «child_claim_list_any_loop1», 3, 6),
+  (name% «child_claim_list_last__L0», 1, 4),
   (name% «child_claim_list_last__L1», 1, 4),
   (name% «child_claim_list_last__L10», 1, 4),
   (name% «child_claim_list_last__L11», 1, 4),

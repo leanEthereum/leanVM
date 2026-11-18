@@ -278,7 +278,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop57`: the program its certificate shares. -/
+/-- `__loop0_level_positions__L6_L15_L3`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
@@ -290,7 +290,8 @@ noncomputable def modeEnv : Mode.Env :=
     (.node (some Fn.«decode_query_windows__L15_L3».modeSig) .nil .nil) .nil) .nil) .nil) .nil)))
     .nil) .nil)) .nil)) .nil) .nil)) .nil) .nil) .nil)), 524287⟩
 
-/-- `__loop57`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_level_positions__L6_L15_L3`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨279319, 49, Fn.«level_positions__L6_L15_L3_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -304,7 +305,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop114`: the program its certificate shares. -/
+/-- `__loop1_level_residual__L37_L11_L4_L2`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
@@ -312,7 +313,8 @@ noncomputable def modeEnv : Mode.Env :=
     (.node (some Fn.«level_residual__L37_L11_L4_L2_loop1».modeSig) .nil .nil) .nil) .nil)) .nil)
     .nil) .nil) .nil) .nil) .nil)) .nil) .nil) .nil))) .nil))), 524287⟩
 
-/-- `__loop114`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop1_level_residual__L37_L11_L4_L2`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨295194, 107, Fn.«level_residual__L37_L11_L4_L2_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -326,7 +328,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop292`: the program its certificate shares. -/
+/-- `__loop0_level_residual__L21_L8_L4_L2`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
@@ -334,7 +336,8 @@ noncomputable def modeEnv : Mode.Env :=
     none (.node none .nil (.node none (.node (some Fn.«level_residual__L21_L8_L4_L2_loop0».modeSig)
     .nil .nil) .nil)) .nil)) .nil))) .nil))))))) .nil) .nil) .nil)), 524287⟩
 
-/-- `__loop292`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_level_residual__L21_L8_L4_L2`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨351216, 400, Fn.«level_residual__L21_L8_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -348,7 +351,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop296`: the program its certificate shares. -/
+/-- `__loop0_level_residual__L18_L8_L4_L2`: the program its certificate shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
@@ -356,7 +359,8 @@ noncomputable def modeEnv : Mode.Env :=
     (.node none .nil (.node none (.node (some Fn.«level_residual__L18_L8_L4_L2_loop0».modeSig) .nil
     .nil) .nil)) .nil)) .nil)))))))) .nil) .nil) .nil) .nil))), 524287⟩
 
-/-- `__loop296`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_level_residual__L18_L8_L4_L2`: its entry, length and signature; on the core route,
+    nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨352194, 400, Fn.«level_residual__L18_L8_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -370,7 +374,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop467`: the program its certificate shares. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`: the program its certificate
+    shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
@@ -382,7 +387,8 @@ noncomputable def modeEnv : Mode.Env :=
     Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».modeSig) .nil .nil)) .nil)
     .nil)) .nil)) .nil))))))) .nil)) .nil) .nil) .nil), 524287⟩
 
-/-- `__loop467`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`: its entry, length and signature;
+    on the core route, nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨415719, 127, Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».modeSig, .nil, .nil,
     .nil, false, .nil⟩
@@ -397,7 +403,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop478`: the program its certificate shares. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: the program its certificate
+    shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
@@ -410,7 +417,8 @@ noncomputable def modeEnv : Mode.Env :=
     none .nil (.node (some Fn.«walk_path__L12_L5».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil)
     .nil))))))))))) .nil), 524287⟩
 
-/-- `__loop478`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: its entry, length and signature;
+    on the core route, nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨419287, 604, Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».modeSig, .nil, .nil,
     .nil, false, .nil⟩
@@ -425,7 +433,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop492`: the program its certificate shares. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: the program its certificate
+    shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
@@ -437,7 +446,8 @@ noncomputable def modeEnv : Mode.Env :=
     Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil))
     .nil) .nil) .nil) .nil) .nil))))))) .nil))) .nil), 524287⟩
 
-/-- `__loop492`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: its entry, length and signature;
+    on the core route, nothing for a walk. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨426997, 604, Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».modeSig, .nil, .nil,
     .nil, false, .nil⟩

@@ -73,7 +73,7 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 /-- `main_loop2`: the heap check, in 39 windows. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
-    | "__loop2" => Fn.«main_loop2».hcert.sig | _ => .empty)
+    | "__loop2_main" => Fn.«main_loop2».hcert.sig | _ => .empty)
     core hcert = true :=
   CoreMode.heapOkC_of_wins (l := [(79, HeapW.st1), (80, HeapW.st2), (81, HeapW.st3), (82, HeapW.st4), (83, HeapW.st5), (84, HeapW.st6), (85, HeapW.st7), (86, HeapW.st8), (87, HeapW.st9), (88, HeapW.st10), (89, HeapW.st11), (90, HeapW.st12), (91, HeapW.st13), (92, HeapW.st14), (93, HeapW.st15), (172, HeapW.st16), (173, HeapW.st17), (176, HeapW.st18), (177, HeapW.st19), (222, HeapW.st20), (223, HeapW.st21), (224, HeapW.st22), (225, HeapW.st23), (226, HeapW.st24), (227, HeapW.st25), (228, HeapW.st26), (229, HeapW.st27), (230, HeapW.st28), (231, HeapW.st29), (232, HeapW.st30), (233, HeapW.st31), (234, HeapW.st32), (235, HeapW.st33), (236, HeapW.st34), (315, HeapW.st35), (316, HeapW.st36), (319, HeapW.st37), (320, HeapW.st38), (327, HeapW.st39)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,

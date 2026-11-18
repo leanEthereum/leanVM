@@ -228,7 +228,7 @@ def hcert : CoreMode.HCert where
         .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
   rets := [[.ev 0, .ev 39, .ev 1, .ev 40, .ev 2, .ev 41, .ev 3, .ev 42, .ev 4, .ev 43, .ev 5, .ev 44, .ev 6,
         .ev 45, .ev 10, .ev 14, .ev 18, .ev 22, .ev 26, .ev 30, .ev 34, .ev 38]]
-  gargs := [("__loop36", [257, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0_keccak_layer__L1", [257, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 end
 end LeanVM.Guest.Fn.«keccak_layer__L1_loop0»
@@ -347,7 +347,7 @@ def hcert : CoreMode.HCert where
         .run 21 [], .run 22 [], .run 23 [], .run 24 [], .run 25 [], .run 26 [], .run 21 [], .run 22 [],
         .run 23 [], .run 24 [], .run 25 [], .run 26 [], .pf 17, .pf 18, .pf 19, .pf 20, .pf 21, .pf 22,
         .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 [], .pfr 31 [], .pfr 32 []]]
-  gargs := [("__loop187", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 128⟩])]
+  gargs := [("__loop0_level_positions__L37_L19_L7", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 128⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L37_L19_L7»
@@ -391,7 +391,7 @@ def hcert : CoreMode.HCert where
   rets := [[.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13,
         .ev 14, .ev 15, .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .pf 22, .pf 23, .pf 24, .pf 25, .pf 26,
         .pf 27]]
-  gargs := [("__loop196", [43, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 128⟩])]
+  gargs := [("__loop0_level_positions__L3_L19_L7", [43, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 128⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L3_L19_L7_loop0»
@@ -430,7 +430,7 @@ def hcert : CoreMode.HCert where
     [.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 []]]
   rets := [[.ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16, .ev 17, .ev 0, .ev 1, .ev 2, .ev 3, .ev 4,
         .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .pf 18, .pf 19, .pf 20, .pf 21]]
-  gargs := [("__loop425", [42, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 8⟩])]
+  gargs := [("__loop0_level_positions__L6_L26_L2", [42, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 8⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L6_L26_L2_loop0»

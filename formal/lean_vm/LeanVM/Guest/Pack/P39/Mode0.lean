@@ -606,7 +606,7 @@ noncomputable def modeRes0 : Exec.Trie (List Mode.Res) :=
     5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1
     2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil)) .nil))))))))
 
-/-- `__loop18`: the program its walk shares. -/
+/-- `__loop0_child_claim_list_any`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
@@ -614,7 +614,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil (.node none .nil (.node (some Fn.«child_claim_list_any_loop0».modeSig) .nil .nil))) .nil)
     .nil))))) .nil)))))) .nil) .nil)), 524287⟩
 
-/-- `__loop18`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop0_child_claim_list_any`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨237304, 2466, Fn.«child_claim_list_any_loop0».modeSig, (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
@@ -791,7 +791,7 @@ noncomputable def modeFun : Mode.Fun :=
     .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1000 1)]) .nil
     .nil) .nil) .nil)))))))), modeRes0, .nil, false, .nil⟩
 
-/-- `__loop18`: its mode walk accepts its code. -/
+/-- `__loop0_child_claim_list_any`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 

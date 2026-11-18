@@ -55,7 +55,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop2`: its walk reads the advice's hints, checked in parts. -/
+/-- `__loop2_main`: its walk reads the advice's hints, checked in parts. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
   Mode.hintsOk_of_parts (j := 39) (d := Data.adviceFn39) (ws := [(7343, 25000), (14076, 50000),
     (20793, 75000), (28166, 100000)]) Mode.adviceFns_ok (by decide +kernel)

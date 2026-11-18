@@ -423,7 +423,7 @@ def hcert : CoreMode.HCert where
   rets := [[.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13,
         .ev 14, .ev 15, .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26,
         .ev 27, .pf 28, .pf 29, .pf 30, .pf 31, .pf 32, .pf 33, .pf 34, .pf 35, .pf 36]]
-  gargs := [("__loop56", [44, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 16⟩])]
+  gargs := [("__loop0_level_positions__L7_L14_L2", [44, 1, 2, 3, 4, 5], [⟨[(5, 1)], 0⟩, ⟨[], 16⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L14_L2_loop0»

@@ -308,7 +308,7 @@ def f1531c1 : List OffsetInstruction := [
   .deref 186 17 164 .cell,
   .jump 106 0 1]
 
-/-- `__loop523` from offset 0. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0` from offset 0. -/
 def f1532c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,
@@ -915,7 +915,7 @@ def f1532c0 : List OffsetInstruction := [
   .jump 725 728 727,
   .jump 229 0 1]
 
-/-- `__loop524` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0` from offset 0. -/
 def f1533c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -1020,7 +1020,7 @@ def f1533c0 : List OffsetInstruction := [
   .jump 119 122 121,
   .jump 65 0 1]
 
-/-- `__loop525` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1` from offset 0. -/
 def f1534c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -1166,7 +1166,7 @@ def f1534c0 : List OffsetInstruction := [
   .jump 182 185 184,
   .jump 65 0 1]
 
-/-- `__loop526` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1` from offset 0. -/
 def f1535c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -1312,7 +1312,7 @@ def f1535c0 : List OffsetInstruction := [
   .jump 182 185 184,
   .jump 65 0 1]
 
-/-- `__loop527` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1` from offset 0. -/
 def f1536c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -1458,7 +1458,7 @@ def f1536c0 : List OffsetInstruction := [
   .jump 182 185 184,
   .jump 65 0 1]
 
-/-- `__loop528` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0` from offset 0. -/
 def f1537c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,
@@ -4407,7 +4407,7 @@ def f1538c1 : List OffsetInstruction := [
   .deref 186 33 164 .cell,
   .jump 106 0 1]
 
-/-- `__loop529` from offset 0. -/
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0` from offset 0. -/
 def f1539c0 : List OffsetInstruction := [
   .mul 4 2 13,
   .mul 13 2 14,
@@ -5014,7 +5014,7 @@ def f1539c0 : List OffsetInstruction := [
   .jump 725 728 727,
   .jump 229 0 1]
 
-/-- `__loop530` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0` from offset 0. -/
 def f1540c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -5119,7 +5119,7 @@ def f1540c0 : List OffsetInstruction := [
   .jump 119 122 121,
   .jump 65 0 1]
 
-/-- `__loop531` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1` from offset 0. -/
 def f1541c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -5293,7 +5293,7 @@ def f1541c0 : List OffsetInstruction := [
   .jump 232 235 234,
   .jump 65 0 1]
 
-/-- `__loop532` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1` from offset 0. -/
 def f1542c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,
@@ -5467,7 +5467,7 @@ def f1542c0 : List OffsetInstruction := [
   .jump 232 235 234,
   .jump 65 0 1]
 
-/-- `__loop533` from offset 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1` from offset 0. -/
 def f1543c0 : List OffsetInstruction := [
   .mul 4 2 14,
   .deref 14 0 15 .cell,

@@ -117,7 +117,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop20`, once. -/
+/-- `__loop0_child_claim_list_mono`, once. -/
 theorem st : shareStaticD Fn.«child_claim_list_mono_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 

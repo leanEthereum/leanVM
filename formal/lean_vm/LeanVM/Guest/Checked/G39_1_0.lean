@@ -17,42 +17,42 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop2`, window 1, arms 1 to 32. -/
+/-- `__loop2_main`, window 1, arms 1 to 32. -/
 theorem wg39_1_0 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 1 33
     [(0, 31), (31, 446)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 33 to 64. -/
+/-- `__loop2_main`, window 1, arms 33 to 64. -/
 theorem wg39_1_1 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 33 65
     [(0, 31), (477, 369)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 65 to 96. -/
+/-- `__loop2_main`, window 1, arms 65 to 96. -/
 theorem wg39_1_2 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 65 97
     [(0, 31), (846, 414)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 97 to 128. -/
+/-- `__loop2_main`, window 1, arms 97 to 128. -/
 theorem wg39_1_3 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 97 129
     [(0, 31), (1260, 337)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 129 to 160. -/
+/-- `__loop2_main`, window 1, arms 129 to 160. -/
 theorem wg39_1_4 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 129 161
     [(0, 31), (1597, 382)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 161 to 192. -/
+/-- `__loop2_main`, window 1, arms 161 to 192. -/
 theorem wg39_1_5 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 161 193
     [(0, 31), (1979, 304)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 193 to 224. -/
+/-- `__loop2_main`, window 1, arms 193 to 224. -/
 theorem wg39_1_6 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 193 225
     [(0, 31), (2283, 318)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)
 
-/-- `__loop2`, window 1, arms 225 to 255. -/
+/-- `__loop2_main`, window 1, arms 225 to 255. -/
 theorem wg39_1_7 : checkWinS glob 39 (coreOf 39) (certOf 39) false 1 225 256
     [(0, 31), (2601, 228)] = true :=
   checkWinS_of_pre x39_1_eq (by decide +kernel)

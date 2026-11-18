@@ -36,8 +36,8 @@ theorem cnt_plumbs_length : Data.plumbs.length = coreProgram.length + 1 := by
   rw [coreProgram_length]; decide +kernel
 
 theorem cnt_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
-    coreProgram[j].name = "__loop2" ↔ j = 38 := by
-  have hx : (coreProgram[38]?).map Fn.name = some "__loop2" := by decide +kernel
+    coreProgram[j].name = "__loop2_main" ↔ j = 38 := by
+  have hx : (coreProgram[38]?).map Fn.name = some "__loop2_main" := by decide +kernel
   constructor
   · intro h
     have := coreIdx_getElem hj
@@ -81,7 +81,7 @@ theorem cntOm_eq {j : ℕ} (hj : j < coreProgram.length) (hc : Data.cntJ j ≠ .
     · subst hx
       simp only [(cnt_name_xmss hj).mpr rfl, ↓reduceIte]
       cases op <;> rfl
-    · have hn : ¬ coreProgram[j].name = "__loop2" := fun h => hx ((cnt_name_xmss hj).mp h)
+    · have hn : ¬ coreProgram[j].name = "__loop2_main" := fun h => hx ((cnt_name_xmss hj).mp h)
       simp [hn, cntArmJ, hx]
 
 /-- The certificates counting `op`'s instructions, by name. -/

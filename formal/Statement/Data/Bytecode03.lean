@@ -14461,7 +14461,7 @@ def f36c0 : List OffsetInstruction := [
   .deref 6 23 9 .cell,
   .jump 25 0 1]
 
-/-- `__loop0` from offset 0. -/
+/-- `__loop0_main` from offset 0. -/
 def f37c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .mul 7 7 8,
@@ -14484,7 +14484,7 @@ def f37c0 : List OffsetInstruction := [
   .jump 13 16 15,
   .jump 17 0 1]
 
-/-- `__loop1` from offset 0. -/
+/-- `__loop1_main` from offset 0. -/
 def f38c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .mul 7 7 8,
@@ -14507,7 +14507,7 @@ def f38c0 : List OffsetInstruction := [
   .jump 13 16 15,
   .jump 17 0 1]
 
-/-- `__loop2` from offset 0. -/
+/-- `__loop2_main` from offset 0. -/
 def f39c0 : List OffsetInstruction := [
   .set 60 9223372036854775821 0,
   .mul 4 60 61,

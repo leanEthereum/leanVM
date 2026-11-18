@@ -48,7 +48,7 @@ open LeanVM.Guest.CoreMode
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop15" => Fn.«check_opening_terminal_loop0».hcert.sig
+    | "__loop0_check_opening_terminal" => Fn.«check_opening_terminal_loop0».hcert.sig
     | "column_selector__L0" => Fn.«column_selector__L0».hcert.sig
     | "column_selector__L1" => Fn.«column_selector__L1».hcert.sig
     | "column_selector__L10" => Fn.«column_selector__L10».hcert.sig

@@ -4,7 +4,7 @@ the positions of the caller's entries parameter and bound quotient among its cal
 callers' check over the whole program by ranges, the link's other checks (`EndExec.LinkOk`), and
 `ResTop guestCerts` with the `sub` residuals open less these (that every `sub` residual is in a family,
 these reads among them, is `sub.py`'s check). The callees are those of the caller's call sites with
-`sub` residuals (`sel.residuals`), the call sites read off its core IR (`Pack/*/Core.lean`).
+`sub` residuals (`sel.residuals`) or on the core route, the call sites read off its core IR (`Pack/*/Core.lean`).
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/link.py [--check]"""
 import sys, os, re, glob
@@ -41,6 +41,15 @@ def coreCount():
     return int(re.search(r'abbrev coreCount : Nat := (\d+)', t).group(1))
 
 
+def onRoute():
+    """The functions on the core route (`CoreMode/Gen/*/Core.lean`): their reads of the entries table are
+    linked whatever their mode walk (they have none), as `CoreMode.glOk` asks."""
+    out = set()
+    for path in glob.glob(os.path.join(ROOT, 'CoreMode', 'Gen', '*', 'Core.lean')):
+        out.update(re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(path).read(), re.M))
+    return out
+
+
 def link():
     """The callees `(stable name, kE, kL)`, the bound quotient `w` and the constant `c`."""
     D = data.load()
@@ -55,9 +64,10 @@ def link():
     for m in re.finditer(r'\.call "([^"]+)" \[([^\]]*)\]', body):
         sites.setdefault(m.group(1), []).append(m.group(2))
     F = sel.residuals(); fams = []
+    route = onRoute()
     for f in sorted(sites, key=lambda f: stable[f]):
         ns = stable[f]
-        if not any(r[0] == 'sub' for rs in F.get(ns, {}).values() for r in rs): continue
+        if ns not in route and not any(r[0] == 'sub' for rs in F.get(ns, {}).values() for r in rs): continue
         ks = set()
         for a in sites[f]:
             args = [x.strip() for x in a.split(',')]

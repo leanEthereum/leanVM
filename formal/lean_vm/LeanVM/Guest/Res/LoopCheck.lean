@@ -86,14 +86,14 @@ theorem termAll : RangeOk (fun _ fn => termChk fn) 0 coreProgram.length := by
   have h22 : RangeOk (fun _ fn => termChk fn) 0 563 := h21.append (m := 150) termRange_413
   have h23 : RangeOk (fun _ fn => termChk fn) 0 713 := h22.append (m := 150) termRange_563
   have h24 : RangeOk (fun _ fn => termChk fn) 0 863 := h23.append (m := 150) termRange_713
-  have h25 : RangeOk (fun _ fn => termChk fn) 0 1005 := h24.append (m := 142) termRange_863
-  have h26 : RangeOk (fun _ fn => termChk fn) 0 1077 := h25.append (m := 72) termRange_1005
-  have h27 : RangeOk (fun _ fn => termChk fn) 0 1134 := h26.append (m := 57) termRange_1077
+  have h25 : RangeOk (fun _ fn => termChk fn) 0 1004 := h24.append (m := 141) termRange_863
+  have h26 : RangeOk (fun _ fn => termChk fn) 0 1076 := h25.append (m := 72) termRange_1004
+  have h27 : RangeOk (fun _ fn => termChk fn) 0 1134 := h26.append (m := 58) termRange_1076
   have h28 : RangeOk (fun _ fn => termChk fn) 0 1181 := h27.append (m := 47) termRange_1134
   have h29 : RangeOk (fun _ fn => termChk fn) 0 1182 := h28.append (m := 1) termRange_1181
   have h30 : RangeOk (fun _ fn => termChk fn) 0 1242 := h29.append (m := 60) termRange_1182
-  have h31 : RangeOk (fun _ fn => termChk fn) 0 1289 := h30.append (m := 47) termRange_1242
-  have h32 : RangeOk (fun _ fn => termChk fn) 0 1336 := h31.append (m := 47) termRange_1289
+  have h31 : RangeOk (fun _ fn => termChk fn) 0 1288 := h30.append (m := 46) termRange_1242
+  have h32 : RangeOk (fun _ fn => termChk fn) 0 1336 := h31.append (m := 48) termRange_1288
   have h33 : RangeOk (fun _ fn => termChk fn) 0 1383 := h32.append (m := 47) termRange_1336
   have h34 : RangeOk (fun _ fn => termChk fn) 0 1429 := h33.append (m := 46) termRange_1383
   have h35 : RangeOk (fun _ fn => termChk fn) 0 1454 := h34.append (m := 25) termRange_1429

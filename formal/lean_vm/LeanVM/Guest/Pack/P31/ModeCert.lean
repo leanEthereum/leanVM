@@ -212,12 +212,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop53`: its mode walk certificate. -/
+/-- `__loop0_level_positions__L14_L16_L4`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop53`: the callee signatures its walk reads. -/
+/-- `__loop0_level_positions__L14_L16_L4`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(275439,
     Fn.«decode_query_windows__L16_L4».modeSig), (275705,
     Fn.«level_positions__L14_L16_L4_loop0».modeSig)]
@@ -230,12 +230,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop92`: its mode walk certificate. -/
+/-- `__loop0_level_positions__L16_L17_L5`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop92`: the callee signatures its walk reads. -/
+/-- `__loop0_level_positions__L16_L17_L5`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(289055,
     Fn.«level_positions__L16_L17_L5_loop0».modeSig), (275754,
     Fn.«decode_query_windows__L17_L5».modeSig)]
@@ -248,12 +248,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop113`: its mode walk certificate. -/
+/-- `__loop0_level_residual__L37_L11_L4_L2`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop113`: the callee signatures its walk reads. -/
+/-- `__loop0_level_residual__L37_L11_L4_L2`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(294692,
     Fn.«level_residual__L37_L11_L4_L2_loop0».modeSig)]
 
@@ -265,12 +265,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop155`: its mode walk certificate. -/
+/-- `__loop0_level_positions__L32_L18_L6`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop155`: the callee signatures its walk reads. -/
+/-- `__loop0_level_positions__L32_L18_L6`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(306547,
     Fn.«level_positions__L32_L18_L6_loop0».modeSig), (276060,
     Fn.«decode_query_windows__L18_L6».modeSig)]
@@ -283,12 +283,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop293`: its mode walk certificate. -/
+/-- `__loop1_level_residual__L21_L8_L4_L2`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop293`: the callee signatures its walk reads. -/
+/-- `__loop1_level_residual__L21_L8_L4_L2`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(351616,
     Fn.«level_residual__L21_L8_L4_L2_loop1».modeSig)]
 
@@ -300,12 +300,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop297`: its mode walk certificate. -/
+/-- `__loop1_level_residual__L18_L8_L4_L2`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop297`: the callee signatures its walk reads. -/
+/-- `__loop1_level_residual__L18_L8_L4_L2`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(352594,
     Fn.«level_residual__L18_L8_L4_L2_loop1».modeSig)]
 
@@ -317,12 +317,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop359`: its mode walk certificate. -/
+/-- `__loop0_level_residual__L32_L18_L4_L2`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop359`: the callee signatures its walk reads. -/
+/-- `__loop0_level_residual__L32_L18_L4_L2`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(373181,
     Fn.«level_residual__L32_L18_L4_L2_loop0».modeSig)]
 
@@ -334,12 +334,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop383`: its mode walk certificate. -/
+/-- `__loop0_level_positions__L8_L26_L2`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop383`: the callee signatures its walk reads. -/
+/-- `__loop0_level_positions__L8_L26_L2`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(379837,
     Fn.«level_positions__L8_L26_L2_loop0».modeSig), (365068,
     Fn.«decode_query_windows__L26_L2».modeSig)]
@@ -352,12 +352,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop419`: its mode walk certificate. -/
+/-- `__loop0_level_positions__L19_L27_L3`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop419`: the callee signatures its walk reads. -/
+/-- `__loop0_level_positions__L19_L27_L3`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(393281,
     Fn.«level_positions__L19_L27_L3_loop0».modeSig), (379109,
     Fn.«decode_query_windows__L27_L3».modeSig)]
@@ -370,12 +370,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop462`: its mode walk certificate. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop462`: the callee signatures its walk reads. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0`: the callee signatures its walk
+    reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(415209,
     Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeSig), (453518,
     Fn.«walk_path__L12_L2».modeSig)]
@@ -388,12 +389,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop525`: its mode walk certificate. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop525`: the callee signatures its walk reads. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1`: the callee signatures its walk
+    reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = [(419891, Fn.«walk_path__L18_L2».modeSig), (448930,
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeSig)]
 

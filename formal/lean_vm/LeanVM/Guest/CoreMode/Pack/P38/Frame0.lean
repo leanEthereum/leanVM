@@ -416,14 +416,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop120`: what its frame walk is told. -/
+/-- `__loop1_level_residual__L25_L7_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 296984, 83,
     Fn.«level_residual__L25_L7_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1049.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L25_L7_L4_L2_loop1».pairO,
     Fn.«level_residual__L25_L7_L4_L2_loop1».pairS, .nil⟩
 
-/-- `__loop120`: its frame walk accepts its code. -/
+/-- `__loop1_level_residual__L25_L7_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -437,14 +437,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop150`: what its frame walk is told. -/
+/-- `__loop1_level_residual__L28_L8_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 305480, 89,
     Fn.«level_residual__L28_L8_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1087.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L28_L8_L4_L2_loop1».pairO,
     Fn.«level_residual__L28_L8_L4_L2_loop1».pairS, .nil⟩
 
-/-- `__loop150`: its frame walk accepts its code. -/
+/-- `__loop1_level_residual__L28_L8_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -458,14 +458,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop204`: what its frame walk is told. -/
+/-- `__loop1_level_residual__L55_L18_L6_L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 320810, 156,
     Fn.«level_residual__L55_L18_L6_L3_loop1».modeSig, .nil, 524287, Data.adviceFn1156.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L55_L18_L6_L3_loop1».pairO,
     Fn.«level_residual__L55_L18_L6_L3_loop1».pairS, .nil⟩
 
-/-- `__loop204`: its frame walk accepts its code. -/
+/-- `__loop1_level_residual__L55_L18_L6_L3`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -479,14 +479,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop323`: what its frame walk is told. -/
+/-- `__loop1_level_residual__L28_L13_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 361840, 119,
     Fn.«level_residual__L28_L13_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1298.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L28_L13_L4_L2_loop1».pairO,
     Fn.«level_residual__L28_L13_L4_L2_loop1».pairS, .nil⟩
 
-/-- `__loop323`: its frame walk accepts its code. -/
+/-- `__loop1_level_residual__L28_L13_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -500,14 +500,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop330`: what its frame walk is told. -/
+/-- `__loop0_level_residual__L19_L9_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 363866, 434,
     Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1305.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L19_L9_L4_L2_loop0».pairO,
     Fn.«level_residual__L19_L9_L4_L2_loop0».pairS, .nil⟩
 
-/-- `__loop330`: its frame walk accepts its code. -/
+/-- `__loop0_level_residual__L19_L9_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -521,14 +521,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop365`: what its frame walk is told. -/
+/-- `__loop1_level_residual__L23_L14_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 375983, 125,
     Fn.«level_residual__L23_L14_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1347.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L23_L14_L4_L2_loop1».pairO,
     Fn.«level_residual__L23_L14_L4_L2_loop1».pairS, .nil⟩
 
-/-- `__loop365`: its frame walk accepts its code. -/
+/-- `__loop1_level_residual__L23_L14_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -542,7 +542,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop490`: what its frame walk is told. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [12] }, 426551, 223,
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig, (.node none (.node
@@ -558,7 +558,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».pairS, .nil⟩
 
-/-- `__loop490`: its frame walk accepts its code. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1`: its frame walk accepts its
+    code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -572,7 +573,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop494`: what its frame walk is told. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [12] }, 429962, 102,
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig, (.node none .nil (.node
@@ -587,7 +588,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».pairS, .nil⟩
 
-/-- `__loop494`: its frame walk accepts its code. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0`: its frame walk accepts its code.
+    -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
 

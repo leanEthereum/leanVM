@@ -15,35 +15,35 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop2`, window 35, arms 1 to 32. -/
+/-- `__loop2_main`, window 35, arms 1 to 32. -/
 theorem cg39_35_0 : cplWinS 39 35 1 33 16 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 33 to 64. -/
+/-- `__loop2_main`, window 35, arms 33 to 64. -/
 theorem cg39_35_1 : cplWinS 39 35 33 65 190 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 65 to 96. -/
+/-- `__loop2_main`, window 35, arms 65 to 96. -/
 theorem cg39_35_2 : cplWinS 39 35 65 97 364 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 97 to 128. -/
+/-- `__loop2_main`, window 35, arms 97 to 128. -/
 theorem cg39_35_3 : cplWinS 39 35 97 129 538 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 129 to 160. -/
+/-- `__loop2_main`, window 35, arms 129 to 160. -/
 theorem cg39_35_4 : cplWinS 39 35 129 161 712 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 161 to 192. -/
+/-- `__loop2_main`, window 35, arms 161 to 192. -/
 theorem cg39_35_5 : cplWinS 39 35 161 193 886 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 193 to 224. -/
+/-- `__loop2_main`, window 35, arms 193 to 224. -/
 theorem cg39_35_6 : cplWinS 39 35 193 225 1060 174 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 
-/-- `__loop2`, window 35, arms 225 to 255. -/
+/-- `__loop2_main`, window 35, arms 225 to 255. -/
 theorem cg39_35_7 : cplWinS 39 35 225 256 1234 166 0 16 = true :=
   cplWinS_of_pre Checked.x39_35_eq (by decide +kernel)
 

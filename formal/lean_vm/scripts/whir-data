@@ -67,7 +67,7 @@ def loops(name):
             for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n(.*?)(?=\n\n)', t, re.S):
                 BODIES[int(m.group(1))] = BODIES.get(int(m.group(1)), "") + m.group(2)
     seen = []
-    for l in re.findall(r'"(__loop\d+)"', BODIES[IDX[name]]):
+    for l in re.findall(r'"(__loop[^"]*)"', BODIES[IDX[name]]):
         if l not in seen:
             seen.append(l)
     return seen

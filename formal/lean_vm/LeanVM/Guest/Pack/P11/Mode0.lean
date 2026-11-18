@@ -24,7 +24,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop6`: the program its walk shares. -/
+/-- `__loop0_verify_bus_gkr`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
@@ -42,7 +42,7 @@ noncomputable def modeEnv : Mode.Env :=
     (.node none .nil (.node (some Fn.«gkr_rounds__L2».modeSig) .nil .nil)))) .nil))))) .nil) .nil)
     .nil) .nil) .nil))))), 524287⟩
 
-/-- `__loop6`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop0_verify_bus_gkr`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨189352, 227, Fn.«verify_bus_gkr_loop0».modeSig, (.node none (.node none (.node none (.node none
     (.node none (.node none (.node (some [(.alloc 86 120)]) .nil .nil) .nil) (.node (some
@@ -114,7 +114,7 @@ noncomputable def modeFun : Mode.Fun :=
     (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil))))))),
     .nil, false, .nil⟩
 
-/-- `__loop6`: its mode walk accepts its code. -/
+/-- `__loop0_verify_bus_gkr`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 

@@ -368,13 +368,13 @@ theorem ok349 : Bridge.FnAlOk 349 :=
   Bridge.fnAlOk_of Checked.code349 Checked.core349 Checked.cert349 Checked.plumbEq349 tab349 rfl Fn.«open_stacked__L10».alignOk
 
 kernel_rfl tab350 : (Bridge.extraOf 350, Bridge.entsOf 350, Bridge.adviceOf 350) =
-    ([], [("__loop16", 234256)], Data.adviceFn350)
+    ([], [("__loop0_claim_list_digest", 234256)], Data.adviceFn350)
 
 theorem ok350 : Bridge.FnAlOk 350 :=
   Bridge.fnAlOk_of Checked.code350 Checked.core350 Checked.cert350 Checked.plumbEq350 tab350 rfl Fn.«claim_list_digest_loop0».alignOk
 
 kernel_rfl tab351 : (Bridge.extraOf 351, Bridge.entsOf 351, Bridge.adviceOf 351) =
-    ([], [("__loop17", 235498)], Data.adviceFn351)
+    ([], [("__loop1_claim_list_digest", 235498)], Data.adviceFn351)
 
 theorem ok351 : Bridge.FnAlOk 351 :=
   Bridge.fnAlOk_of Checked.code351 Checked.core351 Checked.cert351 Checked.plumbEq351 tab351 rfl Fn.«claim_list_digest_loop1».alignOk
@@ -482,13 +482,13 @@ theorem ok368 : Bridge.FnAlOk 368 :=
   Bridge.fnAlOk_of Checked.code368 Checked.core368 Checked.cert368 Checked.plumbEq368 tab368 rfl Fn.«claim_list_last__L16».alignOk
 
 kernel_rfl tab369 : (Bridge.extraOf 369, Bridge.entsOf 369, Bridge.adviceOf 369) =
-    ([], [("__loop18", 237304)], Data.adviceFn369)
+    ([], [("__loop0_child_claim_list_any", 237304)], Data.adviceFn369)
 
 theorem ok369 : Bridge.FnAlOk 369 :=
   Bridge.fnAlOk_of Checked.code369 Checked.core369 Checked.cert369 Checked.plumbEq369 tab369 rfl Fn.«child_claim_list_any_loop0».alignOk
 
 kernel_rfl tab370 : (Bridge.extraOf 370, Bridge.entsOf 370, Bridge.adviceOf 370) =
-    ([], [("__loop19", 239770)], Data.adviceFn370)
+    ([], [("__loop1_child_claim_list_any", 239770)], Data.adviceFn370)
 
 theorem ok370 : Bridge.FnAlOk 370 :=
   Bridge.fnAlOk_of Checked.code370 Checked.core370 Checked.cert370 Checked.plumbEq370 tab370 rfl Fn.«child_claim_list_any_loop1».alignOk
@@ -596,13 +596,13 @@ theorem ok387 : Bridge.FnAlOk 387 :=
   Bridge.fnAlOk_of Checked.code387 Checked.core387 Checked.cert387 Checked.plumbEq387 tab387 rfl Fn.«child_claim_list_last__L16».alignOk
 
 kernel_rfl tab388 : (Bridge.extraOf 388, Bridge.entsOf 388, Bridge.adviceOf 388) =
-    ([], [("__loop20", 242952)], Data.adviceFn388)
+    ([], [("__loop0_child_claim_list_mono", 242952)], Data.adviceFn388)
 
 theorem ok388 : Bridge.FnAlOk 388 :=
   Bridge.fnAlOk_of Checked.code388 Checked.core388 Checked.cert388 Checked.plumbEq388 tab388 rfl Fn.«child_claim_list_mono_loop0».alignOk
 
 kernel_rfl tab389 : (Bridge.extraOf 389, Bridge.entsOf 389, Bridge.adviceOf 389) =
-    ([], [("__loop21", 245009)], Data.adviceFn389)
+    ([], [("__loop1_child_claim_list_mono", 245009)], Data.adviceFn389)
 
 theorem ok389 : Bridge.FnAlOk 389 :=
   Bridge.fnAlOk_of Checked.code389 Checked.core389 Checked.cert389 Checked.plumbEq389 tab389 rfl Fn.«child_claim_list_mono_loop1».alignOk

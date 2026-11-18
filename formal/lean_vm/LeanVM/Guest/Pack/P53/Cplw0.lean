@@ -120,11 +120,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop23`, window 0, part 0. -/
+/-- `__loop0_da_pad`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(410, Fn.«da_pad_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_pad_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop23`: every part of every window. -/
+/-- `__loop0_da_pad`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(410, Fn.«da_pad_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_pad_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
@@ -144,11 +144,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop39`, window 0, part 0. -/
+/-- `__loop1_keccak_layer__L0`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(436, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L0_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop39`: every part of every window. -/
+/-- `__loop1_keccak_layer__L0`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(436, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L0_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel

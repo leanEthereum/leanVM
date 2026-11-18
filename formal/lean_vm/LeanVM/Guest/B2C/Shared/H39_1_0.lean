@@ -15,35 +15,35 @@ namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 1, arms 1 to 32. -/
+/-- `__loop2_main`, window 1, arms 1 to 32. -/
 theorem sg39_1_0 : shareWinS 39 (snapsOf 39) 1 1 33 31 446 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 33 to 64. -/
+/-- `__loop2_main`, window 1, arms 33 to 64. -/
 theorem sg39_1_1 : shareWinS 39 (snapsOf 39) 1 33 65 477 369 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 65 to 96. -/
+/-- `__loop2_main`, window 1, arms 65 to 96. -/
 theorem sg39_1_2 : shareWinS 39 (snapsOf 39) 1 65 97 846 414 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 97 to 128. -/
+/-- `__loop2_main`, window 1, arms 97 to 128. -/
 theorem sg39_1_3 : shareWinS 39 (snapsOf 39) 1 97 129 1260 337 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 129 to 160. -/
+/-- `__loop2_main`, window 1, arms 129 to 160. -/
 theorem sg39_1_4 : shareWinS 39 (snapsOf 39) 1 129 161 1597 382 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 161 to 192. -/
+/-- `__loop2_main`, window 1, arms 161 to 192. -/
 theorem sg39_1_5 : shareWinS 39 (snapsOf 39) 1 161 193 1979 304 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 193 to 224. -/
+/-- `__loop2_main`, window 1, arms 193 to 224. -/
 theorem sg39_1_6 : shareWinS 39 (snapsOf 39) 1 193 225 2283 318 0 31 = true := by
   decide +kernel
 
-/-- `__loop2`, window 1, arms 225 to 255. -/
+/-- `__loop2_main`, window 1, arms 225 to 255. -/
 theorem sg39_1_7 : shareWinS 39 (snapsOf 39) 1 225 256 2601 228 0 31 = true := by
   decide +kernel
 

@@ -22,21 +22,21 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop180`, once. -/
+/-- `__loop0_level_residual__L32_L9_L4_L2`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L32_L9_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop180`, window 0. -/
+/-- `__loop0_level_residual__L32_L9_L4_L2`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L32_L9_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop180`, window 1. -/
+/-- `__loop0_level_residual__L32_L9_L4_L2`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L32_L9_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `__loop180`: its static sharing check and every window's. -/
+/-- `__loop0_level_residual__L32_L9_L4_L2`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L32_L9_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -55,16 +55,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop190`, once. -/
+/-- `__loop0_level_positions__L11_L22_L4`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L11_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop190`, window 0. -/
+/-- `__loop0_level_positions__L11_L22_L4`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L11_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop190`: its static sharing check and every window's. -/
+/-- `__loop0_level_positions__L11_L22_L4`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L11_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

@@ -2875,7 +2875,7 @@ def f349c1 : List OffsetInstruction := [
   .mul 1078 46 17,
   .jump 46 0 1]
 
-/-- `__loop16` from offset 0. -/
+/-- `__loop0_claim_list_digest` from offset 0. -/
 def f350c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -4120,7 +4120,7 @@ def f350c0 : List OffsetInstruction := [
   .jump 1990 1993 1992,
   .jump 1994 0 1]
 
-/-- `__loop17` from offset 0. -/
+/-- `__loop1_claim_list_digest` from offset 0. -/
 def f351c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -5980,7 +5980,7 @@ def f368c0 : List OffsetInstruction := [
   .mul 7 247 5,
   .jump 247 0 1]
 
-/-- `__loop18` from offset 0. -/
+/-- `__loop0_child_claim_list_any` from offset 0. -/
 def f369c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 2 11,
@@ -8031,7 +8031,7 @@ def f369c0 : List OffsetInstruction := [
   .xor 2347 229 2382,
   .xor 2348 230 2383]
 
-/-- `__loop18` from offset 2048. -/
+/-- `__loop0_child_claim_list_any` from offset 2048. -/
 def f369c1 : List OffsetInstruction := [
   .xor 2349 231 2384,
   .xor 2350 232 2385,
@@ -8452,7 +8452,7 @@ def f369c1 : List OffsetInstruction := [
   .jump 3214 3217 3216,
   .jump 3218 0 1]
 
-/-- `__loop19` from offset 0. -/
+/-- `__loop1_child_claim_list_any` from offset 0. -/
 def f370c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 2 11,
@@ -11688,7 +11688,7 @@ def f387c0 : List OffsetInstruction := [
   .mul 10 398 8,
   .jump 398 0 1]
 
-/-- `__loop20` from offset 0. -/
+/-- `__loop0_child_claim_list_mono` from offset 0. -/
 def f388c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -13739,7 +13739,7 @@ def f388c0 : List OffsetInstruction := [
   .set 2807 1 0,
   .set 2806 6947706291569176035 0]
 
-/-- `__loop20` from offset 2048. -/
+/-- `__loop0_child_claim_list_mono` from offset 2048. -/
 def f388c1 : List OffsetInstruction := [
   .mul 2802 2807 2810,
   .mul 3 2807 2811,
@@ -13751,7 +13751,7 @@ def f388c1 : List OffsetInstruction := [
   .jump 2803 2806 2805,
   .jump 2807 0 1]
 
-/-- `__loop21` from offset 0. -/
+/-- `__loop1_child_claim_list_mono` from offset 0. -/
 def f389c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,

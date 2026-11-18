@@ -198,7 +198,7 @@ def hcert : CoreMode.HCert where
         .run 28 [], .run 29 [], .run 22 [], .run 23 [], .run 24 [], .run 25 [], .run 26 [], .run 27 [],
         .run 28 [], .run 29 [], .pf 21, .pf 22, .pf 23, .pf 24, .pf 25, .pf 26, .pf 27, .pf 28, .pfr 30 [],
         .pfr 31 [], .pfr 32 [], .pfr 33 [], .pfr 34 [], .pfr 35 [], .pfr 36 [], .pfr 37 []]]
-  gargs := [("__loop53", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 8⟩])]
+  gargs := [("__loop0_level_positions__L14_L16_L4", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 8⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L14_L16_L4»
@@ -274,7 +274,7 @@ def hcert : CoreMode.HCert where
         .run 28 [], .run 29 [], .run 23 [], .run 24 [], .run 25 [], .run 26 [], .run 27 [], .run 28 [],
         .run 29 [], .pf 19, .pf 20, .pf 21, .pf 22, .pf 23, .pf 24, .pf 25, .pfr 30 [], .pfr 31 [], .pfr 32 [],
         .pfr 33 [], .pfr 34 [], .pfr 35 [], .pfr 36 []]]
-  gargs := [("__loop92", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 4⟩])]
+  gargs := [("__loop0_level_positions__L16_L17_L5", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 4⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L16_L17_L5»
@@ -329,7 +329,7 @@ def hcert : CoreMode.HCert where
         .run 13 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 10 [], .run 11 [], .run 12 [],
         .run 13 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .pf 13, .pf 14, .pf 15, .pf 16, .pfr 24 [],
         .pfr 25 [], .pfr 26 [], .pfr 27 []]]
-  gargs := [("__loop419", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 128⟩])]
+  gargs := [("__loop0_level_positions__L19_L27_L3", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 128⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L19_L27_L3»
@@ -433,7 +433,7 @@ def hcert : CoreMode.HCert where
         .run 28 [], .run 29 [], .run 23 [], .run 24 [], .run 25 [], .run 26 [], .run 27 [], .run 28 [],
         .run 29 [], .pf 19, .pf 20, .pf 21, .pf 22, .pf 23, .pf 24, .pf 25, .pfr 30 [], .pfr 31 [], .pfr 32 [],
         .pfr 33 [], .pfr 34 [], .pfr 35 [], .pfr 36 []]]
-  gargs := [("__loop155", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 4⟩])]
+  gargs := [("__loop0_level_positions__L32_L18_L6", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 4⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L32_L18_L6»
@@ -477,7 +477,7 @@ def hcert : CoreMode.HCert where
         .run 11 [], .run 12 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 9 [], .run 10 [],
         .run 11 [], .run 12 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 9 [], .run 10 [],
         .run 11 [], .run 12 [], .pf 13, .pf 14, .pf 15, .pf 16, .pfr 23 [], .pfr 24 [], .pfr 25 [], .pfr 26 []]]
-  gargs := [("__loop383", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 8⟩])]
+  gargs := [("__loop0_level_positions__L8_L26_L2", [14, 15, 10, 6, 7, 8], [⟨[(8, 1)], 0⟩, ⟨[], 8⟩])]
 
 end
 end LeanVM.Guest.Fn.«level_positions__L8_L26_L2»

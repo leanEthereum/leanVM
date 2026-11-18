@@ -33,7 +33,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop39`: its walk reads the advice's hints. -/
+/-- `__loop1_keccak_layer__L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
   Mode.hintsOk_of_fn (j := 436) (d := Data.adviceFn436) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)

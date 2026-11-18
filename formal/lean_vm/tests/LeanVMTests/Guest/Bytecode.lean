@@ -4,7 +4,7 @@ import LeanVM.Guest.Data.NameStrings
 /-!
 # The guest bytecode
 
-`guest_fetch_of` at the first and last pcs of the largest compiled function after `__loop2`
+`guest_fetch_of` at the first and last pcs of the largest compiled function after `__loop2_main`
 (`sp_wots`, 23713 instructions over 12 chunks in three modules), at a `KECCAK` of each layout, at
 the first and last
 pcs of `verify_sig_lean_sphincs` and its first `KECCAK`, at `main`'s entry, at pc `0`, and the
@@ -20,7 +20,7 @@ example : Data.functions.length = fn_count% := by decide +kernel
 
 example : Data.codeLen = 457072 := rfl
 
-/-- `sp_wots` is function 20, the largest after `__loop2` (function 39, 114219 instructions). -/
+/-- `sp_wots` is function 20, the largest after `__loop2_main` (function 39, 114219 instructions). -/
 theorem spWots_mem : Data.f20 ∈ Data.functions := mem_functions (j := 20) rfl
 
 example : Data.f20.name = "sp_wots" ∧ Data.f20.entryPc = 33508 ∧

@@ -184,7 +184,7 @@ def main(argv):
     gen_pack = {k: v[0] for k, v in heap.pack_of().items()}
     for n, f in D['fns'].items():
         f['ns'] = f.get('ns', n)
-        # a function the compiler names apart from its stable name (a loop helper `__loopN`): on the route by the latter
+        # a function the compiler names apart from its stable name (a loop helper `__loopN_f`): on the route by the latter
         if f['ns'] != n and f['ns'] in ROUTE:
             ROUTE[n] = ROUTE[f['ns']]
             gen_pack[n] = gen_pack[f['ns']]
