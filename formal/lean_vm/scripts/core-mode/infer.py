@@ -1337,6 +1337,21 @@ def used_res(P):
     return out
 
 
+GENERIC = {'hint': 'a hint\'s range (windowsExp, digitsExp, log2Ceil): one lemma per hint kind',
+           'selector': 'a match or dispatch selector below its arms (the statement\'s semantics)',
+           'rangeCheck': 'a range check (the atom\'s semantics)',
+           'merge': 'S residues of stride S are a contiguous run', 'concat': 'two adjacent runs are one',
+           'rename': 'a bound rewritten by an assert =='}
+
+
+def res_family(P, r):
+    """A residual's family: `(generic or instance, name)`."""
+    tag = r[3] if len(r) > 3 and isinstance(r[3], str) else ('linSub' if r[0] == 'sub' else r[0])
+    if tag in GENERIC:
+        return 'generic', tag
+    return 'instance', {'idx': 'index bound'}.get(tag, tag)
+
+
 def misses(P):
     """Guarantees and tail preconditions without a witness at the fixpoint."""
     n = 0
@@ -1383,9 +1398,11 @@ def report(res):
         unc['miss (a guarantee or tail precondition)'] = ms
     print('  uncovered', sum(unc.values()), 'in', len(res) - len(clean), 'functions:', dict(unc.most_common()))
     U = {k: used_res(P) for k, P in res.items()}
-    print('  residuals used', sum(len(u) for u in U.values()), 'in', sum(1 for u in U.values() if u), 'functions',
-          dict(collections.Counter(res[k].res[i][0] + ':' + (res[k].res[i][3] if len(res[k].res[i]) > 3 and
-                                   isinstance(res[k].res[i][3], str) else '') for k, u in U.items() for i in u)))
+    fams = collections.Counter(res_family(res[k], res[k].res[i]) for k, u in U.items() for i in u)
+    for g in ('instance', 'generic'):
+        ks = [k for k, u in U.items() if any(res_family(res[k], res[k].res[i])[0] == g for i in u)]
+        print(f'  residuals used, {g}:', sum(n for (gg, _), n in fams.items() if gg == g), 'in', len(ks), 'functions',
+              {f: n for (gg, f), n in fams.most_common() if gg == g})
     print('  stats', dict(sorted(tot.items())))
     fam = collections.Counter()
     for k, P in res.items():
@@ -1398,7 +1415,7 @@ def report(res):
     for k, P in res.items():
         for i in U[k]:
             r = P.res[i]
-            rf[(r[0] + (':' + r[3] if len(r) > 3 and isinstance(r[3], str) else ''), k.split('__L')[0])] += 1
+            rf[(res_family(P, r)[1], k.split('__L')[0])] += 1
     print('  residuals by kind and family (top 30):', rf.most_common(30))
     return clean, closed
 

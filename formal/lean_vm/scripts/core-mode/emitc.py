@@ -66,7 +66,7 @@ def lwit(P, w):
         r = rw[1] if isinstance(rw, tuple) and rw[0] == 'preR' else (len(P.sig.preR) + rw if isinstance(rw, int) else None)
         if r is None:
             raise Unsupported(('wit', w))
-        return f'.run {r} [{", ".join(map(str, w[2]))}]'
+        return f'.run {r} [{", ".join(str(P.wren[i]) for i in w[2])}]'
     raise Unsupported(('wit', w[0]))
 
 
@@ -88,15 +88,18 @@ def lsig(G):
 
 
 def lcert(P):
-    """The certificate's fields, or `Unsupported`."""
+    """The certificate's fields, or `Unsupported`; the residuals the witnesses use, renumbered."""
     G = P.sig
+    used = sorted(I.used_res(P))
+    ren = {i: n for n, i in enumerate(used)}
+    P.wren = ren
     by_d = collections.defaultdict(list)
     for (d, p, off), w in sorted(P.reads.items()):
         by_d[d].append(f'({p}, {off}, {lwit(P, w)})')
     reads = wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
     calls = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for f, ws in P.calls)
     rets = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for ws in P.ret_wits)
-    res = wrap(map(lres, P.res))
+    res = wrap(lres(P.res[i]) for i in used)
     return (f'  sig := {lsig(G)}\n  reads := [{reads}]\n  res := [{res}]\n  calls := [{calls}]\n'
             f'  rets := [{rets}]\n')
 
