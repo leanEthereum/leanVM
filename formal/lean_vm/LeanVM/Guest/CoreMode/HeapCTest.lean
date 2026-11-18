@@ -1473,6 +1473,61 @@ theorem pubRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) pubRd hPubRd = true :
 /-- Without them. -/
 theorem pubRd_bad : heapOkC Data.powTree (fun _ ↦ .empty) pubRd { hPubRd with sig := {} } = false := by decide +kernel
 
+/-! ## A loop's accumulated pointer run (round 6: `aggregate_claims_loop0`'s guarantee) -/
+
+/-- Stores `s·i` at `q·i` for the counter `i` from its start to `n`. -/
+def fillP : Fn where
+  name := "fillP"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.mul (.n 5) (.n 3) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
+    .atom (.const (.n 6) (word 2 0)), .atom (.mul (.n 7) (.n 0) (.n 6)), .atom (.add (.n 8) (.n 7) (.n 1)),
+    .atom (.const (.n 9) (word 2 0)), .atom (.mul (.n 10) (.n 0) (.n 9)), .callIf (.n 8) "fillP" [.n 10, .n 1, .n 2, .n 3],
+    .ret []]
+
+/-- `fillP` writes, from its counter to its end, `q`'s cells each pointing to a written cell (`postPR`, offset `0`),
+the cells `s·g^j` it points to its precondition. -/
+def sigFillP : HSig :=
+  { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postPR := [(⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩, [0])],
+    «term» := [(.val 0, .val 1)] }
+
+/-- `fillP`'s certificate: the tail call's `preR` one further (shifted); the pointer run accumulated, the
+counter's cell by the store's word (`word 0`) and the cell it points to by the own run at the counter. -/
+def hFillP : HCert where
+  sig := sigFillP
+  reads := []
+  res := []
+  calls := [[.run 0 []]]
+  rets := [[.word 0, .run 0 []]]
+
+theorem fillP_ok : heapOkC Data.powTree (fun _ ↦ sigFillP) fillP hFillP = true := by decide +kernel
+
+/-- The pointed cell witnessed by the store of the counter's cell. -/
+theorem fillP_bad : heapOkC Data.powTree (fun _ ↦ sigFillP) fillP { hFillP with rets := [[.word 0, .ev 0]] } = false := by
+  decide +kernel
+
+/-- `fillP`, and `needP` needing `q`'s cells `[0, e(n))` pointing to written cells at offset `0`. -/
+def sigsP2 (g : String) : HSig :=
+  if g = "fillP" then sigFillP
+  else if g = "needP" then { prePR := [(⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩, [0])] } else .empty
+
+/-- Fills `q` from `g^0` to `n`, then calls `needP`. -/
+def useFillP : Fn where
+  name := "useFillP"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.const (.n 3) (word 1 0)), .call "fillP" [.n 3, .n 2, .n 0, .n 1] [], .call "needP" [.n 0, .n 2] [],
+    .ret []]
+
+/-- `useFillP`'s certificate: `fillP`'s `preR` its own (run serial `0`), `needP`'s pointer run `fillP`'s guarantee
+(run serial `1`). -/
+def hUseFillP : HCert where
+  sig := { preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := []
+  calls := [[.run 0 []], [.pfr 1 []]]
+  rets := [[]]
+
+theorem useFillP_ok : heapOkC Data.powTree sigsP2 useFillP hUseFillP = true := by decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test
