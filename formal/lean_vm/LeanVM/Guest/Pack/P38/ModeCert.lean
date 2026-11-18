@@ -417,7 +417,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L28».cfun, Fn.«index_mle__L4».cfun, Fn.«batch_sumcheck__L23».cfun]
+  [Fn.«eq_prefix_run__L28».cfun, Fn.«index_mle__L4».cfun, Fn.«bus_grind_check__L9».cfun,
+    Fn.«batch_sumcheck__L23».cfun]
 
 end
 
@@ -577,10 +578,11 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«column_selector__L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«column_selector__L30».modeOk,
     Fn.«column_selector__L30».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«bus_grind_check__L9».modeOk,
-    Fn.«bus_grind_check__L9».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«bus_grind_check__L9».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«bus_grind_check__L9».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«batch_sumcheck__L23».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«batch_sumcheck__L23».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«batch_sumcheck__L23».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«grind_check__L19».modeOk,
     Fn.«grind_check__L19».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8)

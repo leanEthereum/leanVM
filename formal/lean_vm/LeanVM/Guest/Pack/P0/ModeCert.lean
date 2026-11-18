@@ -385,7 +385,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«block_selector__L8».cfun, Fn.«index_mle__L6».cfun, Fn.«squeeze_point_from__L30».cfun]
+  [Fn.«opening_round».cfun, Fn.«block_selector__L8».cfun, Fn.«index_mle__L6».cfun,
+    Fn.«squeeze_point_from__L30».cfun]
 
 end
 
@@ -518,16 +519,17 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     -/
 theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«opening_round».modeOk,
-    Fn.«opening_round».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«block_selector__L8».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«block_selector__L8».fnSpecC⟩)
+  Mode.fa_cons (.inr ⟨Fn.«opening_round».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«opening_round».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«block_selector__L8».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«block_selector__L8».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«index_mle__L6».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«index_mle__L6».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«index_mle__L6».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«column_selector__L5».modeOk,
     Fn.«column_selector__L5».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L30».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«squeeze_point_from__L30».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«squeeze_point_from__L30».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5)
     ⟨Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeHintsOk⟩)

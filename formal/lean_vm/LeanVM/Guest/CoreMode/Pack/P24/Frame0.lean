@@ -254,7 +254,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node (some Fn.«grind_check__L20».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil)) .nil) .nil))
-    .nil) .nil)))), 524287, Data.adviceFn327.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    .nil) .nil)))), 524287, Data.adviceFn327.2.2, .nil, .nil, .nil, .nil,
+    Fn.«bus_grind_check__L3».pairO, Fn.«bus_grind_check__L3».pairS, .nil⟩
 
 /-- `bus_grind_check__L3`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

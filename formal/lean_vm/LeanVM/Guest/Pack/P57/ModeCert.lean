@@ -440,7 +440,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L29».cfun, Fn.«index_mle__L5».cfun]
+  [Fn.«eq_prefix_run__L29».cfun, Fn.«index_mle__L5».cfun, Fn.«bus_grind_check__L8».cfun]
 
 end
 
@@ -607,8 +607,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3)
     ⟨Fn.«log2_ceil_in_the_exponent__L0_L34».modeOk,
     Fn.«log2_ceil_in_the_exponent__L0_L34».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«bus_grind_check__L8».modeOk,
-    Fn.«bus_grind_check__L8».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«bus_grind_check__L8».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«bus_grind_check__L8».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«grind_check__L18».modeOk,
     Fn.«grind_check__L18».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«level_positions__L4_L16_L4».modeOk,

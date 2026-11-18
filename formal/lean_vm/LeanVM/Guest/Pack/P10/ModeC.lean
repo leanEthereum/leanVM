@@ -11,6 +11,8 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P10».Bundle
 public import LeanVM.Guest.Pack.«P10».ModeSig
+public import LeanVM.Guest.Pack.«P52».ModeSig
+public import LeanVM.Guest.Pack.«P59».ModeSig
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L24»
 
@@ -84,6 +86,52 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L8»
+
+namespace LeanVM.Guest.Fn.«bus_grind_check__L5»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `bus_grind_check__L5`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«grind_check__L22».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil))
+    .nil)))) .nil) .nil)) .nil), 524287⟩
+
+/-- `bus_grind_check__L5`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨212729, 9, Fn.«bus_grind_check__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«bus_grind_check__L5»
+
+namespace LeanVM.Guest.Fn.«bus_grind_check__L10»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `bus_grind_check__L10`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node (some Fn.«grind_check__L27».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil) .nil)
+    .nil))) .nil) .nil) .nil) .nil), 524287⟩
+
+/-- `bus_grind_check__L10`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨212774, 9, Fn.«bus_grind_check__L10».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«bus_grind_check__L10»
 
 namespace LeanVM.Guest.Fn.«opening_message__L12_L1»
 

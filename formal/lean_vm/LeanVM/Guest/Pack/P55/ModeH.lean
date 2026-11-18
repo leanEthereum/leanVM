@@ -60,36 +60,6 @@ end
 
 end LeanVM.Guest.Fn.«column_selector__L8»
 
-namespace LeanVM.Guest.Fn.«bus_grind_check__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `bus_grind_check__L6`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 330) (d := Data.adviceFn330) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«bus_grind_check__L6»
-
-namespace LeanVM.Guest.Fn.«bus_grind_check__L13»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `bus_grind_check__L13`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 337) (d := Data.adviceFn337) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«bus_grind_check__L13»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
 
 open LeanVM.Guest LeanVM.Guest.Exec

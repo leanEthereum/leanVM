@@ -39,10 +39,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node (some Fn.«grind_check__L7».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) .nil))))
-    .nil)) .nil)), 524287, Data.adviceFn8.2.2, .nil, .nil, .nil, .nil, (.node none (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node (some ()) .nil .nil))), .nil, .nil⟩
+    .nil)) .nil)), 524287, Data.adviceFn8.2.2, .nil, .nil, .nil, .nil, Fn.«opening_round».pairO,
+    Fn.«opening_round».pairS, .nil⟩
 
 /-- `opening_round`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

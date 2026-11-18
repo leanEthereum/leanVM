@@ -13,21 +13,6 @@ public import LeanVM.Guest.Pack.«P0».Mode1
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«opening_round»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `opening_round`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 8) (d := Data.adviceFn8) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_round»
-
 namespace LeanVM.Guest.Fn.«column_selector__L5»
 
 open LeanVM.Guest LeanVM.Guest.Exec

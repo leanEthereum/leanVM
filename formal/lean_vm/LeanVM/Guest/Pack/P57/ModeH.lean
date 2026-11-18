@@ -44,21 +44,6 @@ end
 
 end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 
-namespace LeanVM.Guest.Fn.«bus_grind_check__L8»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `bus_grind_check__L8`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 332) (d := Data.adviceFn332) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«bus_grind_check__L8»
-
 namespace LeanVM.Guest.Fn.«grind_check__L18»
 
 open LeanVM.Guest LeanVM.Guest.Exec

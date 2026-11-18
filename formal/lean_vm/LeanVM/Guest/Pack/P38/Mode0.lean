@@ -16,7 +16,6 @@ public import LeanVM.Guest.Pack.«P24».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
 public import LeanVM.Guest.Pack.«P38».Bundle
 public import LeanVM.Guest.Pack.«P38».ModeSig
-public import LeanVM.Guest.Pack.«P40».ModeSig
 public import LeanVM.Guest.Pack.«P47».ModeSig
 public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P56».ModeSig
@@ -117,33 +116,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«column_selector__L30»
-
-namespace LeanVM.Guest.Fn.«bus_grind_check__L9»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `bus_grind_check__L9`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«grind_check__L26».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil), 524287⟩
-
-/-- `bus_grind_check__L9`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨212765, 9, Fn.«bus_grind_check__L9».modeSig, (.node none .nil (.node (some [(.alloc 5 46)]) .nil
-    .nil)), .nil, .nil, false, .nil⟩
-
-/-- `bus_grind_check__L9`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«bus_grind_check__L9»
 
 namespace LeanVM.Guest.Fn.«grind_check__L19»
 

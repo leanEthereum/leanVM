@@ -260,7 +260,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node (some Fn.«grind_check__L24».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil)))
-    .nil)))))) .nil), 524287, Data.adviceFn331.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    .nil)))))) .nil), 524287, Data.adviceFn331.2.2, .nil, .nil, .nil, .nil,
+    Fn.«bus_grind_check__L7».pairO, Fn.«bus_grind_check__L7».pairS, .nil⟩
 
 /-- `bus_grind_check__L7`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -283,7 +284,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node (some Fn.«grind_check__L29».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil)
-    .nil)))))) .nil) .nil), 524287, Data.adviceFn336.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    .nil)))))) .nil) .nil), 524287, Data.adviceFn336.2.2, .nil, .nil, .nil, .nil,
+    Fn.«bus_grind_check__L12».pairO, Fn.«bus_grind_check__L12».pairS, .nil⟩
 
 /-- `bus_grind_check__L12`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

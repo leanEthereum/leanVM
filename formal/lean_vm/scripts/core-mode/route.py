@@ -150,6 +150,10 @@ def route(verbose=False):
     out = {}; why = collections.Counter()
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]
+        if pf.get('kind') == 'c':
+            # a body with calls, its certificate by the check with calls (`callc.py`)
+            out[k] = dict(post=[], pre=[], O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind='c')
+            continue
         F = fns[k]
         ns = F.get('ns', k)
         G = S.get(ns) or S.get(k)
@@ -183,7 +187,7 @@ def route(verbose=False):
         else:
             pre_ok = all(any(mono_cell(G, len(params), m) == c for m in G['pre']) for c in f.pre)
             if not pre_ok: why['precondition'] += 1; continue
-            out[k] = dict(post=post, pre=list(f.pre), O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'])
+            out[k] = dict(post=post, pre=list(f.pre), O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind='m1')
             continue
         why['unwritten promise'] += 1
     if verbose:
