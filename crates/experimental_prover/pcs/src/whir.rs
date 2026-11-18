@@ -23,7 +23,7 @@
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
 
 use crate::merkle;
-use crate::ntt::{AdditiveNttF64, Codeword, Keep};
+use crate::ntt::{AdditiveNttF64, Codeword, Keep, ROW_LANES};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
@@ -88,7 +88,7 @@ pub struct Commitment {
 pub struct ProverData {
     ntt: AdditiveNttF64,
     codeword: Codeword,
-    /// Words per codeword row: the committed lanes, with zero lanes in front up to the vector width.
+    /// Words per codeword row: the committed lanes, with zero lanes in front up to a multiple of `ROW_LANES`.
     row_words: usize,
     pub(crate) merkle_tree: merkle::CutTree,
 }
@@ -116,9 +116,8 @@ const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 /// state every leaf shares. At most the image's tail, the committed lanes,
 /// rides the proof, the opening saying its width and the image's.
 ///
-/// The encoded row is padded to a whole AVX-512 vector of lanes with zero lanes
-/// in front, so the NTT has no masked tail. The padding is the image's zeros and
-/// never rides the proof.
+/// The encoded row is padded to a whole number of the NTT's vectors (`ROW_LANES`) with zero lanes in front, so the
+/// NTT has no vector of padding lanes. The padding is the image's zeros and never rides the proof.
 pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
     assert!(log_inv_rate >= 1, "log_inv_rate must be >= 1 for a non-trivial RS code");
     assert!(log_n > log_batch_size, "witness must be wider than the interleaving");
@@ -131,23 +130,29 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     );
     let k_code = log_rows + log_inv_rate;
     let n_positions = 1usize << k_code;
-    let row_words = n_lanes.next_multiple_of(8).min(1usize << log_batch_size);
+    let row_words = n_lanes.next_multiple_of(ROW_LANES).min(1usize << log_batch_size);
 
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
     let ntt = AdditiveNttF64::standard(k_code);
-    let codeword =
-        tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
-            let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
-            let keep = if !primitives::REBUILD_OVER_STORE {
-                Keep::Whole
-            } else if n_positions * row_words * size_of::<F64>() > KEEP_CODEWORD_MAX_BYTES {
-                Keep::Nothing
-            } else {
-                Keep::BeforeDeep
-            };
-            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
-        });
+    let span = tracing::info_span!(
+        "NTT",
+        kind = "base encode",
+        log_domain = k_code,
+        lanes = row_words,
+        data = n_lanes
+    );
+    let codeword = span.in_scope(|| {
+        let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
+        let keep = if !primitives::REBUILD_OVER_STORE {
+            Keep::Whole
+        } else if n_positions * row_words * size_of::<F64>() > KEEP_CODEWORD_MAX_BYTES {
+            Keep::Nothing
+        } else {
+            Keep::BeforeDeep
+        };
+        ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
+    });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
     let root = merkle_tree.root();
 

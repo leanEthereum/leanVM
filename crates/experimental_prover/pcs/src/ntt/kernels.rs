@@ -4,6 +4,17 @@
 use core::arch::x86_64::__m512i;
 use primitives::field::F64;
 
+/// The lanes a codeword row is padded to a multiple of, with zero lanes: whole vectors of the kernels, or quads.
+///
+/// - AVX2 runs four lanes to a vector, and a last chunk of one vector multiplies only it.
+/// - AVX-512 runs eight, but masks its last vector to the row: a narrower row still saves memory traffic and the
+///   Merkle leaf's hashing, which absorbs whole blocks of leading zero lanes as one shared state.
+/// - NEON runs eight, and the rest word by word.
+#[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "avx2"))]
+pub(crate) const ROW_LANES: usize = 4;
+#[cfg(not(all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "avx2")))]
+pub(crate) const ROW_LANES: usize = 8;
+
 /// Visit every row group of a fused multi-layer block.
 ///
 /// ```text
@@ -146,10 +157,10 @@ pub(super) fn butterfly_interleaved_fused_3layer(
                 num_ntts,
                 t,
                 #[inline(always)]
-                |v, t| {
+                |v, t, vectors| {
                     radix8_schedule(
                         #[inline(always)]
-                        |top, bot, k| avx2::butterfly_regs(v, top, bot, t[k]),
+                        |top, bot, k| avx2::butterfly_regs(v, top, bot, t[k], vectors),
                     );
                 },
             );
@@ -295,10 +306,10 @@ pub(super) fn butterfly_interleaved_fused_2layer(
                 num_ntts,
                 t,
                 #[inline(always)]
-                |v, t| {
+                |v, t, vectors| {
                     radix4_schedule(
                         #[inline(always)]
-                        |top, bot, k| avx2::butterfly_regs(v, top, bot, t[k]),
+                        |top, bot, k| avx2::butterfly_regs(v, top, bot, t[k], vectors),
                     );
                 },
             );
@@ -825,12 +836,18 @@ mod avx2 {
         dst[4 * i..4 * i + n].copy_from_slice(&words[..n]);
     }
 
-    /// Butterfly rows `top` and `bot` of every vector in flight.
+    /// Butterfly rows `top` and `bot` of the first `vectors` vectors in flight.
     #[inline]
     #[target_feature(enable = "pclmulqdq", enable = "avx2")]
     #[cfg_attr(target_feature = "vpclmulqdq", target_feature(enable = "vpclmulqdq"))]
-    pub(super) fn butterfly_regs<const N: usize>(v: &mut RowVectors<N>, top: usize, bot: usize, (tw, zero): Twiddle) {
-        for k in 0..LANE_VECTORS {
+    pub(super) fn butterfly_regs<const N: usize>(
+        v: &mut RowVectors<N>,
+        top: usize,
+        bot: usize,
+        (tw, zero): Twiddle,
+        vectors: usize,
+    ) {
+        for k in 0..vectors {
             let (u, w) = (v[top][k], v[bot][k]);
             let new_u = if zero { u } else { mul_xor_ymm(u, w, tw) };
             v[top][k] = new_u;
@@ -848,7 +865,7 @@ mod avx2 {
         stride_rows: usize,
         num_ntts: usize,
         twiddles: &[F64; T],
-        kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T]),
+        kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T], usize),
     ) {
         fused_rows::<N>(block, src, stride_rows, num_ntts, |src, rows| {
             fused_lanes(
@@ -856,12 +873,13 @@ mod avx2 {
                 rows,
                 twiddles,
                 #[inline(always)]
-                |v, t| kernel(v, t),
+                |v, t, vectors| kernel(v, t, vectors),
             )
         });
     }
 
-    /// `fused_lanes_avx512` at half the width: [`LANE_VECTORS`] four-lane vectors of every row at a time.
+    /// `fused_lanes_avx512` at half the width: [`LANE_VECTORS`] four-lane vectors of every row at a time, and in the
+    /// last chunk only those that hold lanes.
     #[inline]
     #[target_feature(enable = "pclmulqdq", enable = "avx2")]
     #[cfg_attr(target_feature = "vpclmulqdq", target_feature(enable = "vpclmulqdq"))]
@@ -869,7 +887,7 @@ mod avx2 {
         src: Option<[&[F64]; N]>,
         rows: &mut [&mut [F64]; N],
         twiddles: &[F64; T],
-        kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T]),
+        kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T], usize),
     ) {
         const CHUNK: usize = 4 * LANE_VECTORS;
         let len = rows[0].len();
@@ -888,7 +906,7 @@ mod avx2 {
                 }),
                 None => std::array::from_fn(|i| std::array::from_fn(|k| load_at(&*chunks[i], 4 * k))),
             };
-            kernel(&mut v, &tw);
+            kernel(&mut v, &tw, LANE_VECTORS);
             for i in 0..N {
                 for k in 0..LANE_VECTORS {
                     store_at(chunks[i], 4 * k, v[i][k]);
@@ -906,7 +924,11 @@ mod avx2 {
                     None => load_prefix(&*rows[i], reg + k, n(k)),
                 })
             });
-            kernel(&mut v, &tw);
+            // Each count is its own call, so the kernel's loops over the vectors unroll.
+            match (len - lane).div_ceil(4) {
+                1 => kernel(&mut v, &tw, 1),
+                _ => kernel(&mut v, &tw, LANE_VECTORS),
+            }
             for i in 0..N {
                 for k in 0..LANE_VECTORS {
                     store_prefix(rows[i], reg + k, n(k), v[i][k]);

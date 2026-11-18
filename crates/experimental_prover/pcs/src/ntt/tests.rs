@@ -201,7 +201,8 @@ fn fused_encode_matches_replicate_then_transform() {
 /// that lane's contiguous message block, which is what makes a commitment over
 /// `n_lanes` lanes equal to the `2^log_batch_size`-lane one with a zero tail.
 /// The shapes cover the transposing fused first pass, its fallback, and lane
-/// counts that are not powers of two (the padding-free commit's whole point).
+/// counts that are not powers of two (the padding-free commit's whole point),
+/// in rows padded to four lanes.
 #[test]
 fn lane_major_msg_encode_matches_per_lane_reference() {
     let mut rng = Rng::new(0x1A2E);
@@ -211,6 +212,7 @@ fn lane_major_msg_encode_matches_per_lane_reference() {
         (5, 2, 7),
         (9, 1, 5),
         (12, 2, 37),
+        (12, 2, 43),
         (14, 1, 64),
     ] {
         let log_d = log_rows + log_inv_rate;
@@ -218,7 +220,7 @@ fn lane_major_msg_encode_matches_per_lane_reference() {
         let rows = 1usize << log_rows;
         let msg: Vec<F64> = (0..rows * n_lanes).map(|_| F64(rng.next_u64())).collect();
 
-        let row_words = n_lanes.next_multiple_of(8);
+        let row_words = n_lanes.next_multiple_of(4);
         let mut got = vec![F64::ZERO; (row_words << log_rows) << log_inv_rate];
         transpose_lane_major(&mut got[..row_words << log_rows], &msg, n_lanes, row_words, log_rows);
         ntt.encode_interleaved_in_place(&mut got, row_words, log_inv_rate);
@@ -246,22 +248,23 @@ fn lane_major_msg_encode_matches_per_lane_reference() {
 
 /// The lane-major encode reads the message in its first gathered pass, so it must equal the
 /// transpose into block 0 followed by the in-place encode: rows handed over and rows opened.
-/// The shapes cover a fused first pass (with and without padding lanes, at both rates),
-/// a deep-only plan, and a domain too small for any gathered pass.
+/// The shapes cover a fused first pass (with and without padding lanes, at both rates, in rows of whole octets
+/// and in rows ending in a quad), a deep-only plan, and a domain too small for any gathered pass.
 #[test]
 fn lane_major_encode_matches_transpose_then_in_place() {
     let mut rng = Rng::new(0x7A5E);
-    for (log_rows, log_inv_rate, n_lanes) in [
-        (13usize, 2usize, 47usize),
-        (14, 1, 40),
-        (13, 1, 17),
-        (12, 2, 64),
-        (5, 2, 7),
+    for (log_rows, log_inv_rate, n_lanes, row_words) in [
+        (13usize, 2usize, 47usize, 48usize),
+        (14, 1, 40, 40),
+        (13, 1, 17, 24),
+        (13, 1, 17, 20),
+        (15, 1, 17, 20),
+        (12, 2, 64, 64),
+        (5, 2, 7, 8),
     ] {
         let log_d = log_rows + log_inv_rate;
         let ntt = AdditiveNttF64::standard(log_d);
         let msg: Vec<F64> = (0..n_lanes << log_rows).map(|_| F64(rng.next_u64())).collect();
-        let row_words = n_lanes.next_multiple_of(8);
         let mut want = vec![F64::ZERO; (row_words << log_rows) << log_inv_rate];
         transpose_lane_major(&mut want[..row_words << log_rows], &msg, n_lanes, row_words, log_rows);
         ntt.encode_interleaved_in_place(&mut want, row_words, log_inv_rate);
@@ -272,8 +275,9 @@ fn lane_major_encode_matches_transpose_then_in_place() {
             let codeword = ntt.encode_lane_major(&msg, n_lanes, row_words, log_inv_rate, keep, &on_rows);
             drop(on_rows);
             let keep_nothing = keep == Keep::Nothing;
-            let context =
-                format!("log_rows={log_rows}, rate={log_inv_rate}, n_lanes={n_lanes}, keep_nothing={keep_nothing}");
+            let context = format!(
+                "log_rows={log_rows}, rate={log_inv_rate}, n_lanes={n_lanes}, row_words={row_words}, keep_nothing={keep_nothing}"
+            );
             assert_eq!(handed, want, "handed-over rows, {context}");
             let mut positions: Vec<usize> = (0..40).map(|_| rng.next_u64() as usize % (1 << log_d)).collect();
             positions.sort_unstable();

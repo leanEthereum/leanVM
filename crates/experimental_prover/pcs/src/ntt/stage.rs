@@ -19,7 +19,7 @@ use super::window::STREAM_MIN_WORDS;
 /// - A row is `row_words >= n` words: the first `row_words - n` lanes are zero padding.
 /// - Codeword lane `t` past the padding takes message block `row_words - 1 - t`.
 /// - Any lane count works: a commitment encodes only the lanes that carry data, and a caller pads
-///   the row to the vector width.
+///   the row to a multiple of [`ROW_LANES`](super::ROW_LANES).
 ///
 /// # Why descending
 ///
@@ -83,10 +83,19 @@ pub(super) fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize,
 pub(super) const LOG_BATCH: usize = 3;
 pub(super) const BATCH: usize = 1 << LOG_BATCH;
 
+/// The lane groups a stage moves across a row of `row_words` lanes, as `(first lane, lanes)`: whole octets, then a
+/// quad where the row ends four lanes past one.
+pub(super) fn lane_groups(row_words: usize) -> impl Iterator<Item = (usize, usize)> {
+    assert!(row_words.is_multiple_of(4), "a staged row is whole quads of lanes");
+    (0..row_words)
+        .step_by(8)
+        .map(move |lane| (lane, (row_words - lane).min(8)))
+}
+
 /// The transpose of a lane-major message through a stage, for one gathered pass.
 ///
 /// - It owns the message and the geometry of the fill: the step, the message rows and the row width.
-/// - [`Stage::fill`] moves one octet of lanes of a batch of residues into a stage buffer.
+/// - [`Stage::fill`] moves one group of lanes of a batch of residues into a stage buffer.
 /// - A task fills the stage, then each block of the pass transforms a copy of it.
 pub(super) struct Stage<'a> {
     lanes: Lanes<'a>,
@@ -106,17 +115,27 @@ impl<'a> Stage<'a> {
         }
     }
 
-    /// Transpose one octet of lanes of a batch of [`BATCH`] consecutive residues from `t0` into `stage`.
+    /// Transpose lanes `lane0..lane0 + lanes`, a group of [`lane_groups`], of a batch of [`BATCH`] consecutive
+    /// residues from `t0` into `stage`.
     ///
     /// - Message row `j` is `msg_rows` words apart per lane block, and word `w` of a row of `row_words` words
     ///   is lane block `row_words - 1 - w` of the message, or zero while `w` is below the padding.
     /// - Residue `t0 + s` takes rows `t0 + s + i * step` for `i < rows`, `step = 2^log_step`.
-    /// - The octet is lanes `8 * octet..8 * octet + 8`. Together with the residues, they are 64 lanes of one transform.
-    /// - `stage` has `rows` rows of 64 words.
-    ///   Lane `8 * octet + k` of row `t0 + s + i * step` is word `(i * BATCH + s) * 8 + k`.
-    /// - One tile is 8 words of 8 lane blocks, so each 64 byte line of a lane block is read once, whole.
+    /// - Together with the residues, the group's lanes are `BATCH * lanes` lanes of one transform.
+    /// - `stage` has `rows` rows of `BATCH * lanes` words.
+    ///   Lane `lane0 + k` of row `t0 + s + i * step` is word `(i * BATCH + s) * lanes + k`.
+    /// - One tile is 8 words of each lane block of the group, so each 64 byte line of a lane block is read once, whole.
     #[inline]
-    pub(super) fn fill(&self, stage: &mut [F64], t0: usize, octet: usize) {
+    pub(super) fn fill(&self, stage: &mut [F64], t0: usize, lane0: usize, lanes: usize) {
+        match lanes {
+            8 => self.fill_group::<8>(stage, t0, lane0),
+            4 => self.fill_group::<4>(stage, t0, lane0),
+            _ => unreachable!("a stage moves an octet or a quad of lanes"),
+        }
+    }
+
+    #[inline(always)]
+    fn fill_group<const W: usize>(&self, stage: &mut [F64], t0: usize, lane0: usize) {
         let Self {
             lanes: Lanes { words: msg, n_lanes },
             log_step,
@@ -126,22 +145,23 @@ impl<'a> Stage<'a> {
         // SAFETY: AVX-512F is enabled at compile time.
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
         unsafe {
-            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
+            fill_stage_tiles::<W>(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, lane0)
         }
         // SAFETY: AVX2 is enabled at compile time.
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
         unsafe {
-            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
+            fill_stage_tiles::<W>(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, lane0)
         }
         #[cfg(not(any(
             all(target_arch = "x86_64", target_feature = "avx512f"),
             all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f"))
         )))]
-        fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet);
+        fill_stage_tiles::<W>(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, lane0);
     }
 }
 
-/// [`Stage::fill`], a target-feature function where AVX-512 or AVX2 is enabled, so its tiles move through registers.
+/// [`Stage::fill`] of `W` lanes, a target-feature function where AVX-512 or AVX2 is enabled, so its tiles move
+/// through registers.
 #[cfg_attr(
     all(target_arch = "x86_64", target_feature = "avx512f"),
     target_feature(enable = "avx512f"),
@@ -152,7 +172,7 @@ impl<'a> Stage<'a> {
     target_feature(enable = "avx2"),
     inline
 )]
-fn fill_stage_tiles(
+fn fill_stage_tiles<const W: usize>(
     stage: &mut [F64],
     msg: &[F64],
     t0: usize,
@@ -160,28 +180,32 @@ fn fill_stage_tiles(
     msg_rows: usize,
     n_lanes: usize,
     row_words: usize,
-    octet: usize,
+    lane0: usize,
 ) {
-    let rows = stage.len() / (BATCH * 8);
+    let rows = stage.len() / (BATCH * W);
     let pad = row_words - n_lanes;
-    // Lane block of line `k` of the tile, which is lane `8 * octet + k`.
-    let block = |k: usize| row_words - 1 - (8 * octet + k);
+    // Lane block of line `k` of the tile, which is lane `lane0 + k`.
+    let block = |k: usize| row_words - 1 - (lane0 + k);
     // The lines of a tile that are padding lanes.
-    let pad_lines = (0..8).filter(|k| 8 * octet + k < pad).fold(0u8, |m, k| m | 1 << k);
+    let pad_lines = (0..W).filter(|k| lane0 + k < pad).fold(0u8, |m, k| m | 1 << k);
     for i in 0..rows {
         // Line `k` of the tile: 8 residues of one lane block, or zeros for a padding lane.
-        let src: [usize; 8] = std::array::from_fn(|k| block(k) * msg_rows + t0 + (i << log_step));
-        fill_tile(stage, i * BATCH, msg, src, pad_lines);
+        let src: [usize; W] = std::array::from_fn(|k| block(k) * msg_rows + t0 + (i << log_step));
+        fill_tile::<W>(stage, i * BATCH, msg, src, pad_lines);
     }
 }
 
-/// Write `stage[tile + s][k] = msg[src[k] + s]` for the 8 x 8 words of eight lines, a line in `zeros` being zeros.
+/// Write `stage[(tile + s) * W + k] = msg[src[k] + s]` for the 8 x `W` words of `W` lines, a line in `zeros` being
+/// zeros.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "avx512f")]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+fn fill_tile<const W: usize>(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; W], zeros: u8) {
     use core::arch::x86_64::*;
     use primitives::simd::{load, store, transpose8};
+    if W != 8 {
+        return fill_tile_ymm::<W>(stage, tile, msg, src, zeros);
+    }
     let r: [__m512i; 8] = std::array::from_fn(|k| {
         if zeros >> k & 1 == 1 {
             _mm512_setzero_si512()
@@ -195,24 +219,27 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
     }
 }
 
-/// [`fill_tile`] as two 4x4 transposes of YMM halves per half of the lines.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+use fill_tile_ymm as fill_tile;
+
+/// [`fill_tile`] as one 4x4 transpose of YMM halves per half of each quad of lines.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 #[inline]
 #[target_feature(enable = "avx2")]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+fn fill_tile_ymm<const W: usize>(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; W], zeros: u8) {
     use core::arch::x86_64::*;
     use primitives::{load_at, store_at};
     // Line `k`, half `h`: words `4h..4h + 4` of the line's 8 residues.
-    let r: [[__m256i; 2]; 8] = std::array::from_fn(|k| {
+    let r: [[__m256i; 2]; W] = std::array::from_fn(|k| {
         if zeros >> k & 1 == 1 {
             [_mm256_setzero_si256(); 2]
         } else {
             [load_at(msg, src[k]), load_at(msg, src[k] + 4)]
         }
     });
-    // Residue `s` is word `s` of every line: lines 0..4 in its first half, 4..8 in its second.
+    // Residue `s` is word `s` of every line: lines `4q..4q + 4` at words `4q..4q + 4` of its row.
     for h in 0..2 {
-        for q in 0..2 {
+        for q in 0..W / 4 {
             let t = |k: usize| r[4 * q + k][h];
             let (a0, a1) = (_mm256_unpacklo_epi64(t(0), t(1)), _mm256_unpackhi_epi64(t(0), t(1)));
             let (a2, a3) = (_mm256_unpacklo_epi64(t(2), t(3)), _mm256_unpackhi_epi64(t(2), t(3)));
@@ -223,7 +250,7 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
                 _mm256_permute2x128_si256::<0x31>(a1, a3),
             ];
             for (i, col) in cols.into_iter().enumerate() {
-                store_at(stage, (tile + 4 * h + i) * 8 + 4 * q, col);
+                store_at(stage, (tile + 4 * h + i) * W + 4 * q, col);
             }
         }
     }
@@ -235,10 +262,10 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
     all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f"))
 )))]
 #[inline(always)]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+fn fill_tile<const W: usize>(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; W], zeros: u8) {
     for s in 0..8 {
-        for k in 0..8 {
-            stage[(tile + s) * 8 + k] = if zeros >> k & 1 == 1 {
+        for k in 0..W {
+            stage[(tile + s) * W + k] = if zeros >> k & 1 == 1 {
                 F64::ZERO
             } else {
                 msg[src[k] + s]

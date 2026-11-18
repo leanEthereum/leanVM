@@ -6,7 +6,7 @@ use super::encode::Codeword;
 use super::plan::Plan;
 use super::scratch::with_scratch;
 use super::source::Lanes;
-use super::stage::{BATCH, Stage};
+use super::stage::{BATCH, Stage, lane_groups};
 use super::twiddles::AdditiveNttF64;
 
 /// The rows at the sorted `positions` of a codeword kept whole, `row_words` words each, back to back.
@@ -177,39 +177,27 @@ impl<'a> Rebuild<'a> {
         // A group writes row `r` of every queried sub-block, and the groups cover every residue `r`.
         let out = parallel::SendPtr(built.as_mut_ptr());
         parallel::for_each_chunk((1usize << log_step) / BATCH, |lo, hi| {
-            // One octet of lanes of a batch of residues is 64 lanes of one transform.
+            // An octet of lanes of a batch of residues is 64 lanes of one transform, a quad 32.
             let stage_len = rows * BATCH * 8;
             // `built` is far larger than a node's L3 share and is read only after every task: its lines stream.
             let stream = primitives::stream::Stream::new();
             with_scratch(2 * stage_len, |all| {
                 let (stage, scratch) = all.split_at_mut(stage_len);
                 for t in lo..hi {
-                    for octet in 0..num_ntts / 8 {
-                        self.stage.fill(stage, t * BATCH, octet);
+                    for (lane0, lanes) in lane_groups(num_ntts) {
+                        let width = BATCH * lanes;
+                        let (stage, scratch) = (&mut stage[..rows * width], &mut scratch[..rows * width]);
+                        self.stage.fill(stage, t * BATCH, lane0, lanes);
                         for (coset, run, live) in &self.cosets {
                             let live_rows = Some(&live[..]);
-                            ntt.run_layers(
-                                scratch,
-                                Some(stage),
-                                deep_start,
-                                BATCH * 8,
-                                start,
-                                start,
-                                *coset,
-                                live_rows,
-                            );
+                            ntt.run_layers(scratch, Some(stage), deep_start, width, start, start, *coset, live_rows);
                             for (pos, &i) in run.clone().zip(live) {
-                                for (s, line) in scratch[i * BATCH * 8..][..BATCH * 8]
-                                    .as_chunks::<8>()
-                                    .0
-                                    .iter()
-                                    .enumerate()
-                                {
+                                for (s, lanes_of_s) in scratch[i * width..][..width].chunks_exact(lanes).enumerate() {
                                     // SAFETY: this task alone owns row `t * BATCH + s` of every sub-block,
                                     // and `built` outlives the tasks.
                                     let dst =
-                                        unsafe { out.slice(pos * sub_len + (t * BATCH + s) * num_ntts + 8 * octet, 8) };
-                                    stream.copy(dst, line);
+                                        unsafe { out.slice(pos * sub_len + (t * BATCH + s) * num_ntts + lane0, lanes) };
+                                    stream.copy(dst, lanes_of_s);
                                 }
                             }
                         }

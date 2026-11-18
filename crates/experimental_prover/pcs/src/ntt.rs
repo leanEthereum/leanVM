@@ -69,5 +69,5 @@ mod twiddles;
 mod window;
 
 pub(crate) use encode::{Codeword, Keep};
-pub(crate) use kernels::transpose_butterfly_lanes;
+pub(crate) use kernels::{ROW_LANES, transpose_butterfly_lanes};
 pub use twiddles::AdditiveNttF64;

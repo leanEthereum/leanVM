@@ -34,11 +34,11 @@ impl Plan {
         }
     }
 
-    /// Whether the first gathered pass can read a lane-major message itself: it has a layer to run, whole cache
-    /// lines in a row, and enough residues to batch.
+    /// Whether the first gathered pass can read a lane-major message itself: it has a layer to run, whole quads of
+    /// lanes in a row, and enough residues to batch.
     pub(super) fn reads_lanes(&self) -> bool {
         let g = (self.deep_start - self.start).min(self.max_g);
-        self.start < self.deep_start && self.num_ntts.is_multiple_of(8) && self.log_d - self.start - g >= LOG_BATCH
+        self.start < self.deep_start && self.num_ntts.is_multiple_of(4) && self.log_d - self.start - g >= LOG_BATCH
     }
 
     /// Whether an opening can rebuild a row from a lane-major message alone: one gathered pass reads it and
