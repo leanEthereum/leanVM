@@ -1,10 +1,10 @@
-//! The sidecar binary end to end, through the library's client: a leaf with every kind of input, a narrowed node over
+//! The sidecar binary end to end, through the Rust client: a leaf with every kind of input, a narrowed node over
 //! it from a second connection, verifying, refusals that leave the connection usable, an unknown operation sent as
 //! another language's client would, and the socket's life across a second sidecar and a restart.
 
 use aggregation::signers_cache;
-use lean_vm::sidecar::{Client, Rejection, SidecarError};
 use lean_vm::{AggregateClaims, AggregateProof, OutputClaims, lean_da};
+use sidecar::{Client, Rejection, SidecarError};
 use stable_lean_vm_core::StableProver;
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;

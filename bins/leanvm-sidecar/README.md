@@ -24,7 +24,7 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 
 ## Clients
 
-From Rust, `lean_vm::sidecar::Client` takes the library's arguments, with blobs as they are and proofs as bytes:
+From Rust, `lean_vm = { default-features = false, features = ["sidecar"] }` builds no prover, and `lean_vm::sidecar::Client` proves and verifies, with the library's arguments, blobs as they are and proofs as bytes:
 
 ```rust
 let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock", None)?;
@@ -32,7 +32,7 @@ let (claims, proof) = sidecar.aggregate(&children, &raw_lean_xmss, &[], &[], Out
 assert!(sidecar.verify(&claims, &proof)?);
 ```
 
-With `lean_vm = { default-features = false }` the client builds no prover and verifies only through the sidecar. With the default `prover` feature it can also verify itself (`AggregateProof::from_bytes`, then `verify`), against a sidecar of the same leanVM build. `connect`'s timeout (`set_timeout` changes it) bounds each read and write; after one, drop the client.
+`connect`'s timeout (`set_timeout` changes it) bounds each read and write; after one, drop the client.
 
 From another language, implement the protocol below.
 

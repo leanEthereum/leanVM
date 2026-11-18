@@ -40,7 +40,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bench/tes
 | `claims`          | `AggregateClaims` and `OutputClaims`, and the claims' byte form: what both the library and the sidecar's client name |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
 | `sidecar`         | proving and verifying in another process: the protocol of `bins/leanvm-sidecar` and its Rust client, which builds no prover; with the `server` feature, the server (generic over the prover) |
-| `lean_vm`         | the public API, not generic: it proves with the stable tree, or with the `experimental_prover` feature the experimental one; without its default `prover` feature, it builds no prover and offers the sidecar's client alone |
+| `lean_vm`         | the public API, not generic, in one of two modes: with its default `prover` feature, it proves and verifies in the process, with the stable tree, or with the `experimental_prover` feature the experimental one; with the `sidecar` feature instead, it builds no prover, and proves and verifies only through the sidecar's client |
 
 `aggregation` proves on whichever prover it is given, but derives the guest's constants and a child's witness from the stable tree, the reference: its bus blocks and their coordinates (`lean_vm_core::leaf`, whose term order the guest's arrays follow), the stacking, the grinds, the WHIR shapes and the NTT twiddles; both trees lay a proof out alike.
 

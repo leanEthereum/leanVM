@@ -16,17 +16,14 @@ aggregation = { workspace = true, optional = true }
 lean_da = { workspace = true, optional = true }
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core", optional = true }
 experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
-
-# The sidecar speaks over a Unix socket.
-[target.'cfg(unix)'.dependencies]
-sidecar.workspace = true
+sidecar = { workspace = true, optional = true }
 
 [features]
 default = ["prover"]
-# Prove and verify here. Without it, through the sidecar only, and no prover is built.
+# The two modes, one or the other (the crate docs).
 prover = ["dep:isa", "dep:aggregation", "dep:lean_da", "dep:stable_lean_vm_core"]
-# Prove with the experimental tree rather than the stable one.
 experimental_prover = ["prover", "dep:experimental_lean_vm_core"]
+sidecar = ["dep:sidecar"]
 
 [[test]]
 name = "api"

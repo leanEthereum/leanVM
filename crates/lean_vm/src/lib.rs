@@ -3,12 +3,16 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! With the default `prover` feature, it proves and verifies here: proving runs the stable prover, or with the
-//! `experimental_prover` feature the experimental one, and both give the same proofs, byte for byte. Without it, it
-//! builds no prover, and proves and verifies through the sidecar, [`sidecar::Client`]: the same claims and
-//! signatures, proofs as their bytes.
+//! Two modes, one or the other:
+//! - `prover`, the default: proves and verifies in this process, on the stable prover, or with `experimental_prover`
+//!   the experimental one (the same proofs, byte for byte).
+//! - `sidecar`, with `default-features = false`: builds no prover, and proves and verifies through the sidecar
+//!   (`bins/leanvm-sidecar`) with `sidecar::Client`, proofs as their bytes.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
+
+#[cfg(all(feature = "prover", feature = "sidecar"))]
+compile_error!("`prover` and `sidecar` are two modes: pick one (`sidecar` with `default-features = false`)");
 
 pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims};
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
@@ -33,10 +37,5 @@ pub mod lean_sphincs {
     };
 }
 
-/// Proving and verifying in another process, the sidecar (`bins/leanvm-sidecar`), which keeps the prover's memory,
-/// threads and warm state out of this one. A client built without the `prover` feature verifies only there, so not
-/// while its sidecar is down.
-#[cfg(unix)]
-pub mod sidecar {
-    pub use ::sidecar::{Blob, Client, Rejection, SidecarError};
-}
+#[cfg(feature = "sidecar")]
+pub use ::sidecar;
