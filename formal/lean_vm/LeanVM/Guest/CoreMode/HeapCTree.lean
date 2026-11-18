@@ -97,7 +97,8 @@ subtree; its returned words are its `retM` monomials; the final memory holds its
 def PostT (P : Program) (cert : String → HCert) (rd : Reader) (t : Tree) (args gw rets : List E) : Prop :=
   (gw.length = (cert t.name).sig.ghosts → ∀ x, PostSet rd (cert t.name).sig (args ++ rets) x →
     PreSet rd (cert t.name).sig (args ++ gw) x ∨ treeWr P t x) ∧
-  RetMOk (cert t.name).sig args rets ∧ RetVOk rd (cert t.name).sig (args ++ rets)
+  RetMOk (cert t.name).sig args rets ∧ RetVOk rd (cert t.name).sig (args ++ rets) ∧
+    RetEqOk (cert t.name).sig (args ++ rets)
 
 theorem kidsWr_of_mem {P : Program} {x : K} : ∀ {ks : List Tree} {k : Tree}, k ∈ ks → treeWr P k x → kidsWr P ks x
   | [], _, hk, _ => by simp at hk
@@ -258,7 +259,8 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
       vs.map (setG σ gw) = vs.map σ ∧
       ReadsOkC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es ∧
       PostOkC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es vs ∧
-      RetMOk (cert f).sig (fn.params.map σ) (vs.map σ) ∧ RetVOk rd (cert f).sig (fn.params.map σ ++ vs.map σ) := by
+      RetMOk (cert f).sig (fn.params.map σ) (vs.map σ) ∧ RetVOk rd (cert f).sig (fn.params.map σ ++ vs.map σ) ∧
+      RetEqOk (cert f).sig (fn.params.map σ ++ vs.map σ) := by
   have hok := hC f fn hf
   have hng : noGhost fn = true := by
     unfold heapOkC at hok
@@ -285,7 +287,7 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
       unfold PostT at hkp
       rw [hn'] at hkp
       have hu' : ∀ v ∈ a ++ r, setG σ gw v = σ v := fun v hv ↦ hev _ he v (by simp [Ev.uses] at hv ⊢; tauto)
-      show RetMOk _ (a.map _) (r.map _) ∧ RetVOk _ _ ((a ++ r).map _)
+      show RetMOk _ (a.map _) (r.map _) ∧ RetVOk _ _ ((a ++ r).map _) ∧ RetEqOk _ ((a ++ r).map _)
       rw [List.map_congr_left fun v hv ↦ hu' v (List.mem_append_left _ hv),
         List.map_congr_left fun v hv ↦ hu' v (List.mem_append_right _ hv), List.map_congr_left hu',
         List.map_append]
@@ -294,11 +296,11 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
     | inK _ => trivial
     | skip _ _ => trivial
   obtain ⟨hE, hR⟩ := hfa fn hf
-  obtain ⟨hreads, hpost, hrm, hrv⟩ := heapOkC_sound hp hok (by rw [fn_name_of_find hf]) hw'
+  obtain ⟨hreads, hpost, hrm, hrv, hre⟩ := heapOkC_sound hp hok (by rw [fn_name_of_find hf]) hw'
     (fun e he ↦ (holds_congr (hev e he)).mpr (hh e he)) hM hE hR
-  rw [hpar] at hreads hpost hrm hrv
-  rw [hvs'] at hrm hrv
-  exact ⟨fun e he v hv ↦ hev e he v (List.mem_append_left _ hv), hpar, hvs', hreads, hpost, hrm, hrv⟩
+  rw [hpar] at hreads hpost hrm hrv hre
+  rw [hvs'] at hrm hrv hre
+  exact ⟨fun e he v hv ↦ hev e he v (List.mem_append_left _ hv), hpar, hvs', hreads, hpost, hrm, hrv, hre⟩
 
 mutual
 /-- **Each subtree keeps its signature**: called with as many ghost words as it has ghosts, each
@@ -309,14 +311,14 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
   | .node f σ bufs kids, args, rets, gw, hv, ht => by
     obtain ⟨fn, hf, hpar, es, vs, hw, hret, hh, hk⟩ := hv
     have hkids := kids_post hp hC kids σ (setG σ gw) (cert f) (calls es) hk (ht.2 fn es vs hf hw)
-    obtain ⟨hag, hpar', hvs', hreads, hpost, hrm, hrv⟩ := node_sound hp hC hf hw hh ht.1 hkids
+    obtain ⟨hag, hpar', hvs', hreads, hpost, hrm, hrv, hre⟩ := node_sound hp hC hf hw hh ht.1 hkids
     show (gw.length = (cert f).sig.ghosts → ∀ x, PostSet rd (cert f).sig (args ++ rets) x →
       PreSet rd (cert f).sig (args ++ gw) x ∨ treeWr P (.node f σ bufs kids) x) ∧ RetMOk (cert f).sig args rets ∧
-      RetVOk rd (cert f).sig (args ++ rets)
+      RetVOk rd (cert f).sig (args ++ rets) ∧ RetEqOk (cert f).sig (args ++ rets)
     rw [← hpar, ← hret]
     unfold PostOkC at hpost
     rw [hvs'] at hpost
-    refine ⟨fun hlen x hx ↦ ?_, hrm, hrv⟩
+    refine ⟨fun hlen x hx ↦ ?_, hrm, hrv, hre⟩
     have hW : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es x := by
       rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx
       · exact hpost.1.1 c hc
@@ -370,7 +372,7 @@ theorem tree_inst (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : V
       ReadsOkC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es ∧
       PostOkC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es vs := by
   obtain ⟨fn, hf, -, es, vs, hw, -, hh, hk⟩ := hv
-  obtain ⟨hag, -, -, h1, h2, -, -⟩ := node_sound hp hC hf hw hh ht.1
+  obtain ⟨hag, -, -, h1, h2, -, -, -⟩ := node_sound hp hC hf hw hh ht.1
     (kids_post hp hC kids σ (setG σ gw) (cert f) (calls es) hk (ht.2 fn es vs hf hw))
   exact ⟨fn, es, vs, hf, hw, hag, h1, h2⟩
 

@@ -201,10 +201,15 @@ def RetMOk (G : HSig) (ws0 rets : List E) : Prop := ∀ k c, (k, c) ∈ G.retM �
 def RetVOk (rd : Reader) (G : HSig) (ws : List E) : Prop :=
   ∀ i m, (i, m) ∈ G.postV → ∃ c, G.post[i]? = some c ∧ rd (c.addrW (slotW ws)) = some (m.valW (slotW ws))
 
+/-- **Equations at return**: each `(a, b)` of the signature's `retEq`, `a`'s word is `b`'s at the slots'
+words `ws`. -/
+def RetEqOk (G : HSig) (ws : List E) : Prop := ∀ p ∈ G.retEq, p.1.valW (slotW ws) = p.2.valW (slotW ws)
+
 /-- **What an event gives beyond its writes**: an entered call, its callee's returned words'
-monomials and words at return, at its words. -/
+monomials, words at return and equations at return, at its words. -/
 def EvM (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → Prop
-  | .call f args rets => RetMOk (sigOf f) (args.map σ) (rets.map σ) ∧ RetVOk rd (sigOf f) ((args ++ rets).map σ)
+  | .call f args rets => RetMOk (sigOf f) (args.map σ) (rets.map σ) ∧ RetVOk rd (sigOf f) ((args ++ rets).map σ) ∧
+      RetEqOk (sigOf f) ((args ++ rets).map σ)
   | _ => True
 
 /-- **What an instance is given at entry**: its termination facts. -/
@@ -343,21 +348,35 @@ def ptRun (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
     ((R.hi.bases.isEmpty && Nat.blt R.hi.off capE && Nat.blt ((c.off - R.base.off) / R.stride) R.hi.off) ||
       hasFC F ((c.off - R.base.off) / R.stride) R.hi))
 
+/-- The power `k` of `M` that `x` would be (by `M`'s first base, else its offset). -/
+def powK (M x : CCell) : ℕ := match M.bases with
+  | (b, e) :: _ => expOf x.bases b / e
+  | [] => x.off / M.off
+
+/-- `x = M^k` and `y = N^k` for the equation `(M, N)`. -/
+def eqR (p : CCell × CCell) (x y : CCell) : Bool :=
+  x.beq (p.1.pow (powK p.1 x)) && y.beq (p.2.pow (powK p.1 x))
+
+/-- **Two monomials with one word**: equal, or powers of the two sides of an equation of `E` (`rename`:
+a bound `M^k` with `M = g^c` is `g^(c·k)`). -/
+def eqV (E : List (CCell × CCell)) (x y : CCell) : Bool :=
+  x.beq y || E.any fun p ↦ eqR p x y || eqR (p.2, p.1) x y
+
 /-- The lower bound of `Q` at or past that of `R`, its exponent existing. -/
-def loOk (F : List (CCell × CCell)) (Q R : PRun) : Bool :=
-  Q.lo.beq R.lo ||
+def loOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
+  eqV E Q.lo R.lo ||
   (Q.lo.bases.isEmpty && R.lo.bases.isEmpty && Nat.ble R.lo.off Q.lo.off && Nat.blt Q.lo.off capE) ||
   (Q.lo.beq (R.lo.shift 1) && hasF F R.lo R.hi)
 
 /-- The upper bound of `Q` at or below that of `R`, its exponent existing. -/
-def hiOk (F : List (CCell × CCell)) (Q R : PRun) : Bool :=
-  Q.hi.beq R.hi ||
+def hiOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
+  eqV E Q.hi R.hi ||
   (Q.hi.bases.isEmpty && R.hi.bases.isEmpty && Nat.ble Q.hi.off R.hi.off && Nat.blt R.hi.off capE) ||
   (Q.hi.bases.isEmpty && Nat.blt Q.hi.off capE && hasFC F (Q.hi.off - 1) R.hi)
 
 /-- **A run inside a run in scope.** -/
-def runRun (F : List (CCell × CCell)) (Q R : PRun) : Bool :=
-  Q.base.beq R.base && Nat.beq Q.stride R.stride && loOk F Q R && hiOk F Q R
+def runRun (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
+  Q.base.beq R.base && Nat.beq Q.stride R.stride && loOk F E Q R && hiOk F E Q R
 
 /-! ## The pass -/
 
@@ -380,22 +399,24 @@ structure CSt where
   nc : ℕ
   nt : ℕ
   cd : List CdE
+  /-- Equations between monomials (their words equal). -/
+  eqs : List (CCell × CCell)
 
 /-- `k st`, `st` evaluated first. -/
 def CSt.seq {β : Type} (st : CSt) (k : CSt → β) : β :=
   st.env.seq fun e ↦ st.sc.seq fun s ↦ st.rs.seq fun r ↦ st.ad.seq fun a ↦ st.sv.seq fun v ↦ st.src.seq fun sr ↦
     st.pf.seq fun pf ↦ st.pr.seq fun pr ↦ natSeq st.n fun n ↦ natSeq st.nr fun nr ↦ natSeq st.nc fun nc ↦
-      natSeq st.nt fun nt ↦ k ⟨e, s, r, a, v, sr, pf, pr, n, nr, nc, nt, st.cd⟩
+      natSeq st.nt fun nt ↦ k ⟨e, s, r, a, v, sr, pf, pr, n, nr, nc, nt, st.cd, st.eqs⟩
 
 /-- `st`'s scope with `s`'s serials. -/
-def CSt.cnt (st s : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, s.n, s.nr, s.nc, s.nt, st.cd⟩
+def CSt.cnt (st s : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, s.n, s.nr, s.nc, s.nt, st.cd, st.eqs⟩
 
 /-- Milestone 1's part of the state. -/
 def CSt.toH (st : CSt) : HSt := ⟨st.env, st.sc, st.n⟩
 
 /-- The state with milestone 1's part `h`. -/
 def CSt.ofH (st : CSt) (h : HSt) : CSt :=
-  ⟨h.env, h.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, h.n, st.nr, st.nc, st.nt, st.cd⟩
+  ⟨h.env, h.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, h.n, st.nr, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- A write event of the cell `c`. -/
 noncomputable def CSt.push (st : CSt) (c : CCell) : CSt := st.ofH (st.toH.push c)
@@ -406,7 +427,7 @@ noncomputable def CSt.def (st : CSt) (k : ℕ) (c : CCell) : CSt := st.ofH (st.t
 /-- A load's write event of the cell `c`, the word's monomial `m` stored with its serial. -/
 noncomputable def CSt.pushV (st : CSt) (c m : CCell) : CSt :=
   m.seq fun m ↦ (setF (c, m) Exec.indexDepth st.sv st.n).seq fun sv ↦
-    (st.push c).seq fun s ↦ ⟨s.env, s.sc, s.rs, s.ad, sv, s.src, s.pf, s.pr, s.n, s.nr, s.nc, s.nt, s.cd⟩
+    (st.push c).seq fun s ↦ ⟨s.env, s.sc, s.rs, s.ad, sv, s.src, s.pf, s.pr, s.n, s.nr, s.nc, s.nt, s.cd, s.eqs⟩
 
 /-- `c` the cell the value `d` was loaded from, if it has none. -/
 noncomputable def CSt.srcPut (st : CSt) (d : V) (c : CCell) : CSt :=
@@ -414,36 +435,44 @@ noncomputable def CSt.srcPut (st : CSt) (d : V) (c : CCell) : CSt :=
   | some k => match getF st.src k with
     | some _ => st
     | none => (setF c Exec.indexDepth st.src k).seq fun src ↦
-        ⟨st.env, st.sc, st.rs, st.ad, st.sv, src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
+        ⟨st.env, st.sc, st.rs, st.ad, st.sv, src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd, st.eqs⟩
   | none => st
 
 /-- A pointer fact into the scope, at the next point serial. -/
 noncomputable def CSt.pushP (st : CSt) (p : CCell × List ℕ) : CSt :=
   p.1.seq fun c ↦ (setF (c, p.2) Exec.indexDepth st.pf st.n).seq fun pf ↦
-    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, pf, st.pr, st.n + 1, st.nr, st.nc, st.nt, st.cd⟩
+    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, pf, st.pr, st.n + 1, st.nr, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- A pointer run into the scope, at the next run serial. -/
 noncomputable def CSt.pushPR (st : CSt) (p : PRun × List ℕ) : CSt :=
   p.1.seq fun r ↦ (setF (r, p.2) Exec.indexDepth st.pr st.nr).seq fun pr ↦
-    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, pr, st.n, st.nr + 1, st.nc, st.nt, st.cd⟩
+    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, pr, st.n, st.nr + 1, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- A run into the scope, at the next run serial. -/
 noncomputable def CSt.pushR (st : CSt) (r : PRun) : CSt :=
   (setF r Exec.indexDepth st.rs st.nr).seq fun rs ↦
-    ⟨st.env, st.sc, rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr + 1, st.nc, st.nt, st.cd⟩
+    ⟨st.env, st.sc, rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr + 1, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- The next call serial. -/
-def CSt.nextC (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc + 1, st.nt, st.cd⟩
+def CSt.nextC (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc + 1, st.nt, st.cd, st.eqs⟩
 
 /-- The next ret serial. -/
-def CSt.nextT (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt + 1, st.cd⟩
+def CSt.nextT (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt + 1, st.cd, st.eqs⟩
+
+/-- An equation kept. -/
+def CSt.addEq (st : CSt) (p : CCell × CCell) : CSt :=
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd, p :: st.eqs⟩
+
+/-- Equations kept. -/
+def CSt.addEqs (st : CSt) (l : List (CCell × CCell)) : CSt :=
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd, l ++ st.eqs⟩
 
 /-- The sum `k = a + b` seen, if `k` has none yet. -/
 noncomputable def CSt.addS (st : CSt) (k : ℕ) (a b : CCell) : CSt :=
   match getF st.ad k with
   | some _ => st
   | none => (setF (a, b) Exec.indexDepth st.ad k).seq fun ad ↦
-      ⟨st.env, st.sc, st.rs, ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
+      ⟨st.env, st.sc, st.rs, ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- What the pass reads. -/
 structure CX where
@@ -461,13 +490,15 @@ structure CX where
   params : List V
   /-- The branch conditions of the blocks enclosing the site. -/
   path : List CCond
+  /-- The atoms whose equations are kept (`HCert.eqs`). -/
+  eqk : Trie Unit
 
 /-- Milestone 1's part. -/
 def CX.toH (X : CX) : HX := ⟨X.pows, X.R, X.pre⟩
 
 /-- The site under the further branch conditions `l`. -/
 def CX.ext (X : CX) (l : List CCond) : CX :=
-  ⟨X.pows, X.R, X.pre, X.C, X.T, X.res, X.dv, X.hv, X.ga, X.sigOf, X.sig, X.params, l ++ X.path⟩
+  ⟨X.pows, X.R, X.pre, X.C, X.T, X.res, X.dv, X.hv, X.ga, X.sigOf, X.sig, X.params, l ++ X.path, X.eqk⟩
 
 /-- Two branch conditions are equal. -/
 def CCond.beq : CCond → CCond → Bool
@@ -612,7 +643,7 @@ def constR (Q : PRun) : Bool :=
 /-- **A witness of the run `Q`.** -/
 noncomputable def rnOk (X : CX) (st : CSt) (Q : PRun) : Wit → Bool
   | .run r res => match getF st.rs r with
-    | some R => runRun (facts X st.env res) Q R || subRun X st.env res Q R
+    | some R => runRun (facts X st.env res) st.eqs Q R || subRun X st.env res Q R
     | none => false
   | .empty => emptyR Q
   | _ => false
@@ -653,7 +684,7 @@ noncomputable def ptrPts (X : CX) (st : CSt) (b : CCell) (S : ℕ) (offs : List 
 cells' pointer facts (constant bounds). The witnesses left. -/
 noncomputable def ptrROk (X : CX) (st : CSt) (Q : PRun) (offs : List ℕ) : List Wit → Option (List Wit)
   | .pfr r res :: ws => match getF st.pr r with
-    | some p => bif runRun (facts X st.env res) Q p.1 && subL offs p.2 then some ws else none
+    | some p => bif runRun (facts X st.env res) st.eqs Q p.1 && subL offs p.2 then some ws else none
     | none => none
   | .empty :: ws => bif emptyR Q then some ws else none
   | .pts :: ws => bif constR Q
@@ -914,6 +945,12 @@ noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (args rets : Li
         | none => none
       | none => none
 
+/-- A signature's equations at the slots `ms`, those that instantiate. -/
+def instEq (ms : List CCell) (l : List (CCell × CCell)) : List (CCell × CCell) :=
+  l.filterMap fun p ↦ match instC ms p.1, instC ms p.2 with
+    | some a, some b => some (a, b)
+    | _, _ => none
+
 /-- A callee's words at return, at the slots `ms`, keyed by the point serials its `post` cells get from
 `n0`: `(serial, cell, word's monomial)`. -/
 def postVE (G : HSig) (ms : List CCell) (n0 : ℕ) : List (ℕ × CCell × CCell) :=
@@ -927,7 +964,7 @@ def postVE (G : HSig) (ms : List CCell) (n0 : ℕ) : List (ℕ × CCell × CCell
 noncomputable def svPut : List (ℕ × CCell × CCell) → CSt → CSt
   | [], st => st
   | p :: l, st => (setF p.2 Exec.indexDepth st.sv p.1).seq fun sv ↦
-      svPut l ⟨st.env, st.sc, st.rs, st.ad, sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
+      svPut l ⟨st.env, st.sc, st.rs, st.ad, sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd, st.eqs⟩
 
 /-- **A call**: its callee's preconditions at its arguments; its returned words' monomials (`retM`),
 then its guarantees at its words pushed, its words at return (`postV`) stored at its `post` cells'
@@ -937,7 +974,8 @@ noncomputable def callC (X : CX) (st : CSt) (g : String) (args rets : List V) : 
   | some ma, some ws => match reqG X st ma g args ws with
     | some [] => (retDefs rets (instRM ma (X.sigOf g).retM) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
-        | some mr => (pushPost (X.sigOf g) (ma ++ mr) st1).map (svPut (postVE (X.sigOf g) (ma ++ mr) st1.n))
+        | some mr => (pushPost (X.sigOf g) (ma ++ mr) st1).map fun st2 ↦
+            (svPut (postVE (X.sigOf g) (ma ++ mr) st1.n) st2).addEqs (instEq (ma ++ mr) (X.sigOf g).retEq)
         | none => none
     | _ => none
   | _, _ => none
@@ -1002,7 +1040,7 @@ def condE (sigOf : String → HSig) (ms : List CCell) (mx : CCell) : ℕ → Lis
 
 /-- The guarantees under a selector, added. -/
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
-  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l⟩
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l, st.eqs⟩
 
 /-- **A dispatch** on `x`: every arm's preconditions but the arms a fact rules out (`armSkip`); the
 returned words' monomials every arm kept gives, then what every arm kept guarantees pushed (cells, runs,
@@ -1039,6 +1077,12 @@ noncomputable def retVC (st : CSt) (ms : List CCell) (post : List CCell) (ws : L
       | _, _, _ => false
     | _, _ => false
 
+/-- The own equations at return, at the slots `ms`: each one's sides one word (`eqV`). -/
+def retEqC (E : List (CCell × CCell)) (ms : List CCell) (l : List (CCell × CCell)) : Bool :=
+  l.all fun p ↦ match instC ms p.1, instC ms p.2 with
+    | some a, some b => eqV E a b
+    | _, _ => false
+
 /-- **A return**: the own guarantees at the parameters and the returned words, the returned words'
 monomials, and the words at return. -/
 noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
@@ -1047,7 +1091,8 @@ noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
     | some ws1 => match reqR X st (mp ++ mv) X.sig.postR ws1 with
       | some ws2 => match reqPP X st (mp ++ mv) X.sig.postP ws2 with
         | some ws3 => match reqPR X st (mp ++ mv) X.sig.postPR ws3 with
-          | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV
+          | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
+              retEqC st.eqs (mp ++ mv) X.sig.retEq
           | _ => false
         | none => false
       | none => false
@@ -1085,7 +1130,7 @@ noncomputable def divOf (X : CX) (st : CSt) (d q b : V) : Option (ℕ × CCell) 
 
 /-- **An atom**: milestone 1's, a read's witness any of `ptOk`'s, a read through a load event of its
 cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`divOf`). -/
-noncomputable def atomC (X : CX) (st : CSt) : Atom → Option CSt
+noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with
     | some m => (m.shift off).seq fun c ↦ match readWitT X.R d p off with
       | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush st1 c d) else none
@@ -1099,6 +1144,29 @@ noncomputable def atomC (X : CX) (st : CSt) : Atom → Option CSt
     | some k, some ma, some mb => some (st.addS k ma mb)
     | _, _, _ => some st
   | a => (atomH X.toH st.toH a).map st.ofH
+
+/-- An equation `a = b` of two values, `a` listed (`HCert.eqs`): their monomials. -/
+noncomputable def eqPair (X : CX) (st : CSt) (a b : V) : CSt :=
+  match vnum a with
+  | some k => match getF X.eqk k, monoOf st.env a, monoOf st.env b with
+    | some _, some ma, some mb => st.addEq (ma, mb)
+    | _, _, _ => st
+  | none => st
+
+/-- **An atom's equation kept**: a listed `mul d a b` whose `d` has a monomial already (`d = a·b`, e.g. a
+quotient without a monomial), a listed `assertEq` or `copy`. -/
+noncomputable def eqAt (X : CX) (st : CSt) : Atom → CSt
+  | .mul d a b => match vnum d with
+    | some k => match getF X.eqk k, getF st.env k, monoOf st.env a, monoOf st.env b with
+      | some _, some md, some ma, some mb => st.addEq (ma.mul mb, md)
+      | _, _, _, _ => st
+    | none => st
+  | .assertEq a b => eqPair X st a b
+  | .copy d s => eqPair X st d s
+  | _ => st
+
+/-- **An atom**: its equation kept (`eqAt`), then `atomC0`. -/
+noncomputable def atomC (X : CX) (st : CSt) (a : Atom) : Option CSt := (eqAt X st a).seq fun st ↦ atomC0 X st a
 
 /-! ## Joins -/
 
@@ -1136,7 +1204,7 @@ noncomputable def joinSt (bs : List (Bool × CSt × CSt)) (st s : CSt) : CSt :=
     st.ad, st.sv, st.src,
     insL (joinE pfBeq (bs.map fun b ↦ (b.1, rng b.2.2.pf b.2.1.n (b.2.2.n - b.2.1.n)))) st.pf,
     insL (joinE prBeq (bs.map fun b ↦ (b.1, rng b.2.2.pr b.2.1.nr (b.2.2.nr - b.2.1.nr)))) st.pr,
-    s.n, s.nr, s.nc, s.nt, st.cd⟩
+    s.n, s.nr, s.nc, s.nt, st.cd, st.eqs⟩
 
 /-- The last block's end, or `st`. -/
 def lastSt : List (Bool × CSt × CSt) → CSt → CSt
@@ -1328,7 +1396,7 @@ noncomputable def initC (X : CX) : Option CSt :=
   | some mp => match instPP (mp ++ ghostMs X.sig.ghosts) X.sig.preP, instAllR (mp ++ ghostMs X.sig.ghosts) X.sig.preR,
       instPRL (mp ++ ghostMs X.sig.ghosts) X.sig.prePR with
     | some pps, some rs, some prs =>
-      some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0, []⟩)))
+      some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0, [], []⟩)))
     | _, _, _ => none
   | none => none
 
@@ -1348,11 +1416,11 @@ noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) && noGhost f &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
-      (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦
-        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, []⟩ with
+      (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ with
         | some st0 => match H.sig.term with
-          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, []⟩ f.body st0).isSome
-          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, []⟩ f ei st0
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ f.body st0).isSome
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ f ei st0
           | _ => false
         | none => false
 

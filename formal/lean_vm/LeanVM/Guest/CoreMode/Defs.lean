@@ -163,6 +163,8 @@ structure HSig where
   /-- Ghost slots: slot `m + j` (`m` the parameter count, `j < ghosts`) of `preR`, `preP`, `prePR` is a
   word the caller names at each call (`HCert.gargs`), no parameter; in the own pass, value `GB + j`. -/
   ghosts : ℕ := 0
+  /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
+  retEq : List (CCell × CCell) := []
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
@@ -187,6 +189,9 @@ structure HCert where
   /-- Callees' ghost words, by call: `(g, args, ms)`, a call of `g` on the values `V.n a`, `a ∈ args`,
   names its callee's ghost `j` by the monomial `ms[j]` over this function's values. -/
   gargs : List (String × List ℕ × List CCell) := []
+  /-- Atoms whose equation the pass keeps, by value number: a `mul d a b` by `d` (`d`'s monomial is
+  `a`'s times `b`'s), an `assertEq a b` by `a`, a `copy d s` by `d`. -/
+  eqs : List ℕ := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

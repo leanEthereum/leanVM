@@ -989,6 +989,85 @@ theorem vpd_bad2 :
     heapOkC Data.powTree sigsV vpd { hVpd with calls := [[.vp 0 [0, 1], .ev 0, .ev 1, .ev 0, .ev 1]] } = false := by
   decide +kernel
 
+/-! ## Equations at return, a bound renamed (round 4) -/
+
+/-- `gap = g^32 / n`: no monomial for the quotient; returns it. -/
+def dvd : Fn where
+  name := "dvd"
+  params := [.n 0]
+  body := [.atom (.const (.n 1) (word 4294967296 0)), .atom (.mul (.n 1) (.n 2) (.n 0)), .ret [.n 2]]
+
+/-- `dvd`'s certificate: the `mul`'s equation kept (`eqs`), `gap·n = g^32` at return (`retEq`). -/
+def hDvd : HCert where
+  sig := { retEq := [(⟨[(0, 1), (1, 1)], 0⟩, ⟨[], 32⟩)] }
+  reads := []
+  res := []
+  rets := [[]]
+  eqs := [1]
+
+theorem dvd_ok : heapOkC Data.powTree (fun _ ↦ .empty) dvd hDvd = true := by decide +kernel
+
+/-- Without the equation kept. -/
+theorem dvd_bad : heapOkC Data.powTree (fun _ ↦ .empty) dvd { hDvd with eqs := [] } = false := by decide +kernel
+
+/-- `fillG` writes `r·g^j`, `j < e((gap·n)^2)`; `need64` needs `r·g^[0, 64)`. -/
+def sigsE (g : String) : HSig :=
+  if g = "dvd" then hDvd.sig
+  else if g = "fillG" then { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 2), (2, 2)], 0⟩⟩] }
+  else if g = "need64" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 64⟩] }
+  else if g = "need65" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 65⟩] } else .empty
+
+/-- Calls `dvd`, `fillG`, `need64`. -/
+def useDv : Fn where
+  name := "useDv"
+  params := [.n 0, .n 1]
+  body := [.call "dvd" [.n 1] [.n 2], .call "fillG" [.n 0, .n 2, .n 1] [], .call "need64" [.n 0] [], .ret []]
+
+/-- `useDv`'s certificate: `need64`'s run is `fillG`'s, its bound `(gap·n)^2` renamed to `g^64` by `dvd`'s
+equation. -/
+def hUseDv : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[], [], [.run 0 []]]
+  rets := [[]]
+
+theorem useDv_ok : heapOkC Data.powTree sigsE useDv hUseDv = true := by decide +kernel
+
+/-- `g^65` is not `(gap·n)^2`. -/
+theorem useDv_bad :
+    heapOkC Data.powTree sigsE { useDv with body := [.call "dvd" [.n 1] [.n 2], .call "fillG" [.n 0, .n 2, .n 1] [],
+      .call "need65" [.n 0] [], .ret []] } hUseDv = false := by
+  decide +kernel
+
+/-! ## A long point run (round 4) -/
+
+/-- `big` guarantees the `2048` points `p·g^i`; `need2k` needs the run `p·g^[0, 2048)`. -/
+def sigsL (g : String) : HSig :=
+  if g = "big" then { post := (List.range 2048).map fun i ↦ ⟨[(0, 1)], i⟩ }
+  else if g = "need2k" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2048⟩] } else .empty
+
+/-- Calls `big`, then `need2k`. -/
+def useBig : Fn where
+  name := "useBig"
+  params := [.n 0]
+  body := [.call "big" [.n 0] [], .call "need2k" [.n 0] [], .ret []]
+
+/-- `useBig`'s certificate: the run met by its `2048` points (`pts`). -/
+def hUseBig : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[], .pts :: (List.range 2048).map .ev]
+  rets := [[]]
+
+theorem useBig_ok : heapOkC Data.powTree sigsL useBig hUseBig = true := by decide +kernel
+
+/-- One point short. -/
+theorem useBig_bad :
+    heapOkC Data.powTree sigsL useBig { hUseBig with calls := [[], .pts :: (List.range 2047).map .ev] } = false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test
