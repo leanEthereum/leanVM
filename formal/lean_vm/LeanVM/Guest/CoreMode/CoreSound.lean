@@ -1799,12 +1799,12 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
       List.mem_filterMap.mpr ⟨_, hmem, rfl⟩
     have hq := List.all_eq_true.mp hd _ hdl
     simp only [hargs, hrets, beq_self_eq_true, Bool.and_self, Bool.not_true, Bool.false_or, Bool.and_eq_true,
-      decide_eq_true_eq, Nat.beq_eq] at hq
-    obtain ⟨⟨⟨hxv, hxp⟩, ho1x⟩, hsl⟩ := hq
+      Nat.beq_eq] at hq
+    obtain ⟨ho1x, hsl⟩ := hq
     obtain ⟨k, hk, hσx⟩ := side_dsp hcur hes1
     obtain ⟨hlo, hhi, hjt⟩ := slotsIn_at hsl hk
-    have hsel := hσ.par _ hxp
-    rw [← hxv, ← ho1x, hσx] at hsel
+    have hsel := hσ.jc.dsel _ _ hb x fs args rets hmem
+    rw [ho1x, hσx] at hsel
     exact fin k hsel hlo hhi hjt
 
 /-- **The entry abstraction holds** of its parts, its self cell (a loop's) holding its frame's address. -/

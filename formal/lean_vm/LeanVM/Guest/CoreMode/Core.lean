@@ -110,7 +110,7 @@ def ptrOf : Atom → Option V
 
 /-- **What a frame's jumps read** in the reference image, at the cells the alignment's context `X`
 names: a constant `0` or a nonzero one, the frame pointer, a pc, a branch's condition on the path, a
-`match`'s target on the arm its selector picks. -/
+`match`'s target on the arm its selector picks, a `match`'s or a dispatch's selector. -/
 structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : ℕ) (σ : Val) : Prop where
   zero : ∀ o, X.zeroAt o = true → Rd img fp o = some 0
   nz : ∀ o, X.nzAt o = true → ∃ w, Rd img fp o = some w ∧ w ≠ 0
@@ -120,6 +120,9 @@ structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : �
   arm : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body → ∀ od a, Check.getF X.arms od = some a → a.1 = x.idx →
     ∀ k t, σ x = ofK (g ^ k) → Check.getF X.jt (a.2 + k) = some t → Rd img fp od = some (ofK (g ^ t))
   sel : ∀ es vs, walk σ body = .ret es vs → ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body →
+    Rd img fp (X.locAt x.idx) = some (σ x)
+  /-- A dispatch's selector at its cell. -/
+  dsel : ∀ es vs, walk σ body = .ret es vs → ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf body →
     Rd img fp (X.locAt x.idx) = some (σ x)
 
 /-- The frame cell a run bound's exponent is of, if any. -/
@@ -784,13 +787,11 @@ noncomputable def slotsIn (E : Mode.Env) (b n : ℕ) : Bool :=
   (List.range n).all fun j ↦ decide (E.jtLo ≤ b + j) && decide (b + j < E.jtHi) && (E.jt.get (b + j)).isSome
 
 /-- A dispatch's table read `DEREF o1 o2 o3` before its `JUMP` through call site `s`: every `dispatch` at
-that site (`dl`, `dspLens`) on a parameter `k` (`o1 = 2 + k`), its callees' slots from base `o2` in the
+that site (`dl`, `dspLens`) on the value at the pointer cell `o1`, its callees' slots from base `o2` in the
 environment's jump table. -/
 noncomputable def dspRd (Cf : CFun) (E : Mode.Env) (dl : List (V × ℕ × List ℕ × List ℕ)) (s : B2C.Site)
     (o1 o2 : ℕ) : Bool :=
-  dl.all fun q ↦ !(q.2.2.1 == s.args && q.2.2.2 == s.rets) ||
-    (decide (q.1 = V.n q.1.idx) && decide (q.1.idx < Cf.fn.params.length) && Nat.beq o1 (2 + q.1.idx) &&
-      slotsIn E o2 q.2.1)
+  dl.all fun q ↦ !(q.2.2.1 == s.args && q.2.2.2 == s.rets) || (Nat.beq (Cf.X.locAt q.1.idx) o1 && slotsIn E o2 q.2.1)
 
 /-- From the instructions `code`: each `DEREF` reading the jump table (`jtd`) is followed by its table
 jump, through its word cell, on no constant `0` cell and no pc, and each slot of its table that a
