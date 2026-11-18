@@ -33,6 +33,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P47».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
 public import LeanVM.Guest.Pack.«P39».ModeSig
@@ -140,11 +142,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 211204, 39,
     Fn.«column_selector__L19».modeSig, .nil, 524287, Data.adviceFn297.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))))), .nil, .nil⟩
+    Fn.«column_selector__L19».pairO, Fn.«column_selector__L19».pairS, .nil⟩
 
 /-- `column_selector__L19`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -164,9 +162,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 211243, 30,
     Fn.«column_selector__L20».modeSig, .nil, 524287, Data.adviceFn298.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil)), .nil, .nil⟩
+    Fn.«column_selector__L20».pairO, Fn.«column_selector__L20».pairS, .nil⟩
 
 /-- `column_selector__L20`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

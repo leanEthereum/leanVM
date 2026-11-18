@@ -32,6 +32,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P23».ModeSig
 public import LeanVM.Guest.Pack.«P26».ModeSig
@@ -158,13 +160,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 210781, 57,
     Fn.«column_selector__L10».modeSig, .nil, 524287, Data.adviceFn288.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node
-    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node
-    (some ()) .nil .nil))))), .nil, .nil⟩
+    Fn.«column_selector__L10».pairO, Fn.«column_selector__L10».pairS, .nil⟩
 
 /-- `column_selector__L10`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -205,9 +201,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 254321, 38,
     Fn.«grind_check__L22».modeSig, .nil, 524287, Data.adviceFn442.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil)) .nil)), .nil, .nil⟩
+    Fn.«grind_check__L22».pairO, Fn.«grind_check__L22».pairS, .nil⟩
 
 /-- `grind_check__L22`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

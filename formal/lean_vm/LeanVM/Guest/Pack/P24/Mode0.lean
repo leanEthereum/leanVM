@@ -124,29 +124,6 @@ end
 
 end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
-namespace LeanVM.Guest.Fn.«grind_check__L13»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L13`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L13`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨212810, 45, Fn.«grind_check__L13».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 13 11 4),
-    (.windowsExp 2 (.stack 4) 4 57 7 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L13`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L13»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
 
 open LeanVM.Guest LeanVM.Guest.Exec

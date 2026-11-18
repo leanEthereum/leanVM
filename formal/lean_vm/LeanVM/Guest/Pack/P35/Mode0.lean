@@ -15,52 +15,6 @@ public import LeanVM.Guest.Pack.«P35».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«assert_small_g_power»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `assert_small_g_power`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `assert_small_g_power`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨19293, 57, Fn.«assert_small_g_power».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 4) 36
-    9 4 0 none)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `assert_small_g_power`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«assert_small_g_power»
-
-namespace LeanVM.Guest.Fn.«column_selector__L24»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L24`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L24`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨211363, 21, Fn.«column_selector__L24».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    2 4 24 none)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `column_selector__L24`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L24»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L7»
 
 open LeanVM.Guest LeanVM.Guest.Exec

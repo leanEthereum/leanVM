@@ -186,29 +186,6 @@ end
 
 end LeanVM.Guest.Fn.«keccak_layer__L0»
 
-namespace LeanVM.Guest.Fn.«column_selector__L8»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L8`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L8`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨210667, 57, Fn.«column_selector__L8».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    6 4 8 none)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `column_selector__L8`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L8»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
 
 open LeanVM.Guest LeanVM.Guest.Exec

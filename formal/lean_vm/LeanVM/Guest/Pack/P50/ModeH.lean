@@ -27,21 +27,6 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L19»
 
-namespace LeanVM.Guest.Fn.«column_selector__L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 281) (d := Data.adviceFn281) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L3»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

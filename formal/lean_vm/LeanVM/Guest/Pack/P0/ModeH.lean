@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P0».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 283) (d := Data.adviceFn283) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L5»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L16_L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -87,7 +87,6 @@ noncomputable def loopShapeOk (Cf : CFun) : Bool :=
 `K`, as `CoreOk`'s. -/
 structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
-  res : Cf.H.res = []
   ders : Cf.H.ders = []
   nofa : noFA Cf.fn.body = true
   cs : Cf.cs = []
@@ -163,7 +162,7 @@ theorem parAt_of {img : MemoryImage κ} (hκ : κ ≤ 28) {G : Mode.Sig} {np : �
 /-- **The heap facts of an honest path of a loop helper**, its parameter cells holding its words and
 its termination fact holding: every event's needs written before it, its guarantees at return. -/
 theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd : Reader} {es : List Ev}
-    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) {s : St}
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) (hR : ResF Cf.H σ) {s : St}
     (hP : ParAt K.F.sig Cf.fn.params.length s (Cf.fn.params.map σ)) (hT : ∀ p ∈ K.F.sig.term, LTF s p.1 p.2) :
     ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧ PostOkW Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
   have hs := sigL_of hok.sig
@@ -175,7 +174,7 @@ theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd
         cases hf : (f == Cf.fn.name) <;> simp_all [hs.hretM, hs.hpostV, hs.hretEq]
     | _ => trivial
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryF hs hP hT)
-    (resF_nil hok.res σ) (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The signature at a frame -/
@@ -383,7 +382,7 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
     (hso : ∀ o, K.F.sig.self = some o → o < 2 ^ 28)
     (hent0 : 0 ∈ Cf.frame.sig.entry) (hent1 : 1 ∈ Cf.frame.sig.entry)
     {σ0 : Val} {rd : Reader} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
-    (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds rd σ0)
+    (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds rd σ0) (hR0 : ResF Cf.H σ0)
     (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
     (hrw0 : ReadsOkC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es))
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x)
@@ -420,7 +419,7 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
     have hPN' : ParAt K.F.sig Cf.fn.params.length (stOf m' s'.fp) (args.map σ0) :=
       hPN.mono (s := stOf s'.mem s'.fp) (s' := stOf m' s'.fp) hm' rfl
     have hnext := postSet_of_retAll (rd := rd) hs hPN' hR
-    obtain ⟨-, hposts⟩ := loop_heap hok hb hh0 hP0 hT
+    obtain ⟨-, hposts⟩ := loop_heap hok hb hh0 hR0 hP0 hT
     simp only [PostOkW, List.map_nil, List.append_nil] at hposts
     have hWall : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK m' x := by
       intro x hx
@@ -540,7 +539,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
       fun hσ ↦ parAt_of hκ hs0.agree hs0.fp hwE (hws0 hσ)
     have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
         (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-      fun σ pre es vs rd hσ hb hh0 ↦ (loop_heap hok hb hh0 (hPs hσ) hT).1
+      fun σ pre es vs rd hσ hb hh0 ↦ (loop_heap hok hb hh0 hσ.res (hPs hσ) hT).1
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -701,7 +700,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
           rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-          obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 (hPs hσ0) hT
+          obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 hσ0.res (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
@@ -786,7 +785,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
                 (by rw [heq]; simp [hma]) hq) hwa).mono hle'
           exact Mode.tail_of_mode hCt.1 <| tail_next (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle' hfpS hS30
             (hpc'.trans hok.fentry) hentry hr0 hr1 hTE (hjtR s' hle) hwE (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0
-            (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
+            hσ0.res (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
 
 /-- **A leaf loop helper on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) : Mode.FnSpecC K Cf :=

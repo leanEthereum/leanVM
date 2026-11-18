@@ -15,54 +15,6 @@ public import LeanVM.Guest.Pack.«P45».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«grind_check__L7»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L7`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L7`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨189300, 52, Fn.«grind_check__L7».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 7 11 5),
-    (.windowsExp 2 (.stack 4) 5 62 2 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L7`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L7»
-
-namespace LeanVM.Guest.Fn.«column_selector__L13»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L13`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L13`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨210943, 48, Fn.«column_selector__L13».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    5 4 12 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 224, [((.fr
-    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8),
-    2, 224⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L13`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L13»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L9»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -192,26 +144,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«keccak_layer__L1_loop0»
-
-namespace LeanVM.Guest.Fn.«grind_check__L21»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L21`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L21`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨254283, 38, Fn.«grind_check__L21».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 21 11 3),
-    (.windowsExp 2 (.stack 4) 3 54 10 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L21`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L21»

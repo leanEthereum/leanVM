@@ -139,56 +139,6 @@ end
 
 end LeanVM.Guest.Fn.«shared_selector_tables»
 
-namespace LeanVM.Guest.Fn.«column_selector__L18»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L18`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L18`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨211165, 39, Fn.«column_selector__L18».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    4 4 16 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 272, [((.fr
-    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4),
-    4, 272⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L18`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L18»
-
-namespace LeanVM.Guest.Fn.«column_selector__L21»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L21`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L21`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨211273, 30, Fn.«column_selector__L21».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    3 4 20 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 352, [((.fr
-    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8),
-    2, 352⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L21`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L21»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec

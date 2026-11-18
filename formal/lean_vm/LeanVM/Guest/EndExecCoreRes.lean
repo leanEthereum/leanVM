@@ -1,0 +1,142 @@
+/-
+  LeanVM.Guest.EndExecCoreRes
+
+  The core route's residual families (`CoreMode.resFam`) sound at the honest instances: each makes
+  its residual true at the instance's valuation, from its path's events holding on the reference or
+  from what its callers hand it.
+-/
+
+module
+
+public import LeanVM.Guest.EndExecRF
+public import LeanVM.Guest.EndExecRCs
+public import LeanVM.Guest.EndExecRCq
+public import LeanVM.Guest.CoreMode.CoreRes
+public import LeanVM.Guest.CoreMode.HeapCSound
+
+/-!
+# The residual families, sound
+
+`resPath_sound`: on a memory of at most `2^32` words, along a returning path whose events hold, the
+path's families hold at the valuation: a range checked value's exponent below the check's bound
+(`rcBound_sound`, its atoms on every returning path, `topAtoms_on_path`), a top-level selector's below
+its arms (`topSels_sound`).
+
+`cs_holds` (`cs`): at an honest instance of `column_selector__L{κ}`, its callers hand it an offset
+`g^o`, `2^κ ∣ o`, and the nibble shares (`csQ_all`), so its lowest digit is `g^(2^(4-w)·q)`, `q < 2^w`
+(`cs_digit`), the read `[sel_eq]·[digit₀]·g^off` the `q`-th cell of the strided table.
+
+`resFam_inst`: at an honest instance (a `node` of the honest tree), every residual of a family holds
+at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
+(`CoreMode.resOk`), which `HonF.res` asks of the core route's honest valuations.
+-/
+
+namespace LeanVM.Guest.EndExec
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam resOk idxC baseC vw csSub)
+
+public section
+
+/-- An exponent bound `e(x) < n` from `σ x = g^e`, `e < n < 2^62`. -/
+theorem ltF_of_pow {σ : Val} {x n e : ℕ} (hn : n < capE) (he : e < n) (hσ : σ (V.n x) = ofK (addressOfIndex e)) :
+    LtF (vw σ) (idxC (.val x)) (idxC (.num n)) := by
+  refine ⟨e, n, ?_, CoreMode.rep_const hn, he⟩
+  simp only [idxC, CoreMode.valW_baseC, vw, hσ]
+  exact rep_of (by omega)
+
+/-- **The path's families hold** (`rc`, `sel`) at a valuation along a returning path of the body whose
+events hold on a memory of at most `2^32` words. -/
+theorem resPath_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {x n : ℕ}
+    (h : resFam fn (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
+  simp only [resFam, Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true] at h
+  obtain ⟨hn, h⟩ := h
+  rcases h with h | ⟨p, hp, hpx⟩
+  · split at h
+    · rename_i N hN
+      simp only [decide_eq_true_eq] at h
+      have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+      obtain ⟨e, he, hσ⟩ := rcBound_sound hμ Lm hall hN
+      exact ltF_of_pow (e := e) hn (by omega) (by rw [hσ, Value.gen_pow_eq_ofK])
+    · cases h
+  · obtain ⟨h1, h2⟩ := hpx
+    obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
+    rw [h1] at hσ
+    exact ltF_of_pow (e := e) hn (by omega) hσ
+
+theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
+  unfold Program.find? at h
+  have := List.find?_some h
+  simpa using this
+
+/-- **`column_selector`'s lowest digit at an honest instance** (`cs`): the read lies in its strided
+table. -/
+theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) {κ : ℕ} (hκ : κ < 31) (hname : fn.name = B1.Tables.lName "column_selector" κ) :
+    (csSub κ).Holds σ := by
+  have hκ28 : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+  have hfn : f = B1.Tables.lName "column_selector" κ := by rw [← find_name' hf, hname]
+  obtain ⟨fn', hfc, hps, hbody⟩ := B1.Tables.csFound hκ
+  rw [← hfn] at hfc
+  obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hfc)
+  -- the caller's facts
+  have hH := csQ_all hr I hI f σ bufs kids ht κ hκ hfn _ hf
+  rw [hps] at hH
+  obtain ⟨o, ho, hal, h0, hG⟩ := hH
+  -- the body at the instance's valuation
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
+    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
+  rw [hbody, holdsList_append, holdsList_noRet _ (B1.Tables.csPre_noRet κ)] at hb
+  obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0
+  rw [csW_sub] at hdv
+  -- the run
+  set w := B1.Tables.csW κ 0 with hw'
+  have hw4 := B1.Tables.csW_bounds κ 0
+  obtain ⟨q, rfl⟩ := hdv
+  have hq : q < 2 ^ w := by
+    have h16 : 2 ^ (4 - w) * 2 ^ w = 16 := by rw [← pow_add, show 4 - w + w = 4 by omega]; rfl
+    by_contra hc
+    have := Nat.mul_le_mul_left (2 ^ (4 - w)) (not_lt.mp hc)
+    omega
+  have hcap : 2 ^ w < capE := lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) hw4.2) (by decide)
+  have hcap0 : 0 < capE := by unfold capE; omega
+  rw [csSub]
+  show CoreMode.RunSet (vw σ) _ _ _ _ _
+  refine ⟨0, 2 ^ w, q, CoreMode.rep_const hcap0, CoreMode.rep_const hcap, Nat.zero_le _, hq, ?_⟩
+  have key : ∀ off : ℕ, CoreMode.CCell.valW (vw σ) ⟨[(1, 1), (3, 1)], off⟩ =
+      CoreMode.CCell.valW (vw σ) ⟨[(1, 1)], off⟩ * ofK (addressOfIndex (2 ^ (4 - w) * q)) := fun off ↦ by
+    simp only [CoreMode.CCell.valW, CoreMode.prodW, vw, hd, Value.gen_pow_eq_ofK, pow_one, mul_one]
+    ring
+  unfold CoreMode.CCell.addrW
+  rw [key]
+
+/-- **A residual of a family holds** at an honest instance's valuation. -/
+theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, resFam fn x = true → x.Holds σ
+  | .lt (.val x) (.num n), h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    exact resPath_sound (by have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size; omega) r.img hw hh h
+  | .sub c q, h => by
+    simp only [resFam, List.any_eq_true, List.mem_range, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨κ, hκ, hname, heq⟩ := h
+    rw [heq]
+    exact cs_holds hr hI ht hf hκ hname
+  | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf r' h
+  | .lt (.val _) (.val _), h | .lt (.val _) (.mono _), h | .lt (.num _) _, h | .lt (.mono _) _, h
+  | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
+
+/-- **The residuals of a heap certificate of families hold** at an honest instance of its function. -/
+theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
+    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) : ResF Cf.H σ := fun x hx ↦
+  resFam_inst hr hI ht hf x (List.all_eq_true.mp h x hx)
+
+end
+
+end LeanVM.Guest.EndExec

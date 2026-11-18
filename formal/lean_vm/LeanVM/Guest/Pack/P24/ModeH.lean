@@ -57,21 +57,6 @@ end
 
 end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
-namespace LeanVM.Guest.Fn.«grind_check__L13»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `grind_check__L13`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 338) (d := Data.adviceFn338) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L13»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
 
 open LeanVM.Guest LeanVM.Guest.Exec

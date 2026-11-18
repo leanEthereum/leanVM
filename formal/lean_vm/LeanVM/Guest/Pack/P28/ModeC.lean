@@ -116,6 +116,44 @@ end
 
 end LeanVM.Guest.Fn.«index_mle__L28»
 
+namespace LeanVM.Guest.Fn.«column_selector__L18»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L18`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L18`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨211165, 39, Fn.«column_selector__L18».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L18»
+
+namespace LeanVM.Guest.Fn.«column_selector__L21»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L21`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L21`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨211273, 30, Fn.«column_selector__L21».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L21»
+
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L27»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -119,6 +119,25 @@ end
 
 end LeanVM.Guest.Fn.«ring_switch_target_loop0»
 
+namespace LeanVM.Guest.Fn.«column_selector__L17»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L17`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L17`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨211126, 39, Fn.«column_selector__L17».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L17»
+
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L28»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -137,6 +156,42 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«squeeze_point_from__L28»
+
+namespace LeanVM.Guest.Fn.«grind_check__L3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `grind_check__L3`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `grind_check__L3`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨253579, 52, Fn.«grind_check__L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«grind_check__L3»
+
+namespace LeanVM.Guest.Fn.«grind_check__L25»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `grind_check__L25`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `grind_check__L25`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨254435, 38, Fn.«grind_check__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«grind_check__L25»
 
 namespace LeanVM.Guest.Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0»
 

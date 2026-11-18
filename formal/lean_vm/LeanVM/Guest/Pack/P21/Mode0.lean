@@ -16,31 +16,6 @@ public import LeanVM.Guest.Pack.«P60».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L22»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L22`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L22`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨211303, 30, Fn.«column_selector__L22».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    3 4 20 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 336, [((.fr
-    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4),
-    4, 336⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L22`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L22»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -67,29 +42,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L1»
-
-namespace LeanVM.Guest.Fn.«grind_check__L29»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L29`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L29`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨254587, 38, Fn.«grind_check__L29».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 29 11 3),
-    (.windowsExp 2 (.stack 4) 3 62 2 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L29`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L29»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0»
 

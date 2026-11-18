@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P52».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L10`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 288) (d := Data.adviceFn288) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L10»
-
 namespace LeanVM.Guest.Fn.«column_selector__L29»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -41,18 +26,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L29»
-
-namespace LeanVM.Guest.Fn.«grind_check__L22»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `grind_check__L22`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 442) (d := Data.adviceFn442) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L22»

@@ -107,7 +107,7 @@ def cfun_c(k, j, K, frame):
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
-            + checks(k, j, K, frame, '.c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)'))
+            + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)'))
 
 
 def cfun_l(k, j, K, frame):
@@ -130,7 +130,6 @@ def cfun_l(k, j, K, frame):
             f'/-- `{k}`: the kernel\'s checks of the core route for a loop helper, tied to its mode certificate. -/\n'
             f'theorem loop_ok : CoreMode.LoopOk {K} cfun where\n'
             f'  heap := heap_okC\n'
-            f'  res := rfl\n'
             f'  ders := rfl\n'
             f'  nofa := by decide +kernel\n'
             f'  cs := rfl\n'
@@ -179,7 +178,6 @@ def cfun_lc(k, j, K, frame):
             f'/-- `{k}`: the kernel\'s checks of the core route for a loop helper with calls, tied to its mode certificate. -/\n'
             f'theorem loop_ok : CoreMode.LoopOkC {K} cfun where\n'
             f'  heap := heap_okC\n'
-            f'  res := rfl\n'
             f'  body := by decide +kernel\n'
             f'  calls := by decide +kernel\n'
             f'  top := by decide +kernel\n'
@@ -236,7 +234,8 @@ def main():
             j = R[k]['j']
             imps.add(quote(frames[k])); imps.add(quote(codes[str(j)]))
             imps.add(quote(pair_mod(po[k][0], k)))
-            imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
+            if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
+                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
             if R[k].get('kind') == 'l':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataL' % p)

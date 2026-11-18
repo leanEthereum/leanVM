@@ -186,31 +186,6 @@ end
 
 end LeanVM.Guest.Fn.«keccak_layer__L1»
 
-namespace LeanVM.Guest.Fn.«column_selector__L9»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L9`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L9`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨210724, 57, Fn.«column_selector__L9».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    6 4 8 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 160, [((.fr 3),
-    1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8), 2,
-    160⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L9`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L9»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L11»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -297,29 +272,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L11»
-
-namespace LeanVM.Guest.Fn.«grind_check__L17»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `grind_check__L17`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `grind_check__L17`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨254111, 45, Fn.«grind_check__L17».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 17 11 4),
-    (.windowsExp 2 (.stack 4) 4 61 3 1)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `grind_check__L17`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«grind_check__L17»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0»
 

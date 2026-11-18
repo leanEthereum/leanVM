@@ -35,6 +35,9 @@ public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P16».ModeSig
@@ -241,13 +244,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 210838, 57,
     Fn.«column_selector__L11».modeSig, .nil, 524287, Data.adviceFn289.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node
-    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node
-    (some ()) .nil .nil))))), .nil, .nil⟩
+    Fn.«column_selector__L11».pairO, Fn.«column_selector__L11».pairS, .nil⟩
 
 /-- `column_selector__L11`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -267,8 +264,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 211447, 12,
     Fn.«column_selector__L28».modeSig, .nil, 524287, Data.adviceFn306.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil)) .nil), .nil, .nil⟩
+    Fn.«column_selector__L28».pairO, Fn.«column_selector__L28».pairS, .nil⟩
 
 /-- `column_selector__L28`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -288,9 +284,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 254359, 38,
     Fn.«grind_check__L23».modeSig, .nil, 524287, Data.adviceFn443.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil)) .nil)), .nil, .nil⟩
+    Fn.«grind_check__L23».pairO, Fn.«grind_check__L23».pairS, .nil⟩
 
 /-- `grind_check__L23`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
