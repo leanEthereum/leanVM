@@ -105,6 +105,64 @@ def expq1(k, x):
     return None
 
 
+def deref_at(atoms, p):
+    """`CoreMode.derefAt`: a `load` at offset `0` or a `touch` through `p`."""
+    return any((a[0] == 'load' and a[2] == p and a[3] == 0) or (a[0] == 'touch' and a[2] == p) for a in atoms)
+
+
+def mul_of(atoms, x):
+    """`CoreMode.mulOf`: the first product `x = a·b`."""
+    for a in atoms:
+        if a[0] == 'mul' and a[1] == x:
+            return a[2], a[3]
+    return None
+
+
+def pow_of(c):
+    """`Res.powOf`."""
+    return I.POWS.get(c[0]) if c is not None and c[1] == 0 else None
+
+
+def bit_pow(atoms, x):
+    """`CoreMode.bitPow`: `x = 1 + b·w`, `b·b = b`, `w = 1 + g^m`: `m`."""
+    cs = _consts(atoms)
+    for a in atoms:
+        if a[0] == 'add' and a[1] == x and cs.get(a[2]) == (1, 0):
+            m = mul_of(atoms, a[3])
+            if m is None or ('mul', m[0], m[0], m[0]) not in atoms or m[1] not in cs:
+                continue
+            c = cs[m[1]]
+            e = pow_of((c[0] ^ 1, c[1]))
+            if e is not None:
+                return e
+    return None
+
+
+EXP_FUEL = 6
+
+
+def exp_m(atoms, f, x):
+    """`CoreMode.expM`: `x = g^e`, `e` at most the result (`addr`)."""
+    if f == 0:
+        return None
+    if deref_at(atoms, x):
+        return 2 ** 28 - 1
+    m = mul_of(atoms, x)
+    if m is not None:
+        a, b = exp_m(atoms, f - 1, m[0]), exp_m(atoms, f - 1, m[1])
+        return a + b if a is not None and b is not None else None
+    e = bit_pow(atoms, x)
+    if e is not None:
+        return e
+    return pow_of(_consts(atoms).get(x))
+
+
+def addr_bound(k, x):
+    """`e(x) < expM + 1` (`addr`)."""
+    M = exp_m(top_atoms(I.CORE[k][1]), EXP_FUEL, x)
+    return M + 1 if M is not None else None
+
+
 def expq_bound(k, x):
     """`CoreMode.expQB`: `expq1`, or a top-level product `x = a·w` of such a value `a` and a constant `g^c`: bound
     plus `c`."""
@@ -164,6 +222,15 @@ def expq_facts(EM):
             B = expq_bound(self.k, b[0][0][0])
             if B is not None and B + b[1] < CAPE:
                 return [self.use(('expq', a, b), ('lt', ('num', a[1]), ('mono', b)))]
+        if one(a) and a[1] == 0 and not b[0] and b[1] < CAPE:
+            # `addr`: `x = g^e`, `e` at most `expM`
+            B = addr_bound(self.k, a[0][0][0])
+            if B is not None and B <= b[1]:
+                return [self.use(('addr', a, b), ('lt', ('val', a[0][0][0]), ('num', b[1])))]
+        if one(a) and a[1] == 0 and one(b) and b[1] == 1 and \
+                ('rangeCheck', a[0][0][0], b[0][0][0]) in {(t[0], t[1], t[5]) for t in top_atoms(I.CORE[self.k][1]) if t[0] == 'rangeCheck'}:
+            # `rcv`: `x` range checked against `p`
+            return [self.use(('rcv', a, b), ('lt', ('val', a[0][0][0]), ('mono', b)))]
         if one(a) and one(b) and dim_ok(self.k, a[0][0][0], a[1], b[0][0][0], b[1]):
             ra = ('val', a[0][0][0]) if a[1] == 0 else ('mono', a)
             return [self.use(('dim', a, b), ('lt', ra, ('mono', b)))]
@@ -203,6 +270,9 @@ def res_fam(k, r, G):
         if any(x2 == x and m <= n for x2, m in callc.top_sels(body)):
             return True
         B = expq_bound(k, x)
+        if B is not None and B <= n:
+            return True
+        B = addr_bound(k, x)
         if B is not None and B <= n:
             return True
         return 2 ** 28 <= n and x < len(params) and 2 + x in callc.exp_cells(G) and exp_diff(top_atoms(body), x)
@@ -361,7 +431,7 @@ def extend(out, why, S, verbose=False):
             # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}):
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

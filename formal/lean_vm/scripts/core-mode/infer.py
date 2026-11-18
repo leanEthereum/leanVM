@@ -1606,6 +1606,9 @@ CTR_PRE = {'verify_bus_gkr_loop0'}
 CTR_CALLERS = {f for k in CTR_PRE for f in CALLERS[k] if f not in CTR_PRE}
 
 
+DUPCALL = [False]
+
+
 def dup_guards(key):
     """The guards of the top-level `ite`s whose continuation goes into each branch (`HCert.dups`): a function (not a
     loop) whose `ite c` on `c = p + k` (`p` a parameter, `k` a constant) is followed only by atoms and its `ret`."""
@@ -1623,6 +1626,9 @@ def dup_guards(key):
             a = adds.get(s[1])
             if rest and rest[-1][0] == 'ret' and all(t[0] == 'a' for t in rest[:-1]) and a is not None and \
                     any(x < len(params) for x in a) and any(x in consts for x in a):
+                return [s[1]]
+            # (`callc`'s bodies with calls in branches: the last `ite`, its continuation atoms, calls and its `ret`)
+            if DUPCALL[0] and rest and rest[-1][0] == 'ret' and all(t[0] in ('a', 'call', 'callIf') for t in rest[:-1]):
                 return [s[1]]
     return []
 

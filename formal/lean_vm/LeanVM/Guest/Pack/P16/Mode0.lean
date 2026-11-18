@@ -12,47 +12,8 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P16».Bundle
 public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P34».ModeSig
-public import LeanVM.Guest.Pack.«P42».ModeSig
-public import LeanVM.Guest.Pack.«P63».ModeSig
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«child_claim_list_digest»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `child_claim_list_digest`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil)) .nil)
-    .nil) .nil) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node (some Fn.«child_claim_list_any».modeSig) .nil .nil)))
-    .nil))))))) .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node (some Fn.«list_split».modeSig) .nil .nil))) .nil)))) .nil))))))))
-    .nil), 524287⟩
-
-/-- `child_claim_list_digest`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨61319, 62, Fn.«child_claim_list_digest».modeSig, (.node none (.node none (.node none (.node none
-    .nil (.node (some [(.witnessStack "child_mono" 28 1)]) .nil .nil)) .nil) (.node none .nil
-    (.node none .nil (.node none (.node (some [(.alloc 39 59)]) .nil .nil) .nil)))) (.node (some
-    [(.cellAddress 13 14)]) (.node none (.node none (.node (some [(.alloc 26 34)]) .nil .nil) .nil)
-    (.node none .nil (.node (some [(.alloc 34 48)]) .nil .nil))) .nil)), .nil, .nil, false, .nil⟩
-
-/-- `child_claim_list_digest`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«child_claim_list_digest»
 
 namespace LeanVM.Guest.Fn.«da_padding»
 

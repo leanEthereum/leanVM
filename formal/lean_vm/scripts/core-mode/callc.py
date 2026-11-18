@@ -29,14 +29,37 @@ def kinds(body, acc):
     return acc
 
 
+def stmts_of(body):
+    """`stmtsOf`: the statements of a body, nested ones included."""
+    for s in body:
+        yield s
+        if s[0] == 'ite':
+            yield from stmts_of(s[2])
+            yield from stmts_of(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from stmts_of(a)
+
+
+def top_ok(s):
+    """A top-level statement `CoreMode.topOk` takes: a branch or `match` with no `ret` and no dispatch in it."""
+    if s[0] not in ('ite', 'match'):
+        return True
+    acc = collections.Counter()
+    for blk in (s[2], s[3]) if s[0] == 'ite' else s[2]:
+        kinds(blk, acc)
+    return not acc['ret'] and not acc['dispatch']
+
+
 def candidates():
-    """Bodies of atoms, calls and conditional calls (at least one) and one final `ret`, not loop helpers."""
+    """Bodies of atoms, branches, `match`es, calls and conditional calls (at least one) and one final `ret`, the
+    branches with no `ret` or dispatch in them, not loop helpers."""
     out = []
     for k, (params, body) in sorted(CORE.items()):
         acc = kinds(body, collections.Counter())
-        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch'} and (acc['call'] or acc['callIf'] or acc['dispatch']) \
-                and acc['ret'] == 1 and \
-                body[-1][0] == 'ret' and k not in I.IS_LOOP:
+        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch', 'ite', 'match'} and \
+                (acc['call'] or acc['callIf'] or acc['dispatch']) and acc['ret'] == 1 and \
+                body[-1][0] == 'ret' and all(top_ok(s) for s in body) and k not in I.IS_LOOP:
             out.append(k)
     return out
 
@@ -52,6 +75,7 @@ def _em():
     sys.argv[:] = saved
     emitc.WORD_RUN = True
     I.ARMRUN[0] = True
+    I.DUPCALL[0] = True
     return emitc
 
 
@@ -390,6 +414,8 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                     continue
                 import callcres
                 B = callcres.expq_bound(k, a) if k is not None and b[1] == 0 else None
+                if B is None and k is not None and b[1] == 0:
+                    B = callcres.addr_bound(k, a) or callcres.rc_bound(callcres.top_atoms(CORE[k][1]), a)
                 if B is None or acc is None:
                     raise No('callee bound not a constant power')
                 acc.add((a, B))
@@ -411,7 +437,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     cs = {}
     hcs = set()
     arg_res = set()
-    for s in body:
+    for s in stmts_of(body):
         if s[0] == 'call':
             calls = [(s[1], s[2], len(s[3]))]
         elif s[0] == 'callIf':

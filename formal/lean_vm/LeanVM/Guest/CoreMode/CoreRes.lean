@@ -35,6 +35,8 @@ function's own code whose soundness at its honest instances is proved once, in `
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
 * `cs`: `column_selector__L{κ}`'s read of its lowest digit's entry lies in the strided table its
   callers write (`csSub κ`), from the offset its callers hand it (the old route's F3 on names);
+* `addr`: the same, `x = g^e` with `e` at most a bound `expM` reads off the top-level atoms: products of
+  addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
@@ -87,6 +89,44 @@ def subRC (q r : CRun) : Bool :=
         Nat.blt l' capE && Nat.blt h' capE
   | _, _, _, _ => false
 
+/-- A `DEREF` through `p` at offset `0` among the atoms: a `load` or a `touch`. -/
+def derefAt (as : List Atom) (p : V) : Bool := as.any fun
+  | .load _ p' 0 => decide (p' = p)
+  | .touch _ p' => decide (p' = p)
+  | _ => false
+
+/-- The first product `x = a·b` among the atoms: its factors. -/
+def mulOf (as : List Atom) (x : V) : Option (V × V) := as.findSome? fun
+  | .mul d a b => if d = x then some (a, b) else none
+  | _ => none
+
+/-- **A bit's power** `x = 1 + b·w` (the first sum of `x` among the atoms), `b·b = b` and `w = 1 + g^m`
+constants among them: `x = g^(m·b)`, at most `m`. -/
+noncomputable def bitPow (as : List Atom) (x : V) : Option ℕ :=
+  as.findSome? fun
+    | .add d o y => if d = x ∧ Res.constOf as o = some 1 then
+        match mulOf as y with
+        | some (b, w) => if Atom.mul b b b ∈ as then (Res.constOf as w).bind fun c ↦ Res.powOf (c + 1)
+          else none
+        | none => none
+      else none
+    | _ => none
+
+/-- **An exponent's bound** (`addr`, at most `M`, fuel `f`): `x = g^e`, `e ≤ M`, from atoms on every returning
+path: a `DEREF` through `x` at offset `0` (an address of a memory of at most `2^28` words), a product of two
+such values (the bounds' sum), a bit's power (`bitPow`), or a constant power of `g`. -/
+noncomputable def expM (as : List Atom) : ℕ → V → Option ℕ
+  | 0, _ => none
+  | f + 1, x => if derefAt as x then some (2 ^ 28 - 1) else
+      match mulOf as x with
+      | some (a, b) => (expM as f a).bind fun ma ↦ (expM as f b).map (ma + ·)
+      | none => match bitPow as x with
+        | some m => some m
+        | none => (Res.constOf as x).bind Res.powOf
+
+/-- The fuel of `expM` the families use. -/
+def expFuel : ℕ := 6
+
 /-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
@@ -100,7 +140,8 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
         | none => false) ||
         ((Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n)) ||
         (decide (2 ^ 28 ≤ n) && decide (x < fn.params.length) && xc.contains (2 + x) &&
-          expDiff (Res.topAtoms fn.body) (V.n x)))
+          expDiff (Res.topAtoms fn.body) (V.n x)) ||
+        (expM (Res.topAtoms fn.body) expFuel (V.n x)).any (· < n))
   | .lt (.val x) (.mono c) => match c.bases, c.off with
     | [(p, 1)], 1 => (Res.topAtoms fn.body).any fun
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)

@@ -92,6 +92,126 @@ theorem exp_lt {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as
     omega
   | _ => simp at hm
 
+/-- A `DEREF` through `p` at offset `0` (`load` or `touch`) on a memory of at most `2^28` words: `p = g^i`,
+`i < 2^μ`. -/
+theorem derefAt_addr {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as : List Atom}
+    (hh : ∀ a ∈ as, a.Holds Lm.read σ) {p : V} (h : CoreMode.derefAt as p = true) :
+    ∃ i < 2 ^ μ, σ p = ofK (addressOfIndex i) := by
+  simp only [CoreMode.derefAt, List.any_eq_true] at h
+  obtain ⟨a, ha, hl⟩ := h
+  cases a with
+  | load d p' off =>
+    cases off with
+    | zero =>
+      simp only [decide_eq_true_eq] at hl
+      subst hl
+      obtain ⟨hk, hr⟩ := hh _ ha
+      exact Exec.deref0_addr (by omega) hk hr
+    | succ => simp at hl
+  | touch t p' =>
+    simp only [decide_eq_true_eq] at hl
+    subst hl
+    obtain ⟨hk, hr⟩ := hh _ ha
+    exact Exec.deref0_addr (by omega) hk hr
+  | _ => simp at hl
+
+theorem mulOf_mem {as : List Atom} {x a b : V} (h : CoreMode.mulOf as x = some (a, b)) : Atom.mul x a b ∈ as := by
+  unfold CoreMode.mulOf at h
+  obtain ⟨t, ht, hf⟩ := List.exists_of_findSome?_eq_some h
+  cases t with
+  | mul d a' b' =>
+    simp only at hf
+    split_ifs at hf with hd
+    cases hf
+    rw [← hd]; exact ht
+  | _ => simp at hf
+
+/-- **A bit's power** (`bitPow`): `x = g^e`, `e ≤ m`. -/
+theorem bitPow_sound {rd : Reader} {σ : Val} {as : List Atom} (hh : ∀ a ∈ as, a.Holds rd σ) {x : V} {m : ℕ}
+    (h : CoreMode.bitPow as x = some m) : ∃ e ≤ m, σ x = ofK (addressOfIndex e) := by
+  unfold CoreMode.bitPow at h
+  obtain ⟨t, ht, hf⟩ := List.exists_of_findSome?_eq_some h
+  cases t with
+  | add d o y =>
+    simp only at hf
+    split_ifs at hf with hd
+    obtain ⟨rfl, ho⟩ := hd
+    have hx : σ d = σ o + σ y := hh _ ht
+    have ho1 : σ o = 1 := hh _ (constOf_sound ho)
+    cases hm : CoreMode.mulOf as y with
+    | none => rw [hm] at hf; simp at hf
+    | some p =>
+      obtain ⟨b, w⟩ := p
+      rw [hm] at hf
+      simp only at hf
+      split_ifs at hf with hb
+      cases hc : Res.constOf as w with
+      | none => rw [hc] at hf; simp at hf
+      | some c =>
+        rw [hc] at hf
+        simp only [Option.bind_some] at hf
+        have hy : σ y = σ b * σ w := hh _ (mulOf_mem hm)
+        have hbb : σ b = σ b * σ b := hh _ hb
+        have hw : σ w = c := hh _ (constOf_sound hc)
+        have hcm := powOf_sound hf
+        rcases IsIdempotentElem.iff_eq_zero_or_one.mp (show IsIdempotentElem (σ b) from hbb.symm) with h0 | h1
+        · refine ⟨0, Nat.zero_le _, ?_⟩
+          rw [hx, ho1, hy, h0, zero_mul, add_zero, addressOfIndex, pow_zero, Exec.ofK_one]
+        · refine ⟨m, le_rfl, ?_⟩
+          rw [hx, ho1, hy, h1, one_mul, hw, add_comm, hcm]
+  | _ => simp at hf
+
+/-- **An exponent's bound** (`expM`): `x = g^e`, `e ≤ M`, from atoms that hold on a memory of at most `2^28`
+words. -/
+theorem expM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as : List Atom}
+    (hh : ∀ a ∈ as, a.Holds Lm.read σ) : ∀ (f : ℕ) (x : V) {M : ℕ}, CoreMode.expM as f x = some M →
+      ∃ e ≤ M, σ x = ofK (addressOfIndex e)
+  | 0, x, M, h => by simp [CoreMode.expM] at h
+  | f + 1, x, M, h => by
+    unfold CoreMode.expM at h
+    split_ifs at h with hd
+    · cases h
+      obtain ⟨i, hi, hσ⟩ := derefAt_addr hμ Lm hh hd
+      have : (2 : ℕ) ^ μ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hμ
+      exact ⟨i, by omega, hσ⟩
+    · cases hm : CoreMode.mulOf as x with
+      | some p =>
+        obtain ⟨a, b⟩ := p
+        rw [hm] at h
+        simp only at h
+        cases ha : CoreMode.expM as f a with
+        | none => rw [ha] at h; simp at h
+        | some ma =>
+          cases hb : CoreMode.expM as f b with
+          | none => rw [ha, hb] at h; simp at h
+          | some mb =>
+            rw [ha, hb] at h
+            simp only [Option.bind_some, Option.map_some, Option.some.injEq] at h
+            subst h
+            obtain ⟨ea, hea, hσa⟩ := expM_sound hμ Lm hh f a ha
+            obtain ⟨eb, heb, hσb⟩ := expM_sound hμ Lm hh f b hb
+            have hx : σ x = σ a * σ b := hh _ (mulOf_mem hm)
+            refine ⟨ea + eb, by omega, ?_⟩
+            rw [hx, hσa, hσb, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+      | none =>
+        rw [hm] at h
+        simp only at h
+        cases hp : CoreMode.bitPow as x with
+        | some m =>
+          rw [hp] at h
+          cases h
+          exact bitPow_sound hh hp
+        | none =>
+          rw [hp] at h
+          simp only at h
+          cases hc : Res.constOf as x with
+          | none => rw [hc] at h; simp at h
+          | some c =>
+            rw [hc] at h
+            simp only [Option.bind_some] at h
+            refine ⟨M, le_rfl, ?_⟩
+            rw [hh _ (constOf_sound hc), powOf_sound h]
+
 /-- **The exponent bound families hold** (`rc`, `sel`, `exp`) at a valuation along a returning path of
 the function whose events hold on a memory of at most `2^28` words, its frame's parameter cells holding
 its parameters and its entry runs' exponent cells powers of `g` (`ExpW`). -/
@@ -102,7 +222,7 @@ theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn}
     (h : resFam fn xc (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
   simp only [resFam, Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true,
     List.contains_iff_mem] at h
-  obtain ⟨hn, (h | ⟨p, hp, hpx⟩) | ⟨⟨⟨hn28, hxp⟩, hxc⟩, hd⟩⟩ := h
+  obtain ⟨hn, ((h | ⟨p, hp, hpx⟩) | ⟨⟨⟨hn28, hxp⟩, hxc⟩, hd⟩) | hM⟩ := h
   · split at h
     · rename_i N hN
       simp only [decide_eq_true_eq] at h
@@ -119,6 +239,13 @@ theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn}
     have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
     have := exp_lt hμ Lm hall he hσx hd
     exact ltF_of_pow (e := e) hn (by omega) hσx
+  · obtain ⟨M, hM, hMn⟩ : ∃ M, CoreMode.expM (Res.topAtoms fn.body) CoreMode.expFuel (V.n x) = some M ∧ M < n := by
+      cases hm : CoreMode.expM (Res.topAtoms fn.body) CoreMode.expFuel (V.n x) with
+      | none => simp [hm] at hM
+      | some M => simp only [hm, Option.any_some, decide_eq_true_eq] at hM; exact ⟨M, rfl, hM⟩
+    have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+    obtain ⟨e, he, hσ⟩ := expM_sound hμ Lm hall _ _ hM
+    exact ltF_of_pow (e := e) hn (by omega) hσ
 
 /-- **The `rcv` family holds** (`e(x) < e(p·g)`, `x` range checked against `p`) at a valuation along a returning
 path of the function whose events hold on a memory of at most `2^28` words. -/

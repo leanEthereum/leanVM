@@ -802,13 +802,18 @@ def isCall : Stmt → Bool
   | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
-/-- A top-level statement: a return, a call, or one with no `ret` and no call in it (a conditional
-call included). -/
+/-- A dispatch. -/
+def isDsp : Stmt → Bool
+  | .dispatch .. => true
+  | _ => false
+
+/-- A top-level statement: a return, a call, or one with no `ret` and no dispatch in it (calls and
+conditional calls may sit in its branches). -/
 def topOk : Stmt → Bool
   | .ret _ => true
   | .call .. => true
   | .dispatch .. => true
-  | s => Core.Stmt.noRet s && !(Bridge.stmtsSub s).any isCall
+  | s => Core.Stmt.noRet s && !(Bridge.stmtsSub s).any isDsp
 
 /-- **A body the core route takes**: its statements, nested ones included, atoms, branches, `match`es
 and returns, no branch or arm returning. -/
