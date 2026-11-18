@@ -11,7 +11,8 @@ mirrored here step for step, and its certificate (`HCert`) is inferred:
 * the cells: a value's monomial is the first of its defining atoms in scope (a constant power of `g`, a product,
   a copy or an `assert ==` either way), a value with none being its own base.
 
-usage (from formal/lean_vm): python3 -I scripts/core-mode/heap.py [--fn NAME] [--fails] [--emit DIR]
+usage (from formal/lean_vm): python3 -I scripts/core-mode/heap.py [--fn NAME] [--fails] [--emit DIR [--mods FILE]]
+  [--check] (with --emit: compare with the tree, write nothing) [--oracle FILE.json] (each passing function's read and store DEREF offsets, for the frame walk; not a proof)
 """
 import sys, os, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -261,7 +262,50 @@ class Fn:
             self.block([{}, {}, 0], self.body)
         except Fail as e:
             self.fail = e.args[0]
+            if self.fail[0] == 'uncovered':
+                self.fail = ('uncovered', self.origin(self.fail[2]))
         return self
+
+    def origin(self, c):
+        """The class of an uncovered cell, by what defines its bases (`census.py`'s classes)."""
+        kinds = {self.defkind().get(b, 'param' if b < self.nparams else 'other') for b, _ in c[0]}
+        if not c[0]:
+            return 'absolute'
+        if 'load' in kinds:
+            return 'pointer-from-memory'
+        if kinds & {'hint', 'add', 'keccak'}:
+            return 'data-index'
+        if kinds & {'alloc', 'frameAddr'}:
+            return 'own-buffer-unwritten'
+        return 'other:' + ','.join(sorted(kinds))
+
+    def defkind(self):
+        if not hasattr(self, '_dk'):
+            dk = {}
+
+            def walk(ss):
+                for s in ss:
+                    if s[0] == 'a':
+                        a = s[1]
+                        if a[0] in ('load', 'add', 'mul', 'const', 'copy'):
+                            dk.setdefault(a[1], a[0])
+                        elif a[0] == 'keccak':
+                            for v in a[2]:
+                                dk.setdefault(v, 'keccak')
+                        elif a[0] == 'frameAddr':
+                            dk.setdefault(a[1], 'frameAddr')
+                        elif a[0] == 'hint':
+                            h = a[1]
+                            for v in hint_stack_dests(h):
+                                dk.setdefault(v, 'alloc' if h[0] in ('alloc', 'allocDyn') else 'hint')
+                    elif s[0] == 'ite':
+                        walk(s[2]); walk(s[3])
+                    elif s[0] == 'match':
+                        for arm in s[2]:
+                            walk(arm)
+            walk(self.body)
+            self._dk = dk
+        return self._dk
 
 
 def scope_fns():
@@ -326,8 +370,15 @@ def lean_cert(f):
             f'  res := []\n')
 
 
+CHECK = '--check' in sys.argv
+stale = []
+
+
 def emit(out_dir, res):
     packs = collections.defaultdict(list)
+    if CHECK:
+        import glob
+        have = {os.path.dirname(p) for p in glob.glob(os.path.join(out_dir, '*', 'Ok.lean'))}
     po = pack_of()
     for k in sorted(res):
         if res[k].fail is None:
@@ -352,18 +403,91 @@ def emit(out_dir, res):
                    f'theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for name, text in (('Data', data), ('Ok', ok)):
-            with open(os.path.join(d, name + '.lean'), 'w', encoding='utf-8') as fh:
-                fh.write(text)
+            path = os.path.join(d, name + '.lean')
+            if CHECK:
+                if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
+                    stale.append(path)
+            else:
+                with open(path, 'w', encoding='utf-8') as fh:
+                    fh.write(text)
             lines += text.count('\n')
             mods.append(f'LeanVM.Guest.CoreMode.Gen.«{pack}».{name}')
-    print(f'emitted {len(packs)} packs, {sum(len(v) for v in packs.values())} functions, {lines} lines')
+    if CHECK:
+        stale.extend(sorted(have - {os.path.join(out_dir, p) for p, _ in packs}))
+        print(f'checked {len(packs)} packs: ' + (f'{len(stale)} stale: {stale[:5]}' if stale else 'up to date'))
+        if stale:
+            sys.exit(1)
+    else:
+        print(f'emitted {len(packs)} packs, {sum(len(v) for v in packs.values())} functions, {lines} lines')
     return mods
+
+
+def oracle(f):
+    """The `DEREF`s of a passing function's `load`s, in statement order (`order.py`'s pairing): each `load` atom
+    `(d, p, off)` at the `DEREF` of mode `cell` through its certificate cells, the first not before the previous one in
+    its block (an `ite`, a `match` arm or a join starts a block); an atom whose cells an earlier one already used shares
+    its `DEREF`. Returns the offsets (from the function's entry) of the reads' `DEREF`s, the oracle `O`, and of the
+    stores' (whose frame side the frame walk must find written), or `None` where an atom has no `DEREF`."""
+    c = D['comp'][f.key]
+    code, locs = c['code'], c['locs']
+    if code is None:
+        return None
+    at = collections.defaultdict(list)
+    for i, (op, a) in enumerate(code):
+        if op == 'deref' and len(a) == 4 and a[3] == '.cell':
+            at[(a[0], a[1], a[2])].append(i)
+    reads, stores, seen = set(), set(), {}
+
+    def block(ss, last):
+        for s in ss:
+            if s[0] == 'a' and s[1][0] == 'load':
+                d, p, off = s[1][1:]
+                key = (locs[p], off, locs[d])
+                if key in seen:
+                    pc = seen[key]
+                else:
+                    nxt = [h for h in at.get(key, []) if h >= last]
+                    if not nxt:
+                        return False, last
+                    pc = seen[key] = min(nxt)
+                    last = pc
+                (reads if (d, p, off) in f.R else stores).add(pc)
+            elif s[0] == 'ite':
+                for b in (s[2], s[3]):
+                    if not block(b, -1)[0]:
+                        return False, last
+                last = -1
+            elif s[0] == 'match':
+                for b in s[2]:
+                    if not block(b, -1)[0]:
+                        return False, last
+                last = -1
+        return True, last
+
+    ok, _ = block(f.body, -1)
+    if not ok or reads & stores:
+        return None
+    return dict(entry=c['entry'], reads=sorted(reads), stores=sorted(stores))
 
 
 def main():
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
     ks = [only] if only else scope_fns()
     res = {k: Fn(k).run() for k in ks}
+    if '--oracle' in sys.argv:
+        import json
+        out, bad = {}, []
+        for k, f in sorted(res.items()):
+            if f.fail is None:
+                o = oracle(f)
+                if o is None:
+                    bad.append(k)
+                else:
+                    out[k] = o
+        with open(sys.argv[sys.argv.index('--oracle') + 1], 'w') as fh:
+            json.dump(out, fh, indent=0, sort_keys=True)
+        print(f'oracle: {len(out)} functions, {sum(len(o["reads"]) for o in out.values())} read DEREFs, '
+              f'{sum(len(o["stores"]) for o in out.values())} store DEREFs; unpaired: {bad}')
     if '--emit' in sys.argv:
         mods = emit(sys.argv[sys.argv.index('--emit') + 1], res)
         if '--mods' in sys.argv:
@@ -371,7 +495,10 @@ def main():
                 fh.write('\n'.join(mods) + '\n')
     ok = [k for k, f in res.items() if f.fail is None]
     print(f'no call, no loop: {len(ks)} of {len(CORE)}; heapOk passes: {len(ok)}')
-    print('  failures by cause:', dict(collections.Counter(f.fail[0] for f in res.values() if f.fail).most_common()))
+    print('  failures by cause:', dict(collections.Counter(f.fail[0] + (':' + f.fail[1] if f.fail[0] == 'uncovered' else '')
+                                                          for f in res.values() if f.fail).most_common()))
+    fam = collections.Counter(k.split('__L')[0] for k, f in res.items() if f.fail)
+    print('  failures by family:', dict(fam.most_common()))
     st = collections.Counter()
     for f in res.values():
         st.update(f.stats)
