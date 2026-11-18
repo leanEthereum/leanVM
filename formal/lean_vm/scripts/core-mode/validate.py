@@ -259,6 +259,14 @@ def holds(I_, r):
                 return None
             out &= t
         return out
+    if k == 'subP':                             # a cell among cells (`perm`)
+        x = I_.mono(r[1])
+        ps = [I_.mono(p) for p in r[2]]
+        if x is None:
+            return None
+        if x in ps:
+            return True
+        return None if None in ps else False
     if k in ('sub', 'subPR'):
         if len(r[1]) == 2:                      # a cell inside a run (`narrow`)
             x = I_.mono(r[1])
