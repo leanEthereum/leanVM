@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.Res.AnyData
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
+public import LeanVM.Guest.Res.SelDefs
+public import LeanVM.Guest.Res.TermDefs
 
 /-!
 # Residual families on core names
@@ -200,9 +202,69 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
   | _ => false
 
-/-- **A residual of a family**, ghost-free (`resFam`, its values below `GB`), or the ghost family `ml`. -/
+/-! ## The instance's exponent and dimension facts -/
+
+/-- **A top-level `load` of `x` through `p` at offset `k`** among the atoms. -/
+def loadAt (as : List Atom) (x p : V) (k : ℕ) : Bool :=
+  as.any fun
+    | .load d p' k' => decide (d = x) && decide (p' = p) && decide (k' = k)
+    | _ => false
+
+/-- **The exponent fact of a value** (`Res.expFacts`): `x` a listed parameter of `fn` (offset `none`), or the word a
+top-level `load` reads at a listed parameter's `[p]·g^k` (offset `some k`); the fact's bound. -/
+noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
+  Res.expFacts.findSome? fun c ↦ if c.1 == fn.name then
+    match fn.params[c.2.1]?, c.2.2.1 with
+    | some p, none => if p = x then some c.2.2.2 else none
+    | some p, some k => if loadAt (Res.topAtoms fn.body) x p k then some c.2.2.2 else none
+    | none, _ => none
+  else none
+
+/-- **The exponent fact of a value or of a top-level product** `x = a·w` of a value `a` of one (`expQ1`) and a
+constant `g^c`: the bound, plus `c`. -/
+noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+  match expQ1 fn x with
+  | some b => some b
+  | none => (Res.topAtoms fn.body).findSome? fun
+    | .mul d a w => if d = x then
+        match expQ1 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
+        | some b, some c => some (b + c)
+        | _, _ => none
+      else none
+    | _ => none
+
+/-- **A dimension fact's pair** (`Res.dimFacts`): `x` the word a top-level `load` reads at the base parameter's
+`[kb]·g^j`, `p` the bound parameter, `(j, c)` one of the pairs, `t < c + u`, `u < 2^33`. -/
+noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u : ℕ) : Bool :=
+  decide (u < 2 ^ 33) && Res.dimFacts.any fun c ↦ c.1 == fn.name &&
+    match fn.params[c.2.1]?, fn.params[c.2.2.1]? with
+    | some kb, some gb => decide (gb = p) &&
+        c.2.2.2.any fun q ↦ loadAt (Res.topAtoms fn.body) x kb q.1 && decide (t < q.2 + u)
+    | _, _ => false
+
+/-- **The residuals of the instance's exponent and dimension facts** (`expQ`, `dim`; `Res.expFacts`,
+`Res.dimFacts`, which the old route's F7 to F9 read): a value of an exponent fact (`expQB`), times `g^c`, below
+a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact times `g^t` below its
+bound parameter times `g^u` (`dimLt`). -/
+noncomputable def resQ (fn : Fn) : CRes → Bool
+  | .lt (.val x) (.num n) => decide (n < capE) && (expQB fn (V.n x)).any (· ≤ n)
+  | .lt (.mono c) (.num n) => match c.bases with
+    | [(x, 1)] => decide (n < capE) && (expQB fn (V.n x)).any (· + c.off ≤ n)
+    | _ => false
+  | .lt (.num k) (.mono c) => match c.bases with
+    | [(x, 1)] => decide (k < c.off) && (expQB fn (V.n x)).any (· + c.off < capE)
+    | _ => false
+  | .lt (.val x) (.mono c) => match c.bases with
+    | [(p, 1)] => dimLt fn (V.n x) 0 (V.n p) c.off
+    | _ => false
+  | .lt (.mono a) (.mono c) => match a.bases, c.bases with
+    | [(x, 1)], [(p, 1)] => dimLt fn (V.n x) a.off (V.n p) c.off
+    | _, _ => false
+  | _ => false
+
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  (resFam fn xc r && r.vals.all (Nat.blt · GB)) || mlSub fn r
+  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)

@@ -800,8 +800,34 @@ cell is an entry run's exponent cell (`ExpW`). -/
 theorem idxPowC_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop : Cf.fn.body.all topOk = true)
     {fp : ℕ} {σ : Val} {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs)
     (hh : ∀ e ∈ es, e.Holds rd σ) (hpar : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k)))
-    (hx : ExpW img Cf.xc fp) {args : List V} {ws : List E} {i : CIdx}
+    (hx : ExpW img Cf.xc fp) (hres : ResF Cf.H σ) {args : List V} {ws : List E} {i : CIdx}
     (h : idxPowC Cf args i = true) : IdxEx (slotW (args.map σ ++ ws)) i := by
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  swap
+  · -- an argument a residual bounds
+    cases i with
+    | val b =>
+      simp only [resArg] at h
+      split at h
+      · rename_i v hv
+        have hb : b < args.length := (List.getElem?_eq_some_iff.mp hv).1
+        split at h
+        · rename_i k hk
+          obtain ⟨r, hr, hrk⟩ := List.any_eq_true.mp h
+          match r, hrk with
+          | .lt (.val k') (.num n), hrk =>
+            simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq] at hrk
+            obtain ⟨rfl, hn⟩ := hrk
+            obtain ⟨ya, yb, hya, -, -⟩ := hres _ hr
+            refine ⟨ya, ?_, Nat.zero_le _⟩
+            rw [idxC, valW_baseC] at hya ⊢
+            rw [slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
+              show args[b] = v from (List.getElem?_eq_some_iff.mp hv).2, vnum_eq hk]
+            exact hya
+        · cases h
+      · cases h
+    | num n => simp [resArg] at h
+    | mono c => simp [resArg] at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   · exact idxPow_rep hp htop hw hh h
   cases i with
@@ -2620,7 +2646,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         have htop : Cf.fn.body.all topOk = true := (Bool.and_eq_true_iff.mp hbody).2
         have hexp : ∀ j, idxPowC Cf args j = true →
             IdxEx (slotW (args.map σ0)) j := fun j h ↦ by
-          simpa using idxPowC_rep (ws := []) hok.pows htop hb hh0 hσ0.par hxw h
+          simpa using idxPowC_rep (ws := []) hok.pows htop hb hh0 hσ0.par hxw (hσ0.res hxw) h
         have hWs1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s1.mem x := by
           intro x hx
           rcases hW' x hx with h | ⟨a, ha, hfa, hma, hwa⟩

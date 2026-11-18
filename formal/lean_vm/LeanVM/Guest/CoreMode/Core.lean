@@ -479,9 +479,22 @@ def expArg (xs : List ℕ) (np : ℕ) (args : List V) : CIdx → Bool
     | none => false
   | _ => false
 
-/-- A callee's run bound at a call on `args` has an exponent: `idxPow`, or a parameter's (`expArg`). -/
+/-- **A callee's run bound at a call on `args` is an argument a residual of `res` bounds** (`e(v) < n`,
+`n < 2^62`). -/
+def resArg (res : List CRes) (args : List V) : CIdx → Bool
+  | .val b => match args[b]? with
+    | some v => match vnum v with
+      | some k => res.any fun
+          | .lt (.val k') (.num n) => Nat.beq k' k && decide (n < capE)
+          | _ => false
+      | none => false
+    | none => false
+  | _ => false
+
+/-- A callee's run bound at a call on `args` has an exponent: `idxPow`, a parameter's (`expArg`), or an argument's a
+residual bounds (`resArg`). -/
 noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
-  idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i
+  idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i || resArg Cf.H.res args i
 
 /-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
 def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=

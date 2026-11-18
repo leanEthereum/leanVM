@@ -297,6 +297,10 @@ def own_sig(G, np, nr, gl=None):
     for x in range(np):
         if x not in sels and callcres.rc_bound(tops, x) is not None:
             sels[x] = callcres.rc_bound(tops, x)
+    # a parameter of an exponent fact (`CoreMode.resQ`'s `expQ`)
+    for x in range(np):
+        if x not in sels and CORE_BODY.get('k') is not None and callcres.expq_bound(CORE_BODY['k'], x) is not None:
+            sels[x] = callcres.expq_bound(CORE_BODY['k'], x)
     h.expRes = set()
 
     def own_run(r):
@@ -350,16 +354,22 @@ def exp_cells(G):
             if b[0] == 'ex' and b[1][0] == 'fr'}
 
 
-def exp_bounds(h, args, body, np, expc):
+def exp_bounds(h, args, body, np, expc, k=None, acc=None):
     """`CoreMode.callsB`'s exponents (`idxPowC`): each bound `.val b` of the callee's runs an argument a top-level
-    `const` sets to a power of `g`, or a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`)."""
+    `const` sets to a power of `g`, a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`), or an argument
+    of an exponent fact, its residual `e(a) < m` added to `acc` (`resArg`)."""
     for r in h.preR + [p[0] for p in h.prePR]:
         for b in (r[2], r[3]):
             if b[0]:
                 (sl, _), = b[0]
                 a = args[sl]
-                if not (const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc)):
+                if const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc):
+                    continue
+                import callcres
+                B = callcres.expq_bound(k, a) if k is not None and b[1] == 0 else None
+                if B is None or acc is None:
                     raise No('callee bound not a constant power')
+                acc.add((a, B))
 
 
 def infer_one(k, S, allow=None, hcsig=None):
@@ -373,9 +383,11 @@ def infer_one(k, S, allow=None, hcsig=None):
     if G is None:
         raise No('no mode signature')
     CORE_BODY['body'] = body
+    CORE_BODY['k'] = k
     own = own_sig(G, np, len(rets), gl_of(k))
     cs = {}
     hcs = set()
+    arg_res = set()
     for s in body:
         if s[0] == 'call':
             calls = [(s[1], s[2], len(s[3]))]
@@ -396,7 +408,7 @@ def infer_one(k, S, allow=None, hcsig=None):
                 hcs.add((f, len(args), nr))
             else:
                 h = callee_sig(Gf, len(args), nr)
-            exp_bounds(h, args, body, np, exp_cells(G))
+            exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
             cs[f] = h
@@ -425,6 +437,11 @@ def infer_one(k, S, allow=None, hcsig=None):
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
     for x, m in sorted(own.expRes):
+        r = ('lt', ('val', x), ('num', m))
+        if r not in H.res:
+            H.res.append(r)
+    # the arguments' exponent facts giving the callees' run bounds exponents (`CoreMode.resArg`)
+    for x, m in sorted(arg_res):
         r = ('lt', ('val', x), ('num', m))
         if r not in H.res:
             H.res.append(r)

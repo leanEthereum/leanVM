@@ -71,6 +71,103 @@ def exp_diff(atoms, x):
                for a in atoms)
 
 
+# `Res.expFacts` (`Res/SelDefs.lean`): function, parameter, offset (`None`: its word; `k`: the word at
+# `[parameter]·g^k`), bound; `Res.dimFacts` (`Res/TermDefs.lean`): function, base parameter, bound parameter, pairs
+# `(k, c)` (`busPairs`, `tabPairs`: `CLAIM_KAPPA_SRC` with `CLAIM_KAPPA_ADJ`, a subset suffices here)
+EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
+    [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
+    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)]
+DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
+             ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
+
+
+def _consts(atoms):
+    out = {}
+    for a in atoms:
+        if a[0] == 'const' and a[1] not in out:
+            out[a[1]] = a[2]
+    return out
+
+
+def expq1(k, x):
+    """`CoreMode.expQ1`: `x` a listed parameter, or loaded at a listed parameter's `[p]·g^k` by a top-level `load`:
+    its fact's bound."""
+    params, body = I.CORE[k]
+    atoms = top_atoms(body)
+    for f, pi, off, b in EXP_FACTS:
+        if f != k or pi >= len(params):
+            continue
+        p = params[pi]
+        if off is None and x == p:
+            return b
+        if off is not None and ('load', x, p, off) in atoms:
+            return b
+    return None
+
+
+def expq_bound(k, x):
+    """`CoreMode.expQB`: `expq1`, or a top-level product `x = a·w` of such a value `a` and a constant `g^c`: bound
+    plus `c`."""
+    b = expq1(k, x)
+    if b is not None:
+        return b
+    atoms = top_atoms(I.CORE[k][1])
+    cs = _consts(atoms)
+    for a in atoms:
+        if a[0] == 'mul' and a[1] == x:
+            b1, c = expq1(k, a[2]), cs.get(a[3])
+            e = I.POWS.get(c[0]) if c is not None and c[1] == 0 else None
+            return b1 + e if b1 is not None and e is not None else None
+    return None
+
+
+def dim_ok(k, x, t, p, u):
+    """`CoreMode.dimLt`: `x` loaded at the listed base parameter's `[kb]·g^j` by a top-level `load`, `p` the listed
+    bound parameter, a pair `(j, c)`, `t < c + u`."""
+    params, body = I.CORE[k]
+    atoms = top_atoms(body)
+    for f, kbi, gbi, pairs in DIM_FACTS:
+        if f != k or max(kbi, gbi) >= len(params) or params[gbi] != p or not u < 2 ** 33:
+            continue
+        for j, c in pairs:
+            if ('load', x, params[kbi], j) in atoms and t < c + u:
+                return True
+    return False
+
+
+def expq_facts(EM):
+    """The solver's exponent facts also from the instance's exponent and dimension facts (`expQ`, `dim`): `x·g^c`
+    below `g^n`, `g^k` below `x·g^c` (`k < c`), and a loaded `kappa_base` word times `g^t` below `p·g^u`."""
+    base = EM.Solver.fact
+
+    def one(c):
+        return len(c[0]) == 1 and c[0][0][1] == 1
+
+    def fact(self, st, a, b):
+        f = base(self, st, a, b)
+        if f is not None:
+            return f
+        C = EM.C
+        if one(a) and C.idxF(st.env, ('val', a[0][0][0])) != ((a[0][0],), 0):
+            return None
+        if one(b) and C.idxF(st.env, ('val', b[0][0][0])) != ((b[0][0],), 0):
+            return None
+        if one(a) and not b[0] and b[1] < CAPE:
+            B = expq_bound(self.k, a[0][0][0])
+            if B is not None and B + a[1] <= b[1]:
+                ra = ('val', a[0][0][0]) if a[1] == 0 else ('mono', a)
+                return [self.use(('expq', a, b), ('lt', ra, ('num', b[1])))]
+        if not a[0] and one(b) and a[1] < b[1]:
+            B = expq_bound(self.k, b[0][0][0])
+            if B is not None and B + b[1] < CAPE:
+                return [self.use(('expq', a, b), ('lt', ('num', a[1]), ('mono', b)))]
+        if one(a) and one(b) and dim_ok(self.k, a[0][0][0], a[1], b[0][0][0], b[1]):
+            ra = ('val', a[0][0][0]) if a[1] == 0 else ('mono', a)
+            return [self.use(('dim', a, b), ('lt', ra, ('mono', b)))]
+        return None
+    return base, fact
+
+
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
@@ -90,10 +187,15 @@ def res_fam(k, r, G):
             return True
         if any(x2 == x and m <= n for x2, m in callc.top_sels(body)):
             return True
+        B = expq_bound(k, x)
+        if B is not None and B <= n:
+            return True
         return 2 ** 28 <= n and x < len(params) and 2 + x in callc.exp_cells(G) and exp_diff(top_atoms(body), x)
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'mono':
         # `rcv`: `x` range checked against the value `p`, the bound `p·g`
         c = r[2][1]
+        if len(c[0]) == 1 and c[0][0][1] == 1 and dim_ok(k, r[1][1], 0, c[0][0][0], c[1]):
+            return True
         if len(c[0]) != 1 or c[0][0][1] != 1 or c[1] != 1:
             return False
         return any(a[0] == 'rangeCheck' and a[1] == r[1][1] and a[5] == c[0][0][0] for a in top_atoms(body))
@@ -106,7 +208,22 @@ def res_fam(k, r, G):
             return True
         # `rc` likewise: `x` range checked against `g^(N - 1)`, `N + c <= n`
         N = rc_bound(top_atoms(body), c[0][0][0])
-        return N is not None and N + c[1] <= n
+        if N is not None and N + c[1] <= n:
+            return True
+        B = expq_bound(k, c[0][0][0])
+        return B is not None and B + c[1] <= n
+    if r[0] == 'lt' and r[1][0] == 'num' and r[2][0] == 'mono':
+        # `expQ`: `g^j` below `x·g^c`, `j < c`, `x` of an exponent fact of bound `b`, `b + c < 2^62`
+        c, j = r[2][1], r[1][1]
+        if len(c[0]) != 1 or c[0][0][1] != 1 or not j < c[1]:
+            return False
+        B = expq_bound(k, c[0][0][0])
+        return B is not None and B + c[1] < CAPE
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'mono':
+        # `dim`: a loaded `kappa_base` word times `g^t` below `p·g^u`
+        a, c = r[1][1], r[2][1]
+        return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
+            dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)
@@ -216,6 +333,7 @@ def extend(out, why, S, verbose=False):
     EM = callc._em()
     base, EM.Solver.pt = cs_reads(EM)
     basef, EM.Solver.fact = sel_facts(EM)
+    _, EM.Solver.fact = expq_facts(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
