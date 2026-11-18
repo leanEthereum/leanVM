@@ -356,7 +356,22 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   have hfpL : e.I.fp = s.fp := hfp
   have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
-  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
+  have hparF : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img s.fp (2 + k) = some (e.σ (V.n k)) := by
+    -- a parameter at its cell
+    intro k hk
+    have hc := hcells k (List.mem_range.mpr hk)
+    simp only [Nat.beq_eq, decide_eq_true_eq] at hc
+    have hpe := CoreMode.paramsN_eq _ 0 hpar
+    have hnamed : V.n k ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
+      simp only [namedOf, List.mem_append]
+      refine Or.inl (Or.inl ?_)
+      rw [hc0, hpe]
+      simpa using hk
+    have := hF.val (V.n k) hnamed (by omega) (by omega)
+    rw [hc.1] at this
+    rw [← hfpL]
+    simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
     fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_, ?_⟩⟩
@@ -386,19 +401,6 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
         (List.mem_flatMap.mpr ⟨_, hl, by simpa [Ev.uses] using ptrOf_uses hpa⟩))
     have := hF.val p hnamed h2 h3
     rw [hloc, ← hfpL]
-    simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
-  · -- a parameter at its cell
-    have hc := hcells k (List.mem_range.mpr hk)
-    simp only [Nat.beq_eq, decide_eq_true_eq] at hc
-    have hpe := CoreMode.paramsN_eq _ 0 hpar
-    have hnamed : V.n k ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
-      simp only [namedOf, List.mem_append]
-      refine Or.inl (Or.inl ?_)
-      rw [hc0, hpe]
-      simpa using hk
-    have := hF.val (V.n k) hnamed (by omega) (by omega)
-    rw [hc.1] at this
-    rw [← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
   · -- a returned value at its cell
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
@@ -514,7 +516,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
   · -- its residuals, of families (`resOk`), true along its path on the reference
-    exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0
+    exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0 hparF
 
 end
 

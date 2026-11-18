@@ -30,7 +30,8 @@ it promises its callers (`post`, with their witnesses).
 `HonF img Cf fp σ`: `σ` is the valuation of an honest instance of `Cf.fn` in frame `fp` of the
 reference image `img`: its path returns with its events holding, each `load`'s pointer at its cell
 (`X.locAt`), each parameter at its cell `2 + k`, each returned value at its cell, its heap
-certificate's residuals true at it (`res`, from the honest tree).
+certificate's residuals true at it where its entry runs' exponent cells are powers (`res`, from the honest
+tree).
 
 `CoreAt img Cf code i s`: frame `s.fp` at offset `i`: the frame walk's state there holds (`AtF`), the
 entry cells are written, and for every honest valuation of the frame, its path splits at the
@@ -112,6 +113,19 @@ structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : �
   sel : ∀ es vs, walk σ body = .ret es vs → ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body →
     Rd img fp (X.locAt x.idx) = some (σ x)
 
+/-- The frame cell a run bound's exponent is of, if any. -/
+def boundCells : Mode.Idx → List ℕ
+  | .ex (.fr o) _ => [o]
+  | _ => []
+
+/-- **The frame cells whose words the signature's entry runs (`preR`, `preP`) bound by exponent.** -/
+def expCells (G : Mode.Sig) : List ℕ :=
+  (G.preR ++ G.preP.map (·.1)).flatMap fun r ↦ boundCells r.lo ++ boundCells r.hi
+
+/-- **The words of frame `fp`'s cells `os` in the reference are powers of `g`** of exponents below `2 ^ 62`. -/
+def ExpW (img : MemoryImage κ) (os : List ℕ) (fp : ℕ) : Prop :=
+  ∀ o ∈ os, ∃ e, e < 2 ^ 62 ∧ Rd img fp o = some (ofK (g ^ e))
+
 /-- **An honest valuation** of `Cf.fn` in frame `fp` of the reference image. -/
 structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop where
   path : ∃ es vs rd, walk σ Cf.fn.body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ
@@ -144,21 +158,9 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
     Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
-  /-- Its heap certificate's residuals, at it. -/
-  res : ResF Cf.H σ
-
-/-- The frame cell a run bound's exponent is of, if any. -/
-def boundCells : Mode.Idx → List ℕ
-  | .ex (.fr o) _ => [o]
-  | _ => []
-
-/-- **The frame cells whose words the signature's entry runs (`preR`, `preP`) bound by exponent.** -/
-def expCells (G : Mode.Sig) : List ℕ :=
-  (G.preR ++ G.preP.map (·.1)).flatMap fun r ↦ boundCells r.lo ++ boundCells r.hi
-
-/-- **The words of frame `fp`'s cells `os` in the reference are powers of `g`** of exponents below `2 ^ 62`. -/
-def ExpW (img : MemoryImage κ) (os : List ℕ) (fp : ℕ) : Prop :=
-  ∀ o ∈ os, ∃ e, e < 2 ^ 62 ∧ Rd img fp o = some (ofK (g ^ e))
+  /-- Its heap certificate's residuals, at it, given the frame's entry runs' exponent cells powers of `g`
+  (`ExpW`, which `CoreAt` carries). -/
+  res : ExpW img (expCells Cf.frame.sig) fp → ResF Cf.H σ
 
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation

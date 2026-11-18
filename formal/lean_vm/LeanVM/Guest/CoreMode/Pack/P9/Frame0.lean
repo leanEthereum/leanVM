@@ -32,6 +32,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P9».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P9».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P9».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P9».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P9».Pair
 public import LeanVM.Guest.Pack.«P16».ModeSig
 public import LeanVM.Guest.Pack.«P35».ModeSig
 public import LeanVM.Guest.Pack.«P42».ModeSig
@@ -535,19 +536,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil)) .nil)
     .nil))) .nil)) .nil)) .nil)) .nil) .nil)))), 524287, Data.adviceFn1184.2.2, .nil, .nil, .nil,
-    .nil, (.node none (.node none (.node (some ()) .nil .nil) (.node none (.node none (.node none
-    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)) (.node
-    none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))) (.node none (.node
-    none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))))) (.node (some ()) (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    .nil)) (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node
-    (some ()) .nil .nil)))))) .nil)), .nil, .nil⟩
+    .nil, Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».pairO,
+    Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

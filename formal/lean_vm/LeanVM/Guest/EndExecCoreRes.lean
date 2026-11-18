@@ -17,7 +17,7 @@ public import LeanVM.Guest.CoreMode.HeapCSound
 /-!
 # The residual families, sound
 
-`resPath_sound`: on a memory of at most `2^32` words, along a returning path whose events hold, the
+`resLt_sound`: on a memory of at most `2^28` words, along a returning path whose events hold, the
 path's families hold at the valuation: a range checked value's exponent below the check's bound
 (`rcBound_sound`, its atoms on every returning path, `topAtoms_on_path`), a top-level selector's below
 its arms (`topSels_sound`).
@@ -26,8 +26,11 @@ its arms (`topSels_sound`).
 `g^o`, `2^κ ∣ o`, and the nibble shares (`csQ_all`), so its lowest digit is `g^(2^(4-w)·q)`, `q < 2^w`
 (`cs_digit`), the read `[sel_eq]·[digit₀]·g^off` the `q`-th cell of the strided table.
 
-`resFam_inst`: at an honest instance (a `node` of the honest tree), every residual of a family holds
-at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
+`exp_lt` (`exp`): a parameter `g^e`, `e < 2^62` (`ExpW`), the quotient of two addresses the path
+dereferences, has `e < 2^28`.
+
+`resFam_inst`: at an honest instance (a `node` of the honest tree), in a frame holding its parameters
+whose entry runs' exponent cells are powers, every residual of a family holds at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
 (`CoreMode.resOk`), which `HonF.res` asks of the core route's honest valuations.
 -/
 
@@ -45,25 +48,76 @@ theorem ltF_of_pow {σ : Val} {x n e : ℕ} (hn : n < capE) (he : e < n) (hσ : 
   simp only [idxC, CoreMode.valW_baseC, vw, hσ]
   exact rep_of (by omega)
 
-/-- **The path's families hold** (`rc`, `sel`) at a valuation along a returning path of the body whose
-events hold on a memory of at most `2^32` words. -/
-theorem resPath_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
-    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {x n : ℕ}
-    (h : resFam fn (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
-  simp only [resFam, Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true] at h
-  obtain ⟨hn, h⟩ := h
-  rcases h with h | ⟨p, hp, hpx⟩
+/-- A word read at offset `0` through `p` (on a memory of at most `2^28` words) is `p = g^i`, `i < 2^μ`. -/
+theorem expLd_addr {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as : List Atom}
+    (hh : ∀ a ∈ as, a.Holds Lm.read σ) {p : V} (h : CoreMode.expDiff.expLd as p = true) :
+    ∃ i < 2 ^ μ, σ p = ofK (addressOfIndex i) := by
+  simp only [CoreMode.expDiff.expLd, List.any_eq_true] at h
+  obtain ⟨a, ha, hl⟩ := h
+  cases a with
+  | load d p' off =>
+    cases off with
+    | zero =>
+      simp only [decide_eq_true_eq] at hl
+      subst hl
+      obtain ⟨hk, hr⟩ := hh _ ha
+      exact Exec.deref0_addr (by omega) hk hr
+    | succ => simp at hl
+  | _ => simp at hl
+
+/-- **A quotient of two dereferenced addresses** (`exp`): `x = g^e`, `e < 2^62`, and `q = b·x` with
+`b`, `q` addresses of a memory of at most `2^28` words make `e` their difference, below `2^28`. -/
+theorem exp_lt {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as : List Atom}
+    (hh : ∀ a ∈ as, a.Holds Lm.read σ) {x e : ℕ} (he : e < 2 ^ 62) (hσx : σ (V.n x) = ofK (Parameters.g ^ e))
+    (hd : CoreMode.expDiff as (V.n x) = true) : e < 2 ^ 28 := by
+  simp only [CoreMode.expDiff, List.any_eq_true] at hd
+  obtain ⟨a, ha, hm⟩ := hd
+  cases a with
+  | mul q a1 b1 =>
+    have hq : σ q = σ a1 * σ b1 := hh _ ha
+    simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hm
+    -- the other factor `o` and the product, addresses
+    obtain ⟨o, ho, hqo⟩ : ∃ o, CoreMode.expDiff.expLd as o = true ∧ σ q = σ o * σ (V.n x) := by
+      rcases hm with ⟨⟨rfl, h1⟩, -⟩ | ⟨⟨rfl, h1⟩, -⟩
+      · exact ⟨a1, h1, hq⟩
+      · exact ⟨b1, h1, by rw [hq, mul_comm]⟩
+    have hql : CoreMode.expDiff.expLd as q = true := by rcases hm with ⟨-, h⟩ | ⟨-, h⟩ <;> exact h
+    obtain ⟨i, hi, hσo⟩ := expLd_addr hμ Lm hh ho
+    obtain ⟨k, hk, hσq⟩ := expLd_addr hμ Lm hh hql
+    have h28 : (2 : ℕ) ^ μ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hμ
+    rw [hσq, hσo, hσx, show (Parameters.g : K) ^ e = addressOfIndex e from rfl, ← ofK_mul] at hqo
+    have hke : k = i + e := CoreMode.gpow_inj_lt (by omega) (by omega)
+      (by rw [hqo, addressOfIndex, addressOfIndex, addressOfIndex, pow_add])
+    omega
+  | _ => simp at hm
+
+/-- **The exponent bound families hold** (`rc`, `sel`, `exp`) at a valuation along a returning path of
+the function whose events hold on a memory of at most `2^28` words, its frame's parameter cells holding
+its parameters and its entry runs' exponent cells powers of `g` (`ExpW`). -/
+theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {fp : ℕ}
+    (hx : CoreMode.ExpW Lm (CoreMode.expCells G) fp)
+    (hpar : ∀ k < fn.params.length, CoreMode.Rd Lm fp (2 + k) = some (σ (V.n k))) {x n : ℕ}
+    (h : resFam fn G (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
+  simp only [resFam, Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true,
+    List.contains_iff_mem] at h
+  obtain ⟨hn, (h | ⟨p, hp, hpx⟩) | ⟨⟨⟨hn28, hxp⟩, hxc⟩, hd⟩⟩ := h
   · split at h
     · rename_i N hN
       simp only [decide_eq_true_eq] at h
       have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
-      obtain ⟨e, he, hσ⟩ := rcBound_sound hμ Lm hall hN
+      obtain ⟨e, he, hσ⟩ := rcBound_sound (by omega) Lm hall hN
       exact ltF_of_pow (e := e) hn (by omega) (by rw [hσ, Value.gen_pow_eq_ofK])
     · cases h
   · obtain ⟨h1, h2⟩ := hpx
     obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
     rw [h1] at hσ
     exact ltF_of_pow (e := e) hn (by omega) hσ
+  · obtain ⟨e, he, hr⟩ := hx _ hxc
+    have hσx : σ (V.n x) = ofK (Parameters.g ^ e) := Option.some.inj ((hpar x hxp).symm.trans hr)
+    have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+    have := exp_lt hμ Lm hall he hσx hd
+    exact ltF_of_pow (e := e) hn (by omega) hσx
 
 theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
   unfold Program.find? at h
@@ -114,28 +168,34 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   unfold CoreMode.CCell.addrW
   rw [key]
 
-/-- **A residual of a family holds** at an honest instance's valuation. -/
+/-- **A residual of a family holds** at an honest instance's valuation, in a frame `fp` holding its
+parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/
 theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
-    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, resFam fn x = true → x.Holds σ
+    (hf : coreProgram.find? f = some fn) {G : Mode.Sig} {fp : ℕ} (hx : CoreMode.ExpW r.img (CoreMode.expCells G) fp)
+    (hpar : ∀ k < fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k))) :
+    ∀ x : CRes, resFam fn G x = true → x.Holds σ
   | .lt (.val x) (.num n), h => by
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
-    exact resPath_sound (by have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size; omega) r.img hw hh h
+    exact resLt_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh hx hpar h
   | .sub c q, h => by
     simp only [resFam, List.any_eq_true, List.mem_range, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
     obtain ⟨κ, hκ, hname, heq⟩ := h
     rw [heq]
     exact cs_holds hr hI ht hf hκ hname
-  | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf r' h
+  | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
   | .lt (.val _) (.val _), h | .lt (.val _) (.mono _), h | .lt (.num _) _, h | .lt (.mono _) _, h
   | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
 
-/-- **The residuals of a heap certificate of families hold** at an honest instance of its function. -/
+/-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
+a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
-    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) : ResF Cf.H σ := fun x hx ↦
-  resFam_inst hr hI ht hf x (List.all_eq_true.mp h x hx)
+    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) {fp : ℕ}
+    (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
+    (hx : CoreMode.ExpW r.img (CoreMode.expCells Cf.frame.sig) fp) : ResF Cf.H σ := fun x hx' ↦
+  resFam_inst hr hI ht hf hx hpar x (List.all_eq_true.mp h x hx')
 
 end
 

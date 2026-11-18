@@ -719,7 +719,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     fun hσ ↦ parAt_of hκ hs.agree hs.fp hwE (hws0 hσ)
   have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
       (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-    fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 hσ.res (hPs hσ) hT).1
+    fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
   have hhd : ∀ j, (Cf.d.2.2.lookup (Cf.X.entry + j)).getD [] = Mode.hintsAt Cf.frame.hints (Cf.frame.entry + j) :=
     fun j ↦ by rw [lookupD_hintsAt, hok.dhints, hok.xentry, hok.fentry]
   have hlen : Cf.frame.len = K.code.length := hok.flen
@@ -1162,7 +1162,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       fun hσ ↦ parAt_of hκ hs0.agree hs0.fp hwE (hws0 hσ)
     have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
         (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-      fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 hσ.res (hPs hσ) hT).1
+      fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -1343,7 +1343,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
           obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-          obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 hσ0.res (hPs hσ0) hT
+          obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
@@ -1424,7 +1424,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           .tail hok.sigE fun hTE ↦ tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
-            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 hσ0.res (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
+            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (hσ0.res hxw) (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
             hargs (hPs hσ0) hT
             (expM_of hκ hf'.agree hs0.fp (hok.fsig ▸ hxw) (fun o ho ↦ written_mono hle (hwE o ho)) _)
             (expM_next hκ hf'.agree hf'.fp (hok.fsig ▸ hxw) (fun o ho ↦ hentry.w o (hok.fsig ▸ ho))
