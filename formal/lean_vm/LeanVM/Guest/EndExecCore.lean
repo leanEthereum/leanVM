@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecRT
+public import LeanVM.Guest.EndExecRKid
 
 /-!
 # The core route's honest frames
@@ -30,23 +31,11 @@ open LeanVM.Prover.Exec
 
 public section
 
-theorem straight_mem {σ : Val} : ∀ {body : List Stmt}, CoreMode.straight body = true → ∀ {es : List Ev} {vs : List V},
-    walk σ body = .ret es vs → ∀ {a : Atom}, Ev.atom a ∈ es → Stmt.atom a ∈ body
-  | [], _, es, vs, hw, _, _ => by simp [walk] at hw
-  | s :: body, h, es, vs, hw, a, ha => by
-    simp only [CoreMode.straight, List.all_cons, Bool.and_eq_true] at h
-    cases s with
-    | atom b =>
-      rw [Bridge.walk_atom_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      rcases List.mem_cons.mp ha with he | he
-      · cases he; exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (straight_mem (by simpa [CoreMode.straight] using h.2) hw' he)
-    | ret vs' =>
-      rw [Bridge.walk_ret_cons, Memory.Out.ret.injEq] at hw
-      obtain ⟨rfl, -⟩ := hw
-      cases ha
-    | _ => simp at h
+theorem straightC_mem {σ : Val} {body : List Stmt} (h : CoreMode.straightC body = true) {es : List Ev}
+    {vs : List V} (hw : walk σ body = .ret es vs) {a : Atom} (ha : Ev.atom a ∈ es) : Stmt.atom a ∈ body := by
+  rcases CoreMode.straightC_ev h hw _ ha with ⟨a', he, hm⟩ | ⟨f, args, rets, he, -⟩
+  · cases he; exact hm
+  · cases he
 
 theorem ptrOf_uses {a : Atom} {p : V} (h : CoreMode.ptrOf a = some p) : p ∈ Memory.atomUses a := by
   cases a with
@@ -64,27 +53,11 @@ theorem ptrOf_uses {a : Atom} {p : V} (h : CoreMode.ptrOf a = some p) : p ∈ Me
     | _ => simp [CoreMode.hintHeap] at hd
   | _ => cases h
 
-theorem straight_ret {σ : Val} : ∀ {body : List Stmt}, CoreMode.straight body = true → ∀ {es : List Ev} {vs : List V},
-    walk σ body = .ret es vs → Stmt.ret vs ∈ body
-  | [], _, es, vs, hw => by simp [walk] at hw
-  | s :: body, h, es, vs, hw => by
-    simp only [CoreMode.straight, List.all_cons, Bool.and_eq_true] at h
-    cases s with
-    | atom b =>
-      rw [Bridge.walk_atom_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      exact List.mem_cons_of_mem _ (straight_ret (by simpa [CoreMode.straight] using h.2) hw')
-    | ret vs' =>
-      rw [Bridge.walk_ret_cons, Memory.Out.ret.injEq] at hw
-      obtain ⟨-, rfl⟩ := hw
-      exact List.mem_cons_self
-    | _ => simp at h
-
 /-- **The core route's frames are honest**, on the tracks' invariant. -/
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
     (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = End.mainEntry) (hJ : JumpCellsAt A)
-    (hL : AlLayout A) : CoreHonAll Ks (XOf Y) := by
+    (hL : AlLayout A) (hAX : ∀ f j, B2C.idxOf f = some j → (A f).X = Bridge.ctxOf j) : CoreHonAll Ks (XOf Y) := by
   intro r hr K hK Cf hCf hent s i hon' hi hpc
   obtain ⟨f, hf, hcode, hentry, -⟩ := certs.fn K hK
   have hif : i < f.instructionCount := by
@@ -123,10 +96,13 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   rw [hc0] at hfn
   -- the honest valuation
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
-  obtain ⟨⟨⟨⟨⟨hlocs, hst0⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩ := hb0
+  obtain ⟨⟨⟨⟨⟨⟨hlocs, hst0⟩, hj1⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
+  have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
+  have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
-    fun es0 vs0 hw0 v hv ↦ ?_⟩⟩
+    fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun o ho ↦ ?_, fun o t ho ↦ ?_,
+    fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -140,7 +116,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   · -- a pointer at its cell
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
-    have hmem := straight_mem hst0 (by rw [hfn]; exact hw) hl
+    have hmem := straightC_mem hst0 (by rw [hfn]; exact hw) hl
     have hc := hptr _ hmem
     simp only [CoreMode.ptrCellB, hpa, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
@@ -170,7 +146,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   · -- a returned value at its cell
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
-    have hc := hrc _ (straight_ret hst0 (by rw [hfn]; exact hw))
+    have hc := hrc _ (CoreMode.straightC_ret hst0 (by rw [hfn]; exact hw))
     simp only [CoreMode.retCellB, List.all_eq_true] at hc
     have hc := hc v hv
     simp only [Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
@@ -182,6 +158,49 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have := hF.val v hnamed h2 h3
     rw [hloc, ← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- its returned values after its parameters
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+    have hv' := hv
+    obtain ⟨fn', hfind, hargs, es', vs', hw', hrets, -, -⟩ := hv'
+    have hfe : fn' = e.fn := Option.some.inj (hfind.symm.trans hE.find)
+    rw [hfe, hw, Memory.Out.ret.injEq] at hw'
+    obtain ⟨rfl, rfl⟩ := hw'
+    rw [hfe, ← hfn] at hargs
+    have hnm : e.I.t.name = "main" → e.I.fp = 0 := fun hm ↦ by
+      rw [hm, B2C.idxOf_main, Option.some.injEq] at hj
+      subst hj
+      simp at hj1
+    obtain ⟨-, -, -, -, -, hrr⟩ := B2C.inst_runs B2C.b2Hyps hr.name hH hXh.covers (e.I.t.total B2C.fs + 1) e.I hI
+      (Nat.lt_succ_self _) hnm args rets (by rw [hIt]; exact hv)
+    subst hargs hrets
+    have := hrr k (by simpa using hk)
+    rw [← hfpL]
+    simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- a nonzero constant
+    obtain ⟨w, hw', hne⟩ := hJC.nz o (by rw [hXA]; exact ho)
+    refine ⟨w, ?_, hne⟩
+    rw [← hfpL]
+    simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using hw'
+  · -- a constant pc
+    have := hJC.pcw o t (by rw [hXA]; exact ho)
+    rw [← hfpL]
+    simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using this
+  · -- a call's callee frame
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    obtain ⟨kfp, hk, hq, h0, h1, -⟩ := hJC.site _ _ hw i0 c q s0 hc htk (by rw [hXA]; exact hs0)
+    have hkid := (hF.kid i0 c kfp hc hk).2.2.1
+    have hret := kid_rets hr hI hIt hE.find hw hc hk htk
+    refine ⟨kfp, ?_, ?_, ?_, fun k hk' ↦ ?_, fun k hk' ↦ ?_⟩
+    · rw [← hfpL]; simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using hq
+    · simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using h0
+    · rw [← hfpL]; simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using h1
+    · simpa [CoreMode.Rd, addressOfIndex, pow_add] using hkid k hk'
+    · have := hret k hk'
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk', Option.getD_some] at this
+      simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
 
 end
 

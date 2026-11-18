@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
-honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`, its returned values at their cells,
+honest frames have them (`honB`): its body atoms, calls and a return, not `main`, its parameters `V.n k` at cells `2 + k`, its returned values at their cells,
 each dereferenced pointer at its certificate cell within the frame, no hint-only cell.
 -/
 
@@ -43,7 +43,7 @@ noncomputable def retCellB (j : ℕ) : Stmt → Bool
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers at their cells. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
-  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && straight fn.body &&
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && straightC fn.body && !(Nat.beq j 1) &&
     fn.body.all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
     fn.body.all (retCellB j)

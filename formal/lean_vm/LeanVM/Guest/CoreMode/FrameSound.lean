@@ -351,8 +351,8 @@ inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruct
     (s1 s' : St) : Prop
   /-- A jump in the frame, to an offset the walk names. -/
   | local (t : ℕ) : ¬ rj → s'.fp = s1.fp → s'.pc = Fn.entry + t → AtF img Fn code t s' → JumpOut img Fn code rj s1 s'
-  /-- A return: the caller's registers, the signature's return cells written. -/
-  | ret : retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
+  /-- A return (the instruction's: `rj`): the caller's registers, the signature's return cells written. -/
+  | ret : rj → retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
       (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → JumpOut img Fn code rj s1 s'
   /-- `main`'s halt. -/
   | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code rj s1 s'
@@ -363,7 +363,7 @@ inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruct
       JumpOut img Fn code rj s1 s'
   /-- A call into callee `G` at offset `t`'s return point: its entry facts, its frame's header this
   frame's return point, and the walk at `t` once the callee has written its return cells. -/
-  | call (G : Mode.Sig) (t : ℕ) : ¬ rj → Fn.sigs.get s'.pc = some G → EntryFr img G s' →
+  | call (G : Mode.Sig) (t : ℕ) : ¬ rj → t < Fn.len → Fn.sigs.get s'.pc = some G → EntryFr img G s' →
       retRegs img (g ^ s'.fp) = some ⟨g ^ (Fn.entry + t), g ^ s1.fp⟩ →
       (∀ s'', Fine (refMem img) s'' → s''.fp = s1.fp → s''.pc = Fn.entry + t → s1.mem ≤ s''.mem →
         (∀ o ∈ G.ret, s''.mem.written (s'.fp + o) = true) → AtF img Fn code t s'') →
@@ -427,7 +427,8 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
     {dv : E} (hdv : Rd img s1.fp d = some dv)
     (htgt : ∀ k, Fn.tgt.get i = some k → (∀ pcs, Fn.calls.get k = some pcs → s'.pc ∈ pcs) ∧
       (∀ ts, Fn.arms.get k = some ts → ∃ t ∈ ts, s'.pc = Fn.entry + t))
-    (cov : ∀ s j, j ∈ ts → FHolds img s B → AtF img Fn code j s) {rj : Prop} (hrj : rj → d = 0 ∧ f = 1) :
+    (cov : ∀ s j, j ∈ ts → FHolds img s B → AtF img Fn code j s) {rj : Prop} (hrj : rj → d = 0 ∧ f = 1)
+    (hrj' : d = 0 ∧ f = 1 → rj) :
     JumpOut img Fn code rj s1 s' := by
   have hnr : kind ≠ .ret → ¬ rj := fun hk h ↦ by
     obtain ⟨rfl, rfl⟩ := hrj h
@@ -449,7 +450,14 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
   | ret =>
     split_ifs at hx with hr
     cases hx
-    exact .ret hregs fun o ho ↦ hA.2.w o (has_iff.mp (List.all_eq_true.mp hr o ho))
+    have hdf : d = 0 ∧ f = 1 := by
+      rcases jumpKind_spec Fn.F Fn.entry Fn.len i A.st d f with ⟨h0, h1, -⟩ | ⟨t, h', -⟩ | ⟨pt, rr, h', -⟩ |
+          ⟨pt, ft, h', -⟩
+      · exact ⟨h0, h1⟩
+      · rw [hjk] at h'; cases h'
+      · rw [hjk] at h'; cases h'
+      · rw [hjk] at h'; cases h'
+    exact .ret (hrj' hdf) hregs fun o ho ↦ hA.2.w o (has_iff.mp (List.all_eq_true.mp hr o ho))
   | call pt q r =>
     obtain ⟨p, a, hp, hpK, hpt, hra⟩ := hregs
     simp only [Registers.mk.injEq] at hra
@@ -518,7 +526,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
       simp
     obtain ⟨p3, hp3, hrr⟩ := hextra
     rw [hp] at hp3; cases hp3
-    refine .call G' t (hnr nofun) hsig hentry (by rw [← hfpp]; exact hrr) fun s'' hs'' hfp'' hpc'' hle'' hret ↦ ?_
+    refine .call G' t (hnr nofun) htl hsig hentry (by rw [← hfpp]; exact hrr) fun s'' hs'' hfp'' hpc'' hle'' hret ↦ ?_
     refine cov s'' t List.mem_cons_self (addRets_holds ((hA.mono hle'' hfp'')) fun o ho _ ↦ ?_)
     obtain ⟨vf, hvf, hrf⟩ := hfget
     change img.read (g ^ s1.fp * addressOfIndex q) = some vf at hrf
@@ -754,7 +762,8 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
         (fun h1 ↦ hm.fp.trans (hmain h1)) ⟨vf, hvf, ef ▸ hfv⟩ hjk hx hregs hextra hdv ?_ cov
         (fun ⟨c', hc'⟩ ↦ by
           rw [List.getElem?_eq_getElem hi, hins, Option.some.injEq, OffsetInstruction.jump.injEq] at hc'
-          exact ⟨hc'.2.1, hc'.2.2⟩))
+          exact ⟨hc'.2.1, hc'.2.2⟩)
+        (fun ⟨h0, h1⟩ ↦ ⟨c, by rw [List.getElem?_eq_getElem hi, hins, h0, h1]⟩))
         ⟨c, d, f, by rw [List.getElem?_eq_getElem hi, hins], hd' ▸ hvd, hf'' ▸ hvf, hpcs⟩
       intro kk' hk'
       have hcv' : Rd img s.fp c = some cv := by rw [← hm.fp]; exact hcv
