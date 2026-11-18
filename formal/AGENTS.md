@@ -76,7 +76,6 @@ python3 -I ../lake-build.py . LeanVM LeanVMTests --dev --keep-going      # every
 scripts/guest-export/target/release/guest-export . [--check]             # the guest's data, after a change to the guest
 cargo run --release --manifest-path scripts/whir-fold-table/Cargo.toml -- LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean [--check]   # the fold rounds' certificate, after a change to whir_config.rs
 scripts/renumber-chain dump OUT; scripts/renumber-chain apply BEFORE AFTER   # the cost bounds' names, after a change to the cost-compiled chain moves its indices
-python3 -I scripts/extractor-cost/cost.py scripts/extractor-cost/params.csv  # the knowledge extractor's cost model, per shape (not a proof)
 LEANVM_GUEST_DIFF=/tmp/g cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored && lake exe guest-diff /tmp/g/*.txt
 
 # lean_sphincs: the crates' known answers on the compiled statement

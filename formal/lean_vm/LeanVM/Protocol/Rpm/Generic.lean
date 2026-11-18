@@ -23,7 +23,7 @@ Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutati
 the duplex discipline (`DuplexVm`) and makes at most `QV` permutation calls, then for every event
 `E` there is an adversary `A'` against the two independent random oracles, of as many queries as
 `A`, whose experiment (`romStep`) has `E` with probability at least that of `detRun A V` less
-`rpmError (Q + QV)` (`detRun_le_rom`). The proof is that of `knowledgeSoundnessRpm` without the
+`rpmError (Q + QV)` (`detRun_le_rom`). The proof is that of `knowledgeSoundnessAS_holds` without the
 extractor: the experiment is the real world of a transfer game (`detRun_evalDistEq`),
 `Common.keccak256_transfer2` moves it to the random-oracle game of the adversary with the
 indifferentiability simulator (`romGameG_le`), and coins do not help (`exists_det`).

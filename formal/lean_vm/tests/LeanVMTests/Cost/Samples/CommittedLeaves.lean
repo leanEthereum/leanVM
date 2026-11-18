@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.FastLib
+public import LeanVMTests.Cost.Samples.AddRaw
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Extractor

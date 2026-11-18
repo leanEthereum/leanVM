@@ -93,9 +93,44 @@ theorem batchedOf_eq (P : LevelCode) (i : ℕ) (cs : List (ℕ × ℕ × Word)) 
     show P.dom ⟨wq.2, hlt⟩ = ofK (K.ofBits wq.2) from rfl, eval_hatE, mul_comm (ofK _)]
   rfl
 
+/-! ## The next level's predicate -/
+
+/-- **The next level's predicate on a tuple `U`**: the polynomial with `U`'s message as low part
+and the high part `high`, `P*_U = P_(g_U) + Ŵ_κ H`, satisfies level `i`'s predicate after its
+rounds. -/
+def nextBn (i : ℕ) (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (B : List (ℕ × ℕ × Word) → TPred)
+    (rounds : List FoldRound) (high : List E) (cs : List (ℕ × ℕ × Word))
+    (U : (Fin P'.ℓ → Bool) → E[X]) : Prop :=
+  roundPred i P B rounds cs 0 fun _ ↦ msgPoly P.κ (joinMsg hκ (msgT P'.κ U)) + hatE P.κ * polyOf high
+
+/-- `nextBn` as the next level's predicate on tuples of every lane count (only `P'.ℓ` lanes
+count). -/
+def nextPred (i : ℕ) (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
+    (B : List (ℕ × ℕ × Word) → TPred) (rounds : List FoldRound) (high : List E) :
+    List (ℕ × ℕ × Word) → TPred :=
+  fun cs m U ↦ ∀ h : m = P'.ℓ, nextBn i P P' hκ B rounds high cs (h ▸ U)
+
+/-- A level's predicate is **stable** if appending a commitment past level `i`'s keeps it. -/
+def PredStable (i : ℕ) (B : List (ℕ × ℕ × Word) → TPred) : Prop :=
+  ∀ cs x, i < cs.length → B (cs ++ [x]) = B cs
+
+theorem roundPred_append {i : ℕ} {P : LevelCode} {B : List (ℕ × ℕ × Word) → TPred}
+    (hB : PredStable i B) (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word))
+    (x : ℕ × ℕ × Word) (h : i < cs.length) :
+    roundPred i P B rounds (cs ++ [x]) = roundPred i P B rounds cs := by
+  rw [roundPred, roundPred, laneO_append _ _ h, hB cs x h]
+
+theorem predStable_nextPred {i : ℕ} {P P' : LevelCode} {hκ : P.κ = P'.ℓ + P'.κ}
+    {B : List (ℕ × ℕ × Word) → TPred} (hB : PredStable i B) (rounds : List FoldRound)
+    (high : List E) : PredStable (i + 1) (nextPred i P P' hκ B rounds high) := by
+  intro cs x h
+  funext m U
+  simp only [nextPred, nextBn, roundPred_append hB rounds cs x (by omega)]
+
 /-! ## The next level's invariant -/
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+  {B : List (ℕ × ℕ × Word) → TPred}
 
 /-- The running weight of a glued state. -/
 theorem runW_glueLevel (s : WhirState) (lam : E) (mu : ℕ) (z : List E) (y : E)
@@ -110,14 +145,15 @@ theorem runW_glueLevel (s : WhirState) (lam : E) (mu : ℕ) (z : List E) (y : E)
 /-- **After `λ`**: if no member of the next list satisfies the glued claim, the next level's
 invariant holds with no round. -/
 theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List FoldRound)
-    (cs : List (ℕ × ℕ × Word)) (hI : RoundInv μ ℓ₀ w i P pre s rounds cs)
+    (cs : List (ℕ × ℕ × Word)) (hI : RoundInv μ ℓ₀ w i P pre B s rounds cs)
     (hr : rounds.length = P.ℓ) (z : List E) (hz : z.length = P.κ)
-    (y : E) (qs : List ℕ) (c' : ℕ → E) (lam batched : E)
+    (y : E) (qs : List ℕ) (c' : ℕ → E) (lam batched : E) (high : List E)
     (hb : batched = ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k])
     (hlam : ¬ ∃ U ∈ tlist P'.dom (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (P'.thr 0) P'.deg,
+      nextBn i P P' hκ B rounds high cs U ∧
       ∑ x, gluedW (runW w ℓ₀ s) z P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
         gluedV s.claim y qs c' lam) :
-    RoundInv μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
+    RoundInv μ ℓ₀ w (i + 1) P' (pre + P.ℓ) (nextPred i P P' hκ B rounds high)
       (glueLevel s lam P.κ z y qs (powers lam qs.length) batched) [] cs := by
   obtain ⟨hlen, -, hκ₀, hg, -⟩ := hI
   have hgl := glueLevel_eq s lam P.κ z y qs (powers lam qs.length) batched
@@ -133,8 +169,8 @@ theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List 
     · refine ⟨le_rfl, ?_⟩
       rw [show μ - s.alphas.length = P.κ by omega]
       exact isMultiaffine_inducedWeight P.κ qs _ (length_powers _ _)
-  · intro U hU hag heq
-    refine hlam ⟨U, (mem_tlist _ _ _ _ _).mpr ⟨hU, by simpa [foldsA_nil] using hag⟩, ?_⟩
+  · intro U hU hag hBU heq
+    refine hlam ⟨U, (mem_tlist _ _ _ _ _).mpr ⟨hU, by simpa [foldsA_nil] using hag⟩, hBU rfl, ?_⟩
     change claimSum _ (msgT P'.κ U) = _ at heq
     rw [← sum_joinMsg hκ] at heq
     simp only [runW_glueLevel] at heq

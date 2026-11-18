@@ -23,8 +23,8 @@ recorded (`Rpm.runAdversaryThen`).
 * `logged_run`: the adversary run with its queries recorded (`Common.loggedOracles`), then against
   the lazy permutation, is its run with its permutation queries recorded, the coins left out.
 * `map_soundnessExperiment`: so the statement's soundness experiment, its transcript's coins left
-  out, is the two-call experiment; `knowledgeSoundness_of_withHash` and
-  `completeness_of_withHash` give the end statements from the two-call ones.
+  out, is the two-call experiment; `completeness_of_withHash` gives the end statement from the
+  two-call one.
 -/
 
 open OracleComp OracleSpec
@@ -163,14 +163,6 @@ theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
   simp only [knowledgeSoundnessExperiment, soundnessExperimentWithHash, Rpm.runAdversaryThen,
     runWithRandomPermutation, simulateQ_bind, simulateQ_pure, StateT.run'_eq, StateT.run_bind,
     StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hV]
-
-/-- **Knowledge soundness, from the two-call experiment.** -/
-theorem knowledgeSoundness_of_withHash (h : KnowledgeSoundnessWithHash) :
-    KnowledgeSoundness transcriptExtractor := by
-  intro A Q hQ hcap
-  have := h A Q hQ hcap
-  rw [← map_soundnessExperiment, prEvent_map] at this
-  exact this
 
 /-! ## Completeness -/
 

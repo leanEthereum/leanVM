@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.LeanVMRpm
 
-  The proofs of the two statements of `Statement/LeanVm.lean`, `LeanVM.KnowledgeSoundness` and
-  `LeanVM.Completeness`: knowledge soundness and completeness of the leanVM verifier in the
-  random-permutation model, from the two-oracle random-oracle model.
+  The random-permutation model's transfer from the two-oracle random-oracle model, and the proof
+  of `LeanVM.Completeness` (`Statement/LeanVm.lean`); knowledge soundness is assembled from it in
+  `LeanVM/Protocol/LeanVMRpmAS.lean`.
 -/
 
 module
@@ -14,7 +14,6 @@ public import Common.Linear
 public import LeanVM.Protocol.Rpm.Cost
 public import LeanVM.Protocol.Rpm.Duplex
 public import LeanVM.Protocol.Rpm.Extract
-public import LeanVM.Protocol.Extraction.Extract
 public import LeanVM.Protocol.Rpm.RomRelabel
 public import LeanVM.Protocol.Rpm.RpmRelabel
 public import LeanVM.Protocol.WithHash
@@ -29,32 +28,18 @@ The statements are in `Statement/LeanVm.lean`: Keccak-256 the sponge over one un
 permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary querying `π` and
 `π⁻¹` and flipping coins.
 
-**Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
-to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
-`Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 13708 · 2^30)² / 2^508`, which is at most `(Q + 2^14) · 2^-124` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256` for
-`Q ≤ 2^128` (`soundnessRpm_le_statement`, the end statement `KnowledgeSoundness`) and at most
-`2^-60` for `Q ≤ 2^64` (`soundnessRpm_le`), all in `LeanVM.Protocol.ErrorBounds`. The proof:
-
-0. the adversary's coins do not help (`rpmExperiment_le_det`, `Coins.lean`): the experiment is
-   bounded by that of a deterministic adversary of as many queries (`knowledgeSoundnessRpm_coins`);
-1. that adversary's experiment is `common`'s real world of a transfer game
-   (`detExperiment_evalDistEq`, `RpmRelabel.lean`): the adversary, recording its transcript, then
-   the verifier;
-2. the verifier's permutation calls follow the duplex discipline (`duplex_postR`, from
-   `Duplex.lean`), and the game makes at most `Q + verifierPermCalls` permutation calls
-   (`isWeightBound_game`, from `Cost.lean`);
-3. `Common.keccak256_transfer2` moves the event to the two-oracle random-oracle model, against
-   the adversary with the indifferentiability simulator, at a cost of `q² / 2^508`, which is where
-   the random-permutation model meets the random-oracle model;
-4. there, the adversary's cached Keccak-256 answers are exactly the evaluations of its transcript
-   (`transcriptHashes_eq_of_mem_support`, `Extract.lean`), so the event is the event of
-   `KnowledgeSoundnessRom` (`LeanVM/Protocol/Rom/Statement.lean`) against the random-oracle
-   adversary `romAdv` (`romGame_le`), which makes at
-   most `Q` oracle queries (`isWeightBound_romAdv`) and flips coins;
-5. coins do not help (`knowledgeSoundness_coins`, `Coins.lean`), and
-   `knowledgeSoundnessRom_holds` bounds the rest by `soundnessError Q`.
+**Knowledge soundness.** The pieces of the transfer, which `LeanVM/Protocol/LeanVMRpmAS.lean`
+assembles for the agreement-set extractor (`knowledgeSoundnessAS_holds`): the adversary's coins do
+not help (`rpmExperiment_le_det`, `Coins.lean`); a deterministic adversary's experiment is
+`common`'s real world of a transfer game (`detExperiment_evalDistEq`, `RpmRelabel.lean`); the
+verifier's permutation calls follow the duplex discipline (`duplex_postR`, from `Duplex.lean`), and
+the game makes at most `Q + verifierPermCalls` permutation calls (`isWeightBound_game`, from
+`Cost.lean`); `Common.keccak256_transfer2` moves the event to the two-oracle random-oracle model, at
+a cost of `q² / 2^508`; there, the adversary's cached Keccak-256 answers are the evaluations of its
+transcript (`transcriptHashes_eq_of_mem_support`, `Extract.lean`) and the random-oracle adversary
+`romAdv` makes at most `Q` oracle queries (`isWeightBound_romAdv`). The bound is
+`soundnessErrorAS Q + (Q + 13708 · 2^30)² / 2^508`, within the end statement's
+(`soundnessRpmAS_le_statement`, `LeanVM.Protocol.LeanVMSoundAS`).
 
 **Completeness** (`completenessRpm`): the same game with no adversary and, after it, the honest
 prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
@@ -209,79 +194,6 @@ theorem experimentCoins_eq (B : OracleComp CSpec (ProgramAndInput × Proof)) :
     experimentCoins B = (simulateQ KeccakCalls.romImpl B).run ∅ >>= fun p ↦ verifierPhase p.1 p.2 := by
   simp only [experimentCoins, verifierPhase, bind_pure_comp]
 
-/- The extractor is an algorithm; unification must never run it on symbolic inputs. -/
-attribute [local irreducible] Extraction.extract
-
-/-- **The random-oracle game of the transfer is bounded by the random-oracle experiment of the
-transfer's adversary**: the transcript's Keccak-256 evaluations are the adversary's cached hash
-answers (`transcriptHashes_eq_of_mem_support`), so the extractor in the random-permutation model
-sees what the extractor of the random-oracle model (`LeanVM.extractor`) sees: the extraction depends
-on the answers only, not on which byte strings covering them it is given as keys
-(`extractorRpm_eq_extract`). -/
-theorem romGame_le (A : DetAdversary) :
-    Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
-        Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
-          (fun _ z ↦ postR z) x a)}[BreaksKnowledgeSoundnessWithHash a] ≤
-      Pr{let z ← experimentCoins (romAdv A)}[Breaks extractor z] := by
-  set X := Common.advS2 Common.keccakPadding Common.KState.zero (advR A)
-  set J := (simulateQ HFS.romImpl X).run ∅ with hJ
-  have e1 : Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
-      Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
-        (fun _ z ↦ postR z) x a) =
-      J >>= fun p ↦ (simulateQ HFS.romImpl (postR p.1)).run' p.2 := by
-    simp only [Common.romRun2, simulateQ_pure, pure_bind, simulateQ_bind, StateT.run'_eq,
-      StateT.run_bind, map_bind, hJ, X]
-  rw [e1]
-  have e2 : experimentCoins (romAdv A) =ᵈ J >>= fun p ↦ verifierPhase p.1.1 (cmap p.2) := by
-    rw [experimentCoins_eq, romAdv, simulateQ_map, StateT.run_map]
-    have h := run_ofRHF X ∅
-    rw [cmap_empty] at h
-    rw [bind_map_left]
-    refine (EvalDistEq.bind_left h _).trans ?_
-    rw [bind_map_left]
-    exact EvalDistEq.rfl
-  rw [e2.prEvent_eq]
-  refine prEvent_bind_mono_of_forall_le_of_support _ _ _ _ _ fun p hp ↦ le_of_eq ?_
-  have ht := transcriptHashes_eq_of_mem_support A hp
-  rw [postR, simulateQ_map, StateT.run'_eq, StateT.run_map, prEvent_map, prEvent_map,
-    verifierPhase, prEvent_map]
-  have h := (run'_toRHF (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
-    (fun v ↦ BreaksKnowledgeSoundnessWithHash ((p.1.1, v), p.1.2))
-  rw [StateT.run'_eq, StateT.run'_eq, prEvent_map, prEvent_map] at h
-  refine h.trans ?_
-  congr 2
-  funext r
-  have e := fun prog input proof ↦
-    Extraction.ExtractProofs.extractorRpm_eq_extract prog input p.1.2 proof ht
-  simp only [BreaksKnowledgeSoundnessWithHash, Breaks, extractor, e]
-  rfl
-
-/-- **Knowledge soundness in the random-permutation model**, for a deterministic adversary. An
-adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the extractor
-`transcriptExtractor`, with probability at most the random-oracle error at `Q` queries plus
-`(Q + verifierPermCalls)² / 2^508`. -/
-theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ}
-    (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← detExperiment A}[BreaksKnowledgeSoundnessWithHash z] ≤
-      soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  rw [(detExperiment_evalDistEq A).prEvent_eq, game]
-  obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
-    (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
-    (BreaksKnowledgeSoundnessWithHash)
-  refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
-  exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
-
-/-- **Knowledge soundness in the random-permutation model**, for an adversary with coins of at
-most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most `Q` queries does as
-well (`rpmExperiment_le_det`). -/
-theorem knowledgeSoundnessRpm_coins
-    {B : RandomPermutationAdversary} {Q : ℕ}
-    (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) :
-    Pr{let z ← soundnessExperimentWithHash B}[BreaksKnowledgeSoundnessWithHash z] ≤
-      soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksKnowledgeSoundnessWithHash)
-  exact hle.trans (knowledgeSoundnessRpm hA)
-
 /-! ## Completeness -/
 
 open LeanVM.Protocol.Rom (romExperiment)
@@ -382,18 +294,6 @@ end LeanVM.Rpm
 namespace LeanVM
 
 /-! ## The statements of `Statement/LeanVm.lean` -/
-
-/-- Knowledge soundness in the experiment with the two calls, for the extractor
-`transcriptExtractorWithHash`. -/
-theorem knowledgeSoundnessWithHash_holds :
-    KnowledgeSoundnessWithHash :=
-  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins hA).trans (soundnessRpm_le_statement hQ)
-
-/-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
-`transcriptExtractor`: the statement's experiment, its transcript's coins left out, is the one
-with the two calls (`map_soundnessExperiment`). -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor :=
-  knowledgeSoundness_of_withHash knowledgeSoundnessWithHash_holds
 
 -- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.leanVmHonestProver`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).

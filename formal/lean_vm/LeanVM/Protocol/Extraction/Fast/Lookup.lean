@@ -1,7 +1,7 @@
 module
 
 public import Statement.LeanVm
-public import LeanVM.Protocol.Extraction.Fast.Extract
+public import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.Extraction.Fast.SortedMap
 
 /-!
@@ -18,10 +18,9 @@ For `N` paths of up to `L` bytes that is `N²·L` for the pairs and `N` per node
 * `preimageIndex pairs`: a sorted map from `(digest, length)` to what the pairs with that digest and
   length answer (`Hits`: nothing, one byte string, or several), so
   `preimageIn (preimageIndex pairs) d len = preimage pairs d len` (`preimageIn_preimageIndex`);
-* `extractWith mk lookup`: `extractFast` with the Merkle inversion reading the preimages through
-  `lookup (mk width)`, an index built once from the leaves' width;
-  `extractWith (fun _ ↦ pairs…) preimage = extractFast` (`extractWith_preimage`), and the result
-  depends on the lookup only at the lengths `64` and `8·width` (`extractWith_congr`).
+* `subtreeLeavesWith pre`: the Merkle inversion reading the preimages through `pre`, equal to
+  `subtreeLeaves` at `preimage pairs` (`subtreeLeavesWith_preimage`), and depending on `pre` only at
+  the lengths `64` and `8·width` (`subtreeLeavesWith_congr`).
 -/
 
 namespace LeanVM.Extraction.Fast
@@ -217,38 +216,6 @@ theorem subtreeLeavesWith_congr {pre pre' : Digest → ℕ → Option Bytes} {w 
   induction h generalizing d with
   | zero => simp only [subtreeLeavesWith, leafOfWith, hw]
   | succ h ih => simp only [subtreeLeavesWith, h64, ih]
-
-/-- **The extractor with indexed preimages**: `extractFast` with the leaves read through
-`lookup (mk width)`, the index `mk width` built once. -/
-@[expose] def extractWith {α : Type} (prog : LeanIsaProgram) (input : PublicInput) (bytecode :
-    List K)
-    (mk : ℕ → α) (lookup : α → Digest → ℕ → Option Bytes) (π : Proof) :
-    Option (Execution prog) := do
-  let ((layout, logInverseRate), state) ← afterRoot bytecode π
-  let (root, height, width) ← state.roots.head?
-  let idx := mk width
-  let leaves := subtreeLeavesWith (lookup idx) width height root
-  let word := leafAt leaves height width
-  let execution := candidateExecutionFast prog input layout
-  (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
-    (decodeStacksFast layout.stackLog logInverseRate word).findSome? execution
-
-theorem extractWith_preimage (prog : LeanIsaProgram) (input : PublicInput) (bytecode : List K)
-    (answers : Bytes → Option Digest) (keys : List Bytes) (π : Proof) :
-    extractWith prog input bytecode (fun _ ↦ answerPairs answers keys) preimage π =
-      extractFast prog input bytecode answers keys π := by
-  simp only [extractWith, extractFast, committedLeaves, subtreeLeavesWith_preimage]
-
-theorem extractWith_congr {α β : Type} (prog : LeanIsaProgram) (input : PublicInput) (bytecode :
-    List K)
-    (mk : ℕ → α) (lookup : α → Digest → ℕ → Option Bytes) (mk' : ℕ → β)
-    (lookup' : β → Digest → ℕ → Option Bytes)
-    (h : ∀ w d, ∀ len ∈ [64, 8 * w], lookup (mk w) d len = lookup' (mk' w) d len) (π : Proof) :
-    extractWith prog input bytecode mk lookup π = extractWith prog input bytecode mk' lookup' π := by
-  have hl : ∀ w height root, subtreeLeavesWith (lookup (mk w)) w height root =
-      subtreeLeavesWith (lookup' (mk' w)) w height root := fun w height root ↦
-    subtreeLeavesWith_congr (fun d ↦ h w d 64 (by simp)) (fun d ↦ h w d (8 * w) (by simp)) _ _
-  simp only [extractWith, hl]
 
 end
 
