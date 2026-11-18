@@ -90,6 +90,9 @@
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
 //! (`skip_gfni`).
 //!
+//! With AVX2, the third walk weights each byte of a block's bits by a byte map, a GFNI affine map or two nibble
+//! lookups, into its field element (`table_maps`).
+//!
 //! The rounds that remain fold a table of one field element per half block and position. A pass over it
 //! binds two rounds' variables: over each quad of the rows it writes it sums the next round and, as a
 //! quadratic in that round's challenge, the round after, so the table is read once per two rounds (`prover`).
@@ -116,13 +119,8 @@ mod prover;
 pub mod rmfe;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-))]
-mod table_gfni;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+mod table_maps;
 pub mod witness;
 
 #[cfg(test)]

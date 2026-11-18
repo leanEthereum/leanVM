@@ -411,30 +411,20 @@ impl Layer<'_> {
         let field = round.field;
         let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
         let fold: [[u64; GROUP]; 2] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ))]
-        let row_maps = crate::table_gfni::RowMaps::new(field, &fold);
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        let row_maps = crate::table_maps::RowMaps::new(field, &fold);
         // Rows of segments that do not exist are zero, and so is their product.
         table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(0);
         pads[self.rounds.len() * ROW..].fill(0);
-        // The GFNI rows need no wide scratch.
-        let gfni = cfg!(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ));
-        let scratch = || vec![0u64; if gfni { 0 } else { 6 * BITS }];
+        // The byte-map rows need no wide scratch.
+        let maps = cfg!(all(target_arch = "x86_64", target_feature = "avx2"));
+        let scratch = || vec![0u64; if maps { 0 } else { 6 * BITS }];
         // A block's rows: both groups', or the padding block's one.
         let build = |wide: &mut Vec<u64>, block: &[u64], rows: &mut [u64]| {
             let halves = rows.len() / ROW;
             cfg_select! {
-                all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
-                    // Each group's value by affine byte maps (`table_gfni`).
+                all(target_arch = "x86_64", target_feature = "avx2") => {
+                    // Each group's value by byte maps (`table_maps`).
                     let _ = wide;
                     row_maps.rows(block, rows, halves);
                 }
