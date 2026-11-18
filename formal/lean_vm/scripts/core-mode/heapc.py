@@ -6,7 +6,9 @@ Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(val
 a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
-`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`.
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`,
+`('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
+`ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
 import collections
 
@@ -70,7 +72,7 @@ def isconst(c):
 # ---- signatures and certificates
 
 class HSig:
-    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV')
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq')
 
     def __init__(self, **kw):
         for f in self.FIELDS:
@@ -91,6 +93,7 @@ class HCert:
         self.divs = []
         self.hvs = []
         self.gargs = []
+        self.eqs = []
 
 
 def nth(l, n):
@@ -177,20 +180,21 @@ def instRM(ms, l):
 # ---- the state
 
 class St:
-    __slots__ = ('env', 'sc', 'c2s', 'rs', 'ad', 'sv', 'src', 'pf', 'pr', 'n', 'nr', 'nc', 'nt', 'cd')
+    __slots__ = ('env', 'sc', 'c2s', 'rs', 'ad', 'sv', 'src', 'pf', 'pr', 'n', 'nr', 'nc', 'nt', 'cd', 'eqs')
 
     def __init__(self):
         self.env, self.sc, self.c2s, self.rs, self.ad, self.sv = {}, {}, {}, {}, {}, {}
         self.src, self.pf, self.pr = {}, {}, {}
         self.n = self.nr = self.nc = self.nt = 0
         self.cd = ()
+        self.eqs = ()
 
     def copy(self):
         s = St()
         s.env, s.sc, s.c2s, s.rs, s.ad, s.sv = dict(self.env), dict(self.sc), dict(self.c2s), dict(self.rs), \
             dict(self.ad), dict(self.sv)
         s.src, s.pf, s.pr = dict(self.src), dict(self.pf), dict(self.pr)
-        s.n, s.nr, s.nc, s.nt, s.cd = self.n, self.nr, self.nc, self.nt, self.cd
+        s.n, s.nr, s.nc, s.nt, s.cd, s.eqs = self.n, self.nr, self.nc, self.nt, self.cd, self.eqs
         return s
 
     def cnt(self, o):
@@ -286,24 +290,54 @@ def ptConst(F, R, c):
     return lo[1] <= k and ((not hi[0] and hi[1] < CAPE and k < hi[1]) or hasFC(F, k, hi))
 
 
+def backK(R, c):
+    base, S, lo, hi = R
+    return ndiv(tsub(cmul(base, cpow(hi, S))[1], c[1]), S)
+
+
+def ptBack(F, R, c):
+    """A cell `k >= 1` indices below the upper bound (`ptBack`)."""
+    base, S, lo, hi = R
+    k = backK(R, c)
+    return 0 < k and cshift(c, S * k) == cmul(base, cpow(hi, S)) and not lo[0] and lo[1] < CAPE and \
+        hasFC(F, k - 1 + lo[1], hi)
+
+
 def ptRun(F, R, c):
     base, S, lo, hi = R
     return (c == cmul(base, cpow(lo, S)) and hasF(F, lo, hi)) or ptIdx(F, R, c, idxOf(base, c, S)) or \
-        ptConst(F, R, c)
+        ptConst(F, R, c) or ptBack(F, R, c)
 
 
-def loOk(F, Q, R):
-    return Q[2] == R[2] or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < CAPE) or \
+def powK(M, x):
+    if M[0]:
+        b, e = M[0][0]
+        return ndiv(expOf(x[0], b), e)
+    return ndiv(x[1], M[1])
+
+
+def eqR(p, x, y):
+    k = powK(p[0], x)
+    return x == cpow(p[0], k) and y == cpow(p[1], k)
+
+
+def eqV(E, x, y):
+    return x == y or any(eqR(p, x, y) or eqR((p[1], p[0]), x, y) for p in E)
+
+
+def loOk(F, E, Q, R):
+    return eqV(E, Q[2], R[2]) or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < CAPE) or \
         (Q[2] == cshift(R[2], 1) and hasF(F, R[2], R[3]))
 
 
-def hiOk(F, Q, R):
-    return Q[3] == R[3] or (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < CAPE) or \
+def hiOk(F, E, Q, R):
+    return eqV(E, Q[3], R[3]) or hasF(F, Q[3], R[3]) or (0 < Q[3][1] and hasF(F, (Q[3][0], Q[3][1] - 1), R[3])) or \
+        (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < CAPE) or \
         (not Q[3][0] and Q[3][1] < CAPE and hasFC(F, tsub(Q[3][1], 1), R[3]))
 
 
-def runRun(F, Q, R):
-    return Q[0] == R[0] and Q[1] == R[1] and loOk(F, Q, R) and hiOk(F, Q, R)
+def runRun(F, E, Q, R):
+    return Q[0] == R[0] and Q[1] == R[1] and loOk(F, E, Q, R) and hiOk(F, E, Q, R)
 
 
 def emptyR(Q):
@@ -324,6 +358,19 @@ def mrgPart(Q, S, r, lo, hi):
 
 def hasExp(F, m):
     return (not m[0] and m[1] < CAPE) or any(p[0] == m or p[1] == m for p in F)
+
+
+def prepQ(R):
+    return (R[0][0], tsub(R[0][1], R[1]))
+
+
+def prepIdx(F, R, c):
+    """A cell of a run extended by its point before it (`prepIdx`)."""
+    base, S, lo, hi = R
+    Q = prepQ(R)
+    J = idxOf(Q, c, S)
+    return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
+        J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
 
 
 def subL(offs, o):
@@ -381,7 +428,7 @@ class X:
     def __init__(self, pows, H, sigOf, params, solver=None):
         self.pows, self.H, self.sigOf, self.params = pows, H, sigOf, params
         self.sig = H.sig
-        self.dv, self.hv = set(H.divs), set(H.hvs)
+        self.dv, self.hv, self.eqk = set(H.divs), set(H.hvs), set(H.eqs)
         self.solver = solver
         self.path = []
 
@@ -429,15 +476,26 @@ def unU(path, r):
     return r
 
 
+def expFacts(m, e):
+    if not e + 1 < CAPE:
+        return []
+    return ([] if e == 0 else [(((), e - 1), m)]) + [(m, ((), e + 1))]
+
+
+def baseFacts(m, j):
+    if len(m[0]) == 1 and m[0][0][1] == 1 and m[1] <= j:
+        return expFacts(baseC(m[0][0][0]), j - m[1])
+    return []
+
+
 def pathF(env, path):
-    """The facts of arm conditions: in arm `j` of `x`, `(g^(j-1), x)` (`j > 0`) and `(x, g^(j+1))`."""
+    """The facts of arm conditions: in arm `j` of `x`, `x`'s exponent is `j` (`expFacts`), and, `x`'s monomial being
+    `b·g^t`, `b`'s is `j - t` (`baseFacts`)."""
     F = []
     for c in path:
-        if c[0] == 'arm' and c[2] + 1 < CAPE:
+        if c[0] == 'arm':
             mx = idxF(env, ('val', c[1]))
-            if c[2] != 0:
-                F.append((((), c[2] - 1), mx))
-            F.append((mx, ((), c[2] + 1)))
+            F += expFacts(mx, c[2]) + baseFacts(mx, c[2])
     return F
 
 
@@ -465,13 +523,20 @@ def ptOk(X, st, c, w):
     if k == 'pfr':
         p, a = st.pr.get(w[1]), srcOf(st, c)
         return p is not None and a is not None and ptRun(X.facts(st.env, w[2]), p[0], a) and c[1] in p[1]
+    if k == 'perm':
+        r = X.resAt(w[1])
+        return r is not None and r[0] == 'subP' and r[1] == c and len(r[2]) == len(w[2]) and \
+            all(st.sc.get(n) == c2 for c2, n in zip(r[2], w[2]))
+    if k == 'prep':
+        R = st.rs.get(w[1])
+        return R is not None and prepIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, prepQ(R), w[2])
     return False
 
 
 def rnOk(X, st, Q, w):
     if w[0] == 'run':
         R = st.rs.get(w[1])
-        return R is not None and (runRun(X.facts(st.env, w[2]), Q, R) or X.subRun(st.env, w[2], Q, R))
+        return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R))
     if w[0] == 'empty':
         return emptyR(Q)
     return False
@@ -518,7 +583,8 @@ def ptrROk(X, st, Q, offs, ws, i):
     w = ws[i]
     if w[0] == 'pfr':
         p = st.pr.get(w[1])
-        return i + 1 if p is not None and runRun(X.facts(st.env, w[2]), Q, p[0]) and subL(offs, p[1]) else None
+        return i + 1 if p is not None and runRun(X.facts(st.env, w[2]), st.eqs, Q, p[0]) and subL(offs, p[1]) \
+            else None
     if w[0] == 'empty':
         return i + 1 if emptyR(Q) else None
     if w[0] == 'pts':
@@ -746,7 +812,22 @@ class Pass:
             return None
         return (md[0], md[1] - mb[1])
 
+    def eqAt(self, st, a):
+        """An atom's equation kept (`eqAt`): a listed `mul d a b` whose `d` has a monomial, `assertEq`, `copy`."""
+        k, X = a[0], self.X
+        if k == 'mul':
+            d, x, y = a[1:]
+            if d in X.eqk and d in st.env:
+                st.eqs = ((cmul(mono(st.env, x), mono(st.env, y)), st.env[d]),) + st.eqs
+        elif k in ('assertEq', 'copy'):
+            x, y = a[1], a[2]
+            if x in X.eqk:
+                st.eqs = ((mono(st.env, x), mono(st.env, y)),) + st.eqs
+
     def atom(self, st, a):
+        if self.X.solver is not None:
+            self.X.solver.eq(self, st, a)
+        self.eqAt(st, a)
         k = a[0]
         X = self.X
         if k == 'load':
@@ -810,7 +891,15 @@ class Pass:
                 for j in range(n):
                     st.push(cshift(m, off + j))
             elif h[0] == 'log2Ceil' and h[1][0] == 'heap':
-                self.fail('log2Ceil-heap')
+                _, p, off, ln = h[1]
+                dst = h[4]
+                m = mono(st.env, p)
+                for j in range(min(h[2], ln)):
+                    key, c = (dst, p, off + j), cshift(m, off + j)
+                    S = X.solver
+                    w = S.bit(self, st, c, key) if S is not None else X.H.reads.get(key)
+                    if w is None or w[0] == 'fail' or not ptOk(X, st, c, w):
+                        self.fail('log2Ceil-bit', key, c, w)
 
     # -- calls
     def call(self, st, g, args, rets):
@@ -827,6 +916,7 @@ class Pass:
             return
         for n, c, m in postVE(G, ms, n0):
             st.sv[n] = (c, m)
+        st.eqs = tuple(instEq(ms, G.retEq)) + st.eqs
 
     def call_ws(self, st, site, check, g, args, ma):
         X = self.X
@@ -868,7 +958,7 @@ class Pass:
         ma = monos(st.env, args)
         mx = mono(st.env, x)
         if X.solver is not None:
-            ws = X.solver.dispatch(self, st, x, fs, args, ma, mx)
+            ws = X.solver.dispatch(self, st, x, fs, args, ma, mx, rets)
             if ws is None:
                 self.fail('dispatch', fs)
         else:
@@ -876,14 +966,17 @@ class Pass:
             if ws is None:
                 raise Fail(('no-call-wits', st.nc))
         kept = []
-        i = 0
+        vps, i = vpHead(ws) if ws is not None else ([], 0)
         if ws is not None:
             for j, g in enumerate(fs):
                 i2 = armSkip(X, st, mx, j, ws, i)
                 if i2 is not None:
                     i = i2
                     continue
-                i2 = self.under(('arm', x, j), lambda: reqG(X, condSt(mx, j, st.cd, st), ma, g, args, ws, i))
+                sj = condSt(mx, j, st.cd, st)
+                i2 = self.under(('arm', x, j), lambda: reqG(X, sj, ma, g, args, ws, i))
+                if i2 is not None:
+                    i2 = self.under(('arm', x, j), lambda: vpArm(X, sj, ma, g, rets, vps, ws, i2))
                 if i2 is None:
                     self.fail('dispatch-check', fs, j, ws)
                     i = None
@@ -893,7 +986,8 @@ class Pass:
             if i is not None and i != len(ws):
                 self.fail('dispatch-check-left', fs)
         if ws is None or i is None:
-            kept = [g for j, g in enumerate(fs) if not (ws and armSkip(X, st, mx, j, ws, 0))] or list(fs)
+            kept = [g for j, g in enumerate(fs) if not (ws and armSkip(X, st, mx, j, ws, vps and len(vps) or 0))] \
+                or list(fs)
         st.nc += 1
         if not kept:
             return
@@ -910,9 +1004,14 @@ class Pass:
                 self.fail('post-inst', g)
                 return
             arms.append((p, r))
-        for c in arms[0][0]:
-            if all(any(c2 == c for c2 in a[0]) for a in arms[1:]):
-                st.push(c)
+        meetc = [c for c in arms[0][0] if all(any(c2 == c for c2 in a[0]) for a in arms[1:])]
+        n0 = st.n
+        for c in meetc:
+            st.push(c)
+        for t, c in enumerate(meetc):
+            m = armsV(X.sigOf, ms, kept, c)
+            if m is not None:
+                st.sv[n0 + t] = (c, m)
         for q in arms[0][1]:
             if all(any(q2 == q for q2 in a[1]) for a in arms[1:]):
                 st.pushR(q)
@@ -931,6 +1030,12 @@ class Pass:
             for q in ptr[0][1]:
                 if all(any(q2 == q for q2 in a[1]) for a in ptr[1:]):
                     st.pushPR(q)
+        mr = monos(st.env, rets)
+        for j, offs in vps:
+            m = nth(mr, j)
+            if m is not None:
+                for o in offs:
+                    st.push(cshift(m, o))
         if len(fs) < CAPE:
             st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
 
@@ -957,6 +1062,8 @@ class Pass:
                 self.fail('ret-check', ws)
             elif not retVC(st, ms, G.post, ws, G.postV):
                 self.fail('postV', ws)
+        if not retEqC(st.eqs, ms, G.retEq):
+            self.fail('retEq', G.retEq)
         for k, c in G.retM:
             m, c2 = nth(mv, k), instC(mp, c)
             if m is None or c2 is None or m != c2:
@@ -1020,6 +1127,75 @@ class Pass:
         i = tail_check(X, st, mp, mx, ex, ei, ws)
         if i != len(ws):
             self.fail('tail-check', ws)
+
+
+def instEq(ms, l):
+    out = []
+    for a, b in l:
+        x, y = instC(ms, a), instC(ms, b)
+        if x is not None and y is not None:
+            out.append((x, y))
+    return out
+
+
+def retEqC(E, ms, l):
+    for a, b in l:
+        x, y = instC(ms, a), instC(ms, b)
+        if x is None or y is None or not eqV(E, x, y):
+            return False
+    return True
+
+
+def vpHead(ws):
+    vps, i = [], 0
+    while i < len(ws) and ws[i][0] == 'vp':
+        vps.append((ws[i][1], tuple(ws[i][2])))
+        i += 1
+    return vps, i
+
+
+def setRM(mr, l):
+    mr = list(mr)
+    for k, m in reversed(l):
+        if 0 <= k < len(mr):
+            mr[k] = m
+    return mr
+
+
+def vpArm(X, st, ma, g, rets, vps, ws, i):
+    """A dispatch arm's returned pointers' cells, each witnessed with the callee's guarantees pushed (`vpArm`)."""
+    if not vps:
+        return i
+    G = X.sigOf(g)
+    mr = setRM(monos(st.env, rets), instRM(ma, G.retM))
+    S = st.copy()
+    if not pushPost(G, ma + mr, S):
+        return None
+    for j, offs in vps:
+        m = nth(mr, j)
+        if m is None:
+            return None
+        i = ptsW(X, S, m, offs, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def wordAt(G, ms, c):
+    for i, m in G.postV:
+        cc = nth(G.post, i)
+        if cc is not None and instC(ms, cc) == c:
+            return instC(ms, m)
+    return None
+
+
+def armsV(sigOf, ms, gs, c):
+    if not gs:
+        return None
+    m = wordAt(sigOf(gs[0]), ms, c)
+    if m is None or not all(wordAt(sigOf(g), ms, c) == m for g in gs[1:]):
+        return None
+    return m
 
 
 def retVC(st, ms, post, ws, l):
@@ -1190,7 +1366,7 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.block(body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and G.term[0][1][0] in ('val', 'num') and (
             G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
-        if G.retM or G.postV:
+        if G.retM or G.postV or G.retEq:
             P.fail('loop-retM-postV')
         ei = G.term[0][1]
         if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf':

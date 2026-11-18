@@ -171,6 +171,7 @@ def hcert : CoreMode.HCert where
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4), (56, 4), (66, 4), (76, 4), (86, 4)], 32⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩,
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4), (56, 4), (66, 4), (76, 4), (86, 4), (96, 4)], 36⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩]
   rets := [[]]
+  eqs := [107]
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
@@ -195,6 +196,7 @@ def hcert : CoreMode.HCert where
   res := [.lt (.val 3) (.num 16), .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16),
     .lt (.val 7) (.num 16), .lt (.val 8) (.num 16)]
   rets := [[]]
+  eqs := [66]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L8»

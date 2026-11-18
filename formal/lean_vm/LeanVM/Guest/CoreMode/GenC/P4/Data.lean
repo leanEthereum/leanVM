@@ -100,6 +100,7 @@ def hcert : CoreMode.HCert where
   res := [.subR ⟨⟨[(5, 1), (6, 4)], 0⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩,
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4)], 4⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩]
   rets := [[]]
+  eqs := [27]
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L2»

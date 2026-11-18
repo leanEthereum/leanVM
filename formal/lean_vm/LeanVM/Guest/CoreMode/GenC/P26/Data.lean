@@ -69,6 +69,7 @@ def hcert : CoreMode.HCert where
   res := [.lt (.val 3) (.num 16), .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16),
     .lt (.val 7) (.num 16)]
   rets := [[]]
+  eqs := [55]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L12»

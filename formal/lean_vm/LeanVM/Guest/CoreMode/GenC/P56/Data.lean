@@ -62,6 +62,7 @@ def hcert : CoreMode.HCert where
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4)], 16⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩,
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4), (56, 4)], 20⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩]
   rets := [[]]
+  eqs := [67]
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L6»
@@ -626,8 +627,8 @@ def hcert : CoreMode.HCert where
         ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }
-  reads := [(16, [(15, 0, .run 3 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+  reads := [(16, [(15, 0, .prep 4 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .ev 0, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[]]
 
@@ -673,12 +674,11 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(7, 2)], 0⟩)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }
-  reads := [(16, [(15, 0, .run 6 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩,
-    .lt (.val 7) (.num 4611686018427387903)]
+  reads := [(16, [(15, 0, .prep 7 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .ev 0, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]
-  rets := [[.mrg 2 [1], .run 0 [], .run 2 [], .mrg 2 [1], .run 1 [], .run 3 []]]
+  rets := [[.mrg 2 [0], .run 0 [], .run 2 [], .mrg 2 [0], .run 1 [], .run 3 []]]
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»

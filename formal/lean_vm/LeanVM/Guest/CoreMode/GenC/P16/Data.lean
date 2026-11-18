@@ -25,9 +25,10 @@ def hcert : CoreMode.HCert where
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(3, 4)], 0⟩)⟩],
       ghosts := 2 }
   reads := []
-  res := [.lt (.val 3) (.num 4611686018427387903)]
+  res := [.under [.zero 20, .nonzero 6] (.lt (.val 3) (.num 4611686018427387903)),
+    .lt (.val 3) (.num 4611686018427387903)]
   calls := [[], [.mrg 4 [0], .run 1 [], .run 2 [], .run 3 [], .run 4 []], [.run 1 [], .run 2 [], .run 3 [], .run 4 []]]
-  rets := [[.mrg 4 [0], .run 1 [], .run 2 [], .run 3 [], .run 4 []]]
+  rets := [[.mrg 4 [1], .run 1 [], .run 2 [], .run 3 [], .run 4 []]]
   gargs := [("child_claim_list_mono", [0, 1, 2, 3, 15, 16, 17], [⟨[(0, 1)], 0⟩, ⟨[(3, 4)], 0⟩])]
 
 end
@@ -105,6 +106,7 @@ def hcert : CoreMode.HCert where
   res := [.sub ⟨[(1, 1), (3, 1)], 416⟩ ⟨⟨[(1, 1)], 416⟩, 2, (.num 0), (.num 8)⟩, .lt (.val 3) (.num 16),
     .lt (.val 4) (.num 16)]
   rets := [[]]
+  eqs := [22]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L25»
@@ -145,10 +147,12 @@ namespace LeanVM.Guest.Fn.«da_padding»
 
 /-- `da_padding`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := {}
+  sig := 
+    { retEq := [(⟨[(0, 1), (1, 1)], 0⟩, ⟨[], 32⟩)] }
   reads := []
   res := []
   rets := [[]]
+  eqs := [9]
 
 end
 end LeanVM.Guest.Fn.«da_padding»

@@ -368,6 +368,8 @@ class Pass:
         self.allocsz = {}                # an allocation's constant size in cells
         self.defs = {}
         self.ginst = None                # the ghost instantiation of the call being met
+        self.gforce = {}                 # callee -> its ghost instantiation in every arm of the dispatch being met
+        self.vpoffs = {}                 # a dispatch's returned value -> the offsets its arms write past it (`retP`)
         self.retsite = {}                # returned value -> (callee, args, j, ginst)
         self.contents = []               # (cell pattern run, object): words stored by callees
         self.objres = {}                 # residual merging (`objs.py`)
@@ -1084,7 +1086,7 @@ class Pass:
         self.ginst = None
         if G is not None and G.ghosts and 'obj' in F:
             import objs
-            self.ginst = objs.inst(self, st, G, args, conds)
+            self.ginst = self.gforce.get(f) if f in self.gforce else objs.inst(self, st, G, args, conds)
         ginst = self.ginst
         self.sites.append((f, tuple(args), ginst, tuple(self.path)))
         if G is not None:
@@ -1323,6 +1325,7 @@ class Pass:
         ws = []
         n0, nr0 = self.n, self.nr
         live = []
+        self.gforce = self.common_ghosts(st, x, fs, args)
         for j, f in enumerate(fs):
             self.n, self.nr = n0, nr0
             if 'armx' in F:
@@ -1345,6 +1348,7 @@ class Pass:
             self.subst = old
             self.armconds = None
             outs.append(t)
+        self.gforce = {}
         self.calls.append((tuple(fs), ws))
         m = meet(outs, (xm, live) if 'cond' in F else None)
         # `heapOkC`'s numbering: the arms' common guarantees, in the first arm's order, one serial each
@@ -1379,6 +1383,44 @@ class Pass:
         if 'armblock' in F:
             self.arm_blocks(st, xm, outs)
 
+    def common_ghosts(self, st, x, fs, args):
+        """A callee in several arms of a dispatch has one ghost instantiation (`HCert.gargs` is keyed by callee and
+        arguments): each arm's, and where they differ, the one whose ghost runs are the shortest (the same bases,
+        constant bounds), which every such arm's scope holds; none if they differ otherwise."""
+        out = {}
+        if 'obj' not in F:
+            return out
+        import objs
+        for f in set(fs):
+            js = [j for j, g in enumerate(fs) if g == f]
+            G = SIGS.get(f)
+            if len(js) < 2 or G is None or not G.ghosts:
+                continue
+            cands = []
+            for j in js:
+                if 'armx' in F and self.lt(st, self.mono(st, x), num(j), []):
+                    continue
+                old, olda = self.subst, self.armconds
+                cd = self.conds_of(st, x, j) if 'cond' in F else []
+                self.armconds = cd
+                if 'cond' in F:
+                    self.subst = self.assume(st, x, j)
+                self.path.append(('arm', x, j))
+                cands.append(objs.inst(self, st.copy(), G, args, cd))
+                self.path.pop()
+                self.subst, self.armconds = old, olda
+            if len({tuple(c) for c in cands}) < 2:
+                continue
+            his = {i for i, a in enumerate(G.ghosts) if a[0] == 'hi'}
+            if any(None in c for c in cands) or any(len({c[i] for c in cands}) > 1 for i in range(len(G.ghosts))
+                                                    if i not in his) or \
+                    any(c[i][0] for c in cands for i in his):
+                self.stats['ghost-arms-differ'] += 1
+                continue
+            out[f] = min(cands, key=lambda c: tuple(c[i][1] for i in sorted(his)))
+            self.stats['ghost-arms-min'] += 1
+        return out
+
     def ret_ptrs(self, outs, rets):
         """A dispatch's returned word that each arm names (`retM`) as a pointer with cells written past it in that arm
         (its guarantees, or the caller's cells): those offsets, written past the returned word whichever arm ran."""
@@ -1409,6 +1451,7 @@ class Pass:
                     break
             if common:
                 out[v] = frozenset(common)
+                self.vpoffs[v] = tuple(sorted(common))
                 # the arms' witnesses of the cells, for the check (`calls`)
                 self.calls.append((('retP', v), [('retP', w[o]) for w in ws for o in sorted(common)]))
         return out
