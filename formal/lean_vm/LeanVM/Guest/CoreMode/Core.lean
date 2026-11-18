@@ -540,6 +540,25 @@ def runCov (G : Mode.Sig) (np : ℕ) (q : CRun) : Bool :=
       (List.range r0.S).all fun i ↦ G.preR.any fun r ↦ monoS G np false r.q && rngIs r (strand q r0.S (m / r0.S) i)
   | _, _ => false
 
+/-- A residual `e(n) < m`, `m + c ≤ N + 1`, `m < 2^62`. -/
+def resBnd (n c N : ℕ) : CRes → Bool
+  | .lt (.val n') (.num m) => Nat.beq n' n && decide (m + c ≤ N + 1) && decide (m < capE)
+  | _ => false
+
+/-- **A guaranteed run up to a word past a parameter, inside one up to a constant** (`postRB`): `r`'s upper bound
+the exponent of the word at `[q]·g^d` (the value `n` a top-level `load` reads there, `hpVal`) plus `c`, a residual
+`e(n) < m`, and a guarantee of `r`'s product, lower bound, stride and offset up to `g^N`, `m + c ≤ N + 1`. -/
+noncomputable def postRB (G : Mode.Sig) (Cf : CFun) (np : ℕ) (r : Mode.Rng) : Bool :=
+  match r.hi with
+  | .ex (.hp q d) c => monoOkP G np ⟨0, 0, [(.hp q d, 1)]⟩ &&
+      match hpVal Cf.fn.body (q - 2) d with
+      | some n => G.postR.any fun r2 ↦ decide (r2.q = r.q) && decide (r2.lo = r.lo) && decide (r2.S = r.S) &&
+          decide (r2.d = r.d) && match r2.hi with
+          | .num N => Cf.H.res.any (resBnd n c N)
+          | .ex _ _ => false
+      | none => false
+  | _ => false
+
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
 signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`, or a
@@ -568,7 +587,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
       (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
-        Cf.H.sig.postR.any (rngXIs r ·))) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
+        Cf.H.sig.postR.any (rngXIs r ·)) || postRB G Cf np r) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
 
 /-- **A callee's returned word's monomial its mode signature promises** (`retV`): returned word `k < nr` at
 the callee's frame cell `2 + na + k`, a product over its argument cells that is the cell `c`. -/

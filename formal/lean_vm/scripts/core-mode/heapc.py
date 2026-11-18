@@ -6,7 +6,7 @@ Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(val
 a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
-`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`,
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`, `('prep2', r, q, q2, res)`,
 `('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
 `ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
@@ -387,6 +387,15 @@ def prepIdx(F, R, c):
         J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
 
 
+def prepIdx2(F, R, c):
+    """A cell of a run of lower bound `g^1` extended by its two points before it (`prepIdx2`)."""
+    base, S, lo, hi = R
+    Q = prepQ(R)
+    J = idxOf(Q, c, S)
+    return S <= base[1] and not lo[0] and lo[1] == 1 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
+        J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
+
+
 def subL(offs, o):
     return all(x in o for x in offs)
 
@@ -544,6 +553,10 @@ def ptOk(X, st, c, w):
     if k == 'prep':
         R = st.rs.get(w[1])
         return R is not None and prepIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, prepQ(R), w[2])
+    if k == 'prep2':
+        R = st.rs.get(w[1])
+        return R is not None and prepIdx2(X.facts(st.env, w[4]), R, c) and ptOk(X, st, prepQ(R), w[2]) and \
+            ptOk(X, st, R[0], w[3])
     return False
 
 

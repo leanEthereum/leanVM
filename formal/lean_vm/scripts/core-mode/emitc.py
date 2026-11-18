@@ -576,7 +576,7 @@ class Solver:
         for r in sorted(st.rs, reverse=True):
             R = st.rs[r]
             base, S, lo, hi = R
-            if lo != ((), 0) or S > base[1]:
+            if lo not in (((), 0), ((), 1)) or S > base[1]:
                 continue
             Q = C.prepQ(R)
             J = C.idxOf(Q, c, S)
@@ -585,9 +585,15 @@ class Solver:
             q = self.pt(st, Q, depth=depth + 1)
             if q is None:
                 continue
+            # a lower bound `g^1`: the base too (`prep2`)
+            q2 = self.pt(st, base, depth=depth + 1) if lo == ((), 1) else None
+            if lo == ((), 1) and q2 is None:
+                continue
             f = self.factE(st, hi)
             f2 = [] if J == hi else self.factE(st, J)
             self.stats['prep'] += 1
+            if lo == ((), 1):
+                return ('prep2', r, q, q2, sorted(set(f + f2)))
             return ('prep', r, q, sorted(set(f + f2)))
         return None
 
@@ -1176,6 +1182,8 @@ def wit_res(w, f):
         return (k, f(w[1]), w[2])
     if k == 'prep':
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
+    if k == 'prep2':
+        return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
     return w
 
 
@@ -1299,6 +1307,8 @@ def lwit(w):
         return f'.perm {w[1]} {lnums(w[2])}'
     if k == 'prep':
         return f'.prep {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
+    if k == 'prep2':
+        return f'.prep2 {w[1]} ({lwit(w[2])}) ({lwit(w[3])}) {lnums(w[4])}'
     if k == 'vp':
         return f'.vp {w[1]} {lnums(w[2])}'
     if k == 'mrgE':

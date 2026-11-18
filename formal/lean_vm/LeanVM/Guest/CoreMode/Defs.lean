@@ -148,6 +148,10 @@ inductive Wit where
   `⟨q, stride, 0, j + d⟩` (its witnesses follow the arm's `vp` points), so after the dispatch the run
   `⟨q, stride, g^0, x·g^d⟩` is written, `x` the selector. -/
   | ab (q : CCell) (stride d : ℕ)
+  /-- A cell of a run in scope of lower bound `g^1` extended by its two points before it (`base·g^-stride`,
+  witnessed by `q`, and `base`, by `q2`): the cell's index at most the upper bound's, which has an exponent by a
+  fact. -/
+  | prep2 (r : ℕ) (q q2 : Wit) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written

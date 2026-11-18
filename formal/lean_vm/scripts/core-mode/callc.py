@@ -320,7 +320,28 @@ def own_sig(G, np, nr, gl=None):
                     continue
                 raise No('run bound')
             return runX(r, np + nr, ret_ok)
-    h.postR = [own_run(r) for r in G['postR']]
+    def hp_cover(r):
+        # a run up to the word at a parameter's `[p]·g^d` (`.hp q d`) plus `c`, inside a guaranteed run of the same
+        # base and lower bound up to a constant `N`, the word loaded by a top-level `load` with an exponent fact
+        # `e < m`, `m + c <= N + 1` (`CoreMode.postRB`)
+        q, lo, hi, S, d = r
+        if hi[0] != 'ex' or hi[1][0] != 'hp' or not 2 <= hi[1][1] or hi[1][1] - 2 >= np or k_own is None:
+            return False
+        tops = callcres.top_atoms(body)
+        vs = [a[1] for a in tops if a[0] == 'load' and a[2] == hi[1][1] - 2 and a[3] == hi[1][2]]
+        if not vs:
+            return False
+        m = callcres.expq_bound(k_own, vs[0])
+        if m is None:
+            return False
+        for r2 in G['postR']:
+            if r2[0] == q and r2[1] == lo and r2[3] == S and r2[4] == d and r2[2][0] == 'num' and \
+                    m + hi[2] <= r2[2][1] + 1 and r2[2][1] < 2 ** 62:
+                h.expRes.add((vs[0], m))
+                return True
+        return False
+    k_own = CORE_BODY.get('k')
+    h.postR = [own_run(r) for r in G['postR'] if not hp_cover(r)]
     h.postPR = [(own_run(p[0]), tuple(p[1])) for p in G['postP']]
     # a pointer run's cells among the runs guaranteed (`sigOk`'s `postP` case asks both)
     h.postR += [p[0] for p in h.postPR if p[0] not in h.postR]

@@ -813,6 +813,15 @@ def prepIdx (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
     Nat.blt (R.hi.off - (idxOf (prepQ R) c R.stride).off) capE && hasExp F R.hi &&
     ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))
 
+/-- **A cell of a run of lower bound `g^1` extended by its two points before it** (`prepQ R` and `R.base`):
+`prepIdx`'s shape, the lower bound `g^1`. -/
+def prepIdx2 (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
+  Nat.ble R.stride R.base.off && R.lo.bases.isEmpty && Nat.beq R.lo.off 1 &&
+    c.beq ((prepQ R).mul ((idxOf (prepQ R) c R.stride).pow R.stride)) &&
+    basesBeq (idxOf (prepQ R) c R.stride).bases R.hi.bases && Nat.ble (idxOf (prepQ R) c R.stride).off R.hi.off &&
+    Nat.blt (R.hi.off - (idxOf (prepQ R) c R.stride).off) capE && hasExp F R.hi &&
+    ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))
+
 /-- **A witness of the cell `c`.** -/
 noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
   | .ev n => match getF st.sc n with
@@ -835,6 +844,9 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
     | _ => false
   | .prep r q res => match getF st.rs r with
     | some R => prepIdx (facts X st.env res) R c && ptOk X st (prepQ R) q
+    | none => false
+  | .prep2 r q q2 res => match getF st.rs r with
+    | some R => prepIdx2 (facts X st.env res) R c && ptOk X st (prepQ R) q && ptOk X st R.base q2
     | none => false
   | _ => false
 

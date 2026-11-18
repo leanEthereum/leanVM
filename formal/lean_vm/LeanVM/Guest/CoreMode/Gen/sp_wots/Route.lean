@@ -20,10 +20,14 @@ open LeanVM.Guest
 
 public section
 
+/-- `sp_wots`'s core data, the deployed guest's. -/
+theorem cfOk0 : CoreMode.CfOk Fn.«sp_wots».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code20 Checked.core20 Checked.cert20 Checked.plumbEq20
+    Bridge.ProgAl.tab20 rfl rfl rfl (by decide +kernel)
+
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code20 Checked.core20 Checked.cert20 Checked.plumbEq20
-      Bridge.ProgAl.tab20 rfl rfl rfl (by decide +kernel))
+  Mode.fa_cons cfOk0
     (Mode.fa_nil)
 
 end

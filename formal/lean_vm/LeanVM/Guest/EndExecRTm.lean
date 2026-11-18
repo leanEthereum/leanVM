@@ -63,7 +63,7 @@ theorem termFront_of_vs {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : C
   simp only [termArgsV, List.map_cons, List.map_nil, TermFront]
   exact ⟨F.logMem, Tables.tableHeightsOf F.rowsN, Tables.layoutOf bytecode F.logMem F.rowsN, F.bus, F.claims,
     hHL, F.hh31, F.hm30, rfl, rfl, by rw [hbusL]; have := F.hdep34; omega, F.hkb, F.h72, F.h583, F.hP, F.hKB,
-    le_trans (le_max_right _ _) hst, VerifySub.gTabs_of_exp hexp, F.hctx⟩
+    le_trans (le_max_right _ _) hst, VerifySub.gTabs_of_exp hexp, F.hctx, _, F.hst30, F.h276⟩
 
 variable {r : Ref}
 

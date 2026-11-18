@@ -239,6 +239,35 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   unfold CoreMode.CCell.addrW
   rw [key]
 
+/-- **A run of constant bounds inside one of the same bases** (`subRC`) at any valuation. -/
+theorem subRC_holds {q r : CoreMode.CRun} (h : CoreMode.subRC q r = true) (σ : Val) : (CRes.subR q r).Holds σ := by
+  obtain ⟨⟨qb, qo⟩, S, ql, qh⟩ := q
+  obtain ⟨⟨rb, ro⟩, S', rl, rh⟩ := r
+  unfold CoreMode.subRC at h
+  split at h
+  · rename_i l hh l' h' hql hqh hrl hrh
+    simp only at hql hqh hrl hrh
+    subst hql hqh hrl hrh
+    simp only [Bool.and_eq_true, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq] at h
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hS⟩, hS0⟩, hro⟩, hdv⟩, hl⟩, hh'⟩, hlc⟩, hhc⟩, hlc'⟩, hhc'⟩ := h
+    subst hS
+    have hb' := CoreMode.basesBeq_eq hb
+    subst hb'
+    intro x hx
+    obtain ⟨ylo, yhi, j, hylo, hyhi, hlj, hjh, rfl⟩ := hx
+    simp only [idxC] at hylo hyhi
+    rw [CoreMode.rep_const hlc, Option.some.injEq] at hylo
+    rw [CoreMode.rep_const hhc, Option.some.injEq] at hyhi
+    subst hylo hyhi
+    obtain ⟨k, hk⟩ : ∃ k, qo - ro = S * k := ⟨(qo - ro) / S, (Nat.mul_div_cancel' (Nat.dvd_of_mod_eq_zero hdv)).symm⟩
+    have hkS : (qo - ro) / S = k := by rw [hk, Nat.mul_div_cancel_left _ hS0]
+    rw [hkS] at hl hh'
+    refine ⟨l', h', j + k, (by simp only [idxC]; exact CoreMode.rep_const hlc'),
+      (by simp only [idxC]; exact CoreMode.rep_const hhc'), by omega, by omega, ?_⟩
+    simp only [CoreMode.CCell.valW, mul_assoc, ← CoreMode.ofK_mul', addressOfIndex, ← pow_add]
+    rw [show qo + S * j = ro + S * (j + k) by rw [Nat.mul_add]; omega]
+  · cases h
+
 /-- **A residual of a family holds** at an honest instance's valuation, in a frame `fp` holding its
 parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/
 theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -264,8 +293,11 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resSelM_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
   | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
+  | .subR q r', h => by
+    simp only [resFam] at h
+    exact subRC_holds h σ
   | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
-  | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
+  | .nz _, h | .subP _ _, h => by simp [resFam] at h
 
 /-! ## The instance's exponent and dimension facts (`expQ`, `dim`) -/
 
@@ -318,15 +350,37 @@ theorem expQ1_sound (hE : ExpQ r I) (ht : I.t = .node f σ bufs kids) (hf : core
         exact ⟨e, he, loadHolds_det hx hld⟩
   · simp [hn] at hcf
 
+/-- **`check_opening_terminal`'s word `gmv`** (`termGm`) is `g^sl`, `sl ≤ 30`. -/
+theorem termGm_sound (hT : TermQ r I) (ht : I.t = .node f σ bufs kids) (hf : coreProgram.find? f = some fn)
+    {x : V} (h : CoreMode.termGm fn x = true) : ∃ e < 31, σ x = gen ^ e := by
+  simp only [CoreMode.termGm, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+  obtain ⟨hn, hx⟩ := h
+  have hf' : f = name% «check_opening_terminal» := by rw [← find_name' hf, hn]
+  subst hf'
+  have hF := hT _ σ bufs kids ht rfl fn hf
+  rw [term_fn hf] at hF hx
+  simp only [B1.VerifySub.termParams, List.map_cons, List.map_nil, Res.TermFront] at hF
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, sl, hsl, hgm⟩ := hF
+  simp only [B1.VerifySub.termParams, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hx
+  subst hx
+  exact ⟨sl, by omega, hgm⟩
+
 /-- **A value of an exponent fact or a product of one and a constant power** (`expQB`) is `g^e` below its
 bound. -/
-theorem expQB_sound (hE : ExpQ r I) (ht : I.t = .node f σ bufs kids) (hf : coreProgram.find? f = some fn)
+theorem expQB_sound (hT : TermQ r I) (hE : ExpQ r I) (ht : I.t = .node f σ bufs kids)
+    (hf : coreProgram.find? f = some fn)
     (hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds r.img.read σ) {x : V} {b : ℕ} (h : CoreMode.expQB fn x = some b) :
     ∃ e < b, σ x = gen ^ e := by
   unfold CoreMode.expQB at h
   rcases h1 : CoreMode.expQ1 fn x with _ | b'
   · rw [h1] at h
     simp only at h
+    cases hg : CoreMode.termGm fn x
+    swap
+    · rw [hg, Bool.cond_true, Option.some.injEq] at h
+      subst h
+      exact termGm_sound hT ht hf hg
+    rw [hg, Bool.cond_false] at h
     obtain ⟨a, ha, haf⟩ := List.exists_of_findSome?_eq_some h
     cases a with
     | mul d a w =>
@@ -383,13 +437,13 @@ theorem dimLt_sound (hD : DimQ r I) (ht : I.t = .node f σ bufs kids) (hf : core
   · simp at hm
 
 /-- **The `expQ` and `dim` families hold** at an instance with the exponent and dimension facts. -/
-theorem resQ_sound (hE : ExpQ r I) (hD : DimQ r I) (ht : I.t = .node f σ bufs kids)
+theorem resQ_sound (hT : TermQ r I) (hE : ExpQ r I) (hD : DimQ r I) (ht : I.t = .node f σ bufs kids)
     (hf : coreProgram.find? f = some fn) (hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds r.img.read σ) :
     ∀ x : CRes, CoreMode.resQ fn x = true → x.Holds σ
   | .lt (.val x) (.num n), h => by
     simp only [CoreMode.resQ, Bool.and_eq_true, decide_eq_true_eq, Option.any_eq_true] at h
     obtain ⟨hn, b, hb, hbn⟩ := h
-    obtain ⟨e, he, hσ⟩ := expQB_sound hE ht hf hall hb
+    obtain ⟨e, he, hσ⟩ := expQB_sound hT hE ht hf hall hb
     exact ⟨e, n, rep_val_gen hσ (by omega), CoreMode.rep_const hn, by omega⟩
   | .lt (.mono c) (.num n), h => by
     obtain ⟨cb, k⟩ := c
@@ -398,7 +452,7 @@ theorem resQ_sound (hE : ExpQ r I) (hD : DimQ r I) (ht : I.t = .node f σ bufs k
     · rename_i x _
       simp only [Bool.and_eq_true, decide_eq_true_eq, Option.any_eq_true] at h
       obtain ⟨hn, b, hb, hbn⟩ := h
-      obtain ⟨e, he, hσ⟩ := expQB_sound hE ht hf hall hb
+      obtain ⟨e, he, hσ⟩ := expQB_sound hT hE ht hf hall hb
       exact ⟨e + k, n, rep_mono_gen hσ (by omega), CoreMode.rep_const hn, by omega⟩
     · cases h
   | .lt (.num j) (.mono c), h => by
@@ -408,7 +462,7 @@ theorem resQ_sound (hE : ExpQ r I) (hD : DimQ r I) (ht : I.t = .node f σ bufs k
     · rename_i x _
       simp only [Bool.and_eq_true, decide_eq_true_eq, Option.any_eq_true] at h
       obtain ⟨hjk, b, hb, hbk⟩ := h
-      obtain ⟨e, he, hσ⟩ := expQB_sound hE ht hf hall hb
+      obtain ⟨e, he, hσ⟩ := expQB_sound hT hE ht hf hall hb
       exact ⟨j, e + k, CoreMode.rep_const (by omega), rep_mono_gen hσ (by omega), by omega⟩
     · cases h
   | .lt (.val x) (.mono c), h => by
@@ -444,7 +498,7 @@ theorem resQ_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds r.img.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
   have hT := termQ_all hr I hI
-  exact resQ_sound (expQ_of_termQ hT (expQv_all hr I hI)) (dimQ_of_termQ hT) ht hf hall x h
+  exact resQ_sound hT (expQ_of_termQ hT (expQv_all hr I hI)) (dimQ_of_termQ hT) ht hf hall x h
 
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/

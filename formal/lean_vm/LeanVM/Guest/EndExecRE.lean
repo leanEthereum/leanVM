@@ -168,7 +168,7 @@ theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
     (hc : c ∈ dimFacts) {vk vb : V} (hvk : B1.VerifySub.termParams[c.2.1]? = some vk)
     (hvb : B1.VerifySub.termParams[c.2.2.1]? = some vb) : DimH rd (σ vk) (σ vb) c.2.2.2 := by
   simp only [B1.VerifySub.termParams, List.map_cons, List.map_nil, TermFront] at hT
-  obtain ⟨lm, hs, layout, bus, claims, hl, -, -, hlm, hhs, hb40, hkb, -, -, -, -, -, -, hctx⟩ := hT
+  obtain ⟨lm, hs, layout, bus, claims, hl, -, -, hlm, hhs, hb40, hkb, -, -, -, -, -, -, hctx, -⟩ := hT
   obtain ⟨chis, hgmu, hgzc, hchL, hpair⟩ := pair_dim hlm hhs hctx
   obtain ⟨-, hk8, hcase⟩ := dimFacts_cot hc
   rw [hk8] at hvk

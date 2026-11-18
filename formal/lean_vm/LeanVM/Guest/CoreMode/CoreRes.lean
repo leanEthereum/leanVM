@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.Res.SelDefs
 public import LeanVM.Guest.Res.TermDefs
+import LeanVM.Guest.Data.Source
 
 /-!
 # Residual families on core names
@@ -74,6 +75,18 @@ where
     | .load _ p' 0 => decide (p' = p)
     | _ => false
 
+/-- **A run of constant bounds inside one of the same bases** (`subRC`): `[b]·g^a·g^(S·j)`, `l ≤ j < h`, among
+`[b]·g^a'·g^(S·j')`, `l' ≤ j' < h'`: one stride `S > 0`, `a' ≤ a`, `S ∣ a - a'`, the shifted bounds inside. -/
+def subRC (q r : CRun) : Bool :=
+  match q.lo, q.hi, r.lo, r.hi with
+  | .num l, .num h, .num l', .num h' =>
+      basesBeq q.base.bases r.base.bases && Nat.beq q.stride r.stride && Nat.blt 0 q.stride &&
+        Nat.ble r.base.off q.base.off && Nat.beq ((q.base.off - r.base.off) % q.stride) 0 &&
+        Nat.ble l' (l + (q.base.off - r.base.off) / q.stride) &&
+        Nat.ble (h + (q.base.off - r.base.off) / q.stride) h' && Nat.blt l capE && Nat.blt h capE &&
+        Nat.blt l' capE && Nat.blt h' capE
+  | _, _, _, _ => false
+
 /-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
@@ -102,6 +115,7 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
     | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
+  | .subR q r => subRC q r
   | .under _ r => resFam fn xc r
   | _ => false
 
@@ -220,12 +234,16 @@ noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
     | none, _ => none
   else none
 
+/-- **`check_opening_terminal`'s word `gmv = g^sl`, `sl ≤ 30`** (`Res.TermFront`): its parameter `19`. -/
+def termGm (fn : Fn) (x : V) : Bool :=
+  fn.name == name% «check_opening_terminal» && decide (fn.params[19]? = some x)
+
 /-- **The exponent fact of a value or of a top-level product** `x = a·w` of a value `a` of one (`expQ1`) and a
 constant `g^c`: the bound, plus `c`. -/
 noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
   match expQ1 fn x with
   | some b => some b
-  | none => (Res.topAtoms fn.body).findSome? fun
+  | none => bif termGm fn x then some 31 else (Res.topAtoms fn.body).findSome? fun
     | .mul d a w => if d = x then
         match expQ1 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
         | some b, some c => some (b + c)

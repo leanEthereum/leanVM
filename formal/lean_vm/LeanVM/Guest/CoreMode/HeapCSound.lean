@@ -390,6 +390,50 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
 
+/-- **A cell of a run of lower bound `g^1` extended by its two points before it** (`prepIdx2`): the point
+`base·g^-stride` (index `0`), the base (index `1`), or a cell of the run. -/
+theorem prep2_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
+    (hR : RunF W w R.base R.stride R.lo R.hi) {c : CCell} (h : prepIdx2 F R c = true)
+    (hq : W ((prepQ R).addrW w)) (hq2 : W (R.base.addrW w)) : W (c.addrW w) := by
+  unfold prepIdx2 at h
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.ble_eq, Nat.blt_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hS, hlb⟩, hl1⟩, hc⟩, hbb⟩, hoff⟩, hd⟩, hexh⟩, hexj⟩ := h
+  set J := idxOf (prepQ R) c R.stride with hJ
+  have hl1 := Nat.eq_of_beq_eq_true hl1
+  obtain ⟨yh, hyh⟩ := hasExp_ok hF hexh
+  have hhi : R.hi.valW w = J.valW w * ofK (addressOfIndex (R.hi.off - J.off)) := by
+    rw [CCell.valW, CCell.valW, basesBeq_eq hbb, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+      addressOfIndex, ← pow_add, Nat.add_sub_cancel' hoff]
+  obtain ⟨yj, hyj⟩ : ∃ yj, rep (J.valW w) = some yj := by
+    rcases hexj with he | he
+    · rw [CCell.beq_eq he]; exact ⟨_, hyh⟩
+    · exact hasExp_ok hF he
+  obtain ⟨hyjc, hjv⟩ := rep_spec hyj
+  obtain ⟨hyhc, hhv⟩ := rep_spec hyh
+  have hyhj : yh = yj + (R.hi.off - J.off) := by
+    rw [capE_eq] at hyjc hyhc hd
+    refine gpow_inj_lt (by omega) (by omega) ?_
+    rw [← hhv, hhi, hjv, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+  have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
+    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+      mul_comm yj]
+  have hbase : R.base = (prepQ R).shift R.stride := by
+    simp only [prepQ, CCell.shift]
+    rw [Nat.sub_add_cancel hS]
+  rcases yj with _ | _ | k
+  · rw [CCell.addrW, hcv, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
+      show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one]
+    exact hq
+  · have he : c.addrW w = R.base.addrW w := by
+      rw [CCell.addrW, CCell.addrW, hcv, hbase, valW_shift, Nat.zero_add, Nat.mul_one]
+    rw [he]
+    exact hq2
+  · refine hR _ ⟨1, yh, k + 1, ?_, hyh, by omega, by omega, ?_⟩
+    · have := rep_nil (w := w) hlb (by rw [hl1]; norm_num [capE])
+      rwa [hl1] at this
+    · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+        addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * (k + 1))]
+
 end Runs
 
 /-! ## Monomials at a site -/
@@ -1179,6 +1223,16 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       simp only [Bool.and_eq_true] at h
       rw [addr_eq]
       exact prep_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1 (by rw [← addr_eq]; exact ih h.2)
+  | prep2 r q q2 res ih ih2 =>
+    simp only [ptOk] at h
+    cases hr : getF st.rs r with
+    | none => rw [hr] at h; cases h
+    | some R =>
+      rw [hr] at h
+      simp only [Bool.and_eq_true] at h
+      rw [addr_eq]
+      exact prep2_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1.1 (by rw [← addr_eq]; exact ih h.1.2)
+        (by rw [← addr_eq]; exact ih2 h.2)
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -1209,6 +1263,7 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | mrg => simp [rnOk] at h
   | perm => simp [rnOk] at h
   | prep => simp [rnOk] at h
+  | prep2 => simp [rnOk] at h
   | vp => simp [rnOk] at h
   | catM => simp [rnOk] at h
   | mrgE => simp [rnOk] at h
@@ -2087,6 +2142,7 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .mrg _ _ => hs
   | .perm _ _ => hs
   | .prep _ _ _ => hs
+  | .prep2 _ _ _ _ => hs
   | .vp _ _ => hs
   | .catM _ _ _ => hs
   | .mrgE _ _ _ => hs

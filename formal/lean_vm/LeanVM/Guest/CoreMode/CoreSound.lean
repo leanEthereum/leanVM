@@ -1916,6 +1916,16 @@ theorem evM_mode {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {f : Strin
   · rw [h2] at him; cases him
   · rw [h3] at hp; cases hp
 
+theorem resBnd_spec {n c N : ℕ} {x : CRes} (h : resBnd n c N x = true) :
+    ∃ m, x = .lt (.val n) (.num m) ∧ m + c ≤ N + 1 ∧ m < capE := by
+  unfold resBnd at h
+  split at h
+  · rename_i n' m
+    simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨rfl, h1⟩, h2⟩ := h
+    exact ⟨m, rfl, h1, h2⟩
+  · cases h
+
 /-- **The core route meets the frame interface**: a function passing the kernel's checks, on the
 executor's tables for the guest's advice, its code the executor's, at states `Y` on a reference run
 where its frames have honest valuations. -/
@@ -2386,47 +2396,93 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 rw [CCell.beq_eq hpb, hrd]
                 exact hw
               · cases hc
-          · rcases Bool.or_eq_true_iff.mp (hpostR r hr) with h | h
-            swap
-            · -- bounded by an entry run's exponent cell
-              simp only [Bool.and_eq_true] at h
-              obtain ⟨⟨⟨hmR, hlo⟩, hhi⟩, hq⟩ := h
-              obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp hq
-              unfold rngXIs at hrq
-              split at hrq
-              · rename_i q' hq'
-                obtain rfl := of_decide_eq_true hrq
-                obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) (fun k hk ↦ by rw [hm.fp]; exact hσ0.par k hk) (hσ0.res hxw) hq' hlo hhi
-                exact slot_rwX hq' (hSG hmR) hl hh fun x hx ↦ W1 x (hpostRs q' hq x hx)
-              · cases hrq
-            rcases Bool.or_eq_true_iff.mp h with h | h
-            swap
-            · simp only [postRIn, Bool.and_eq_true] at h
-              obtain ⟨hmk, hc⟩ := h
-              split at hc
-              · rename_i c hmc
+          · have hold : ∀ r ∈ K.F.sig.postR, postRB K.F.sig Cf Cf.fn.params.length r = false →
+                Mode.RW (Mode.stOf s1.mem s1.fp) r := by
+              intro r hr hnb
+              have h0 := hpostR r hr
+              rw [hnb, Bool.or_false] at h0
+              rcases Bool.or_eq_true_iff.mp h0 with h | h
+              swap
+              · -- bounded by an entry run's exponent cell
+                simp only [Bool.and_eq_true] at h
+                obtain ⟨⟨⟨hmR, hlo⟩, hhi⟩, hq⟩ := h
+                obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp hq
+                unfold rngXIs at hrq
+                split at hrq
+                · rename_i q' hq'
+                  obtain rfl := of_decide_eq_true hrq
+                  obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) (fun k hk ↦ by rw [hm.fp]; exact hσ0.par k hk) (hσ0.res hxw) hq' hlo hhi
+                  exact slot_rwX hq' (hSG hmR) hl hh fun x hx ↦ W1 x (hpostRs q' hq x hx)
+                · cases hrq
+              rcases Bool.or_eq_true_iff.mp h with h | h
+              swap
+              · simp only [postRIn, Bool.and_eq_true] at h
+                obtain ⟨hmk, hc⟩ := h
                 split at hc
-                · rename_i l hl
-                  exact wrk_rwF (expKeep_P _ _ _) hmc (hcellsP r.q hmk) hl fun p hp ↦ hin p (List.all_eq_true.mp hc p hp)
+                · rename_i c hmc
+                  split at hc
+                  · rename_i l hl
+                    exact wrk_rwF (expKeep_P _ _ _) hmc (hcellsP r.q hmk) hl fun p hp ↦ hin p (List.all_eq_true.mp hc p hp)
+                  · cases hc
                 · cases hc
-              · cases hc
-            rw [Bool.and_eq_true] at h
-            obtain ⟨hmR, h⟩ := h
-            rcases Bool.or_eq_true_iff.mp h with h | h
-            · obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp h
-              unfold rngIs at hrq
-              split at hrq
-              · rename_i q' hq'
-                obtain rfl := of_decide_eq_true hrq
-                exact slot_rw hq' (hSG hmR) fun x hx ↦ W1 x (hpostRs q' hq x hx)
-              · cases hrq
-            · split at h
-              · rename_i c l hmc hl
-                exact pts_slot hmc hl (hSG hmR) fun p hp ↦ by
-                  obtain ⟨c', hc', hbeq⟩ := List.any_eq_true.mp (List.all_eq_true.mp h p hp)
-                  rw [← CCell.beq_eq hbeq]
-                  exact W1 _ (hposts c' hc')
-              · cases h
+              rw [Bool.and_eq_true] at h
+              obtain ⟨hmR, h⟩ := h
+              rcases Bool.or_eq_true_iff.mp h with h | h
+              · obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp h
+                unfold rngIs at hrq
+                split at hrq
+                · rename_i q' hq'
+                  obtain rfl := of_decide_eq_true hrq
+                  exact slot_rw hq' (hSG hmR) fun x hx ↦ W1 x (hpostRs q' hq x hx)
+                · cases hrq
+              · split at h
+                · rename_i c l hmc hl
+                  exact pts_slot hmc hl (hSG hmR) fun p hp ↦ by
+                    obtain ⟨c', hc', hbeq⟩ := List.any_eq_true.mp (List.all_eq_true.mp h p hp)
+                    rw [← CCell.beq_eq hbeq]
+                    exact W1 _ (hposts c' hc')
+                · cases h
+            by_cases hb : postRB K.F.sig Cf Cf.fn.params.length r = true
+            swap
+            · exact hold r hr (by simpa using hb)
+            -- inside a guaranteed run up to a constant (`postRB`)
+            unfold postRB at hb
+            split at hb
+            · rename_i q d c hhi
+              simp only [Bool.and_eq_true] at hb
+              obtain ⟨hmk, hb⟩ := hb
+              split at hb
+              · rename_i n hn
+                obtain ⟨r2, hr2, hr2b⟩ := List.any_eq_true.mp hb
+                simp only [Bool.and_eq_true, decide_eq_true_eq] at hr2b
+                obtain ⟨⟨⟨⟨hq2, hlo2⟩, hS2⟩, hd2⟩, hr2b⟩ := hr2b
+                split at hr2b
+                · rename_i N hN
+                  obtain ⟨x, hx, hxb⟩ := List.any_eq_true.mp hr2b
+                  obtain ⟨m, rfl, hmc, hmcap⟩ := resBnd_spec hxb
+                  obtain ⟨vq, xlo, xhi, hmv, hlo, hhi2, hall⟩ := hold r2 hr2 (by simp [postRB, hN])
+                  rw [hN] at hhi2
+                  obtain rfl : xhi = N := hhi2
+                  obtain ⟨ya, yb, hya, hyb, hlt⟩ := hσ0.res hxw _ hx
+                  rw [idxC, rep_const (by exact hmcap)] at hyb
+                  obtain rfl : yb = m := (Option.some.inj hyb).symm
+                  rw [idxC, valW_baseC] at hya
+                  obtain ⟨hyac, hσn⟩ := rep_spec hya
+                  have hm1 := List.all_eq_true.mp hmk (.hp q d, 1) List.mem_cons_self
+                  simp only [Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at hm1
+                  obtain ⟨⟨⟨-, hq2'⟩, hqn⟩, -⟩ := hm1
+                  have hbv := hcellsP ⟨0, 0, [(.hp q d, 1)]⟩ hmk (.hp q d, 1) List.mem_cons_self n 1
+                    (by simp only [baseOfP, show 2 ≤ q ∧ q - 2 < Cf.fn.params.length from ⟨hq2', hqn⟩, and_self,
+                      ↓reduceIte, hn, Option.map_some])
+                  refine ⟨vq, xlo, ya + c, hq2 ▸ hmv, hlo2 ▸ hlo, ?_, fun j h1 h2 ↦ ?_⟩
+                  · rw [hhi]
+                    refine ⟨_, ya, (hbv _).mpr rfl, ?_, by rw [capE_eq] at hyac; omega, rfl⟩
+                    exact hσn
+                  · rw [← hS2, ← hd2]
+                    exact hall j h1 (by omega)
+                · cases hr2b
+              · cases hb
+            · cases hb
           · obtain ⟨⟨⟨⟨hmR, hlo⟩, hhi⟩, hpr⟩, hrr⟩ := hpostP q hq
             obtain ⟨p', hp', hpp⟩ := List.any_eq_true.mp hpr
             simp only [prunIs, rngXIs, Bool.and_eq_true, decide_eq_true_eq] at hpp

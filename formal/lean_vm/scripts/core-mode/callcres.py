@@ -111,6 +111,9 @@ def expq_bound(k, x):
     b = expq1(k, x)
     if b is not None:
         return b
+    # `check_opening_terminal`'s `gmv = g^sl`, `sl <= 30` (`CoreMode.termGm`)
+    if k == 'check_opening_terminal' and len(I.CORE[k][0]) > 19 and x == I.CORE[k][0][19]:
+        return 31
     atoms = top_atoms(I.CORE[k][1])
     cs = _consts(atoms)
     for a in atoms:
@@ -166,6 +169,18 @@ def expq_facts(EM):
             return [self.use(('dim', a, b), ('lt', ra, ('mono', b)))]
         return None
     return base, fact
+
+
+def sub_rc(q, r):
+    """`CoreMode.subRC`: a run of constant bounds inside one of the same bases."""
+    (qb, qo), S, ql, qh = q
+    (rb, ro), S2, rl, rh = r
+    if not (ql[0] == qh[0] == rl[0] == rh[0] == 'num'):
+        return False
+    if tuple(qb) != tuple(rb) or S != S2 or not 0 < S or ro > qo or (qo - ro) % S:
+        return False
+    k = (qo - ro) // S
+    return rl[1] <= ql[1] + k and qh[1] + k <= rh[1] and all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1]))
 
 
 def res_fam(k, r, G):
@@ -224,6 +239,8 @@ def res_fam(k, r, G):
         a, c = r[1][1], r[2][1]
         return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
             dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
+    if r[0] == 'subR':
+        return sub_rc(r[1], r[2])
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)
