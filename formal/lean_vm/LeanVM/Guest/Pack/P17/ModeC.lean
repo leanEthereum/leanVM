@@ -13,12 +13,15 @@ public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P17».Bundle
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P20».ModeSig
+public import LeanVM.Guest.Pack.«P23».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
+public import LeanVM.Guest.Pack.«P30».ModeSig
 public import LeanVM.Guest.Pack.«P36».ModeSig
 public import LeanVM.Guest.Pack.«P39».ModeSig
 public import LeanVM.Guest.Pack.«P3».ModeSig
 public import LeanVM.Guest.Pack.«P42».ModeSig
 public import LeanVM.Guest.Pack.«P45».ModeSig
+public import LeanVM.Guest.Pack.«P49».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P50».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
@@ -119,6 +122,25 @@ end
 
 end LeanVM.Guest.Fn.«block_selector__L25»
 
+namespace LeanVM.Guest.Fn.«block_selector_tab__L14»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `block_selector_tab__L14`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `block_selector_tab__L14`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨204855, 44, Fn.«block_selector_tab__L14».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«block_selector_tab__L14»
+
 namespace LeanVM.Guest.Fn.«bus_grind_check__L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -160,6 +182,51 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L16»
+
+namespace LeanVM.Guest.Fn.«da_levels__L128_L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_levels__L128_L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node (some Fn.«da_levels__L128_L7_loop4».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil)
+    .nil)) .nil) .nil) .nil)) .nil)) .nil) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node (some
+    Fn.«da_levels__L128_L7_loop2».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)
+    .nil))))) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node (some
+    Fn.«da_levels__L128_L7_loop6».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)) .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node (some Fn.«da_levels__L128_L7_loop0».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil)
+    .nil) .nil))) .nil) .nil))))) (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node (some
+    Fn.«da_levels__L128_L7_loop3».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)) .nil)
+    .nil) .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node none (.node none (.node (some
+    Fn.«da_levels__L128_L7_loop5».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)) .nil)
+    .nil)) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node (some
+    Fn.«da_levels__L128_L7_loop1».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil) .nil)))
+    .nil))))))), 524287⟩
+
+/-- `da_levels__L128_L7`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨248697, 74, Fn.«da_levels__L128_L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L128_L7»
 
 namespace LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0»
 

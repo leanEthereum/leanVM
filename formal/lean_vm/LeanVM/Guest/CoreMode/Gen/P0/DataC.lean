@@ -131,7 +131,8 @@ def hcert : CoreMode.HCert where
         ⟨[(2, 1)], 10⟩, ⟨[(2, 1)], 11⟩],
       post := [⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩],
       preR := [⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 54)⟩, ⟨⟨[(4, 1)], 2⟩, 2, (.num 0), (.num 54)⟩,
-        ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 54)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 54)⟩],
+        ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 54)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 54)⟩,
+        ⟨⟨[(4, 1)], 1⟩, 1, (.num 0), (.num 108)⟩, ⟨⟨[(5, 1)], 1⟩, 1, (.num 0), (.num 108)⟩],
       postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 12)⟩, ⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 54)⟩,
         ⟨⟨[(4, 1)], 2⟩, 2, (.num 0), (.num 54)⟩, ⟨⟨[(4, 1)], 0⟩, 2, (.num 0), (.num 55)⟩,
         ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 54)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 54)⟩,
@@ -152,21 +153,22 @@ def hcert : CoreMode.HCert where
         .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 67, .ev 68, .ev 69,
         .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .pre 12, .pre 13, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 4 [], .pfr 5 []]]
-  rets := [[.ev 81, .ev 82, .run 6 [], .run 7 [], .run 8 [], .pts, .ev 81, .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 9 [], .run 10 [], .pts, .ev 82,
+        .pre 12, .pre 13, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 6 [], .pfr 7 []]]
+  rets := [[.ev 81, .ev 82, .run 8 [], .run 9 [], .run 10 [], .pts, .ev 81, .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
-        .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .pf 83, .pfr 11 [], .pfr 12 []]]
+        .run 10 [], .run 10 [], .run 10 [], .run 11 [], .run 12 [], .pts, .ev 82, .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .pf 83, .pfr 13 [], .pfr 14 []]]
 
 /-- `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
@@ -264,14 +266,14 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 1)⟩],
+        ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 1)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 12)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 1)⟩] }
-  reads := [(13, [(5, 6, .run 9 [])]), (14, [(5, 7, .run 10 [])]), (24, [(16, 2, .run 11 [])]),
-    (25, [(16, 3, .run 12 [])])]
+  reads := [(13, [(5, 6, .run 10 [])]), (14, [(5, 7, .run 11 [])]), (24, [(16, 2, .run 12 [])]),
+    (25, [(16, 3, .run 13 [])])]
   res := []
   calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
@@ -325,14 +327,14 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 5)⟩,
-        ⟨⟨[(0, 1)], 40⟩, 1, (.num 0), (.num 4)⟩],
+        ⟨⟨[(0, 1)], 40⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 40)⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 5)⟩,
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 11)⟩, ⟨⟨[(0, 1)], 40⟩, 1, (.num 0), (.num 4)⟩] }
-  reads := [(13, [(5, 10, .run 9 [])]), (14, [(5, 11, .run 10 [])]), (24, [(16, 8, .run 11 [])]),
-    (25, [(16, 9, .run 12 [])])]
+  reads := [(13, [(5, 10, .run 10 [])]), (14, [(5, 11, .run 11 [])]), (24, [(16, 8, .run 12 [])]),
+    (25, [(16, 9, .run 13 [])])]
   res := []
   calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],

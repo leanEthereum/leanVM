@@ -82,7 +82,35 @@ def run(r, nslots, ent=None):
     if not (lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
         raise No('run bound')
     c = cell(q, nslots, ent)
-    return (I.shift(c, d), S, I.num(lo[1]), I.num(hi[1]))
+    return norm_run((I.shift(c, d), S, I.num(lo[1]), I.num(hi[1])), c[1] + d)
+
+
+def norm_run(R, off):
+    """`CoreMode.rngC`'s normal form: a run of constant bounds `[a, b)` whose cell offset `off` is `2^62` or more
+    (a negative one, modulo the order of `g`) starts at `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
+    Q, S, lo, hi = R
+    if off < 2 ** 62 or lo[0] or hi[0]:
+        return R
+    return ((Q[0], (off + S * lo[1]) % I.ORD), S, I.num(0), I.num(max(0, hi[1] - lo[1])))
+
+
+def cov_runs(G, np):
+    """`CoreMode.runCov`: stride-one runs `Q·g^o·[0, S·n)` whose strands `Q·g^(o+i)·[0, n)` of stride `S`, `i < S`, are
+    runs of constant bounds of the mode signature's `preR`."""
+    strands = set()
+    for r in G['preR']:
+        try:
+            strands.add(run(r, np))
+        except No:
+            pass
+    out = []
+    for (Q, S, lo, hi) in sorted(strands):
+        if S < 2 or lo != I.num(0) or not 0 < S * hi[1] < 2 ** 62:
+            continue
+        q = (Q, 1, I.num(0), I.num(S * hi[1]))
+        if q not in out and all(((Q[0], Q[1] + i), S, lo, hi) in strands for i in range(S)):
+            out.append(q)
+    return out
 
 
 def bound(b, n, ent, gl=None):
@@ -108,7 +136,7 @@ def runX(r, n, ent=None, gl=None):
     """`CoreMode.rngX`: a run with exponent bounds (`CoreMode.rngL` with the caller's cells `gl` linked)."""
     q, lo, hi, S, d = r
     c = cell(q, n, ent, gl=gl)
-    return (I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl))
+    return norm_run((I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl)), c[1] + d)
 
 
 def gslot(b, n):
@@ -250,6 +278,7 @@ def own_sig(G, np, nr, gl=None):
                 raise
             return runX(r, np, gl=gl)
     h.preR = [own_pre_run(r) for r in G['preR']]
+    h.preR += [q for q in cov_runs(G, np) if q not in h.preR]
     # the ghost slots the links name (`CFun.gl` past the parameters)
     h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np]
     h.prePR = [prun(p, np) for p in G['preP']]
@@ -378,8 +407,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     G0 = own.clone()
     I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
-    if G0.pre != own.pre or G0.preR != own.preR or G0.prePR != own.prePR or G0.preP != own.preP:
-        raise No('own precondition grows')
+    # (the inference may want more own preconditions than the signature states: the solver below, at `own`, decides)
     # the witnesses: the emitter's solver, in `heapOkC`'s own pass, at these signatures
     sigs, hs = {}, {}
     for f, h in cs.items():
@@ -404,7 +432,22 @@ def infer_one(k, S, allow=None, hcsig=None):
         raise No('recheck')
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
+    hk = sigs[k]
+    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR):
+        raise No('frame run and guarantees')
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+def has_fa(body):
+    """Not `CoreMode.noFA`: a `frameAddr` atom anywhere in the body (then `HeapK.c` asks `noPost`)."""
+    for s in body:
+        if s[0] == 'a' and s[1][0] == 'frameAddr':
+            return True
+        if s[0] == 'ite' and (has_fa(s[2]) or has_fa(s[3])):
+            return True
+        if s[0] == 'match' and any(has_fa(a) for a in s[2]):
+            return True
+    return False
 
 
 _FNS = {}

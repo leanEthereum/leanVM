@@ -15,47 +15,6 @@ public import LeanVM.Guest.Pack.«P60».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector_tab__L31»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `block_selector_tab__L31`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `block_selector_tab__L31`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨205919, 84, Fn.«block_selector_tab__L31».modeSig, .nil, (.node (some [(.sub ⟨⟨0, 0, [((.fr 3),
-    1)]⟩, (.num 0), (.num 30), 8, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8,
-    18446744073709551607⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 30), 8, 1⟩ [⟨⟨0, 0,
-    [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8, 18446744073709551608⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
-    1)]⟩, (.num 0), (.num 30), 8, 2⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8,
-    18446744073709551609⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 30), 8, 3⟩ [⟨⟨0, 0,
-    [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8, 18446744073709551610⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
-    1)]⟩, (.num 0), (.num 30), 8, 4⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8,
-    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 30), 8, 5⟩ [⟨⟨0, 0,
-    [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
-    1)]⟩, (.num 0), (.num 30), 8, 6⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8,
-    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 30), 8, 7⟩ [⟨⟨0, 0,
-    [((.fr 3), 1)]⟩, (.num 1), (.num 31), 8, 18446744073709551614⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
-    1)]⟩, (.num 0), (.num 30), 4, 0⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 31), 4,
-    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 30), 4, 1⟩ [⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.num 1), (.num 31), 4, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
-    1)]⟩, (.num 0), (.num 30), 4, 2⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 31), 4,
-    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 30), 4, 3⟩ [⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.num 1), (.num 31), 4, 18446744073709551614⟩])]) .nil .nil), .nil, false,
-    .nil⟩
-
-/-- `block_selector_tab__L31`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L31»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L13_L7»
 
 open LeanVM.Guest LeanVM.Guest.Exec

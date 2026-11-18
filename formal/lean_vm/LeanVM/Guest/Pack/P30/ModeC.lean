@@ -54,6 +54,25 @@ end
 
 end LeanVM.Guest.Fn.«padding_weight__L14»
 
+namespace LeanVM.Guest.Fn.«block_selector_tab__L28»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `block_selector_tab__L28`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `block_selector_tab__L28`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨205678, 73, Fn.«block_selector_tab__L28».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«block_selector_tab__L28»
+
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec

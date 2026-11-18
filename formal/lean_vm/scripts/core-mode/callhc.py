@@ -95,6 +95,108 @@ def infer_hc(k):
     return dict(cert=H, cs={}, dsp=None, hc=True, hcs=[]), G0
 
 
+def arity(body, f):
+    """The argument and returned word counts of `body`'s first call of `f`."""
+    for st in body:
+        if st[0] == 'call' and st[1] == f:
+            return len(st[2]), len(st[3])
+        if st[0] == 'callIf' and st[2] == f:
+            return len(st[3]), 0
+        if st[0] == 'dispatch' and f in st[2]:
+            return len(st[3]), len(st[4])
+        for sub in (st[2:4] if st[0] == 'ite' else st[2] if st[0] == 'match' else []):
+            r = arity(sub, f)
+            if r:
+                return r
+    return None
+
+
+def call_candidates(out):
+    """`callc.py`'s candidates (straight-line bodies with calls) not already in `out`."""
+    import callc
+    return [k for k in callc.candidates() if k not in out]
+
+
+def infer_hc_calls(k, S, hcsig):
+    """`k`, a body with calls, at its own heap signature: the inference's (`I.infer`, its guarantees, returned words
+    and equations, conditional loops' runs pushed), its callees at their heap contracts (`hcsig`) or their mode
+    signatures translated; then each precondition the emitter's solver does not need dropped."""
+    import callc
+    EM = callc._em()
+    params, body = I.CORE[k]
+    np = len(params)
+    cs, hcs = {}, set()
+    for f in sorted(callees_of(body, set())):
+        na, nr = arity(body, f)
+        if I.callee(f) in hcsig:
+            cs[f] = hcsig[I.callee(f)].clone()
+            hcs.add((f, na, nr))
+        else:
+            Gf = S.get(I.STABLE.get(f, f)) or S.get(f)
+            if Gf is None:
+                raise callc.No('callee without mode signature')
+            cs[f] = callc.callee_sig(Gf, na, nr)
+    # a callee run's bound an argument a constant power of `g` (`CFun.xc` is empty for a heap contract)
+    for st in body:
+        calls = ([(st[1], st[2])] if st[0] == 'call' else [(st[2], st[3])] if st[0] == 'callIf' else
+                 [(f, st[3]) for f in st[2]] if st[0] == 'dispatch' else [])
+        for f, args in calls:
+            if f == k:
+                raise callc.No('recursive')
+            callc.exp_bounds(cs[f], args, body, np, set())
+    saved = set(I.F)
+    try:
+        I.F.add('callIfR')
+        I.SIGS.clear()
+        for f, h in cs.items():
+            I.SIGS[I.callee(f)] = h
+        I.infer(k)
+        G0 = I.SIGS[k]
+    finally:
+        I.F.clear()
+        I.F.update(saved)
+    if G0.ghosts or G0.term or G0.preP or G0.prePR:
+        raise callc.No('own ghosts or pointer preconditions')
+    sigs = {}
+    for f, h in cs.items():
+        dr = []
+        sigs[I.callee(f)] = EM.sig_of(h, len(I.CORE[I.callee(f)][0]), dr)
+        if dr:
+            raise callc.No('callee signature dropped')
+
+    def solve(G):
+        I.SIGS.clear()
+        for f, h in cs.items():
+            I.SIGS[I.callee(f)] = h
+        I.SIGS[k] = G.clone()
+        P = I.Pass(k, I.SIGS[k]).run()
+        dr = []
+        sg = dict(sigs)
+        sg[k] = EM.sig_of(G, np, dr)
+        if dr:
+            return None
+        sigOf = lambda g: sg.get(I.callee(g), EM.C.EMPTY)
+        H, Sv, pas = EM.solve(k, P, sg, sigOf)
+        if pas.fails or Sv.miss or EM.check(k, H, sigOf) is not None or H.res:
+            return None
+        return H
+    H = solve(G0)
+    if H is None:
+        raise callc.No('unwitnessed')
+    for fld in ('pre', 'preR'):
+        i = 0
+        while i < len(getattr(G0, fld)):
+            G1 = G0.clone()
+            del getattr(G1, fld)[i]
+            H1 = solve(G1)
+            if H1 is not None:
+                G0, H = G1, H1
+            else:
+                i += 1
+    return dict(cert=H, cs={f: sigs[I.callee(f)] for f in cs}, dsp=callc.dsp_of(k, body), hc=True,
+                hcs=sorted(hcs)), G0
+
+
 def reinfer(c, S, hcsig):
     """Caller `c` again, its heap-contract callees at their signatures: as `callc`, else as `callcres`."""
     import callc, callcres
@@ -123,14 +225,15 @@ def extend(out, why, S, verbose=False):
             callers[I.callee(f)].add(k)
     hcsig, got = {}, {}
     lost = collections.Counter()
-    cands = candidates(out, S)
-    for k in cands:
+    leaves = candidates(out, S)
+    cands = [(k, False) for k in leaves] + [(k, True) for k in call_candidates(out)]
+    for k, calls in cands:
         cs = callers.get(k, set())
         if not cs or not all(c in out and c not in I.IS_LOOP for c in cs):
             lost['callers'] += 1
             continue
         try:
-            r, G0 = infer_hc(k)
+            r, G0 = infer_hc_calls(k, S, hcsig) if calls else infer_hc(k)
         except callc.No as e:
             lost[str(e)] += 1
             continue

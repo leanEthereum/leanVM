@@ -379,7 +379,14 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
     obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := heapOkC_sound hp hok hself hw hh hM
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) (gwOk_nil hgw rd σ)
-    obtain ⟨⟨hpc, hpr⟩, hptr⟩ := postOkW_of (noFAW hnofa hw) hpo
+    have hW : PostOkW Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
+      rcases Bool.or_eq_true_iff.mp hnofa with h | h
+      · exact postOkW_of (noFAW h hw) hpo
+      · simp only [noPost, Bool.and_eq_true, List.isEmpty_iff] at h
+        obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
+        refine ⟨⟨fun c hc ↦ by simp [h1] at hc, fun r hr ↦ by simp [h2] at hr⟩, fun x hx ↦ ?_⟩
+        simp [PtrSigSet, h3, h4] at hx
+    obtain ⟨⟨hpc, hpr⟩, hptr⟩ := hW
     refine ⟨hpar', hreads, fun c hc ↦ ?_, fun r hr x hx ↦ hpr r hr x hx, hretm,
       fun p hp' ↦ (by rw [hpost] at hp'; cases hp'), hptr, hrv, hre⟩
     simp only [CFun.posts, hpost, List.map_nil, List.filter_nil, List.nil_append] at hc
@@ -1977,7 +1984,10 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       · obtain ⟨r, hr, hrc⟩ := List.any_eq_true.mp h
         rw [Bool.and_eq_true] at hrc
         exact ptIn_slot hrc.2 (hSE hrc.1) (hH0.r r (List.mem_cons_of_mem _ hr))
-    · obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp (hpreR r hr)
+    · rcases Bool.or_eq_true_iff.mp (hpreR r hr) with hany | hcov
+      swap
+      · exact rw_cov hcov (fun r' _ hm ↦ hSE hm) (fun r' hr' ↦ hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+      obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp hany
       rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
       · rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
         · rw [Bool.and_eq_true] at hrq

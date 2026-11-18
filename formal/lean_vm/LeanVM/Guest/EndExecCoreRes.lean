@@ -156,25 +156,37 @@ theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
     | _ => simp at hm
   · cases h
 
-/-- **The `sel` family of a selector times a power of `g` holds** (`e(x·g^c) < n`, `x` a top-level selector of
-`m` arms, `m + c ≤ n`) at a valuation along a returning path. -/
-theorem resSelM_sound {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
+/-- **The `sel` and `rc` families of a value times a power of `g` hold** (`e(x·g^c) < n`, `x` a top-level selector
+of `m` arms, `m + c ≤ n`, or range checked against `g^(N - 1)`, `N + c ≤ n`) at a valuation along a returning path
+of the function whose events hold on a memory of at most `2^28` words. -/
+theorem resSelM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ)
     {c : CoreMode.CCell} {n : ℕ} (h : resFam fn xc (.lt (.mono c) (.num n)) = true) :
     (CRes.lt (.mono c) (.num n)).Holds σ := by
   obtain ⟨cb, k⟩ := c
   simp only [resFam] at h
   split at h
   · rename_i _ x
-    simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
-    obtain ⟨hn, p, hp, hpx, hpk⟩ := h
-    obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
-    rw [hpx] at hσ
-    refine ⟨e + k, n, ?_, CoreMode.rep_const hn, by omega⟩
     have e1 : CoreMode.CCell.valW (vw σ) ⟨[(x, 1)], k⟩ = σ (V.n x) * ofK (addressOfIndex k) := by
       simp [CoreMode.CCell.valW, CoreMode.prodW, vw]
-    simp only [idxC]
-    rw [e1, hσ, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
-    exact rep_of (by omega)
+    have fin : ∀ e, e + k < n → σ (V.n x) = ofK (addressOfIndex e) → n < capE →
+        (CRes.lt (.mono ⟨[(x, 1)], k⟩) (.num n)).Holds σ := fun e hek hσ hn ↦ by
+      refine ⟨e + k, n, ?_, CoreMode.rep_const hn, hek⟩
+      simp only [idxC]
+      rw [e1, hσ, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+      exact rep_of (by omega)
+    simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true] at h
+    obtain ⟨hn, ⟨p, hp, hpx, hpk⟩ | h⟩ := h
+    · obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
+      rw [hpx] at hσ
+      exact fin e (by omega) hσ hn
+    · split at h
+      · rename_i N hN
+        simp only [decide_eq_true_eq] at h
+        have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+        obtain ⟨e, he, hσ⟩ := rcBound_sound (by omega) Lm hall hN
+        exact fin e (by omega) (by rw [hσ, Value.gen_pow_eq_ofK]) hn
+      · cases h
   · cases h
 
 theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
@@ -249,7 +261,7 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   | .lt (.mono c) (.num n), h => by
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
-    exact resSelM_sound hw h
+    exact resSelM_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
   | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
   | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
   | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
