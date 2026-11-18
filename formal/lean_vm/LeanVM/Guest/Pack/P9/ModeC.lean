@@ -16,8 +16,30 @@ public import LeanVM.Guest.Pack.«P47».ModeSig
 public import LeanVM.Guest.Pack.«P50».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
 public import LeanVM.Guest.Pack.«P61».ModeSig
+public import LeanVM.Guest.Pack.«P7».ModeSig
 public import LeanVM.Guest.Pack.«P9».Bundle
 public import LeanVM.Guest.Pack.«P9».ModeSig
+
+namespace LeanVM.Guest.Fn.«ring_switch_weight»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `ring_switch_weight`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node none (.node (some Fn.«rs_eq_run».modeSig)
+    .nil .nil) .nil) .nil)) .nil)))) .nil)) .nil) .nil)))), 524287⟩
+
+/-- `ring_switch_weight`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨28759, 339, Fn.«ring_switch_weight».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«ring_switch_weight»
 
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L4»
 

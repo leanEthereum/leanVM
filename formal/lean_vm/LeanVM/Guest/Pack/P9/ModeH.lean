@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P9».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«ring_switch_weight»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `ring_switch_weight`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 15) (d := Data.adviceFn15) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«ring_switch_weight»
-
 namespace LeanVM.Guest.Fn.«column_selector__L26»
 
 open LeanVM.Guest LeanVM.Guest.Exec

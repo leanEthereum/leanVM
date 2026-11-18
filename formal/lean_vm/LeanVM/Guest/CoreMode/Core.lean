@@ -138,6 +138,19 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
 
+/-- The frame cell a run bound's exponent is of, if any. -/
+def boundCells : Mode.Idx → List ℕ
+  | .ex (.fr o) _ => [o]
+  | _ => []
+
+/-- **The frame cells whose words the signature's entry runs (`preR`, `preP`) bound by exponent.** -/
+def expCells (G : Mode.Sig) : List ℕ :=
+  (G.preR ++ G.preP.map (·.1)).flatMap fun r ↦ boundCells r.lo ++ boundCells r.hi
+
+/-- **The words of frame `fp`'s cells `os` in the reference are powers of `g`** of exponents below `2 ^ 62`. -/
+def ExpW (img : MemoryImage κ) (os : List ℕ) (fp : ℕ) : Prop :=
+  ∀ o ∈ os, ∃ e, e < 2 ^ 62 ∧ Rd img fp o = some (ofK (g ^ e))
+
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation
 of the frame, its path splits at the pairing's position at `i` (`pairAt`), every cell written by the
@@ -148,10 +161,11 @@ def CoreIn (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i
       walk σ Cf.fn.body = .ret (pre ++ es) vs ∧ walk σ pos = .ret es vs ∧ (∀ e ∈ pre ++ es, e.Holds rd σ) ∧
       ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK m y
 
-/-- **The core route's frame predicate**: `CoreIn` in every memory past the state's agreeing with the
-reference (so a caller resumes from what its callee guarantees, in any memory past the call). -/
+/-- **The core route's frame predicate**: the entry runs' exponent cells powers of `g` (`ExpW`, from
+entry), and `CoreIn` in every memory past the state's agreeing with the reference (so a caller resumes
+from what its callee guarantees, in any memory past the call). -/
 def CoreAt (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) (s : St) : Prop :=
-  ∀ m, s.mem ≤ m → Agree m (refMem img) → CoreIn img Cf code i m s.fp
+  ExpW img (expCells Cf.frame.sig) s.fp ∧ ∀ m, s.mem ≤ m → Agree m (refMem img) → CoreIn img Cf code i m s.fp
 
 /-- **The memory after a step stays within the reference's `2 ^ κ` cells**, from the states `Y`. -/
 def UsedNext (C : Ctx) (img : MemoryImage κ) (Y : St → Prop) : Prop :=
@@ -177,12 +191,12 @@ theorem CoreIn.mono {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstru
 
 theorem CoreAt.mono {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction} {i : ℕ} {s s' : St}
     (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) (h : CoreAt img Cf code i s) : CoreAt img Cf code i s' :=
-  fun m hm ha ↦ hfp ▸ h m (Mem.le_trans hle hm) ha
+  ⟨hfp ▸ h.1, fun m hm ha ↦ hfp ▸ h.2 m (Mem.le_trans hle hm) ha⟩
 
 /-- `CoreIn` at the state's memory gives `CoreAt`. -/
 theorem coreAt_of {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction} {i : ℕ} {s : St}
-    (h : CoreIn img Cf code i s.mem s.fp) : CoreAt img Cf code i s :=
-  fun _ hm _ ↦ h.mono hm
+    (hx : ExpW img (expCells Cf.frame.sig) s.fp) (h : CoreIn img Cf code i s.mem s.fp) : CoreAt img Cf code i s :=
+  ⟨hx, fun _ hm _ ↦ h.mono hm⟩
 
 /-! ## The signature, translated -/
 
@@ -300,6 +314,13 @@ def idxB : Mode.Idx → List (Mode.Base × ℕ)
   | .num _ => []
   | .ex b _ => [(b, 1)]
 
+/-- **A run bound with an exponent at return**: a constant, or the exponent of the word of frame cell
+`2 + b`, `b < n`, one of the entry runs' (`expCells`). -/
+def expI (G : Mode.Sig) (n : ℕ) : Mode.Idx → Bool
+  | .num _ => true
+  | .ex (.fr o) _ => decide (2 ≤ o) && decide (o - 2 < n) && (expCells G).contains o
+  | .ex (.hp _ _) _ => false
+
 /-- **A run as a heap run over slots**: `rngC` with exponent bounds. -/
 def rngX (r : Mode.Rng) : Option CRun :=
   match idxX r.lo, idxX r.hi, monoC r.q with
@@ -347,6 +368,20 @@ noncomputable def idxPow (pows : Exec.PowTree) (body : List Stmt) (args : List V
     | none => false
   | .mono _ => false
 
+/-- **A callee's run bound at a call on `args` is a parameter's exponent**: argument `b` the parameter
+`k < np` whose cell `2 + k` is one of the entry runs' (`expCells`). -/
+def expArg (G : Mode.Sig) (np : ℕ) (args : List V) : CIdx → Bool
+  | .val b => match args[b]? with
+    | some v => match vnum v with
+      | some k => decide (k < np) && (expCells G).contains (2 + k)
+      | none => false
+    | none => false
+  | _ => false
+
+/-- A callee's run bound at a call on `args` has an exponent: `idxPow`, or a parameter's (`expArg`). -/
+noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
+  idxPow Cf.pows Cf.fn.body args i || expArg Cf.frame.sig Cf.fn.params.length args i
+
 /-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
 def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=
   match m.fp, m.bs with
@@ -390,7 +425,7 @@ each heap cell and run it promises (over parameters and returned words) among th
 words a top-level `load` reads, among milestone 1's promised cells. -/
 noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty &&
-    (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && (idxB r.1.lo).isEmpty && (idxB r.1.hi).isEmpty &&
+    (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && expI G (np + nr) r.1.lo && expI G (np + nr) r.1.hi &&
       Cf.H.sig.postPR.any (prunIs r ·) && Cf.H.sig.postR.any (rngXIs r.1 ·)) && G.postLP.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.all (hpAll G np G.pre) &&
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
@@ -405,7 +440,9 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
     (G.postR.all fun r ↦ (monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
-      | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r) && Nat.beq Cf.H.sig.ghosts 0
+      | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
+      (monoR G np nr (rngM r) && expI G (np + nr) r.lo && expI G (np + nr) r.hi &&
+        Cf.H.sig.postR.any (rngXIs r ·))) && Nat.beq Cf.H.sig.ghosts 0
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
@@ -459,13 +496,12 @@ def retsN (n : ℕ) (body : List Stmt) : Bool :=
     | _ => true
 
 /-- A call of `g` on `args`: not of `f`, the callee's heap signature naming no returned word's monomial,
-word at return, equation or ghost, its runs' bounds having exponents at the call (`idxPow`). -/
+word at return, equation or ghost, its runs' bounds having exponents at the call (`idxPowC`). -/
 noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
   !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
     (Cf.sigOf g).retEq.isEmpty && Nat.beq (Cf.sigOf g).ghosts 0 &&
-    ((Cf.sigOf g).preR.all fun q ↦ idxPow Cf.pows Cf.fn.body args q.lo && idxPow Cf.pows Cf.fn.body args q.hi) &&
-    (Cf.sigOf g).prePR.all fun p ↦ idxPow Cf.pows Cf.fn.body args p.1.lo &&
-      idxPow Cf.pows Cf.fn.body args p.1.hi
+    ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
+    (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
 /-- **Each call of the body** (`call`, `callIf`) checked by `callChk`. -/
 noncomputable def callsB (Cf : CFun) : Bool :=

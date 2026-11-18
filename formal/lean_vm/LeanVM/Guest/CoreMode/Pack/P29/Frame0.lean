@@ -24,6 +24,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P13».ModeSig
 public import LeanVM.Guest.Pack.«P16».ModeSig
@@ -744,7 +745,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».modeSig) .nil .nil)) .nil)
     .nil)))) .nil) .nil) .nil)))) .nil)) .nil) .nil))), 524287, Data.adviceFn1066.2.2, .nil, .nil,
-    .nil, .nil, .nil, .nil, .nil⟩
+    .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1».pairO,
+    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1».pairS, .nil⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

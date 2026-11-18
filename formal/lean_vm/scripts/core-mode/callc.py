@@ -194,8 +194,19 @@ def own_sig(G, np, nr):
     h.postP = hp_facts([m for m in G['post'] if hp_of(m)], np, lambda q: q in G['entry'])
     if any(c not in h.post for c, _ in h.postP):
         raise No('own pointer cell')
-    h.postR = [run(r, np + nr, ret_ok) for r in G['postR']]
-    h.postPR = [prun(p, np + nr, ret_ok, const=True) for p in G['postP']]
+    # bounds an entry run bounds too (`CoreMode.expCells`, `expB`): their cells' words have exponents (`ExpW`)
+    expc = exp_cells(G)
+
+    def own_run(r):
+        try:
+            return run(r, np + nr, ret_ok)
+        except No:
+            for b in (r[1], r[2]):
+                if b[0] != 'num' and not (b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] in expc and b[1][1] < 2 ** 28):
+                    raise No('run bound')
+            return runX(r, np + nr, ret_ok)
+    h.postR = [own_run(r) for r in G['postR']]
+    h.postPR = [(own_run(p[0]), tuple(p[1])) for p in G['postP']]
     # a pointer run's cells among the runs guaranteed (`sigOk`'s `postP` case asks both)
     h.postR += [p[0] for p in h.postPR if p[0] not in h.postR]
     h.retM = {}
@@ -206,14 +217,21 @@ def own_sig(G, np, nr):
     return h
 
 
-def exp_bounds(h, args, body):
-    """`CoreMode.callsB`'s exponents: each bound `.val b` of the callee's runs an argument a top-level `const` sets
-    to a power of `g`."""
+def exp_cells(G):
+    """`CoreMode.expCells`: the frame cells the entry runs (`preR`, `preP`) bound by exponent."""
+    return {b[1][1] for r in G['preR'] + [p[0] for p in G['preP']] for b in (r[1], r[2])
+            if b[0] == 'ex' and b[1][0] == 'fr'}
+
+
+def exp_bounds(h, args, body, np, expc):
+    """`CoreMode.callsB`'s exponents (`idxPowC`): each bound `.val b` of the callee's runs an argument a top-level
+    `const` sets to a power of `g`, or a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`)."""
     for r in h.preR + [p[0] for p in h.prePR]:
         for b in (r[2], r[3]):
             if b[0]:
                 (sl, _), = b[0]
-                if not const_pow(body, args[sl]):
+                a = args[sl]
+                if not (const_pow(body, a) or (a < np and 2 + a in expc)):
                     raise No('callee bound not a constant power')
 
 
@@ -240,7 +258,7 @@ def infer_one(k, S):
         if f == k:
             raise No('recursive')
         h = callee_sig(Gf, len(args), nr)
-        exp_bounds(h, args, body)
+        exp_bounds(h, args, body, np, exp_cells(G))
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h

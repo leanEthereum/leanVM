@@ -72,21 +72,6 @@ end
 
 end LeanVM.Guest.Fn.«level_positions__L5_L16_L4_loop0»
 
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 988) (d := Data.adviceFn988) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1»
-
 namespace LeanVM.Guest.Fn.«level_positions__L3_L17_L5_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

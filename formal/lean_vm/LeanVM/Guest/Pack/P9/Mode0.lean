@@ -13,38 +13,10 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P16».ModeSig
 public import LeanVM.Guest.Pack.«P45».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
-public import LeanVM.Guest.Pack.«P7».ModeSig
 public import LeanVM.Guest.Pack.«P9».Bundle
 public import LeanVM.Guest.Pack.«P9».ModeSig
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«ring_switch_weight»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `ring_switch_weight`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node (some Fn.«rs_eq_run».modeSig)
-    .nil .nil) .nil) .nil)) .nil)))) .nil)) .nil) .nil)))), 524287⟩
-
-/-- `ring_switch_weight`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨28759, 339, Fn.«ring_switch_weight».modeSig, (.node none .nil (.node none (.node none (.node
-    (some [(.allocDyn 15 14)]) .nil .nil) .nil) (.node none (.node none .nil (.node none (.node
-    none (.node (some [(.alloc 18 50)]) .nil .nil) .nil) .nil)) .nil))), .nil, .nil, false, .nil⟩
-
-/-- `ring_switch_weight`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«ring_switch_weight»
 
 namespace LeanVM.Guest.Fn.«column_selector__L26»
 

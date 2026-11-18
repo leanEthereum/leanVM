@@ -498,7 +498,8 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
   · -- the entry
     intro s hH0 hs0
     obtain ⟨hw, hpre, hpreR, hself⟩ := entry_facts hent' (fun o ho ↦ (hso o ho).1) hH0
-    refine coreAt_of ⟨atF_mono (s := s) (Mem.le_refl _) rfl (atF_entry henv ⟨fun o ho ↦ hw o (hok.fsig ▸ ho),
+    refine coreAt_of (by rw [hok.fsig]; exact expW_entry hκ hs0.agree hH0)
+      ⟨atF_mono (s := s) (Mem.le_refl _) rfl (atF_entry henv ⟨fun o ho ↦ hw o (hok.fsig ▸ ho),
       fun o hso' ↦ ?_⟩), fun o ho ↦ hw o (hok.fsig ▸ ho), fun σ hσ ↦ ?_⟩
     · rw [hok.fsig] at hso'
       obtain ⟨hwo, hgo⟩ := hself o hso'
@@ -515,7 +516,8 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
     · cases he
   · -- a step
     intro s i hi hpc hat hs0 hYs hsz _ henvK _ hjtR hT _ _ hh _ href Inv k
-    obtain ⟨hAtF0, hentw, hheap⟩ := hat s.mem (Mem.le_refl _) hs0.agree
+    obtain ⟨hAtF0, hentw, hheap⟩ := hat.2 s.mem (Mem.le_refl _) hs0.agree
+    have hxw := hat.1
     have hAtF : AtF img Cf.frame K.code i s := atF_mono (s := Mode.stOf s.mem s.fp) (Mem.le_refl _) rfl hAtF0
     obtain ⟨σ0, hσ0⟩ := hH s i hYs hi hpc
     obtain ⟨n, hon⟩ := hY s hYs
@@ -611,7 +613,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
         · cases hA
         · cases hg'
       refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.move (i + 1) (hfp'.trans hm.fp.symm) hi1
-        (by rw [hpc', hpc]; omega) (coreAt_of ⟨atF_mono (s := s') (Mem.le_refl _) rfl hat',
+        (by rw [hpc', hpc]; omega) (coreAt_of (by rw [hfp']; exact hxw) ⟨atF_mono (s := s') (Mem.le_refl _) rfl hat',
           fun o ho ↦ by rw [hfp']; exact written_mono hle (hentw o ho), fun σ hσ ↦ ?_⟩))
       rw [hfp'] at hσ
       obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ hσ
