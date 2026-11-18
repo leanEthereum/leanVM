@@ -22,11 +22,9 @@ impl Topology {
 
 /// The pool's shape, resolved once.
 ///
-/// `LEANVM_NUM_THREADS` sets the **performance**-worker count; the efficiency
-/// workers are added on top either way, because that count has always meant
-/// "how wide is the fast cluster" here and not "how many threads exist".
-/// `1` is the exception and means strictly sequential (no workers at all), so a
-/// single-threaded debugging run really is one thread.
+/// `LEANVM_NUM_THREADS` sets the total worker count, as in stable: performance
+/// workers first, efficiency workers only beyond the performance cores. `1` is
+/// strictly sequential.
 #[must_use]
 pub(crate) fn topology() -> Topology {
     static TOPOLOGY: OnceLock<Topology> = OnceLock::new();
@@ -36,11 +34,13 @@ pub(crate) fn topology() -> Topology {
             .and_then(|v| v.parse::<usize>().ok())
             .filter(|&n| n > 0);
         match requested {
-            Some(1) => Topology { perf: 1, efficiency: 0 },
-            Some(perf) => Topology {
-                perf,
-                efficiency: efficiency_cores(),
-            },
+            Some(n) => {
+                let efficiency = n.saturating_sub(perf_cores()).min(efficiency_cores());
+                Topology {
+                    perf: n - efficiency,
+                    efficiency,
+                }
+            }
             None => default_topology(),
         }
     })
