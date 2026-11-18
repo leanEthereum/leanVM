@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«open_stacked__L8».Bundle
 public import LeanVM.Guest.Pack.«P0».ModeSig
@@ -66,6 +66,30 @@ namespace LeanVM.Guest.Fn.«open_stacked__L8»
 open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
+
+/-- `open_stacked__L8`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 7442735078945713051 227959 (.node 281474976710656 48 (.node 4096 12 (.node 32 5 (.node 4 2
+    (.node 2 1 .leaf .leaf) .leaf) (.node 256 8 (.node 64 6 .leaf .leaf) .leaf)) (.node 67108864 26
+    (.node 21299200 144 (.node 16777216 24 .leaf .leaf) .leaf) (.node 32671816220672 224 .leaf
+    .leaf))) (.node 2449442846066618183 228225 (.node 263394960066080457 255112 (.node
+    189948466991927809 211772 (.node 4503599627370496 52 .leaf .leaf) .leaf) (.node
+    1136939361062444328 229022 (.node 541592590206573793 228984 .leaf .leaf) .leaf)) (.node
+    5458150013391139265 227544 (.node 5405397590336203496 211564 (.node 5067725660081818543 227316
+    .leaf .leaf) .leaf) (.node 6095738154728431529 262387 .leaf .leaf)))) (.node
+    15064515975004158697 254111 (.node 12802326480367449568 1344 (.node 10614463159127582232 256188
+    (.node 9608883236568355683 19461 (.node 9024122636682322682 227771 .leaf .leaf) .leaf) (.node
+    11548470458783039602 255525 (.node 10832368265417339565 227271 .leaf .leaf) .leaf)) (.node
+    14693011118399557826 228415 (.node 14022478930070769683 229041 (.node 13126356741943426674
+    227505 .leaf .leaf) .leaf) (.node 14907889985550465024 254723 .leaf .leaf))) (.node
+    17225134000938741130 19521 (.node 15156664591578290114 229060 (.node 15118723590941701133 228374
+    (.node 15091472782572290054 254663 .leaf .leaf) .leaf) (.node 17206323065123237343 255160 .leaf
+    .leaf)) (.node 18052366753962031158 227732 (.node 17507127221548785060 227998 (.node
+    17328546603010882655 228186 .leaf .leaf) .leaf) (.node 18211151686742468448 229003 .leaf
+    .leaf)))))
+
+/-- `open_stacked__L8`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 
 /-- `open_stacked__L8`: a table call's callees' pcs. -/
 def frameCallee0 : List ℕ :=
@@ -137,7 +161,7 @@ def frameCallee16 : List ℕ :=
 
 /-- `open_stacked__L8`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 227038, 2321,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 227038, 2321,
     Fn.«open_stacked__L8».modeSig, (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node none (.node none (.node none (.node none (.node none (.node none (.node (some

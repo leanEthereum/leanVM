@@ -27,6 +27,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P1».DataLC
 public import LeanVM.Guest.CoreMode.Gen.«P1».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P1».Pair
 public import LeanVM.Guest.CoreMode.Pack.«P1».Frame0
+public import LeanVM.Guest.CoreMode.Pows.«P1»
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
@@ -44,7 +45,7 @@ open LeanVM.Guest
 
 /-- `eq_prefix_run__L7`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn49, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn49, Fn.«eq_prefix_run__L7».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -95,8 +96,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 49) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code49 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code49 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«eq_prefix_run__L7».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«eq_prefix_run__L7».fpows_ok
 
 /-- `eq_prefix_run__L7`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -113,7 +114,7 @@ open LeanVM.Guest
 
 /-- `plus_one_run__L23`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn154, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn154, Fn.«plus_one_run__L23».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -164,8 +165,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 154) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code154 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code154 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«plus_one_run__L23».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«plus_one_run__L23».fpows_ok
 
 /-- `plus_one_run__L23`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -182,7 +183,7 @@ open LeanVM.Guest
 
 /-- `block_selector__L10`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn175, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn175, Fn.«block_selector__L10».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -233,8 +234,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 175) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code175 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code175 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«block_selector__L10».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«block_selector__L10».fpows_ok
 
 /-- `block_selector__L10`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -251,7 +252,7 @@ open LeanVM.Guest
 
 /-- `verify_keccak_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn273, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn273, Fn.«verify_keccak_loop1».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -260,7 +261,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `verify_keccak_loop1`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `verify_keccak_loop1`: its signature translated. -/
@@ -297,8 +298,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 273) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code273 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code273 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«verify_keccak_loop1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«verify_keccak_loop1».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -317,7 +318,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn486, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn486, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -326,7 +327,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`: its signature translated. -/
@@ -368,8 +369,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 486) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code486 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code486 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».fpows_ok
 
 /-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -386,7 +387,7 @@ open LeanVM.Guest
 
 /-- `squeeze_point_from__L8`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn562, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn562, Fn.«squeeze_point_from__L8».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -437,8 +438,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 562) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code562 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code562 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«squeeze_point_from__L8».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«squeeze_point_from__L8».fpows_ok
 
 /-- `squeeze_point_from__L8`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -455,7 +456,7 @@ open LeanVM.Guest
 
 /-- `fold_final_msg__L4`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn574, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn574, Fn.«fold_final_msg__L4».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -506,8 +507,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 574) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code574 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code574 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«fold_final_msg__L4».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«fold_final_msg__L4».fpows_ok
 
 /-- `fold_final_msg__L4`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -524,7 +525,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L7_L23_L5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn724, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn724, Fn.«level_positions__L7_L23_L5».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -533,7 +534,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_positions__L7_L23_L5`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L7_L23_L5`: its signature translated. -/
@@ -575,8 +576,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 724) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code724 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code724 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L7_L23_L5».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L7_L23_L5».fpows_ok
 
 /-- `level_positions__L7_L23_L5`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -593,7 +594,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn762, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn762, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -602,7 +603,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: its signature translated. -/
@@ -644,8 +645,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 762) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code762 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code762 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».fpows_ok
 
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -662,7 +663,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L14_L28_L4`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn892, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn892, Fn.«level_positions__L14_L28_L4».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -671,7 +672,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_positions__L14_L28_L4`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L14_L28_L4`: its signature translated. -/
@@ -713,8 +714,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 892) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code892 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code892 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L14_L28_L4».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L14_L28_L4».fpows_ok
 
 /-- `level_positions__L14_L28_L4`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -731,7 +732,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L10_L26_L2`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn898, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn898, Fn.«level_positions__L10_L26_L2».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -740,7 +741,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_positions__L10_L26_L2`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L10_L26_L2`: its signature translated. -/
@@ -782,8 +783,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 898) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code898 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code898 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L10_L26_L2».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L10_L26_L2».fpows_ok
 
 /-- `level_positions__L10_L26_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -800,7 +801,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L44_L10_L4_L2_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1000, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1000, Fn.«level_residual__L44_L10_L4_L2_loop1».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -809,7 +810,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_residual__L44_L10_L4_L2_loop1`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L44_L10_L4_L2_loop1`: its signature translated. -/
@@ -846,8 +847,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1000) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1000 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1000 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L44_L10_L4_L2_loop1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L44_L10_L4_L2_loop1».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -866,7 +867,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1028, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1028, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -875,7 +876,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: its signature translated. -/
@@ -917,8 +918,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1028) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1028 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1028 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».fpows_ok
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -935,7 +936,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L218_L15_L6_L3_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1030, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1030, Fn.«level_residual__L218_L15_L6_L3_loop0».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -944,7 +945,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_residual__L218_L15_L6_L3_loop0`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L218_L15_L6_L3_loop0`: its signature translated. -/
@@ -981,8 +982,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1030) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1030 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1030 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L218_L15_L6_L3_loop0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L218_L15_L6_L3_loop0».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -1001,7 +1002,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L73_L15_L6_L3_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1035, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1035, Fn.«level_residual__L73_L15_L6_L3_loop1».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -1010,7 +1011,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_residual__L73_L15_L6_L3_loop1`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L73_L15_L6_L3_loop1`: its signature translated. -/
@@ -1047,8 +1048,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1035) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1035 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1035 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L73_L15_L6_L3_loop1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L73_L15_L6_L3_loop1».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -1067,7 +1068,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1098, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1098, Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -1076,7 +1077,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: its signature translated. -/
@@ -1118,8 +1119,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1098) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1098 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1098 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».fpows_ok
 
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -1136,7 +1137,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L19_L8_L4_L2_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1262, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1262, Fn.«level_residual__L19_L8_L4_L2_loop0».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -1145,7 +1146,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_residual__L19_L8_L4_L2_loop0`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L19_L8_L4_L2_loop0`: its signature translated. -/
@@ -1182,8 +1183,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1262) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1262 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1262 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L19_L8_L4_L2_loop0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L19_L8_L4_L2_loop0».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -1202,7 +1203,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L25_L13_L4_L2_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1300, Data.powTree, [], [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1300, Fn.«level_residual__L25_L13_L4_L2_loop1».pows, [], [], [], false, [], []⟩
 
 end
 
@@ -1211,7 +1212,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_residual__L25_L13_L4_L2_loop1`: the heap check, by its loop rules. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L25_L13_L4_L2_loop1`: its signature translated. -/
@@ -1248,8 +1249,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 1300) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1300 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1300 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L25_L13_L4_L2_loop1».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L25_L13_L4_L2_loop1».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -1268,7 +1269,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L44_L24_L6_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1359, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1359, Fn.«level_positions__L44_L24_L6_loop0».pows, [], csigs, [], false, [], []⟩
 
 end
 
@@ -1277,7 +1278,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `level_positions__L44_L24_L6_loop0`: the heap check, by its loop rules, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L44_L24_L6_loop0`: its signature translated. -/
@@ -1318,8 +1319,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   hints := Mode.hintsEq_of_fn (j := 1359) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1359 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1359 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L44_L24_L6_loop0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L44_L24_L6_loop0».fpows_ok
   hc := rfl
   hcs := rfl
 
@@ -1338,7 +1339,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1482, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1482, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0».pows, [], csigs, [], false, [], []⟩
 
 end
 
@@ -1347,7 +1348,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0`: the heap check, by its loop rules, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0`: its signature translated. -/
@@ -1388,8 +1389,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   hints := Mode.hintsEq_of_fn (j := 1482) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code1482 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1482 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0».fpows_ok
   hc := rfl
   hcs := rfl
 

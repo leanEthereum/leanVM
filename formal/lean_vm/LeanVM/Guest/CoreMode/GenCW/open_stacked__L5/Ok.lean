@@ -20,11 +20,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«open_stacked__L5».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 897 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 897 st2 = true := by
+theorem last_ok : lastOkF Fn.«open_stacked__L5».pows sigW core hcert 897 st2 = true := by
   decide +kernel
 
 end
@@ -35,7 +35,7 @@ namespace LeanVM.Guest.Fn.«open_stacked__L5»
 @[expose] public section
 
 /-- `open_stacked__L5`: the heap check, in 2 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«open_stacked__L5».pows
     (fun g ↦ match g with
     | "fold_final_msg__L3" => Fn.«fold_final_msg__L3».hcert.sig
     | "grind_check__L15" => Fn.«grind_check__L15».hcert.sig | "grind_check__L17" => Fn.«grind_check__L17».hcert.sig

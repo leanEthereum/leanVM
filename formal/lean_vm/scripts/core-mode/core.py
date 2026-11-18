@@ -87,8 +87,8 @@ def checks(k, j, K, frame, heap):
             f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
             f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
-            f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
-            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n\n'
+            f'  pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := Mode.fnSpecC_of core_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
@@ -104,10 +104,10 @@ def cfun_c(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Fn.«{k}».pows, [], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
-            f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
+            f'theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
             + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)'))
 
 
@@ -117,10 +117,10 @@ def cfun_l(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], [], [], false, [], []⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Fn.«{k}».pows, [], [], [], false, [], []⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, by its loop rules. -/\n'
-            f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
+            f'theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
             f'/-- `{k}`: its signature translated. -/\n'
             f'theorem loop_sig : CoreMode.sigOkL modeFun.sig hcert.sig core.params.length = true := by\n'
             f'  decide +kernel\n\n'
@@ -150,8 +150,8 @@ def cfun_l(k, j, K, frame):
             f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
             f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
-            f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
-            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
+            f'  pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok\n'
             f'  hc := rfl\n'
             f'  hcs := rfl\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
@@ -165,10 +165,10 @@ def cfun_lc(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, [], false, [], []⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Fn.«{k}».pows, [], csigs, [], false, [], []⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, by its loop rules, at its callees\' heap signatures. -/\n'
-            f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
+            f'theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
             f'/-- `{k}`: its signature translated. -/\n'
             f'theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by\n'
             f'  decide +kernel\n\n'
@@ -202,8 +202,8 @@ def cfun_lc(k, j, K, frame):
             f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
             f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
-            f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
-            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
+            f'  pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok\n'
             f'  hc := rfl\n'
             f'  hcs := rfl\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
@@ -249,6 +249,7 @@ def main():
             j = R[k]['j']
             imps.add(quote(frames[k])); imps.add(quote(codes[str(j)]))
             imps.add(quote(pair_mod(po[k][0], k)))
+            imps.add('LeanVM.Guest.CoreMode.Pows.«%s»' % po[k][0])
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
@@ -274,7 +275,7 @@ def main():
                 f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
                 f'/-- `{k}`: what the core route knows of it. -/\n'
                 f'noncomputable def cfun : CoreMode.CFun :=\n'
-                f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, hpost, [], [], false, [], []⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
+                f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Fn.«{k}».pows, hpost, [], [], false, [], []⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
                 f'/-- `{k}`: its promised cells witnessed. -/\n'
                 f'theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by\n  decide +kernel\n\n'
                 + checks(k, j, K, frame_term(frames[k]), '.m1 heap_ok core_post (by decide +kernel) rfl rfl rfl'))

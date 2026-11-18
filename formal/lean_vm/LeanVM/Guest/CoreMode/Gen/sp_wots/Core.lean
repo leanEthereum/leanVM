@@ -11,6 +11,7 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.sp_wots.sp_wots.Ok
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Ok
 public import LeanVM.Guest.CoreMode.Pack.sp_wots.FrameL0
+public import LeanVM.Guest.CoreMode.Pows.«sp_wots»
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
@@ -27,7 +28,7 @@ open LeanVM.Guest
 
 /-- `sp_wots`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn20, Data.powTree, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn20, Fn.«sp_wots».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -78,8 +79,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 20) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code20 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code20 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«sp_wots».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«sp_wots».fpows_ok
 
 /-- `sp_wots`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok

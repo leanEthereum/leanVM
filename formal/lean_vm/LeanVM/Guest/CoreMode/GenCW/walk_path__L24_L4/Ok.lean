@@ -19,11 +19,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«walk_path__L24_L4».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 14 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 14 st1 = true := by
+theorem last_ok : lastOkF Fn.«walk_path__L24_L4».pows sigW core hcert 14 st1 = true := by
   decide +kernel
 
 end
@@ -34,7 +34,7 @@ namespace LeanVM.Guest.Fn.«walk_path__L24_L4»
 @[expose] public section
 
 /-- `walk_path__L24_L4`: the heap check, in 1 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«walk_path__L24_L4».pows
     (fun _ ↦ .empty)
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(14, HeapW.st1)]) HeapW.head_ok

@@ -393,7 +393,7 @@ def emit(out_dir, res):
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of `{ks[0]}` and {len(ks) - 1} more.')
-        ok += (f'public import LeanVM.Guest.CoreMode.Heap\npublic import LeanVM.Guest.Data.Pows\n'
+        ok += (f'public import LeanVM.Guest.CoreMode.Heap\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
                f'public import LeanVM.Guest.Pack.«{pack}».{coremod}\n'
                f'public import LeanVM.Guest.CoreMode.Gen.«{pack}».Data\n\nset_option Elab.async false\n')
         for k in ks:
@@ -407,7 +407,7 @@ def emit(out_dir, res):
                      f'{lean_cert(res[k], R[k]["pre"] if k in R else None)}{post}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by\n'
+                   f'theorem heap_ok : CoreMode.heapOk Fn.«{k}».pows (fun _ ↦ .empty) core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for name, text in (('Data', data), ('Ok', ok)):
             path = os.path.join(d, name + '.lean')

@@ -19,11 +19,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 3166 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 3166 st1 = true := by
+theorem last_ok : lastOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert 3166 st1 = true := by
   decide +kernel
 
 end
@@ -34,7 +34,7 @@ namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`: the heap check, in 1 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_sig_lean_sphincs».pows
     (fun g ↦ match g with
     | "sp_wots" => Fn.«sp_wots».hcert.sig | _ => .empty)
     core hcert = true :=

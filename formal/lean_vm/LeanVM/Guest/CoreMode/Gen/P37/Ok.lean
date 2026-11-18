@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P37»
 public import LeanVM.Guest.Pack.«P37».Core
 public import LeanVM.Guest.CoreMode.Gen.«P37».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L19»
 @[expose] public section
 
 /-- `padding_weight__L19`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«padding_weight__L19».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -30,7 +30,7 @@ namespace LeanVM.Guest.Fn.«sel_partial_nibble__L1»
 @[expose] public section
 
 /-- `sel_partial_nibble__L1`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«sel_partial_nibble__L1».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -41,7 +41,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L11»
 @[expose] public section
 
 /-- `squeeze_point_from__L11`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L11».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«walk_path__L24_L2»
 public import LeanVM.Guest.Pack.«walk_path__L24_L2».Core
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L2».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«walk_path__L24_L2»
 @[expose] public section
 
 /-- `walk_path__L24_L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«walk_path__L24_L2».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

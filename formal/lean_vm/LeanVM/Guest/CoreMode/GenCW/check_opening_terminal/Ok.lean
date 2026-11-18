@@ -24,11 +24,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«check_opening_terminal».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 388 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 388 st6 = true := by
+theorem last_ok : lastOkF Fn.«check_opening_terminal».pows sigW core hcert 388 st6 = true := by
   decide +kernel
 
 end
@@ -39,7 +39,7 @@ namespace LeanVM.Guest.Fn.«check_opening_terminal»
 @[expose] public section
 
 /-- `check_opening_terminal`: the heap check, in 6 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«check_opening_terminal».pows
     (fun g ↦ match g with
     | "__loop0_check_opening_terminal" => Fn.«check_opening_terminal_loop0».hcert.sig
     | "column_selector__L0" => Fn.«column_selector__L0».hcert.sig

@@ -28,11 +28,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the tail's shape, the entry state. -/
-theorem head_ok : headOk Data.powTree sigW core hcert (.val 1) 2182 st0 = true := by
+theorem head_ok : headOk Fn.«child_claim_list_mono_loop0».pows sigW core hcert (.val 1) 2182 st0 = true := by
   decide +kernel
 
 /-- The tail call and the guarantees at `ret []`. -/
-theorem tail_ok : tailOkW Data.powTree sigW core hcert (.val 1) st11 = true := by
+theorem tail_ok : tailOkW Fn.«child_claim_list_mono_loop0».pows sigW core hcert (.val 1) st11 = true := by
   decide +kernel
 
 end
@@ -43,7 +43,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 @[expose] public section
 
 /-- `child_claim_list_mono_loop0`: the heap check, in 11 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«child_claim_list_mono_loop0».pows
     (fun g ↦ match g with
     | "__loop0_child_claim_list_mono" => Fn.«child_claim_list_mono_loop0».hcert.sig | _ => .empty)
     core hcert = true :=

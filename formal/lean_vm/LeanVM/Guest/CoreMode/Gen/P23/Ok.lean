@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P23»
 public import LeanVM.Guest.Pack.«P23».Core
 public import LeanVM.Guest.CoreMode.Gen.«P23».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L32»
 @[expose] public section
 
 /-- `index_mle__L32`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L32».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -30,7 +30,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L13»
 @[expose] public section
 
 /-- `padding_weight__L13`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«padding_weight__L13».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -41,7 +41,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L6»
 @[expose] public section
 
 /-- `padding_weight__L6`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«padding_weight__L6».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

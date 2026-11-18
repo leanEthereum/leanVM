@@ -110,13 +110,13 @@ def fnData(D, n, cuts):
         sigs[entry] = '%s.modeSig' % MG.fnq(n)
     packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used}
     fx = D['facts'][n]
-    facts = '{ env := %s, fpOne := %s, pows := Data.powTree, scaled := %s }' % (
+    facts = '{ env := %s, fpOne := %s, pows := fpows, scaled := %s }' % (
         lst(sorted(fx['env'].items()), lambda p: '(%d, %s)' % (p[0], sym(p[1]))),
         'true' if fx['fpOne'] else 'false', lst(fx['scaled']))
     global ADV
     if ADV is None: ADV = adviceIdx()
     hints = 'Data.adviceFn%d.2.2' % ADV[n]
-    defs = []
+    defs = [fpowsDef(D['fns'][n]['ns'])]
     tidx, tarms, tcalls = tgt
     names = {}
     for nm, tab, what in (('frameArm', tarms, 'a table jump\'s arms, as offsets'), ('frameCallee', tcalls, 'a table call\'s callees\' pcs')):
@@ -147,7 +147,7 @@ def header(mod, what):
 
 
 def imports(pack, packs, gens=()):
-    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.Data.Pows',
+    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.Pow',
            'public import Statement.Data.AdviceHints',
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
     out += ['public import %s' % pair_mod(g, n) for g, n in sorted(set(gens))]
@@ -167,6 +167,25 @@ def pair_mod(g, n):
 def ns(n, body):
     return ('\nnamespace LeanVM.Guest.Fn.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n@[expose] public section\n\n%s'
             '\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (n, body, n))
+
+
+FPOWS = None
+
+
+def fpowsDef(k):
+    """`k`'s frame walk's powers of `g`: the immediates of its code's `SET`s that `Data.powTree` names (code
+    pointers among them, as the walk's other data), checked by the kernel."""
+    global FPOWS
+    if FPOWS is None:
+        import pows as PW
+        G = PW.global_pows(); FPOWS = {}
+        for path in glob.glob(os.path.join(FD.ROOT, 'Pack', '*', 'Bundle*.lean')):
+            for m in PW.NS.finditer(open(path, encoding='utf-8').read()):
+                FPOWS.setdefault(m.group(1), set()).update(int(x) for x in PW.SET.findall(m.group(2)) if int(x) in G)
+        FPOWS = {key: PW.tree(sorted((x, G[x]) for x in xs)) for key, xs in FPOWS.items()}
+    return ('/-- `%s`: the powers of `g` its code names. -/\nnoncomputable def fpows : PowTree :=\n  %s\n\n'
+            '/-- `%s`: its code\'s powers are powers of `g`. -/\n'
+            'theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)\n\n' % (k, FPOWS.get(k, '.leaf'), k))
 
 
 def funDef(D, n, lit, defs):

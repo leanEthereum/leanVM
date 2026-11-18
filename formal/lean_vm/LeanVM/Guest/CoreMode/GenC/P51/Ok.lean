@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P51»
 public import LeanVM.Guest.CoreMode.GenC.«P11».Data
 public import LeanVM.Guest.CoreMode.GenC.«P17».Data
 public import LeanVM.Guest.CoreMode.GenC.«P23».Data
@@ -28,7 +28,7 @@ namespace LeanVM.Guest.Fn.«block_selector__L30»
 @[expose] public section
 
 /-- `block_selector__L30`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«block_selector__L30».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -41,7 +41,7 @@ namespace LeanVM.Guest.Fn.«block_selector_tab__L23»
 @[expose] public section
 
 /-- `block_selector_tab__L23`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«block_selector_tab__L23».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -54,7 +54,7 @@ namespace LeanVM.Guest.Fn.«block_selector_tab__L5»
 @[expose] public section
 
 /-- `block_selector_tab__L5`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«block_selector_tab__L5».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -67,7 +67,7 @@ namespace LeanVM.Guest.Fn.«certify_placement»
 @[expose] public section
 
 /-- `certify_placement`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«certify_placement».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -80,7 +80,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_last__L14»
 @[expose] public section
 
 /-- `child_claim_list_last__L14`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«child_claim_list_last__L14».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -93,7 +93,7 @@ namespace LeanVM.Guest.Fn.«claim_list_last__L11»
 @[expose] public section
 
 /-- `claim_list_last__L11`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«claim_list_last__L11».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -106,7 +106,7 @@ namespace LeanVM.Guest.Fn.«decode_query_windows__L26_L2»
 @[expose] public section
 
 /-- `decode_query_windows__L26_L2`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«decode_query_windows__L26_L2».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
@@ -119,7 +119,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L7_L14_L2_loop0»
 @[expose] public section
 
 /-- `level_positions__L7_L14_L2_loop0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_positions__L7_L14_L2_loop0».pows
     (fun g ↦ match g with
     | "__loop0_level_positions__L7_L14_L2" => Fn.«level_positions__L7_L14_L2_loop0».hcert.sig
     | "decode_query_windows__L14_L2" => Fn.«decode_query_windows__L14_L2».hcert.sig | _ => .empty)
@@ -134,7 +134,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1»
 @[expose] public section
 
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».pows
     (fun g ↦ match g with
     | "opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1" => Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».hcert.sig
     | "verify_merkle_cap__L5" => Fn.«verify_merkle_cap__L5».hcert.sig | _ => .empty)
@@ -149,7 +149,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1»
 @[expose] public section
 
 /-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».pows
     (fun g ↦ match g with
     | "opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1" => Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1».hcert.sig
     | "verify_merkle_cap__L3" => Fn.«verify_merkle_cap__L3».hcert.sig | _ => .empty)
@@ -164,7 +164,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0»
 @[expose] public section
 
 /-- `level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».pows
     (fun g ↦ match g with
     | "opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0" => Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».hcert.sig
     | "verify_merkle_cap__L7" => Fn.«verify_merkle_cap__L7».hcert.sig | _ => .empty)
@@ -179,7 +179,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2»
 @[expose] public section
 
 /-- `level_residual__L17_L7_L4_L2`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_residual__L17_L7_L4_L2».pows
     (fun g ↦ match g with
     | "__loop0_level_residual__L17_L7_L4_L2" => Fn.«level_residual__L17_L7_L4_L2_loop0».hcert.sig
     | "__loop1_level_residual__L17_L7_L4_L2" => Fn.«level_residual__L17_L7_L4_L2_loop1».hcert.sig | _ => .empty)
@@ -194,7 +194,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2_loop0»
 @[expose] public section
 
 /-- `level_residual__L37_L20_L4_L2_loop0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«level_residual__L37_L20_L4_L2_loop0».pows
     (fun g ↦ match g with
     | "__loop0_level_residual__L37_L20_L4_L2" => Fn.«level_residual__L37_L20_L4_L2_loop0».hcert.sig | _ => .empty)
     core hcert = true := by
@@ -208,7 +208,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1�
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».pows
     (fun g ↦ match g with
     | "__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1" => Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».hcert.sig
     | _ => .empty)
@@ -223,7 +223,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1�
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».pows
     (fun g ↦ match g with
     | "__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1" => Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».hcert.sig
     | _ => .empty)
@@ -238,7 +238,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0�
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».pows
     (fun g ↦ match g with
     | "__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0" => Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».hcert.sig
     | _ => .empty)
@@ -253,7 +253,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0�
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».pows
     (fun g ↦ match g with
     | "__loop0_opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0" => Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».hcert.sig
     | _ => .empty)
@@ -268,7 +268,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0�
 @[expose] public section
 
 /-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».pows
     (fun g ↦ match g with
     | "__loop0_opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0" => Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».hcert.sig
     | _ => .empty)
@@ -283,7 +283,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L17»
 @[expose] public section
 
 /-- `squeeze_point_from__L17`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«squeeze_point_from__L17».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel

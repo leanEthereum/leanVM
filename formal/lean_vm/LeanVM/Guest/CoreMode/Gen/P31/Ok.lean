@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P31»
 public import LeanVM.Guest.Pack.«P31».Core
 public import LeanVM.Guest.CoreMode.Gen.«P31».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L3»
 @[expose] public section
 
 /-- `index_mle__L3`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L3».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

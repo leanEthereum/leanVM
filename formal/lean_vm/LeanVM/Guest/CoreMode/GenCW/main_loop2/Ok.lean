@@ -56,11 +56,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the tail's shape, the entry state. -/
-theorem head_ok : headOk Data.powTree sigW core hcert (.val 1) 327 st0 = true := by
+theorem head_ok : headOk Fn.«main_loop2».pows sigW core hcert (.val 1) 327 st0 = true := by
   decide +kernel
 
 /-- The tail call and the guarantees at `ret []`. -/
-theorem tail_ok : tailOkW Data.powTree sigW core hcert (.val 1) st39 = true := by
+theorem tail_ok : tailOkW Fn.«main_loop2».pows sigW core hcert (.val 1) st39 = true := by
   decide +kernel
 
 end
@@ -71,7 +71,7 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 @[expose] public section
 
 /-- `main_loop2`: the heap check, in 39 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«main_loop2».pows
     (fun g ↦ match g with
     | "__loop2_main" => Fn.«main_loop2».hcert.sig | _ => .empty)
     core hcert = true :=

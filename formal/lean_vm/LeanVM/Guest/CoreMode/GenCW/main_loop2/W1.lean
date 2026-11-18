@@ -11,7 +11,7 @@ public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S1
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S2
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W1A0
 public import LeanVM.Guest.CoreMode.HeapCWinM
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option Elab.async false
@@ -31,7 +31,7 @@ theorem nr1 : nrL (((Memory.loopBody core).drop 79).take 1) = true := by
   decide +kernel
 
 /-- Statement 79, from 1 windows of its arms. -/
-theorem win1 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 79).take (80 - 79)) st1 st2 = true :=
+theorem win1 : winOk Fn.«main_loop2».pows sigW core hcert (((Memory.loopBody core).drop 79).take (80 - 79)) st1 st2 = true :=
   winOk_of_arms (a := 79) (ss := [sum1_0]) (l := [(256, (4, 1, 0, 0))]) join1 nr1
     ⟨arms1_0, by omega,
     trivial⟩ rfl

@@ -135,6 +135,8 @@ part_core_mode() {
     esac
   fi
   [ -f "$MODE_CERT_CACHE" ] || part_mode
+  step "core-mode: each function's powers of g (scripts/core-mode/pows.py)"
+  python3 -I scripts/core-mode/pows.py "${check[@]}"
   step "core-mode: the inference's heap certificates (scripts/core-mode/emitc.py)"
   python3 -I scripts/core-mode/emitc.py "${check[@]}"
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"

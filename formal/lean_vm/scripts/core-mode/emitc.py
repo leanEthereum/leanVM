@@ -9,7 +9,7 @@ taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost word
 values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
 
 Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
-`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
+`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC pows sigOf core hcert =
 true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
 (the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
 carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
@@ -1520,7 +1520,7 @@ def emit(out, res, check_only, only=None):
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of {len(oks)} functions.')
-        ok += 'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.Data.Pows\n'
+        ok += f'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
@@ -1535,7 +1535,7 @@ def emit(out, res, check_only, only=None):
             sig = sig_text(arms)
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
+                   f'theorem heap_okC : CoreMode.heapOkC Fn.«{k}».pows\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files = [('Data', data)] + ([('Ok', ok)] if oks else [])
         for name, text in files:

@@ -24,11 +24,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«sp_wots».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 111 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 111 st6 = true := by
+theorem last_ok : lastOkF Fn.«sp_wots».pows sigW core hcert 111 st6 = true := by
   decide +kernel
 
 end
@@ -39,7 +39,7 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 @[expose] public section
 
 /-- `sp_wots`: the heap check, in 6 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«sp_wots».pows
     (fun _ ↦ .empty)
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(36, HeapW.st1), (51, HeapW.st2), (66, HeapW.st3), (81, HeapW.st4), (96, HeapW.st5), (111, HeapW.st6)]) HeapW.head_ok

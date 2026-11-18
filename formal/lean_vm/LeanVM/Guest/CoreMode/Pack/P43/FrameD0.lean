@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«P43».ModeSig
@@ -20,6 +20,46 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
+
+/-- `main_loop2`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 115964116992 96 (.node 524288 19 (.node 1024 10 (.node 54 65 (.node 16 4 (.node 4 2 (.node
+    2 1 .leaf .leaf) (.node 8 3 .leaf .leaf)) (.node 32 5 (.node 27 64 .leaf .leaf) .leaf)) (.node
+    216 67 (.node 108 66 (.node 64 6 .leaf .leaf) (.node 128 7 .leaf .leaf)) (.node 512 9 (.node 256
+    8 .leaf .leaf) .leaf))) (.node 27648 74 (.node 8192 13 (.node 4096 12 (.node 2048 11 .leaf
+    .leaf) (.node 6912 72 .leaf .leaf)) (.node 16384 14 (.node 13824 73 .leaf .leaf) .leaf)) (.node
+    65536 16 (.node 55296 75 (.node 32768 15 .leaf .leaf) .leaf) (.node 262144 18 (.node 131072 17
+    .leaf .leaf) .leaf)))) (.node 268435456 28 (.node 8388608 23 (.node 3538944 81 (.node 1769472 80
+    (.node 1048576 20 .leaf .leaf) (.node 2097152 21 .leaf .leaf)) (.node 7077888 82 (.node 4194304
+    22 .leaf .leaf) .leaf)) (.node 33554432 25 (.node 16777216 24 (.node 14155776 83 .leaf .leaf)
+    .leaf) (.node 134217728 27 (.node 67108864 26 .leaf .leaf) .leaf))) (.node 3623878656 91 (.node
+    1073741824 30 (.node 536870912 29 (.node 452984832 88 .leaf .leaf) (.node 905969664 89 .leaf
+    .leaf)) (.node 2147483648 31 (.node 1811939328 90 .leaf .leaf) .leaf)) (.node 17179869184 34
+    (.node 8589934592 33 (.node 4294967296 32 .leaf .leaf) .leaf) (.node 68719476736 36 (.node
+    34359738368 35 .leaf .leaf) .leaf))))) (.node 15199648742375424 113 (.node 35184372088832 45
+    (.node 1099511627776 40 (.node 463856467968 98 (.node 231928233984 97 (.node 137438953472 37
+    .leaf .leaf) (.node 274877906944 38 .leaf .leaf)) (.node 927712935936 99 (.node 549755813888 39
+    .leaf .leaf) .leaf)) (.node 8796093022208 43 (.node 4398046511104 42 (.node 2199023255552 41
+    .leaf .leaf) .leaf) (.node 29686813949952 104 (.node 17592186044416 44 .leaf .leaf) .leaf)))
+    (.node 562949953421312 49 (.node 140737488355328 47 (.node 70368744177664 46 (.node
+    59373627899904 105 .leaf .leaf) (.node 118747255799808 106 .leaf .leaf)) (.node 281474976710656
+    48 (.node 237494511599616 107 .leaf .leaf) .leaf)) (.node 4503599627370496 52 (.node
+    2251799813685248 51 (.node 1125899906842624 50 .leaf .leaf) .leaf) (.node 9007199254740992 53
+    (.node 7599824371187712 112 .leaf .leaf) .leaf)))) (.node 2848572470398227289 164816 (.node
+    144115188075855872 57 (.node 39702870966996352 1551 (.node 30399297484750848 114 (.node
+    18014398509481984 54 .leaf .leaf) (.node 36028797018963968 55 .leaf .leaf)) (.node
+    72057594037927936 56 (.node 60798594969501696 115 .leaf .leaf) .leaf)) (.node
+    1152921504606846976 60 (.node 576460752303423488 59 (.node 288230376151711744 58 .leaf .leaf)
+    .leaf) (.node 2305843009213693952 61 (.node 1945555039024054272 120 .leaf .leaf) .leaf))) (.node
+    10240294073716224780 105587 (.node 7782220156096217088 122 (.node 4611686018427387904 62 (.node
+    3891110078048108544 121 .leaf .leaf) (.node 6462469311671492357 178463 .leaf .leaf)) (.node
+    9223372036854810629 255 (.node 9223372036854775808 63 .leaf .leaf) .leaf)) (.node
+    12177866867166442896 64313 (.node 11860645527722713940 173850 (.node 11354521855352259551 123586
+    .leaf .leaf) .leaf) (.node 15564440312192434176 123 (.node 12364991819452173405 114624 .leaf
+    .leaf) .leaf))))))
+
+/-- `main_loop2`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 
 /-- `__loop2_main`: a table jump's arms, as offsets. -/
 def frameArm0 : List ℕ :=
@@ -14917,7 +14957,7 @@ noncomputable def frameCut15 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     .nil) .nil))) .nil))))) (.node none .nil (.node none (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
-noncomputable def frameO50 : Exec.Trie (Unit) :=
+noncomputable def frameO51 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
     .nil) .nil) (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))))
@@ -15535,7 +15575,7 @@ noncomputable def frameO50 : Exec.Trie (Unit) :=
     none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
     .nil) .nil) .nil)) .nil))))))))))
 
-noncomputable def frameO51 : Exec.Trie (Unit) :=
+noncomputable def frameO52 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
     .nil) (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node none (.node
@@ -16153,7 +16193,7 @@ noncomputable def frameO51 : Exec.Trie (Unit) :=
     .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some ())
     .nil .nil) .nil)) .nil)) .nil)))))))))
 
-noncomputable def frameO52 : Exec.Trie (Unit) :=
+noncomputable def frameO53 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node (some ()) .nil .nil) (.node none .nil (.node none .nil (.node
     (some ()) .nil .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
@@ -16779,7 +16819,7 @@ noncomputable def frameO52 : Exec.Trie (Unit) :=
     .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
     .nil))))))))))))
 
-noncomputable def frameO53 : Exec.Trie (Unit) :=
+noncomputable def frameO54 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))
     (.node none (.node (some ()) .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
@@ -17389,7 +17429,7 @@ noncomputable def frameO53 : Exec.Trie (Unit) :=
     (.node none (.node none .nil (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
     (.node none (.node (some ()) .nil .nil) .nil))) .nil) .nil)))))))))
 
-noncomputable def frameO54 : Exec.Trie (Unit) :=
+noncomputable def frameO55 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil
     (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) (.node none (.node none
@@ -18010,7 +18050,7 @@ noncomputable def frameO54 : Exec.Trie (Unit) :=
     ()) .nil .nil) .nil) .nil) .nil)) (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
     (.node (some ()) .nil .nil))))))))))))
 
-noncomputable def frameO55 : Exec.Trie (Unit) :=
+noncomputable def frameO56 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node none .nil (.node none
     (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node none (.node (some ())
@@ -18622,7 +18662,7 @@ noncomputable def frameO55 : Exec.Trie (Unit) :=
     .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
     .nil)))))))))))
 
-noncomputable def frameO56 : Exec.Trie (Unit) :=
+noncomputable def frameO57 : Exec.Trie (Unit) :=
   (.node (some ()) (.node none (.node none (.node none (.node none (.node none (.node (some ())
     (.node none (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil)
     .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
@@ -19233,7 +19273,7 @@ noncomputable def frameO56 : Exec.Trie (Unit) :=
     ()) .nil .nil) .nil) .nil))) (.node none .nil (.node none (.node none (.node none (.node (some
     ()) .nil .nil) .nil) .nil) .nil)))))))))))
 
-noncomputable def frameO57 : Exec.Trie (Unit) :=
+noncomputable def frameO58 : Exec.Trie (Unit) :=
   (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
     (.node (some ()) (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil
     .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node none (.node (some
@@ -19858,7 +19898,7 @@ noncomputable def frameO57 : Exec.Trie (Unit) :=
 
 /-- `__loop2_main`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [(58, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [58] }, 64313, 114219,
+  ⟨{ env := [(58, (.fpg 0))], fpOne := false, pows := fpows, scaled := [58] }, 64313, 114219,
     Fn.«main_loop2».modeSig, .nil, 524287, Data.adviceFn39.2.2, .nil, (.node none (.node none (.node
     none (.node none (.node none (.node none (.node none (.node none (.node (some 1) (.node none
     (.node none .nil (.node none .nil (.node (some 3) (.node (some 4) .nil .nil) (.node none .nil
@@ -24765,8 +24805,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     frameArm20) .nil .nil) (.node (some frameArm28) .nil .nil))) (.node (some frameArm6) (.node
     (some frameArm10) (.node (some frameArm18) .nil .nil) (.node (some frameArm26) .nil .nil))
     (.node (some frameArm14) (.node (some frameArm22) .nil .nil) (.node (some frameArm30) .nil
-    .nil))))), .nil, (.node none (.node none (.node none frameO50 frameO51) (.node none frameO52
-    frameO53)) (.node none (.node none frameO54 frameO55) (.node none frameO56 frameO57))), .nil,
+    .nil))))), .nil, (.node none (.node none (.node none frameO51 frameO52) (.node none frameO53
+    frameO54)) (.node none (.node none frameO55 frameO56) (.node none frameO57 frameO58))), .nil,
     (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node (some frameCut15) .nil .nil)) .nil))) .nil)) .nil)))

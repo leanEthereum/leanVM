@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S17
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S18
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option Elab.async false
@@ -21,7 +21,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 173 to 175. -/
-theorem win17 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 173).take (176 - 173)) st17 st18 = true := by
+theorem win17 : winOk Fn.«main_loop2».pows sigW core hcert (((Memory.loopBody core).drop 173).take (176 - 173)) st17 st18 = true := by
   decide +kernel
 
 end

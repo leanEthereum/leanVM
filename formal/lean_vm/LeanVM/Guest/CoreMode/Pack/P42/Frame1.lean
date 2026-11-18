@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
@@ -24,9 +24,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_residual__L18_L12_L4_L2_loop1`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 4423402235512700040 407079 (.node 2 1 .leaf .leaf) (.node 12682136550675316763 124 .leaf
+    .leaf))
+
+/-- `level_residual__L18_L12_L4_L2_loop1`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `__loop1_level_residual__L18_L12_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 407079, 113,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 407079, 113,
     Fn.«level_residual__L18_L12_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1450.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L18_L12_L4_L2_loop1».pairO,
     Fn.«level_residual__L18_L12_L4_L2_loop1».pairS, .nil⟩
@@ -45,9 +53,19 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0`: the powers of `g` its code names.
+    -/
+noncomputable def fpows : PowTree :=
+  (.node 3927657457963793085 445888 (.node 2451572153831064802 448224 (.node 2 1 .leaf .leaf) .leaf)
+    (.node 6155922978765799973 729 .leaf .leaf))
+
+/-- `opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0`: its code's powers are powers of
+    `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `__loop0_opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [12] }, 448224, 604,
+  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := fpows, scaled := [12] }, 448224, 604,
     Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».modeSig, (.node none .nil (.node
     none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil

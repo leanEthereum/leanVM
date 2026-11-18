@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P45»
 public import LeanVM.Guest.Pack.«P45».Core
 public import LeanVM.Guest.CoreMode.Gen.«P45».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«eq_prefix_run__L32»
 @[expose] public section
 
 /-- `eq_prefix_run__L32`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L32».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -30,7 +30,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L23»
 @[expose] public section
 
 /-- `index_mle__L23`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L23».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -41,7 +41,7 @@ namespace LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
 @[expose] public section
 
 /-- `keccak_plain_rounds__L6_L0`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«keccak_plain_rounds__L6_L0».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -52,7 +52,7 @@ namespace LeanVM.Guest.Fn.«opening_tail_round»
 @[expose] public section
 
 /-- `opening_tail_round`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«opening_tail_round».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -63,7 +63,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L24»
 @[expose] public section
 
 /-- `padding_weight__L24`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«padding_weight__L24».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -74,7 +74,7 @@ namespace LeanVM.Guest.Fn.«plus_one_run__L5»
 @[expose] public section
 
 /-- `plus_one_run__L5`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L5».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -85,7 +85,7 @@ namespace LeanVM.Guest.Fn.«rs_eq_rows__L8»
 @[expose] public section
 
 /-- `rs_eq_rows__L8`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L8».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -96,7 +96,7 @@ namespace LeanVM.Guest.Fn.«walk_path__L18_L5»
 @[expose] public section
 
 /-- `walk_path__L18_L5`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«walk_path__L18_L5».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

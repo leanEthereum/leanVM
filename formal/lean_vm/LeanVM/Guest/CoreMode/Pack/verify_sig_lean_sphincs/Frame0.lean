@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Pair
@@ -23,9 +23,23 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `verify_sig_lean_sphincs`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 33554432 25 (.node 256 8 (.node 16 4 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf
+    .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf)) (.node 262144 18 (.node 16384 14 (.node
+    4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf
+    .leaf) .leaf))) (.node 18014398509481984 54 (.node 70368744177664 46 (.node 4294967296 32 (.node
+    67108864 26 .leaf .leaf) (.node 1099511627776 40 .leaf .leaf)) (.node 4503599627370496 52 (.node
+    281474976710656 48 .leaf .leaf) .leaf)) (.node 9223372036854775808 63 (.node 288230376151711744
+    58 (.node 72057594037927936 56 .leaf .leaf) (.node 1152921504606846976 60 .leaf .leaf)) (.node
+    13961177240429061390 33508 (.node 9223372036854810629 255 .leaf .leaf) .leaf))))
+
+/-- `verify_sig_lean_sphincs`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `verify_sig_lean_sphincs`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 57221, 3887,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 57221, 3887,
     Fn.«verify_sig_lean_sphincs».modeSig, (.node none .nil (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none (.node none (.node none (.node none (.node none (.node (some Fn.«sp_wots».modeSig)

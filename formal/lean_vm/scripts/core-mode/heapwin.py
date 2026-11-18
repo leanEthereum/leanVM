@@ -12,13 +12,13 @@ unchanged parts shared with the previous state). The windows cover a loop helper
 
 * `St.lean`: `sigW` (the callees' signatures, as `emitc.py` writes them); `S<i>.lean`: the state `st<i>` (importing
   `S<i-1>`, whose subtrees it shares);
-* `W<i>.lean`: `win<i> : winOk Data.powTree sigW core hcert (((loopBody core).drop a).take (b - a)) st<i> st<i+1> =
+* `W<i>.lean`: `win<i> : winOk Fn.«{k}».pows sigW core hcert (((loopBody core).drop a).take (b - a)) st<i> st<i+1> =
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
   `arms<i>_<t> : armsOkW ..` (the arms' summaries `sum<i>_<t>`) and `W<i>` the join (`joinOk`) and `win<i>` by
   `winOk_of_arms` (`winOkF_of_arms`);
 * `Ok.lean`: `head_ok`, `tail_ok` (a function: `last_ok`, the statements from the last cut on) and
-  `Fn.«fn».heap_okC : heapOkC Data.powTree sigOf core hcert = true` (the statement `emitc.py` writes for the other
+  `Fn.«fn».heap_okC : heapOkC pows sigOf core hcert = true` (the statement `emitc.py` writes for the other
   functions), by `heapOkC_of_wins` (`heapOkC_of_winsF`).
 
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/heapwin.py [--fn NAME,..]
@@ -373,7 +373,7 @@ def emit_arms(k, i, a, split, blk, ns, base, imps):
         x += f'namespace {ns}.HeapW\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
         x += ''.join(f'/-- Part of `sum{i}_{t}`. -/\n{d}\n' for d in ax.defs)
         x += f'/-- What the join reads of arms {j} to {j2 - 1}. -/\ndef sum{i}_{t} : List BlkSum := {sums}\n\n'
-        x += (f'/-- Arms {j} to {j2 - 1}. -/\ntheorem arms{i}_{t} : armsOkW Data.powTree sigW core hcert '
+        x += (f'/-- Arms {j} to {j2 - 1}. -/\ntheorem arms{i}_{t} : armsOkW Fn.«{k}».pows sigW core hcert '
               f'({blk}.drop {a}) '
               f'{j} ({j2} - {j}) st{i} {c0} sum{i}_{t} {lcnt(bl[j2 - 1][2])} = true := by\n  decide +kernel\n\n')
         x += f'end\nend {ns}.HeapW\n'
@@ -412,7 +412,7 @@ def emit(k, H, sts, cs, names, po, splits={}):
         si += f'\n/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := {text}\n'
         si += f'\nend\nend {ns}.HeapW\n'
         mods.append((f'S{i}', repack(si)))
-    imps = (f'public import LeanVM.Guest.Data.Pows\npublic import LeanVM.Guest.Pack.«{pack}».{core_mod}\n')
+    imps = (f'public import LeanVM.Guest.CoreMode.Pows.«{pack}»\npublic import LeanVM.Guest.Pack.«{pack}».{core_mod}\n')
     blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('core.body', 'winOkF')
     for i in range(nw):
         a, b = cs[i], cs[i + 1]
@@ -437,12 +437,12 @@ def emit(k, H, sts, cs, names, po, splits={}):
             if loop:
                 w += (f'/-- No `ret` in statement {a}. -/\ntheorem nr{i} : nrL (({blk}.drop {a}).take 1) = true := by\n'
                       f'  decide +kernel\n\n')
-            w += (f'/-- Statement {a}, from {m} windows of its arms. -/\ntheorem win{i} : {wok} Data.powTree sigW core '
+            w += (f'/-- Statement {a}, from {m} windows of its arms. -/\ntheorem win{i} : {wok} Fn.«{k}».pows sigW core '
                   f'hcert (({blk}.drop {a}).take ({b} - {a})) st{i} st{i + 1} = true :=\n'
                   f'  {wok}_of_arms (a := {a}) (ss := {sums}) (l := [{lst}]) join{i}{f" nr{i}" if loop else ""}\n'
                   f'    ⟨{wins}trivial⟩ rfl\n\nend\nend {ns}.HeapW\n')
         else:
-            w += (f'/-- Statements {a} to {b - 1}. -/\ntheorem win{i} : {wok} Data.powTree sigW '
+            w += (f'/-- Statements {a} to {b - 1}. -/\ntheorem win{i} : {wok} Fn.«{k}».pows sigW '
                   f'core hcert (({blk}.drop {a}).take ({b} - {a})) st{i} st{i + 1} = true := by\n'
                   f'  decide +kernel\n\nend\nend {ns}.HeapW\n')
         mods.append((f'W{i}', w))
@@ -454,20 +454,20 @@ def emit(k, H, sts, cs, names, po, splits={}):
     ok += f'\nset_option Elab.async false\n\nnamespace {ns}.HeapW\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
     if loop:
         lei = E.lidx(H.sig.term[0][1])
-        ok += (f'/-- The parameters, the tail\'s shape, the entry state. -/\ntheorem head_ok : headOk Data.powTree sigW core '
+        ok += (f'/-- The parameters, the tail\'s shape, the entry state. -/\ntheorem head_ok : headOk Fn.«{k}».pows sigW core '
                f'hcert {lei} {cs[-1]} st0 = true := by\n  decide +kernel\n\n')
-        ok += (f'/-- The tail call and the guarantees at `ret []`. -/\ntheorem tail_ok : tailOkW Data.powTree sigW core hcert '
+        ok += (f'/-- The tail call and the guarantees at `ret []`. -/\ntheorem tail_ok : tailOkW Fn.«{k}».pows sigW core hcert '
                f'{lei} st{n} = true := by\n  decide +kernel\n\n')
     else:
-        ok += (f'/-- The parameters, the entry state. -/\ntheorem head_ok : headOkF Data.powTree sigW core hcert st0 = '
+        ok += (f'/-- The parameters, the entry state. -/\ntheorem head_ok : headOkF Fn.«{k}».pows sigW core hcert st0 = '
                f'true := by\n  decide +kernel\n\n')
-        ok += (f'/-- Statements {cs[-2]} to the end. -/\ntheorem last_ok : lastOkF Data.powTree sigW core hcert {cs[-2]} '
+        ok += (f'/-- Statements {cs[-2]} to the end. -/\ntheorem last_ok : lastOkF Fn.«{k}».pows sigW core hcert {cs[-2]} '
                f'st{n} = true := by\n  decide +kernel\n\n')
     ok += f'end\nend {ns}.HeapW\n\nnamespace {ns}\n\n@[expose] public section\n\n'
     lst = ', '.join(f'({cs[i]}, HeapW.st{i})' for i in range(1, n + 1))
     wins = ''.join(f'HeapW.win{i}, by omega,\n    ' for i in range(n))
     thm, last = ('heapOkC_of_wins', 'tail_ok') if loop else ('heapOkC_of_winsF', 'last_ok')
-    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem heap_okC : CoreMode.heapOkC Data.powTree\n'
+    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem heap_okC : CoreMode.heapOkC Fn.«{k}».pows\n'
            f'    {sig_lam(k, names)}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) HeapW.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'HeapW.{last}\n')

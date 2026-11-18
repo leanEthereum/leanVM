@@ -20,11 +20,11 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«da_weights».pows sigW core hcert st0 = true := by
   decide +kernel
 
 /-- Statements 567 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 567 st2 = true := by
+theorem last_ok : lastOkF Fn.«da_weights».pows sigW core hcert 567 st2 = true := by
   decide +kernel
 
 end
@@ -35,7 +35,7 @@ namespace LeanVM.Guest.Fn.«da_weights»
 @[expose] public section
 
 /-- `da_weights`: the heap check, in 2 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«da_weights».pows
     (fun g ↦ match g with
     | "da_expand__L6_L7" => Fn.«da_expand__L6_L7».hcert.sig | _ => .empty)
     core hcert = true :=

@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».S2
 public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».S3
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
 set_option Elab.async false
@@ -21,7 +21,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 51 to 65. -/
-theorem win2 : winOkF Data.powTree sigW core hcert ((core.body.drop 51).take (66 - 51)) st2 st3 = true := by
+theorem win2 : winOkF Fn.«sp_wots».pows sigW core hcert ((core.body.drop 51).take (66 - 51)) st2 st3 = true := by
   decide +kernel
 
 end

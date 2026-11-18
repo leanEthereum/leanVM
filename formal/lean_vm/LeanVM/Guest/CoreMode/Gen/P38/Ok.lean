@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P38»
 public import LeanVM.Guest.Pack.«P38».Core
 public import LeanVM.Guest.CoreMode.Gen.«P38».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«batch_sumcheck__L23»
 @[expose] public section
 
 /-- `batch_sumcheck__L23`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«batch_sumcheck__L23».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -30,7 +30,7 @@ namespace LeanVM.Guest.Fn.«eq_prefix_run__L28»
 @[expose] public section
 
 /-- `eq_prefix_run__L28`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L28».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end
@@ -41,7 +41,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L4»
 @[expose] public section
 
 /-- `index_mle__L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
+theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L4».pows (fun _ ↦ .empty) core hcert = true := by
   decide +kernel
 
 end

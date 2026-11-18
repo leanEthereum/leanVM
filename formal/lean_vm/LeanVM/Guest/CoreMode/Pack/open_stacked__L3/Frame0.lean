@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«open_stacked__L3».Bundle
 public import LeanVM.Guest.Pack.«P0».ModeSig
@@ -56,6 +56,26 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `open_stacked__L3`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 5341462114655509532 218086 (.node 4294967296 32 (.node 64 6 (.node 16 4 (.node 4 2 (.node 2
+    1 .leaf .leaf) .leaf) (.node 32 5 .leaf .leaf)) (.node 262144 18 (.node 256 8 .leaf .leaf)
+    (.node 16777216 24 .leaf .leaf))) (.node 94597931458646037 896 (.node 32671816220672 224 (.node
+    115964116992 96 (.node 68719476736 36 .leaf .leaf) .leaf) (.node 9508986232218667 217898 .leaf
+    .leaf)) (.node 2502168091587164053 261747 (.node 263394960066080457 255112 .leaf .leaf) (.node
+    4324648924903450960 261382 .leaf .leaf)))) (.node 11515155688447723614 218125 (.node
+    9580263050331894661 260774 (.node 9185800610269334428 261149 (.node 5405397590336203496 211564
+    (.node 5391749892467816879 218274 .leaf .leaf) .leaf) (.node 9497912204466597542 217624 .leaf
+    .leaf)) (.node 9643742664685434646 217669 (.node 9608883236568355683 19461 .leaf .leaf) (.node
+    11389725663235195451 218906 .leaf .leaf))) (.node 16883963225590213449 260377 (.node
+    15091472782572290054 254663 (.node 15064515975004158697 254111 (.node 13405325691461845919
+    217859 .leaf .leaf) .leaf) (.node 16142525687597826768 218413 .leaf .leaf)) (.node
+    17225134000938741130 19521 (.node 17007879020479005108 218868 .leaf .leaf) (.node
+    18364610289059800768 218887 .leaf .leaf)))))
+
+/-- `open_stacked__L3`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `open_stacked__L3`: a table call's callees' pcs. -/
 def frameCallee0 : List ℕ :=
   [260448, 260490, 260532, 260574]
@@ -102,7 +122,7 @@ def frameCallee10 : List ℕ :=
 
 /-- `open_stacked__L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 217392, 1687,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 217392, 1687,
     Fn.«open_stacked__L3».modeSig, (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node

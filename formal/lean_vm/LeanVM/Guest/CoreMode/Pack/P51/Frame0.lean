@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Pow
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P51».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
@@ -44,9 +44,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `certify_placement`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 524288 19 (.node 256 8 (.node 64 6 .leaf .leaf) .leaf) (.node 267460055567564800 8397
+    (.node 8589934592 33 .leaf .leaf) .leaf))
+
+/-- `certify_placement`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `certify_placement`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 29098, 469,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 29098, 469,
     Fn.«certify_placement».modeSig, .nil, 524287, Data.adviceFn16.2.2, (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [141]) .nil
     .nil) .nil) .nil))) .nil) .nil)), .nil, .nil, .nil, (.node (some ()) (.node (some ()) (.node
@@ -95,9 +103,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `block_selector__L30`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  .leaf
+
+/-- `block_selector__L30`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `block_selector__L30`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 200383, 302,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 200383, 302,
     Fn.«block_selector__L30».modeSig, .nil, 524287, Data.adviceFn195.2.2, .nil, .nil, .nil, .nil,
     Fn.«block_selector__L30».pairO, Fn.«block_selector__L30».pairS, .nil⟩
 
@@ -115,9 +130,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `block_selector_tab__L5`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 32768 15 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `block_selector_tab__L5`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `block_selector_tab__L5`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 204581, 24,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 204581, 24,
     Fn.«block_selector_tab__L5».modeSig, .nil, 524287, Data.adviceFn238.2.2, .nil, .nil, .nil, .nil,
     (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
     (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
@@ -137,9 +159,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `block_selector_tab__L23`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 32768 15 (.node 128 7 .leaf .leaf) .leaf)
+
+/-- `block_selector_tab__L23`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `block_selector_tab__L23`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 205329, 64,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 205329, 64,
     Fn.«block_selector_tab__L23».modeSig, .nil, 524287, Data.adviceFn256.2.2, .nil, .nil, .nil,
     .nil, (.node (some ()) (.node none (.node none (.node none (.node none .nil (.node (some ())
     .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none
@@ -164,9 +193,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `claim_list_last__L11`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  .leaf
+
+/-- `claim_list_last__L11`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `claim_list_last__L11`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 236445, 121,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 236445, 121,
     Fn.«claim_list_last__L11».modeSig, .nil, 524287, Data.adviceFn363.2.2, .nil, .nil, .nil, .nil,
     Fn.«claim_list_last__L11».pairO, Fn.«claim_list_last__L11».pairS, .nil⟩
 
@@ -184,9 +220,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `child_claim_list_last__L14`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 9223372036854775808 63 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `child_claim_list_last__L14`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `child_claim_list_last__L14`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 242077, 274,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 242077, 274,
     Fn.«child_claim_list_last__L14».modeSig, .nil, 524287, Data.adviceFn385.2.2, .nil, .nil, .nil,
     .nil, Fn.«child_claim_list_last__L14».pairO, Fn.«child_claim_list_last__L14».pairS, .nil⟩
 
@@ -204,9 +247,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 4294967296 32 (.node 4194304 22 (.node 256 8 .leaf .leaf) .leaf) (.node 2459071403236215241
+    276371 (.node 2275664160010099048 298696 .leaf .leaf) .leaf))
+
+/-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 259698, 36,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 259698, 36,
     Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».modeSig, (.node none (.node none (.node
     none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
@@ -234,9 +285,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `squeeze_point_from__L17`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  .leaf
+
+/-- `squeeze_point_from__L17`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `squeeze_point_from__L17`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 260377, 71,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 260377, 71,
     Fn.«squeeze_point_from__L17».modeSig, .nil, 524287, Data.adviceFn587.2.2, .nil, .nil, .nil,
     .nil, Fn.«squeeze_point_from__L17».pairO, Fn.«squeeze_point_from__L17».pairS, .nil⟩
 
@@ -254,9 +312,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 4294967296 32 (.node 131072 17 (.node 325 128 .leaf .leaf) .leaf) (.node
+    14140381244562954462 317168 (.node 2093923065829239732 277263 .leaf .leaf) .leaf))
+
+/-- `level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 263437, 35,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 263437, 35,
     Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».modeSig, (.node none (.node none (.node
     none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
     none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
@@ -284,9 +350,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 4311744769 512 (.node 4294967296 32 (.node 325 128 .leaf .leaf) .leaf) (.node
+    15882767153166554610 280072 (.node 11065951386087895729 365836 .leaf .leaf) .leaf))
+
+/-- `level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 269665, 35,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 269665, 35,
     Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig, (.node none .nil (.node none
     (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
     none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
@@ -313,9 +387,18 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_residual__L17_L7_L4_L2`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 64 6 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 16 4 .leaf .leaf)) (.node
+    16482578403252371885 392370 (.node 65536 16 .leaf .leaf) (.node 17114884083656255385 392736
+    .leaf .leaf)))
+
+/-- `level_residual__L17_L7_L4_L2`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `level_residual__L17_L7_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 272770, 45,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 272770, 45,
     Fn.«level_residual__L17_L7_L4_L2».modeSig, (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
@@ -341,9 +424,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_positions__L7_L14_L2_loop0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 5002156232949458548 279269 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
+    (.node 15701004388869557995 278947 .leaf .leaf))
+
+/-- `level_positions__L7_L14_L2_loop0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `__loop0_level_positions__L7_L14_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [8] }, 279269, 50,
+  ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := fpows, scaled := [8] }, 279269, 50,
     Fn.«level_positions__L7_L14_L2_loop0».modeSig, (.node none (.node none (.node none .nil (.node
     none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
@@ -369,9 +460,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 17340793723238226816 423038 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 307015, 25,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 307015, 25,
     Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».modeSig, (.node none .nil (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
@@ -395,9 +493,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 18181867300796099606 430064 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 317145, 23,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 317145, 23,
     Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».modeSig, (.node none .nil (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
@@ -421,9 +526,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 13294087051370528554 430318 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 317191, 23,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 317191, 23,
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».modeSig, (.node none .nil (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
@@ -447,9 +559,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 659501567598409749 436906 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 341856, 25,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 341856, 25,
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».modeSig, (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
     (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
@@ -473,9 +592,19 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `decode_query_windows__L26_L2`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 16777216 24 (.node 4096 12 (.node 64 6 (.node 2 1 .leaf .leaf) (.node 128 7 .leaf .leaf))
+    (.node 262144 18 (.node 8192 13 .leaf .leaf) .leaf)) (.node 4503599627370496 52 (.node 67108864
+    26 (.node 33554432 25 .leaf .leaf) .leaf) (.node 9223372036854775983 127 (.node
+    9223372036854775808 63 .leaf .leaf) .leaf)))
+
+/-- `decode_query_windows__L26_L2`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `decode_query_windows__L26_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 365068, 231,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 365068, 231,
     Fn.«decode_query_windows__L26_L2».modeSig, .nil, 524287, Data.adviceFn1312.2.2, .nil, .nil,
     .nil, .nil, (.node none (.node none (.node none (.node (some ()) (.node none .nil (.node none
     (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none .nil
@@ -508,9 +637,16 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 11865820643034558694 448828 (.node 2 1 .leaf .leaf) .leaf)
+
+/-- `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 379885, 25,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 379885, 25,
     Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».modeSig, (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
@@ -534,9 +670,17 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
+/-- `level_residual__L37_L20_L4_L2_loop0`: the powers of `g` its code names. -/
+noncomputable def fpows : PowTree :=
+  (.node 1464027225841409463 924 (.node 2 1 .leaf .leaf) (.node 17894957028309704944 401041 .leaf
+    .leaf))
+
+/-- `level_residual__L37_L20_L4_L2_loop0`: its code's powers are powers of `g`. -/
+theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+
 /-- `__loop0_level_residual__L37_L20_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 401041, 808,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 401041, 808,
     Fn.«level_residual__L37_L20_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1436.2.2, .nil,
     .nil, .nil, .nil, Fn.«level_residual__L37_L20_L4_L2_loop0».pairO,
     Fn.«level_residual__L37_L20_L4_L2_loop0».pairS, .nil⟩

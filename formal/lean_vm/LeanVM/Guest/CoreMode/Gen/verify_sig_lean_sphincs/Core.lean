@@ -11,6 +11,7 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
+public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
@@ -28,7 +29,7 @@ open LeanVM.Guest
 
 /-- `verify_sig_lean_sphincs`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Fn.«verify_sig_lean_sphincs».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -37,7 +38,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
@@ -79,8 +80,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   hints := Mode.hintsEq_of_fn (j := 21) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code21 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code21 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  pows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».pows_ok
+  fpows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».fpows_ok
 
 /-- `verify_sig_lean_sphincs`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
