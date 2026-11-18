@@ -29,7 +29,7 @@ open LeanVM.Guest
 
 /-- `verify_merkle_cap__L8`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1182, Data.powTree, [], csigs, [], hcFlag, hcCallees⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1182, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 

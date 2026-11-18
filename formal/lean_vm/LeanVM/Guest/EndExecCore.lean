@@ -13,6 +13,7 @@ public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.JumpCellsDeployed
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecCoreRes
+public import LeanVM.Guest.EndExecCoreMono
 
 /-!
 # The core route's honest frames
@@ -311,7 +312,8 @@ theorem ctxOf_ent {j t : ℕ} {g : String} (h : (Bridge.ctxOf j).entOk t g = tru
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
     (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = End.mainEntry) (hJ : JumpCellsAt A)
-    (hL : AlLayout A) (hAX : ∀ f j, B2C.idxOf f = some j → (A f).X = Bridge.ctxOf j) : CoreHonAll Ks (XOf Y) := by
+    (hL : AlLayout A) (hAX : ∀ f j, B2C.idxOf f = some j → (A f).X = Bridge.ctxOf j) (hLk : LinkOk Res.anyLink)
+    (hMo : MonoOk) : CoreHonAll Ks (XOf Y) := by
   intro r hr K hK Cf hCf hent s i hon' hi hpc
   obtain ⟨f, hf, hcode, hentry, -⟩ := certs.fn K hK
   have hif : i < f.instructionCount := by
@@ -349,8 +351,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   subst hjj
   rw [hc0] at hfn
   -- the honest valuation
-  rw [Bool.and_eq_true] at hb0
-  obtain ⟨hb0, hres0⟩ := hb0
+  rw [Bool.and_eq_true, Bool.and_eq_true] at hb0
+  obtain ⟨⟨hb0, hres0⟩, hgl0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
@@ -371,10 +373,35 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hc.1] at this
     rw [← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
-  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
+  have hfind : coreProgram.find? e.I.t.name = some Cf.fn := by rw [hfn]; exact hE.find
+  have hpN : Cf.fn.params = (List.range Cf.fn.params.length).map V.n := by
+    rw [List.range_eq_range']; exact CoreMode.paramsN_eq _ 0 hpar
+  suffices hB : CoreMode.HonB r.img Cf s.fp e.σ by
+    cases hmk : CoreMode.mlK Cf.fn with
+    | none =>
+      -- no ghost: its residuals and linked cells at its valuation
+      have hgl1 := hgl0
+      simp only [CoreMode.glOk, hmk, Option.isSome_none, Bool.cond_false, Bool.and_eq_true] at hgl1
+      refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_⟩
+      · exact resOk_inst hr hI hIt hfind hres0 hmk hparF hxw
+      · rw [← hfpL]
+        exact glF_inst hr hI hIt hfind hpN hLk hgl1.1 hF.hdr1 _
+    | some k =>
+      -- the ghost family: its ghost word the caller's entries table
+      have hgl1 := hgl0
+      simp only [CoreMode.glOk, hmk, Option.isSome_some, Bool.cond_true, CoreMode.mlGl, Bool.and_eq_true,
+        decide_eq_true_eq, Nat.beq_eq] at hgl1
+      obtain ⟨⟨⟨-, hglv⟩, hgh⟩, hng⟩ := hgl1
+      obtain ⟨hpar4, a, ha, h5, hm5, hsub⟩ := ml_inst hr hMo hI hIt hfind hmk
+      refine ⟨CoreMode.setG e.σ [refMem r.img (a + 2)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_⟩
+      · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+          (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
+      · rw [← hfpL]
+        exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
+  refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_, ?_⟩⟩
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -515,8 +542,6 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
-  · -- its residuals, of families (`resOk`), true along its path on the reference
-    exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0 hparF
 
 end
 

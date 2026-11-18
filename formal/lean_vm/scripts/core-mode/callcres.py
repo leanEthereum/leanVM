@@ -74,7 +74,8 @@ def exp_diff(atoms, x):
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
-    strided table (`cs`), a residual of a family under branch conditions. (Top-level selectors, `sel`, are not emitted
+    strided table (`cs`), an exponent bound `p·g` of a value range checked against `p` (`rcv`), a residual of a family
+    under branch conditions. (Top-level selectors, `sel`, are not emitted
     by the solver.)"""
     import callc
     params, body = I.CORE[k]
@@ -88,33 +89,76 @@ def res_fam(k, r, G):
         if N is not None and N <= n:
             return True
         return 2 ** 28 <= n and x < len(params) and 2 + x in callc.exp_cells(G) and exp_diff(top_atoms(body), x)
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'mono':
+        # `rcv`: `x` range checked against the value `p`, the bound `p·g`
+        c = r[2][1]
+        if len(c[0]) != 1 or c[0][0][1] != 1 or c[1] != 1:
+            return False
+        return any(a[0] == 'rangeCheck' and a[1] == r[1][1] and a[5] == c[0][0][0] for a in top_atoms(body))
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)
     return False
 
 
+def vals(r):
+    """`CRes.vals`: the value numbers a residual names."""
+    def cell(c):
+        return [b for b, _ in c[0]]
+
+    def idx(i):
+        return [] if i[0] == 'num' else ([i[1]] if i[0] == 'val' else cell(i[1]))
+
+    def run(q):
+        return cell(q[0]) + idx(q[2]) + idx(q[3])
+    if r[0] == 'lt':
+        return idx(r[1]) + idx(r[2])
+    if r[0] == 'sub':
+        return cell(r[1]) + run(r[2])
+    if r[0] == 'subR':
+        return run(r[1]) + run(r[2])
+    if r[0] == 'under':
+        return [c[1] for c in r[1]] + vals(r[2])
+    if r[0] == 'subP':
+        return cell(r[1]) + [b for c in r[2] for b in cell(c)]
+    return []
+
+
+def ml_sub(k, c):
+    """`CoreMode.mlSub`: `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `c`, the run of its caller's
+    table (its ghost, stride 4, below the exponent of its parameter `3`), or None."""
+    import callc
+    kk = callc.ml_k(k)
+    bs, off = c
+    jj = off // 4
+    if kk is None or jj >= kk or tuple(bs) != ((5, 1),) + tuple((6 + 10 * i, 4) for i in range(jj + 1)):
+        return None
+    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
+
+
 def res_ok(k, res, S):
-    return all(res_fam(k, r, S[k]) for r in res)
+    """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
+    return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
+               (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
 
 
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`."""
+    its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
         w = base(self, st, c, want, depth)
-        kap = cs_kappa(self.k)
-        if w is not None or want is not None or kap is None:
+        if w is not None or want is not None:
             return w
-        r = cs_sub(kap)
-        if c != r[1]:
+        kap = cs_kappa(self.k)
+        r = cs_sub(kap) if kap is not None else ml_sub(self.k, c)
+        if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
         for n, R2 in sorted(st.rs.items()):
             if R2 == R:
-                return ('run', n, [self.use(('cs', kap), r)])
+                return ('run', n, [self.use(('cs', kap) if kap is not None else ('ml', c), r)])
         return None
     return base, pt
 

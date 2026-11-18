@@ -27,7 +27,7 @@ open LeanVM.Guest
 
 /-- `sp_wots`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn20, Data.powTree, hpost, [], [], false, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn20, Data.powTree, hpost, [], [], false, [], []⟩
 
 end
 
