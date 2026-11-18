@@ -68,6 +68,10 @@ FEATURES = {
            'written (`prePR`/`postPR`, `ptrrun.py`)',
     'armx': 'a dispatch arm `j` excluded by a fact `e(x) < j` on its selector: its preconditions not met, its '
             'guarantees not in the meet',
+    'retP': 'a dispatch\'s returned pointer whose cells each arm writes (`vpf`, `retP`), and a run with its point '
+            'before it (`prepend`)',
+    'ptsread': 'a read at a bounded index of a run formed by points (at most 64)',
+    'perm': 'a constant cell of an own buffer written at hinted indices: one of those cells, a residual `perm`',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -244,12 +248,14 @@ class Sig:
         self.postPR = []
         self.retIn = {}      # returned word j -> the anchor of the object it points into
         self.retEq = []      # (x, y): monomials over the parameters and returned words (`m + j`), equal at return
+        self.retP = {}       # returned word j -> offsets `o` with `ret_j·g^o` written at return
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.ctr = None      # a loop's counter and bound parameters
         self.bnd = None
 
     def key(self):
-        return tuple(tuple(getattr(self, f)) for f in self.FIELDS) + (tuple(sorted(self.retM.items())),
+        return tuple(tuple(getattr(self, f)) for f in self.FIELDS) + (tuple(sorted(self.retP.items())),
+                                                                      tuple(sorted(self.retM.items())),
                                                                       tuple(sorted(self.retIn.items())),
                                                                       tuple(sorted(self.narrow.items())))
 
@@ -259,6 +265,7 @@ class Sig:
             setattr(G, f, list(getattr(self, f)))
         G.retM, G.ctr, G.bnd = dict(self.retM), self.ctr, self.bnd
         G.retIn, G.narrow = dict(self.retIn), dict(self.narrow)
+        G.retP = dict(self.retP)
         return G
 
     def size(self):
@@ -274,17 +281,19 @@ GB = 1 << 20   # ghost slot j is the value `GB + j`
 # ---- the pass
 
 class St:
-    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr')
+    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr', 'vpf')
 
     def __init__(self):
         self.env, self.pts, self.hv, self.pf, self.src = {}, {}, {}, {}, {}
         self.runs, self.lts, self.D, self.alias, self.cond = [], set(), set(), {}, {}
         self.pfr = []
+        self.vpf = {}        # value -> offsets `o` with `v·g^o` written (`retP`: a dispatch's returned pointer)
 
     def copy(self):
         s = St()
         s.env, s.pts, s.hv, s.pf, s.src = dict(self.env), dict(self.pts), dict(self.hv), dict(self.pf), dict(self.src)
         s.pfr = list(self.pfr)
+        s.vpf = dict(self.vpf)
         s.runs, s.lts, s.D, s.alias, s.cond = list(self.runs), set(self.lts), set(self.D), dict(self.alias), \
             dict(self.cond)
         return s
@@ -308,6 +317,7 @@ def meet(sts, sel=None):
         s.D &= t.D
         s.cond = {k: v for k, v in s.cond.items() if t.cond.get(k) is v}
         s.pfr = [x for x in s.pfr if x in t.pfr]
+        s.vpf = {v: (o & t.vpf[v][0], w) for v, (o, w) in s.vpf.items() if v in t.vpf and o & t.vpf[v][0]}
     if sel is not None:
         x, js = sel
         for j, t in live:
@@ -548,6 +558,9 @@ class Pass:
         if w is not None:
             self.stats['w-ev'] += 1
             return w
+        if st.vpf and len(c[0]) == 1 and c[0][0][1] == 1 and c[0][0][0] in st.vpf and c[1] in st.vpf[c[0][0][0]][0]:
+            self.stats['w-vpf'] += 1
+            return ('vpf', st.vpf[c[0][0][0]][1], c[1])
         if conds:
             for pts, runs, hv in conds:
                 if c in pts:
@@ -559,6 +572,14 @@ class Pass:
         if best is not None and best[3] and best[4]:
             self.stats['w-run'] += 1
             return ('run', best[1], used)
+        if 'retP' in F and c[0] and c[1] < 2 ** 20 and not getattr(self, 'in_pre', False):
+            w = self.prepend(st, c, site, allow_pre, conds)
+            if w is not None:
+                return w
+        if 'ptsread' in F and c[0] and c[1] < 2 ** 20:
+            w = self.pts_read(st, c, conds)
+            if w is not None:
+                return w
         # through a pointer loaded from a cell with a pointer fact
         if 'ptr' in F and len(c[0]) == 1 and c[0][0][1] == 1:
             d = c[0][0][0]
@@ -640,6 +661,92 @@ class Pass:
                 return w
         if late:
             return pre_point()
+        if 'perm' in F:
+            return self.perm_read(st, c, conds)
+        return None
+
+    def pts_read(self, st, c, conds):
+        """A read `Q·j^S` at an index with a known bound `e(j) < n`, the points `Q·g^(S·i)`, `i < n`, written: the run
+        they form (at most 64 points), the read inside it."""
+        import math
+        pts = dict(st.pts)
+        for cd in conds or ():
+            for x, w in cd[0].items():
+                pts.setdefault(x, w)
+        for b, e in c[0]:
+            if e != 1:
+                continue
+            Q = (((b, 1),), 0)
+            rest = [y for x, y in c[0] if x != b]
+            if not rest:
+                continue
+            S = 0
+            for y in rest:
+                S = math.gcd(S, y)
+            j = self.idx_in(c, (Q, S, num(0), num(0)))
+            if j is None or negidx(j):
+                continue
+            n = 0
+            while n < 64 and shift(Q, S * n) in pts:
+                n += 1
+            u = []
+            if n == 0 or not self.lt(st, j, num(n), u):
+                continue
+            ws = tuple(pts[shift(Q, S * i)] for i in range(n))
+            if any(w[0] == 'run' and w[2] for w in ws):
+                continue
+            self.stats['w-ptsread'] += 1
+            return ('run', ('ptsR', ws), u)
+        return None
+
+    def perm_read(self, st, c, conds):
+        """A constant cell of an own buffer whose cells were written at hinted indices (`b·x_r`, a hinted order): the
+        cell is one of them, a residual (`perm`: the hinted indices are a permutation of the read ones)."""
+        if c[1] >= 2 ** 20 or not all(v >= self.m and e == 1 for v, e in c[0]) or len(c[0]) > 2:
+            return None
+        cand = set(st.pts)
+        for cd in conds or ():
+            cand |= set(cd[0])
+        if len(c[0]) == 1:
+            # a constant cell: among the cells written at a hinted index
+            b = c[0][0][0]
+            cand = sorted(x for x in cand if len(x[0]) == 2 and (b, 1) in x[0] and all(y == 1 for _, y in x[0]) and
+                          x[1] < 2 ** 20 and all(v >= self.m for v, _ in x[0]))
+        else:
+            # a cell at a hinted index: among the buffer's constant cells (the index pinned elsewhere)
+            bs = [v for v, _ in c[0] if self.defkind.get(v) == 'alloc']
+            if len(bs) != 1:
+                return None
+            cand = sorted(x for x in cand if x[0] == ((bs[0], 1),) and x[1] < 2 ** 20)
+        if not cand:
+            return None
+        k = self.addres(('subP', c, tuple(cand), 'perm'))
+        self.stats['w-perm'] += 1
+        return ('perm', [st.pts.get(x) for x in cand], [k])
+
+    def prepend(self, st, c, site, allow_pre, conds):
+        """A run `⟨Q·g^S, S, 0, h⟩` and its point `Q` before it are `⟨Q, S, 0, h·g⟩` (`concat`): the cell is in that run
+        at an index `j` with `e(j) < e(h) + 1` decided (a table's first row a precondition, the rest a loop's)."""
+        for r, rw in reversed(st.runs):
+            Q1, S, lo, hi = r
+            if lo != num(0) or not hi[0] or Q1[1] < S or Q1[1] >= 2 ** 40:
+                continue
+            Q = shift(Q1, -S)
+            R2 = (Q, S, num(0), shift(hi, 1))
+            j = self.idx_in(c, R2)
+            if j is None or negidx(j) or ioff(j, shift(hi, 1)) is None or ioff(j, shift(hi, 1)) <= 0:
+                continue
+            self.in_pre = True
+            try:
+                w = self.cover(st, Q, site, allow_pre=allow_pre, conds=conds)
+            finally:
+                self.in_pre = False
+            if w is None or w[0] == 'run' and w[2]:
+                continue
+            k = self.addres(('sub', R2, (r, Q), 'concat'))
+            st.runs.append((R2, ('derived', k)))
+            self.stats['w-prepend'] += 1
+            return ('run', ('derived', k), [])
         return None
 
     def add_preP(self, cell, o):
@@ -1016,6 +1123,10 @@ class Pass:
         if 'obj' in F:
             import objs
             objs.after_call(self, st, f, G, args, rets, ginst)
+        for j, offs in (G.retP.items() if 'retP' in F else ()):
+            if rets and j < len(rets):
+                st.vpf[rets[j]] = (offs, ('ev', self.n))
+                self.n += 1
         if not conditional and 'div' in F:
             for x, y in G.retEq:
                 tx, ty = self.tr(st, x, args, rets), self.tr(st, y, args, rets)
@@ -1248,8 +1359,12 @@ class Pass:
                 if t is not None and all(t in o for o in othersR):
                     runs.append((t, self.nr))
                     self.nr += 1
+        vp = self.ret_ptrs(outs, rets) if 'retP' in F and m is not None else {}
         for a in St.__slots__:
             setattr(st, a, getattr(m, a))
+        for v, offs in vp.items():
+            st.vpf[v] = (offs, ('ev', self.n))
+            self.n += 1
         if 'join' not in F or 'cond' not in F:
             st.pts, st.runs = pts, runs
         else:
@@ -1258,6 +1373,40 @@ class Pass:
         self.fact(st, xm, num(len(fs)), 'selector', cidx=(('val', x), ('num', len(fs))))
         if 'armblock' in F:
             self.arm_blocks(st, xm, outs)
+
+    def ret_ptrs(self, outs, rets):
+        """A dispatch's returned word that each arm names (`retM`) as a pointer with cells written past it in that arm
+        (its guarantees, or the caller's cells): those offsets, written past the returned word whichever arm ran."""
+        out = {}
+        for v in rets or ():
+            common, ws = None, []
+            for t in outs:
+                mv = t.env.get(v) if t is not None else None
+                if mv is None or not mv[0]:
+                    return out
+                offs = {}
+                for o in range(0, 256):
+                    c = shift(mv, o)
+                    w = t.pts.get(c)
+                    if w is None:
+                        u = []
+                        b = self.find_run(t, c, t.runs, u)
+                        w = ('run', b[1], u) if b is not None and b[3] and b[4] and not u else None
+                    if w is None and o < 64:
+                        w = self.prepend(t, c, ('retP',), True, None)
+                    if w is not None:
+                        offs[o] = w
+                    elif offs:
+                        break
+                ws.append(offs)
+                common = set(offs) if common is None else common & set(offs)
+                if not common:
+                    break
+            if common:
+                out[v] = frozenset(common)
+                # the arms' witnesses of the cells, for the check (`calls`)
+                self.calls.append((('retP', v), [('retP', w[o]) for w in ws for o in sorted(common)]))
+        return out
 
     def arm_blocks(self, st, xm, outs):
         """Arms of a selector `x` each writing a growing block `Q·g^(c..j+c)`, `c <= 0`: the run `Q·[0, e(x) + d)`
@@ -1365,6 +1514,18 @@ def retsig(P, G):
             return None
         return mk(tuple(bs), off)
 
+    G.retP = {}
+    if 'retP' in F:
+        for j, v in enumerate(P.retvals or ()):
+            offs = None
+            for st, vs in P.rets:
+                mv = P.mono(st, vs[j]) if j < len(vs) else None
+                o = set()
+                if mv is not None and len(mv[0]) == 1 and mv[0][0][1] == 1 and mv[0][0][0] in st.vpf:
+                    o = {x - mv[1] for x in st.vpf[mv[0][0][0]][0] if 0 <= x - mv[1] < 2 ** 20}
+                offs = o if offs is None else offs & o
+            if offs:
+                G.retP[j] = frozenset(offs)
     G.retEq = []
     if 'div' in F:
         # equations of the body's top level (on every path) over the parameters and returned words
@@ -1554,6 +1715,9 @@ def used_res(P):
         elif k == 'pfr':
             for i in w[2]:
                 add(i)
+        elif k == 'perm':
+            for i in w[2]:
+                add(i)
         elif k == 'armx':
             for i in w[1]:
                 add(i)
@@ -1587,6 +1751,7 @@ GENERIC = {'hint': 'a hint\'s range (windowsExp, digitsExp, log2Ceil): one lemma
            'rangeCheck': 'a range check (the atom\'s semantics)',
            'merge': 'S residues of stride S are a contiguous run', 'concat': 'two adjacent runs are one',
            'rename': 'a bound rewritten by an assert =='}
+# `perm` (a cell one of the cells written at a hinted order's indices) is an instance family: the order's lemma
 
 
 def res_family(P, r):
