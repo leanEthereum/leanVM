@@ -38,11 +38,17 @@ echo "performance CPUs: $P; efficiency CPUs: ${E:-none}; $GAS gas per slot, slot
 
 # name | leanVM's CPUs | the EVM's CPUs ("" for no EVM, "any" for unpinned)
 CONFIGS=(
-  "leanVM alone|$(take "$P" 4)|"
+  "leanVM alone, 4 P|$(take "$P" 4)|"
+  "leanVM alone, unpinned|any|"
   "both unpinned|any|any"
   "4 P leanVM, 4 P EVM|$(take "$P" 4)|$(skip_take "$P" 4 4)"
+  "4 P leanVM, EVM unpinned|$(take "$P" 4)|any"
 )
-[ -n "$E" ] && CONFIGS+=("4 P leanVM, 4 E EVM|$(take "$P" 4)|$(take "$E" 4)")
+[ -n "$E" ] && CONFIGS+=(
+  "4 P leanVM, 4 E EVM|$(take "$P" 4)|$(take "$E" 4)"
+  "4 E leanVM, 4 P EVM|$(take "$E" 4)|$(take "$P" 4)"
+  "leanVM unpinned, 4 E EVM|any|$(take "$E" 4)"
+)
 
 # The prefix that pins a command to CPUs, none for "any". taskset execs the command, so `$!` is the command's own PID.
 on() { [ "$1" = any ] || echo "taskset -c $1"; }
