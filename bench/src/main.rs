@@ -81,8 +81,7 @@ struct Cli {
     )]
     repeat: usize,
 
-    /// Thread count (0: one per core). With the experimental prover, the performance cores' workers, beside which
-    /// it adds the efficiency cores'.
+    /// Thread count (0: one per core).
     #[arg(long, global = true, default_value_t = 0)]
     threads: usize,
 
