@@ -1523,6 +1523,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types-eth",
+ "libc",
  "reth-chainspec",
  "reth-ethereum-primitives",
  "reth-evm-ethereum",

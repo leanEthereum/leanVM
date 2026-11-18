@@ -2,8 +2,11 @@
 # The 16-to-1 recursion of bench.sh, at 4 threads, while an execution client's load runs alongside it: el-load
 # validates mainnet blocks as a stateless reth node does (bench/el-load), a slot's worth of gas per slot over 4 workers.
 # One run per core configuration below; prints the proving time and the execution client's slot times for each.
-# Usage: [EL_GAS_PER_SLOT=200000000] [EL_SLOT_MS=12000] bench/bench-alongside-el.sh [stable|experimental] [log file]
-# EL_SLOT_MS=0 runs the slots back to back, so the execution client works throughout the proofs.
+# Usage: [EL_GAS_PER_SLOT=200000000] [EL_SLOT_MS=12000] [EL_DB=.build/el-load.db] [EL_DB_GIB=16] [EL_DB_MISS=1]
+#        bench/bench-alongside-el.sh [stable|experimental] [log file]
+# EL_SLOT_MS=0 runs the slots back to back, so the execution client works throughout the proofs. Each block also does a
+# node's database I/O on EL_DB (written once, EL_DB_GIB GiB), its cache missing an EL_DB_MISS share of the accounts and
+# slots the block touches; EL_DB= leaves the database out.
 set -uo pipefail
 
 PROVER=${1:-experimental}
@@ -12,6 +15,9 @@ mkdir -p .build
 LOG="${2:-$PWD/.build/bench-alongside-el-$(date +%Y%m%d-%H%M%S).log}"
 GAS=${EL_GAS_PER_SLOT:-200000000}
 SLOT_MS=${EL_SLOT_MS:-12000}
+DB=${EL_DB-$PWD/.build/el-load.db}
+DB_ARGS=()
+[ -n "$DB" ] && DB_ARGS=(--db "$DB" --db-gib "${EL_DB_GIB:-16}" --db-miss "${EL_DB_MISS:-1}")
 TARGET=${CARGO_TARGET_DIR:-target}
 OUT=$(mktemp)
 EL_OUT=$(mktemp)
@@ -23,6 +29,8 @@ cargo build --release -p leanvm-bench || exit 1
 cargo build --release --manifest-path bench/el-load/Cargo.toml || exit 1
 EL=bench/el-load/target/release/el-load
 "$EL" check bench/el-load/fixtures | tee -a "$LOG" || exit 1
+# The database file is written on first use; written and flushed here, it disturbs no measurement.
+if [ -n "$DB" ]; then "$EL" run bench/el-load/fixtures --slots 1 --slot-ms 0 "${DB_ARGS[@]}" >/dev/null && sync; fi
 
 # Expands a kernel CPU list ("0-3,8") into one CPU per word.
 cpus() { local part; for part in ${1//,/ }; do seq "${part%-*}" "${part#*-}"; done | tr '\n' ' '; }
@@ -34,7 +42,7 @@ skip_take() { echo $1 | tr ' ' '\n' | tail -n +$(($3 + 1)) | head -n "$2" | past
 # Performance and efficiency cores on a hybrid Intel CPU; elsewhere every CPU counts as a performance one.
 P=$(cpus "$(cat /sys/devices/cpu_core/cpus 2>/dev/null || cat /sys/devices/system/cpu/online)")
 E=$(cpus "$(cat /sys/devices/cpu_atom/cpus 2>/dev/null || true)")
-echo "performance CPUs: $P; efficiency CPUs: ${E:-none}; $GAS gas per slot, slots of $SLOT_MS ms" | tee -a "$LOG"
+echo "performance CPUs: $P; efficiency CPUs: ${E:-none}; $GAS gas per slot, slots of $SLOT_MS ms; database: ${DB:-none}" | tee -a "$LOG"
 
 # name | leanVM's CPUs | the execution client's CPUs ("" for none, "any" for unpinned)
 CONFIGS=(
@@ -59,7 +67,7 @@ for config in "${CONFIGS[@]}"; do
   EL_PID=
   : >"$EL_OUT"
   if [ -n "$el" ]; then
-    $(on "$el") "$EL" run bench/el-load/fixtures --gas-per-slot "$GAS" --slot-ms "$SLOT_MS" --workers 4 >"$EL_OUT" &
+    $(on "$el") "$EL" run bench/el-load/fixtures --gas-per-slot "$GAS" --slot-ms "$SLOT_MS" --workers 4 "${DB_ARGS[@]}" >"$EL_OUT" &
     EL_PID=$!
   fi
   $(on "$lean") "$TARGET/release/leanvm-bench" --prover "$PROVER" recursion --n 16 --xmss-per-leaf 1400 \

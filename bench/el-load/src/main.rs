@@ -6,8 +6,12 @@
 //! `fetch-fixtures.py`.
 //!
 //! - `el-load check FIXTURES`: validates each block once.
-//! - `el-load run FIXTURES [--gas-per-slot G] [--slot-ms MS] [--workers W] [--slots N]`: one line per slot, its gas and
-//!   wall time, until killed or after N slots. `--slot-ms 0` runs the slots back to back.
+//! - `el-load run FIXTURES [--gas-per-slot G] [--slot-ms MS] [--workers W] [--slots N] [--db FILE [--db-gib G]
+//!   [--db-miss M]]`: one line per slot, its gas and wall time, until killed or after N slots. `--slot-ms 0` runs the
+//!   slots back to back. With `--db`, each block also does a node's database I/O (`db.rs`) on FILE, of G GiB (16), its
+//!   cache missing an M share (1) of the accounts and slots the block touches.
+
+mod db;
 
 use alloy_consensus::{BlockHeader, Header};
 use alloy_primitives::{Bytes, keccak256};
@@ -33,14 +37,15 @@ impl Fixture {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let flag = |name: &str, default: u64| {
-        args.iter()
-            .position(|a| a == name)
-            .map_or(default, |i| args[i + 1].parse().expect("a number"))
-    };
+    let value = |name: &str| args.iter().position(|a| a == name).map(|i| args[i + 1].as_str());
+    let flag = |name: &str, default: u64| value(name).map_or(default, |v| v.parse().expect("a number"));
     let (Some(command), Some(dir)) = (args.first(), args.get(1)) else {
-        panic!("usage: el-load check|run FIXTURES [--gas-per-slot G] [--slot-ms MS] [--workers W] [--slots N]")
+        panic!("usage: el-load check|run FIXTURES [--gas-per-slot G] [--slot-ms MS] [--workers W] [--slots N] [--db FILE]")
     };
+    let db = value("--db").map(|path| {
+        let miss = value("--db-miss").map_or(1.0, |v| v.parse().expect("a share"));
+        db::Db::open(path, flag("--db-gib", 16), miss)
+    });
     let fixtures = load(dir);
     match command.as_str() {
         "check" => check(&fixtures),
@@ -50,16 +55,18 @@ fn main() {
             flag("--slot-ms", 12_000),
             flag("--workers", 4) as usize,
             flag("--slots", 0),
+            db.as_ref(),
         ),
         _ => panic!("unknown command {command}"),
     }
 }
 
-fn validate(f: &Fixture) {
-    try_validate(f).unwrap_or_else(|e| panic!("{e}"));
+/// Validates a block, returning how many accounts and slots it changes.
+fn validate(f: &Fixture) -> usize {
+    try_validate(f).unwrap_or_else(|e| panic!("{e}"))
 }
 
-fn try_validate(f: &Fixture) -> Result<(), String> {
+fn try_validate(f: &Fixture) -> Result<usize, String> {
     stateless_validation(
         f.block.clone(),
         f.public_keys.clone(),
@@ -67,7 +74,7 @@ fn try_validate(f: &Fixture) -> Result<(), String> {
         MAINNET.clone(),
         EthEvmConfig::mainnet(),
     )
-    .map(drop)
+    .map(|(_, output)| output.state.state.values().map(|account| 1 + account.storage.len()).sum())
     .map_err(|e| format!("block {} does not validate: {e}", f.block.header.number))
 }
 
@@ -76,7 +83,7 @@ fn check(fixtures: &[Fixture]) {
     for f in fixtures {
         let start = Instant::now();
         match try_validate(f) {
-            Ok(()) => println!(
+            Ok(_) => println!(
                 "block {}: {} transactions, {} gas, valid, {:.1} ms",
                 f.block.header.number,
                 f.block.body.transactions.len(),
@@ -92,9 +99,11 @@ fn check(fixtures: &[Fixture]) {
     assert!(valid, "some blocks do not validate");
 }
 
-fn run(fixtures: &[Fixture], gas_per_slot: u64, slot_ms: u64, workers: usize, slots: u64) {
+fn run(fixtures: &[Fixture], gas_per_slot: u64, slot_ms: u64, workers: usize, slots: u64, db: Option<&db::Db>) {
     // One-time setup out of the timings, such as the KZG trusted setup a blob proof loads.
-    fixtures.iter().for_each(validate);
+    for f in fixtures {
+        validate(f);
+    }
     let mut next = 0;
     for slot in 1.. {
         let start = Instant::now();
@@ -112,7 +121,10 @@ fn run(fixtures: &[Fixture], gas_per_slot: u64, slot_ms: u64, workers: usize, sl
             for _ in 0..workers {
                 s.spawn(|| {
                     while let Some(f) = todo.get(taken.fetch_add(1, Ordering::Relaxed)) {
-                        validate(f);
+                        let changed = validate(f);
+                        if let Some(db) = db {
+                            db.block(f.witness.keys.len(), changed);
+                        }
                     }
                 });
             }
