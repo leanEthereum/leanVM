@@ -320,7 +320,7 @@ open LeanVM.Guest
 
 /-- `aggregate_claims_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn423, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn423, Data.powTree, [], csigs, []⟩
 
 end
 
