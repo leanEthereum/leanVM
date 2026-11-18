@@ -119,6 +119,7 @@ def sig_of(G, m, drops):
     H.postP = each('postP', G.postP, lambda p: (cell(p[0], m), tuple(sorted(p[1]))))
     H.prePR = each('prePR', G.prePR, lambda p: (crun(p[0], m), tuple(sorted(p[1]))))
     H.postPR = each('postPR', G.postPR, lambda p: (crun(p[0], m), tuple(sorted(p[1]))))
+    H.postQ = each('postQ', getattr(G, 'postQ', ()), lambda p: (cell(p[0], m), crun(p[1], m)))
 
     def pv(p):
         c = cell(p[0], m)
@@ -628,7 +629,10 @@ class Solver:
         first, last = C.cshift(base, S * lo[1]), C.cshift(base, S * (hi[1] - 1))
         for r in sorted(st.rs, reverse=True):
             R = st.rs[r]
-            if R[1] != S or R[0][0] != base[0] or not self.const_ok(st, R, first) or not self.const_ok(st, R, last):
+            if R[1] != S or R[0][0] != base[0]:
+                continue
+            if not (self.const_ok(st, R, first) and self.const_ok(st, R, last)) and \
+                    (self.in_run(st, R, first) is None or self.in_run(st, R, last) is None):
                 continue
             g = tuple(dict.fromkeys(self.X.path))
             q = (base, S, ('num', lo[1]), ('num', hi[1]))
@@ -676,11 +680,12 @@ class Solver:
             return [('run', r, [self.use(('suffix', q, Rr, g), ('under', g, res) if g else res)])]
         return None
 
-    def run(self, st, Q):
+    def run(self, st, Q, depth=0):
         """A run needed (`runOk`): `runOk0`, else `catM k h`: split at a symbolic index `k` where a run of this base
-        ends, the part from it a run in scope, `k·h` the upper bound by the kept equations."""
+        ends, the part from it a run in scope (or, at the top, split once more: `runOkL`), `k·h` the upper bound by
+        the kept equations."""
         ws = self.run0(st, Q)
-        if ws is not None or not st.eqs:
+        if ws is not None:
             return ws
         base, S0, lo, hi = Q
         if not S0:
@@ -706,7 +711,9 @@ class Solver:
                     continue
                 fk, fh = self.factE(st, k), self.factE(st, h)
                 a = self.run0(st, (base, S0, lo, k))
-                b = self.run0(st, (b2, S0, ((), 0), h)) if a is not None else None
+                b = None
+                if a is not None:
+                    b = self.run0(st, (b2, S0, ((), 0), h)) if depth else self.run(st, (b2, S0, ((), 0), h), 1)
                 if b is not None:
                     self.stats['catM'] += 1
                     return [('catM', k, h, sorted(set(fk + fh)))] + a + b
@@ -1067,6 +1074,18 @@ class Solver:
                 self.miss.append(('ret', 'postPR', t, offs))
                 return self.ret_done(None)
             ws += w
+        for c, q in G.postQ:
+            # the store of the cell (`word n`), then the run at its word
+            t, tq = C.instC(ms, c), C.instR(ms, q)
+            ns = [n for n, p in st.sv.items() if t is not None and p[0] == t]
+            w = None
+            if ns and tq is not None:
+                m = st.sv[ns[-1]][1]
+                w = self.run(st, (C.cmul(m, tq[0]), tq[1], tq[2], tq[3]))
+            if w is None:
+                self.miss.append(('ret', 'postQ', t, tq))
+                return self.ret_done(None)
+            ws += [('word', ns[-1])] + w
         return self.ret_done(ws)
 
     def ret_done(self, ws):
@@ -1213,7 +1232,7 @@ def run_pass(X_, params, body):
     if not G.term:
         P.block(body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and (G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
-        if G.retM or G.postV:
+        if G.retM or G.postV or G.postQ:
             P.fail('loop-retM-postV')
         ei = G.term[0][1]
         if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf':
@@ -1366,6 +1385,9 @@ def lsig(G, ax):
     if G.postV:
         fs.append('postV := ' + ax.lst('sig_postV', '(ℕ × CoreMode.CCell)', (f'({i}, {lcell(c)})' for i, c in G.postV),
                                       '        '))
+    if G.postQ:
+        fs.append('postQ := ' + ax.lst('sig_postQ', '(CoreMode.CCell × CoreMode.CRun)',
+                                      (f'({lcell(c)}, {lrun(r)})' for c, r in G.postQ), '        '))
     if G.ghosts:
         fs.append(f'ghosts := {G.ghosts}')
     if G.retEq:

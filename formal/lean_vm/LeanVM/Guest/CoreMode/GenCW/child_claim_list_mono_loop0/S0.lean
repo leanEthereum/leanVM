@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».St
+public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

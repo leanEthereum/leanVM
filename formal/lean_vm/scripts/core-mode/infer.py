@@ -45,6 +45,8 @@ ORD = 2 ** 64 - 1
 
 # The inference's rules beyond `heapOkC`'s format (`m2-format.md`), each switchable to measure what it buys:
 FEATURES = {
+    'postQ': 'a run at the word a callee stores at a cell (its own buffer), guaranteed at return (`postQ`); the '
+             'caller reads the cell to name the word',
     'join': 'facts of both sides of an `ite`/`match` kept after it (their meet)',
     'hv': 'a read of a cell whose word is known (a store, a callee\'s `postV`) names that word',
     'cond': 'facts kept under a selector\'s value (a dispatch arm), used by a later dispatch or `match` on it; an arm '
@@ -77,7 +79,7 @@ FEATURES = {
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
-F = set(FEATURES)
+F = set(FEATURES) - {'postQ'}
 WRAP = [True]
 
 
@@ -231,7 +233,7 @@ def shape(k):
 
 class Sig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn', 'prePR', 'postPR',
-              'retEq')
+              'retEq', 'postQ')
 
     def __init__(self, m):
         self.m = m
@@ -250,6 +252,7 @@ class Sig:
         self.postPR = []
         self.retIn = {}      # returned word j -> the anchor of the object it points into
         self.retEq = []      # (x, y): monomials over the parameters and returned words (`m + j`), equal at return
+        self.postQ = []      # (cell, (b, S, lo, hi)): the run `w·b·g^(S·j)`, `lo <= j < hi`, `w` the word at the cell
         self.retP = {}       # returned word j -> offsets `o` with `ret_j·g^o` written at return
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.noptr = set()   # a loop's record cells over its counter whose next one the iteration stores: no pointer
@@ -286,19 +289,21 @@ GB = 1 << 20   # ghost slot j is the value `GB + j`
 # ---- the pass
 
 class St:
-    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr', 'vpf')
+    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr', 'vpf', 'dq')
 
     def __init__(self):
         self.env, self.pts, self.hv, self.pf, self.src = {}, {}, {}, {}, {}
         self.runs, self.lts, self.D, self.alias, self.cond = [], set(), set(), {}, {}
         self.pfr = []
         self.vpf = {}        # value -> offsets `o` with `v·g^o` written (`retP`: a dispatch's returned pointer)
+        self.dq = ()         # (cell, (b, S, lo, hi)): a callee's `postQ`, the run at the word the cell holds
 
     def copy(self):
         s = St()
         s.env, s.pts, s.hv, s.pf, s.src = dict(self.env), dict(self.pts), dict(self.hv), dict(self.pf), dict(self.src)
         s.pfr = list(self.pfr)
         s.vpf = dict(self.vpf)
+        s.dq = self.dq
         s.runs, s.lts, s.D, s.alias, s.cond = list(self.runs), set(self.lts), set(self.D), dict(self.alias), \
             dict(self.cond)
         return s
@@ -897,6 +902,9 @@ class Pass:
                 self.define(st, d, None, 'load')
                 if 'ptr' in F:
                     st.src[d] = (c, self.n)
+                for c2, r in st.dq:
+                    if c2 == c:
+                        self.pushR(st, (mmul(self.mono(st, d), r[0]), r[1], r[2], r[3]))
                 if 'hv' in F:
                     st.hv.setdefault(c, self.mono(st, d))
             self.push(st, c)
@@ -1169,6 +1177,10 @@ class Pass:
             if conditional and not ('callIfR' in F and cond is not None and self.cond_is(st, cond, t[2], t[3])):
                 continue
             self.pushR(st, t)
+        for c, r in (G.postQ if 'postQ' in F and not conditional else ()):
+            tc, t = self.tr(st, c, args, rets), self.trR(st, r, args, rets)
+            if tc is not None and t is not None:
+                st.dq += ((tc, t),)
         for r, offs in (G.postPR if 'pfr' in F else ()):
             t = self.trR(st, r, args, rets)
             if t is None or conditional and not ('callIfR' in F and cond is not None and
@@ -1657,6 +1669,24 @@ def retsig(P, G):
                     if r not in G.postR:
                         G.postR.append(r)
                 i = j + 1
+    if 'postQ' in F and P.key not in IS_LOOP:
+        postQ = None
+        for st, vs in P.rets:
+            q = set()
+            for c, w in st.hv.items():
+                rc = rename(c)
+                if rc is None or not rc[0] or not (len(w[0]) == 1 and w[0][0][1] == 1 and w[0][0][0] >= m):
+                    continue
+                # an own buffer's runs, published by the store of its pointer at `c`
+                for r, _ in st.runs:
+                    if dict(r[0][0]).get(w[0][0][0]) != 1:
+                        continue
+                    b = mk(tuple(x for x in r[0][0] if x[0] != w[0][0][0]), r[0][1] - w[1])
+                    t = tuple(rename(x) if x[0] else x for x in (b, r[2], r[3]))
+                    if None not in t:
+                        q.add((rc, (t[0], r[1], t[1], t[2])))
+            postQ = q if postQ is None else postQ & q
+        G.postQ = sorted(postQ or ())
     G.postV = sorted(postV)[:MAXPTS]
     G.postP = sorted((c, tuple(sorted(o))) for c, o in postP.items())
     if 'pfr' in F:

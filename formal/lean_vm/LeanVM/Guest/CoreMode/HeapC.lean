@@ -868,14 +868,24 @@ noncomputable def runOk0 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (L
       mrgW X st Q S ⟨[], Q.lo.off / S⟩ r 0 S ws else none
   | ws => runOk1 X st Q ws
 
-/-- **A run needed**: `runOk0`, or `catM k h res` and its parts below and from the index `k` (`runOk0` each):
-`k·h` the upper bound's word (`eqV`), `k`'s and `h`'s exponents existing (constants or sides of facts), the
-part from `k` of base `base·k^stride` from `g^0` to `h`. The witnesses left. -/
-noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+/-- **A run needed, split once**: `runOk0`, or `catM k h res` and its parts below and from the index `k`
+(`runOk0` each): `k·h` the upper bound's word (`eqV`), `k`'s and `h`'s exponents existing (constants or sides of
+facts), the part from `k` of base `base·k^stride` from `g^0` to `h`. The witnesses left. -/
+noncomputable def runOkL (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
   | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
         hasExp (facts X st.env res) h then
       (match runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
       | some ws' => runOk0 X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
+      | none => none) else none
+  | ws => runOk0 X st Q ws
+
+/-- **A run needed**: `runOkL`, but the part from `k` of a `catM` may be split again (`runOkL`). The witnesses
+left. -/
+noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
+        hasExp (facts X st.env res) h then
+      (match runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
+      | some ws' => runOkL X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
       | none => none) else none
   | ws => runOk0 X st Q ws
 

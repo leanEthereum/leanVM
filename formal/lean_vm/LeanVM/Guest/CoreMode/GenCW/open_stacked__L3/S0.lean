@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L3».St
+public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L3».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

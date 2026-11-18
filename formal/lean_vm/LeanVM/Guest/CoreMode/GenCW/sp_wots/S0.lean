@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».St
+public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

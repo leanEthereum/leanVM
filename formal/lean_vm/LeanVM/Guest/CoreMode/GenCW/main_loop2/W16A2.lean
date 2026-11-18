@@ -40,6 +40,7 @@ def sum16_2 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
 
 /-- Arms 202 to 255. -/
 theorem arms16_2 : armsOk Data.powTree sigW core hcert ((Memory.loopBody core).drop 172) 202 (256 - 202) st16 (4, 1, 0, 0) sum16_2 (4, 1, 0, 0) = true := by
+  simp only [armsOk, withCx_cx hcx]
   decide +kernel
 
 end

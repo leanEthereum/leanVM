@@ -90,6 +90,7 @@ def sum20_0 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
 
 /-- Arms 0 to 255. -/
 theorem arms20_0 : armsOk Data.powTree sigW core hcert ((Memory.loopBody core).drop 222) 0 (256 - 0) st20 (cntOf st20) sum20_0 (4, 1, 0, 0) = true := by
+  simp only [armsOk, withCx_cx hcx]
   decide +kernel
 
 end

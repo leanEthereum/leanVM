@@ -321,6 +321,26 @@ noncomputable def mkCSt (env sc : List (ℕ × CCell)) (rs : List (ℕ × PRun))
   ⟨insL env .nil, insL sc .nil, insL rs .nil, insL ad .nil, insL sv .nil, insL src .nil, insL pf .nil, insL pr .nil,
     n, nr, nc, nt, cd, eqs⟩
 
+/-! ## The context stated
+
+Every window builds `cxOf`'s tries from the certificate (`withCx`), which for a large certificate costs more than
+the window's pass. The tries can be stated once instead, as literals (`cxOf_lit`, each equation decided once),
+after which a window reads them at no building cost (`withCx_cx`). -/
+
+/-- **The context with its tries stated.** -/
+theorem cxOf_lit {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
+    {R : Trie (List (ℕ × ℕ × Wit))} {P : Trie CCell} {C T : Trie (List Wit)} {RS : Trie CRes} {DV HV EQ : Trie Unit}
+    (hR : H.readT = R) (hP : trieFrom H.sig.pre 0 .nil = P) (hC : trieFrom H.calls 0 .nil = C)
+    (hT : trieFrom H.rets 0 .nil = T) (hRS : trieFrom H.res 0 .nil = RS) (hDV : keysT H.divs .nil = DV)
+    (hHV : keysT H.hvs .nil = HV) (hEQ : keysT H.eqs .nil = EQ) :
+    cxOf pows sigOf f H = ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ := by
+  subst hR hP hC hT hRS hDV hHV hEQ; rfl
+
+/-- `withCx` at a stated context. -/
+theorem withCx_cx {β : Type} {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {X0 : CX}
+    (h : cxOf pows sigOf f H = X0) (k : CX → β) : withCx pows sigOf f H k = k X0 := by
+  rw [withCx_eq, h]
+
 /-! ## A loop helper assembled -/
 
 /-- **The head of a loop helper's check**: the parameters, the preconditions over them, the termination

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«da_weights».St
+public import LeanVM.Guest.CoreMode.GenCW.«da_weights».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

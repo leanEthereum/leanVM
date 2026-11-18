@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«verify_sig_lean_sphincs».St
+public import LeanVM.Guest.CoreMode.GenCW.«verify_sig_lean_sphincs».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

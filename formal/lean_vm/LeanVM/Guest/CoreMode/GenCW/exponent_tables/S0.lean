@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«exponent_tables».St
+public import LeanVM.Guest.CoreMode.GenCW.«exponent_tables».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

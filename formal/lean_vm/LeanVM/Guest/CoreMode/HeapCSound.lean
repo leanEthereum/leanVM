@@ -1549,6 +1549,34 @@ theorem catM_ok {w : ℕ → E} {Q : PRun} {k h : CCell} (hkh : (k.mul h).valW w
     rw [e]
 
 /-- **A run's witnesses**: the run written. -/
+theorem runOkL_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOkL X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  by_cases hc : ∃ k h res wl1, wl = .catM k h res :: wl1
+  · obtain ⟨k, hh, res, wl1, rfl⟩ := hc
+    simp only [runOkL] at h
+    cases hb : (eqV st.eqs (k.mul hh) Q.hi && hasExp (facts X st.env res) k && hasExp (facts X st.env res) hh) with
+    | false => rw [hb] at h; simp at h
+    | true =>
+      rw [hb, Bool.cond_true] at h
+      simp only [Bool.and_eq_true] at hb
+      obtain ⟨⟨he, hk⟩, hh'⟩ := hb
+      obtain ⟨yk, hyk⟩ := hasExp_ok (facts_ok hX hs.env res) hk
+      obtain ⟨yh, hyh⟩ := hasExp_ok (facts_ok hX hs.env res) hh'
+      cases h1 : runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ wl1 with
+      | none => rw [h1] at h; cases h
+      | some ws' =>
+        rw [h1] at h
+        have R1 := runOk0_ok hX hpre hs h1
+        have R2 := runOk0_ok hX hpre hs h
+        exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
+  · have h' : runOk0 X st Q wl = some wl' := by
+      cases wl with
+      | nil => exact h
+      | cons w wl1 =>
+        cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
+    exact runOk0_ok hX hpre hs h'
+
 theorem runOk_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
     (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOk X st Q wl = some wl') :
     RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
@@ -1568,7 +1596,7 @@ theorem runOk_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
       | some ws' =>
         rw [h1] at h
         have R1 := runOk0_ok hX hpre hs h1
-        have R2 := runOk0_ok hX hpre hs h
+        have R2 := runOkL_ok hX hpre hs h
         exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
   · have h' : runOk0 X st Q wl = some wl' := by
       cases wl with

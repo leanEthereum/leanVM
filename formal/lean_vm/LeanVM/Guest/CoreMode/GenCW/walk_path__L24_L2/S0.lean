@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L2».St
+public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L2».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false

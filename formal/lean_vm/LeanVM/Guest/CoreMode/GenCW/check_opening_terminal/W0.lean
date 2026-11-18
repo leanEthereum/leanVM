@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 0 to 99. -/
 theorem win0 : winOkF Data.powTree sigW core hcert ((core.body.drop 0).take (100 - 0)) st0 st1 = true := by
+  simp only [winOkF, withCx_cx hcx]
   decide +kernel
 
 end

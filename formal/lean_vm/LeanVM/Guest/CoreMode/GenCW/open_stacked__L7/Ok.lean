@@ -21,10 +21,12 @@ open LeanVM.Guest.CoreMode
 
 /-- The parameters, the entry state. -/
 theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+  simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 977 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 977 st2 = true := by
+/-- Statements 975 to the end. -/
+theorem last_ok : lastOkF Data.powTree sigW core hcert 975 st2 = true := by
+  simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
 end
@@ -104,7 +106,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
     | "squeeze_point_from__L21" => Fn.«squeeze_point_from__L21».hcert.sig
     | "squeeze_point_from__L9" => Fn.«squeeze_point_from__L9».hcert.sig | _ => .empty)
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(305, HeapW.st1), (977, HeapW.st2)]) HeapW.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(305, HeapW.st1), (975, HeapW.st2)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,
     HeapW.win1, by omega,
     trivial⟩ rfl HeapW.last_ok

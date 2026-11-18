@@ -73,7 +73,8 @@ def isconst(c):
 # ---- signatures and certificates
 
 class HSig:
-    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq')
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq',
+              'postQ')
 
     def __init__(self, **kw):
         for f in self.FIELDS:
@@ -183,7 +184,7 @@ def instRM(ms, l):
 # ---- the state
 
 class St:
-    __slots__ = ('env', 'sc', 'c2s', 'rs', 'ad', 'sv', 'src', 'pf', 'pr', 'n', 'nr', 'nc', 'nt', 'cd', 'eqs')
+    __slots__ = ('env', 'sc', 'c2s', 'rs', 'ad', 'sv', 'src', 'pf', 'pr', 'n', 'nr', 'nc', 'nt', 'cd', 'eqs', 'dq')
 
     def __init__(self):
         self.env, self.sc, self.c2s, self.rs, self.ad, self.sv = {}, {}, {}, {}, {}, {}
@@ -191,13 +192,14 @@ class St:
         self.n = self.nr = self.nc = self.nt = 0
         self.cd = ()
         self.eqs = ()
+        self.dq = ()
 
     def copy(self):
         s = St()
         s.env, s.sc, s.c2s, s.rs, s.ad, s.sv = dict(self.env), dict(self.sc), dict(self.c2s), dict(self.rs), \
             dict(self.ad), dict(self.sv)
         s.src, s.pf, s.pr = dict(self.src), dict(self.pf), dict(self.pr)
-        s.n, s.nr, s.nc, s.nt, s.cd, s.eqs = self.n, self.nr, self.nc, self.nt, self.cd, self.eqs
+        s.n, s.nr, s.nc, s.nt, s.cd, s.eqs, s.dq = self.n, self.nr, self.nc, self.nt, self.cd, self.eqs, self.dq
         return s
 
     def cnt(self, o):
@@ -648,16 +650,21 @@ def runOk0(X, st, Q, ws, i):
     return runOk1(X, st, Q, ws, i)
 
 
-def runOk(X, st, Q, ws, i):
-    """`catM k h res`: the run split at the symbolic index `k` (`k·h` the upper bound by `eqV`), else `runOk0`."""
+def runOk(X, st, Q, ws, i, part=None):
+    """`catM k h res`: the run split at the symbolic index `k` (`k·h` the upper bound by `eqV`), the part from `k`
+    split once more (`runOkL`, `part` `runOk0`), else `runOk0`."""
     if i < len(ws) and ws[i][0] == 'catM':
         _, k, h, res = ws[i]
         F = X.facts(st.env, res)
         if not (eqV(st.eqs, cmul(k, h), Q[3]) and hasExp(F, k) and hasExp(F, h)):
             return None
         j = runOk0(X, st, (Q[0], Q[1], Q[2], k), ws, i + 1)
-        return None if j is None else runOk0(X, st, (cmul(Q[0], cpow(k, Q[1])), Q[1], ((), 0), h), ws, j)
+        return None if j is None else (part or runOkL)(X, st, (cmul(Q[0], cpow(k, Q[1])), Q[1], ((), 0), h), ws, j)
     return runOk0(X, st, Q, ws, i)
+
+
+def runOkL(X, st, Q, ws, i):
+    return runOk(X, st, Q, ws, i, runOk0)
 
 
 def reqR(X, st, ms, rs, ws, i):
@@ -688,6 +695,38 @@ def reqPR(X, st, ms, ps, ws, i):
         if q is None:
             return None
         i = ptrROk(X, st, q, offs, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def instQ(ms, qs):
+    """`instQ`: a callee's `postQ` at the slots `ms`, those that instantiate."""
+    out = []
+    for c, q in qs:
+        c2, q2 = instC(ms, c), instR(ms, q)
+        if c2 is not None and q2 is not None:
+            out.append((c2, q2))
+    return out
+
+
+def promoteQ(st, c, m):
+    """`promoteQ`: the runs at the word of the cell `c`, its monomial `m` (the cell read), into the scope."""
+    for c2, q in st.dq:
+        if c2 == c:
+            st.pushR((cmul(m, q[0]), q[1], q[2], q[3]))
+
+
+def reqQ(X, st, ms, qs, ws, i):
+    """`reqQ`: each `postQ` run at the word a load event stored at its cell (`word n`), then the run."""
+    for c, q in qs:
+        c2, q2 = instC(ms, c), instR(ms, q)
+        if c2 is None or q2 is None or i >= len(ws) or ws[i][0] != 'word':
+            return None
+        p = st.sv.get(ws[i][1])
+        if p is None or p[0] != c2:
+            return None
+        i = runOk(X, st, (cmul(p[1], q2[0]), q2[1], q2[2], q2[3]), ws, i + 1)
         if i is None:
             return None
     return i
@@ -910,6 +949,7 @@ class Pass:
             st.push(c)
             if d not in st.src:
                 st.src[d] = c
+            promoteQ(st, c, mono(st.env, d))
         elif k == 'mul':
             d, x, y = a[1:]
             S = X.solver
@@ -974,6 +1014,7 @@ class Pass:
         for n, c, m in postVE(G, ms, n0):
             st.sv[n] = (c, m)
         st.eqs = tuple(instEq(ms, G.retEq)) + st.eqs
+        st.dq = st.dq + tuple(instQ(ms, G.postQ))
 
     def call_ws(self, st, site, check, g, args, ma):
         X = self.X
@@ -1124,7 +1165,7 @@ class Pass:
                 raise Fail(('no-ret-wits', st.nt))
         if ws is not None:
             i = 0
-            for f, l in ((reqP, G.post), (reqR, G.postR), (reqPP, G.postP), (reqPR, G.postPR)):
+            for f, l in ((reqP, G.post), (reqR, G.postR), (reqPP, G.postP), (reqPR, G.postPR), (reqQ, G.postQ)):
                 i = f(X, st, ms, l, ws, i)
                 if i is None:
                     break
@@ -1505,7 +1546,7 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.block(body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and G.term[0][1][0] in ('val', 'num') and (
             G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
-        if G.retM or G.postV or G.retEq:
+        if G.retM or G.postV or G.retEq or G.postQ:
             P.fail('loop-retM-postV')
         ei = G.term[0][1]
         if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf':
