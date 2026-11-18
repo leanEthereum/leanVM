@@ -571,13 +571,35 @@ noncomputable def runOk1 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (L
   | w :: ws => bif rnOk X st Q w then some ws else none
   | [] => none
 
-/-- **A run needed**: one part (`runOk1`), or `cat k` and the parts below and from the constant index
-`k` (`k < 2^62`). The witnesses left. -/
+/-- A monomial's `S`-th root, if it is an `S`-th power (`pow` checks back). -/
+def rootC (c : CCell) (S : ℕ) : CCell := ⟨c.bases.map fun b ↦ (b.1, b.2 / S), c.off / S⟩
+
+/-- Residue `r` of a run of stride `S'` split in `S`: `base·g^(S'·r)`, stride `S'·S`, the bounds given. -/
+def mrgPart (Q : PRun) (S r : ℕ) (lo hi : CCell) : PRun := ⟨Q.base.shift (Q.stride * r), Q.stride * S, lo, hi⟩
+
+/-- Residues `r` to `r + n - 1`, one part each: the witnesses left. -/
+noncomputable def mrgW (X : CX) (st : CSt) (Q : PRun) (S : ℕ) (lo hi : CCell) : ℕ → ℕ → List Wit →
+    Option (List Wit)
+  | _, 0, ws => some ws
+  | r, n + 1, ws => match runOk1 X st (mrgPart Q S r lo hi) ws with
+    | some ws' => mrgW X st Q S lo hi (r + 1) n ws'
+    | none => none
+
+/-- A monomial with an exponent: a constant below `2^62`, or one side of a fact. -/
+def hasExp (F : List (CCell × CCell)) (m : CCell) : Bool :=
+  (m.bases.isEmpty && Nat.blt m.off capE) || F.any fun p ↦ p.1.beq m || p.2.beq m
+
+/-- **A run needed**: one part (`runOk1`); `cat k` and the parts below and from the constant index
+`k` (`k < 2^62`); or `mrg S res` and its `S` residues (`mrgW`; a constant lower bound, a multiple of
+`S`, an upper bound an `S`-th power whose root has an exponent). The witnesses left. -/
 noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
   | .cat k :: ws => bif Nat.blt k capE then
       (match runOk1 X st ⟨Q.base, Q.stride, Q.lo, ⟨[], k⟩⟩ ws with
       | some ws' => runOk1 X st ⟨Q.base, Q.stride, ⟨[], k⟩, Q.hi⟩ ws'
       | none => none) else none
+  | .mrg S res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
+        ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S) then
+      mrgW X st Q S ⟨[], Q.lo.off / S⟩ (rootC Q.hi S) 0 S ws else none
   | ws => runOk1 X st Q ws
 
 /-- Signature runs at the slots `ms`, each with its witnesses: the witnesses left. -/

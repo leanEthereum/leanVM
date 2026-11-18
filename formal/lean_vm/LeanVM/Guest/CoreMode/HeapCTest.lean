@@ -42,6 +42,7 @@ rejected.
 * `useDp`: a pointer fact every arm of a `dispatch` guarantees, read through after it.
 * `useCd`: two dispatches on one selector, arm `j` of the second needing what arm `j` of the first wrote
   (guarantees under a selector).
+* `useM`: a run of stride `1` met by its two residue runs of stride `2` (`mrg`).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -717,6 +718,40 @@ theorem useCd_swap :
 theorem useCd_other :
     heapOkC Data.powTree sigsC { useCd with body := [.dispatch (.n 1) ["wa", "wb"] [.n 0] [],
       .dispatch (.n 2) ["ra", "rb"] [.n 0] [], .ret []] } hUseCd = false := by
+  decide +kernel
+
+/-! ## Merged residues -/
+
+/-- `fill2` writes the two residues `p·g^(2j)`, `p·g^(2j+1)`, `j < e(n)`; `readAll2` needs `p·g^[0, e(n²))`. -/
+def sigsM (g : String) : HSig :=
+  if g = "fill2" then { postR := [⟨⟨[(0, 1)], 0⟩, 2, .num 0, .val 1⟩, ⟨⟨[(0, 1)], 1⟩, 2, .num 0, .val 1⟩] }
+  else if g = "readAll2" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 2)], 0⟩⟩] } else .empty
+
+/-- Calls `fill2`, then `readAll2`. -/
+def useM : Fn where
+  name := "useM"
+  params := [.n 0, .n 1]
+  body := [.call "fill2" [.n 0, .n 1] [], .call "readAll2" [.n 0, .n 1] [], .ret []]
+
+/-- `useM`'s certificate: `readAll2`'s run merged from `fill2`'s two residues (run serials `0`, `1`), the
+root `n`'s exponent by the residual `0 < e(n)`. -/
+def hUseM : HCert where
+  sig := {}
+  reads := []
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[], [.mrg 2 [0], .run 0 [], .run 1 []]]
+  rets := [[]]
+
+theorem useM_ok : heapOkC Data.powTree sigsM useM hUseM = true := by decide +kernel
+
+/-- Without a fact giving `n` an exponent, no merge. -/
+theorem useM_noexp :
+    heapOkC Data.powTree sigsM useM { hUseM with calls := [[], [.mrg 2 [], .run 0 [], .run 1 []]] } = false := by
+  decide +kernel
+
+/-- The residues in the wrong order. -/
+theorem useM_bad :
+    heapOkC Data.powTree sigsM useM { hUseM with calls := [[], [.mrg 2 [0], .run 1 [], .run 0 []]] } = false := by
   decide +kernel
 
 end

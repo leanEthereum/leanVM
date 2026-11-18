@@ -113,6 +113,10 @@ inductive Wit where
   /-- A run needed, split at the constant index `k`: the witnesses of its part below `k`, then of its
   part from `k`, follow. -/
   | cat (k : ℕ)
+  /-- A run needed, of stride `S'`, merged from its `S` residues: the witnesses of each residue run
+  `base·g^(S'·r)`, `r < S`, of stride `S'·S` from the lower bound's `S`-th part to the upper bound's
+  `S`-th root, follow; facts of these residuals give the root's exponent. -/
+  | mrg (s : ℕ) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
