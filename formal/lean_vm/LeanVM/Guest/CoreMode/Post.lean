@@ -62,8 +62,7 @@ theorem witOk_sound {W : K → Prop} (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ))
       rw [← CCell.beq_eq h]
       exact hpre c' (hP k c' hc)
     · cases h
-  | run => simp [witOk] at h
-  | res => simp [witOk] at h
+  | _ => simp [witOk] at h
 
 theorem postGo_sound (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c ∈ H.sig.pre)
     (hpows : X.pows.Ok) {post : List (CCell × Wit)} :

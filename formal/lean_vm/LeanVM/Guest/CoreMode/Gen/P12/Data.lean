@@ -18,7 +18,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L2»
 
 /-- `index_mle__L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩], [], [], [], []⟩
+  sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩] }
   reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)])]
   res := []
 

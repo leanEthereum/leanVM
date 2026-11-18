@@ -365,7 +365,7 @@ def lean_cert(f, pre=None):
         by_d[d].append(f'({p}, {off}, {lean_wit(w)})')
     reads = wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
     pre = wrap(lean_cell(c) for c in (f.pre if pre is None else pre))
-    return (f'  sig := ⟨[{pre}], [], [], [], []⟩\n'
+    return (f'  sig := {{ pre := [{pre}] }}\n'
             f'  reads := [{reads}]\n'
             f'  res := []\n')
 
