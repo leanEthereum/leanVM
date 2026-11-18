@@ -145,8 +145,8 @@ costs are included in the bounds below.
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
-program $P$, of size at most $25377$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $25257$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
+program $P$, of size at most $25365$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
+extractor's $25245$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
 $2^{\max(58,\,2\mu + 9)} + (N + 2^{30})(D + 2)^2(2^{17} + 8D)$ for a proof announcing a stack of $2^\mu$
