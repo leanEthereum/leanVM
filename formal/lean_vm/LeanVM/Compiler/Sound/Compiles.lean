@@ -556,30 +556,28 @@ end Ranges
 section ConstsRanges
 
 /-- `ConstsOk`'s check of the bodies of functions `a` to `b - 1`: a large program's check, in
-ranges the kernel decides apart (`constsOk_of_in`). -/
+ranges the kernel decides apart (`constsOk_of_in`), walking the program's list once. -/
 def constsIn (T : String → List (ℕ × E)) (p : Core.Program) (a b : ℕ) : Bool :=
-  (List.range' a (b - a)).all fun j =>
-    blockOk T (entryKnown T (p.getD j default)) (p.getD j default).body
+  ((p.drop a).take (b - a)).all fun f => blockOk T (entryKnown T f) f.body
 
 variable {T : String → List (ℕ × E)} {p : Core.Program}
 
 theorem constsIn_glue {a b c : ℕ} (h1 : constsIn T p a b = true) (h2 : constsIn T p b c = true)
     (hab : a ≤ b) (hbc : b ≤ c) : constsIn T p a c = true := by
-  simp only [constsIn, List.all_eq_true, List.mem_range'_1] at h1 h2 ⊢
-  intro j hj
-  by_cases hjb : j < b
-  · exact h1 j ⟨hj.1, by omega⟩
-  · exact h2 j ⟨by omega, by omega⟩
+  unfold constsIn at *
+  have e : c - a = (b - a) + (c - b) := by omega
+  have hd : (p.drop a).drop (b - a) = p.drop b := by
+    rw [List.drop_drop]; congr 1; omega
+  rw [e, List.take_add, List.all_append, Bool.and_eq_true, hd]
+  exact ⟨h1, h2⟩
 
 /-- **`ConstsOk` from its ranges**: `main` named nothing and every body checked. -/
 theorem constsOk_of_in (hm : (T "main").isEmpty = true) (h : constsIn T p 0 p.length = true) :
     ConstsOk T p = true := by
-  simp only [constsIn, List.all_eq_true, List.mem_range'_1] at h
-  simp only [ConstsOk, hm, Bool.true_and, List.all_eq_true]
-  intro f hf
-  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hf
-  have := h j ⟨Nat.zero_le _, by omega⟩
-  rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some] at this
+  unfold constsIn at h
+  rw [List.drop_zero, Nat.sub_zero, List.take_of_length_le le_rfl] at h
+  simp only [ConstsOk, hm, Bool.true_and]
+  exact h
 
 end ConstsRanges
 

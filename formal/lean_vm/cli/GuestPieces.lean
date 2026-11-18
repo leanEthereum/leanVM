@@ -50,7 +50,7 @@ def maxDecl : Nat := 2000
 def maxModule : Nat := 16000
 
 /-- A module of the constant parameters' check covers functions of at most this many instructions. -/
-def maxConsts : Nat := 120000
+def maxConsts : Nat := 60000
 
 /-- The functions whose one piece is past the memory a module may take: not written as one piece
 but in parts (`Piece/C{j}*.lean`). -/
