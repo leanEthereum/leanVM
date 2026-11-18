@@ -148,7 +148,7 @@ def cfun_c(k, j, K, frame):
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := {heap_proof(k)}\n\n'
-            + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl rfl'))
+            + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl'))
 
 
 def heap_win(k):

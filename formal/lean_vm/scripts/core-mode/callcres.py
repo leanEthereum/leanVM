@@ -76,9 +76,14 @@ def exp_diff(atoms, x):
 # `(k, c)` (`busPairs`, `tabPairs`: `CLAIM_KAPPA_SRC` with `CLAIM_KAPPA_ADJ`, a subset suffices here)
 EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
     [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
-    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)]
+    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)] + \
+    [('verify_tables', 10, j + 1, 31) for j in range(6)]
 DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
              ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
+
+
+# `verify_tables`' value `g_zc_n` (`EndExec.VtQ`)
+VT_ZC = 2545
 
 
 def _consts(atoms):
@@ -105,22 +110,35 @@ def expq1(k, x):
     return None
 
 
-def expq_bound(k, x):
-    """`CoreMode.expQB`: `expq1`, or a top-level product `x = a·w` of such a value `a` and a constant `g^c`: bound
-    plus `c`."""
+def expq0(k, x):
+    """`CoreMode.expQ0`: `expq1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`' `g_zc_n` (`vtZc`)."""
     b = expq1(k, x)
     if b is not None:
         return b
     # `check_opening_terminal`'s `gmv = g^sl`, `sl <= 30` (`CoreMode.termGm`)
     if k == 'check_opening_terminal' and len(I.CORE[k][0]) > 19 and x == I.CORE[k][0][19]:
         return 31
+    # `verify_tables`' `g_zc_n = g^n`, `n < 34` (`CoreMode.vtZc`)
+    if k == 'verify_tables' and x == VT_ZC:
+        return 34
+    return None
+
+
+def expq_bound(k, x):
+    """`CoreMode.expQB`: `expq0`, or the first top-level atom defining `x` of a product `x = a·w` of such a value `a`
+    and a constant `g^c` (bound plus `c`) or a copy of such a value."""
+    b = expq0(k, x)
+    if b is not None:
+        return b
     atoms = top_atoms(I.CORE[k][1])
     cs = _consts(atoms)
     for a in atoms:
         if a[0] == 'mul' and a[1] == x:
-            b1, c = expq1(k, a[2]), cs.get(a[3])
+            b1, c = expq0(k, a[2]), cs.get(a[3])
             e = I.POWS.get(c[0]) if c is not None and c[1] == 0 else None
             return b1 + e if b1 is not None and e is not None else None
+        if a[0] == 'copy' and a[1] == x:
+            return expq0(k, a[2])
     return None
 
 

@@ -238,17 +238,29 @@ noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
 def termGm (fn : Fn) (x : V) : Bool :=
   fn.name == name% «check_opening_terminal» && decide (fn.params[19]? = some x)
 
-/-- **The exponent fact of a value or of a top-level product** `x = a·w` of a value `a` of one (`expQ1`) and a
-constant `g^c`: the bound, plus `c`. -/
-noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+/-- **`verify_tables`' word `g_zc_n = g^n`, `n < 34`** (`EndExec.VtQ`): its value `2545`. -/
+def vtZc (fn : Fn) (x : V) : Bool :=
+  fn.name == name% «verify_tables» && decide (x = V.n 2545)
+
+/-- **The exponent fact of a value**: `expQ1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`'
+`g_zc_n` (`vtZc`). -/
+noncomputable def expQ0 (fn : Fn) (x : V) : Option ℕ :=
   match expQ1 fn x with
   | some b => some b
-  | none => bif termGm fn x then some 31 else (Res.topAtoms fn.body).findSome? fun
+  | none => bif termGm fn x then some 31 else bif vtZc fn x then some 34 else none
+
+/-- **The exponent fact of a value, of a top-level product** `x = a·w` of a value `a` of one (`expQ0`) and a
+constant `g^c` (the bound, plus `c`), or of a top-level copy of such a value. -/
+noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+  match expQ0 fn x with
+  | some b => some b
+  | none => (Res.topAtoms fn.body).findSome? fun
     | .mul d a w => if d = x then
-        match expQ1 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
+        match expQ0 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
         | some b, some c => some (b + c)
         | _, _ => none
       else none
+    | .copy d a => if d = x then expQ0 fn a else none
     | _ => none
 
 /-- **A dimension fact's pair** (`Res.dimFacts`): `x` the word a top-level `load` reads at the base parameter's
@@ -293,13 +305,48 @@ ghost value. -/
 noncomputable def mlGl (Cf : CFun) : Bool :=
   (mlK Cf.fn).isSome && decide (Cf.gl = [(2, 4, 0), (5, 3, 0)]) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
 
+/-- **Own parameter words as the ghost slots** (`HSig.gw`): ghost `j` the word at the `j`-th cell, one per ghost, over
+values below `GB`, and the function naming no ghost value (`ngB`). -/
+def gwSlots (Cf : CFun) : Bool :=
+  Nat.beq Cf.H.sig.ghosts Cf.H.sig.gw.length && decide (Cf.H.sig.gw.map (·.2) = List.range Cf.H.sig.gw.length) &&
+    (Cf.H.sig.gw.all fun x ↦ x.1.bases.all fun b ↦ Nat.blt b.1 GB) && ngB Cf.fn
+
+/-- **An instance's ghost words, its own parameter words** (`gwSlots`): ghost `j` the reference's word at the `j`-th
+cell's address at `σ` (`setG`), `GwR`. -/
+theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : gwSlots Cf = true) :
+    GwR img Cf.H.sig (setG σ (Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0)) := by
+  intro c j hc
+  simp only [gwSlots, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, List.all_eq_true, Nat.blt_eq] at h
+  obtain ⟨⟨⟨hgh, hix⟩, hlt⟩, -⟩ := h
+  obtain ⟨i, hi, hci⟩ := List.getElem_of_mem hc
+  have hij : j = i := by
+    have h1 := congrArg (·[i]?) hix
+    simp only [List.getElem?_map, List.getElem?_eq_getElem hi, hci, Option.map_some] at h1
+    rw [List.getElem?_range hi] at h1
+    exact Option.some.inj h1
+  subst hij
+  have haddr : c.addrW (vw (setG σ (Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0))) =
+      c.addrW (vw σ) := by
+    unfold CCell.addrW
+    rw [valW_congr fun b hb ↦ ?_]
+    exact setG_eq (show (V.n b.1).idx < GB from hlt (c, j) hc b hb)
+  rw [haddr]
+  have hO := ownG_setG (G := Cf.H.sig) (σ := σ)
+    (gw := Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0) (by rw [List.length_map, hgh])
+  have hj : j < Cf.H.sig.ghosts := by rw [hgh]; exact hi
+  have h2 := congrArg (·[j]?) hO
+  simp only [ownG, List.getElem?_map, List.getElem?_range hj, Option.map_some, List.getElem?_eq_getElem hi,
+    hci] at h2
+  exact Option.some.inj h2
+
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`). -/
+parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); or none,
+the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
-  bif (mlK Cf.fn).isSome then mlGl Cf else
-    (Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
-      && Nat.beq Cf.H.sig.ghosts 0
+  bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
+    ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
+      && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf)
 
 theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
   simp [resOk, h]

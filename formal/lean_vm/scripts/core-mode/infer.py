@@ -1132,7 +1132,10 @@ class Pass:
         ws = []
         site = ('call', f)
         self.ginst = None
-        if G is not None and G.ghosts and 'obj' in F:
+        if G is not None and G.ghosts and all(a[0] == 'hp1' for a in G.ghosts):
+            # a callee's caller cells, the caller's own parameters' words (`CoreMode.hpArgOk`)
+            self.ginst = [mk(((a[1] - 2, 1),), 0) for a in G.ghosts]
+        elif G is not None and G.ghosts and 'obj' in F:
             import objs
             self.ginst = self.gforce.get(f) if f in self.gforce else objs.inst(self, st, G, args, conds)
         ginst = self.ginst

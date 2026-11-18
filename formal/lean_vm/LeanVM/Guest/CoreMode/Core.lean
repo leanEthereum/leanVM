@@ -151,6 +151,14 @@ def GlF (img : MemoryImage κ) (gl : List (ℕ × ℕ × ℕ)) (fp : ℕ) (ws : 
   ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧
     refMem img (a + d) = slotW ws b * ofK (g ^ k)
 
+/-- **The own parameter words** (`HSig.gw`) at the valuation `σ`: ghost `j` the reference's word at the address of
+the cell `c` of each `(c, j)` (`0` past the image). -/
+def GwR (img : MemoryImage κ) (G : HSig) (σ : Val) : Prop :=
+  ∀ c j, (c, j) ∈ G.gw → vw σ (GB + j) = (img.read (c.addrW (vw σ))).getD 0
+
+theorem GwR.ok {img : MemoryImage κ} {G : HSig} {σ : Val} (h : GwR img G σ) : GwOk G img.read σ :=
+  fun c j hc w hw ↦ by rw [h c j hc, hw]; rfl
+
 /-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
 def noFA (body : List Stmt) : Bool :=
   (stmtsOf body).all fun s ↦ match s with
@@ -211,6 +219,8 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop e
   res : ExpW img Cf.xc fp → ResF Cf.H σ
   /-- The caller's cells its signature names, linked to its slots (`CFun.gl`). -/
   gl : GlF img Cf.gl fp (Cf.fn.params.map σ ++ ownG Cf.H.sig σ)
+  /-- Its own parameter words, its ghost words (`HSig.gw`). -/
+  gw : GwR img Cf.H.sig σ
 
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation
@@ -335,11 +345,13 @@ def runPts (c : CCell) (r : Mode.Rng) : Option (List CCell) :=
   | _, _ => none
 
 /-- **A run of constant bounds `[a, b)` as a heap run** over slots; one whose cell offset is `2^62` or more (a negative
-offset, modulo the order of `g`) starts at its first cell, over `[0, b - a)`. -/
+offset, modulo the order of `g`), or a bound `2^62` or more (past the order of `g`), starts at its first cell, over
+`[0, b - a)`. -/
 def rngC (r : Mode.Rng) : Option CRun :=
   match r.lo, r.hi with
-  | .num a, .num b => bif decide (a < 2 ^ 62) && decide (b < 2 ^ 62) then
-      (monoC r.q).map fun c ↦ bif decide (c.off + r.d < 2 ^ 62) then ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩
+  | .num a, .num b => bif decide (b - a < 2 ^ 62) then
+      (monoC r.q).map fun c ↦ bif decide (a < 2 ^ 62) && decide (b < 2 ^ 62) && decide (c.off + r.d < 2 ^ 62) then
+        ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩
         else ⟨⟨c.bases, (c.off + r.d + r.S * a) % (2 ^ 64 - 1)⟩, r.S, .num 0, .num (b - a)⟩ else none
   | _, _ => none
 
@@ -462,13 +474,21 @@ noncomputable def postRNIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np 
         H.sig.postRN.contains (CRun.mapN H.sig.nv ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩)
     | _, _, _ => false
 
-/-- **A base as a slot's power, the caller's cells linked** (`CFun.gl`): a frame cell `2 + b`, or the caller's
-cell `d` (`.hp 1 d`) linked to slot `b` with no power of `g`. -/
-def baseOfL (gl : List (ℕ × ℕ × ℕ)) : Mode.Base × ℕ → Option (ℕ × ℕ)
+/-- **The own parameter words as bases** (`HSig.gw`): `(c, j)`, `c = [p]·g^d`, is the base `.hp (2 + p) d` (cell `d`
+past parameter `p`'s word) at ghost slot `np + j`. -/
+def gpOf (np : ℕ) (gw : List (CCell × ℕ)) : List ((ℕ × ℕ) × ℕ) :=
+  gw.filterMap fun x ↦ match x.1.bases with
+    | [(p, 1)] => some ((2 + p, x.1.off), np + x.2)
+    | _ => none
+
+/-- **A base as a slot's power, the caller's cells linked** (`CFun.gl`): a frame cell `2 + b`, the caller's
+cell `d` (`.hp 1 d`) linked to slot `b` with no power of `g`, or an own parameter word (`gp`, `gpOf`) at its ghost
+slot. -/
+def baseOfL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) : Mode.Base × ℕ → Option (ℕ × ℕ)
   | (.fr o, e) => if 2 ≤ o then some (o - 2, e) else none
   | (.hp q d, e) => if q = 1 then (match gl.lookup d with
     | some (b, 0) => some (b, e)
-    | _ => none) else none
+    | _ => none) else (gp.lookup (q, d)).map fun b ↦ (b, e)
 
 /-- **A run bound as a heap index, the caller's cells linked**: `idxX`, or the exponent of the caller's cell
 `d` linked to slot `b` times `g^k`. -/
@@ -478,21 +498,28 @@ def idxL (gl : List (ℕ × ℕ × ℕ)) : Mode.Idx → Option CIdx
   | i => idxX i
 
 /-- **A run as a heap run over slots, the caller's cells linked.** -/
-def rngL (gl : List (ℕ × ℕ × ℕ)) (r : Mode.Rng) : Option CRun :=
-  match idxL gl r.lo, idxL gl r.hi, monoF (baseOfL gl) r.q with
+def rngL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (r : Mode.Rng) : Option CRun :=
+  match idxL gl r.lo, idxL gl r.hi, monoF (baseOfL gl gp) r.q with
   | some lo, some hi, some c => some ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩
   | _, _, _ => none
 
 /-- A run, translated with the caller's cells linked, is the heap run `q`. -/
-def rngLIs (gl : List (ℕ × ℕ × ℕ)) (r : Mode.Rng) (q : CRun) : Bool :=
-  match rngL gl r with
+def rngLIs (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (r : Mode.Rng) (q : CRun) : Bool :=
+  match rngL gl gp r with
   | some q' => decide (q' = q)
   | none => false
 
-/-- **A base the frame knows at entry**: a parameter's frame cell `2 + b`, `b < n`, or a linked caller's cell. -/
-def baseS (gl : List (ℕ × ℕ × ℕ)) (n : ℕ) : Mode.Base → Bool
+/-- **A base the frame knows at entry**: a parameter's frame cell `2 + b`, `b < n`, a linked caller's cell, or an
+own parameter word (`gp`). -/
+def baseS (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (n : ℕ) : Mode.Base → Bool
   | .fr o => decide (2 ≤ o) && decide (o - 2 < n) && decide (o < 2 ^ 28)
-  | .hp q d => decide (q = 1) && (gl.lookup d).isSome
+  | .hp q d => bif Nat.beq q 1 then (gl.lookup d).isSome else decide (q < 2 ^ 28) && (gp.lookup (q, d)).isSome
+
+/-- **A one-point run at a product, translated** (`baseOfL`): `q` is `⟨c, 1, 0, 1⟩`, `c` the product's cell. -/
+def ptLIs (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (m : Mode.Mono) (q : CRun) : Bool :=
+  match monoF (baseOfL gl gp) m with
+  | some c => decide (q = ⟨c, 1, .num 0, .num 1⟩)
+  | none => false
 
 /-- **A pointer run, translated**, is the heap pointer run `p`: the same run, the same offsets. -/
 def prunIs (r : Mode.Rng × List ℕ) (p : CRun × List ℕ) : Bool :=
@@ -677,8 +704,9 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
     preCov G np Cf.H.sig.pre &&
     Cf.H.sig.preR.all (fun q ↦ (G.preR.any fun r ↦ (monoS G np false r.q && rngIs r q) ||
-      (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl np ·.1) && rngLIs Cf.gl r q)) ||
-      runCov G np q) &&
+      (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl (gpOf np Cf.H.sig.gw) np ·.1) &&
+        rngLIs Cf.gl (gpOf np Cf.H.sig.gw) r q)) || runCov G np q ||
+      G.pre.any fun m ↦ m.bs.all (baseS Cf.gl (gpOf np Cf.H.sig.gw) np ·.1) && ptLIs Cf.gl (gpOf np Cf.H.sig.gw) m q) &&
     G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
       | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m ||
@@ -689,7 +717,10 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
       (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
         Cf.H.sig.postR.any (rngXIs r ·)) || postRB G Cf np r || postRNIn Cf.X Cf.fn.body G np Cf.H r) &&
-    Nat.ble Cf.H.sig.ghosts Cf.gl.length
+    Nat.ble Cf.H.sig.ghosts (Cf.gl.length + Cf.H.sig.gw.length) &&
+    Cf.H.sig.gw.all fun x ↦ Nat.blt x.2 Cf.H.sig.ghosts && match x.1.bases with
+      | [(p, 1)] => Nat.blt p np
+      | _ => false
 
 /-- **A callee's returned word's monomial its mode signature promises** (`retV`): returned word `k < nr` at
 the callee's frame cell `2 + na + k`, a product over its argument cells that is the cell `c`. -/
@@ -697,12 +728,35 @@ def retMIn (G : Mode.Sig) (na nr : ℕ) (p : ℕ × CCell) : Bool :=
   decide (p.1 < nr) && decide (2 + na + p.1 < 2 ^ 28) &&
     G.retV.any fun q ↦ Nat.beq q.1 (2 + na + p.1) && monoS G na false q.2 && monoIs q.2 p.2
 
+/-- **A callee's caller cells** (`.hp 1 d`) its entry runs' products name, once each, in order: its ghost slots at a
+call, ghost `j` the caller's cell `(hp1s G)[j]` (`hpArgOk`). -/
+def hp1s (G : Mode.Sig) : List ℕ :=
+  nubN [] (G.preR.flatMap fun r ↦ r.q.bs.filterMap fun b ↦ match b.1 with
+    | .hp q d => bif Nat.beq q 1 then some d else none
+    | .fr _ => none)
+
+/-- **The caller's cells as a callee's ghost slots** past its `n` arguments: `(d, n + j, 0)`. -/
+def glOfs : ℕ → List ℕ → List (ℕ × ℕ × ℕ)
+  | _, [] => []
+  | n, d :: ds => (d, n, 0) :: glOfs (n + 1) ds
+
+/-- **A callee's base at a call**: an argument's entry cell `2 + b`, `b < na`, or a caller's cell of `ds`. -/
+def baseC1 (G : Mode.Sig) (na : ℕ) (ds : List ℕ) : Mode.Base → Bool
+  | .fr o => decide (2 ≤ o) && decide (o - 2 < na) && decide (o < 2 ^ 28) && G.entry.contains o
+  | .hp q d => Nat.beq q 1 && ds.contains d
+
+/-- A run of constant bounds. -/
+def numB (r : Mode.Rng) : Bool :=
+  match r.lo, r.hi with
+  | .num _, .num _ => true
+  | _, _ => false
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
-points `h`'s cells); each guarantee of `h` one of `G`'s (cells or points over the arguments and
-returned words, runs `G`'s or its loop's); each returned word's monomial of `h` one `G` promises (`retMIn`); `h`
-with no ghost slot. -/
+points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
+each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
+loop's); each returned word's monomial of `h` one `G` promises (`retMIn`); `h` with a ghost slot per caller's cell. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   (match G.self with
     | some o => decide (o < 2 ^ 28)
@@ -717,11 +771,19 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre
-      | _, _ => false)) || (monoS G na true (rngM r) && h.preR.any (rngXIs r ·))) &&
+      | _, _ => false)) || (monoS G na true (rngM r) && h.preR.any (rngXIs r ·)) ||
+      (numB r && r.q.bs.all (baseC1 G na (hp1s G) ·.1) && h.preR.any (rngLIs (glOfs na (hp1s G)) [] r ·))) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
     (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
-      (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts 0
+      (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts (hp1s G).length
+
+/-- **A callee's ghost words, the caller's own parameters** (`hp1s`): each caller cell `d` an entry cell of a
+parameter, and each ghost list the certificate gives the callee `f` (`HCert.gargs`) those parameters. -/
+def hpArgOk (Cf : CFun) (G : Mode.Sig) (f : String) : Bool :=
+  (hp1s G).all (fun d ↦ decide (2 ≤ d) && decide (d - 2 < Cf.fn.params.length) && decide (d < 2 ^ 28) &&
+    Cf.frame.sig.entry.contains d) &&
+  Cf.H.gargs.all fun p ↦ !(p.1 == f) || decide (p.2.2 = (hp1s G).map fun d ↦ ⟨[(d - 2, 1)], 0⟩)
 
 /-- **A call's callee** `f` at a site of `na` arguments and `nr` returned words, of mode signature `G`: a
 callee whose contract is its heap signature's (`hcs`), its counts the site's, its header cells entry cells; or
@@ -729,7 +791,7 @@ its mode signature holding of its heap signature (`fitB`). -/
 def callOkC (Cf : CFun) (G : Mode.Sig) (f : String) (na nr : ℕ) : Bool :=
   match Cf.hcs.lookup f with
   | some p => decide (p = (na, nr)) && G.entry.contains 0 && G.entry.contains 1
-  | none => fitB G (Cf.sigOf f) na nr
+  | none => fitB G (Cf.sigOf f) na nr && hpArgOk Cf G f
 
 /-- A `JUMP` through the target cell of the call site at its callee frame cell: through no `0`, no pc,
 no table target cell, from a cell not the own frame's. -/
@@ -764,12 +826,12 @@ def retsN (n : ℕ) (body : List Stmt) : Bool :=
     | .ret vs => vs.length == n
     | _ => true
 
-/-- A call of `g` on `args`: not of `f`, the callee's heap signature naming no ghost, and no returned word's
+/-- A call of `g` on `args`: not of `f`, a heap contract's callee's heap signature naming no ghost, and no returned word's
 monomial, word at return or equation unless its contract is its heap signature's (`hcs`: its guarantees then
 give them at the call's resumption), its runs' bounds having exponents at the call (`idxPowC`). -/
 noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
   !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
-    (Cf.sigOf g).retEq.isEmpty) && Nat.beq (Cf.sigOf g).ghosts 0 &&
+    (Cf.sigOf g).retEq.isEmpty) && ((Cf.hcs.lookup g).isNone || Nat.beq (Cf.sigOf g).ghosts 0) &&
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
@@ -777,7 +839,7 @@ noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
 also naming returned words' monomials (its mode signature's `retV`, `fitB`'s `retMIn`). -/
 noncomputable def callChkM (Cf : CFun) (g : String) (args : List V) : Bool :=
   !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).postV.isEmpty &&
-    (Cf.sigOf g).retEq.isEmpty) && Nat.beq (Cf.sigOf g).ghosts 0 &&
+    (Cf.sigOf g).retEq.isEmpty) && ((Cf.hcs.lookup g).isNone || Nat.beq (Cf.sigOf g).ghosts 0) &&
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
@@ -1032,7 +1094,7 @@ inductive HeapK (Cf : CFun) : Prop
         Cf.H.sig.postQ.isEmpty && Cf.H.sig.postN.isEmpty && Cf.H.sig.postRN.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
-      Cf.post = [] → Cf.H.ders = [] → Cf.H.sig.gw = [] → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
 def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=
