@@ -489,9 +489,20 @@ def hc_fns():
     return out
 
 
+def callc_fns():
+    """The straight functions whose certificate `callc.py` writes (`DataC.lean`; there, not here)."""
+    import glob
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'DataC.lean')):
+        for blk in open(f, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
+            if '\ndef hcert : CoreMode.HCert' in blk:
+                out.add(blk.split('»', 1)[0])
+    return out
+
+
 def main():
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
-    ks = [only] if only else sorted(set(scope_fns()) - hc_fns())
+    ks = [only] if only else sorted(set(scope_fns()) - hc_fns() - callc_fns())
     res = {k: Fn(k).run() for k in ks}
     if '--oracle' in sys.argv:
         import json

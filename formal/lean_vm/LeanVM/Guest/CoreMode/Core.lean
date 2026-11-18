@@ -614,12 +614,12 @@ noncomputable def postRB (G : Mode.Sig) (Cf : CFun) (np : ℕ) (r : Mode.Rng) : 
 
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
-signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`, or a
-stride-one run the signature's runs make up, `runCov`);
+signature's (over parameters; a run also the jump table's `jt`, over the caller's cells linked to parameters or ghost
+slots, `rngLIs`, or a stride-one run the signature's runs make up, `runCov`);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
 words a top-level `load` reads, among milestone 1's promised cells. -/
-noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
+noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty &&
     (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && expI G Cf.H.res np (np + nr) r.1.lo &&
       expI G Cf.H.res np (np + nr) r.1.hi &&
@@ -627,7 +627,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
     G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.all (hpAll G np G.pre) &&
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
     preCov G np Cf.H.sig.pre &&
-    Cf.H.sig.preR.all (fun q ↦ (G.preR.any fun r ↦ (monoS G np false r.q && rngIs r q) ||
+    Cf.H.sig.preR.all (fun q ↦ ((jt :: G.preR).any fun r ↦ (monoS G np false r.q && rngIs r q) ||
       (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl np ·.1) && rngLIs Cf.gl r q)) ||
       runCov G np q) &&
     G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
@@ -995,8 +995,8 @@ def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=
 
 /-- **The own signature's check**: a heap contract's (`hcOwn`), or the mode signature's translation
 (`sigOk`). -/
-noncomputable def ownOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
-  bif Cf.hc then hcOwn G Cf else sigOk G Cf np nr
+noncomputable def ownOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng) : Bool :=
+  bif Cf.hc then hcOwn G Cf else sigOk G Cf np nr jt
 
 /-! ## Heap contracts -/
 
@@ -1070,7 +1070,7 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : HeapK Cf
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : envOk Cf.frame = true ∧ armsOk Cf.frame = true ∧ FrameAcc Cf.frame K.code
-  sig : ownOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) = true
+  sig : ownOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) (Mode.jtRng K.E) = true
   retv : (Cf.hc || retVOk Cf K.F.sig) = true
   shape : shapeOk Cf K.code = true
   calls : K.code.all (jumpCallOk Cf) = true

@@ -29,6 +29,24 @@ public import LeanVM.Guest.Pack.«P58».ModeSig
 public import LeanVM.Guest.Pack.«P6».ModeSig
 public import LeanVM.Guest.Pack.«P9».ModeSig
 
+namespace LeanVM.Guest.Fn.«exponent_tables»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `exponent_tables`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `exponent_tables`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨14755, 4490, Fn.«exponent_tables».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«exponent_tables»
+
 namespace LeanVM.Guest.Fn.«list_split»
 
 open LeanVM.Guest LeanVM.Guest.Exec

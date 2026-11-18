@@ -285,6 +285,19 @@ def const_pow(body, v, k=0):
     return False
 
 
+JT_RUN = [None]
+
+
+def jt_run():
+    """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('mode_cert_data', os.path.join(HERE, '..', 'mode-cert', 'data.py'))
+    md = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(md)
+    jt = md.load()['jt']
+    return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
+
+
 def own_sig(G, np, nr, gl=None):
     """`sigOk`: the function's heap signature, its mode signature's translated (its `preR` with the caller's cells
     `gl` linked, `CoreMode.rngLIs`)."""
@@ -376,6 +389,11 @@ def own_sig(G, np, nr, gl=None):
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
+    if 'jt' in I.F:
+        # the jump table's cells, which every frame's entry has written (`entryAbs`)
+        if JT_RUN[0] is None:
+            JT_RUN[0] = jt_run()
+        h.preR = list(h.preR) + [JT_RUN[0]]
     return h
 
 

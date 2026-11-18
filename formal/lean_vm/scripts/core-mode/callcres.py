@@ -409,9 +409,12 @@ def straight(body):
 
 
 def leaf_candidates():
-    """Straight-line bodies without calls milestone 1's check leaves uncovered."""
-    import heap
-    return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and heap.Fn(k).run().fail is not None)
+    """Straight-line bodies without calls milestone 1's check leaves uncovered, or whose mode signature guarantees
+    pointer runs (`postP`), which milestone 1's does not state."""
+    import heap, route
+    S = route.sigs()
+    return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and
+                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP'])))
 
 
 def extend(out, why, S, verbose=False):
@@ -431,7 +434,7 @@ def extend(out, why, S, verbose=False):
             # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}):
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

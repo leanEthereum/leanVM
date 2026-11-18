@@ -1991,7 +1991,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
   obtain ⟨henv, harm, hacc⟩ := hok.frame
   have hown := hok.sig
   unfold ownOk at hown
-  have hsigM : Cf.hc = false → sigOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) = true := fun h ↦ by
+  have hsigM : Cf.hc = false → sigOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) (Mode.jtRng K.E) = true := fun h ↦ by
     rw [h] at hown; exact hown
   obtain ⟨hself, hghost⟩ : K.F.sig.self = none ∧ (Cf.hc = true → Cf.H.sig.ghosts = 0) := by
     cases hc : Cf.hc
@@ -2081,7 +2081,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           split at hrq
           · rename_i q hq
             obtain rfl := of_decide_eq_true hrq
-            exact rw_slot hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+            exact rw_slot hq (hSE hmS) (hH0.r r' hr') y hx
           · cases hrq
         · rw [Bool.and_eq_true] at hrq
           obtain ⟨hmS, hrq⟩ := hrq
@@ -2089,7 +2089,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           split at hrq
           · rename_i q hq
             obtain rfl := of_decide_eq_true hrq
-            exact rw_slotX hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+            exact rw_slotX hq (hSE hmS) (hH0.r r' hr') y hx
           · cases hrq
       · -- a run over the caller's linked cells
         rw [Bool.and_eq_true] at hrq
@@ -2098,7 +2098,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         split at hrq
         · rename_i q hq
           obtain rfl := of_decide_eq_true hrq
-          exact rw_slotL hq (slotEqL_of hκ hs.agree hs.fp (hws0' hσ) hσ.gl hbs) (hH0.r r' (List.mem_cons_of_mem _ hr'))
+          exact rw_slotL hq (slotEqL_of hκ hs.agree hs.fp (hws0' hσ) hσ.gl hbs) (hH0.r r' hr')
             y hx
         · cases hrq
     · obtain ⟨w', hw', o, ho, rfl⟩ := hps

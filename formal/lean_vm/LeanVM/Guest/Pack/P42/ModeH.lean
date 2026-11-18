@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P42».Mode0
-public import LeanVM.Guest.Pack.«P42».ModeD0
 
 set_option Elab.async false
 
@@ -42,18 +41,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»
-
-namespace LeanVM.Guest.Fn.«exponent_tables»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `exponent_tables`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 2) (d := Data.adviceFn2) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«exponent_tables»
