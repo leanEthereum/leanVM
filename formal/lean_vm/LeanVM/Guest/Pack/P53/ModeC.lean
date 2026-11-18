@@ -123,6 +123,29 @@ end
 
 end LeanVM.Guest.Fn.«da_pad_loop0»
 
+namespace LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop39`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node (some Fn.«keccak_layer__L0_loop1».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil) .nil)
+    .nil))) .nil) .nil)) .nil)), 524287⟩
+
+/-- `__loop39`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨254052, 59, Fn.«keccak_layer__L0_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
+
 namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

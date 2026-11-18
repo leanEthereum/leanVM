@@ -185,6 +185,12 @@ def gl_of(k):
     if ml_k(k) is not None:
         # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
         return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
+    import callcres
+    if k in callcres.ST_LOOPS:
+        # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
+        # frame address (`0`) its second
+        np = len(CORE[k][0])
+        return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
     return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
 
 
@@ -197,7 +203,7 @@ def ml_k(k):
 
 def gl_lean(k):
     """`CFun.gl` as Lean."""
-    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in sorted(gl_of(k).items())) + ']'
+    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in gl_of(k).items()) + ']'
 
 
 def prun(p, n, ent=None, const=False):

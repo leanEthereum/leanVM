@@ -38,6 +38,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P12».ModeSig
 public import LeanVM.Guest.Pack.«P16».ModeSig
@@ -268,14 +269,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `__loop35`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(7, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [7] }, 253360, 94,
-    Fn.«verify_bus_gkr_loop0_loop0».modeSig, .nil, 524287, Data.adviceFn429.2.2, .nil, .nil, .nil,
-    .nil, (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some ()) (.node (some
-    ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil)) (.node none (.node
-    (some ()) (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ())
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))))),
-    .nil, .nil⟩
+    Fn.«verify_bus_gkr_loop0_loop0».modeSig, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil)))) .nil))))
+    .nil))) .nil))) .nil) .nil) .nil)), 524287, Data.adviceFn429.2.2, .nil, .nil, .nil, .nil,
+    Fn.«verify_bus_gkr_loop0_loop0».pairO, Fn.«verify_bus_gkr_loop0_loop0».pairS, .nil⟩
 
 /-- `__loop35`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

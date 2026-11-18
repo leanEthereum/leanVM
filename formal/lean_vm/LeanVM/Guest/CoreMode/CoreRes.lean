@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.Res.AnyData
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
+public import LeanVM.Guest.CoreMode.LoopLink
 public import LeanVM.Guest.Res.SelDefs
 public import LeanVM.Guest.Res.TermDefs
 import LeanVM.Guest.Data.Source
@@ -48,6 +49,9 @@ ghost words (`CRes.holds_congr`). One family names a ghost:
 * `ml` (`mlSub`): `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)`
   lies in its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost
   the caller's cell `2`, `glOk`), from the old route's gap walk (`EndExecCoreMono`).
+* `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
+  `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
+  (`EndExecCoreSt`).
 
 `resOk Cf`: every residual of `Cf`'s heap certificate of a family (`resFamG`). `CfOk` asks it, so the core
 route's honest valuations (`HonF.res`) make the residuals true.
@@ -294,6 +298,31 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
   | _ => false
 
+/-! ## The proof stream's cursor loops -/
+
+/-- **The loops reading the proof stream past a cursor** (`st`): `(name, D, v, S)`, a loop whose caller's cell `D`
+holds the stream, whose body loads the cursor `v`, reading at most `S` words past it an iteration. -/
+def stLoops : List (String × ℕ × ℕ × ℕ) :=
+  [(name% «keccak_layer__L0_loop0», 17, 20, 16), (name% «keccak_layer__L1_loop0», 17, 20, 16),
+    (name% «keccak_layer__L0_loop1», 17, 14, 2), (name% «keccak_layer__L1_loop1», 17, 14, 2),
+    (name% «verify_bus_gkr_loop0_loop0», 11, 13, 8), (name% «verify_tables_loop0», 22, 11, 3)]
+
+/-- A stream-cursor loop's `(D, v, S)`. -/
+def stK (fn : Fn) : Option (ℕ × ℕ × ℕ) := stLoops.lookup fn.name
+
+/-- **A read past a stream cursor** (`st`): the cell `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)` (its
+ghost the caller's stream). -/
+def stSub (fn : Fn) : CRes → Bool
+  | .sub c q => (stK fn).any fun p ↦ decide (c.bases = [(p.2.1, 1)]) && Nat.blt c.off p.2.2 &&
+      decide (q = ⟨⟨[(GB, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | _ => false
+
+/-- **A stream-cursor loop's links**: its caller's cell `D` to its first ghost slot, the caller's frame address to its
+second (`loopGl`); it names no ghost value. -/
+def stGl (Cf : CFun) : Bool :=
+  (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1])) && Nat.beq Cf.H.sig.ghosts 2 &&
+    ngB Cf.fn
+
 /-! ## The instance's exponent and dimension facts -/
 
 /-- The pointer and offset of the first `load` of `x` among the atoms. -/
@@ -365,7 +394,7 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
 
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
+  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)
@@ -378,9 +407,10 @@ noncomputable def mlGl (Cf : CFun) : Bool :=
 
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`). -/
+parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a
+stream-cursor loop its caller's stream and frame (`stGl`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
-  bif (mlK Cf.fn).isSome then mlGl Cf else
+  bif (stK Cf.fn).isSome then stGl Cf else bif (mlK Cf.fn).isSome then mlGl Cf else
     (Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
       && Nat.beq Cf.H.sig.ghosts 0
 

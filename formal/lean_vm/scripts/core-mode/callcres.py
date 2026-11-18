@@ -408,10 +408,28 @@ def ml_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
 
 
+# `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
+# the stream, the cursor value `v`, the words `S` read past it an iteration)
+ST_LOOPS = {
+    'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
+    'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
+    'verify_bus_gkr_loop0_loop0': (11, 13, 8), 'verify_tables_loop0': (22, 11, 3),
+}
+
+
+def st_sub(k, c):
+    """`CoreMode.stSub`: a stream-cursor loop's read `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)`, or
+    None."""
+    p = ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)
+    if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
+        return None
+    return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
 
 
 def sel_facts(EM):
@@ -437,7 +455,8 @@ def sel_facts(EM):
 
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
+    its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
+    (`st_sub`)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
@@ -445,7 +464,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else ml_sub(self.k, c)
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])

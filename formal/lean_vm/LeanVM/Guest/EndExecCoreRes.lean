@@ -852,15 +852,17 @@ theorem resQ_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
-    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none) {fp : ℕ}
+    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none)
+    (hst : CoreMode.stK Cf.fn = none) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ⟨hf' | hq, -⟩ | hm
+  rcases this with (⟨hf' | hq, -⟩ | hm) | hs
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
+  · cases x <;> simp [CoreMode.stSub, hst] at hs
 
 /-- **The residuals of a heap certificate of families hold** at a valuation `σ'` agreeing below `GB` with an honest
 instance's, given its ghost family's (`mlSub`): the others name no ghost (`CRes.holds_congr`). -/
@@ -869,14 +871,16 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) {σ' : Val}
-    (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ') :
+    (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ')
+    (hst : ∀ x, CoreMode.stSub Cf.fn x = true → x.Holds σ') :
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ⟨hf' | hq, hv⟩ | hm
+  rcases this with (⟨hf' | hq, hv⟩ | hm) | hs
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact hml x hm
+  · exact hst x hs
 
 end
 

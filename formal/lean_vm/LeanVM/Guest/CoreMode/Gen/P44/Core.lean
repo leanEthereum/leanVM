@@ -1033,7 +1033,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L11_L17_L5_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) cfun.gl = true := by
   decide +kernel
 
 /-- `level_positions__L11_L17_L5_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1059,6 +1059,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := loop_sig
+  gtail := by decide +kernel
   shape := loop_shape
   sigE := rfl
   fsig := rfl
@@ -1104,7 +1105,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L4_L13_L7_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) cfun.gl = true := by
   decide +kernel
 
 /-- `level_positions__L4_L13_L7_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1130,6 +1131,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := loop_sig
+  gtail := by decide +kernel
   shape := loop_shape
   sigE := rfl
   fsig := rfl
@@ -1309,7 +1311,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L5_L20_L2_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) cfun.gl = true := by
   decide +kernel
 
 /-- `level_positions__L5_L20_L2_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1335,6 +1337,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := loop_sig
+  gtail := by decide +kernel
   shape := loop_shape
   sigE := rfl
   fsig := rfl
@@ -1380,7 +1383,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L5_L22_L4_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) cfun.gl = true := by
   decide +kernel
 
 /-- `level_positions__L5_L22_L4_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1406,6 +1409,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := loop_sig
+  gtail := by decide +kernel
   shape := loop_shape
   sigE := rfl
   fsig := rfl
@@ -1593,7 +1597,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) cfun.gl = true := by
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1619,6 +1623,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := loop_sig
+  gtail := by decide +kernel
   shape := loop_shape
   sigE := rfl
   fsig := rfl

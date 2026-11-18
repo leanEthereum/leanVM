@@ -145,11 +145,15 @@ def CFun.xc (Cf : CFun) : List ℕ := bif Cf.hc then [] else expCells Cf.frame.s
 theorem CFun.xc_of {Cf : CFun} (h : Cf.hc = false) : Cf.xc = expCells Cf.frame.sig := by
   simp [CFun.xc, h]
 
+/-- **What a link `(d, b, k)` says of the caller's frame `a`**, slot `b`'s word `w`: cell `d` holds `w·g^k`; for `d = 0`
+(a cell no mode signature names), `w·g^k` is the frame's address. -/
+def LinkW (img : MemoryImage κ) (a d : ℕ) (w : E) (k : ℕ) : Prop :=
+  if d = 0 then w * ofK (g ^ k) = ofK (g ^ a) else refMem img (a + d) = w * ofK (g ^ k)
+
 /-- **The caller's linked cells** (`CFun.gl`) at frame `fp` of the reference, the slots' words `ws`: header cell
-`1` names the caller's frame `a`, whose cell `d` holds slot `b`'s word times `g^k`. -/
+`1` names the caller's frame `a`, whose cell `d` holds slot `b`'s word times `g^k` (`LinkW`; `d = 0`, its address). -/
 def GlF (img : MemoryImage κ) (gl : List (ℕ × ℕ × ℕ)) (fp : ℕ) (ws : List E) : Prop :=
-  ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧
-    refMem img (a + d) = slotW ws b * ofK (g ^ k)
+  ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧ LinkW img a d (slotW ws b) k
 
 /-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
 def noFA (body : List Stmt) : Bool :=
@@ -494,7 +498,7 @@ def rngLIs (gl : List (ℕ × ℕ × ℕ)) (r : Mode.Rng) (q : CRun) : Bool :=
 /-- **A base the frame knows at entry**: a parameter's frame cell `2 + b`, `b < n`, or a linked caller's cell. -/
 def baseS (gl : List (ℕ × ℕ × ℕ)) (n : ℕ) : Mode.Base → Bool
   | .fr o => decide (2 ≤ o) && decide (o - 2 < n) && decide (o < 2 ^ 28)
-  | .hp q d => decide (q = 1) && (gl.lookup d).isSome
+  | .hp q d => decide (q = 1) && !Nat.beq d 0 && (gl.lookup d).isSome
 
 /-- **A pointer run, translated**, is the heap pointer run `p`: the same run, the same offsets. -/
 def prunIs (r : Mode.Rng × List ℕ) (p : CRun × List ℕ) : Bool :=

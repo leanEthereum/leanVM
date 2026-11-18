@@ -9,10 +9,8 @@ module
 
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.Pack.«P11».Mode0
-public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
-public import LeanVM.Guest.Pack.«P26».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P33».ModeD0
@@ -23,11 +21,8 @@ public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P42».Mode0
 public import LeanVM.Guest.Pack.«P42».ModeC
-public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P51».Mode0
-public import LeanVM.Guest.Pack.«P53».Mode0
-public import LeanVM.Guest.Pack.«P54».Mode0
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode0
@@ -92,13 +87,7 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
   (Fn.«keccak_layer__L0».modeFun, Fn.«keccak_layer__L0».code.chunks.flatten),
-  (Fn.«keccak_layer__L0_loop0».modeFun, Fn.«keccak_layer__L0_loop0».code.chunks.flatten),
-  (Fn.«keccak_layer__L0_loop1».modeFun, Fn.«keccak_layer__L0_loop1».code.chunks.flatten),
   (Fn.«keccak_layer__L1».modeFun, Fn.«keccak_layer__L1».code.chunks.flatten),
-  (Fn.«keccak_layer__L1_loop0».modeFun, Fn.«keccak_layer__L1_loop0».code.chunks.flatten),
-  (Fn.«keccak_layer__L1_loop1».modeFun, Fn.«keccak_layer__L1_loop1».code.chunks.flatten),
-  (Fn.«verify_bus_gkr_loop0_loop0».modeFun, Fn.«verify_bus_gkr_loop0_loop0».code.chunks.flatten),
-  (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten),
   (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten)]
 
 /-- **Every residual of the listed functions has an obligation of its own.** -/

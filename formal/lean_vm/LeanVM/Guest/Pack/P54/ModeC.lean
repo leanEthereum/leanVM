@@ -175,6 +175,29 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L4»
 
+namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop35`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil))))
+    .nil)))) .nil))) .nil))) .nil) .nil) .nil)), 524287⟩
+
+/-- `__loop35`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨253360, 94, Fn.«verify_bus_gkr_loop0_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
+
 namespace LeanVM.Guest.Fn.«level_residual__L55_L16_L6_L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec
