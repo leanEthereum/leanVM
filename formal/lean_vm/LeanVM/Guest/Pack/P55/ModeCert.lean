@@ -11,8 +11,6 @@ public import LeanVM.Guest.CoreMode.Gen.«P55».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P55».Mode1
-public import LeanVM.Guest.Pack.«P55».Mode2
-public import LeanVM.Guest.Pack.«P55».Mode3
 public import LeanVM.Guest.Pack.«P55».ModeC
 public import LeanVM.Guest.Pack.«P55».ModeH
 meta import LeanVM.Guest.KernelLit
@@ -524,7 +522,10 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L27».cfun, Fn.«block_selector__L5».cfun, Fn.«block_selector__L23».cfun,
-    Fn.«bus_grind_check__L6».cfun, Fn.«bus_grind_check__L13».cfun]
+    Fn.«bus_grind_check__L6».cfun, Fn.«bus_grind_check__L13».cfun,
+    Fn.«level_residual__L37_L10_L4_L2_loop1».cfun, Fn.«level_residual__L23_L7_L4_L2_loop0».cfun,
+    Fn.«level_residual__L44_L13_L4_L2_loop0».cfun, Fn.«level_residual__L25_L10_L4_L2_loop0».cfun,
+    Fn.«level_residual__L109_L22_L6_L3_loop1».cfun, Fn.«level_residual__L55_L19_L4_L2_loop0».cfun]
 
 end
 
@@ -773,29 +774,35 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_positions__L5_L23_L5».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem18) ⟨Fn.«level_positions__L9_L25_L7».modeOk,
     Fn.«level_positions__L9_L25_L7».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem19)
-    ⟨Fn.«level_residual__L37_L10_L4_L2_loop1».modeOk,
-    Fn.«level_residual__L37_L10_L4_L2_loop1».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem20)
-    ⟨Fn.«level_residual__L23_L7_L4_L2_loop0».modeOk,
-    Fn.«level_residual__L23_L7_L4_L2_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem21)
-    ⟨Fn.«level_residual__L44_L13_L4_L2_loop0».modeOk,
-    Fn.«level_residual__L44_L13_L4_L2_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem22)
-    ⟨Fn.«level_residual__L25_L10_L4_L2_loop0».modeOk,
-    Fn.«level_residual__L25_L10_L4_L2_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L37_L10_L4_L2_loop1».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_self)))))), rfl, Fn.«level_residual__L37_L10_L4_L2_loop1».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L23_L7_L4_L2_loop0».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl,
+    Fn.«level_residual__L23_L7_L4_L2_loop0».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L44_L13_L4_L2_loop0».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))), rfl,
+    Fn.«level_residual__L44_L13_L4_L2_loop0».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L25_L10_L4_L2_loop0».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))), rfl, Fn.«level_residual__L25_L10_L4_L2_loop0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem23) ⟨Fn.«decode_query_windows__L25_L7».modeOk,
     Fn.«decode_query_windows__L25_L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem24)
     ⟨Fn.«level_positions__L6_L22_L4_loop0».modeOk,
     Fn.«level_positions__L6_L22_L4_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem25)
-    ⟨Fn.«level_residual__L109_L22_L6_L3_loop1».modeOk,
-    Fn.«level_residual__L109_L22_L6_L3_loop1».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem26)
-    ⟨Fn.«level_residual__L55_L19_L4_L2_loop0».modeOk,
-    Fn.«level_residual__L55_L19_L4_L2_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L109_L22_L6_L3_loop1».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_self)))))))))), rfl, Fn.«level_residual__L109_L22_L6_L3_loop1».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L55_L19_L4_L2_loop0».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))), rfl,
+    Fn.«level_residual__L55_L19_L4_L2_loop0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem27) ⟨Fn.«decode_query_windows__L28_L4».modeOk,
     Fn.«decode_query_windows__L28_L4».modeHintsOk⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))

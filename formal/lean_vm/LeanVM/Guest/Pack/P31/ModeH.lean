@@ -193,21 +193,6 @@ end
 
 end LeanVM.Guest.Fn.«level_positions__L16_L17_L5_loop0»
 
-namespace LeanVM.Guest.Fn.«level_residual__L37_L11_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop113`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1042) (d := Data.adviceFn1042) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L37_L11_L4_L2_loop0»
-
 namespace LeanVM.Guest.Fn.«level_positions__L32_L18_L6_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -222,51 +207,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_positions__L32_L18_L6_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L21_L8_L4_L2_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop293`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1261) (d := Data.adviceFn1261) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L21_L8_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L18_L8_L4_L2_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop297`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1265) (d := Data.adviceFn1265) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L18_L8_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L32_L18_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop359`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1341) (d := Data.adviceFn1341) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L32_L18_L4_L2_loop0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L8_L26_L2_loop0»
 

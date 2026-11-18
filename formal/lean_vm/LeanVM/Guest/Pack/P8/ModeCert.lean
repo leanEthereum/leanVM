@@ -411,7 +411,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L4».cfun, Fn.«plus_one_run__L19».cfun, Fn.«plus_one_run__L20».cfun,
-    Fn.«block_selector__L13».cfun]
+    Fn.«block_selector__L13».cfun, Fn.«verify_keccak_loop2».cfun,
+    Fn.«level_residual__L73_L16_L6_L3_loop1».cfun]
 
 end
 
@@ -565,8 +566,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (.inr ⟨Fn.«block_selector__L13».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
     Fn.«block_selector__L13».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«verify_keccak_loop2».modeOk,
-    Fn.«verify_keccak_loop2».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«verify_keccak_loop2».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«verify_keccak_loop2».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«da_factors__L13_L7_L0».modeOk,
     Fn.«da_factors__L13_L7_L0».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7)
@@ -586,9 +588,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13)
     ⟨Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeOk,
     Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem14)
-    ⟨Fn.«level_residual__L73_L16_L6_L3_loop1».modeOk,
-    Fn.«level_residual__L73_L16_L6_L3_loop1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L73_L16_L6_L3_loop1».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_self)))))), rfl, Fn.«level_residual__L73_L16_L6_L3_loop1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem15)
     ⟨Fn.«level_positions__L7_L23_L5_loop0».modeOk,
     Fn.«level_positions__L7_L23_L5_loop0».modeHintsOk⟩)

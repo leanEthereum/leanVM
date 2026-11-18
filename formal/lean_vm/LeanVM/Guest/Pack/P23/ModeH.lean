@@ -29,21 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L9»
 
-namespace LeanVM.Guest.Fn.«claim_list_digest_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop17`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 351) (d := Data.adviceFn351) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_digest_loop1»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -163,21 +148,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop50`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 945) (d := Data.adviceFn945) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
 
 namespace LeanVM.Guest.Fn.«verify_merkle_cap__L7»
 

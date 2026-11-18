@@ -381,7 +381,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«block_selector__L31».cfun, Fn.«keccak_plain_rounds__L4_L1».cfun,
-    Fn.«claim_list_last__L10».cfun, Fn.«squeeze_point_from__L16».cfun]
+    Fn.«claim_list_last__L10».cfun, Fn.«squeeze_point_from__L16».cfun,
+    Fn.«level_residual__L37_L20_L4_L2_loop1».cfun]
 
 end
 
@@ -561,9 +562,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem17)
     ⟨Fn.«level_positions__L4_L18_L6_loop0».modeOk,
     Fn.«level_positions__L4_L18_L6_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem18)
-    ⟨Fn.«level_residual__L37_L20_L4_L2_loop1».modeOk,
-    Fn.«level_residual__L37_L20_L4_L2_loop1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L37_L20_L4_L2_loop1».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«level_residual__L37_L20_L4_L2_loop1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem19)
     ⟨Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeOk,
     Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeHintsOk⟩)
