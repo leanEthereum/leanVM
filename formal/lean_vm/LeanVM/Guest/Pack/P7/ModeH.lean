@@ -58,66 +58,6 @@ end
 
 end LeanVM.Guest.Fn.«grind_check__L23»
 
-namespace LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 678) (d := Data.adviceFn678) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L7_L22_L4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_positions__L7_L22_L4`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 683) (d := Data.adviceFn683) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L7_L22_L4»
-
-namespace LeanVM.Guest.Fn.«level_residual__L37_L16_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L37_L16_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 747) (d := Data.adviceFn747) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L37_L16_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L24_L6_L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L109_L24_L6_L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 920) (d := Data.adviceFn920) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L109_L24_L6_L3»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

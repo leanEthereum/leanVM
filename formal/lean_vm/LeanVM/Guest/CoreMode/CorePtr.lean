@@ -224,6 +224,80 @@ theorem slot_pwX {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s
   rw [limb0_mul_ofK]
   exact hy1
 
+/-! ## Pointer bases -/
+
+theorem hp_val {s : St} {q d k : ℕ} {v : E} (h : MonoVal s ⟨0, k, [(.hp q d, 1)]⟩ v) :
+    ∃ p x u, s.mem.get (s.fp + q) = some p ∧ Names (p * ofK (g ^ d)) x ∧ s.mem.get x = some u ∧
+      v = u * ofK (g ^ k) := by
+  obtain ⟨w, ⟨u, w', ⟨p, x, hp, hx, hu⟩, hw', rfl⟩, rfl⟩ := h
+  simp only [BsVal] at hw'
+  subst hw'
+  refine ⟨p, x, u, hp, hx, hu, ?_⟩
+  simp only [pow_zero, one_mul, pow_one, mul_one]
+  ring
+
+/-- **A pointer-based product written is its pointer fact's cell written** (the pointer's word read on
+the reference), in a memory agreeing with the reference, its frame cell holding the slot's word. -/
+theorem hw_hp {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s.mem (refMem img)) {ws : List E}
+    {q d k : ℕ} (_hq : 2 ≤ q) (hc : SlotEq s ws [(.fr q, 1)]) (h : HW s ⟨0, k, [(.hp q d, 1)]⟩) {w : E}
+    (hr : img.read ((⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws)) = some w) :
+    WrK s.mem (w.limb 0 * addressOfIndex k) := by
+  obtain ⟨v, y, hv, hy, hw⟩ := h
+  obtain ⟨p, x, u, hp, hx, hu, rfl⟩ := hp_val hv
+  obtain ⟨o, ho, -, hget⟩ := hc _ List.mem_cons_self
+  simp only [Mode.Base.fr.injEq] at ho
+  subst ho
+  have hpw : p = slotW ws (q - 2) := hget p hp
+  have hadr : (⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws) = g ^ x := by
+    rw [← hx.1, hpw]
+    simp [CCell.addrW, CCell.valW, prodW, addressOfIndex, limb0_mul_ofK]
+  rw [hadr] at hr
+  have hrm := (refRd_img hκ img x w (by have := hx.2; unfold maxCells at this; omega) hr).2
+  have huw : u = w := by rw [← hrm]; exact (ha.get _ _ hu).symm
+  subst huw
+  refine ⟨y, ?_, hy.2, hw⟩
+  rw [← hy.1, limb0_mul_ofK]
+
+/-- **A pointer fact's cells written make its pointer-based product written**: the pointer cell written,
+the memory within the reference's `2 ^ κ` cells, agreeing with it. -/
+theorem hp_hw {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s.mem (refMem img))
+    (hu : s.mem.used ≤ 2 ^ κ) {ws : List E} {q d k : ℕ} (_hq : 2 ≤ q) (hc : SlotGet s ws [(.fr q, 1)])
+    (hcell : WrK s.mem ((⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws)))
+    (h : ∀ w, img.read ((⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws)) = some w →
+      WrK s.mem (w.limb 0 * addressOfIndex k)) : HW s ⟨0, k, [(.hp q d, 1)]⟩ := by
+  obtain ⟨o, ho, -, hget⟩ := hc _ List.mem_cons_self
+  simp only [Mode.Base.fr.injEq] at ho
+  subst ho
+  obtain ⟨x, hx, hxlt, hxw⟩ := hcell
+  obtain ⟨u, hgu⟩ := Mem.get_of_written hxw
+  have hlt : x < 2 ^ κ := lt_of_lt_of_le (ha.wf.get_lt hgu) hu
+  have hux : u = refMem img x := (ha.get _ _ hgu).symm
+  have hrd : img.read ((⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws)) = some u := by
+    rw [hx, hux]; exact read_refMem hκ hlt
+  obtain ⟨y, hy, hylt, hyw⟩ := h u hrd
+  have hnx : Names (slotW ws (q - 2) * ofK (g ^ d)) x := by
+    refine ⟨?_, hxlt⟩
+    rw [← hx]
+    simp [CCell.addrW, CCell.valW, prodW, addressOfIndex, limb0_mul_ofK]
+  refine ⟨u * ofK (g ^ k), y, ⟨u, ⟨u, 1, ⟨_, x, hget, hnx, hgu⟩, rfl, by simp⟩, by simp [mul_comm]⟩, ⟨?_, hylt⟩, hyw⟩
+  rw [limb0_mul_ofK]
+  exact hy
+
+theorem hpOf_spec {m : Mode.Mono} {q d : ℕ} (h : hpOf m = some (q, d)) : m = ⟨0, m.k, [(.hp q d, 1)]⟩ := by
+  obtain ⟨fp, k, bs⟩ := m
+  unfold hpOf at h
+  split at h
+  · rename_i q' d' h1 h2
+    cases h
+    simp only at h1 h2
+    subst h1 h2
+    rfl
+  · cases h
+
+theorem monoS_fr {G : Mode.Sig} {n : ℕ} {ent : Bool} {q : ℕ} (h : hpSlot G n ent q = true) :
+    monoS G n ent ⟨0, 0, [(.fr q, 1)]⟩ = true := by
+  simpa [monoS, hpSlot] using h
+
 end
 
 end LeanVM.Guest.CoreMode

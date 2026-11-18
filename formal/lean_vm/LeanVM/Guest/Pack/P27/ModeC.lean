@@ -14,8 +14,10 @@ public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P26».ModeSig
 public import LeanVM.Guest.Pack.«P27».Bundle
 public import LeanVM.Guest.Pack.«P27».ModeSig
+public import LeanVM.Guest.Pack.«P38».ModeSig
 public import LeanVM.Guest.Pack.«P40».ModeSig
 public import LeanVM.Guest.Pack.«P47».ModeSig
+public import LeanVM.Guest.Pack.«P57».ModeSig
 public import LeanVM.Guest.Pack.«P60».ModeSig
 
 namespace LeanVM.Guest.Fn.«statement_digest»
@@ -136,6 +138,33 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L19_L9_L4_L2»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `level_residual__L19_L9_L4_L2`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«level_residual__L19_L9_L4_L2_loop1».modeSig) .nil .nil)
+    .nil))) .nil) .nil) .nil))))) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node (some Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig) .nil .nil) .nil)))
+    .nil) .nil) .nil))) .nil)) .nil)) .nil))) .nil))), 524287⟩
+
+/-- `level_residual__L19_L9_L4_L2`: its entry, length and signature; on the core route, nothing for
+    a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨269013, 45, Fn.«level_residual__L19_L9_L4_L2».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L19_L9_L4_L2»
 
 namespace LeanVM.Guest.Fn.«level_positions__L3_L13_L7_loop0»
 

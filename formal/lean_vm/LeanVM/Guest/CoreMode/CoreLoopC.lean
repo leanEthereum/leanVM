@@ -18,7 +18,7 @@ A loop helper whose body has calls (`loopBC`): atoms and calls, its tail call `c
 itself, `ret []`; compiled (`loopCodeC`) to code whose last two `JUMP`s are the tail call's (through
 a next-frame cell, to the function's entry) and the return, every other `JUMP` a call's (on a nonzero
 constant, `jumpCallOk`). `LoopOkC K Cf`: the kernel's checks, as `LoopOk`'s, with the callees' heap
-signatures (`callsB`) and the frame walk told the environment's callee signatures, its own entry's
+signatures (`callsBL`) and the frame walk told the environment's callee signatures, its own entry's
 among them.
 
 `frameSpec_loopC`: such a function meets `FrameSpec` for `CoreAt`: its steps are `frameSpec_loop`'s,
@@ -143,14 +143,30 @@ noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
   | .call g _ _ => (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
   | _ => true
 
+/-- **Each call of the body** (not its tail `callIf`) checked by `callChk`. -/
+noncomputable def callsBL (Cf : CFun) : Bool :=
+  (stmtsOf Cf.fn.body).all fun s ↦ match s with
+    | .call g args _ => callChk Cf g args
+    | _ => true
+
+/-- **A call's callee runs' bounds have exponents** (`callsBL`'s `idxPow`). -/
+theorem callsBL_spec {Cf : CFun} (hcb : callsBL Cf = true) {f : String} {args rets : List V}
+    (hs : Stmt.call f args rets ∈ stmtsOf Cf.fn.body) :
+    (∀ q ∈ (Cf.sigOf f).preR, (idxPow Cf.pows Cf.fn.body args q.lo && idxPow Cf.pows Cf.fn.body args q.hi) = true) ∧
+    ∀ p ∈ (Cf.sigOf f).prePR,
+      (idxPow Cf.pows Cf.fn.body args p.1.lo && idxPow Cf.pows Cf.fn.body args p.1.hi) = true := by
+  have := List.all_eq_true.mp hcb _ hs
+  simp only [callChk, Bool.and_eq_true] at this
+  exact ⟨List.all_eq_true.mp this.1.2, List.all_eq_true.mp this.2⟩
+
 /-- **The kernel's checks of a loop helper with calls on the core route**, and its ties to its mode
-certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsB`), the frame walk's callee
+certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
   res : Cf.H.res = []
   body : loopBC Cf.fn = true
-  calls : callsB Cf = true
+  calls : callsBL Cf = true
   top : Cf.fn.body.all topOk = true
   rdFree : (stmtsOf Cf.fn.body).all rdFree = true
   cptr : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true
@@ -305,7 +321,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
       · have hmem : Stmt.call f args rets ∈ stmtsOf Cf.fn.body := by
           rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
         have hcs := List.all_eq_true.mp hok.calls _ hmem
-        simp only [Bool.and_eq_true, List.isEmpty_iff] at hcs
+        simp only [callChk, Bool.and_eq_true, List.isEmpty_iff] at hcs
         obtain ⟨⟨⟨⟨⟨⟨-, h1⟩, h2⟩, h3⟩, -⟩, -⟩, -⟩ := hcs
         refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
         · rw [h1] at hkc; cases hkc
@@ -673,7 +689,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
       simpa using this
   obtain ⟨evs, cs, es', heq, hwp', hcs, hasin, hW', hreq, kfp, hfpE, hwsE, hk0, hk1⟩ :=
     hsplit hσ0 hpos hb hwp hh0
-  obtain ⟨hpwR, hpwPR⟩ := callsB_spec hok.calls hcS
+  obtain ⟨hpwR, hpwPR⟩ := callsBL_spec hok.calls hcS
   have hexp : ∀ j, idxPow Cf.pows Cf.fn.body args j = true →
       ∃ y, rep ((idxC j).valW (slotW (args.map σ0))) = some y := fun j h ↦ by
     simpa using idxPow_rep (ws := []) hok.pows hok.top hb hh0 h

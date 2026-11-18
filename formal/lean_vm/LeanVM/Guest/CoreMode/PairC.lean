@@ -203,6 +203,9 @@ theorem pair_fallC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
 /-- Not a conditional call or a dispatch. -/
 @[expose] def NoCD (s : Stmt) : Prop := (∀ c f a, s ≠ .callIf c f a) ∧ ∀ x fs a r, s ≠ .dispatch x fs a r
 
+/-- Not a dispatch. -/
+@[expose] def NoD (s : Stmt) : Prop := ∀ x fs a r, s ≠ .dispatch x fs a r
+
 /-- **Atoms, calls and returns.** -/
 @[expose] def straightC (body : List Stmt) : Bool :=
   body.all fun s ↦ match s with
@@ -238,7 +241,7 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc : ℕ}
     (hci : code[i]? = some (.jump oc 0 1)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc 0 1 = false)
-    (h0 : X.pcAt 0 = none) (hsf : X.selfAt 1 = false) (hctrl : ∀ s ∈ stmtsOf body, NoCD s)
+    (h0 : X.pcAt 0 = none) (hsf : X.selfAt 1 = false) (hctrl : ∀ s ∈ stmtsOf body, NoD s)
     {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
     ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ es) x → WrittenC sigOf H rd σ ws0 pre x ∨
@@ -264,8 +267,8 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
         split at hr <;> simp_all
       | ite c z n => simp [headStepH, hcur, hsf] at hr
       | match_ x arms => simp [headStepH, hcur, hsf] at hr
-      | callIf c f args => exact absurd rfl ((hctrl _ hs).1 c f args)
-      | dispatch x fs args rets => exact absurd rfl ((hctrl _ hs).2 x fs args rets)
+      | callIf c f args => simp [headStepH, hcur, h0] at hr
+      | dispatch x fs args rets => exact absurd rfl (hctrl _ hs x fs args rets)
   obtain ⟨vs', ss, hcur⟩ := hhead
   refine ⟨as, hpairs, ?_⟩
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hp
