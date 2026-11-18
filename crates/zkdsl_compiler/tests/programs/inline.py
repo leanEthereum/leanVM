@@ -1,6 +1,6 @@
 # `@inline` functions expand at each call site. A returned name, pointer or
-# constant binds as a `let` would, with no cell of its own, and a constant
-# argument stays one in the body, so `* k` folds with `k = 1`. A call with a
+# constant binds as a `let` would, with no cell of its own, and a field-constant
+# argument stays a constant in the body. A call with a
 # destination, a store or a `match` arm, writes it. With x = GEN ** 2 the
 # advanced pointer is GEN ** 3 and arm 2 picks 10. Published: (GEN ** 3, 10).
 # public_input: GEN ** 3, 10

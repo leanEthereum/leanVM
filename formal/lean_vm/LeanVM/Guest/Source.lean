@@ -22,7 +22,7 @@ already `x = x OP (e)`; constant arrays stay named (`Program.constArrays`). A ke
 
 The passes below are those of `ast.rs` and `parser/subst.rs`, used by the expansion
 (`LeanVM.Guest.Expand`): `Stmt.substList` (`subst_stmts`), `freeVarsStmt` (`free_vars_stmt`),
-`bindsAnywhere`, `containsReturn` and `inlineSafe` (`body_inlinable`).
+`bindsAnywhere`, `containsReturn` and `splitTailReturn` (`split_tail_return`).
 -/
 
 namespace LeanVM.Guest.Source
