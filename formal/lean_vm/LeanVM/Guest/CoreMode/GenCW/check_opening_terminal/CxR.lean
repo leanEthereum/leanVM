@@ -35,7 +35,7 @@ noncomputable def cxRtr1 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 noncomputable def cxRtr2 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none cxRtr0 (.node none .nil (.node none (.node (some [(702, 0, .ev 385)]) .nil .nil) (.node none
     (.node (some [(24, 4, .ev 414)]) .nil .nil) .nil)))) (.node none cxRtr1 (.node none (.node none (.node (some
-    [(606, 0, .run 23 [5])]) (.node (some [(25, 0, .ev 418)]) .nil .nil) .nil) .nil) .nil)))
+    [(606, 0, .run 19 [5])]) (.node (some [(25, 0, .ev 418)]) .nil .nil) .nil) .nil) .nil)))
 
 noncomputable def cxRtr3 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none (.node (some [(24, 1, .ev 417)]) .nil .nil) .nil) (.node none (.node (some [(24,
@@ -84,7 +84,7 @@ noncomputable def cxRtr10 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 
 noncomputable def cxRtr11 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none .nil (.node (some [(1602, 0, .ev 419)]) .nil .nil)) (.node (some [(24, 4, .ev
-    414)]) (.node (some [(24, 3, .ev 457)]) .nil .nil) .nil)) (.node (some [(450, 0, .run 23 [3])]) (.node none (.node
+    414)]) (.node (some [(24, 3, .ev 457)]) .nil .nil) .nil)) (.node (some [(450, 0, .run 19 [3])]) (.node none (.node
     (some [(25, 4, .ev 513)]) .nil .nil) .nil) (.node (some [(24, 3, .ev 457)]) (.node (some [(24, 2, .ev 430)]) .nil
     .nil) .nil)))
 
@@ -166,7 +166,7 @@ noncomputable def cxRtr24 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
     .nil .nil) .nil) (.node (some [(25, 2, .ev 416)]) (.node (some [(25, 1, .ev 431)]) .nil .nil) .nil)))
 
 noncomputable def cxRtr25 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node (some [(528, 0, .run 23 [4])]) (.node (some [(25, 0, .ev 418)]) .nil .nil) .nil) (.node
+  (.node none (.node none (.node (some [(528, 0, .run 19 [4])]) (.node (some [(25, 0, .ev 418)]) .nil .nil) .nil) (.node
     none (.node (some [(25, 1, .ev 431)]) .nil .nil) .nil)) (.node none (.node none (.node (some [(24, 2, .ev 430)])
     .nil .nil) (.node (some [(1680, 0, .ev 419)]) .nil .nil)) (.node (some [(24, 1, .ev 417)]) (.node (some [(24, 0,
     .ev 425)]) .nil .nil) .nil)))
@@ -195,9 +195,9 @@ noncomputable def cxRtr29 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 
 noncomputable def cxRtr30 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node (some [(8, 6, .pre 7)]) (.node none (.node none (.node none (.node none (.node (some [(24, 4, .ev 414)]) .nil
-    .nil) .nil) .nil) (.node none (.node (some [(648, 0, .run 23 [6])]) .nil .nil) (.node none (.node (some [(24, 4,
+    .nil) .nil) .nil) (.node none (.node (some [(648, 0, .run 19 [6])]) .nil .nil) (.node none (.node (some [(24, 4,
     .ev 414)]) .nil .nil) .nil))) cxRtr28) (.node none (.node none (.node none (.node (some [(552, 0, .ev 365)]) .nil
-    .nil) .nil) (.node (some [(424, 0, .run 22 [1])]) .nil .nil)) cxRtr29))
+    .nil) .nil) (.node (some [(424, 0, .run 18 [1])]) .nil .nil)) cxRtr29))
 
 noncomputable def cxRtr31 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node (some [(600, 0, .ev 365)]) (.node (some [(25, 3, .ev 415)]) .nil .nil) .nil) (.node
@@ -269,7 +269,7 @@ noncomputable def cxRtr42 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
     .nil) (.node none (.node (some [(25, 4, .ev 513)]) .nil .nil) .nil)) (.node none .nil (.node (some [(24, 4, .ev
     414)]) (.node (some [(25, 3, .ev 415)]) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some [(24,
     1, .ev 417)]) .nil .nil) .nil) (.node (some [(25, 0, .ev 418)]) .nil .nil)) (.node none (.node (some [(732, 0,
-    .run 23 [7])]) (.node (some [(24, 0, .ev 425)]) .nil .nil) .nil) .nil)))
+    .run 19 [7])]) (.node (some [(24, 0, .ev 425)]) .nil .nil) .nil) .nil)))
 
 noncomputable def cxRtr43 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node (some [(636, 0, .ev 378)]) (.node (some [(25, 3, .ev 415)]) .nil .nil) .nil) (.node
@@ -280,7 +280,7 @@ noncomputable def cxRtr44 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node (some [(8, 2, .pre 3)]) (.node none (.node none (.node none (.node (some [(516, 0, .ev
     352)]) .nil .nil) .nil) (.node none (.node none .nil (.node (some [(1668, 0, .ev 419)]) .nil .nil)) .nil))
     cxRtr34) cxRtr35) cxRtr38) (.node none cxRtr41 (.node none cxRtr42 (.node none (.node none (.node none (.node none
-    .nil (.node (some [(1596, 0, .ev 419)]) .nil .nil)) .nil) (.node (some [(444, 0, .run 22 [2])]) .nil .nil))
+    .nil (.node (some [(1596, 0, .ev 419)]) .nil .nil)) .nil) (.node (some [(444, 0, .run 18 [2])]) .nil .nil))
     cxRtr43))))
 
 noncomputable def cxRtr45 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
@@ -303,7 +303,7 @@ noncomputable def cxRtr47 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 noncomputable def cxRtr48 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node (some [(10, 16, .pre 88)]) (.node (some [(10, 32, .pre 104)]) (.node (some [(10, 64, .pre 136)]) .nil (.node
     (some [(24, 5, .pre 166)]) .nil .nil)) (.node none (.node none (.node (some [(25, 5, .ev 512)]) .nil .nil) (.node
-    (some [(1711, 0, .run 35 [10])]) .nil .nil)) .nil)) (.node (some [(10, 48, .pre 120)]) (.node (some [(10, 80, .pre
+    (some [(1711, 0, .run 31 [10])]) .nil .nil)) .nil)) (.node (some [(10, 48, .pre 120)]) (.node (some [(10, 80, .pre
     152)]) .nil (.node none (.node (some [(1391, 0, .ev 419)]) .nil .nil) .nil)) (.node none .nil (.node (some [(1007,
     0, .ev 419)]) .nil .nil))))
 
@@ -316,7 +316,7 @@ noncomputable def cxRtr49 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 noncomputable def cxRtr50 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node (some [(10, 14, .pre 86)]) (.node (some [(10, 30, .pre 102)]) (.node (some [(10, 62, .pre 134)]) .nil (.node
     none (.node (some [(1319, 0, .ev 419)]) .nil .nil) .nil)) (.node none (.node none .nil (.node (some [(1703, 6,
-    .run 34 [9])]) .nil .nil)) (.node (some [(935, 0, .ev 419)]) .nil .nil))) (.node (some [(10, 46, .pre 118)])
+    .run 30 [9])]) .nil .nil)) (.node (some [(935, 0, .ev 419)]) .nil .nil))) (.node (some [(10, 46, .pre 118)])
     (.node (some [(10, 78, .pre 150)]) (.node none (.node (some [(25, 5, .ev 512)]) .nil .nil) .nil) .nil) .nil))
 
 noncomputable def cxRtr51 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
@@ -373,7 +373,7 @@ noncomputable def cxRtr59 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
 
 noncomputable def cxRtr60 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node (some [(10, 19, .pre 91)]) (.node (some [(10, 35, .pre 107)]) (.node (some [(10, 67, .pre 139)]) .nil (.node
-    (some [(827, 0, .run 23 [8])]) .nil .nil)) (.node none (.node none (.node (some [(1211, 0, .ev 419)]) .nil .nil)
+    (some [(827, 0, .run 19 [8])]) .nil .nil)) (.node none (.node none (.node (some [(1211, 0, .ev 419)]) .nil .nil)
     .nil) .nil)) (.node (some [(10, 51, .pre 123)]) (.node (some [(10, 83, .pre 155)]) .nil .nil) .nil))
 
 noncomputable def cxRtr61 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
@@ -408,40 +408,40 @@ noncomputable def cxRtr65 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
     .nil) .nil) .nil)))
 
 noncomputable def cxRtr66 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+  (.node none (.node none (.node (some [(33, 0, .prep2 21 (.ev 2) (.ev 4) [0])]) cxRtr62 (.node none .nil (.node none
+    (.node none (.node none (.node (some [(1121, 0, .ev 419)]) .nil .nil) .nil) .nil) (.node none .nil (.node none
+    (.node (some [(25, 5, .ev 512)]) .nil .nil) .nil))))) cxRtr63) (.node none cxRtr64 cxRtr65))
+
+noncomputable def cxRtr67 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none (.node none (.node (some [(1061, 0, .ev 419)]) .nil .nil) .nil) .nil) (.node none
     .nil (.node none (.node (some [(1445, 0, .ev 419)]) .nil .nil) .nil))) (.node none (.node none .nil (.node (some
     [(24, 5, .ev 413)]) .nil .nil)) (.node none (.node none (.node (some [(25, 5, .ev 512)]) .nil .nil) .nil) .nil)))
 
-noncomputable def cxRtr67 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+noncomputable def cxRtr68 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none (.node none .nil (.node none (.node (some [(1301, 0, .ev 419)]) .nil .nil) .nil))
     (.node none .nil (.node (some [(917, 0, .ev 419)]) .nil .nil))) (.node none (.node none (.node none (.node (some
     [(25, 5, .ev 512)]) .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node
     (some [(25, 5, .ev 512)]) .nil .nil) .nil)) (.node none .nil (.node (some [(24, 5, .ev 413)]) .nil .nil)))))
 
-noncomputable def cxRtr68 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+noncomputable def cxRtr69 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none .nil (.node none (.node none .nil (.node (some [(845, 0, .ev 419)]) .nil .nil)) (.node none
     (.node none (.node (some [(1229, 0, .ev 419)]) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil
     (.node none (.node (some [(25, 5, .ev 512)]) .nil .nil) .nil)) (.node none .nil (.node (some [(24, 5, .ev 413)])
     .nil .nil))) (.node none .nil (.node none .nil (.node none (.node (some [(1517, 0, .ev 419)]) .nil .nil) .nil)))))
 
-noncomputable def cxRtr69 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+noncomputable def cxRtr70 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node (some [(10, 4, .pre 76)]) (.node none (.node none .nil (.node none (.node none (.node (some [(25, 5, .ev 512)])
     .nil .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node (some [(1373, 0, .ev 419)]) .nil .nil)
     .nil)) (.node none .nil (.node (some [(989, 0, .ev 419)]) .nil .nil)))) (.node none (.node none (.node none (.node
     none (.node (some [(1085, 0, .ev 419)]) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (some [(25, 5,
     .ev 512)]) .nil .nil) .nil))) .nil))
 
-noncomputable def cxRtr70 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node none (.node (some [(33, 0, .run 5 [0])]) cxRtr62 (.node none .nil (.node none (.node
-    none (.node none (.node (some [(1121, 0, .ev 419)]) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node
-    (some [(25, 5, .ev 512)]) .nil .nil) .nil))))) cxRtr63) (.node none cxRtr64 cxRtr65)) (.node none (.node none
-    (.node (some [(8, 3, .pre 4)]) (.node none (.node none .nil (.node none (.node none (.node (some [(1157, 0, .ev
-    419)]) .nil .nil) .nil) .nil)) .nil) cxRtr66) cxRtr67) (.node none cxRtr68 cxRtr69)))
-
 noncomputable def cxRtr71 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none cxRtr22 (.node none (.node none (.node none (.node none cxRtr23 (.node none cxRtr24 (.node
     none (.node none (.node none .nil (.node (some [(1632, 0, .ev 419)]) .nil .nil)) .nil) (.node (some [(480, 0, .ev
-    352)]) .nil .nil)))) cxRtr27) (.node none cxRtr30 cxRtr33)) cxRtr44)) (.node none cxRtr61 cxRtr70))
+    352)]) .nil .nil)))) cxRtr27) (.node none cxRtr30 cxRtr33)) cxRtr44)) (.node none cxRtr61 (.node none cxRtr66
+    (.node none (.node none (.node (some [(8, 3, .pre 4)]) (.node none (.node none .nil (.node none (.node none (.node
+    (some [(1157, 0, .ev 419)]) .nil .nil) .nil) .nil)) .nil) cxRtr67) cxRtr68) (.node none cxRtr69 cxRtr70)))))
 
 /-- `cxOf`'s trie `R`. -/
 noncomputable def cxR : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=

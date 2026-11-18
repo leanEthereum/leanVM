@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«verify_tables».CxRSD3
+public import LeanVM.Guest.CoreMode.GenCW.«verify_tables».CxRSD2
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -20,2183 +20,854 @@ open LeanVM.Guest.Exec (Trie)
 
 @[expose] public section
 
-noncomputable def cxRStr3312 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    23) (.val 9)))) .nil .nil) (.node (some cxRSv2842) .nil .nil)) (.node (some cxRSv548) (.node (some cxRSv1818) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 26) (.val 9)))) (.node (some cxRSv58) (.node (some
-    cxRSv1306) .nil .nil) .nil) (.node (some cxRSv1050) (.node (some cxRSv2330) .nil .nil) .nil)))
-
-noncomputable def cxRStr3313 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    20) (.val 9)))) .nil .nil) (.node (some cxRSv2714) .nil .nil)) (.node (some cxRSv423) (.node (some cxRSv1690) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 18) (.val 9)))) (.node (some cxRSv1178) .nil .nil) .nil) (.node (some cxRSv924) (.node (some cxRSv2202) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3314 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 23) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2970) .nil .nil)) (.node (some cxRSv673) (.node (some cxRSv1946) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 4) (.val 9)))) (.node (some cxRSv175) (.node (some
-    cxRSv1434) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2458)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3315 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 17] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 32 22] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 27 20] (.lt (.num 19) (.val 9)))) .nil .nil) (.node (some cxRSv2650) .nil .nil))
-    (.node (some (.under [.arm 795 18] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1626) .nil .nil) .nil))
-
-noncomputable def cxRStr3316 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 0) (.val 9)))) cxRStr3315 (.node (some (.under [.arm 31 19] (.lt (.num
-    14) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 822 17]
-    (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv861) (.node (some cxRSv2138) .nil .nil) .nil)))
-
-noncomputable def cxRStr3317 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2906) .nil .nil)) (.node (some cxRSv610) (.node (some cxRSv1882) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 6) (.val 9)))) (.node (some cxRSv115) (.node (some
-    cxRSv1370) .nil .nil) .nil) (.node (some cxRSv1113) (.node (some cxRSv2394) .nil .nil) .nil)))
-
-noncomputable def cxRStr3318 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 12)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2778) .nil .nil)) (.node (some cxRSv485) (.node (some cxRSv1754) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 1) (.val 9)))) (.node (some cxRSv1242) .nil .nil) .nil) (.node (some cxRSv987) (.node (some cxRSv2266) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3319 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 5] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 2) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv736) (.node (some cxRSv2010) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 13) (.val 9)))) (.node (some cxRSv237) (.node (some cxRSv1498) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 13] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2522) .nil .nil) .nil)))
-
-noncomputable def cxRStr3320 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 9] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 28 22] (.lt (.num 5) (.val 9)))) cxRStr3311 cxRStr3312) (.node (some (.under [.arm 28
-    27] (.lt (.num 13) (.val 9)))) cxRStr3313 cxRStr3314)) (.node (some (.under [.arm 28 19] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 28 25] (.lt (.num 0) (.val 9)))) cxRStr3316 cxRStr3317) (.node (some (.under [.arm 28
-    29] (.lt (.num 22) (.val 9)))) cxRStr3318 cxRStr3319)))
-
-noncomputable def cxRStr3321 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 5] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 9) (.val
-    9)))) .nil .nil) (.node (some cxRSv2570) .nil .nil)) (.node (some cxRSv283) (.node (some cxRSv1546) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 9)
-    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv783)
-    (.node (some cxRSv2058) .nil .nil) .nil)))
-
-noncomputable def cxRStr3322 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2826) .nil .nil)) (.node (some cxRSv532) (.node (some cxRSv1802) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 20) (.val 9)))) (.node (some cxRSv1290) .nil .nil) .nil) (.node (some cxRSv1034) (.node (some cxRSv2314)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3323 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2698) .nil .nil)) (.node (some cxRSv407) (.node (some cxRSv1674) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 2) (.val 9)))) (.node (some cxRSv1162) .nil .nil) .nil) (.node (some cxRSv909) (.node (some cxRSv2186) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3324 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 17)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2954) .nil .nil)) (.node (some cxRSv657) (.node (some cxRSv1930) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 3) (.val 9)))) (.node (some cxRSv160) (.node (some
-    cxRSv1418) .nil .nil) .nil) (.node (some (.under [.arm 27 2] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2442)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3325 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 12] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2634) .nil .nil)) (.node (some cxRSv345) (.node (some cxRSv1610) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 10) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv846) (.node (some cxRSv2122) .nil .nil) .nil)))
-
-noncomputable def cxRStr3326 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 4] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 14)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2890) .nil .nil)) (.node (some cxRSv595) (.node (some cxRSv1866) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 19) (.val 9)))) (.node (some cxRSv100) (.node (some
-    cxRSv1354) .nil .nil) .nil) (.node (some cxRSv1097) (.node (some cxRSv2378) .nil .nil) .nil)))
-
-noncomputable def cxRStr3327 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 19) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
-    21) (.val 9)))) .nil .nil) (.node (some cxRSv2762) .nil .nil)) (.node (some cxRSv470) (.node (some cxRSv1738) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 13) (.val 9)))) (.node (some cxRSv1226) .nil .nil) .nil) (.node (some (.under [.arm 795 31] (.lt (.val 27)
-    (.val 9)))) (.node (some cxRSv2250) .nil .nil) .nil)))
-
-noncomputable def cxRStr3328 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 2] (.lt (.num 0)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv720) (.node (some cxRSv1994) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 13] (.lt (.num 10) (.val 9)))) (.node (some cxRSv221) (.node (some cxRSv1482) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 11] (.lt (.num 10) (.val 9)))) (.node (some cxRSv2506) .nil .nil) .nil)))
-
-noncomputable def cxRStr3329 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 10) (.val 9)))) cxRStr3321 cxRStr3322) (.node (some (.under [.arm 28
-    26] (.lt (.num 23) (.val 9)))) cxRStr3323 cxRStr3324)) (.node (some (.under [.arm 28 18] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 28 24] (.lt (.num 8) (.val 9)))) cxRStr3325 cxRStr3326) (.node (some (.under [.arm 28
-    29] (.lt (.num 6) (.val 9)))) cxRStr3327 cxRStr3328)))
-
-noncomputable def cxRStr3330 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 9] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2602) .nil .nil)) (.node (some cxRSv314) (.node (some cxRSv1578) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv814) (.node (some cxRSv2090) .nil .nil) .nil)))
-
-noncomputable def cxRStr3331 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 21) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 11)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2858) .nil .nil)) (.node (some cxRSv563) (.node (some cxRSv1834) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 795 2] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1322) .nil .nil) .nil) (.node (some cxRSv1066) (.node (some cxRSv2346)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3332 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    13) (.val 9)))) .nil .nil) (.node (some cxRSv2730) .nil .nil)) (.node (some cxRSv438) (.node (some cxRSv1706) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 8) (.val 9)))) (.node (some cxRSv1194) .nil .nil) .nil) (.node (some cxRSv940) (.node (some cxRSv2218) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3333 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 31 4] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2986) .nil .nil)) (.node (some cxRSv689) (.node (some cxRSv1962) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 1) (.val 9)))) (.node (some cxRSv191) (.node (some
-    cxRSv1450) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2474)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3334 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2666) .nil .nil)) (.node (some cxRSv376) (.node (some cxRSv1642) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv877) (.node (some cxRSv2154) .nil .nil) .nil)))
-
-noncomputable def cxRStr3335 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 16)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2922) .nil .nil)) (.node (some cxRSv626) (.node (some cxRSv1898) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 22) (.val 9)))) (.node (some cxRSv130) (.node (some
-    cxRSv1386) .nil .nil) .nil) (.node (some cxRSv1129) (.node (some cxRSv2410) .nil .nil) .nil)))
-
-noncomputable def cxRStr3336 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2794) .nil .nil)) (.node (some cxRSv501) (.node (some cxRSv1770) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 17) (.val 9)))) (.node (some cxRSv1258) .nil .nil) .nil) (.node (some cxRSv1003) (.node (some cxRSv2282)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3337 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 7] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 5) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv751) (.node (some cxRSv2026) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 0) (.val 9)))) (.node (some cxRSv252) (.node (some cxRSv1514) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 14] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2538) .nil .nil) .nil)))
-
-noncomputable def cxRStr3338 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 11] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 21) (.val 9)))) cxRStr3330 cxRStr3331) (.node (some (.under
-    [.arm 28 28] (.lt (.num 2) (.val 9)))) cxRStr3332 cxRStr3333)) (.node (some (.under [.arm 28 19] (.lt (.num 17)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 16) (.val 9)))) cxRStr3334 cxRStr3335) (.node (some
-    (.under [.arm 28 30] (.lt (.num 9) (.val 9)))) cxRStr3336 cxRStr3337)))
-
-noncomputable def cxRStr3339 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 3] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 1) (.val
-    9)))) .nil .nil) (.node (some cxRSv2562) .nil .nil)) (.node (some cxRSv275) (.node (some cxRSv1538) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 1)
-    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv775)
-    (.node (some cxRSv2050) .nil .nil) .nil)))
-
-noncomputable def cxRStr3340 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
-    26) (.val 9)))) .nil .nil) (.node (some cxRSv2818) .nil .nil)) (.node (some cxRSv524) (.node (some cxRSv1794) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 12) (.val 9)))) (.node (some cxRSv1282) .nil .nil) .nil) (.node (some cxRSv1027) (.node (some cxRSv2306)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3341 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 16] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
-    18) (.val 9)))) .nil .nil) (.node (some cxRSv2690) .nil .nil)) (.node (some cxRSv399) (.node (some cxRSv1666) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv901) (.node (some cxRSv2178) .nil .nil) .nil)))
-
-noncomputable def cxRStr3342 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 28) (.val
-    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2946) .nil .nil)) (.node (some cxRSv649) (.node (some cxRSv1922) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 795 10] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1410) .nil .nil) .nil) (.node (some cxRSv1153) (.node (some cxRSv2434)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3343 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 12] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
-    14) (.val 9)))) .nil .nil) (.node (some cxRSv2626) .nil .nil)) (.node (some cxRSv337) (.node (some cxRSv1602) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 2) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv838) (.node (some cxRSv2114) .nil .nil) .nil)))
-
-noncomputable def cxRStr3344 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 19) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 29) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2882) .nil .nil)) (.node (some cxRSv587) (.node (some cxRSv1858) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 11) (.val 9)))) (.node (some cxRSv93) (.node (some
-    cxRSv1346) .nil .nil) .nil) (.node (some cxRSv1090) (.node (some cxRSv2370) .nil .nil) .nil)))
-
-noncomputable def cxRStr3345 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
-    13) (.val 9)))) .nil .nil) (.node (some cxRSv2754) .nil .nil)) (.node (some cxRSv462) (.node (some cxRSv1730) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 5) (.val 9)))) (.node (some cxRSv1218) .nil .nil) .nil) (.node (some cxRSv964) (.node (some cxRSv2242) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3346 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 823 9] (.lt (.num 27)
-    (.val 9)))) .nil .nil) (.node (some cxRSv3003) .nil .nil)) (.node (some cxRSv712) (.node (some cxRSv1986) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 13] (.lt (.num 2) (.val 9)))) (.node (some cxRSv214) (.node (some
-    cxRSv1474) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2498)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3347 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 2) (.val 9)))) cxRStr3339 cxRStr3340) (.node (some (.under [.arm 28
-    26] (.lt (.num 15) (.val 9)))) cxRStr3341 cxRStr3342)) (.node (some (.under [.arm 28 17] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 0) (.val 9)))) cxRStr3343 cxRStr3344) (.node (some (.under
-    [.arm 28 28] (.lt (.num 26) (.val 9)))) cxRStr3345 cxRStr3346)))
-
-noncomputable def cxRStr3348 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 4) (.val 9))))
-    (.node (some (.under [.arm 32 19] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 0) (.val
-    9)))) .nil .nil) (.node (some cxRSv2594) .nil .nil)) (.node (some cxRSv306) (.node (some cxRSv1570) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
-    13) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv806) (.node (some cxRSv2082) .nil .nil) .nil)))
-
-noncomputable def cxRStr3349 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 26] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 32 29] (.lt (.num 26) (.val
-    9)))) (.node (some (.under [.arm 27 29] (.lt (.num 3) (.val 9)))) .nil .nil) (.node (some cxRSv2850) .nil .nil))
-    (.node (some (.under [.arm 795 23] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1826) .nil .nil) .nil))
-
-noncomputable def cxRStr3350 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 22] (.lt (.num 13) (.val 9)))) cxRStr3348 (.node (some (.under [.arm 29 24] (.lt (.num
-    15) (.val 9)))) cxRStr3349 (.node (some (.under [.arm 31 28] (.lt (.num 7) (.val 9)))) (.node (some cxRSv66)
-    (.node (some cxRSv1314) .nil .nil) .nil) (.node (some cxRSv1058) (.node (some cxRSv2338) .nil .nil) .nil))))
-
-noncomputable def cxRStr3351 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2722) .nil .nil)) (.node (some cxRSv431) (.node (some cxRSv1698) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 0) (.val 9)))) (.node (some cxRSv1186) .nil .nil) .nil) (.node (some cxRSv932) (.node (some cxRSv2210) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3352 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 31 2] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2978) .nil .nil)) (.node (some cxRSv681) (.node (some cxRSv1954) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 3) (.val 9)))) (.node (some cxRSv183) (.node (some
-    cxRSv1442) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2466)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3353 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2658) .nil .nil)) (.node (some cxRSv368) (.node (some cxRSv1634) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 11) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv869) (.node (some cxRSv2146) .nil .nil) .nil)))
-
-noncomputable def cxRStr3354 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 24) (.val
-    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2914) .nil .nil)) (.node (some cxRSv618) (.node (some cxRSv1890) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 14) (.val 9)))) (.node (some cxRSv122) (.node (some
-    cxRSv1378) .nil .nil) .nil) (.node (some cxRSv1121) (.node (some cxRSv2402) .nil .nil) .nil)))
-
-noncomputable def cxRStr3355 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 21) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    20) (.val 9)))) .nil .nil) (.node (some cxRSv2786) .nil .nil)) (.node (some cxRSv493) (.node (some cxRSv1762) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 9) (.val 9)))) (.node (some cxRSv1250) .nil .nil) .nil) (.node (some cxRSv995) (.node (some cxRSv2274) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3356 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 33 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 4)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv744) (.node (some cxRSv2018) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 15] (.lt (.num 7) (.val 9)))) (.node (some cxRSv244) (.node (some cxRSv1506) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 13] (.lt (.num 11) (.val 9)))) (.node (some cxRSv2530) .nil .nil) .nil)))
-
-noncomputable def cxRStr3357 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 10] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 11) (.val
-    9)))) cxRStr3350 (.node (some (.under [.arm 28 27] (.lt (.num 21) (.val 9)))) cxRStr3351 cxRStr3352)) (.node (some
-    (.under [.arm 28 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 8) (.val 9))))
-    cxRStr3353 cxRStr3354) (.node (some (.under [.arm 28 30] (.lt (.num 1) (.val 9)))) cxRStr3355 cxRStr3356)))
-
-noncomputable def cxRStr3358 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 0) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 1) (.val
-    9)))) .nil .nil) (.node (some cxRSv2578) .nil .nil)) (.node (some cxRSv291) (.node (some cxRSv1554) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    17) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv791) (.node (some cxRSv2066) .nil .nil) .nil)))
-
-noncomputable def cxRStr3359 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 22) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2834) .nil .nil)) (.node (some cxRSv540) (.node (some cxRSv1810) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 28) (.val 9)))) (.node (some cxRSv1298) .nil .nil) .nil) (.node (some cxRSv1042) (.node (some cxRSv2322)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3360 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    12) (.val 9)))) .nil .nil) (.node (some cxRSv2706) .nil .nil)) (.node (some cxRSv415) (.node (some cxRSv1682) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 10) (.val 9)))) (.node (some cxRSv1170) .nil .nil) .nil) (.node (some cxRSv916) (.node (some cxRSv2194) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3361 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 25)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2962) .nil .nil)) (.node (some cxRSv665) (.node (some cxRSv1938) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 4) (.val 9)))) (.node (some cxRSv168) (.node (some
-    cxRSv1426) .nil .nil) .nil) (.node (some (.under [.arm 27 4] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2450)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3362 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 13] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
-    11) (.val 9)))) .nil .nil) (.node (some cxRSv2642) .nil .nil)) (.node (some cxRSv353) (.node (some cxRSv1618) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 18) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv854) (.node (some cxRSv2130) .nil .nil) .nil)))
-
-noncomputable def cxRStr3363 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 22)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2898) .nil .nil)) (.node (some cxRSv602) (.node (some cxRSv1874) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 795 7] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1362) .nil .nil) .nil) (.node (some cxRSv1105) (.node (some cxRSv2386)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3364 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2770) .nil .nil)) (.node (some cxRSv477) (.node (some cxRSv1746) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 21) (.val 9)))) (.node (some cxRSv1234) .nil .nil) .nil) (.node (some cxRSv979) (.node (some cxRSv2258) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3365 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 2] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 4) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 822 4] (.lt (.num 3) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv728) (.node (some cxRSv2002) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 5) (.val 9)))) (.node (some cxRSv229) (.node (some cxRSv1490) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 12] (.lt (.num 7) (.val 9)))) (.node (some cxRSv2514) .nil .nil) .nil)))
-
-noncomputable def cxRStr3366 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 9) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 18) (.val 9)))) cxRStr3358 cxRStr3359) (.node (some (.under [.arm 28
-    27] (.lt (.num 5) (.val 9)))) cxRStr3360 cxRStr3361)) (.node (some (.under [.arm 28 18] (.lt (.num 11) (.val 9))))
-    (.node (some (.under [.arm 28 24] (.lt (.num 16) (.val 9)))) cxRStr3362 cxRStr3363) (.node (some (.under [.arm 28
-    29] (.lt (.num 14) (.val 9)))) cxRStr3364 cxRStr3365)))
-
-noncomputable def cxRStr3367 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 10] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 16)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2610) .nil .nil)) (.node (some cxRSv322) (.node (some cxRSv1586) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv822) (.node (some cxRSv2098) .nil .nil) .nil)))
-
-noncomputable def cxRStr3368 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
-    19) (.val 9)))) .nil .nil) (.node (some cxRSv2866) .nil .nil)) (.node (some cxRSv571) (.node (some cxRSv1842) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 23) (.val 9)))) (.node (some cxRSv79) (.node (some
-    cxRSv1330) .nil .nil) .nil) (.node (some cxRSv1074) (.node (some cxRSv2354) .nil .nil) .nil)))
-
-noncomputable def cxRStr3369 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    21) (.val 9)))) .nil .nil) (.node (some cxRSv2738) .nil .nil)) (.node (some cxRSv446) (.node (some cxRSv1714) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 16) (.val 9)))) (.node (some cxRSv1202) .nil .nil) .nil) (.node (some cxRSv948) (.node (some cxRSv2226) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3370 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 31 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 27 33] (.lt (.num 25) (.val 9)))) .nil .nil) (.node (some cxRSv2994) .nil .nil)) (.node
-    (some (.under [.arm 795 26] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1970) .nil .nil) .nil))
-
-noncomputable def cxRStr3371 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 28] (.lt (.num 10) (.val 9)))) cxRStr3369 (.node (some (.under [.arm 29 30] (.lt (.num
-    0) (.val 9)))) cxRStr3370 (.node (some (.under [.arm 32 11] (.lt (.num 9) (.val 9)))) (.node (some cxRSv198)
-    (.node (some cxRSv1458) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 5) (.val 9)))) (.node (some
-    cxRSv2482) .nil .nil) .nil))))
-
-noncomputable def cxRStr3372 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2674) .nil .nil)) (.node (some cxRSv384) (.node (some cxRSv1650) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 3) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 16) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv885) (.node (some cxRSv2162) .nil .nil) .nil)))
-
-noncomputable def cxRStr3373 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 24)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2930) .nil .nil)) (.node (some cxRSv634) (.node (some cxRSv1906) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 1] (.lt (.num 0) (.val 9)))) (.node (some cxRSv137) (.node (some
-    cxRSv1394) .nil .nil) .nil) (.node (some cxRSv1137) (.node (some cxRSv2418) .nil .nil) .nil)))
-
-noncomputable def cxRStr3374 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 10)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2802) .nil .nil)) (.node (some cxRSv509) (.node (some cxRSv1778) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 25) (.val 9)))) (.node (some cxRSv1266) .nil .nil) .nil) (.node (some cxRSv1011) (.node (some cxRSv2290)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3375 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 33 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 5) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv759) (.node (some cxRSv2034) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 8) (.val 9)))) (.node (some cxRSv260) (.node (some cxRSv1522) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 15] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2546) .nil .nil) .nil)))
-
-noncomputable def cxRStr3376 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 12] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 7) (.val 9)))) cxRStr3367 cxRStr3368) cxRStr3371) (.node (some
-    (.under [.arm 28 20] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 24) (.val 9))))
-    cxRStr3372 cxRStr3373) (.node (some (.under [.arm 28 30] (.lt (.num 17) (.val 9)))) cxRStr3374 cxRStr3375)))
-
-noncomputable def cxRStr3377 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 30] (.lt (.num 29) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 12)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2558) .nil .nil)) (.node (some cxRSv271) (.node (some cxRSv1534) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
-    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv771) (.node (some cxRSv2046) .nil .nil) .nil)))
-
-noncomputable def cxRStr3378 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
-    22) (.val 9)))) .nil .nil) (.node (some cxRSv2814) .nil .nil)) (.node (some cxRSv520) (.node (some cxRSv1790) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 8) (.val 9)))) (.node (some cxRSv1278) .nil .nil) .nil) (.node (some cxRSv1023) (.node (some cxRSv2302) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3379 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 19] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 32 23] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 27 22] (.lt (.num 14) (.val 9)))) .nil .nil) (.node (some cxRSv2686) .nil .nil))
-    (.node (some (.under [.arm 795 19] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1662) .nil .nil) .nil))
-
-noncomputable def cxRStr3380 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 16] (.lt (.num 7) (.val 9)))) cxRStr3379 (.node (some (.under [.arm 31 21] (.lt (.num
-    11) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 822 19]
-    (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv897) (.node (some cxRSv2174) .nil .nil) .nil)))
-
-noncomputable def cxRStr3381 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 24) (.val
-    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2942) .nil .nil)) (.node (some cxRSv646) (.node (some cxRSv1918) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 5] (.lt (.num 2) (.val 9)))) (.node (some cxRSv149) (.node (some
-    cxRSv1406) .nil .nil) .nil) (.node (some cxRSv1149) (.node (some cxRSv2430) .nil .nil) .nil)))
-
-noncomputable def cxRStr3382 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 11] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
-    10) (.val 9)))) .nil .nil) (.node (some cxRSv2622) .nil .nil)) (.node (some cxRSv333) (.node (some cxRSv1598) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 20) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv834) (.node (some cxRSv2110) .nil .nil) .nil)))
-
-noncomputable def cxRStr3383 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2878) .nil .nil)) (.node (some cxRSv583) (.node (some cxRSv1854) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 7) (.val 9)))) (.node (some cxRSv89) (.node (some
-    cxRSv1342) .nil .nil) .nil) (.node (some cxRSv1086) (.node (some cxRSv2366) .nil .nil) .nil)))
-
-noncomputable def cxRStr3384 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2750) .nil .nil)) (.node (some cxRSv458) (.node (some cxRSv1726) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 1) (.val 9)))) (.node (some cxRSv1214) .nil .nil) .nil) (.node (some cxRSv960) (.node (some cxRSv2238) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3385 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 823 5] (.lt (.num 23)
-    (.val 9)))) .nil .nil) (.node (some cxRSv3001) .nil .nil)) (.node (some cxRSv708) (.node (some cxRSv1982) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 10) (.val 9)))) (.node (some cxRSv210) (.node (some
-    cxRSv1470) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2494)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3386 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 28 20] (.lt (.num 18) (.val 9)))) cxRStr3377 cxRStr3378) (.node (some (.under [.arm 28
-    26] (.lt (.num 11) (.val 9)))) cxRStr3380 cxRStr3381)) (.node (some (.under [.arm 28 17] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 28 23] (.lt (.num 19) (.val 9)))) cxRStr3382 cxRStr3383) (.node (some (.under [.arm 28
-    28] (.lt (.num 22) (.val 9)))) cxRStr3384 cxRStr3385)))
-
-noncomputable def cxRStr3387 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 8] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 0) (.val 9))))
-    (.node (some (.under [.arm 32 19] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 13) (.val
-    9)))) .nil .nil) (.node (some cxRSv2590) .nil .nil)) (.node (some cxRSv302) (.node (some cxRSv1566) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 9)
-    (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv802)
-    (.node (some cxRSv2078) .nil .nil) .nil)))
-
-noncomputable def cxRStr3388 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    27) (.val 9)))) .nil .nil) (.node (some cxRSv2846) .nil .nil)) (.node (some cxRSv552) (.node (some cxRSv1822) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 3) (.val 9)))) (.node (some cxRSv62) (.node (some
-    cxRSv1310) .nil .nil) .nil) (.node (some cxRSv1054) (.node (some cxRSv2334) .nil .nil) .nil)))
-
-noncomputable def cxRStr3389 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2718) .nil .nil)) (.node (some cxRSv427) (.node (some cxRSv1694) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 22) (.val 9)))) (.node (some cxRSv1182) .nil .nil) .nil) (.node (some cxRSv928) (.node (some cxRSv2206) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3390 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 27) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2974) .nil .nil)) (.node (some cxRSv677) (.node (some cxRSv1950) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 8) (.val 9)))) (.node (some cxRSv179) (.node (some
-    cxRSv1438) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2462)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3391 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2654) .nil .nil)) (.node (some cxRSv364) (.node (some cxRSv1630) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv865) (.node (some cxRSv2142) .nil .nil) .nil)))
-
-noncomputable def cxRStr3392 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 20) (.val
-    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2910) .nil .nil)) (.node (some cxRSv614) (.node (some cxRSv1886) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 10) (.val 9)))) (.node (some cxRSv119) (.node (some
-    cxRSv1374) .nil .nil) .nil) (.node (some cxRSv1117) (.node (some cxRSv2398) .nil .nil) .nil)))
-
-noncomputable def cxRStr3393 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    16) (.val 9)))) .nil .nil) (.node (some cxRSv2782) .nil .nil)) (.node (some cxRSv489) (.node (some cxRSv1758) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 5) (.val 9)))) (.node (some cxRSv1246) .nil .nil) .nil) (.node (some cxRSv991) (.node (some cxRSv2270) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3394 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 0) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv740) (.node (some cxRSv2014) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 15] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 795 14] (.lt (.val 27) (.val 9)))) (.node (some
-    cxRSv1502) .nil .nil) .nil) (.node (some (.under [.arm 27 13] (.lt (.num 7) (.val 9)))) (.node (some cxRSv2526)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3395 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 10] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 9) (.val 9)))) cxRStr3387 cxRStr3388) (.node (some (.under
-    [.arm 28 27] (.lt (.num 17) (.val 9)))) cxRStr3389 cxRStr3390)) (.node (some (.under [.arm 28 19] (.lt (.num 5)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 4) (.val 9)))) cxRStr3391 cxRStr3392) (.node (some
-    (.under [.arm 28 29] (.lt (.num 26) (.val 9)))) cxRStr3393 cxRStr3394)))
-
-noncomputable def cxRStr3396 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 13) (.val
-    9)))) .nil .nil) (.node (some cxRSv2574) .nil .nil)) (.node (some cxRSv287) (.node (some cxRSv1550) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    13) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv787) (.node (some cxRSv2062) .nil .nil) .nil)))
-
-noncomputable def cxRStr3397 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 18) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 11)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2830) .nil .nil)) (.node (some cxRSv536) (.node (some cxRSv1806) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 24) (.val 9)))) (.node (some cxRSv1294) .nil .nil) .nil) (.node (some cxRSv1038) (.node (some cxRSv2318)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3398 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2702) .nil .nil)) (.node (some cxRSv411) (.node (some cxRSv1678) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 6) (.val 9)))) (.node (some cxRSv1166) .nil .nil) .nil) (.node (some (.under [.arm 795 30] (.lt (.val 27)
-    (.val 9)))) (.node (some cxRSv2190) .nil .nil) .nil)))
-
-noncomputable def cxRStr3399 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 21)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2958) .nil .nil)) (.node (some cxRSv661) (.node (some cxRSv1934) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 0) (.val 9)))) (.node (some cxRSv164) (.node (some
-    cxRSv1422) .nil .nil) .nil) (.node (some (.under [.arm 27 3] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2446)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3400 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 13] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2638) .nil .nil)) (.node (some cxRSv349) (.node (some cxRSv1614) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv850) (.node (some cxRSv2126) .nil .nil) .nil)))
-
-noncomputable def cxRStr3401 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 33 5] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 18)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2894) .nil .nil)) (.node (some cxRSv599) (.node (some cxRSv1870) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 23) (.val 9)))) (.node (some cxRSv104) (.node (some
-    cxRSv1358) .nil .nil) .nil) (.node (some cxRSv1101) (.node (some cxRSv2382) .nil .nil) .nil)))
-
-noncomputable def cxRStr3402 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2766) .nil .nil)) (.node (some cxRSv473) (.node (some cxRSv1742) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 17) (.val 9)))) (.node (some cxRSv1230) .nil .nil) .nil) (.node (some cxRSv975) (.node (some cxRSv2254) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3403 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 28) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 822 3] (.lt (.num 2)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv724) (.node (some cxRSv1998) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 14] (.lt (.num 1) (.val 9)))) (.node (some cxRSv225) (.node (some cxRSv1486) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 12] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2510) .nil .nil) .nil)))
-
-noncomputable def cxRStr3404 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 14) (.val 9)))) cxRStr3396 cxRStr3397) (.node (some (.under [.arm 28
-    27] (.lt (.num 1) (.val 9)))) cxRStr3398 cxRStr3399)) (.node (some (.under [.arm 28 18] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 28 24] (.lt (.num 12) (.val 9)))) cxRStr3400 cxRStr3401) (.node (some (.under [.arm 28
-    29] (.lt (.num 10) (.val 9)))) cxRStr3402 cxRStr3403)))
-
-noncomputable def cxRStr3405 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 10] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
-    12) (.val 9)))) .nil .nil) (.node (some cxRSv2606) .nil .nil)) (.node (some cxRSv318) (.node (some cxRSv1582) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv818) (.node (some cxRSv2094) .nil .nil) .nil)))
-
-noncomputable def cxRStr3406 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 25) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 15)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2862) .nil .nil)) (.node (some cxRSv567) (.node (some cxRSv1838) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 795 3] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1326) .nil .nil) .nil) (.node (some cxRSv1070) (.node (some cxRSv2350)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3407 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2734) .nil .nil)) (.node (some cxRSv442) (.node (some cxRSv1710) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 12) (.val 9)))) (.node (some cxRSv1198) .nil .nil) .nil) (.node (some cxRSv944) (.node (some cxRSv2222) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3408 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 21)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2990) .nil .nil)) (.node (some cxRSv693) (.node (some cxRSv1966) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 5) (.val 9)))) (.node (some cxRSv194) (.node (some
-    cxRSv1454) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2478)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3409 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
-    19) (.val 9)))) .nil .nil) (.node (some cxRSv2670) .nil .nil)) (.node (some cxRSv380) (.node (some cxRSv1646) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 23) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv881) (.node (some cxRSv2158) .nil .nil) .nil)))
-
-noncomputable def cxRStr3410 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 20)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2926) .nil .nil)) (.node (some cxRSv630) (.node (some cxRSv1902) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 26) (.val 9)))) (.node (some cxRSv134) (.node (some
-    cxRSv1390) .nil .nil) .nil) (.node (some cxRSv1133) (.node (some cxRSv2414) .nil .nil) .nil)))
-
-noncomputable def cxRStr3411 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2798) .nil .nil)) (.node (some cxRSv505) (.node (some cxRSv1774) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 21) (.val 9)))) (.node (some cxRSv1262) .nil .nil) .nil) (.node (some cxRSv1007) (.node (some cxRSv2286)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3412 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 8] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 33 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 1)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv755) (.node (some cxRSv2030) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 16] (.lt (.num 4) (.val 9)))) (.node (some cxRSv256) (.node (some cxRSv1518) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 14] (.lt (.num 10) (.val 9)))) (.node (some cxRSv2542) .nil .nil) .nil)))
-
-noncomputable def cxRStr3413 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 11] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 3) (.val 9)))) cxRStr3405 cxRStr3406) (.node (some (.under
-    [.arm 28 28] (.lt (.num 6) (.val 9)))) cxRStr3407 cxRStr3408)) (.node (some (.under [.arm 28 20] (.lt (.num 2)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 20) (.val 9)))) cxRStr3409 cxRStr3410) (.node (some
-    (.under [.arm 28 30] (.lt (.num 13) (.val 9)))) cxRStr3411 cxRStr3412)))
-
-noncomputable def cxRStr3414 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 4] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 9) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 5) (.val
-    9)))) .nil .nil) (.node (some cxRSv2566) .nil .nil)) (.node (some cxRSv279) (.node (some cxRSv1542) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    5) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv779) (.node (some cxRSv2054) .nil .nil) .nil)))
-
-noncomputable def cxRStr3415 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2822) .nil .nil)) (.node (some cxRSv528) (.node (some cxRSv1798) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 16) (.val 9)))) (.node (some cxRSv1286) .nil .nil) .nil) (.node (some cxRSv1031) (.node (some cxRSv2310)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3416 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 16] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2694) .nil .nil)) (.node (some cxRSv403) (.node (some cxRSv1670) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 23) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 18) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv905) (.node (some cxRSv2182) .nil .nil) .nil)))
-
-noncomputable def cxRStr3417 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 13)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2950) .nil .nil)) (.node (some cxRSv653) (.node (some cxRSv1926) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 5) (.val 9)))) (.node (some cxRSv156) (.node (some
-    cxRSv1414) .nil .nil) .nil) (.node (some cxRSv1157) (.node (some cxRSv2438) .nil .nil) .nil)))
-
-noncomputable def cxRStr3418 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 12] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 18)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2630) .nil .nil)) (.node (some cxRSv341) (.node (some cxRSv1606) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 6) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv842) (.node (some cxRSv2118) .nil .nil) .nil)))
-
-noncomputable def cxRStr3419 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 23) (.val
-    9)))) (.node (some (.under [.arm 33 3] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 10)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2886) .nil .nil)) (.node (some cxRSv591) (.node (some cxRSv1862) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 795 6] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1350) .nil .nil) .nil) (.node (some cxRSv1094) (.node (some cxRSv2374)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3420 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2758) .nil .nil)) (.node (some cxRSv466) (.node (some cxRSv1734) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 9) (.val 9)))) (.node (some cxRSv1222) .nil .nil) .nil) (.node (some cxRSv968) (.node (some cxRSv2246) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3421 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 823 13] (.lt (.num
-    31) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv716) (.node (some cxRSv1990) .nil .nil) .nil)) (.node (some
-    (.under [.arm 32 13] (.lt (.num 6) (.val 9)))) (.node (some cxRSv217) (.node (some cxRSv1478) .nil .nil) .nil)
-    (.node (some (.under [.arm 27 11] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2502) .nil .nil) .nil)))
-
-noncomputable def cxRStr3422 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 7] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 6) (.val 9)))) cxRStr3414 cxRStr3415) (.node (some (.under
-    [.arm 28 26] (.lt (.num 19) (.val 9)))) cxRStr3416 cxRStr3417)) (.node (some (.under [.arm 28 17] (.lt (.num 16)
-    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 4) (.val 9)))) cxRStr3418 cxRStr3419) (.node (some
-    (.under [.arm 28 29] (.lt (.num 2) (.val 9)))) cxRStr3420 cxRStr3421)))
-
-noncomputable def cxRStr3423 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 9] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 32 19] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 4) (.val
-    9)))) .nil .nil) (.node (some cxRSv2598) .nil .nil)) (.node (some cxRSv310) (.node (some cxRSv1574) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
-    17) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv810) (.node (some cxRSv2086) .nil .nil) .nil)))
-
-noncomputable def cxRStr3424 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2854) .nil .nil)) (.node (some cxRSv559) (.node (some cxRSv1830) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 11) (.val 9)))) (.node (some cxRSv70) (.node (some
-    cxRSv1318) .nil .nil) .nil) (.node (some cxRSv1062) (.node (some cxRSv2342) .nil .nil) .nil)))
-
-noncomputable def cxRStr3425 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2726) .nil .nil)) (.node (some cxRSv434) (.node (some cxRSv1702) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 4) (.val 9)))) (.node (some cxRSv1190) .nil .nil) .nil) (.node (some cxRSv936) (.node (some cxRSv2214) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3426 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 31 3] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 13)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2982) .nil .nil)) (.node (some cxRSv685) (.node (some cxRSv1958) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 7) (.val 9)))) (.node (some cxRSv187) (.node (some
-    cxRSv1446) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2470)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3427 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
-    11) (.val 9)))) .nil .nil) (.node (some cxRSv2662) .nil .nil)) (.node (some cxRSv372) (.node (some cxRSv1638) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 15) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv873) (.node (some cxRSv2150) .nil .nil) .nil)))
-
-noncomputable def cxRStr3428 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 12)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2918) .nil .nil)) (.node (some cxRSv622) (.node (some cxRSv1894) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 18) (.val 9)))) (.node (some cxRSv126) (.node (some
-    cxRSv1382) .nil .nil) .nil) (.node (some cxRSv1125) (.node (some cxRSv2406) .nil .nil) .nil)))
-
-noncomputable def cxRStr3429 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    24) (.val 9)))) .nil .nil) (.node (some cxRSv2790) .nil .nil)) (.node (some cxRSv497) (.node (some cxRSv1766) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 13) (.val 9)))) (.node (some cxRSv1254) .nil .nil) .nil) (.node (some cxRSv999) (.node (some cxRSv2278) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3430 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 31 12] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 18] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 822 8] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
-    27] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2022) .nil .nil) .nil))
-
-noncomputable def cxRStr3431 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 30] (.lt (.num 5) (.val 9)))) cxRStr3429 (.node (some (.under [.arm 30 7] (.lt (.num 1)
-    (.val 9)))) cxRStr3430 (.node (some (.under [.arm 32 15] (.lt (.num 11) (.val 9)))) (.node (some cxRSv248) (.node
-    (some cxRSv1510) .nil .nil) .nil) (.node (some (.under [.arm 27 14] (.lt (.num 2) (.val 9)))) (.node (some
-    cxRSv2534) .nil .nil) .nil))))
-
-noncomputable def cxRStr3432 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 11] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 17) (.val 9)))) cxRStr3423 cxRStr3424) (.node (some (.under
-    [.arm 28 27] (.lt (.num 25) (.val 9)))) cxRStr3425 cxRStr3426)) (.node (some (.under [.arm 28 19] (.lt (.num 13)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 12) (.val 9)))) cxRStr3427 cxRStr3428) cxRStr3431))
-
-noncomputable def cxRStr3433 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 7] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 4) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 5) (.val
-    9)))) .nil .nil) (.node (some cxRSv2582) .nil .nil)) (.node (some cxRSv295) (.node (some cxRSv1558) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
-    1) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv795) (.node (some cxRSv2070) .nil .nil) .nil)))
-
-noncomputable def cxRStr3434 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    19) (.val 9)))) .nil .nil) (.node (some cxRSv2838) .nil .nil)) (.node (some cxRSv544) (.node (some cxRSv1814) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 22) (.val 9)))) (.node (some cxRSv54) (.node (some
-    cxRSv1302) .nil .nil) .nil) (.node (some cxRSv1046) (.node (some cxRSv2326) .nil .nil) .nil)))
-
-noncomputable def cxRStr3435 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    16) (.val 9)))) .nil .nil) (.node (some cxRSv2710) .nil .nil)) (.node (some cxRSv419) (.node (some cxRSv1686) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 14) (.val 9)))) (.node (some cxRSv1174) .nil .nil) .nil) (.node (some cxRSv920) (.node (some cxRSv2198) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3436 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 19) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 29)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2966) .nil .nil)) (.node (some cxRSv669) (.node (some cxRSv1942) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 795 11] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1430) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 3)
-    (.val 9)))) (.node (some cxRSv2454) .nil .nil) .nil)))
-
-noncomputable def cxRStr3437 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 13] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2646) .nil .nil)) (.node (some cxRSv357) (.node (some cxRSv1622) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 22) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv857) (.node (some cxRSv2134) .nil .nil) .nil)))
-
-noncomputable def cxRStr3438 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 26)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2902) .nil .nil)) (.node (some cxRSv606) (.node (some cxRSv1878) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 2) (.val 9)))) (.node (some cxRSv111) (.node (some
-    cxRSv1366) .nil .nil) .nil) (.node (some cxRSv1109) (.node (some cxRSv2390) .nil .nil) .nil)))
-
-noncomputable def cxRStr3439 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2774) .nil .nil)) (.node (some cxRSv481) (.node (some cxRSv1750) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 25) (.val 9)))) (.node (some cxRSv1238) .nil .nil) .nil) (.node (some cxRSv983) (.node (some cxRSv2262) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3440 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 4] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 3) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv732) (.node (some cxRSv2006) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 9) (.val 9)))) (.node (some cxRSv233) (.node (some cxRSv1494) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 12] (.lt (.num 11) (.val 9)))) (.node (some cxRSv2518) .nil .nil) .nil)))
-
-noncomputable def cxRStr3441 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 9] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 1) (.val 9)))) cxRStr3433 cxRStr3434) (.node (some (.under
-    [.arm 28 27] (.lt (.num 9) (.val 9)))) cxRStr3435 cxRStr3436)) (.node (some (.under [.arm 28 18] (.lt (.num 15)
-    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 20) (.val 9)))) cxRStr3437 cxRStr3438) (.node (some
-    (.under [.arm 28 29] (.lt (.num 18) (.val 9)))) cxRStr3439 cxRStr3440)))
-
-noncomputable def cxRStr3442 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 11] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2614) .nil .nil)) (.node (some cxRSv326) (.node (some cxRSv1590) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv826) (.node (some cxRSv2102) .nil .nil) .nil)))
-
-noncomputable def cxRStr3443 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
-    23) (.val 9)))) .nil .nil) (.node (some cxRSv2870) .nil .nil)) (.node (some cxRSv575) (.node (some cxRSv1846) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 27) (.val 9)))) (.node (some cxRSv82) (.node (some
-    cxRSv1334) .nil .nil) .nil) (.node (some cxRSv1078) (.node (some cxRSv2358) .nil .nil) .nil)))
-
-noncomputable def cxRStr3444 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 20) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2742) .nil .nil)) (.node (some cxRSv450) (.node (some cxRSv1718) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 20) (.val 9)))) (.node (some cxRSv1206) .nil .nil) .nil) (.node (some cxRSv952) (.node (some cxRSv2230) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3445 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 0) (.val 9))))
-    (.node (some (.under [.arm 33 15] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 29)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2997) .nil .nil)) (.node (some cxRSv700) (.node (some cxRSv1974) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 2) (.val 9)))) (.node (some cxRSv202) (.node (some
-    cxRSv1462) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2486)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3446 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2678) .nil .nil)) (.node (some cxRSv388) (.node (some cxRSv1654) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 7) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv889) (.node (some cxRSv2166) .nil .nil) .nil)))
-
-noncomputable def cxRStr3447 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 28)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2934) .nil .nil)) (.node (some cxRSv638) (.node (some cxRSv1910) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 3] (.lt (.num 1) (.val 9)))) (.node (some cxRSv141) (.node (some
-    cxRSv1398) .nil .nil) .nil) (.node (some cxRSv1141) (.node (some cxRSv2422) .nil .nil) .nil)))
-
-noncomputable def cxRStr3448 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 24] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 32 28] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 27 27] (.lt (.num 14) (.val 9)))) .nil .nil) (.node (some cxRSv2806) .nil .nil))
-    (.node (some (.under [.arm 795 22] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1782) .nil .nil) .nil))
-
-noncomputable def cxRStr3449 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 9] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 33 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 0) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv763) (.node (some cxRSv2038) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 12) (.val 9)))) (.node (some cxRSv264) (.node (some cxRSv1526) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 15] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2550) .nil .nil) .nil)))
-
-noncomputable def cxRStr3450 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 30] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 29 22] (.lt (.num 16) (.val
-    9)))) cxRStr3448 (.node (some (.under [.arm 31 26] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 30]
-    (.lt (.num 0) (.val 9)))) (.node (some cxRSv1270) .nil .nil) .nil) (.node (some cxRSv1015) (.node (some cxRSv2294)
-    .nil .nil) .nil))) cxRStr3449)
-
-noncomputable def cxRStr3451 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 12] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 17] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 11) (.val 9)))) cxRStr3442 cxRStr3443) (.node (some (.under
-    [.arm 28 28] (.lt (.num 14) (.val 9)))) cxRStr3444 cxRStr3445)) (.node (some (.under [.arm 28 20] (.lt (.num 10)
-    (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 3) (.val 9)))) cxRStr3446 cxRStr3447) cxRStr3450))
-
-noncomputable def cxRStr3452 : Trie CoreMode.CRes :=
-  (.node (some cxRSv12) (.node (some cxRSv20) (.node (some cxRSv36) cxRStr3386 cxRStr3395) (.node (some (.under [.arm 28
-    1] (.lt (.num 0) (.val 9)))) cxRStr3404 cxRStr3413)) (.node (some cxRSv28) (.node (some cxRSv44) cxRStr3422
-    cxRStr3432) (.node (some (.under [.arm 28 4] (.lt (.num 2) (.val 9)))) cxRStr3441 cxRStr3451)))
-
-noncomputable def cxRStr3453 : Trie CoreMode.CRes :=
-  (.node (some cxRSv4) (.node (some cxRSv8) (.node (some cxRSv16) (.node (some cxRSv32) cxRStr3310 cxRStr3320) (.node
-    (some cxRSv48) cxRStr3329 cxRStr3338)) (.node (some cxRSv24) (.node (some cxRSv40) cxRStr3347 cxRStr3357) (.node
-    (some (.under [.arm 28 3] (.lt (.num 1) (.val 9)))) cxRStr3366 cxRStr3376))) cxRStr3452)
-
-noncomputable def cxRStr3454 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 30 9] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 17] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 10)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2556) .nil .nil)) (.node (some cxRSv269) (.node (some cxRSv1532) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt
-    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv769) (.node (some cxRSv2044) .nil .nil) .nil)))
-
-noncomputable def cxRStr3455 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
-    20) (.val 9)))) .nil .nil) (.node (some cxRSv2812) .nil .nil)) (.node (some cxRSv518) (.node (some cxRSv1788) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 6) (.val 9)))) (.node (some cxRSv1276) .nil .nil) .nil) (.node (some cxRSv1021) (.node (some cxRSv2300) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3456 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 16] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
-    12) (.val 9)))) .nil .nil) (.node (some cxRSv2684) .nil .nil)) (.node (some cxRSv394) (.node (some cxRSv1660) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 13) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv895) (.node (some cxRSv2172) .nil .nil) .nil)))
-
-noncomputable def cxRStr3457 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 22) (.val
-    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2940) .nil .nil)) (.node (some cxRSv644) (.node (some cxRSv1916) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 5] (.lt (.num 0) (.val 9)))) (.node (some cxRSv147) (.node (some
-    cxRSv1404) .nil .nil) .nil) (.node (some cxRSv1147) (.node (some cxRSv2428) .nil .nil) .nil)))
-
-noncomputable def cxRStr3458 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 11] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2620) .nil .nil)) (.node (some cxRSv331) (.node (some cxRSv1596) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 18) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv832) (.node (some cxRSv2108) .nil .nil) .nil)))
-
-noncomputable def cxRStr3459 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2876) .nil .nil)) (.node (some cxRSv581) (.node (some cxRSv1852) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 795 5] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1340) .nil .nil) .nil) (.node (some cxRSv1084) (.node (some cxRSv2364)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3460 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2748) .nil .nil)) (.node (some cxRSv456) (.node (some cxRSv1724) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 26) (.val 9)))) (.node (some cxRSv1212) .nil .nil) .nil) (.node (some cxRSv958) (.node (some cxRSv2236) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3461 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 823 3] (.lt (.num 21)
-    (.val 9)))) .nil .nil) (.node (some cxRSv3000) .nil .nil)) (.node (some cxRSv706) (.node (some cxRSv1980) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 8) (.val 9)))) (.node (some cxRSv208) (.node (some
-    cxRSv1468) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2492)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3462 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 0) (.val 9))))
-    (.node (some (.under [.arm 28 20] (.lt (.num 16) (.val 9)))) cxRStr3454 cxRStr3455) (.node (some (.under [.arm 28
-    26] (.lt (.num 9) (.val 9)))) cxRStr3456 cxRStr3457)) (.node (some (.under [.arm 28 17] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 28 23] (.lt (.num 17) (.val 9)))) cxRStr3458 cxRStr3459) (.node (some (.under [.arm 28
-    28] (.lt (.num 20) (.val 9)))) cxRStr3460 cxRStr3461)))
-
-noncomputable def cxRStr3463 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 31 16] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 822 13] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
-    28] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2076) .nil .nil) .nil))
-
-noncomputable def cxRStr3464 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 18] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num
-    11) (.val 9)))) .nil .nil) (.node (some cxRSv2588) .nil .nil)) (.node (some cxRSv300) (.node (some cxRSv1564) .nil
-    .nil) .nil)) cxRStr3463)
-
-noncomputable def cxRStr3465 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    25) (.val 9)))) .nil .nil) (.node (some cxRSv2844) .nil .nil)) (.node (some cxRSv550) (.node (some cxRSv1820) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 1) (.val 9)))) (.node (some cxRSv60) (.node (some
-    cxRSv1308) .nil .nil) .nil) (.node (some cxRSv1052) (.node (some cxRSv2332) .nil .nil) .nil)))
-
-noncomputable def cxRStr3466 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    22) (.val 9)))) .nil .nil) (.node (some cxRSv2716) .nil .nil)) (.node (some cxRSv425) (.node (some cxRSv1692) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 20) (.val 9)))) (.node (some cxRSv1180) .nil .nil) .nil) (.node (some cxRSv926) (.node (some cxRSv2204) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3467 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 25) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2972) .nil .nil)) (.node (some cxRSv675) (.node (some cxRSv1948) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 6) (.val 9)))) (.node (some cxRSv177) (.node (some
-    cxRSv1436) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2460)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3468 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2652) .nil .nil)) (.node (some cxRSv362) (.node (some cxRSv1628) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv863) (.node (some cxRSv2140) .nil .nil) .nil)))
-
-noncomputable def cxRStr3469 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 18) (.val
-    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2908) .nil .nil)) (.node (some cxRSv612) (.node (some cxRSv1884) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 8) (.val 9)))) (.node (some cxRSv117) (.node (some
-    cxRSv1372) .nil .nil) .nil) (.node (some cxRSv1115) (.node (some cxRSv2396) .nil .nil) .nil)))
-
-noncomputable def cxRStr3470 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    14) (.val 9)))) .nil .nil) (.node (some cxRSv2780) .nil .nil)) (.node (some cxRSv487) (.node (some cxRSv1756) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 3) (.val 9)))) (.node (some cxRSv1244) .nil .nil) .nil) (.node (some cxRSv989) (.node (some cxRSv2268) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3471 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 5] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 4) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 4) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv738) (.node (some cxRSv2012) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 15] (.lt (.num 1) (.val 9)))) (.node (some cxRSv239) (.node (some cxRSv1500) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 13] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2524) .nil .nil) .nil)))
-
 noncomputable def cxRStr3472 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 10] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 7) (.val 9)))) cxRStr3464 cxRStr3465) (.node (some (.under
-    [.arm 28 27] (.lt (.num 15) (.val 9)))) cxRStr3466 cxRStr3467)) (.node (some (.under [.arm 28 19] (.lt (.num 3)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 2) (.val 9)))) cxRStr3468 cxRStr3469) (.node (some
-    (.under [.arm 28 29] (.lt (.num 24) (.val 9)))) cxRStr3470 cxRStr3471)))
+  (.node (some (.under [.arm 29 3] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 4) (.val
+    9)))) .nil .nil) (.node (some cxRSv2531) .nil .nil)) (.node (some cxRSv262) (.node (some cxRSv1507) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 3)
+    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv750)
+    (.node (some cxRSv2019) .nil .nil) .nil)))
 
 noncomputable def cxRStr3473 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 5] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 11) (.val
-    9)))) .nil .nil) (.node (some cxRSv2572) .nil .nil)) (.node (some cxRSv285) (.node (some cxRSv1548) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    11) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv785) (.node (some cxRSv2060) .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 23] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2787) .nil .nil)) (.node (some cxRSv504) (.node (some cxRSv1763) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 14) (.val 9)))) (.node (some cxRSv1251) .nil .nil) .nil) (.node (some cxRSv998) (.node (some cxRSv2275) .nil
+    .nil) .nil)))
 
 noncomputable def cxRStr3474 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2828) .nil .nil)) (.node (some cxRSv534) (.node (some cxRSv1804) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 22) (.val 9)))) (.node (some cxRSv1292) .nil .nil) .nil) (.node (some cxRSv1036) (.node (some cxRSv2316)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3475 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2700) .nil .nil)) (.node (some cxRSv409) (.node (some cxRSv1676) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 4) (.val 9)))) (.node (some cxRSv1164) .nil .nil) .nil) (.node (some cxRSv911) (.node (some cxRSv2188) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3476 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 19)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2956) .nil .nil)) (.node (some cxRSv659) (.node (some cxRSv1932) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 5) (.val 9)))) (.node (some cxRSv162) (.node (some
-    cxRSv1420) .nil .nil) .nil) (.node (some (.under [.arm 27 3] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2444)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3477 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 12] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2636) .nil .nil)) (.node (some cxRSv347) (.node (some cxRSv1612) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 12) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 11) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv848) (.node (some cxRSv2124) .nil .nil) .nil)))
-
-noncomputable def cxRStr3478 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 33 4] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 16)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2892) .nil .nil)) (.node (some cxRSv597) (.node (some cxRSv1868) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 21) (.val 9)))) (.node (some cxRSv102) (.node (some
-    cxRSv1356) .nil .nil) .nil) (.node (some cxRSv1099) (.node (some cxRSv2380) .nil .nil) .nil)))
-
-noncomputable def cxRStr3479 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 22] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 32 26] (.lt (.num 21) (.val
-    9)))) (.node (some (.under [.arm 27 25] (.lt (.num 23) (.val 9)))) .nil .nil) (.node (some cxRSv2764) .nil .nil))
-    (.node (some (.under [.arm 795 21] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1740) .nil .nil) .nil))
-
-noncomputable def cxRStr3480 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 33 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 822 3] (.lt (.num 0)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv722) (.node (some cxRSv1996) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 13] (.lt (.num 12) (.val 9)))) (.node (some cxRSv223) (.node (some cxRSv1484) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 12] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2508) .nil .nil) .nil)))
-
-noncomputable def cxRStr3481 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 29] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 29 20] (.lt (.num 15) (.val
-    9)))) cxRStr3479 (.node (some (.under [.arm 31 24] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 33 28]
-    (.lt (.num 15) (.val 9)))) (.node (some cxRSv1228) .nil .nil) .nil) (.node (some cxRSv973) (.node (some cxRSv2252)
-    .nil .nil) .nil))) cxRStr3480)
-
-noncomputable def cxRStr3482 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 8] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 12) (.val 9)))) cxRStr3473 cxRStr3474) (.node (some (.under [.arm 28
-    26] (.lt (.num 25) (.val 9)))) cxRStr3475 cxRStr3476)) (.node (some (.under [.arm 28 18] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 28 24] (.lt (.num 10) (.val 9)))) cxRStr3477 cxRStr3478) cxRStr3481))
-
-noncomputable def cxRStr3483 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 10] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num
-    10) (.val 9)))) .nil .nil) (.node (some cxRSv2604) .nil .nil)) (.node (some cxRSv316) (.node (some cxRSv1580) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 2) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv816) (.node (some cxRSv2092) .nil .nil) .nil)))
-
-noncomputable def cxRStr3484 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 23) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 13)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2860) .nil .nil)) (.node (some cxRSv565) (.node (some cxRSv1836) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 17) (.val 9)))) (.node (some cxRSv74) (.node (some
-    cxRSv1324) .nil .nil) .nil) (.node (some cxRSv1068) (.node (some cxRSv2348) .nil .nil) .nil)))
-
-noncomputable def cxRStr3485 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2732) .nil .nil)) (.node (some cxRSv440) (.node (some cxRSv1708) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 10) (.val 9)))) (.node (some cxRSv1196) .nil .nil) .nil) (.node (some cxRSv942) (.node (some cxRSv2220) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3486 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 31 5] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 19)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2988) .nil .nil)) (.node (some cxRSv691) (.node (some cxRSv1964) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 795 12] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1452) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 7)
-    (.val 9)))) (.node (some cxRSv2476) .nil .nil) .nil)))
-
-noncomputable def cxRStr3487 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2668) .nil .nil)) (.node (some cxRSv378) (.node (some cxRSv1644) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv879) (.node (some cxRSv2156) .nil .nil) .nil)))
-
-noncomputable def cxRStr3488 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 18)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2924) .nil .nil)) (.node (some cxRSv628) (.node (some cxRSv1900) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 24) (.val 9)))) (.node (some cxRSv132) (.node (some
-    cxRSv1388) .nil .nil) .nil) (.node (some cxRSv1131) (.node (some cxRSv2412) .nil .nil) .nil)))
-
-noncomputable def cxRStr3489 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2796) .nil .nil)) (.node (some cxRSv503) (.node (some cxRSv1772) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 19) (.val 9)))) (.node (some cxRSv1260) .nil .nil) .nil) (.node (some cxRSv1005) (.node (some cxRSv2284)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3490 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 8] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 9) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 7) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv753) (.node (some cxRSv2028) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 2) (.val 9)))) (.node (some cxRSv254) (.node (some cxRSv1516) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 14] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2540) .nil .nil) .nil)))
-
-noncomputable def cxRStr3491 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 11] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 1) (.val 9)))) cxRStr3483 cxRStr3484) (.node (some (.under
-    [.arm 28 28] (.lt (.num 4) (.val 9)))) cxRStr3485 cxRStr3486)) (.node (some (.under [.arm 28 20] (.lt (.num 0)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 18) (.val 9)))) cxRStr3487 cxRStr3488) (.node (some
-    (.under [.arm 28 30] (.lt (.num 11) (.val 9)))) cxRStr3489 cxRStr3490)))
-
-noncomputable def cxRStr3492 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 3] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 3) (.val
-    9)))) .nil .nil) (.node (some cxRSv2564) .nil .nil)) (.node (some cxRSv277) (.node (some cxRSv1540) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num 3)
-    (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv777)
-    (.node (some cxRSv2052) .nil .nil) .nil)))
-
-noncomputable def cxRStr3493 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2820) .nil .nil)) (.node (some cxRSv526) (.node (some cxRSv1796) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 14) (.val 9)))) (.node (some cxRSv1284) .nil .nil) .nil) (.node (some cxRSv1029) (.node (some cxRSv2308)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3494 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 16] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 9) (.val
     9)))) (.node (some (.under [.arm 32 23] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
-    20) (.val 9)))) .nil .nil) (.node (some cxRSv2692) .nil .nil)) (.node (some cxRSv401) (.node (some cxRSv1668) .nil
+    21) (.val 9)))) .nil .nil) (.node (some cxRSv2659) .nil .nil)) (.node (some cxRSv382) (.node (some cxRSv1635) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 16) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv903) (.node (some cxRSv2180) .nil .nil) .nil)))
+    (.num 21) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 17) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv874) (.node (some cxRSv2147) .nil .nil) .nil)))
 
-noncomputable def cxRStr3495 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3475 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 28] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 1) (.val
     9)))) (.node (some (.under [.arm 33 11] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num
-    11) (.val 9)))) .nil .nil) (.node (some cxRSv2948) .nil .nil)) (.node (some cxRSv651) (.node (some cxRSv1924) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 3) (.val 9)))) (.node (some cxRSv154) (.node (some
-    cxRSv1412) .nil .nil) .nil) (.node (some cxRSv1155) (.node (some cxRSv2436) .nil .nil) .nil)))
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2915) .nil .nil)) (.node (some cxRSv626) (.node (some cxRSv1891) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 6] (.lt (.num 3) (.val 9)))) (.node (some cxRSv144) (.node (some
+    cxRSv1379) .nil .nil) .nil) (.node (some cxRSv1122) (.node (some cxRSv2403) .nil .nil) .nil)))
 
-noncomputable def cxRStr3496 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3476 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 12] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 16)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2628) .nil .nil)) (.node (some cxRSv339) (.node (some cxRSv1604) .nil
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 17)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2595) .nil .nil)) (.node (some cxRSv322) (.node (some cxRSv1571) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv840) (.node (some cxRSv2116) .nil .nil) .nil)))
+    (.num 4) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv812) (.node (some cxRSv2083) .nil .nil) .nil)))
 
-noncomputable def cxRStr3497 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3477 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 26] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 21) (.val
-    9)))) (.node (some (.under [.arm 33 2] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2884) .nil .nil)) (.node (some cxRSv589) (.node (some cxRSv1860) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 13) (.val 9)))) (.node (some cxRSv95) (.node (some
-    cxRSv1348) .nil .nil) .nil) (.node (some cxRSv1092) (.node (some cxRSv2372) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 2] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2851) .nil .nil)) (.node (some cxRSv566) (.node (some cxRSv1827) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 795 6] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1315) .nil .nil) .nil) (.node (some cxRSv1060) (.node (some cxRSv2339)
+    .nil .nil) .nil)))
 
-noncomputable def cxRStr3498 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3478 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 20] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 13) (.val
     9)))) (.node (some (.under [.arm 32 26] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2756) .nil .nil)) (.node (some cxRSv464) (.node (some cxRSv1732) .nil
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2723) .nil .nil)) (.node (some cxRSv444) (.node (some cxRSv1699) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 7) (.val 9)))) (.node (some cxRSv1220) .nil .nil) .nil) (.node (some cxRSv966) (.node (some cxRSv2244) .nil
+    (.num 7) (.val 9)))) (.node (some cxRSv1187) .nil .nil) .nil) (.node (some cxRSv936) (.node (some cxRSv2211) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3499 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3479 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 30] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 823 11] (.lt (.num
-    29) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv714) (.node (some cxRSv1988) .nil .nil) .nil)) (.node (some
-    (.under [.arm 32 13] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 795 13] (.lt (.val 27) (.val 9))))
-    (.node (some cxRSv1476) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 4) (.val 9)))) (.node (some
-    cxRSv2500) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 823 12] (.lt (.num
+    30) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv688) (.node (some cxRSv1955) .nil .nil) .nil)) (.node (some
+    (.under [.arm 32 13] (.lt (.num 4) (.val 9)))) (.node (some cxRSv202) (.node (some cxRSv1443) .nil .nil) .nil)
+    (.node (some (.under [.arm 27 11] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2467) .nil .nil) .nil)))
 
-noncomputable def cxRStr3500 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3480 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 7] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 4) (.val 9)))) cxRStr3492 cxRStr3493) (.node (some (.under [.arm 28
-    26] (.lt (.num 17) (.val 9)))) cxRStr3494 cxRStr3495)) (.node (some (.under [.arm 28 17] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 2) (.val 9)))) cxRStr3496 cxRStr3497) (.node (some (.under
-    [.arm 28 29] (.lt (.num 0) (.val 9)))) cxRStr3498 cxRStr3499)))
+    (.node (some (.under [.arm 28 21] (.lt (.num 4) (.val 9)))) cxRStr3472 cxRStr3473) (.node (some (.under [.arm 28
+    26] (.lt (.num 17) (.val 9)))) cxRStr3474 cxRStr3475)) (.node (some (.under [.arm 28 17] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 2) (.val 9)))) cxRStr3476 cxRStr3477) (.node (some (.under
+    [.arm 28 29] (.lt (.num 0) (.val 9)))) cxRStr3478 cxRStr3479)))
 
-noncomputable def cxRStr3501 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3481 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 9] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 32 19] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 2) (.val
-    9)))) .nil .nil) (.node (some cxRSv2596) .nil .nil)) (.node (some cxRSv308) (.node (some cxRSv1572) .nil .nil)
+    (.node (some (.under [.arm 32 19] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 3) (.val
+    9)))) .nil .nil) (.node (some cxRSv2563) .nil .nil)) (.node (some cxRSv292) (.node (some cxRSv1539) .nil .nil)
     .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
-    15) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv808) (.node (some cxRSv2084) .nil .nil) .nil)))
+    15) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv780) (.node (some cxRSv2051) .nil .nil) .nil)))
 
-noncomputable def cxRStr3502 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3482 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 24] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 28) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2852) .nil .nil)) (.node (some cxRSv557) (.node (some cxRSv1828) .nil
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 28) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2819) .nil .nil)) (.node (some cxRSv534) (.node (some cxRSv1795) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 9) (.val 9)))) (.node (some cxRSv68) (.node (some
-    cxRSv1316) .nil .nil) .nil) (.node (some cxRSv1060) (.node (some cxRSv2340) .nil .nil) .nil)))
+    cxRSv1283) .nil .nil) .nil) (.node (some cxRSv1028) (.node (some cxRSv2307) .nil .nil) .nil)))
 
-noncomputable def cxRStr3503 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 21] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 32 25] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 27 24] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2724) .nil .nil))
-    (.node (some (.under [.arm 795 20] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1700) .nil .nil) .nil))
+noncomputable def cxRStr3483 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2691) .nil .nil)) (.node (some cxRSv412) (.node (some cxRSv1667) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 2) (.val 9)))) (.node (some cxRSv1155) .nil .nil) .nil) (.node (some cxRSv904) (.node (some cxRSv2179) .nil
+    .nil) .nil)))
 
-noncomputable def cxRStr3504 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3484 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 29] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 31 3] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 11)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2980) .nil .nil)) (.node (some cxRSv683) (.node (some cxRSv1956) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 5) (.val 9)))) (.node (some cxRSv185) (.node (some
-    cxRSv1444) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2468)
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2947) .nil .nil)) (.node (some cxRSv658) (.node (some cxRSv1923) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 5) (.val 9)))) (.node (some cxRSv174) (.node (some
+    cxRSv1411) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2435)
     .nil .nil) .nil)))
 
-noncomputable def cxRStr3505 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 27] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 29 18] (.lt (.num 12) (.val
-    9)))) cxRStr3503 (.node (some (.under [.arm 31 23] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 27]
-    (.lt (.num 2) (.val 9)))) (.node (some cxRSv1188) .nil .nil) .nil) (.node (some cxRSv934) (.node (some cxRSv2212)
-    .nil .nil) .nil))) cxRStr3504)
-
-noncomputable def cxRStr3506 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3485 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 14] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2660) .nil .nil)) (.node (some cxRSv370) (.node (some cxRSv1636) .nil
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
+    10) (.val 9)))) .nil .nil) (.node (some cxRSv2627) .nil .nil)) (.node (some cxRSv352) (.node (some cxRSv1603) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 13) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv871) (.node (some cxRSv2148) .nil .nil) .nil)))
+    (.num 13) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv842) (.node (some cxRSv2115) .nil .nil) .nil)))
 
-noncomputable def cxRStr3507 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3486 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 27] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 26) (.val
-    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 10)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2916) .nil .nil)) (.node (some cxRSv620) (.node (some cxRSv1892) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 16) (.val 9)))) (.node (some cxRSv124) (.node (some
-    cxRSv1380) .nil .nil) .nil) (.node (some cxRSv1123) (.node (some cxRSv2404) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2883) .nil .nil)) (.node (some cxRSv596) (.node (some cxRSv1859) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 16) (.val 9)))) (.node (some cxRSv116) (.node (some
+    cxRSv1347) .nil .nil) .nil) (.node (some cxRSv1090) (.node (some cxRSv2371) .nil .nil) .nil)))
 
-noncomputable def cxRStr3508 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3487 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 21] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 0) (.val
     9)))) (.node (some (.under [.arm 32 27] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    22) (.val 9)))) .nil .nil) (.node (some cxRSv2788) .nil .nil)) (.node (some cxRSv495) (.node (some cxRSv1764) .nil
+    23) (.val 9)))) .nil .nil) (.node (some cxRSv2755) .nil .nil)) (.node (some cxRSv474) (.node (some cxRSv1731) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 11) (.val 9)))) (.node (some cxRSv1252) .nil .nil) .nil) (.node (some cxRSv997) (.node (some cxRSv2276) .nil
+    (.num 11) (.val 9)))) (.node (some cxRSv1219) .nil .nil) .nil) (.node (some cxRSv966) (.node (some cxRSv2243) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3509 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 6] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 6) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv746) (.node (some cxRSv2020) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 15] (.lt (.num 9) (.val 9)))) (.node (some cxRSv246) (.node (some cxRSv1508) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 14] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2532) .nil .nil) .nil)))
+noncomputable def cxRStr3488 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 31 12] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 18] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 822 8] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
+    27] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1987) .nil .nil) .nil))
 
-noncomputable def cxRStr3510 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3489 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 3) (.val 9)))) cxRStr3487 (.node (some (.under [.arm 30 6] (.lt (.num 5)
+    (.val 9)))) cxRStr3488 (.node (some (.under [.arm 32 15] (.lt (.num 9) (.val 9)))) (.node (some cxRSv232) (.node
+    (some cxRSv1475) .nil .nil) .nil) (.node (some (.under [.arm 27 14] (.lt (.num 1) (.val 9)))) (.node (some
+    cxRSv2499) .nil .nil) .nil))))
+
+noncomputable def cxRStr3490 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 10] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 15) (.val 9)))) cxRStr3501 cxRStr3502) cxRStr3505) (.node (some
-    (.under [.arm 28 19] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 10) (.val 9))))
-    cxRStr3506 cxRStr3507) (.node (some (.under [.arm 28 30] (.lt (.num 3) (.val 9)))) cxRStr3508 cxRStr3509)))
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 15) (.val 9)))) cxRStr3481 cxRStr3482) (.node (some (.under
+    [.arm 28 27] (.lt (.num 23) (.val 9)))) cxRStr3483 cxRStr3484)) (.node (some (.under [.arm 28 19] (.lt (.num 11)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 10) (.val 9)))) cxRStr3485 cxRStr3486) cxRStr3489))
 
-noncomputable def cxRStr3511 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3491 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 7] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 3) (.val
-    9)))) .nil .nil) (.node (some cxRSv2580) .nil .nil)) (.node (some cxRSv293) (.node (some cxRSv1556) .nil .nil)
+    (.node (some (.under [.arm 32 18] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 4) (.val
+    9)))) .nil .nil) (.node (some cxRSv2547) .nil .nil)) (.node (some cxRSv278) (.node (some cxRSv1523) .nil .nil)
     .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    19) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv793) (.node (some cxRSv2068) .nil .nil) .nil)))
+    19) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv766) (.node (some cxRSv2035) .nil .nil) .nil)))
 
-noncomputable def cxRStr3512 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3492 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 24] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 24) (.val
     9)))) (.node (some (.under [.arm 32 29] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2836) .nil .nil)) (.node (some cxRSv542) (.node (some cxRSv1812) .nil
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2803) .nil .nil)) (.node (some cxRSv520) (.node (some cxRSv1779) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 20) (.val 9)))) (.node (some cxRSv52) (.node (some
-    cxRSv1300) .nil .nil) .nil) (.node (some cxRSv1044) (.node (some cxRSv2324) .nil .nil) .nil)))
+    cxRSv1267) .nil .nil) .nil) (.node (some cxRSv1012) (.node (some cxRSv2291) .nil .nil) .nil)))
 
-noncomputable def cxRStr3513 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3493 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 17] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 6) (.val
     9)))) (.node (some (.under [.arm 32 24] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    14) (.val 9)))) .nil .nil) (.node (some cxRSv2708) .nil .nil)) (.node (some cxRSv417) (.node (some cxRSv1684) .nil
+    15) (.val 9)))) .nil .nil) (.node (some cxRSv2675) .nil .nil)) (.node (some cxRSv398) (.node (some cxRSv1651) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 12) (.val 9)))) (.node (some cxRSv1172) .nil .nil) .nil) (.node (some cxRSv918) (.node (some cxRSv2196) .nil
+    (.num 12) (.val 9)))) (.node (some cxRSv1139) .nil .nil) .nil) (.node (some cxRSv888) (.node (some cxRSv2163) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3514 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3494 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 28] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 27)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2964) .nil .nil)) (.node (some cxRSv667) (.node (some cxRSv1940) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 6) (.val 9)))) (.node (some cxRSv170) (.node (some
-    cxRSv1428) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2452)
-    .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 28)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2931) .nil .nil)) (.node (some cxRSv642) (.node (some cxRSv1907) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 795 11] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1395) .nil .nil) .nil) (.node (some (.under [.arm 27 5] (.lt (.num 2)
+    (.val 9)))) (.node (some cxRSv2419) .nil .nil) .nil)))
 
-noncomputable def cxRStr3515 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 31 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt (.num 20) (.val
-    9)))) (.node (some (.under [.arm 822 17] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some (.under [.arm 795
-    29] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2132) .nil .nil) .nil))
-
-noncomputable def cxRStr3516 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3495 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 13] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 12) (.val
     9)))) (.node (some (.under [.arm 32 21] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
-    13) (.val 9)))) .nil .nil) (.node (some cxRSv2644) .nil .nil)) (.node (some cxRSv355) (.node (some cxRSv1620) .nil
-    .nil) .nil)) cxRStr3515)
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2611) .nil .nil)) (.node (some cxRSv338) (.node (some cxRSv1587) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 20) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv826) (.node (some cxRSv2099) .nil .nil) .nil)))
 
-noncomputable def cxRStr3517 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3496 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 26] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 24)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2900) .nil .nil)) (.node (some cxRSv604) (.node (some cxRSv1876) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 0) (.val 9)))) (.node (some cxRSv109) (.node (some
-    cxRSv1364) .nil .nil) .nil) (.node (some cxRSv1107) (.node (some cxRSv2388) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 25)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2867) .nil .nil)) (.node (some cxRSv580) (.node (some cxRSv1843) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 0) (.val 9)))) (.node (some cxRSv102) (.node (some
+    cxRSv1331) .nil .nil) .nil) (.node (some cxRSv1074) (.node (some cxRSv2355) .nil .nil) .nil)))
 
-noncomputable def cxRStr3518 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3497 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 21] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2772) .nil .nil)) (.node (some cxRSv479) (.node (some cxRSv1748) .nil
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2739) .nil .nil)) (.node (some cxRSv458) (.node (some cxRSv1715) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 23) (.val 9)))) (.node (some cxRSv1236) .nil .nil) .nil) (.node (some cxRSv981) (.node (some cxRSv2260) .nil
+    (.num 23) (.val 9)))) (.node (some cxRSv1203) .nil .nil) .nil) (.node (some cxRSv950) (.node (some cxRSv2227) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3519 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3498 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 30 3] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 6) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 1) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv730) (.node (some cxRSv2004) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 7) (.val 9)))) (.node (some cxRSv231) (.node (some cxRSv1492) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 12] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2516) .nil .nil) .nil)))
+    (.node (some (.under [.arm 33 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 822 5] (.lt (.num 2) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv704) (.node (some cxRSv1971) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 7) (.val 9)))) (.node (some cxRSv218) (.node (some cxRSv1459) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 12] (.lt (.num 10) (.val 9)))) (.node (some cxRSv2483) .nil .nil) .nil)))
 
-noncomputable def cxRStr3520 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3499 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 9] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 20) (.val 9)))) cxRStr3511 cxRStr3512) (.node (some (.under
-    [.arm 28 27] (.lt (.num 7) (.val 9)))) cxRStr3513 cxRStr3514)) (.node (some (.under [.arm 28 18] (.lt (.num 13)
-    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 18) (.val 9)))) cxRStr3516 cxRStr3517) (.node (some
-    (.under [.arm 28 29] (.lt (.num 16) (.val 9)))) cxRStr3518 cxRStr3519)))
+    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 20) (.val 9)))) cxRStr3491 cxRStr3492) (.node (some (.under
+    [.arm 28 27] (.lt (.num 7) (.val 9)))) cxRStr3493 cxRStr3494)) (.node (some (.under [.arm 28 18] (.lt (.num 13)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 18) (.val 9)))) cxRStr3495 cxRStr3496) (.node (some
+    (.under [.arm 28 29] (.lt (.num 16) (.val 9)))) cxRStr3497 cxRStr3498)))
 
-noncomputable def cxRStr3521 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3500 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 10] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2612) .nil .nil)) (.node (some cxRSv324) (.node (some cxRSv1588) .nil
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2579) .nil .nil)) (.node (some cxRSv308) (.node (some cxRSv1555) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 10) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv824) (.node (some cxRSv2100) .nil .nil) .nil)))
+    (.num 10) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 3) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv796) (.node (some cxRSv2067) .nil .nil) .nil)))
 
-noncomputable def cxRStr3522 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3501 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 25] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 5) (.val
     9)))) (.node (some (.under [.arm 32 30] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
-    21) (.val 9)))) .nil .nil) (.node (some cxRSv2868) .nil .nil)) (.node (some cxRSv573) (.node (some cxRSv1844) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 795 4] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1332) .nil .nil) .nil) (.node (some cxRSv1076) (.node (some cxRSv2356)
-    .nil .nil) .nil)))
+    22) (.val 9)))) .nil .nil) (.node (some cxRSv2835) .nil .nil)) (.node (some cxRSv550) (.node (some cxRSv1811) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 25) (.val 9)))) (.node (some cxRSv76) (.node (some
+    cxRSv1299) .nil .nil) .nil) (.node (some cxRSv1044) (.node (some cxRSv2323) .nil .nil) .nil)))
 
-noncomputable def cxRStr3523 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3502 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 18) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    23) (.val 9)))) .nil .nil) (.node (some cxRSv2740) .nil .nil)) (.node (some cxRSv448) (.node (some cxRSv1716) .nil
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2707) .nil .nil)) (.node (some cxRSv428) (.node (some cxRSv1683) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 18) (.val 9)))) (.node (some cxRSv1204) .nil .nil) .nil) (.node (some cxRSv950) (.node (some cxRSv2228) .nil
+    (.num 18) (.val 9)))) (.node (some cxRSv1171) .nil .nil) .nil) (.node (some cxRSv920) (.node (some cxRSv2195) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3524 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 31 6] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 27 33] (.lt (.num 27) (.val 9)))) .nil .nil) (.node (some (.lt (.val 2545) (.mono ⟨[(9,
-    1)], 1⟩))) .nil .nil)) (.node (some cxRSv698) (.node (some cxRSv1972) .nil .nil) .nil))
+noncomputable def cxRStr3503 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 6] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 33 15] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 28) (.val
+    9)))) .nil .nil) (.node (some cxRSv2962) .nil .nil)) (.node (some cxRSv672) (.node (some cxRSv1939) .nil .nil)
+    .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 0) (.val 9)))) (.node (some cxRSv188) (.node (some cxRSv1427)
+    .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2451) .nil .nil)
+    .nil)))
 
-noncomputable def cxRStr3525 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 28] (.lt (.num 12) (.val 9)))) cxRStr3523 (.node (some (.under [.arm 29 30] (.lt (.num
-    2) (.val 9)))) cxRStr3524 (.node (some (.under [.arm 32 12] (.lt (.num 0) (.val 9)))) (.node (some cxRSv200)
-    (.node (some cxRSv1460) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 7) (.val 9)))) (.node (some
-    cxRSv2484) .nil .nil) .nil))))
-
-noncomputable def cxRStr3526 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3504 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 15] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2676) .nil .nil)) (.node (some cxRSv386) (.node (some cxRSv1652) .nil
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2643) .nil .nil)) (.node (some cxRSv368) (.node (some cxRSv1619) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv887) (.node (some cxRSv2164) .nil .nil) .nil)))
+    (.num 5) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv858) (.node (some cxRSv2131) .nil .nil) .nil)))
 
-noncomputable def cxRStr3527 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3505 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 27] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 26)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2932) .nil .nil)) (.node (some cxRSv636) (.node (some cxRSv1908) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 2] (.lt (.num 1) (.val 9)))) (.node (some cxRSv139) (.node (some
-    cxRSv1396) .nil .nil) .nil) (.node (some cxRSv1139) (.node (some cxRSv2420) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 27)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2899) .nil .nil)) (.node (some cxRSv612) (.node (some cxRSv1875) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 2] (.lt (.num 1) (.val 9)))) (.node (some cxRSv130) (.node (some
+    cxRSv1363) .nil .nil) .nil) (.node (some cxRSv1106) (.node (some cxRSv2387) .nil .nil) .nil)))
 
-noncomputable def cxRStr3528 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 16) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 12)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2804) .nil .nil)) (.node (some cxRSv511) (.node (some cxRSv1780) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 27) (.val 9)))) (.node (some cxRSv1268) .nil .nil) .nil) (.node (some cxRSv1013) (.node (some cxRSv2292)
-    .nil .nil) .nil)))
+noncomputable def cxRStr3506 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 24] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 32 28] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 27 27] (.lt (.num 13) (.val 9)))) .nil .nil) (.node (some cxRSv2771) .nil .nil))
+    (.node (some (.under [.arm 795 22] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1747) .nil .nil) .nil))
 
-noncomputable def cxRStr3529 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3507 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 30 9] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 33 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 7) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv761) (.node (some cxRSv2036) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 10) (.val 9)))) (.node (some cxRSv262) (.node (some cxRSv1524) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 15] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2548) .nil .nil) .nil)))
+    (.node (some (.under [.arm 33 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 8) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv734) (.node (some cxRSv2003) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 10) (.val 9)))) (.node (some cxRSv248) (.node (some cxRSv1491) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 15] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2515) .nil .nil) .nil)))
 
-noncomputable def cxRStr3530 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3508 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 30] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 29 22] (.lt (.num 14) (.val
+    9)))) cxRStr3506 (.node (some (.under [.arm 31 26] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 29]
+    (.lt (.num 27) (.val 9)))) (.node (some cxRSv1235) .nil .nil) .nil) (.node (some cxRSv982) (.node (some cxRSv2259)
+    .nil .nil) .nil))) cxRStr3507)
+
+noncomputable def cxRStr3509 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 12] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 9) (.val 9)))) cxRStr3521 cxRStr3522) cxRStr3525) (.node (some
-    (.under [.arm 28 20] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 1) (.val 9))))
-    cxRStr3526 cxRStr3527) (.node (some (.under [.arm 28 30] (.lt (.num 19) (.val 9)))) cxRStr3528 cxRStr3529)))
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 9) (.val 9)))) cxRStr3500 cxRStr3501) (.node (some (.under
+    [.arm 28 28] (.lt (.num 12) (.val 9)))) cxRStr3502 cxRStr3503)) (.node (some (.under [.arm 28 20] (.lt (.num 8)
+    (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 1) (.val 9)))) cxRStr3504 cxRStr3505) cxRStr3508))
 
-noncomputable def cxRStr3531 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3510 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 2] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 10] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 15] (.lt (.num 14) (.val
-    9)))) .nil .nil) (.node (some cxRSv2560) .nil .nil)) (.node (some cxRSv273) (.node (some cxRSv1536) .nil .nil)
+    (.node (some (.under [.arm 32 17] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 0) (.val
+    9)))) .nil .nil) (.node (some cxRSv2527) .nil .nil)) (.node (some cxRSv258) (.node (some cxRSv1503) .nil .nil)
     .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 19] (.lt (.num
-    18) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv773) (.node (some cxRSv2048) .nil .nil) .nil)))
+    18) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv746) (.node (some cxRSv2015) .nil .nil) .nil)))
 
-noncomputable def cxRStr3532 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3511 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 23] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 4) (.val
     9)))) (.node (some (.under [.arm 32 28] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
-    24) (.val 9)))) .nil .nil) (.node (some cxRSv2816) .nil .nil)) (.node (some cxRSv522) (.node (some cxRSv1792) .nil
+    25) (.val 9)))) .nil .nil) (.node (some cxRSv2783) .nil .nil)) (.node (some cxRSv500) (.node (some cxRSv1759) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 10) (.val 9)))) (.node (some cxRSv1280) .nil .nil) .nil) (.node (some cxRSv1025) (.node (some cxRSv2304)
+    (.num 10) (.val 9)))) (.node (some cxRSv1247) .nil .nil) .nil) (.node (some cxRSv994) (.node (some cxRSv2271) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3512 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2655) .nil .nil)) (.node (some cxRSv378) (.node (some cxRSv1631) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 17) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv870) (.node (some cxRSv2143) .nil .nil) .nil)))
+
+noncomputable def cxRStr3513 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 26) (.val
+    9)))) (.node (some (.under [.arm 33 11] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2911) .nil .nil)) (.node (some cxRSv622) (.node (some cxRSv1887) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 5] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 795 10] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1375) .nil .nil) .nil) (.node (some cxRSv1118) (.node (some cxRSv2399)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3514 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
+    13) (.val 9)))) .nil .nil) (.node (some cxRSv2591) .nil .nil)) (.node (some cxRSv318) (.node (some cxRSv1567) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv808) (.node (some cxRSv2079) .nil .nil) .nil)))
+
+noncomputable def cxRStr3515 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 25] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2847) .nil .nil)) (.node (some cxRSv562) (.node (some cxRSv1823) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 9) (.val 9)))) (.node (some cxRSv86) (.node (some
+    cxRSv1311) .nil .nil) .nil) (.node (some cxRSv1056) (.node (some cxRSv2335) .nil .nil) .nil)))
+
+noncomputable def cxRStr3516 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 20] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 9) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 12)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2719) .nil .nil)) (.node (some cxRSv440) (.node (some cxRSv1695) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 3) (.val 9)))) (.node (some cxRSv1183) .nil .nil) .nil) (.node (some cxRSv932) (.node (some cxRSv2207) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3517 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 30] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 823 8] (.lt (.num 26)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2968) .nil .nil)) (.node (some cxRSv684) (.node (some cxRSv1951) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 13] (.lt (.num 0) (.val 9)))) (.node (some cxRSv200) (.node (some
+    cxRSv1439) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2463)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3518 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 0) (.val 9)))) cxRStr3510 cxRStr3511) (.node (some (.under [.arm 28
+    26] (.lt (.num 13) (.val 9)))) cxRStr3512 cxRStr3513)) (.node (some (.under [.arm 28 17] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 21) (.val 9)))) cxRStr3514 cxRStr3515) (.node (some (.under
+    [.arm 28 28] (.lt (.num 24) (.val 9)))) cxRStr3516 cxRStr3517)))
+
+noncomputable def cxRStr3519 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 8] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 32 19] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 16) (.val
+    9)))) .nil .nil) (.node (some cxRSv2559) .nil .nil)) (.node (some cxRSv288) (.node (some cxRSv1535) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    11) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 10) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv776) (.node (some cxRSv2047) .nil .nil) .nil)))
+
+noncomputable def cxRStr3520 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 26] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 32 29] (.lt (.num 24) (.val
+    9)))) (.node (some (.under [.arm 27 29] (.lt (.num 2) (.val 9)))) .nil .nil) (.node (some cxRSv2815) .nil .nil))
+    (.node (some (.under [.arm 795 23] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1791) .nil .nil) .nil))
+
+noncomputable def cxRStr3521 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 22] (.lt (.num 11) (.val 9)))) cxRStr3519 (.node (some (.under [.arm 29 24] (.lt (.num
+    13) (.val 9)))) cxRStr3520 (.node (some (.under [.arm 31 28] (.lt (.num 5) (.val 9)))) (.node (some cxRSv64)
+    (.node (some cxRSv1279) .nil .nil) .nil) (.node (some cxRSv1024) (.node (some cxRSv2303) .nil .nil) .nil))))
+
+noncomputable def cxRStr3522 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 18) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2687) .nil .nil)) (.node (some cxRSv410) (.node (some cxRSv1663) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 24) (.val 9)))) (.node (some cxRSv1151) .nil .nil) .nil) (.node (some cxRSv900) (.node (some cxRSv2175) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3523 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 29] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 29) (.val
+    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 8)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2943) .nil .nil)) (.node (some cxRSv654) (.node (some cxRSv1919) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 1) (.val 9)))) (.node (some cxRSv170) (.node (some
+    cxRSv1407) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2431)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3524 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2623) .nil .nil)) (.node (some cxRSv348) (.node (some cxRSv1599) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
+    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 16) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv838) (.node (some cxRSv2111) .nil .nil) .nil)))
+
+noncomputable def cxRStr3525 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 27] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 22) (.val
+    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2879) .nil .nil)) (.node (some cxRSv592) (.node (some cxRSv1855) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 12) (.val 9)))) (.node (some cxRSv112) (.node (some
+    cxRSv1343) .nil .nil) .nil) (.node (some cxRSv1086) (.node (some cxRSv2367) .nil .nil) .nil)))
+
+noncomputable def cxRStr3526 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 21] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 19) (.val
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2751) .nil .nil)) (.node (some cxRSv470) (.node (some cxRSv1727) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 7) (.val 9)))) (.node (some cxRSv1215) .nil .nil) .nil) (.node (some cxRSv962) (.node (some cxRSv2239) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3527 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 8) (.val 9))))
+    (.node (some (.under [.arm 33 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 3) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv716) (.node (some cxRSv1983) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 5) (.val 9)))) (.node (some cxRSv228) (.node (some cxRSv1471) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 10) (.val 9)))) (.node (some cxRSv2495) .nil .nil) .nil)))
+
+noncomputable def cxRStr3528 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 10] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 9) (.val
+    9)))) cxRStr3521 (.node (some (.under [.arm 28 27] (.lt (.num 19) (.val 9)))) cxRStr3522 cxRStr3523)) (.node (some
+    (.under [.arm 28 19] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 6) (.val 9))))
+    cxRStr3524 cxRStr3525) (.node (some (.under [.arm 28 29] (.lt (.num 28) (.val 9)))) cxRStr3526 cxRStr3527)))
+
+noncomputable def cxRStr3529 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 0) (.val
+    9)))) .nil .nil) (.node (some cxRSv2543) .nil .nil)) (.node (some cxRSv274) (.node (some cxRSv1519) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    15) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv762) (.node (some cxRSv2031) .nil .nil) .nil)))
+
+noncomputable def cxRStr3530 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 23] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 14)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2799) .nil .nil)) (.node (some cxRSv516) (.node (some cxRSv1775) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 26) (.val 9)))) (.node (some cxRSv1263) .nil .nil) .nil) (.node (some cxRSv1008) (.node (some cxRSv2287)
+    .nil .nil) .nil)))
+
+noncomputable def cxRStr3531 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 2) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
+    11) (.val 9)))) .nil .nil) (.node (some cxRSv2671) .nil .nil)) (.node (some cxRSv394) (.node (some cxRSv1647) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 8) (.val 9)))) (.node (some cxRSv1135) .nil .nil) .nil) (.node (some cxRSv884) (.node (some cxRSv2159) .nil
+    .nil) .nil)))
+
+noncomputable def cxRStr3532 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 28] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num
+    24) (.val 9)))) .nil .nil) (.node (some cxRSv2927) .nil .nil)) (.node (some cxRSv638) (.node (some cxRSv1903) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 2) (.val 9)))) (.node (some cxRSv156) (.node (some
+    cxRSv1391) .nil .nil) .nil) (.node (some (.under [.arm 27 4] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2415)
     .nil .nil) .nil)))
 
 noncomputable def cxRStr3533 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 16] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num
-    16) (.val 9)))) .nil .nil) (.node (some cxRSv2688) .nil .nil)) (.node (some cxRSv397) (.node (some cxRSv1664) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 17) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv899) (.node (some cxRSv2176) .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 13] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 8) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
+    10) (.val 9)))) .nil .nil) (.node (some cxRSv2607) .nil .nil)) (.node (some cxRSv334) (.node (some cxRSv1583) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 0) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv824) (.node (some cxRSv2095) .nil .nil) .nil)))
 
 noncomputable def cxRStr3534 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 29] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 33 11] (.lt (.num 6) (.val
-    9)))) (.node (some (.under [.arm 27 32] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2944) .nil .nil))
-    (.node (some (.under [.arm 795 25] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1920) .nil .nil) .nil))
+  (.node (some (.under [.arm 29 26] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 6) (.val
+    9)))) (.node (some (.under [.arm 33 5] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 21)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2863) .nil .nil)) (.node (some cxRSv576) (.node (some cxRSv1839) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 795 7] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1327) .nil .nil) .nil) (.node (some cxRSv1070) (.node (some cxRSv2351)
+    .nil .nil) .nil)))
 
 noncomputable def cxRStr3535 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 26] (.lt (.num 13) (.val 9)))) cxRStr3533 (.node (some (.under [.arm 29 28] (.lt (.num
-    7) (.val 9)))) cxRStr3534 (.node (some (.under [.arm 32 5] (.lt (.num 4) (.val 9)))) (.node (some cxRSv151) (.node
-    (some cxRSv1408) .nil .nil) .nil) (.node (some cxRSv1151) (.node (some cxRSv2432) .nil .nil) .nil))))
+  (.node (some (.under [.arm 29 20] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 3) (.val
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2735) .nil .nil)) (.node (some cxRSv454) (.node (some cxRSv1711) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
+    (.num 19) (.val 9)))) (.node (some cxRSv1199) .nil .nil) .nil) (.node (some cxRSv946) (.node (some cxRSv2223) .nil
+    .nil) .nil)))
 
 noncomputable def cxRStr3536 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 11] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 15] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num
-    12) (.val 9)))) .nil .nil) (.node (some cxRSv2624) .nil .nil)) (.node (some cxRSv335) (.node (some cxRSv1600) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 0) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv836) (.node (some cxRSv2112) .nil .nil) .nil)))
+  (.node (some (.under [.arm 30 1] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 2) (.val 9))))
+    (.node (some (.under [.arm 33 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 822 4] (.lt (.num 2) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv700) (.node (some cxRSv1967) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 3) (.val 9)))) (.node (some cxRSv214) (.node (some cxRSv1455) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 12] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2479) .nil .nil) .nil)))
 
 noncomputable def cxRStr3537 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 4)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2880) .nil .nil)) (.node (some cxRSv585) (.node (some cxRSv1856) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 9) (.val 9)))) (.node (some cxRSv91) (.node (some
-    cxRSv1344) .nil .nil) .nil) (.node (some cxRSv1088) (.node (some cxRSv2368) .nil .nil) .nil)))
+  (.node (some (.under [.arm 28 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 7) (.val 9))))
+    (.node (some (.under [.arm 28 21] (.lt (.num 16) (.val 9)))) cxRStr3529 cxRStr3530) (.node (some (.under [.arm 28
+    27] (.lt (.num 3) (.val 9)))) cxRStr3531 cxRStr3532)) (.node (some (.under [.arm 28 18] (.lt (.num 9) (.val 9))))
+    (.node (some (.under [.arm 28 24] (.lt (.num 14) (.val 9)))) cxRStr3533 cxRStr3534) (.node (some (.under [.arm 28
+    29] (.lt (.num 12) (.val 9)))) cxRStr3535 cxRStr3536)))
 
 noncomputable def cxRStr3538 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 11)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2752) .nil .nil)) (.node (some cxRSv460) (.node (some cxRSv1728) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 3) (.val 9)))) (.node (some cxRSv1216) .nil .nil) .nil) (.node (some cxRSv962) (.node (some cxRSv2240) .nil
-    .nil) .nil)))
+  (.node (some (.under [.arm 29 10] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2575) .nil .nil)) (.node (some cxRSv304) (.node (some cxRSv1551) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 6) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 13) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv792) (.node (some cxRSv2063) .nil .nil) .nil)))
 
 noncomputable def cxRStr3539 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 30] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 31 8] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 823 7] (.lt (.num 25)
-    (.val 9)))) .nil .nil) (.node (some cxRSv3002) .nil .nil)) (.node (some cxRSv710) (.node (some cxRSv1984) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 13] (.lt (.num 0) (.val 9)))) (.node (some cxRSv212) (.node (some
-    cxRSv1472) .nil .nil) .nil) (.node (some (.under [.arm 27 11] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2496)
-    .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 25] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 1) (.val
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
+    18) (.val 9)))) .nil .nil) (.node (some cxRSv2831) .nil .nil)) (.node (some cxRSv546) (.node (some cxRSv1807) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 21) (.val 9)))) (.node (some cxRSv74) (.node (some
+    cxRSv1295) .nil .nil) .nil) (.node (some cxRSv1040) (.node (some cxRSv2319) .nil .nil) .nil)))
 
 noncomputable def cxRStr3540 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 6] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 4) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 0) (.val 9)))) cxRStr3531 cxRStr3532) cxRStr3535) (.node (some
-    (.under [.arm 28 17] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 28 23] (.lt (.num 21) (.val 9))))
-    cxRStr3536 cxRStr3537) (.node (some (.under [.arm 28 28] (.lt (.num 24) (.val 9)))) cxRStr3538 cxRStr3539)))
+  (.node (some (.under [.arm 29 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 14) (.val
+    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2703) .nil .nil)) (.node (some cxRSv424) (.node (some cxRSv1679) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
+    (.num 14) (.val 9)))) (.node (some cxRSv1167) .nil .nil) .nil) (.node (some cxRSv916) (.node (some cxRSv2191) .nil
+    .nil) .nil)))
 
 noncomputable def cxRStr3541 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 8] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 32 19] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 15) (.val
-    9)))) .nil .nil) (.node (some cxRSv2592) .nil .nil)) (.node (some cxRSv304) (.node (some cxRSv1568) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
-    11) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv804) (.node (some cxRSv2080) .nil .nil) .nil)))
+  (.node (some (.under [.arm 31 6] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 15] (.lt (.num 4) (.val 9))))
+    (.node (some (.under [.arm 27 33] (.lt (.num 24) (.val 9)))) .nil .nil) (.node (some cxRSv2959) .nil .nil)) (.node
+    (some (.under [.arm 795 26] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1935) .nil .nil) .nil))
 
 noncomputable def cxRStr3542 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 24] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 24) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2848) .nil .nil)) (.node (some cxRSv554) (.node (some cxRSv1824) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 5) (.val 9)))) (.node (some cxRSv64) (.node (some
-    cxRSv1312) .nil .nil) .nil) (.node (some cxRSv1056) (.node (some cxRSv2336) .nil .nil) .nil)))
+  (.node (some (.under [.arm 28 28] (.lt (.num 8) (.val 9)))) cxRStr3540 (.node (some (.under [.arm 29 29] (.lt (.num
+    27) (.val 9)))) cxRStr3541 (.node (some (.under [.arm 32 11] (.lt (.num 7) (.val 9)))) (.node (some cxRSv184)
+    (.node (some cxRSv1423) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 4) (.val 9)))) (.node (some
+    cxRSv2447) .nil .nil) .nil))))
 
 noncomputable def cxRStr3543 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 18] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 18) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2720) .nil .nil)) (.node (some cxRSv429) (.node (some cxRSv1696) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 24) (.val 9)))) (.node (some cxRSv1184) .nil .nil) .nil) (.node (some cxRSv930) (.node (some cxRSv2208) .nil
-    .nil) .nil)))
+  (.node (some (.under [.arm 29 15] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 7) (.val
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2639) .nil .nil)) (.node (some cxRSv364) (.node (some cxRSv1615) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
+    (.num 1) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv854) (.node (some cxRSv2127) .nil .nil) .nil)))
 
 noncomputable def cxRStr3544 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 29) (.val
-    9)))) (.node (some (.under [.arm 33 14] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 7)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2976) .nil .nil)) (.node (some cxRSv679) (.node (some cxRSv1952) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 1) (.val 9)))) (.node (some cxRSv181) (.node (some
-    cxRSv1440) .nil .nil) .nil) (.node (some (.under [.arm 27 7] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2464)
-    .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 27] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 23)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2895) .nil .nil)) (.node (some cxRSv608) (.node (some cxRSv1871) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 28) (.val 9)))) (.node (some cxRSv126) (.node (some
+    cxRSv1359) .nil .nil) .nil) (.node (some cxRSv1102) (.node (some cxRSv2383) .nil .nil) .nil)))
 
 noncomputable def cxRStr3545 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 14] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 22] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2656) .nil .nil)) (.node (some cxRSv366) (.node (some cxRSv1632) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv867) (.node (some cxRSv2144) .nil .nil) .nil)))
-
-noncomputable def cxRStr3546 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 22) (.val
-    9)))) (.node (some (.under [.arm 33 8] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2912) .nil .nil)) (.node (some cxRSv616) (.node (some cxRSv1888) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 795 8] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1376) .nil .nil) .nil) (.node (some cxRSv1119) (.node (some cxRSv2400)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3547 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 21] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 19) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num
-    18) (.val 9)))) .nil .nil) (.node (some cxRSv2784) .nil .nil)) (.node (some cxRSv491) (.node (some cxRSv1760) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 7) (.val 9)))) (.node (some cxRSv1248) .nil .nil) .nil) (.node (some cxRSv993) (.node (some cxRSv2272) .nil
+  (.node (some (.under [.arm 29 22] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2767) .nil .nil)) (.node (some cxRSv486) (.node (some cxRSv1743) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
+    (.num 23) (.val 9)))) (.node (some cxRSv1231) .nil .nil) .nil) (.node (some cxRSv978) (.node (some cxRSv2255) .nil
     .nil) .nil)))
 
+noncomputable def cxRStr3546 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 33 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 4) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv730) (.node (some cxRSv1999) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 16] (.lt (.num 6) (.val 9)))) (.node (some cxRSv244) (.node (some cxRSv1487) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 13) (.val 9)))) (.node (some cxRSv2511) .nil .nil) .nil)))
+
+noncomputable def cxRStr3547 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 28 12] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 10) (.val
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 5) (.val 9)))) cxRStr3538 cxRStr3539) cxRStr3542) (.node (some
+    (.under [.arm 28 20] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 22) (.val 9))))
+    cxRStr3543 cxRStr3544) (.node (some (.under [.arm 28 30] (.lt (.num 15) (.val 9)))) cxRStr3545 cxRStr3546)))
+
 noncomputable def cxRStr3548 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 6] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 8) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 822 7] (.lt (.num 2) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv742) (.node (some cxRSv2016) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 15] (.lt (.num 5) (.val 9)))) (.node (some cxRSv242) (.node (some cxRSv1504) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 13] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2528) .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 4] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 1) (.val 9))))
+    (.node (some (.under [.arm 32 17] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 8) (.val
+    9)))) .nil .nil) (.node (some cxRSv2535) .nil .nil)) (.node (some cxRSv266) (.node (some cxRSv1511) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
+    7) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 9) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv754) (.node (some cxRSv2023) .nil .nil) .nil)))
 
 noncomputable def cxRStr3549 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 10] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 9) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 11) (.val 9)))) cxRStr3541 cxRStr3542) (.node (some (.under
-    [.arm 28 27] (.lt (.num 19) (.val 9)))) cxRStr3543 cxRStr3544)) (.node (some (.under [.arm 28 19] (.lt (.num 7)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 6) (.val 9)))) cxRStr3545 cxRStr3546) (.node (some
-    (.under [.arm 28 29] (.lt (.num 28) (.val 9)))) cxRStr3547 cxRStr3548)))
+  (.node (some (.under [.arm 29 23] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 12) (.val
+    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 6)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2791) .nil .nil)) (.node (some cxRSv508) (.node (some cxRSv1767) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
+    (.num 18) (.val 9)))) (.node (some cxRSv1255) .nil .nil) .nil) (.node (some cxRSv1000) (.node (some cxRSv2279)
+    .nil .nil) .nil)))
 
 noncomputable def cxRStr3550 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 6] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 9) (.val 9))))
-    (.node (some (.under [.arm 32 18] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 15) (.val
-    9)))) .nil .nil) (.node (some cxRSv2576) .nil .nil)) (.node (some cxRSv289) (.node (some cxRSv1552) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    15) (.val 9)))) (.node (some (.under [.arm 822 12] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv789) (.node (some cxRSv2064) .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 3)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2663) .nil .nil)) (.node (some cxRSv386) (.node (some cxRSv1639) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
+    (.num 0) (.val 9)))) (.node (some cxRSv1127) .nil .nil) .nil) (.node (some cxRSv878) (.node (some cxRSv2151) .nil
+    .nil) .nil)))
 
 noncomputable def cxRStr3551 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 20) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 13)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2832) .nil .nil)) (.node (some cxRSv538) (.node (some cxRSv1808) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 26) (.val 9)))) (.node (some cxRSv1296) .nil .nil) .nil) (.node (some cxRSv1040) (.node (some cxRSv2320)
+  (.node (some (.under [.arm 29 28] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 5) (.val
+    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 16)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2919) .nil .nil)) (.node (some cxRSv630) (.node (some cxRSv1895) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 1) (.val 9)))) (.node (some cxRSv148) (.node (some
+    cxRSv1383) .nil .nil) .nil) (.node (some (.under [.arm 27 1] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2407)
     .nil .nil) .nil)))
 
 noncomputable def cxRStr3552 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    10) (.val 9)))) .nil .nil) (.node (some cxRSv2704) .nil .nil)) (.node (some cxRSv413) (.node (some cxRSv1680) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 8) (.val 9)))) (.node (some cxRSv1168) .nil .nil) .nil) (.node (some cxRSv914) (.node (some cxRSv2192) .nil
-    .nil) .nil)))
+  (.node (some (.under [.arm 29 12] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 0) (.val
+    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 2)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2599) .nil .nil)) (.node (some cxRSv326) (.node (some cxRSv1575) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
+    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv816) (.node (some cxRSv2087) .nil .nil) .nil)))
 
 noncomputable def cxRStr3553 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num
-    23) (.val 9)))) .nil .nil) (.node (some cxRSv2960) .nil .nil)) (.node (some cxRSv663) (.node (some cxRSv1936) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 8] (.lt (.num 2) (.val 9)))) (.node (some cxRSv166) (.node (some
-    cxRSv1424) .nil .nil) .nil) (.node (some (.under [.arm 27 4] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2448)
-    .nil .nil) .nil)))
+  (.node (some (.under [.arm 29 26] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 25) (.val
+    9)))) (.node (some (.under [.arm 33 3] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 13)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2855) .nil .nil)) (.node (some cxRSv570) (.node (some cxRSv1831) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 17) (.val 9)))) (.node (some cxRSv92) (.node (some
+    cxRSv1319) .nil .nil) .nil) (.node (some cxRSv1062) (.node (some cxRSv2343) .nil .nil) .nil)))
 
 noncomputable def cxRStr3554 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 13] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2640) .nil .nil)) (.node (some cxRSv351) (.node (some cxRSv1616) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 16) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 15) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv852) (.node (some cxRSv2128) .nil .nil) .nil)))
-
-noncomputable def cxRStr3555 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 28] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 33 5] (.lt (.num 3) (.val 9))))
-    (.node (some (.under [.arm 27 30] (.lt (.num 20) (.val 9)))) .nil .nil) (.node (some cxRSv2896) .nil .nil)) (.node
-    (some (.under [.arm 795 24] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1872) .nil .nil) .nil))
-
-noncomputable def cxRStr3556 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 24] (.lt (.num 14) (.val 9)))) cxRStr3554 (.node (some (.under [.arm 29 26] (.lt (.num
-    12) (.val 9)))) cxRStr3555 (.node (some (.under [.arm 31 29] (.lt (.num 25) (.val 9)))) (.node (some cxRSv106)
-    (.node (some cxRSv1360) .nil .nil) .nil) (.node (some cxRSv1103) (.node (some cxRSv2384) .nil .nil) .nil))))
-
-noncomputable def cxRStr3557 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 20] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 25) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2768) .nil .nil)) (.node (some cxRSv475) (.node (some cxRSv1744) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 19) (.val 9)))) (.node (some cxRSv1232) .nil .nil) .nil) (.node (some cxRSv977) (.node (some cxRSv2256) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3558 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 1] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 31 10] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 822 4] (.lt (.num 1) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv726) (.node (some cxRSv2000) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 3) (.val 9)))) (.node (some cxRSv227) (.node (some cxRSv1488) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 12] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2512) .nil .nil) .nil)))
-
-noncomputable def cxRStr3559 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 8] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 14] (.lt (.num 7) (.val 9))))
-    (.node (some (.under [.arm 28 21] (.lt (.num 16) (.val 9)))) cxRStr3550 cxRStr3551) (.node (some (.under [.arm 28
-    27] (.lt (.num 3) (.val 9)))) cxRStr3552 cxRStr3553)) (.node (some (.under [.arm 28 18] (.lt (.num 9) (.val 9))))
-    cxRStr3556 (.node (some (.under [.arm 28 29] (.lt (.num 12) (.val 9)))) cxRStr3557 cxRStr3558)))
-
-noncomputable def cxRStr3560 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 10] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 14)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2608) .nil .nil)) (.node (some cxRSv320) (.node (some cxRSv1584) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
-    (.num 6) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 12) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv820) (.node (some cxRSv2096) .nil .nil) .nil)))
-
-noncomputable def cxRStr3561 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 25] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2864) .nil .nil)) (.node (some cxRSv569) (.node (some cxRSv1840) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 21) (.val 9)))) (.node (some cxRSv77) (.node (some
-    cxRSv1328) .nil .nil) .nil) (.node (some cxRSv1072) (.node (some cxRSv2352) .nil .nil) .nil)))
-
-noncomputable def cxRStr3562 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 19] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 32 25] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    19) (.val 9)))) .nil .nil) (.node (some cxRSv2736) .nil .nil)) (.node (some cxRSv444) (.node (some cxRSv1712) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 14) (.val 9)))) (.node (some cxRSv1200) .nil .nil) .nil) (.node (some cxRSv946) (.node (some cxRSv2224) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3563 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 29] (.lt (.num 27) (.val 9)))) (.node (some (.under [.arm 31 6] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 33 15] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 23)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2992) .nil .nil)) (.node (some cxRSv695) (.node (some cxRSv1968) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 11] (.lt (.num 7) (.val 9)))) (.node (some cxRSv196) (.node (some
-    cxRSv1456) .nil .nil) .nil) (.node (some (.under [.arm 27 9] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2480)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3564 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 15] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 7) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2672) .nil .nil)) (.node (some cxRSv382) (.node (some cxRSv1648) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 1) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 14) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv883) (.node (some cxRSv2160) .nil .nil) .nil)))
-
-noncomputable def cxRStr3565 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 27] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 22)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2928) .nil .nil)) (.node (some cxRSv632) (.node (some cxRSv1904) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 28) (.val 9)))) (.node (some (.under [.arm 795 9] (.lt
-    (.val 27) (.val 9)))) (.node (some cxRSv1392) .nil .nil) .nil) (.node (some cxRSv1135) (.node (some cxRSv2416)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3566 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 22] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 28] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2800) .nil .nil)) (.node (some cxRSv507) (.node (some cxRSv1776) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 23) (.val 9)))) (.node (some cxRSv1264) .nil .nil) .nil) (.node (some cxRSv1009) (.node (some cxRSv2288)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3567 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 8] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 33 19] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 822 9] (.lt (.num 3) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv757) (.node (some cxRSv2032) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 16] (.lt (.num 6) (.val 9)))) (.node (some cxRSv258) (.node (some cxRSv1520) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 14] (.lt (.num 12) (.val 9)))) (.node (some cxRSv2544) .nil .nil) .nil)))
-
-noncomputable def cxRStr3568 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 28 12] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 5) (.val 9)))) cxRStr3560 cxRStr3561) (.node (some (.under
-    [.arm 28 28] (.lt (.num 8) (.val 9)))) cxRStr3562 cxRStr3563)) (.node (some (.under [.arm 28 20] (.lt (.num 4)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 22) (.val 9)))) cxRStr3564 cxRStr3565) (.node (some
-    (.under [.arm 28 30] (.lt (.num 15) (.val 9)))) cxRStr3566 cxRStr3567)))
-
-noncomputable def cxRStr3569 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 4] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 11] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 32 17] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 27 16] (.lt (.num 7) (.val
-    9)))) .nil .nil) (.node (some cxRSv2568) .nil .nil)) (.node (some cxRSv281) (.node (some cxRSv1544) .nil .nil)
-    .nil)) (.node (some (.under [.arm 31 14] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 20] (.lt (.num
-    7) (.val 9)))) (.node (some (.under [.arm 822 11] (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv781) (.node (some cxRSv2056) .nil .nil) .nil)))
-
-noncomputable def cxRStr3570 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 23] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 30 25] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 32 29] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num 5)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2824) .nil .nil)) (.node (some cxRSv530) (.node (some cxRSv1800) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 18) (.val 9)))) (.node (some cxRSv1288) .nil .nil) .nil) (.node (some (.under [.arm 795 32] (.lt (.val 27)
-    (.val 9)))) (.node (some cxRSv2312) .nil .nil) .nil)))
-
-noncomputable def cxRStr3571 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 17] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 19] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 32 24] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num 2)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2696) .nil .nil)) (.node (some cxRSv405) (.node (some cxRSv1672) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 0) (.val 9)))) (.node (some cxRSv1160) .nil .nil) .nil) (.node (some cxRSv907) (.node (some cxRSv2184) .nil
-    .nil) .nil)))
-
-noncomputable def cxRStr3572 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 28] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 5) (.val
-    9)))) (.node (some (.under [.arm 33 12] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 15)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2952) .nil .nil)) (.node (some cxRSv655) (.node (some cxRSv1928) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 7] (.lt (.num 1) (.val 9)))) (.node (some cxRSv158) (.node (some
-    cxRSv1416) .nil .nil) .nil) (.node (some cxRSv1159) (.node (some cxRSv2440) .nil .nil) .nil)))
-
-noncomputable def cxRStr3573 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 12] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 16] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num 1)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2632) .nil .nil)) (.node (some cxRSv343) (.node (some cxRSv1608) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 18] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 23] (.lt
-    (.num 8) (.val 9)))) (.node (some (.under [.arm 822 16] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv844) (.node (some cxRSv2120) .nil .nil) .nil)))
-
-noncomputable def cxRStr3574 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 26] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 25) (.val
-    9)))) (.node (some (.under [.arm 33 3] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 12)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2888) .nil .nil)) (.node (some cxRSv593) (.node (some cxRSv1864) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 17) (.val 9)))) (.node (some cxRSv98) (.node (some
-    cxRSv1352) .nil .nil) .nil) (.node (some (.under [.arm 795 33] (.lt (.val 27) (.val 9)))) (.node (some cxRSv2376)
-    .nil .nil) .nil)))
-
-noncomputable def cxRStr3575 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 20] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 17) (.val
     9)))) (.node (some (.under [.arm 32 26] (.lt (.num 17) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num
-    19) (.val 9)))) .nil .nil) (.node (some cxRSv2760) .nil .nil)) (.node (some cxRSv468) (.node (some cxRSv1736) .nil
+    20) (.val 9)))) .nil .nil) (.node (some cxRSv2727) .nil .nil)) (.node (some cxRSv448) (.node (some cxRSv1703) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 11) (.val 9)))) (.node (some cxRSv1224) .nil .nil) .nil) (.node (some cxRSv970) (.node (some cxRSv2248) .nil
-    .nil) .nil)))
+    (.num 11) (.val 9)))) (.node (some cxRSv1191) .nil .nil) .nil) (.node (some (.under [.arm 795 31] (.lt (.val 27)
+    (.num 34)))) (.node (some cxRSv2215) .nil .nil) .nil)))
 
-noncomputable def cxRStr3576 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3555 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 30] (.lt (.num 22) (.val 9)))) (.node (some (.under [.arm 31 9] (.lt (.num 3) (.val
-    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 13) (.val 9)))) (.node (some (.lt (.val 823) (.num 15))) .nil
-    .nil) .nil) (.node (some cxRSv718) (.node (some cxRSv1992) .nil .nil) .nil)) (.node (some (.under [.arm 32 13]
-    (.lt (.num 8) (.val 9)))) (.node (some cxRSv219) (.node (some cxRSv1480) .nil .nil) .nil) (.node (some (.under
-    [.arm 27 11] (.lt (.num 8) (.val 9)))) (.node (some cxRSv2504) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 16] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 822 1] (.lt (.num 0)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv692) (.node (some cxRSv1959) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 13] (.lt (.num 8) (.val 9)))) (.node (some cxRSv206) (.node (some cxRSv1447) .nil .nil) .nil) (.node
+    (some (.under [.arm 27 11] (.lt (.num 9) (.val 9)))) (.node (some cxRSv2471) .nil .nil) .nil)))
 
-noncomputable def cxRStr3577 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3556 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 7] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 28 13] (.lt (.num 12) (.val
-    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 8) (.val 9)))) cxRStr3569 cxRStr3570) (.node (some (.under
-    [.arm 28 26] (.lt (.num 21) (.val 9)))) cxRStr3571 cxRStr3572)) (.node (some (.under [.arm 28 18] (.lt (.num 1)
-    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 6) (.val 9)))) cxRStr3573 cxRStr3574) (.node (some
-    (.under [.arm 28 29] (.lt (.num 4) (.val 9)))) cxRStr3575 cxRStr3576)))
+    9)))) (.node (some (.under [.arm 28 21] (.lt (.num 8) (.val 9)))) cxRStr3548 cxRStr3549) (.node (some (.under
+    [.arm 28 26] (.lt (.num 21) (.val 9)))) cxRStr3550 cxRStr3551)) (.node (some (.under [.arm 28 18] (.lt (.num 1)
+    (.val 9)))) (.node (some (.under [.arm 28 24] (.lt (.num 6) (.val 9)))) cxRStr3552 cxRStr3553) (.node (some
+    (.under [.arm 28 29] (.lt (.num 4) (.val 9)))) cxRStr3554 cxRStr3555)))
 
-noncomputable def cxRStr3578 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3557 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 9] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 13] (.lt (.num 10) (.val
-    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 6)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2600) .nil .nil)) (.node (some cxRSv312) (.node (some cxRSv1576) .nil
+    9)))) (.node (some (.under [.arm 32 19] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 27 18] (.lt (.num 7)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2567) .nil .nil)) (.node (some cxRSv296) (.node (some cxRSv1543) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 16] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt
-    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv812) (.node (some cxRSv2088) .nil .nil) .nil)))
+    (.num 19) (.val 9)))) (.node (some (.under [.arm 822 14] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv784) (.node (some cxRSv2055) .nil .nil) .nil)))
 
-noncomputable def cxRStr3579 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3558 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 24] (.lt (.num 21) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 19) (.val
-    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 9)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2856) .nil .nil)) (.node (some cxRSv561) (.node (some cxRSv1832) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 13) (.val 9)))) (.node (some cxRSv71) (.node (some
-    cxRSv1320) .nil .nil) .nil) (.node (some cxRSv1064) (.node (some cxRSv2344) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 32 30] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num 10)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2823) .nil .nil)) (.node (some cxRSv538) (.node (some cxRSv1799) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 28] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 795 2] (.lt
+    (.val 27) (.num 34)))) (.node (some cxRSv1287) .nil .nil) .nil) (.node (some cxRSv1032) (.node (some cxRSv2311)
+    .nil .nil) .nil)))
 
-noncomputable def cxRStr3580 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3559 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 18] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 30 21] (.lt (.num 6) (.val
     9)))) (.node (some (.under [.arm 32 25] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 24] (.lt (.num
-    11) (.val 9)))) .nil .nil) (.node (some cxRSv2728) .nil .nil)) (.node (some cxRSv436) (.node (some cxRSv1704) .nil
+    12) (.val 9)))) .nil .nil) (.node (some cxRSv2695) .nil .nil)) (.node (some cxRSv416) (.node (some cxRSv1671) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 23] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 6) (.val 9)))) (.node (some cxRSv1192) .nil .nil) .nil) (.node (some cxRSv938) (.node (some cxRSv2216) .nil
+    (.num 6) (.val 9)))) (.node (some cxRSv1159) .nil .nil) .nil) (.node (some cxRSv908) (.node (some cxRSv2183) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3581 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3560 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 29] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 31 4] (.lt (.num 1) (.val
     9)))) (.node (some (.under [.arm 33 14] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num
-    15) (.val 9)))) .nil .nil) (.node (some cxRSv2984) .nil .nil)) (.node (some cxRSv687) (.node (some cxRSv1960) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 9) (.val 9)))) (.node (some cxRSv189) (.node (some
-    cxRSv1448) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2472)
+    16) (.val 9)))) .nil .nil) (.node (some cxRSv2951) .nil .nil)) (.node (some cxRSv662) (.node (some cxRSv1927) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 10] (.lt (.num 9) (.val 9)))) (.node (some cxRSv178) (.node (some
+    cxRSv1415) .nil .nil) .nil) (.node (some (.under [.arm 27 8] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2439)
     .nil .nil) .nil)))
 
-noncomputable def cxRStr3582 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3561 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 15] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 16) (.val
     9)))) (.node (some (.under [.arm 32 22] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 27 21] (.lt (.num
-    13) (.val 9)))) .nil .nil) (.node (some cxRSv2664) .nil .nil)) (.node (some cxRSv374) (.node (some cxRSv1640) .nil
+    14) (.val 9)))) .nil .nil) (.node (some cxRSv2631) .nil .nil)) (.node (some cxRSv356) (.node (some cxRSv1607) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 20] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 17) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv875) (.node (some cxRSv2152) .nil .nil) .nil)))
+    (.num 17) (.val 9)))) (.node (some (.under [.arm 822 18] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv846) (.node (some cxRSv2119) .nil .nil) .nil)))
 
-noncomputable def cxRStr3583 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3562 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 27] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 14)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2920) .nil .nil)) (.node (some cxRSv624) (.node (some cxRSv1896) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 20) (.val 9)))) (.node (some cxRSv128) (.node (some
-    cxRSv1384) .nil .nil) .nil) (.node (some cxRSv1127) (.node (some cxRSv2408) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 9] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 15)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2887) .nil .nil)) (.node (some cxRSv600) (.node (some cxRSv1863) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 20) (.val 9)))) (.node (some cxRSv120) (.node (some
+    cxRSv1351) .nil .nil) .nil) (.node (some cxRSv1094) (.node (some cxRSv2375) .nil .nil) .nil)))
 
-noncomputable def cxRStr3584 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3563 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 22] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 4) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 0)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2792) .nil .nil)) (.node (some cxRSv499) (.node (some cxRSv1768) .nil
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 23) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num 1)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2759) .nil .nil)) (.node (some cxRSv478) (.node (some cxRSv1735) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 33 29] (.lt
-    (.num 15) (.val 9)))) (.node (some cxRSv1256) .nil .nil) .nil) (.node (some cxRSv1001) (.node (some cxRSv2280)
-    .nil .nil) .nil)))
+    (.num 15) (.val 9)))) (.node (some cxRSv1223) .nil .nil) .nil) (.node (some cxRSv970) (.node (some cxRSv2247) .nil
+    .nil) .nil)))
 
-noncomputable def cxRStr3585 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3564 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 30 7] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 31 12] (.lt (.num 5) (.val 9))))
-    (.node (some (.under [.arm 33 18] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 3) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv749) (.node (some cxRSv2024) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 15] (.lt (.num 13) (.val 9)))) (.node (some cxRSv250) (.node (some cxRSv1512) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 14] (.lt (.num 4) (.val 9)))) (.node (some cxRSv2536) .nil .nil) .nil)))
+    (.node (some (.under [.arm 33 18] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 822 8] (.lt (.num 4) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv722) (.node (some cxRSv1991) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 15] (.lt (.num 13) (.val 9)))) (.node (some cxRSv236) (.node (some cxRSv1479) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 14] (.lt (.num 5) (.val 9)))) (.node (some cxRSv2503) .nil .nil) .nil)))
 
-noncomputable def cxRStr3586 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3565 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 11] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 28 16] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 19) (.val 9)))) cxRStr3578 cxRStr3579) (.node (some (.under
-    [.arm 28 28] (.lt (.num 0) (.val 9)))) cxRStr3580 cxRStr3581)) (.node (some (.under [.arm 28 19] (.lt (.num 15)
-    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 14) (.val 9)))) cxRStr3582 cxRStr3583) (.node (some
-    (.under [.arm 28 30] (.lt (.num 7) (.val 9)))) cxRStr3584 cxRStr3585)))
+    9)))) (.node (some (.under [.arm 28 22] (.lt (.num 19) (.val 9)))) cxRStr3557 cxRStr3558) (.node (some (.under
+    [.arm 28 28] (.lt (.num 0) (.val 9)))) cxRStr3559 cxRStr3560)) (.node (some (.under [.arm 28 19] (.lt (.num 15)
+    (.val 9)))) (.node (some (.under [.arm 28 25] (.lt (.num 14) (.val 9)))) cxRStr3561 cxRStr3562) (.node (some
+    (.under [.arm 28 30] (.lt (.num 7) (.val 9)))) cxRStr3563 cxRStr3564)))
 
-noncomputable def cxRStr3587 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 12] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 32 18] (.lt (.num 13) (.val
-    9)))) (.node (some (.under [.arm 27 17] (.lt (.num 7) (.val 9)))) .nil .nil) (.node (some cxRSv2584) .nil .nil))
-    (.node (some (.under [.arm 795 16] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1560) .nil .nil) .nil))
+noncomputable def cxRStr3566 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 7] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 30 12] (.lt (.num 6) (.val 9))))
+    (.node (some (.under [.arm 32 18] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 27 17] (.lt (.num 8) (.val
+    9)))) .nil .nil) (.node (some cxRSv2551) .nil .nil)) (.node (some cxRSv280) (.node (some cxRSv1527) .nil .nil)
+    .nil)) (.node (some (.under [.arm 31 15] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num
+    3) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt (.num 2) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv770) (.node (some cxRSv2039) .nil .nil) .nil)))
 
-noncomputable def cxRStr3588 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 7] (.lt (.num 4) (.val 9)))) cxRStr3587 (.node (some (.under [.arm 31 15] (.lt (.num 14)
-    (.val 9)))) (.node (some (.under [.arm 33 21] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 822 13] (.lt
-    (.num 1) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv797) (.node (some cxRSv2072) .nil .nil) .nil)))
-
-noncomputable def cxRStr3589 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3567 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 24] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 30 26] (.lt (.num 3) (.val
     9)))) (.node (some (.under [.arm 32 29] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 27 28] (.lt (.num
-    21) (.val 9)))) .nil .nil) (.node (some cxRSv2840) .nil .nil)) (.node (some cxRSv546) (.node (some cxRSv1816) .nil
+    22) (.val 9)))) .nil .nil) (.node (some cxRSv2807) .nil .nil)) (.node (some cxRSv524) (.node (some cxRSv1783) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 27] (.lt (.num 24) (.val 9)))) (.node (some cxRSv56) (.node (some
-    cxRSv1304) .nil .nil) .nil) (.node (some cxRSv1048) (.node (some cxRSv2328) .nil .nil) .nil)))
+    cxRSv1271) .nil .nil) .nil) (.node (some cxRSv1016) (.node (some cxRSv2295) .nil .nil) .nil)))
 
-noncomputable def cxRStr3590 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3568 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 18] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 30 20] (.lt (.num 10) (.val
     9)))) (.node (some (.under [.arm 32 24] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 27 23] (.lt (.num
-    18) (.val 9)))) .nil .nil) (.node (some cxRSv2712) .nil .nil)) (.node (some cxRSv421) (.node (some cxRSv1688) .nil
+    19) (.val 9)))) .nil .nil) (.node (some cxRSv2679) .nil .nil)) (.node (some cxRSv402) (.node (some cxRSv1655) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 22] (.lt (.num 16) (.val 9)))) (.node (some (.under [.arm 33 26] (.lt
-    (.num 16) (.val 9)))) (.node (some cxRSv1176) .nil .nil) .nil) (.node (some cxRSv922) (.node (some cxRSv2200) .nil
+    (.num 16) (.val 9)))) (.node (some cxRSv1143) .nil .nil) .nil) (.node (some cxRSv892) (.node (some cxRSv2167) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3591 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3569 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 29] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 30 30] (.lt (.num 21) (.val
-    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 31)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2968) .nil .nil)) (.node (some cxRSv671) (.node (some cxRSv1944) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 2) (.val 9)))) (.node (some cxRSv173) (.node (some
-    cxRSv1432) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 0) (.val 9)))) (.node (some cxRSv2456)
+    9)))) (.node (some (.under [.arm 33 13] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2935) .nil .nil)) (.node (some cxRSv646) (.node (some cxRSv1911) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 9] (.lt (.num 2) (.val 9)))) (.node (some cxRSv162) (.node (some
+    cxRSv1399) .nil .nil) .nil) (.node (some (.under [.arm 27 6] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2423)
     .nil .nil) .nil)))
 
-noncomputable def cxRStr3592 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 13] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 30 17] (.lt (.num 0) (.val
-    9)))) (.node (some (.under [.arm 32 21] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 27 20] (.lt (.num
-    17) (.val 9)))) .nil .nil) (.node (some cxRSv2648) .nil .nil)) (.node (some cxRSv359) (.node (some cxRSv1624) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 19] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt
-    (.num 1) (.val 9)))) (.node (some (.under [.arm 822 17] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv859) (.node (some cxRSv2136) .nil .nil) .nil)))
+noncomputable def cxRStr3570 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 30 17] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 32 21] (.lt (.num 20) (.val
+    9)))) (.node (some (.under [.arm 27 20] (.lt (.num 18) (.val 9)))) .nil .nil) (.node (some cxRSv2615) .nil .nil))
+    (.node (some (.under [.arm 795 18] (.lt (.val 27) (.num 34)))) (.node (some cxRSv1591) .nil .nil) .nil))
 
-noncomputable def cxRStr3593 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3571 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 13] (.lt (.num 11) (.val 9)))) cxRStr3570 (.node (some (.under [.arm 31 19] (.lt (.num
+    12) (.val 9)))) (.node (some (.under [.arm 33 24] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 822 17]
+    (.lt (.num 8) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv830) (.node (some cxRSv2103) .nil .nil) .nil)))
+
+noncomputable def cxRStr3572 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 26] (.lt (.num 20) (.val 9)))) (.node (some (.under [.arm 30 28] (.lt (.num 14) (.val
-    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 28)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2904) .nil .nil)) (.node (some cxRSv608) (.node (some cxRSv1880) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 4) (.val 9)))) (.node (some cxRSv113) (.node (some
-    cxRSv1368) .nil .nil) .nil) (.node (some cxRSv1111) (.node (some cxRSv2392) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 7] (.lt (.num 0) (.val 9)))) (.node (some (.under [.arm 27 30] (.lt (.num 29)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2871) .nil .nil)) (.node (some cxRSv584) (.node (some cxRSv1847) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 30] (.lt (.num 4) (.val 9)))) (.node (some cxRSv106) (.node (some
+    cxRSv1335) .nil .nil) .nil) (.node (some cxRSv1078) (.node (some cxRSv2359) .nil .nil) .nil)))
 
-noncomputable def cxRStr3594 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3573 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 21] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 30 23] (.lt (.num 11) (.val
-    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 10)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2776) .nil .nil)) (.node (some cxRSv483) (.node (some cxRSv1752) .nil
+    9)))) (.node (some (.under [.arm 32 27] (.lt (.num 7) (.val 9)))) (.node (some (.under [.arm 27 26] (.lt (.num 11)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2743) .nil .nil)) (.node (some cxRSv462) (.node (some cxRSv1719) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 25] (.lt (.num 11) (.val 9)))) (.node (some (.under [.arm 33 28] (.lt
-    (.num 27) (.val 9)))) (.node (some cxRSv1240) .nil .nil) .nil) (.node (some cxRSv985) (.node (some cxRSv2264) .nil
+    (.num 27) (.val 9)))) (.node (some cxRSv1207) .nil .nil) .nil) (.node (some cxRSv954) (.node (some cxRSv2231) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3595 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3574 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 30 4] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 31 11] (.lt (.num 0) (.val 9))))
-    (.node (some (.under [.arm 33 17] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 0) (.val
-    9)))) .nil .nil) .nil) (.node (some cxRSv734) (.node (some cxRSv2008) .nil .nil) .nil)) (.node (some (.under [.arm
-    32 14] (.lt (.num 11) (.val 9)))) (.node (some cxRSv235) (.node (some cxRSv1496) .nil .nil) .nil) (.node (some
-    (.under [.arm 27 13] (.lt (.num 1) (.val 9)))) (.node (some cxRSv2520) .nil .nil) .nil)))
+    (.node (some (.under [.arm 33 17] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 822 6] (.lt (.num 1) (.val
+    9)))) .nil .nil) .nil) (.node (some cxRSv708) (.node (some cxRSv1975) .nil .nil) .nil)) (.node (some (.under [.arm
+    32 14] (.lt (.num 11) (.val 9)))) (.node (some cxRSv222) (.node (some cxRSv1463) .nil .nil) .nil) (.node (some
+    (.under [.arm 27 13] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2487) .nil .nil) .nil)))
 
-noncomputable def cxRStr3596 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3575 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 9] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 28 15] (.lt (.num 1) (.val 9))))
-    (.node (some (.under [.arm 28 22] (.lt (.num 3) (.val 9)))) cxRStr3588 cxRStr3589) (.node (some (.under [.arm 28
-    27] (.lt (.num 11) (.val 9)))) cxRStr3590 cxRStr3591)) (.node (some (.under [.arm 28 18] (.lt (.num 17) (.val
-    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 22) (.val 9)))) cxRStr3592 cxRStr3593) (.node (some (.under
-    [.arm 28 29] (.lt (.num 20) (.val 9)))) cxRStr3594 cxRStr3595)))
+    (.node (some (.under [.arm 28 22] (.lt (.num 3) (.val 9)))) cxRStr3566 cxRStr3567) (.node (some (.under [.arm 28
+    27] (.lt (.num 11) (.val 9)))) cxRStr3568 cxRStr3569)) (.node (some (.under [.arm 28 18] (.lt (.num 17) (.val
+    9)))) (.node (some (.under [.arm 28 24] (.lt (.num 22) (.val 9)))) cxRStr3571 cxRStr3572) (.node (some (.under
+    [.arm 28 29] (.lt (.num 20) (.val 9)))) cxRStr3573 cxRStr3574)))
 
-noncomputable def cxRStr3597 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 30 14] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 32 20] (.lt (.num 8) (.val
-    9)))) (.node (some (.under [.arm 27 19] (.lt (.num 4) (.val 9)))) .nil .nil) (.node (some cxRSv2616) .nil .nil))
-    (.node (some (.under [.arm 795 17] (.lt (.val 27) (.val 9)))) (.node (some cxRSv1592) .nil .nil) .nil))
+noncomputable def cxRStr3576 : Trie CoreMode.CRes :=
+  (.node (some (.under [.arm 29 11] (.lt (.num 2) (.val 9)))) (.node (some (.under [.arm 30 14] (.lt (.num 13) (.val
+    9)))) (.node (some (.under [.arm 32 20] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 19] (.lt (.num 5)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2583) .nil .nil)) (.node (some cxRSv310) (.node (some cxRSv1559) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 17] (.lt (.num 15) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt
+    (.num 14) (.val 9)))) (.node (some (.under [.arm 822 15] (.lt (.num 7) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv800) (.node (some cxRSv2071) .nil .nil) .nil)))
 
-noncomputable def cxRStr3598 : Trie CoreMode.CRes :=
-  (.node (some (.under [.arm 29 11] (.lt (.num 2) (.val 9)))) cxRStr3597 (.node (some (.under [.arm 31 17] (.lt (.num
-    15) (.val 9)))) (.node (some (.under [.arm 33 22] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 822 15]
-    (.lt (.num 6) (.val 9)))) .nil .nil) .nil) (.node (some cxRSv828) (.node (some cxRSv2104) .nil .nil) .nil)))
-
-noncomputable def cxRStr3599 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3577 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 25] (.lt (.num 13) (.val 9)))) (.node (some (.under [.arm 30 27] (.lt (.num 9) (.val
     9)))) (.node (some (.under [.arm 32 30] (.lt (.num 19) (.val 9)))) (.node (some (.under [.arm 27 29] (.lt (.num
-    25) (.val 9)))) .nil .nil) (.node (some cxRSv2872) .nil .nil)) (.node (some cxRSv577) (.node (some cxRSv1848) .nil
-    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 1) (.val 9)))) (.node (some cxRSv84) (.node (some
-    cxRSv1336) .nil .nil) .nil) (.node (some cxRSv1080) (.node (some cxRSv2360) .nil .nil) .nil)))
+    26) (.val 9)))) .nil .nil) (.node (some cxRSv2839) .nil .nil)) (.node (some cxRSv554) (.node (some cxRSv1815) .nil
+    .nil) .nil)) (.node (some (.under [.arm 31 29] (.lt (.num 1) (.val 9)))) (.node (some cxRSv80) (.node (some
+    cxRSv1303) .nil .nil) .nil) (.node (some cxRSv1048) (.node (some cxRSv2327) .nil .nil) .nil)))
 
-noncomputable def cxRStr3600 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3578 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 19] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 30 22] (.lt (.num 1) (.val
-    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 3)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2744) .nil .nil)) (.node (some cxRSv452) (.node (some cxRSv1720) .nil
+    9)))) (.node (some (.under [.arm 32 26] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 27 25] (.lt (.num 4)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2711) .nil .nil)) (.node (some cxRSv432) (.node (some cxRSv1687) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 24] (.lt (.num 3) (.val 9)))) (.node (some (.under [.arm 33 27] (.lt
-    (.num 22) (.val 9)))) (.node (some cxRSv1208) .nil .nil) .nil) (.node (some cxRSv954) (.node (some cxRSv2232) .nil
+    (.num 22) (.val 9)))) (.node (some cxRSv1175) .nil .nil) .nil) (.node (some cxRSv924) (.node (some cxRSv2199) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3601 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3579 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 30] (.lt (.num 6) (.val 9)))) (.node (some (.under [.arm 31 7] (.lt (.num 2) (.val 9))))
-    (.node (some (.under [.arm 33 15] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 31)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2998) .nil .nil)) (.node (some cxRSv702) (.node (some cxRSv1976) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 4) (.val 9)))) (.node (some cxRSv204) (.node (some
-    cxRSv1464) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 2) (.val 9)))) (.node (some cxRSv2488)
+    (.node (some (.under [.arm 33 15] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 33] (.lt (.num 32)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2964) .nil .nil)) (.node (some cxRSv676) (.node (some cxRSv1943) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 12] (.lt (.num 4) (.val 9)))) (.node (some cxRSv192) (.node (some
+    cxRSv1431) .nil .nil) .nil) (.node (some (.under [.arm 27 10] (.lt (.num 3) (.val 9)))) (.node (some cxRSv2455)
     .nil .nil) .nil)))
 
-noncomputable def cxRStr3602 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3580 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 16] (.lt (.num 1) (.val 9)))) (.node (some (.under [.arm 30 18] (.lt (.num 15) (.val
-    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 8)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2680) .nil .nil)) (.node (some cxRSv390) (.node (some cxRSv1656) .nil
+    9)))) (.node (some (.under [.arm 32 23] (.lt (.num 9) (.val 9)))) (.node (some (.under [.arm 27 22] (.lt (.num 9)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2647) .nil .nil)) (.node (some cxRSv372) (.node (some cxRSv1623) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 21] (.lt (.num 5) (.val 9)))) (.node (some (.under [.arm 33 25] (.lt
-    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 4) (.val 9)))) .nil .nil) .nil) (.node (some
-    cxRSv891) (.node (some cxRSv2168) .nil .nil) .nil)))
+    (.num 9) (.val 9)))) (.node (some (.under [.arm 822 19] (.lt (.num 5) (.val 9)))) .nil .nil) .nil) (.node (some
+    cxRSv862) (.node (some cxRSv2135) .nil .nil) .nil)))
 
-noncomputable def cxRStr3603 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3581 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 27] (.lt (.num 26) (.val 9)))) (.node (some (.under [.arm 30 29] (.lt (.num 18) (.val
-    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 31] (.lt (.num 30)
-    (.val 9)))) .nil .nil) (.node (some cxRSv2936) .nil .nil)) (.node (some cxRSv640) (.node (some cxRSv1912) .nil
-    .nil) .nil)) (.node (some (.under [.arm 32 4] (.lt (.num 0) (.val 9)))) (.node (some cxRSv143) (.node (some
-    cxRSv1400) .nil .nil) .nil) (.node (some cxRSv1143) (.node (some cxRSv2424) .nil .nil) .nil)))
+    9)))) (.node (some (.under [.arm 33 10] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 27 32] (.lt (.num 0)
+    (.val 9)))) .nil .nil) (.node (some cxRSv2903) .nil .nil)) (.node (some cxRSv616) (.node (some cxRSv1879) .nil
+    .nil) .nil)) (.node (some (.under [.arm 32 4] (.lt (.num 0) (.val 9)))) (.node (some cxRSv134) (.node (some
+    cxRSv1367) .nil .nil) .nil) (.node (some cxRSv1110) (.node (some cxRSv2391) .nil .nil) .nil)))
 
-noncomputable def cxRStr3604 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3582 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 29 22] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 30 24] (.lt (.num 20) (.val
     9)))) (.node (some (.under [.arm 32 28] (.lt (.num 12) (.val 9)))) (.node (some (.under [.arm 27 27] (.lt (.num
-    16) (.val 9)))) .nil .nil) (.node (some cxRSv2808) .nil .nil)) (.node (some cxRSv514) (.node (some cxRSv1784) .nil
+    17) (.val 9)))) .nil .nil) (.node (some cxRSv2775) .nil .nil)) (.node (some cxRSv492) (.node (some cxRSv1751) .nil
     .nil) .nil)) (.node (some (.under [.arm 31 26] (.lt (.num 18) (.val 9)))) (.node (some (.under [.arm 33 30] (.lt
-    (.num 2) (.val 9)))) (.node (some cxRSv1272) .nil .nil) .nil) (.node (some cxRSv1017) (.node (some cxRSv2296) .nil
+    (.num 2) (.val 9)))) (.node (some cxRSv1239) .nil .nil) .nil) (.node (some cxRSv986) (.node (some cxRSv2263) .nil
     .nil) .nil)))
 
-noncomputable def cxRStr3605 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3583 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 30 9] (.lt (.num 4) (.val 9)))) (.node (some (.under [.arm 31 13] (.lt (.num 9) (.val 9))))
-    (.node (some (.under [.arm 33 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 2)
-    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv765) (.node (some cxRSv2040) .nil .nil) .nil)) (.node (some (.under
-    [.arm 32 16] (.lt (.num 14) (.val 9)))) (.node (some cxRSv266) (.node (some cxRSv1528) .nil .nil) .nil) (.node
-    (some (.under [.arm 27 15] (.lt (.num 6) (.val 9)))) (.node (some cxRSv2552) .nil .nil) .nil)))
+    (.node (some (.under [.arm 33 19] (.lt (.num 10) (.val 9)))) (.node (some (.under [.arm 822 10] (.lt (.num 3)
+    (.val 9)))) .nil .nil) .nil) (.node (some cxRSv738) (.node (some cxRSv2007) .nil .nil) .nil)) (.node (some (.under
+    [.arm 32 16] (.lt (.num 14) (.val 9)))) (.node (some (.under [.arm 795 15] (.lt (.val 27) (.num 34)))) (.node
+    (some cxRSv1495) .nil .nil) .nil) (.node (some (.under [.arm 27 15] (.lt (.num 7) (.val 9)))) (.node (some
+    cxRSv2519) .nil .nil) .nil)))
 
-noncomputable def cxRStr3606 : Trie CoreMode.CRes :=
+noncomputable def cxRStr3584 : Trie CoreMode.CRes :=
   (.node (some (.under [.arm 28 12] (.lt (.num 8) (.val 9)))) (.node (some (.under [.arm 28 17] (.lt (.num 2) (.val
-    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 13) (.val 9)))) cxRStr3598 cxRStr3599) (.node (some (.under
-    [.arm 28 28] (.lt (.num 16) (.val 9)))) cxRStr3600 cxRStr3601)) (.node (some (.under [.arm 28 20] (.lt (.num 12)
-    (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 5) (.val 9)))) cxRStr3602 cxRStr3603) (.node (some
-    (.under [.arm 28 30] (.lt (.num 23) (.val 9)))) cxRStr3604 cxRStr3605)))
+    9)))) (.node (some (.under [.arm 28 23] (.lt (.num 13) (.val 9)))) cxRStr3576 cxRStr3577) (.node (some (.under
+    [.arm 28 28] (.lt (.num 16) (.val 9)))) cxRStr3578 cxRStr3579)) (.node (some (.under [.arm 28 20] (.lt (.num 12)
+    (.val 9)))) (.node (some (.under [.arm 28 26] (.lt (.num 5) (.val 9)))) cxRStr3580 cxRStr3581) (.node (some
+    (.under [.arm 28 30] (.lt (.num 23) (.val 9)))) cxRStr3582 cxRStr3583)))
 
-noncomputable def cxRStr3607 : Trie CoreMode.CRes :=
-  (.node (some cxRSv14) (.node (some cxRSv22) (.node (some cxRSv38) cxRStr3540 cxRStr3549) (.node (some (.under [.arm 28
-    2] (.lt (.num 1) (.val 9)))) cxRStr3559 cxRStr3568)) (.node (some cxRSv30) (.node (some cxRSv46) cxRStr3577
-    cxRStr3586) (.node (some (.under [.arm 28 5] (.lt (.num 0) (.val 9)))) cxRStr3596 cxRStr3606)))
+noncomputable def cxRStr3585 : Trie CoreMode.CRes :=
+  (.node (some cxRSv14) (.node (some cxRSv22) (.node (some cxRSv38) cxRStr3518 cxRStr3528) (.node (some (.under [.arm 28
+    2] (.lt (.num 1) (.val 9)))) cxRStr3537 cxRStr3547)) (.node (some cxRSv30) (.node (some cxRSv46) cxRStr3556
+    cxRStr3565) (.node (some (.under [.arm 28 5] (.lt (.num 0) (.val 9)))) cxRStr3575 cxRStr3584)))
 
-noncomputable def cxRStr3608 : Trie CoreMode.CRes :=
-  (.node (some cxRSv6) (.node (some cxRSv10) (.node (some cxRSv18) (.node (some cxRSv34) cxRStr3462 cxRStr3472) (.node
-    (some cxRSv50) cxRStr3482 cxRStr3491)) (.node (some cxRSv26) (.node (some cxRSv42) cxRStr3500 cxRStr3510) (.node
-    (some (.under [.arm 28 4] (.lt (.num 0) (.val 9)))) cxRStr3520 cxRStr3530))) cxRStr3607)
+noncomputable def cxRStr3586 : Trie CoreMode.CRes :=
+  (.node (some cxRSv6) (.node (some cxRSv10) (.node (some cxRSv18) (.node (some cxRSv34) cxRStr3444 cxRStr3453) (.node
+    (some cxRSv50) cxRStr3462 cxRStr3471)) (.node (some cxRSv26) (.node (some cxRSv42) cxRStr3480 cxRStr3490) (.node
+    (some (.under [.arm 28 4] (.lt (.num 0) (.val 9)))) cxRStr3499 cxRStr3509))) cxRStr3585)
 
 /-- `cxOf`'s trie `RS`. -/
 noncomputable def cxRS : Trie CoreMode.CRes :=
-  (.node (some cxRSv0) (.node (some cxRSv1) cxRStr3151 cxRStr3300) (.node (some cxRSv2) cxRStr3453 cxRStr3608))
+  (.node (some cxRSv0) (.node (some cxRSv1) cxRStr3122 cxRStr3280) (.node (some cxRSv2) cxRStr3434 cxRStr3586))
 
 theorem hcxRS : trieFrom hcert.res 0 .nil = cxRS := by
   decide +kernel

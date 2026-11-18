@@ -32,6 +32,30 @@ set_option maxRecDepth 100000 in
 theorem mLeafC_ok : (List.range 23).all (fun k =>
     (atomsIn mFlatE).any (atomEqb (.const (.n (420 + k)) (word 0 0)))) = true := by decide +kernel
 
+/-- Membership in `mStoresL`, a load compared field by field (`atomEqb`), not by `DecidableEq Atom`. -/
+def mStoreB : Atom → Bool
+  | .load d p o => mStoresL.any (atomEqb (.load d p o))
+  | _ => false
+
+set_option maxRecDepth 100000 in
+theorem mStoresL_loads : mStoresL.all (fun a => match a with | .load .. => true | _ => false) = true := by
+  decide +kernel
+
+theorem mStoreB_eq : (fun a => decide (a ∈ mStoresL)) = mStoreB := by
+  funext a
+  by_cases h : a ∈ mStoresL
+  · have hl := List.all_eq_true.mp mStoresL_loads a h
+    cases a <;> simp only [Bool.false_eq_true] at hl
+    rename_i d p o
+    simp only [h, decide_true, mStoreB]
+    exact (List.any_eq_true.mpr ⟨_, h, by simp [atomEqb, vEqb_iff]⟩).symm
+  · simp only [h, decide_false]
+    cases a <;> simp only [mStoreB]
+    rename_i d p o
+    refine (Bool.eq_false_iff.mpr fun hb => h ?_).symm
+    obtain ⟨b, hb, he⟩ := List.any_eq_true.mp hb
+    rwa [atomEqb_sound he]
+
 set_option maxRecDepth 100000 in
 /-- Each block's stores. -/
 theorem mStoresIn :
@@ -45,6 +69,7 @@ theorem mStoresIn :
       (List.range 23).map (fun k => .load (.n (420 + k)) (.n 416) k) ++
         [.load (.n 419) (.n 416) 23] ∧
     (atomsIn mAgg).filter (fun a => decide (a ∈ mStoresL)) = [] := by
+  rw [mStoreB_eq]
   decide +kernel
 
 theorem mem_storesIn {P : List Stmt} {L : List Atom}

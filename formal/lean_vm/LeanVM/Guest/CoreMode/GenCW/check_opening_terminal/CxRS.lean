@@ -21,22 +21,19 @@ open LeanVM.Guest.Exec (Trie)
 @[expose] public section
 
 noncomputable def cxRSv0 : CoreMode.CRes :=
-  (.subR ⟨⟨[(6, 1), (26, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩)
-
-noncomputable def cxRSv1 : CoreMode.CRes :=
   (.lt (.mono ⟨[(35, 1)], 19⟩) (.mono ⟨[(4, 1)], 1⟩))
 
-noncomputable def cxRStr2 : Trie CoreMode.CRes :=
-  (.node (some cxRSv0) (.node (some (.lt (.val 36) (.mono ⟨[(4, 1)], 1⟩))) (.node (some (.lt (.val 37) (.mono ⟨[(5, 1)],
-    1⟩))) (.node (some (.lt (.val 41) (.mono ⟨[(5, 1)], 1⟩))) .nil .nil) .nil) (.node (some (.lt (.val 39) (.mono
-    ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.num 0) (.mono ⟨[(7, 1)], 7⟩))) .nil .nil) .nil)) (.node (some cxRSv1) (.node
-    (some (.lt (.val 38) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.val 42) (.mono ⟨[(5, 1)], 1⟩))) .nil .nil) .nil)
-    (.node (some (.lt (.val 40) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.num 0) (.mono ⟨[(19, 1)], 1⟩))) .nil .nil)
-    .nil)))
+noncomputable def cxRStr1 : Trie CoreMode.CRes :=
+  (.node (some (.lt (.val 6) (.num 4611686018427387903))) (.node (some (.lt (.val 36) (.mono ⟨[(4, 1)], 1⟩))) (.node
+    (some (.lt (.val 37) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.val 41) (.mono ⟨[(5, 1)], 1⟩))) .nil .nil) .nil)
+    (.node (some (.lt (.val 39) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.num 0) (.mono ⟨[(7, 1)], 7⟩))) .nil .nil)
+    .nil)) (.node (some cxRSv0) (.node (some (.lt (.val 38) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.val 42) (.mono
+    ⟨[(5, 1)], 1⟩))) .nil .nil) .nil) (.node (some (.lt (.val 40) (.mono ⟨[(5, 1)], 1⟩))) (.node (some (.lt (.num 0)
+    (.mono ⟨[(19, 1)], 1⟩))) .nil .nil) .nil)))
 
 /-- `cxOf`'s trie `RS`. -/
 noncomputable def cxRS : Trie CoreMode.CRes :=
-  cxRStr2
+  cxRStr1
 
 theorem hcxRS : trieFrom hcert.res 0 .nil = cxRS := by
   decide +kernel

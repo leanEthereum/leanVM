@@ -97,7 +97,7 @@ def checks(k, j, K, frame, heap):
     """The kernel's checks of function `k` on the core route, each heavy one its own declaration, and its
     frame interface."""
     return (f'/-- `{k}`: its signature translated. -/\n'
-            f'theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by\n'
+            f'theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)\n    (Mode.jtRng modeEnv) = true := by\n'
             f'  decide +kernel\n\n'
             f'/-- `{k}`: its returned products. -/\n'
             f'theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by\n  decide +kernel\n\n'

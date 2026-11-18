@@ -41,7 +41,8 @@ attribute [local irreducible] pairO pairS
 theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
 
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`: its returned products. -/

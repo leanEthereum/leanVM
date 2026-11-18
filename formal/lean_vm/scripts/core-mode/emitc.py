@@ -508,6 +508,8 @@ class Solver:
             if f is None and not Q[3][0] and Q[3][1] < C.CAPE:
                 f = self.factC(st, C.tsub(Q[3][1], 1), R[3])
             if f is None:
+                f = self.fact(st, Q[3], C.cshift(R[3], 1))
+            if f is None:
                 return None
             res += f
         return sorted(set(res))
@@ -585,6 +587,9 @@ class Solver:
             w = self.app(st, c, depth)
             if w is not None:
                 return w
+        w = self.back(st, c)
+        if w is not None:
+            return w
         return self.cursor(st, c)
 
     def cursor(self, st, c):
@@ -608,6 +613,28 @@ class Solver:
             res = ('sub', c, Rr)
             self.stats['cursor'] += 1
             return ('run', r, [self.use(('cursor', c, Rr, g), ('under', g, res) if g else res)])
+        return None
+
+    def back(self, st, c):
+        """`back r ns res`: `c` some indices below the upper bound of run `r`, whose exponent a fact gives; in the run
+        when it is long enough, else one of the write events `ns`."""
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            base, S, lo, hi = R
+            if lo[0] or lo[1] >= C.CAPE or not S:
+                continue
+            k = C.backK(R, c)
+            if not 0 < k or C.cshift(c, S * k) != C.cmul(base, C.cpow(hi, S)):
+                continue
+            cells = C.backCells(R, k, lo[1] + k)
+            ns = [st.c2s.get(x, (None,))[-1] if x is not None else None for x in cells]
+            if None in ns:
+                continue
+            f = self.factE(st, hi)
+            if f is None:
+                continue
+            self.stats['back'] += 1
+            return ('back', r, ns, f)
         return None
 
     def app(self, st, c, depth=0):
@@ -648,6 +675,12 @@ class Solver:
             ns = [st.c2s.get(x, (None,))[-1] for x in cells]
             if None in ns:
                 continue
+            if ns == list(range(ns[0], ns[0] + len(ns))):
+                # consecutive write events: the run they write, the cell in it by the fact (`evs`)
+                f = self.in_run(st, C.evsR(Q, b[1]), c)
+                if f is not None:
+                    self.stats['evs'] += 1
+                    return ('evs', ns[0], b[1], f)
             g = tuple(dict.fromkeys(self.X.path))
             r = ('subP', c, tuple(cells))
             self.stats['pts-idx'] += 1
@@ -700,6 +733,9 @@ class Solver:
         w = self.inner(st, Q)
         if w is not None:
             return w
+        w = self.negshift(st, Q)
+        if w is not None:
+            return w
         w = self.coarse(st, Q)
         if w is not None:
             return w
@@ -711,6 +747,29 @@ class Solver:
                     return None
                 ws.append(w)
             return ws
+        return None
+
+    def negshift(self, st, Q):
+        """`Q = ⟨B, 1, g^k, X⟩` and a run `⟨B·g^k, 1, g^0, X·v⟩` in scope, `v` a constant `g^-k` (`infer.assemble`):
+        the same cells, the residual `subR Q R` stated (under the site's path)."""
+        base, S, lo, hi = Q
+        if S != 1 or lo[0] or not lo[1] or not hi[0]:
+            return None
+        neg = I.neg_pows(self.P)
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R[0] != C.cshift(base, lo[1]) or R[1] != 1 or R[2] != ((), 0):
+                continue
+            vs = [(b, e) for b, e in R[3][0] if neg.get(b) == lo[1] and e == 1]
+            if len(vs) != 1 or C.cmul(hi, ((vs[0],), 0)) != R[3]:
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            q, Rr = (base, 1, ('num', lo[1]), self.idx(st, hi)), (R[0], 1, ('num', 0), self.idx(st, R[3]))
+            if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
+                continue
+            res = ('subR', q, Rr)
+            self.stats['negshift'] += 1
+            return [('run', r, [self.use(('negshift', q, Rr, g), ('under', g, res) if g else res)])]
         return None
 
     def divides(self, st, h, H):
@@ -826,6 +885,13 @@ class Solver:
                     all(e % S0 == 0 for _, e in R[3][0]):
                 # a stride-1 run whose bound is an `S0`-th power: its residue `0` (`coarse`) ends at the root
                 ks.append((tuple((b, e // S0) for b, e in R[3][0]), R[3][1] // S0))
+        neg = I.neg_pows(self.P)
+        for R in st.rs.values():
+            if neg and R[0][0] == base[0] and R[1] == S0 == 1 and R[2] == ((), 0) and R[0][1] > base[1]:
+                # a run `a` cells in whose bound carries `g^-a` (`negshift`): it ends at the bound without it
+                vs = [(b, e) for b, e in R[3][0] if neg.get(b) == R[0][1] - base[1] and e == 1]
+                if len(vs) == 1:
+                    ks.append((tuple(x for x in R[3][0] if x != vs[0]), R[3][1]))
         for k in dict.fromkeys(ks):
             if k == hi or not k[0] and not k[1]:
                 continue
@@ -1054,6 +1120,10 @@ class Solver:
             return
         gis = self.sites.get((I.callee(g), tuple(args)), [])
         gi = gis[0] if gis else None
+        if gi is not None and len(gi) == G.ghosts and any(x is None for x in gi):
+            # a ghost the callee's signature is no longer over (`prune`): any word, `g^0`
+            un = ghosts_used(G, len(I.CORE[I.callee(g)][0]))
+            gi = [((), 0) if x is None and j not in un else x for j, x in enumerate(gi)]
         if gi is None or len(gi) != G.ghosts or any(x is None for x in gi):
             self.miss.append(('ghosts', g, gi))
             return
@@ -1398,6 +1468,8 @@ def wit_res(w, f):
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
     if k == 'prep2':
         return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
+    if k in ('evs', 'back'):
+        return (k, w[1], w[2], [f(i) for i in w[3]])
     return w
 
 
@@ -1519,6 +1591,10 @@ def lwit(w):
         return f'.{k}'
     if k == 'perm':
         return f'.perm {w[1]} {lnums(w[2])}'
+    if k == 'evs':
+        return f'.evs {w[1]} {w[2]} {lnums(w[3])}'
+    if k == 'back':
+        return f'.back {w[1]} {lnums(w[2])} {lnums(w[3])}'
     if k in ('prep', 'app'):
         return f'.{k} {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
     if k == 'keep':
@@ -1696,8 +1772,73 @@ module
 '''
 
 
+def slots(x, out):
+    """The slots a signature entry is over (cell bases, `.val` indices)."""
+    if isinstance(x, (list, tuple)):
+        if len(x) == 2 and x[0] == 'val' and isinstance(x[1], int):
+            out.add(x[1])
+            return out
+        if len(x) == 2 and isinstance(x[0], tuple) and isinstance(x[1], int) and \
+                all(isinstance(p, tuple) and len(p) == 2 and all(isinstance(q, int) for q in p) for p in x[0]):
+            out.update(b for b, _ in x[0])
+            return out
+        for y in x:
+            slots(y, out)
+    return out
+
+
+def wit_runs(w, out):
+    """The run serials a witness names."""
+    if w[0] in ('run', 'prep', 'app', 'back'):
+        out.add(w[1])
+    if w[0] in ('prep', 'app'):
+        wit_runs(w[2], out)
+    return out
+
+
+def prune(G, m, H):
+    """`G` without the ghost runs among its preconditions that no witness of `H` names (its callers need not name
+    their ghosts), else `None`."""
+    used = set()
+    for w in list(H.reads.values()) + [w for ws in H.calls + H.rets for w in ws]:
+        if isinstance(w, tuple) and w:
+            wit_runs(w, used)
+    keep = [r for i, r in enumerate(G.preR) if i in used or not any(m <= b < m + G.ghosts for b in slots(r, set()))]
+    if len(keep) == len(G.preR):
+        return None
+    G2 = C.HSig(**{f: getattr(G, f) for f in C.HSig.FIELDS}, ghosts=G.ghosts)
+    G2.preR = keep
+    return G2
+
+
+def ghostless(G, m):
+    """`G` without its preconditions over ghosts, else `None`."""
+    keep = [r for r in G.preR if not any(m <= b < m + G.ghosts for b in slots(r, set()))]
+    if len(keep) == len(G.preR):
+        return None
+    G2 = C.HSig(**{f: getattr(G, f) for f in C.HSig.FIELDS}, ghosts=G.ghosts)
+    G2.preR = keep
+    return G2
+
+
+def ghosts_used(G, m):
+    """The ghosts (by index) a signature is over."""
+    out = set()
+    for f in C.HSig.FIELDS:
+        slots(getattr(G, f), out)
+    return {b - m for b in out if m <= b < m + G.ghosts}
+
+
 def build(res, only=None):
-    """Every function's signature, certificate and the Python check's verdict."""
+    """Every function's signature, certificate and the Python check's verdict (with `only`, those functions and
+    their callees, whose signatures `prune` may change)."""
+    only_deps = set()
+    todo = list(only or ())
+    while todo:
+        for c in I.CALLS.get(todo.pop(), ()):
+            if c in I.CORE and c not in only_deps:
+                only_deps.add(c)
+                todo.append(c)
     sigs, drops = {}, {}
     for k in I.ORDER:
         dr = []
@@ -1718,10 +1859,26 @@ def build(res, only=None):
         return sigs.get(I.callee(g), C.EMPTY)
     certs, why, stats = {}, {}, collections.Counter()
     for k in I.ORDER:
-        if only and k not in only:
+        if only and k not in only and k not in only_deps:
             continue
         P = res[k]
         H, S, pas = solve(k, P, sigs, sigOf)
+        if not P.loop:
+            G0, G = sigs[k], ghostless(sigs[k], len(I.CORE[k][0]))
+            if G is not None:
+                # without its ghost runs, if it passes so (its callers need not name their ghosts)
+                sigs[k] = G
+                H1, S1, pas1 = solve(k, P, sigs, sigOf)
+                if not pas1.fails and not S1.miss and not pas.fails and not S.miss and check(k, H1, sigOf) is None:
+                    H, S, pas = H1, S1, pas1
+                    stats['ghostless'] += 1
+                else:
+                    sigs[k] = G0
+            G = prune(sigs[k], len(I.CORE[k][0]), H)
+            if G is not None:
+                sigs[k] = G
+                stats['pruned'] += 1
+                H, S, pas = solve(k, P, sigs, sigOf)
         stats.update(S.stats)
         certs[k] = H
         fails = list(pas.fails) + [('miss',) + m for m in S.miss]

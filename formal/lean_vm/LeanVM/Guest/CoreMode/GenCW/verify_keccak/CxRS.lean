@@ -63,15 +63,22 @@ noncomputable def cxRSv12 : CoreMode.CRes :=
 noncomputable def cxRSv13 : CoreMode.CRes :=
   (.subR ⟨⟨[(921, 1)], 0⟩, 1, (.num 0), (.num 97)⟩ ⟨⟨[(1048580, 1)], 0⟩, 1, (.num 0), (.val 1048581)⟩)
 
-noncomputable def cxRStr14 : Trie CoreMode.CRes :=
-  (.node (some cxRSv0) (.node (some cxRSv1) (.node (some cxRSv3) (.node (some cxRSv7) .nil .nil) (.node (some cxRSv11)
-    .nil .nil)) (.node (some cxRSv5) (.node (some cxRSv9) .nil .nil) (.node (some cxRSv13) .nil .nil))) (.node (some
-    cxRSv2) (.node (some cxRSv4) (.node (some cxRSv8) .nil .nil) (.node (some cxRSv12) .nil .nil)) (.node (some
-    cxRSv6) (.node (some cxRSv10) .nil .nil) .nil)))
+noncomputable def cxRSv14 : CoreMode.CRes :=
+  (.subR ⟨⟨[(9, 1)], 0⟩, 1, (.num 4), (.val 6)⟩ ⟨⟨[(9, 1)], 4⟩, 1, (.num 0), (.mono ⟨[(6, 1), (18, 1)], 0⟩)⟩)
+
+noncomputable def cxRSv15 : CoreMode.CRes :=
+  (.subR ⟨⟨[(9, 1)], 39⟩, 1, (.num 4), (.val 6)⟩ ⟨⟨[(9, 1)], 43⟩, 1, (.num 0), (.mono ⟨[(6, 1), (18, 1)], 0⟩)⟩)
+
+noncomputable def cxRStr16 : Trie CoreMode.CRes :=
+  (.node (some cxRSv0) (.node (some cxRSv1) (.node (some cxRSv3) (.node (some cxRSv7) (.node (some cxRSv14) .nil .nil)
+    .nil) (.node (some cxRSv11) .nil .nil)) (.node (some cxRSv5) (.node (some cxRSv9) .nil .nil) (.node (some cxRSv13)
+    .nil .nil))) (.node (some cxRSv2) (.node (some cxRSv4) (.node (some cxRSv8) (.node (some cxRSv15) .nil .nil) .nil)
+    (.node (some cxRSv12) .nil .nil)) (.node (some cxRSv6) (.node (some cxRSv10) .nil .nil) (.node (some (.lt (.val 6)
+    (.num 4611686018427387903))) .nil .nil))))
 
 /-- `cxOf`'s trie `RS`. -/
 noncomputable def cxRS : Trie CoreMode.CRes :=
-  cxRStr14
+  cxRStr16
 
 theorem hcxRS : trieFrom hcert.res 0 .nil = cxRS := by
   decide +kernel

@@ -29,17 +29,37 @@ def kinds(body, acc):
     return acc
 
 
+def stmts_of(body):
+    """`stmtsOf`: the statements of a body, nested ones included."""
+    for s in body:
+        yield s
+        if s[0] == 'ite':
+            yield from stmts_of(s[2])
+            yield from stmts_of(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from stmts_of(a)
+
+
+def top_ok(s):
+    """A top-level statement `CoreMode.topOk` takes: a branch or `match` with no `ret` and no dispatch in it."""
+    if s[0] not in ('ite', 'match'):
+        return True
+    acc = collections.Counter()
+    for blk in (s[2], s[3]) if s[0] == 'ite' else s[2]:
+        kinds(blk, acc)
+    return not acc['ret'] and not acc['dispatch']
+
+
 def candidates():
-    """Bodies of atoms, calls and conditional calls (at least one), branches (`CoreMode.bodyC`) and one final `ret`, not
-    loop helpers."""
+    """Bodies of atoms, branches, `match`es, calls and conditional calls (at least one) and one final `ret`, the
+    branches with no `ret` or dispatch in them, not loop helpers."""
     out = []
     for k, (params, body) in sorted(CORE.items()):
         acc = kinds(body, collections.Counter())
-        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch', 'ite'} and (acc['call'] or acc['callIf'] or acc['dispatch']) \
-                and acc['ret'] == 1 and \
-                body[-1][0] == 'ret' and k not in I.IS_LOOP and all(
-                    not set(kinds([s], collections.Counter())) & {'ret', 'call', 'callIf', 'dispatch'}
-                    for s in body if s[0] == 'ite'):
+        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch', 'ite', 'match'} and \
+                (acc['call'] or acc['callIf'] or acc['dispatch']) and acc['ret'] == 1 and \
+                body[-1][0] == 'ret' and all(top_ok(s) for s in body) and k not in I.IS_LOOP:
             out.append(k)
     return out
 
@@ -55,6 +75,7 @@ def _em():
     sys.argv[:] = saved
     emitc.WORD_RUN = True
     I.ARMRUN[0] = True
+    I.DUPCALL[0] = True
     return emitc
 
 
@@ -291,6 +312,19 @@ def const_pow(body, v, k=0):
     return False
 
 
+JT_RUN = [None]
+
+
+def jt_run():
+    """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('mode_cert_data', os.path.join(HERE, '..', 'mode-cert', 'data.py'))
+    md = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(md)
+    jt = md.load()['jt']
+    return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
+
+
 def own_sig(G, np, nr, gl=None):
     """`sigOk`: the function's heap signature, its mode signature's translated (its `preR` with the caller's cells
     `gl` linked, `CoreMode.rngLIs`)."""
@@ -495,6 +529,11 @@ def own_sig(G, np, nr, gl=None):
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
+    if 'jt' in I.F:
+        # the jump table's cells, which every frame's entry has written (`entryAbs`)
+        if JT_RUN[0] is None:
+            JT_RUN[0] = jt_run()
+        h.preR = list(h.preR) + [JT_RUN[0]]
     return h
 
 
@@ -544,8 +583,8 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                 import callcres
                 B = callcres.expq_bound(k, a) if k is not None and b[1] == 0 else None
                 if B is None and b[1] == 0:
-                    # a range-checked argument (the `rc` family's residual)
-                    B = callcres.rc_bound(callcres.top_atoms(body), a)
+                    B = (callcres.addr_bound(k, a) if k is not None else None) or \
+                        callcres.rc_bound(callcres.top_atoms(body), a)
                 if B is None or acc is None:
                     raise No('callee bound not a constant power')
                 acc.add((a, B))
@@ -570,7 +609,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     cs = {}
     hcs = set()
     arg_res = set()
-    for s in body:
+    for s in stmts_of(body):
         if s[0] == 'call':
             calls = [(s[1], s[2], len(s[3]))]
         elif s[0] == 'callIf':

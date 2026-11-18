@@ -23,8 +23,8 @@ theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 1377 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 1377 st1 = true := by
+/-- Statements 1379 to the end. -/
+theorem last_ok : lastOkF Data.powTree sigW core hcert 1379 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -44,7 +44,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
     | "keccak_plain_rounds__L4_L1" => Fn.«keccak_plain_rounds__L4_L1».hcert.sig
     | "keccak_plain_rounds__L6_L0" => Fn.«keccak_plain_rounds__L6_L0».hcert.sig | _ => .empty)
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(1377, HeapW.st1)]) HeapW.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(1379, HeapW.st1)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,
     trivial⟩ rfl HeapW.last_ok
 

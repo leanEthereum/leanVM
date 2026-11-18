@@ -23,6 +23,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
@@ -70,8 +71,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `exponent_tables`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 14755, 4490,
-    Fn.«exponent_tables».modeSig, .nil, 524287, Data.adviceFn2.2.2, .nil, .nil, .nil, .nil, .nil,
-    .nil, .nil⟩
+    Fn.«exponent_tables».modeSig, .nil, 524287, Data.adviceFn2.2.2, .nil, .nil, .nil, .nil,
+    Fn.«exponent_tables».pairO, Fn.«exponent_tables».pairS, .nil⟩
 
 /-- `exponent_tables`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
