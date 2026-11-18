@@ -27,11 +27,7 @@ struct Cli {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let config = sidecar::Config {
-        socket: cli.socket,
-        threads: cli.threads,
-    };
-    let Err(e) = sidecar::serve::<P>(&config);
-    eprintln!("leanvm-sidecar: {}: {e}", config.socket.display());
+    let Err(e) = sidecar::serve::<P>(&cli.socket, cli.threads);
+    eprintln!("leanvm-sidecar: {}: {e}", cli.socket.display());
     ExitCode::FAILURE
 }

@@ -12,7 +12,7 @@ mod wire;
 
 pub use client::Client;
 #[cfg(feature = "server")]
-pub use server::{Config, serve};
+pub use server::serve;
 
 /// One blob, as `lean_da` takes it: its symbols, each 128 bits.
 pub type Blob = [u128; 1 << verifier::da::LOG_BLOB_SYMBOLS];

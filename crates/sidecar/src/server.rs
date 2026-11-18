@@ -17,20 +17,11 @@ use std::io::{self, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::FileTypeExt;
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
-
-/// How a sidecar serves.
-#[derive(Clone, Debug)]
-pub struct Config {
-    /// The socket to listen on. A stale one, left by a sidecar that stopped, is replaced.
-    pub socket: PathBuf,
-    /// The prover's thread count (0: one per core).
-    pub threads: usize,
-}
 
 /// The longest request body taken, in bytes: room for every blob and child a request may have and thousands of
 /// signatures, while bounding the memory a connection holds.
@@ -43,22 +34,23 @@ const MAX_CONNECTIONS: usize = 16;
 /// A request, its client's connection, and where its outcome goes.
 type Job = (Request, UnixStream, Sender<Outcome>);
 
-/// Starts prover `P`, builds the aggregation program and warms up, then listens on `config.socket` and serves until the
-/// process ends, proving on the calling thread. The socket appears once the sidecar is ready to prove. Returns only
-/// if it cannot listen, which a second sidecar on the same socket learns before it starts anything.
+/// Starts prover `P` on `threads` threads (0: one per core), builds the aggregation program and warms up, then listens
+/// on `socket`, replacing a stale one a sidecar that stopped left, and serves until the process ends, proving on the
+/// calling thread. The socket appears once the sidecar is ready to prove. Returns only if it cannot listen, which a
+/// second sidecar on the same socket learns before it starts anything.
 ///
 /// Call it from the main thread: a panic while proving, a bug, then ends the process.
-pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
-    std::os::unix::net::SocketAddr::from_pathname(&config.socket)?;
-    let _lock = lock(&config.socket)?;
-    remove_stale(&config.socket)?;
-    if config.threads > 0 {
-        P::set_num_threads(config.threads);
+pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible> {
+    std::os::unix::net::SocketAddr::from_pathname(socket)?;
+    let _lock = lock(socket)?;
+    remove_stale(socket)?;
+    if threads > 0 {
+        P::set_num_threads(threads);
     }
     P::init();
     let program = aggregation::unified_guest().bytecode().fiat_shamir_iv();
     warm_up::<P>();
-    let listener = UnixListener::bind(&config.socket)?;
+    let listener = UnixListener::bind(socket)?;
     let hello = encode_hello(&Hello {
         max_request: MAX_REQUEST,
         tag: verifier::TAG.to_vec(),
@@ -69,7 +61,7 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
     thread::Builder::new()
         .name("accept".into())
         .spawn(move || accept(&listener, &jobs, hello.into()))?;
-    eprintln!("serving {} with the {} prover", config.socket.display(), P::NAME);
+    eprintln!("serving {} with the {} prover", socket.display(), P::NAME);
     prove_forever::<P>(&queue)
 }
 
