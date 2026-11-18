@@ -218,11 +218,16 @@ def mlSub (fn : Fn) : CRes → Bool
 
 /-! ## The instance's exponent and dimension facts -/
 
-/-- **A top-level `load` of `x` through `p` at offset `k`** among the atoms. -/
+/-- The pointer and offset of the first `load` of `x` among the atoms. -/
+def ldOf (as : List Atom) (x : V) : Option (V × ℕ) :=
+  as.findSome? fun
+    | .load d p k => bif decide (d = x) then some (p, k) else none
+    | _ => none
+
+/-- **A top-level `load` of `x` through `p` at offset `k`** among the atoms: the first one (one scan per value, which
+the kernel shares between a function's residuals). -/
 def loadAt (as : List Atom) (x p : V) (k : ℕ) : Bool :=
-  as.any fun
-    | .load d p' k' => decide (d = x) && decide (p' = p) && decide (k' = k)
-    | _ => false
+  decide (ldOf as x = some (p, k))
 
 /-- **The exponent fact of a value** (`Res.expFacts`): `x` a listed parameter of `fn` (offset `none`), or the word a
 top-level `load` reads at a listed parameter's `[p]·g^k` (offset `some k`); the fact's bound. -/

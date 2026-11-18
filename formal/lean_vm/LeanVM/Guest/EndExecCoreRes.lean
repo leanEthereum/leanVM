@@ -303,13 +303,17 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
 
 theorem loadAt_mem {as : List Atom} {x p : V} {k : ℕ} (h : CoreMode.loadAt as x p k = true) :
     Atom.load x p k ∈ as := by
-  simp only [CoreMode.loadAt, List.any_eq_true] at h
-  obtain ⟨a, ha, h⟩ := h
+  unfold CoreMode.loadAt CoreMode.ldOf at h
+  rw [decide_eq_true_eq] at h
+  obtain ⟨a, ha, h⟩ := List.exists_of_findSome?_eq_some h
   cases a with
   | load d p' k' =>
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
-    exact ha
+    by_cases hd : d = x
+    · subst hd
+      simp only [decide_true, Bool.cond_true, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ha
+    · simp [hd] at h
   | _ => simp at h
 
 theorem loadHolds_det {rd : Reader} {p : E} {k : ℕ} {a b : E} (ha : LoadHolds rd p k a) (hb : LoadHolds rd p k b) :
