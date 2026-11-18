@@ -146,10 +146,10 @@ theorem placeBody_params {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : 
     (h0 : st₀.chainIn = none) (h : placeBody tf ctx st₀ = .ok ((), st')) :
     ∀ k (hk : k < tf.core.params.length), st'.locs[tf.core.params[k]]? = some (.cell (2 + k)) := by
   let Γ : Site κ := ⟨L, ⟨{}, {}, 0, 0, gpowTable 0⟩, 0, 0, fun _ _ => True, fun _ _ => True⟩
-  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => True) #[] 0 :=
+  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => False) #[] 0 :=
     ⟨⟨0, rfl⟩, fun _ _ _ hs => by simp at hs, by simp [Γ], by norm_num [Γ], by norm_num [Γ],
       fun _ => rfl, fun _ _ _ _ => by simp [Γ, Site.ent], fun _ _ _ _ _ _ _ => trivial,
-      fun _ _ _ _ _ _ => trivial⟩
+      fun _ _ _ _ _ _ => trivial, .inr fun _ _ h => h⟩
   suffices hw : wpP (placeBody tf) ctx st₀ (fun _ st' => ∀ k (hk : k < tf.core.params.length),
       st'.locs[tf.core.params[k]]? = some (.cell (2 + k))) from hw _ _ h
   unfold placeBody
@@ -172,10 +172,10 @@ theorem placeBody_tables {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : 
     (h0 : st₀.chainIn = none) (h : placeBody tf ctx st₀ = .ok ((), st')) :
     TablesLe st₀.tables st'.tables := by
   let Γ : Site κ := ⟨L, ⟨{}, {}, 0, 0, gpowTable 0⟩, 0, 0, fun _ _ => True, fun _ _ => True⟩
-  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => True) #[] 0 :=
+  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => False) #[] 0 :=
     ⟨⟨0, rfl⟩, fun _ _ _ hs => by simp at hs, by simp [Γ], by norm_num [Γ], by norm_num [Γ],
       fun _ => rfl, fun _ _ _ _ => by simp [Γ, Site.ent], fun _ _ _ _ _ _ _ => trivial,
-      fun _ _ _ _ _ _ => trivial⟩
+      fun _ _ _ _ _ _ => trivial, .inr fun _ _ h => h⟩
   suffices hw : wpP (placeBody tf) ctx st₀ (fun _ st' => TablesLe st₀.tables st'.tables) from
     hw _ _ h
   unfold placeBody

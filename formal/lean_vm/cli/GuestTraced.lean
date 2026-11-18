@@ -13,7 +13,9 @@ every value renamed as `coreProgram` names it: a value of the core function beco
 number past them, in the order the trace makes it. The core functions themselves are not written:
 `Guest/Compiled/World.lean` pairs `coreProgram`'s function `j`, which `lake exe guest-core` wrote as
 `Fn.renumber` of the same expansion, with entry `j` of `guestInfo`. So the back end's input for
-the guest, `guestTraced`, has `coreProgram`'s functions by construction.
+the guest, `guestTraced`, has `coreProgram`'s functions by construction. Each entry also holds the
+function's constant parameters as `withConstTable` finds them (`TracedFn.consts`), which the kernel
+checks (`ConstsOk`) rather than computes.
 
 The traces are in `Guest/Compiled/Trace/T{k}.lean` (`traceOf{j}`, a long one in parts
 `traceOf{j}_c{i}`), the list `guestInfo` in `Guest/Compiled/Traced.lean`.
@@ -103,6 +105,9 @@ def traceFile (k : Nat) (body : String) : String :=
 def pLoop (l : Bool × Option Nat) : String :=
   s!"({l.1}, {match l.2 with | some h => s!"some {h}" | none => "none"})"
 
+def pConsts (cs : List (Nat × E)) : String :=
+  pList (cs.map fun (k, c) => let (c0, c1) := limbsOf c; s!"({k}, word {c0} {c1})")
+
 /-- Every file, by its path under `Guest/Compiled`. The trace files import nothing of each other: a
 trace in parts is assembled in `Traced.lean`. -/
 def files (P : List TracedFn) : List (String × String) := Id.run do
@@ -121,16 +126,17 @@ def files (P : List TracedFn) : List (String × String) := Id.run do
     if let some w := whole then assembled := assembled ++ w
   out := out.push (s!"Trace/T{k}.lean", traceFile k body)
   let imports := (List.range (k + 1)).map fun i => s!"public import LeanVM.Guest.Compiled.Trace.T{i}\n"
-  let entries := P.zipIdx.map fun (tf, j) => s!"(traceOf{j}, {tf.rets}, {pLoop tf.loop})"
+  let entries := P.zipIdx.map fun (tf, j) =>
+    s!"(traceOf{j}, {tf.rets}, {pLoop tf.loop}, {pConsts tf.consts})"
   let list := header "Traced" "The guest as the back end's input: the traces of `coreProgram`'s functions." ++
     "public import LeanVM.Compiler.Trace\n" ++ String.join imports ++
     "public meta import LeanVM.Compiler.DataLit\n" ++
     "\nset_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
-    "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
+    "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler LeanVM.Parameters\n\n@[expose] public section\n\n" ++
     assembled ++
     "/-- What the back end takes of each of the guest's functions besides its core function, in the\n" ++
-    "compiler's order: its trace, its return cells and its `loopSource`. -/\n" ++
-    "data_lit guestInfo : List (Array Event × Nat × Bool × Option Nat) :=\n  " ++ pList entries ++
+    "compiler's order: its trace, its return cells, its `loopSource` and its constant parameters. -/\n" ++
+    "data_lit guestInfo : List (Array Event × Nat × (Bool × Option Nat) × List (Nat × E)) :=\n  " ++ pList entries ++
     s!"\n\ntheorem guestInfo_length : guestInfo.length = {P.length} := by decide +kernel\n" ++
     "\nend\nend LeanVM.Guest.Compiled.GuestData\n"
   out := out.push ("Traced.lean", list)

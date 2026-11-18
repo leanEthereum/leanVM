@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Compiler.Sound.Main
+public import LeanVM.Compiler.Sound.Consts
 public import LeanVM.Compiler.Sound.Cut
 
 /-!
@@ -29,12 +29,14 @@ By pass:
   (every statement and block, chains of `match`es included, `Sound/Chain.lean`), `placeFn_sound`
   (`PlaceFnSound` on every trace), `placeSound`.
 
-And composed (`Sound/Program.lean`, `Main.lean`):
+And composed (`Sound/Program.lean`, `Main.lean`, `Consts.lean`):
 
 * `fn_sound`: a function's contract, `FunSpecLtReached` of `World.Pre` and `World.Post`, for runs
-  shorter than `n + 1` from every contract for runs shorter than `n`;
+  shorter than `n + 1` from every contract for runs shorter than `n`, the callers' preconditions
+  carrying the loop helpers' constant parameters (`World.ConstsIn`);
 * `program_sound`: a halting run of the compiled program from `(g^0, 1)` makes `main`'s core body
-  hold under the valuation by places; `program_rel`: hence `Core.Program.Rel` of `main`;
+  hold under the valuation by places (`program_sound_of` at the world whose preconditions carry
+  the constant parameters); `program_rel`: hence `Core.Program.Rel` of `main`;
 * `World.params_vf`: at every frame, a function's parameters are its argument words under the
   valuation by places.
 
@@ -45,18 +47,19 @@ are the given ones); `placed_locs_of_pieces`, `world_locs_of_pieces`, the places
 function's piece from parts, its walk cut between top-level statements (`Sound/Cut.lean`,
 `pieceAt_of_cut`).
 
-No certificate enters: the hypotheses are that `lowerProgram` succeeded (`World.Compiled`), the
-memory is within the address space, and the functions' obligations (`World.Obligations`: selectors
-in range and callees' preconditions, each given what precedes it).
+No certificate enters: the hypotheses are that `lowerProgram` succeeded (`World.Compiled`, its
+constant parameters checked), the memory is within the address space, and the functions'
+obligations (`World.Obligations`: selectors in range and callees' preconditions, each given what
+precedes it).
 -/
 
 open LeanVM.Compiler
 
 example : EmitBlockSize := emitBlockSize
 
-example {κ : ℕ} (W : World κ) (hW : W.Compiled) (hκ : κ < 64) (tf : TracedFn) (htf : tf ∈ W.p)
-    (hne : tf.core.name ≠ "main") (hobl : W.Obligations tf) : W.FnSound tf :=
-  fn_sound hW hκ htf hne hobl
+example {κ : ℕ} (W : World κ) (hW : W.Compiled) (hκ : κ < 64) (hUc : W.ConstsIn) (tf : TracedFn)
+    (htf : tf ∈ W.p) (hne : tf.core.name ≠ "main") (hobl : W.Obligations tf) : W.FnSound tf :=
+  fn_sound hW hκ hUc htf hne hobl
 
 example : PlaceSoundStmt := placeSound
 

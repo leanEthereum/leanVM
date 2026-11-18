@@ -363,6 +363,7 @@ theorem compiles_of_pieces {p : List TracedFn} {os : List FnOut} {cfJt : Compile
     {cfs : List CompiledFunction} {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {k : ℕ}
     (hloops : loopTable p = loops) (hsigs : sigTable p = sigs)
     (hl : layoutInfo (infoOfOuts p os) (baseOf os) = l) (hchecks : progChecks p loops = true)
+    (hconsts : ConstsOk (constsOf loops) (p.map (·.core)) = true)
     (hos : os.length = p.length) (hcfs : cfs.length = p.length)
     (hpieces : ∀ j < p.length, pieceAt loops sigs l p os cfs j = true)
     (hslots : slotsOk os = true) (hne : (tablesEnd os).len ≠ 0)
@@ -401,6 +402,7 @@ theorem compiles_of_pieces {p : List TracedFn} {os : List FnOut} {cfJt : Compile
     exact this
   have hlow : lowerProgram p = .ok (placed.map fun pf => (emitFn pf.fn).1, slots) := by
     unfold lowerProgram
+    simp only [hloops, hconsts, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     rw [hpp]
     have hs : tableSlots (tablesEnd os).len (fillsOf placed).toArray (tablesEnd os).entries = slots := by
       rw [hfills, entries_eq, tableSlots_eq]
@@ -548,6 +550,36 @@ theorem extra_of_with {j : ℕ} (h : pieceAtWith extra loops sigs l p os cfs j =
   exact hx
 
 end Ranges
+
+/-! ## The constant parameters' check in ranges -/
+
+section ConstsRanges
+
+/-- `ConstsOk`'s check of the bodies of functions `a` to `b - 1`: a large program's check, in
+ranges the kernel decides apart (`constsOk_of_in`), walking the program's list once. -/
+def constsIn (T : String → List (ℕ × E)) (p : Core.Program) (a b : ℕ) : Bool :=
+  ((p.drop a).take (b - a)).all fun f => blockOk T (entryKnown T f) f.body
+
+variable {T : String → List (ℕ × E)} {p : Core.Program}
+
+theorem constsIn_glue {a b c : ℕ} (h1 : constsIn T p a b = true) (h2 : constsIn T p b c = true)
+    (hab : a ≤ b) (hbc : b ≤ c) : constsIn T p a c = true := by
+  unfold constsIn at *
+  have e : c - a = (b - a) + (c - b) := by omega
+  have hd : (p.drop a).drop (b - a) = p.drop b := by
+    rw [List.drop_drop]; congr 1; omega
+  rw [e, List.take_add, List.all_append, Bool.and_eq_true, hd]
+  exact ⟨h1, h2⟩
+
+/-- **`ConstsOk` from its ranges**: `main` named nothing and every body checked. -/
+theorem constsOk_of_in (hm : (T "main").isEmpty = true) (h : constsIn T p 0 p.length = true) :
+    ConstsOk T p = true := by
+  unfold constsIn at h
+  rw [List.drop_zero, Nat.sub_zero, List.take_of_length_le le_rfl] at h
+  simp only [ConstsOk, hm, Bool.true_and]
+  exact h
+
+end ConstsRanges
 
 /-! ## The placed functions -/
 

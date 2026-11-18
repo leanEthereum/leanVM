@@ -10,6 +10,7 @@ module
 public import LeanVM.Compiler.Complete.ProgJt
 public import LeanVM.Compiler.Complete.PathRun
 public import LeanVM.Compiler.Complete.FrameWordsDone
+public import LeanVM.Compiler.Complete.Consts
 
 /-!
 # The frames of the honest memory
@@ -283,7 +284,7 @@ theorem frame_honestB (hW : W.Compiled) (hC : ∀ tf ∈ W.p, FnConds W tf) :
   have hhK : tf.core.name ≠ "main" → IsInK I.hdr.1 ∧ IsInK I.hdr.2 := fun hn =>
     honest_hdrB hT hI (by rw [ht]; exact hn)
   refine ⟨tf, pf, hfo, ⟨?_, ?_, hhK, fun n h2 hn => own_cell hW hH hI htf ht hfo hpa h2 hn, hlen,
-    ?_, ?_⟩, hadd⟩
+    ?_, ?_, ?_⟩, hadd⟩
   · have := (hH.toHonest.read_hdr hI).1
     rwa [← addr_add] at this
   · have := (hH.toHonest.read_hdr hI).2
@@ -388,6 +389,28 @@ theorem frame_honestB (hW : W.Compiled) (hC : ∀ tf ∈ W.p, FnConds W tf) :
     rw [Option.some.inj this, ht]
     simp only [Tree.name]
     rw [fsB_fn hW htf hpa hmn]
+  · intro c hc x hx hk
+    have hCo := lowerProgram_consts hW.1
+    have hpar := insts_consts (rd := rd) (fs := W.fsB) (lp := W.core.loop)
+      (H := W.hdrB) hCo T 0 hdr hH.toHonest.valid
+      (by rw [hT, ConstsOk.main hCo]; intro x hx; cases hx) I hI
+    rw [ht] at hpar
+    obtain ⟨args, rets, hv⟩ := hval hI ht
+    rw [ht] at hv
+    obtain ⟨fn, hf, -⟩ := hv
+    obtain ⟨tf'', htf'', hcore, hfn⟩ := core_find hf
+    have htt : tf = tf'' := (eq_of_name hnd htf'' htf (by rw [hcore, hfn])).symm
+    subst htt
+    have hkn : KnownHolds σ (entryKnown (constsOf (loopTable W.p)) fn) :=
+      entryKnown_holds rfl (by rw [hfn]; exact hpar fn hf)
+    have hcalls := walk_consts (rd := (W.honestB hdr T).read) fn.body hkn
+      (List.all_eq_true.mp (Bool.and_eq_true_iff.mp hCo).2 fn
+        (by rw [← hcore]; exact List.mem_map_of_mem htf))
+      (by rw [← hcore, hw]; exact hev)
+    rw [← hcore, hw] at hcalls
+    have := hcalls c hc x hx
+    rw [List.getElem?_map, List.getElem?_eq_getElem hk] at this
+    exact Option.some.inj this
 
 end
 

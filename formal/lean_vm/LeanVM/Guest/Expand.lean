@@ -2002,7 +2002,7 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →
           else do
             let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Compiler.loopSource f⟩, lines))
+              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Compiler.loopSource f, []⟩, lines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
 and what the back end reads of its source as queued (`Compiler.TracedFn`), and the source lines

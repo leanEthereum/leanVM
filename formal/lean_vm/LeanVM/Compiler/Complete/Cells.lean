@@ -37,6 +37,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 /-- The cells of this frame an instruction names. -/
 def opCells : LOp → List Cell
   | .mulNextFrame a b _ => [a, b]
+  | .setNextFrame _ _ _ => []
   | .set o _ => [o]
   | .xor a b c => [a, b, c]
   | .mul a b c => [a, b, c]

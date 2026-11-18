@@ -127,6 +127,8 @@ theorem compileChecked_of {κ₀ : ℕ} (W : World κ₀) {r : List Lowered × A
     compileChecked W.p = .ok r := by
   have hpp : ∃ t, placeProgram W.p = .ok (W.placed, t) := by
     unfold lowerProgram at hl
+    split at hl
+    · cases hl
     cases h : placeProgram W.p with
     | error e => rw [h] at hl; exact absurd hl (by simp)
     | ok q => exact ⟨q.2, by simp [World.placed, h]⟩

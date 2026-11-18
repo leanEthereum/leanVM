@@ -92,7 +92,8 @@ inductive Event where
   deriving Repr, Inhabited
 
 /-- A lowered function: its core function and its trace, and what the back end takes from its
-source as the expansion queued it: the cells of its returned values and its `loopSource`. -/
+source as the expansion queued it: the cells of its returned values and its `loopSource`; and,
+for a loop helper, its constant parameters (`Consts.lean`, `withConstTable`). -/
 structure TracedFn where
   core : Core.Fn
   trace : Array Event
@@ -101,6 +102,8 @@ structure TracedFn where
   /-- `loopSource` of its source: whether a loop helper's frames are reserved in one run, and
   its constant exit bound. -/
   loop : Bool × Option Nat
+  /-- Its constant parameters: argument positions and the word every call passes there. -/
+  consts : List (Nat × LeanVM.Parameters.E) := []
   deriving Inhabited
 
 open LeanVM.Guest.Source in

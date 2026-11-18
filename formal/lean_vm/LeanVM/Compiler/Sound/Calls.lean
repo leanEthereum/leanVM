@@ -103,6 +103,38 @@ theorem holds_mulNext {pc a one c : ℕ} (h : Holds Γ.L pc fp (Γ.R (.mulNextFr
   rw [hb1, mul_one] at hc
   rw [ha, ← hc, mul_assoc, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
 
+/-- A `SET` into the next frame: the cell there holds the word of the limbs. -/
+theorem holds_setNext {pc c c0 c1 : ℕ} (h : Holds Γ.L pc fp (Γ.R (.setNextFrame c c0 c1))) :
+    Γ.L.read (fp * addressOfIndex Γ.frame * addressOfIndex c) = some (Guest.word c0 c1) := by
+  have h' : Γ.L.read (fp * addressOfIndex (Γ.frame + c)) = some (Guest.word c0 c1) := h
+  rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
+  exact h'
+
+/-- An entry `List.lookup` finds is in the list. -/
+theorem mem_of_lookup {l : List (ℕ × ℕ × ℕ)} {k : ℕ} {b : ℕ × ℕ} (h : l.lookup k = some b) :
+    (k, b) ∈ l := by
+  obtain ⟨l₁, l₂, rfl, -⟩ := List.lookup_eq_some_iff.mp h
+  simp
+
+/-- An argument of a loop helper's closing call (`nextArg`): the next frame's cell holds what this
+frame's argument cell does, where the limbs a `SET` writes are that cell's word. -/
+theorem holds_nextArg {pc a k one : ℕ} {consts : List (ℕ × ℕ × ℕ)}
+    (h : Holds Γ.L pc fp (Γ.R (nextArg one consts (a, k)))) (hone : wd Γ.L fp one = 1)
+    (hc : ∀ x ∈ consts, x.1 = k → wd Γ.L fp a = Guest.word x.2.1 x.2.2) :
+    wd Γ.L (fp * addressOfIndex Γ.frame) (argBase + k) = wd Γ.L fp a := by
+  unfold nextArg at h
+  dsimp only at h
+  cases hl : consts.lookup k with
+  | some p =>
+      obtain ⟨c0, c1⟩ := p
+      rw [hl] at h
+      rw [hc _ (mem_of_lookup hl) rfl, wd, holds_setNext h]
+      rfl
+  | none =>
+      rw [hl] at h
+      rw [wd, wd]
+      exact congrArg (fun o => Option.getD o 0) (holds_mulNext h hone)
+
 theorem holds_set_entry {pc o : ℕ} {f : String} (hpow : Γ.l.PowOk) (hlt : Γ.ent f < 2 ^ 128)
     (h : Holds Γ.L pc fp (Γ.R (.set o (.entry f)))) :
     wd Γ.L fp o = ofK (addressOfIndex (Γ.ent f)) :=
@@ -253,13 +285,17 @@ theorem call_node (env : PlaceEnv Γ fp ctx C U slots B) {hints : List LHint} {c
       exact hC
 
 /-- **A registered loop's closing call**: the next frame of the run, at `fp · g^S`, holds the
-argument words and its own pointer, and returns where this frame does. -/
+argument words and its own pointer, and returns where this frame does; an argument `SET` there
+writes the word of its cell. -/
 theorem loopNext_node (env : PlaceEnv Γ fp ctx C U slots B) {hints : List LHint} {callee : String}
-    {nfp entry oc one : Cell} {args : List Cell} {pos : ℕ} {N : Prop} {kj : E → E → Prop}
-    {kretP : Prop} {khalt : E → E → Prop}
+    {nfp entry oc one : Cell} {args : List Cell} {consts : List (ℕ × ℕ × ℕ)} {pos : ℕ} {N : Prop}
+    {kj : E → E → Prop} {kretP : Prop} {khalt : E → E → Prop}
     (hcal : isCallee ctx.sigs args.length 0 callee = true) (hone : wd Γ.L fp one = 1)
     (hnfp : wd Γ.L fp nfp = ofK (fp * addressOfIndex Γ.frame))
-    (hsem : PStmt.Sem Γ fp (.loopNext hints callee nfp entry oc one args) pos N kj kretP khalt) :
+    (hcs : (∀ x ∈ consts, ∀ hk : x.1 < args.length, wd Γ.L fp args[x.1] = Guest.word x.2.1 x.2.2)
+      ∨ ∀ g a, ¬ U g a)
+    (hsem : PStmt.Sem Γ fp (.loopNext hints callee nfp entry oc one args consts) pos N kj kretP
+      khalt) :
     IsInK (wd Γ.L fp oc) ∧ (wd Γ.L fp oc = 0 → N) ∧
       (wd Γ.L fp oc ≠ 0 → U callee (args.map (wd Γ.L fp)) →
         C callee (args.map (wd Γ.L fp)) [] ∧ kretP) := by
@@ -267,6 +303,7 @@ theorem loopNext_node (env : PlaceEnv Γ fp ctx C U slots B) {hints : List LHint
   obtain ⟨hpre, hj⟩ := hsem
   obtain ⟨hK, -, hfall, htaken⟩ := jumpAt_wd hj
   refine ⟨hK, hfall, fun hne hU => ?_⟩
+  replace hcs := hcs.resolve_right fun hno => hno _ _ hU
   unfold loopPre at hpre
   obtain ⟨hA, hT⟩ := segHolds_append.mp hpre
   obtain ⟨hset', hcopies⟩ := segHolds_append.mp hA
@@ -279,9 +316,10 @@ theorem loopNext_node (env : PlaceEnv Γ fp ctx C U slots B) {hints : List LHint
       args.map (wd Γ.L fp) := by
     refine frameWords_eq (by simp) fun k hk => ?_
     have hk' : k < args.length := by simpa using hk
-    have := holds_mulNext (segHolds_zipIdx hcopies k hk') hone
-    rw [List.getElem_map, wd, wd]
-    exact congrArg (fun o => Option.getD o 0) this
+    rw [List.getElem_map]
+    exact holds_nextArg (segHolds_zipIdx hcopies k hk') hone fun x hx hxk => by
+      subst hxk
+      exact hcs x hx hk'
   have hself : wd Γ.L (fp * addressOfIndex Γ.frame) (2 + args.length) =
       ofK (fp * addressOfIndex Γ.frame) := by
     have := holds_mulNext hm1 hone

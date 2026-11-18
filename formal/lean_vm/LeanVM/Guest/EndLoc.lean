@@ -32,15 +32,15 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 @[expose] public section
 
 /-- **Every function's contract** on the guest's world, on the run from `(g^0, 1)`, for runs of any
-length (`Compiler.contracts`, with every function's obligations `Compiled.Obl.guest_obligations`). -/
+length (`Compiler.contracts`, with every function's obligations `Compiled.guestEnd_obligations`). -/
 theorem globSpec {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (g : String) :
     FunSpecReached guestProgram L ((Located.guestW L).ent g) ((Located.guestW L).Pre g)
       ((Located.guestW L).Post g) := by
-  have hW := Compiled.guestWorld_compiled (L := L) (U := Compiled.Obl.guestU L.read)
+  have hW := Compiled.guestWorld_compiled (L := L) (U := Compiled.guestUc L.read)
     Compiled.guest_compiles
-  have h := Compiler.contracts hW (lt_of_le_of_lt h32 Compiled.maxLogMem_lt)
-    (Compiled.Obl.guest_obligations hW Compiled.guestTraced_core ⟨h16, h32⟩ rfl) g
+  have h := Compiler.contracts hW (lt_of_le_of_lt h32 Compiled.maxLogMem_lt) Compiled.guestEnd_constsIn
+    (Compiled.guestEnd_obligations Compiled.guest_compiles ⟨h16, h32⟩) g
   rw [Compiled.guestWorld_prog Compiled.guest_compiles] at h
   exact h
 

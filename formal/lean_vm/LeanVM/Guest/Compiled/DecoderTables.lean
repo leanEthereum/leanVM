@@ -29,7 +29,7 @@ open LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Cost.Decoder
 @[expose] public section
 
 theorem registered_list : guestRegisteredList.tail = (coreProgram.zip GuestData.guestInfo).map
-    fun p => if isLoopName p.1.name && p.2.2.2.1 then 1 else 0 := by
+    fun p => if isLoopName p.1.name && p.2.2.2.1.1 then 1 else 0 := by
   decide +kernel
 
 theorem retCounts_list : guestRetCountsList.tail = GuestData.guestInfo.map (·.2.1) := by
@@ -56,12 +56,12 @@ theorem ite_beq_one (b : Bool) : ((if b = true then (1 : ℕ) else 0) == 1) = b 
 
 /-- **The decoder's registered flags** are the back end's input's. -/
 theorem guestRegistered_eq : ∀ j, 1 ≤ j → j < nFns →
-    (guestRegistered.getD j 0 == 1) = (isLoopName (coreOf j).name && (infoOf j).2.2.1) := by
+    (guestRegistered.getD j 0 == 1) = (isLoopName (coreOf j).name && (infoOf j).2.2.1.1) := by
   intro j h1 h2
   obtain ⟨i, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by omega⟩
   obtain ⟨hc, hg, e1, e2⟩ := coreOf_info h2
   have hz : i < ((coreProgram.zip GuestData.guestInfo).map
-      fun p => if isLoopName p.1.name && p.2.2.2.1 then 1 else 0).length := by simp [hc, hg]
+      fun p => if isLoopName p.1.name && p.2.2.2.1.1 then 1 else 0).length := by simp [hc, hg]
   rw [guestRegistered, getD_toArray_succ, registered_list, List.getD_eq_getElem _ _ hz,
     List.getElem_map, List.getElem_zip, e1, e2, ite_beq_one]
 
