@@ -63,6 +63,16 @@ def mpow(a, e):
     return mk(tuple((b, x * e) for b, x in a[0]), a[1] * e)
 
 
+def mdiv(a, b):
+    """`a / b` when `b`'s bases divide `a`'s, else `None`."""
+    da = dict(a[0])
+    for k, e in b[0]:
+        if da.get(k, 0) < e:
+            return None
+        da[k] -= e
+    return mk(tuple(da.items()), a[1] - b[1])
+
+
 def shift(a, o):
     return (a[0], (a[1] + o) % ORD)
 
@@ -278,9 +288,34 @@ class Pass:
                 self.defs.setdefault(s[1][1], s[1])
 
     # -- monomials
+    subst = {}
+
     def mono(self, st, v):
         m = st.env.get(v)
-        return m if m is not None else base(v)
+        if m is None:
+            m = base(v)
+        if self.subst and any(b in self.subst for b, _ in m[0]):
+            m = self.sub(m)
+        return m
+
+    def sub(self, m):
+        """`m` under the arm's assumptions: a base `b` is `g^k` (`b = x·g^-t` for the selector `x = g^j`)."""
+        bs, off = [], m[1]
+        for b, e in m[0]:
+            if b in self.subst:
+                off += e * self.subst[b]
+            else:
+                bs.append((b, e))
+        return mk(tuple(bs), off)
+
+    def assume(self, st, x, j):
+        """Arm `j` of a selector `x`: its monomial `b·g^t` gives `b = g^(j - t)`, if `j >= t`."""
+        m = self.mono(st, x)
+        if len(m[0]) == 1 and m[0][0][1] == 1:
+            t = m[1] if m[1] < 2 ** 40 else m[1] - ORD
+            if j - t >= 0:
+                return {**self.subst, m[0][0][0]: j - t}
+        return self.subst
 
     def iface(self, c):
         return all(b < self.m for b, _ in c[0])
@@ -473,9 +508,10 @@ class Pass:
             if x in st.D and y in st.D or d not in st.D:
                 self.define(st, d, mmul(self.mono(st, x), self.mono(st, y)), 'mul')
             else:
-                for u in (x, y):
+                # a division `u = d / o`: its monomial when `o`'s divides `d`'s
+                for u, o in ((x, y), (y, x)):
                     if u not in st.D:
-                        self.define(st, u, None, 'mul')
+                        self.define(st, u, mdiv(self.mono(st, d), self.mono(st, o)), 'mul')
         elif k == 'add':
             d, x, y = a[1:]
             self.adds[d] = (x, y)
@@ -550,6 +586,8 @@ class Pass:
                 mp = self.mono(st, p)
                 for j in range(n):
                     self.push(st, shift(mp, off + j))
+                if n > 1:
+                    self.pushR(st, (shift(mp, off), 1, num(0), num(n)))
             if h[0] == 'log2Ceil' and h[1][0] == 'heap':
                 _, p, off, ln = h[1]
                 mp = self.mono(st, p)
@@ -735,8 +773,14 @@ class Pass:
     armconds = None
 
     def conds_of(self, st, x, j):
-        cd = st.cond.get((self.mono(st, x), j))
-        return [cd] if cd else []
+        """The facts known under `x = g^j`: kept under `y = g^i` with `y = x·g^d`, `i = j + d`."""
+        xm = self.mono(st, x)
+        out = []
+        for (y, i), cd in st.cond.items():
+            d = ioff(xm, y)
+            if d is not None and i == j + d:
+                out.append(cd)
+        return out
 
     def block(self, st, ss):
         for s in ss:
@@ -757,12 +801,14 @@ class Pass:
                         t.pts.update({c: w for c, w in pts.items() if c not in t.pts})
                         t.runs += runs
                         t.hv.update({c: w for c, w in hv.items() if c not in t.hv})
-                    if s[1] not in t.env:
-                        t.env[s[1]] = num(j)
+                    old = self.subst
+                    self.subst = self.assume(st, s[1], j)
                     outs.append(self.block(t, arm))
+                    self.subst = old
                 st = meet(outs, (x, list(range(len(s[2])))))
                 if st is not None:
                     st.lts.add((x, num(len(s[2]))))
+                    self.arm_blocks(st, x, outs)
             elif k == 'call':
                 self.call(st, callee(s[1]), s[2], s[3])
             elif k == 'callIf':
@@ -789,13 +835,41 @@ class Pass:
             t = st.copy()
             cd = self.conds_of(st, x, j)
             self.armconds = cd
+            old = self.subst
+            self.subst = self.assume(st, x, j)
             self.call(t, f, args, rets, conds=cd)
+            self.subst = old
             self.armconds = None
             outs.append(t)
         m = meet(outs, (xm, list(range(len(fs)))))
         for a in St.__slots__:
             setattr(st, a, getattr(m, a))
         st.lts.add((xm, num(len(fs))))
+        self.arm_blocks(st, xm, outs)
+
+    def arm_blocks(self, st, xm, outs):
+        """Arms of a selector `x` each writing a growing block `Q·g^(c..j+c)`, `c <= 0`: the run `Q·[0, e(x) + d)`
+        (`armBlocks`), `d` the least block's excess over its arm index."""
+        if len(outs) < 3 or any(t is None for t in outs) or not xm[0]:
+            return
+        by = collections.defaultdict(set)
+        for c in outs[-1].pts:
+            if c[1] < 2 ** 20 and c[0]:
+                by[c[0]].add(c[1])
+        for Q, offs in by.items():
+            d = None
+            for j, t in enumerate(outs):
+                n = 0
+                while (Q, n) in t.pts:
+                    n += 1
+                d = n - j if d is None else min(d, n - j)
+            if d is None or d < 0 or all(((Q, 0) in t.pts) for t in outs[:1]) and d == 0 and len(offs) < 2:
+                continue
+            if d + len(outs) - 1 < 2:
+                continue
+            r = ((Q, 0), 1, num(0), shift(xm, d))
+            self.stats['arm-block'] += 1
+            self.pushR(st, r)
 
     def run(self):
         st = St()
