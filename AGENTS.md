@@ -105,7 +105,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 - Nested dispatch panics, because it would deadlock the dispatch lock. Each pool only sees its own nesting, so a task of either pool must not dispatch on either: inside a `P::map_collect` task, the shared crates call no dispatching helper of the stable tree.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, beside the pool's dispatches of a signature loop's segments and of their Keccak blocks, and gone when it ends. Stable builds the Keccak witness after execution, in the pool.
-- `LEANVM_NUM_THREADS=1` is strictly sequential. In experimental it sets the performance-worker count, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable it sets the worker count, and the default is `available_parallelism()`, halved where Linux reports SMT active.
+- `LEANVM_NUM_THREADS` sets the worker count, and `1` is strictly sequential. In experimental, workers fill the performance cores before the efficiency cores, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable the default is `available_parallelism()`, halved where Linux reports SMT active.
 
 ## Three verifiers, one protocol
 
@@ -151,7 +151,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 
 | var                                                                            | effect                                                |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `LEANVM_NUM_THREADS`                                                           | worker count (experimental: performance workers); `1` = sequential |
+| `LEANVM_NUM_THREADS`                                                           | worker count; `1` = sequential |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN`                              | `--tracing`, `--repeat`, `--cooldown` for the benches |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH`                                                 | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS`         | PCS throughput bench: size, rate, claims              |
