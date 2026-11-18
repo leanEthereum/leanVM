@@ -18,6 +18,7 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 
 @[expose] public section
 
+set_option maxHeartbeats 0 in
 /-- `sp_wots`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)

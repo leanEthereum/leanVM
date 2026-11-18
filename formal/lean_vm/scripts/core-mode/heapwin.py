@@ -1,7 +1,7 @@
 """The kernel's heap check of a long loop helper in windows (`CoreMode/HeapCWin.lean`): `heapOkC` over the whole body
 of `main_loop2` (35 `match`es of 256 arms) runs past the build's memory cap in one `decide`.
 
-The certificate is `emitc.py`'s (`GenC/<pack>/Data.lean`, its `hcert`; `emitc.KERNEL_SKIP` lists the functions it
+The certificate is `emitc.py`'s (`GenC/<pack>/Data.lean`, its `hcert`; `emitc.KERNEL_WIN` lists the functions it
 leaves to this script). The body without the tail is cut between top-level statements, each window at most `--atoms`
 atoms (counting the arms'); `heapc.py`'s pass (the check in Python, step for step) gives the state at each cut, written
 as a literal (`mkCSt`, the tries by their entries). Per function, in `GenCW/<fn>/` (not under `GenC/`, whose files
@@ -14,7 +14,8 @@ as a literal (`mkCSt`, the tries by their entries). Per function, in `GenCW/<fn>
   statement `emitc.py` writes for the other functions), by `heapOkC_of_wins`.
 
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/heapwin.py [--fn NAME,..]
-  [--atoms N] [--out DIR] [--check] [--mods FILE]
+  [--atoms N] [--out DIR] [--check] [--mods FILE]. `emitc.py` runs it for its `KERNEL_WIN` functions (`run`), so its
+  `--check` and `--mods` cover these modules too.
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -194,15 +195,10 @@ def emit(k, H, sts, cs, names, po):
     return mods
 
 
-def main():
-    fns = argv[argv.index('--fn') + 1].split(',') if '--fn' in argv else FNS
-    budget = int(argv[argv.index('--atoms') + 1]) if '--atoms' in argv else ATOMS
-    out = argv[argv.index('--out') + 1] if '--out' in argv else os.path.join(GUEST, 'CoreMode', 'GenCW')
-    I.F.difference_update(E.OFF)
-    I.set_features(argv)
-    res, dt = I.run_all()
-    print(f'inferred {len(res)} functions in {dt:.1f} s')
-    sigs, certs, why, drops, stmt_names, stats = E.build(res, set(fns))
+def run(res, built, fns, out, budget=ATOMS, check=False):
+    """The windowed modules of `fns` from `emitc.build`'s result `built`, written under `out` (or compared, `check`):
+    `(modules, stale paths)`. `emitc.py` calls this for its `KERNEL_WIN` functions."""
+    sigs, certs, why, drops, stmt_names, stats = built
     po = E.pack_of()
     stale, mods = [], []
     for k in fns:
@@ -217,13 +213,25 @@ def main():
         for name, text in emit(k, H, sts, cs, stmt_names[k], po):
             path = os.path.join(out, k, name + '.lean')
             mods.append(f'LeanVM.Guest.CoreMode.GenCW.«{k}».{name}')
-            if '--check' in argv:
+            if check:
                 if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
                     stale.append(path)
             else:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, 'w', encoding='utf-8') as fh:
                     fh.write(text)
+    return mods, stale
+
+
+def main():
+    fns = argv[argv.index('--fn') + 1].split(',') if '--fn' in argv else FNS
+    budget = int(argv[argv.index('--atoms') + 1]) if '--atoms' in argv else ATOMS
+    out = argv[argv.index('--out') + 1] if '--out' in argv else os.path.join(GUEST, 'CoreMode', 'GenCW')
+    I.F.difference_update(E.OFF)
+    I.set_features(argv)
+    res, dt = I.run_all()
+    print(f'inferred {len(res)} functions in {dt:.1f} s')
+    mods, stale = run(res, E.build(res, set(fns)), fns, out, budget, '--check' in argv)
     if '--mods' in argv:
         with open(argv[argv.index('--mods') + 1], 'w') as fh:
             fh.write('\n'.join(mods) + '\n')

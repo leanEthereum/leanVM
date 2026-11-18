@@ -18,6 +18,7 @@ namespace LeanVM.Guest.Fn.«walk_path__L24_L4»
 
 @[expose] public section
 
+set_option maxHeartbeats 0 in
 /-- `walk_path__L24_L4`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)

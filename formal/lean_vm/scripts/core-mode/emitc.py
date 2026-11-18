@@ -25,6 +25,9 @@ argv = list(sys.argv)
 sys.argv = sys.argv[:1]
 import infer as I
 import heapc as C
+if __name__ == '__main__':
+    # `heapwin.py` imports this module by name: one instance (one `Pass` instrumentation)
+    sys.modules.setdefault('emitc', sys.modules[__name__])
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 NAME = {k: nm for nm, k in I.STABLE.items()}
@@ -32,9 +35,12 @@ NAME = {k: nm for nm, k in I.STABLE.items()}
 # naturals there) and range checks as free facts (there every fact is a residual)
 OFF = {'wrap', 'lts'}
 PTSMAX = 4096
-# functions whose kernel check runs past the build's memory cap (`lake-build.py --cap 36`): their certificate is
-# emitted, their `heap_okC` not (one `decide` over the whole body; a windowed check is a request to the heap side)
-KERNEL_SKIP = {'main_loop2'}
+# functions whose kernel check runs past the build's memory cap (`lake-build.py --cap 36`) in one `decide`: their
+# certificate is emitted here, their `heap_okC` by `heapwin.py` in windows (`GenCW/<fn>/`)
+KERNEL_WIN = {'main_loop2'}
+# not a loop helper, so no windows yet: its certificate passes the Python check, its one `decide` runs past the cap
+# (request E13 in `m2-heap.md`)
+KERNEL_SKIP = KERNEL_WIN | {'check_opening_terminal'}
 
 
 # ---- the inference's values, recorded as it assigns them
@@ -905,6 +911,7 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
+    H.fas = C.fa_pairs(body)
     S = Solver(k, P, H, sigs)
     S.miss = []
     X_ = C.X(dict(I.POWS), H, sigOf, params, S)
@@ -1157,6 +1164,8 @@ def lcert(H, sig_only=False):
         out += f'  divs := {lnums(sorted(H.divs))}\n'
     if H.eqs:
         out += f'  eqs := {lnums(sorted(H.eqs))}\n'
+    if H.fas:
+        out += '  fas := [' + wrap(f'({a}, {b})' for a, b in H.fas) + ']\n'
     if H.hvs:
         out += '  hvs := ' + ax.lst('hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
     if H.gargs:
@@ -1237,7 +1246,8 @@ def cause(k, fails, P):
 
 
 def emit(out, res, check_only, only=None):
-    sigs, certs, why, drops, stmt_names, stats = build(res, only)
+    built = build(res, only)
+    sigs, certs, why, drops, stmt_names, stats = built
     passing = {k for k in certs if k not in why}
     closed = set()
     for k in I.ORDER:
@@ -1270,7 +1280,10 @@ def emit(out, res, check_only, only=None):
             names = sorted(stmt_names[k])
             arms = ''.join(f'\n    | "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE)
             sig = f'(fun g ↦ match g with{arms}\n    | _ => .empty)' if arms else '(fun _ ↦ .empty)'
-            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n/-- `{k}`: the heap check. -/\n'
+            # no heartbeat limit: the kernel's `decide` is bounded by the build's memory cap (`check_opening_terminal`
+            # runs past the default)
+            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\nset_option maxHeartbeats 0 in\n'
+                   f'/-- `{k}`: the heap check. -/\n'
                    f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files = [('Data', data)] + ([('Ok', ok)] if oks else [])
@@ -1293,6 +1306,13 @@ def emit(out, res, check_only, only=None):
         want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
         for p in set(glob.glob(os.path.join(out, '*', '*.lean'))) - want:
             os.remove(p)
+    # the `KERNEL_WIN` functions' kernel checks in windows (`heapwin.py`, `GenCW/<fn>/`)
+    wins = sorted(k for k in KERNEL_WIN if k in passing)
+    if wins:
+        import heapwin
+        wmods, wstale = heapwin.run(res, built, wins, os.path.join(os.path.dirname(out), 'GenCW'), check=check_only)
+        mods += wmods
+        stale += wstale
     clean, inf_closed = I.closure(res)
     cw = collections.Counter(cause(k, why[k], res[k]) for k in why)
     print(f'certificates: {len(certs)}; the Python check passes {len(passing)} (closed, callees too: {len(closed)}); '

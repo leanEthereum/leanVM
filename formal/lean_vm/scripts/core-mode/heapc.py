@@ -94,6 +94,7 @@ class HCert:
         self.hvs = []
         self.gargs = []
         self.eqs = []
+        self.fas = []            # frame run cells guaranteed at return: `(kp, i)`, cell `i` of `frameAddr kp run`
 
 
 def nth(l, n):
@@ -1040,6 +1041,14 @@ class Pass:
             st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
 
     def ret(self, st, vs):
+        """`retC`: the frame run cells (`fas`) pushed first, into the state the guarantees are checked in only."""
+        st0, st = st, st.copy()
+        for kp, i in self.X.H.fas:
+            st.push(cshift(mono(st.env, kp), i))
+        self.ret1(st, vs)
+        st0.nt = st.nt
+
+    def ret1(self, st, vs):
         X = self.X
         G = X.sig
         mp, mv = monos(st.env, X.params), monos(st.env, vs)
@@ -1325,6 +1334,42 @@ def values(params, body):
     return out
 
 
+def _noret(s):
+    if s[0] == 'ret':
+        return False
+    if s[0] == 'ite':
+        return all(map(_noret, s[2])) and all(map(_noret, s[3]))
+    if s[0] == 'match':
+        return all(_noret(t) for a in s[2] for t in a)
+    return True
+
+
+def atomDst(a):
+    """The values an atom defines in its frame (`atomDst`)."""
+    if a[0] in ('const', 'add', 'mul', 'copy'):
+        return [a[1]]
+    if a[0] == 'hint':
+        h = a[1]
+        if h[0] in ('witness', 'bits', 'bitsExp', 'digitsExp', 'windowsExp'):
+            d = h[-1]
+            if d[0] == 'stack':
+                return list(d[1])
+    return []
+
+
+def fa_pairs(body):
+    """Every `(kp, i)` `faOk` accepts: a `frameAddr kp run` and an atom defining `run[i]` among `topAtoms` (the
+    top-level atoms before the first statement with a `ret` inside)."""
+    top = []
+    for s in body:
+        if not _noret(s):
+            break
+        if s[0] == 'a':
+            top.append(s[1])
+    D = {v for a in top for v in atomDst(a)}
+    return [(a[1], i) for a in top if a[0] == 'frameAddr' for i, v in enumerate(a[2]) if v in D]
+
+
 def idxOver(m, i):
     if i[0] == 'val':
         return i[1] < m
@@ -1348,6 +1393,8 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.fail('term-over')
     if any(v >= GB for v in values(params, body)):
         P.fail('noGhost')
+    if not set(map(tuple, H.fas)) <= set(fa_pairs(body)):
+        P.fail('faOk')
     st = St()
     for i in range(m):
         st.env[i] = baseC(i)

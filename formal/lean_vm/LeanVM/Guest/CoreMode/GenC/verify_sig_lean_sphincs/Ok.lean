@@ -19,6 +19,7 @@ namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 
 @[expose] public section
 
+set_option maxHeartbeats 0 in
 /-- `verify_sig_lean_sphincs`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
