@@ -12,6 +12,10 @@ public import LeanVM.Guest.Data.Pows
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P2».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P2».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P2».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P2».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P2».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P2».Pair
 public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P20».ModeSig
 public import LeanVM.Guest.Pack.«P21».ModeSig

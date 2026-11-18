@@ -143,9 +143,18 @@ def imports(pack, packs, gens=()):
     out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.Data.Pows',
            'public import Statement.Data.AdviceHints',
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
-    out += ['public import LeanVM.Guest.CoreMode.Gen.«%s».Pair' % g for g in sorted(set(gens))]
+    out += ['public import %s' % pair_mod(g, n) for g, n in sorted(set(gens))]
     out += ['public import LeanVM.Guest.Pack.«%s».ModeSig' % p for p in sorted(packs | {pack})]
     return '\n'.join(out) + '\n\nset_option Elab.async false\n'
+
+
+def pair_mod(g, n):
+    """The module of function `n`'s pairing (`pairO`, `pairS`, `pair_ok`) in pack `g`: the pack's, or a long
+    function's own, checked in windows."""
+    gen = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'CoreMode', 'Gen')
+    if os.path.exists(os.path.join(gen, g, n, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.Gen.«%s».«%s».Ok' % (g, n)
+    return 'LeanVM.Guest.CoreMode.Gen.«%s».Pair' % g
 
 
 def ns(n, body):
@@ -186,7 +195,7 @@ def main(argv):
             for n in g:
                 lit, defs, ps = fnData(D, n, [])
                 packs |= ps
-                if n in ROUTE: gens.add(gen_pack[n])
+                if n in ROUTE: gens.add((gen_pack[n], n))
                 ns_ = D['fns'][n]['ns']
                 body.append(ns(ns_, funDef(D, n, lit, defs) +
                                '/-- `%s`: its frame walk accepts its code. -/\ntheorem frameOk : CoreMode.frameOk frameFun '
@@ -202,7 +211,7 @@ def main(argv):
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d' % (p, k)
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
-                imports(p, packs, [gen_pack[n]] if n in ROUTE else []) +
+                imports(p, packs, [(gen_pack[n], n)] if n in ROUTE else []) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
             for m in range(len(bounds) - 1):

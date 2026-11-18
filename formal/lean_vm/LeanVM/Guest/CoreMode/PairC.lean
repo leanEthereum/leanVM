@@ -89,7 +89,7 @@ theorem pair_readC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {o1 o2 o3 : ℕ}
-    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true)
+    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true) (hjt : jtd X o1 o2 o3 = false)
     {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs)
     (hrw : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
     ∃ (as : List Atom) (dv pv : V) (off : ℕ),
@@ -100,7 +100,7 @@ theorem pair_readC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   obtain ⟨ins, z, as, hins', -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hins] at hins'
   cases hins'
-  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, hO', -⟩⟩ |
+  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, -, hO'⟩⟩ |
     ⟨oc, od, of, -, heq, -⟩
   · simp only [OffsetInstruction.deref.injEq] at heq
     obtain ⟨rfl, rfl, rfl, -⟩ := heq
@@ -124,7 +124,11 @@ theorem pair_readC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     · exact Or.inl h
     · rw [List.mem_filter] at ha
       exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
-  · simp [hO] at hO'
+  · rcases hO' with hO' | ⟨o1', o2', o3', heq, hj⟩
+    · simp [hO] at hO'
+    · simp only [OffsetInstruction.deref.injEq] at heq
+      obtain ⟨rfl, rfl, rfl, -⟩ := heq
+      simp [hjt] at hj
   · cases heq
 
 /-- **Past an instruction other than a jump**, over `WrittenC`. -/
@@ -196,6 +200,9 @@ theorem pair_fallC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
 
 /-! ## Bodies of atoms, calls and one return -/
 
+/-- Not a conditional call or a dispatch. -/
+@[expose] def NoCD (s : Stmt) : Prop := (∀ c f a, s ≠ .callIf c f a) ∧ ∀ x fs a r, s ≠ .dispatch x fs a r
+
 /-- **Atoms, calls and returns.** -/
 @[expose] def straightC (body : List Stmt) : Bool :=
   body.all fun s ↦ match s with
@@ -231,7 +238,7 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc : ℕ}
     (hci : code[i]? = some (.jump oc 0 1)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc 0 1 = false)
-    (h0 : X.pcAt 0 = none) (hst : straightC body = true)
+    (h0 : X.pcAt 0 = none) (hsf : X.selfAt 1 = false) (hctrl : ∀ s ∈ stmtsOf body, NoCD s)
     {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
     ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ es) x → WrittenC sigOf H rd σ ws0 pre x ∨
@@ -249,11 +256,16 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     rcases hcur : zs.cur with _ | ⟨s, ss⟩
     · simp [headStepH, hcur] at hr
     · have hs : s ∈ stmtsOf body := zok_stmts hzs (by rw [Bridge.Zip.pos_head hcur]; exact List.mem_cons_self)
-      rcases straightC_stmts hst s hs with ⟨a, rfl⟩ | ⟨vs', rfl⟩ | ⟨f, args, rets, rfl⟩
-      · simp [headStepH, hcur] at hr
-      · exact ⟨vs', ss, rfl⟩
-      · simp only [headStepH, hcur, h0] at hr
+      cases s with
+      | atom a => simp [headStepH, hcur] at hr
+      | ret vs' => exact ⟨vs', ss, rfl⟩
+      | call f args rets =>
+        simp only [headStepH, hcur, h0] at hr
         split at hr <;> simp_all
+      | ite c z n => simp [headStepH, hcur, hsf] at hr
+      | match_ x arms => simp [headStepH, hcur, hsf] at hr
+      | callIf c f args => exact absurd rfl ((hctrl _ hs).1 c f args)
+      | dispatch x fs args rets => exact absurd rfl ((hctrl _ hs).2 x fs args rets)
   obtain ⟨vs', ss, hcur⟩ := hhead
   refine ⟨as, hpairs, ?_⟩
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hp
@@ -283,7 +295,8 @@ theorem pair_callC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
     (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc od of = false)
-    (hnr : ¬ (od = 0 ∧ of = 1)) (hm : X.main = false) (hst : straightC body = true) :
+    (hnr : ¬ (od = 0 ∧ of = 1)) (hm : X.main = false) (hsf : X.selfAt of = false)
+    (hctrl : ∀ s ∈ stmtsOf body, NoCD s) :
     ∃ f args rets s t o pos', X.siteAt of args rets = some s ∧ X.pcAt od = some t ∧ X.entOk t f = true ∧
       X.nzAt oc = true ∧ X.fwdOff i s.r = some o ∧ pairAt (PairCtx.ofH X H O S) body code d o = some pos' ∧
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
@@ -306,10 +319,17 @@ theorem pair_callC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   rcases hcur : zs.cur with _ | ⟨st, ss⟩
   · simp [headStepH, hcur] at hr
   have hs : st ∈ stmtsOf body := zok_stmts hzs (by rw [Bridge.Zip.pos_head hcur]; exact List.mem_cons_self)
-  rcases straightC_stmts hst st hs with ⟨a, rfl⟩ | ⟨vs', rfl⟩ | ⟨f, args, rets, rfl⟩
-  · simp [headStepH, hcur] at hr
-  · simp only [headStepH, hcur, hm, Bool.and_eq_true, Nat.beq_eq, Bool.cond_eq_ite] at hr
-    split_ifs at hr <;> simp_all
+  obtain ⟨f, args, rets, rfl⟩ : ∃ f args rets, st = .call f args rets := by
+    cases st with
+    | atom a => simp [headStepH, hcur] at hr
+    | ret vs' =>
+      simp only [headStepH, hcur, hm, Bool.and_eq_true, Nat.beq_eq, Bool.cond_eq_ite] at hr
+      split_ifs at hr <;> simp_all
+    | ite c z n => simp [headStepH, hcur, hsf] at hr
+    | match_ x arms => simp [headStepH, hcur, hsf] at hr
+    | callIf c f args => exact absurd rfl ((hctrl _ hs).1 c f args)
+    | dispatch x fs args rets => exact absurd rfl ((hctrl _ hs).2 x fs args rets)
+    | call f args rets => exact ⟨f, args, rets, rfl⟩
   simp only [headStepH, hcur] at hr
   rcases hsite : X.siteAt of args rets with _ | s
   · simp [hsite] at hr

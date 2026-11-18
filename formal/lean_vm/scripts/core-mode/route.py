@@ -122,27 +122,84 @@ def promised(G, np):
     return cells
 
 
+def run_points(G, np):
+    """The points of the signature's preconditions' runs of constant bounds (`CoreMode.preIn`)."""
+    out = []
+    for q, lo, hi, S, d in G['preR']:
+        c = mono_cell(G, np, q)
+        if c is None or lo[0] != 'num' or hi[0] != 'num': continue
+        out += [(c[0], c[1] + S * (lo[1] + j) + d) for j in range(hi[1] - lo[1])]
+    return out
+
+
 def straight(body):
     return all(s[0] in ('ret', 'a') for s in body)
 
 
+def no_ret(ss):
+    """A block with no `ret` and no call: atoms, branches and `match`es (`CoreMode.blockB`)."""
+    for s in ss:
+        if s[0] == 'a': continue
+        if s[0] == 'ite':
+            if not (no_ret(s[2]) and no_ret(s[3])): return False
+        elif s[0] == 'match':
+            if not all(no_ret(a) for a in s[2]): return False
+        else: return False
+    return True
+
+
+def ints(x):
+    """The numbers in a term: an atom's values, over-approximated (offsets, constants)."""
+    if isinstance(x, int): return [x]
+    if isinstance(x, (list, tuple)): return [n for y in x for n in ints(y)]
+    return []
+
+
+def sel_ok(body):
+    """Each `match` at the top level, its selector used by a top-level atom before it, none nested or past a `ret`
+    (`CoreMode.selGo`)."""
+    def has_match(ss):
+        for s in ss:
+            if s[0] == 'match': return True
+            if s[0] == 'ite' and (has_match(s[2]) or has_match(s[3])): return True
+        return False
+    seen = set()
+    for n, s in enumerate(body):
+        if s[0] == 'a':
+            seen.update(ints(s[1][1:]))
+        elif s[0] == 'match':
+            if s[1] not in seen or any(has_match(a) for a in s[2]): return False
+        elif s[0] == 'ite':
+            if has_match(s[2]) or has_match(s[3]): return False
+        elif s[0] == 'ret':
+            return not has_match(body[n + 1:])
+    return True
+
+
+def branchy(body):
+    """A body of atoms, branches and `match`es with no `ret` or call in them, and `ret`s (`CoreMode.bodyB`)."""
+    return all(s[0] in ('ret', 'a') or (s[0] in ('ite', 'match') and no_ret([s])) for s in body)
+
+
 def frame_nzr():
-    """The functions whose frame walk (`CoreMode/Pack/*/Frame*.lean`, `FFun.nzr`) relies on residual divisors."""
-    out = set()
+    """The functions whose frame walk (`CoreMode/Pack/*/Frame*.lean`) relies on residual divisors (`FFun.nzr`),
+    and those whose walk is told callees' signatures (`FFun.sigs`)."""
+    out = set(); calls = set()
     for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')):
         t = open(f, encoding='utf-8').read()
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
             n = blk.split('»', 1)[0]
             m = re.search(r'def frameFun : CoreMode.FFun :=\s*⟨(.*?)⟩\n\n', blk, re.S)
             if m and split_top(m.group(1))[7] != '.nil': out.add(n)
-    return out
+            if m and split_top(m.group(1))[4] != '.nil': calls.add(n)
+    return out, calls
 
 
 def route(verbose=False):
     import pair
     S = sigs()
     global NZR
-    NZR = frame_nzr()
+    NZR, CALLS = frame_nzr()
     P, _ = pair.collect()
     AL = pair.AL
     fns = AL.functions()
@@ -157,20 +214,11 @@ def route(verbose=False):
         F = fns[k]
         ns = F.get('ns', k)
         G = S.get(ns) or S.get(k)
-        if not straight(body): why['not straight'] += 1; continue
+        if not branchy(body): why['not straight'] += 1; continue
+        if not sel_ok(body): why['selector'] += 1; continue
         if k in NZR: why['residual divisors'] += 1; continue
-        code = F['code']
-        jumps = [i for i, (op, a) in enumerate(code) if op == '.jump']
-        if jumps != [len(code) - 1]: why['jumps'] += 1; continue
-        oc, od, of = code[-1][1]
-        st = F['stat'].get
-        zero = st(oc) == ('k', 0, 0)
-        nz = st(oc) is not None and st(oc)[0] == 'k' and (st(oc)[1], st(oc)[2]) != (0, 0)
-        so = st(of)
-        self_ = so == ('fpg', 0, 0) or (F['name'] == 'main' and so == ('k', 1, 0))
-        t = pows.get(st(od)[1]) if st(od) is not None and st(od)[0] == 'k' and st(od)[2] == 0 else None
-        fwd = nz and self_ and t is not None and F['entry'] + len(code) - 1 < t < F['entry'] + len(code)
-        if (od, of) != (0, 1) or zero or fwd or not nz: why['return'] += 1; continue
+        if k in CALLS: why['callees'] += 1; continue
+        if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue
         cells = promised(G, len(params))
         if cells is None: why['signature'] += 1; continue
         f = heap.Fn(k)
@@ -185,7 +233,8 @@ def route(verbose=False):
             if w is None: break
             post.append((c, w))
         else:
-            pre_ok = all(any(mono_cell(G, len(params), m) == c for m in G['pre']) for c in f.pre)
+            pre_ok = all(any(mono_cell(G, len(params), m) == c for m in G['pre']) or c in run_points(G, len(params))
+                         for c in f.pre)
             if not pre_ok: why['precondition'] += 1; continue
             out[k] = dict(post=post, pre=list(f.pre), O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind='m1')
             continue

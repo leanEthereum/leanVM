@@ -125,7 +125,7 @@ open LeanVM.Guest
 
 /-- `walk_path__L18_L4`: the offsets of its reads' `DEREF`s, the oracle. -/
 noncomputable def pairO : Exec.Trie Unit :=
-  CoreMode.offsT [0, 587, 1166, 1745, 1746]
+  CoreMode.offsT [0, 10, 587, 589, 1166, 1168, 1745, 1746]
 
 /-- `walk_path__L18_L4`: the offsets of its stores' `DEREF`s. -/
 noncomputable def pairS : Exec.Trie Unit :=

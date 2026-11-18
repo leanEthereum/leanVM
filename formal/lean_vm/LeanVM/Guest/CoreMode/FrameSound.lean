@@ -351,9 +351,9 @@ inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruct
     (s1 s' : St) : Prop
   /-- A jump in the frame, to an offset the walk names. -/
   | local (t : ℕ) : ¬ rj → s'.fp = s1.fp → s'.pc = Fn.entry + t → AtF img Fn code t s' → JumpOut img Fn code rj s1 s'
-  /-- A return (the instruction's: `rj`): the caller's registers, the signature's return cells written. -/
-  | ret : rj → retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
-      (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → JumpOut img Fn code rj s1 s'
+  /-- A return: the caller's registers, the signature's return cells written, the jump a return's. -/
+  | ret : retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
+      (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → rj → JumpOut img Fn code rj s1 s'
   /-- `main`'s halt. -/
   | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code rj s1 s'
   /-- A loop's tail call into frame `fp + e`: its entry facts, its header this frame's, nothing
@@ -428,8 +428,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
     (htgt : ∀ k, Fn.tgt.get i = some k → (∀ pcs, Fn.calls.get k = some pcs → s'.pc ∈ pcs) ∧
       (∀ ts, Fn.arms.get k = some ts → ∃ t ∈ ts, s'.pc = Fn.entry + t))
     (cov : ∀ s j, j ∈ ts → FHolds img s B → AtF img Fn code j s) {rj : Prop} (hrj : rj → d = 0 ∧ f = 1)
-    (hrj' : d = 0 ∧ f = 1 → rj) :
-    JumpOut img Fn code rj s1 s' := by
+    (hrj' : d = 0 → f = 1 → rj) : JumpOut img Fn code rj s1 s' := by
   have hnr : kind ≠ .ret → ¬ rj := fun hk h ↦ by
     obtain ⟨rfl, rfl⟩ := hrj h
     unfold Exec.jumpKind at hjk
@@ -450,14 +449,12 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
   | ret =>
     split_ifs at hx with hr
     cases hx
-    have hdf : d = 0 ∧ f = 1 := by
+    have h01 : d = 0 ∧ f = 1 := by
       rcases jumpKind_spec Fn.F Fn.entry Fn.len i A.st d f with ⟨h0, h1, -⟩ | ⟨t, h', -⟩ | ⟨pt, rr, h', -⟩ |
           ⟨pt, ft, h', -⟩
       · exact ⟨h0, h1⟩
-      · rw [hjk] at h'; cases h'
-      · rw [hjk] at h'; cases h'
-      · rw [hjk] at h'; cases h'
-    exact .ret (hrj' hdf) hregs fun o ho ↦ hA.2.w o (has_iff.mp (List.all_eq_true.mp hr o ho))
+      all_goals simp [hjk] at h'
+    exact .ret hregs (fun o ho ↦ hA.2.w o (has_iff.mp (List.all_eq_true.mp hr o ho))) (hrj' h01.1 h01.2)
   | call pt q r =>
     obtain ⟨p, a, hp, hpK, hpt, hra⟩ := hregs
     simp only [Registers.mk.injEq] at hra
@@ -670,11 +667,14 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     (hfall : ∀ s1 s', (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
       Moves (refMem img) s s1 → OpModed (refMem img) s1 (opOfOff code[i]) → runOp C s1 (opOfOff code[i]) = .ok s' →
       s'.pc = s.pc + 1 → s'.fp = s.fp → Fine (refMem img) s' → s1.mem ≤ s'.mem →
-      AtF img Fn code (i + 1) s' → StoreW Fn code i s' → Inv { s' with steps := s'.steps + 1 })
+      AtF img Fn code (i + 1) s' → StoreW Fn code i s' →
+      (∀ c d f, code[i]? = some (.jump c d f) → s1.mem.get (s1.fp + c) = some 0) → Inv { s' with steps := s'.steps + 1 })
     (hjump : ∀ s1 s', (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
       Moves (refMem img) s s1 → OpModed (refMem img) s1 (opOfOff code[i]) → runOp C s1 (opOfOff code[i]) = .ok s' →
       Fine (refMem img) s' → s1.mem ≤ s'.mem → JumpOut img Fn code (∃ c, code[i]? = some (.jump c 0 1)) s1 s' →
-      JumpTaken C code i s1 s' → Inv { s' with steps := s'.steps + 1 }) :
+      JumpTaken C code i s1 s' →
+      (∀ c d f, code[i]? = some (.jump c d f) → ∃ v, s1.mem.get (s1.fp + c) = some v ∧ v ≠ 0) →
+      Inv { s' with steps := s'.steps + 1 }) :
     StepOk C (refMem img) Inv (opOfOff code[i]) ((C.hints[s.pc]?).getD []) s := by
   have hops_i := hops i hi
   have hszC : Fn.entry + i < C.ops.size := by
@@ -718,7 +718,9 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     have hv' : FVal img s'.fp (execF Fn.F (Fn.entry + i) A3 code[i]) := by
       rw [hfp']; exact execF_val (by omega) hpows (stepF_val hA2.1 hh h3) hh
     exact hfall s1 s' e1 hm hmo e'' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' hle'
-      (hnext s' ⟨_, rfl, hv', execF_wr hw'⟩) hstw
+      (hnext s' ⟨_, rfl, hv', execF_wr hw'⟩) hstw (fun c d f h ↦ by
+        rw [List.getElem?_eq_getElem hi, Option.some.injEq] at h
+        rw [h] at hj; cases hj)
   · have hop : opOfOff code[i] = .jump c d f := by rw [hins]; rfl
     have hsm := hsmall i hi
     rw [hins] at hsm hf
@@ -745,6 +747,10 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
       exact hfall s1 s' e1 hm hmo (by rw [hop]; exact e') (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' hle'
         (hnext s' ⟨A2, hcur, hA2.mono hle' hfp'⟩)
         (fun a o c' hci _ ↦ by rw [List.getElem?_eq_getElem hi, hins] at hci; cases hci)
+        (fun c' d' f' h ↦ by
+          rw [List.getElem?_eq_getElem hi, hins, Option.some.injEq, OffsetInstruction.jump.injEq] at h
+          obtain ⟨rfl, -, -⟩ := h
+          rw [← hz]; exact hvc)
     · rcases hcase with ⟨hz, -⟩ | ⟨-, hj, -⟩
       · exact absurd (ec.trans (isZero_rd hA2.1 hz hcv)) hne
       obtain ⟨ts, B, hx, -, hP⟩ := jumpF_spec (img := img) har hj
@@ -763,8 +769,12 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
         (fun ⟨c', hc'⟩ ↦ by
           rw [List.getElem?_eq_getElem hi, hins, Option.some.injEq, OffsetInstruction.jump.injEq] at hc'
           exact ⟨hc'.2.1, hc'.2.2⟩)
-        (fun ⟨h0, h1⟩ ↦ ⟨c, by rw [List.getElem?_eq_getElem hi, hins, h0, h1]⟩))
+        (fun h0 h1 ↦ ⟨c, by rw [List.getElem?_eq_getElem hi, hins, h0, h1]⟩))
         ⟨c, d, f, by rw [List.getElem?_eq_getElem hi, hins], hd' ▸ hvd, hf'' ▸ hvf, hpcs⟩
+        (fun c' d' f' h ↦ by
+          rw [List.getElem?_eq_getElem hi, hins, Option.some.injEq, OffsetInstruction.jump.injEq] at h
+          obtain ⟨rfl, -, -⟩ := h
+          exact ⟨vc, hvc, hne⟩)
       intro kk' hk'
       have hcv' : Rd img s.fp c = some cv := by rw [← hm.fp]; exact hcv
       have hdv' : Rd img s.fp d = some dv := by rw [← hm.fp]; exact hdv

@@ -223,6 +223,8 @@ def pair(F, body, A, locs, extra, pows, jt, ents, reads, cuts=()):
                 O.append(i)
             elif r is False:
                 S.append(i)
+            elif F['arms'].get(a[2]) is not None and F['arms'][a[2]][1] == a[1] and loc(F['arms'][a[2]][0]) == a[0]:
+                O.append(i)  # a read of the jump table (`CoreMode.jtd`), consuming nothing
         else:
             cur, tg = z, []
         for t in reversed(tg):
