@@ -1,9 +1,11 @@
 [workspace]
+# Its own workspace, excluded from the root one: the root workspace's `cargo testall`, `clippyall`,
+# `docall` and `fmt --all` never build the bindings.
 members = [
-    "bindings/python",
-    "bindings/native",
-    "bindings/node",
-    "bindings/rust",
+    "python",
+    "native",
+    "node",
+    "rust",
     "benchmarks/comparison",
 ]
 resolver = "2"
@@ -13,12 +15,12 @@ resolver = "2"
 version = "0.11.0"
 
 [workspace.dependencies]
-# Every leanVM crate must name the same revision: `lean_xmss` and `lean_sphincs` are the signature
-# schemes, which `lean_vm` re-exports alongside the aggregation prover.
-lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
-lean_xmss = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
-lean_sphincs = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
-lean-pq = { path = "bindings/rust" }
+# The leanVM crates of this repository: `lean_xmss` and `lean_sphincs` are the signature schemes,
+# which `lean_vm` re-exports alongside the aggregation prover.
+lean_vm = { path = "../crates/lean_vm" }
+lean_xmss = { path = "../crates/lean_xmss" }
+lean_sphincs = { path = "../crates/lean_sphincs" }
+lean-pq = { path = "rust" }
 
 [profile.release]
 lto = "thin"

@@ -12,14 +12,16 @@ if [ "$#" -ne 2 ]; then
 fi
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
+bindings_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 rust_target=$1
 archive_dir=$2
-target_dir=${CARGO_TARGET_DIR:-"$repo_dir/target"}
+target_dir=${CARGO_TARGET_DIR:-"$bindings_dir/target"}
 
+# Runs from bindings/ so cargo reads bindings/.cargo/config.toml, which replaces the repository's
+# target-cpu=native with the portable baseline.
 build_static() {
-    cargo-zigbuild rustc --manifest-path "$repo_dir/bindings/native/Cargo.toml" --release \
-        --target "$1" --crate-type staticlib
+    (cd "$bindings_dir" && cargo-zigbuild rustc --manifest-path "$bindings_dir/native/Cargo.toml" --release \
+        --target "$1" --crate-type staticlib)
 }
 
 mkdir -p "$archive_dir"

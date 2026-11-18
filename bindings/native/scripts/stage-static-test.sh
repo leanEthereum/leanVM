@@ -1,6 +1,7 @@
 #!/bin/sh
-# Verify staging builds only the staticlib with cargo-zigbuild, combines the two Apple
-# architectures for universal2, and preserves the target-specific layout.
+# Verify staging builds only the staticlib with cargo-zigbuild, from bindings/ so its
+# .cargo/config.toml applies, combines the two Apple architectures for universal2, and preserves
+# the target-specific layout.
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -13,6 +14,7 @@ cat > "$tmp_dir/bin/cargo-zigbuild" <<'EOF'
 set -eu
 
 printf '%s\n' "$*" >> "$TEST_CALLS"
+test "$(pwd -P)" = "$TEST_BINDINGS_DIR"
 
 target=
 while [ "$#" -gt 0 ]; do
@@ -44,6 +46,7 @@ stage() {
 
     CARGO_TARGET_DIR="$tmp_dir/target" \
         TEST_CALLS="$calls" \
+        TEST_BINDINGS_DIR="$(CDPATH= cd -- "$script_dir/../.." && pwd -P)" \
         PATH="$tmp_dir/bin:$PATH" \
         sh "$script_dir/stage-static.sh" "$target" "$archive_dir"
 

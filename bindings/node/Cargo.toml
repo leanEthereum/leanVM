@@ -14,3 +14,8 @@ napi-derive = "3.6.3"
 
 [build-dependencies]
 napi-build = "2.2.4"
+
+# leanVM's CI runs `cargo machete --with-metadata` over the whole repository, which misses the
+# build script's use of napi-build.
+[package.metadata.cargo-machete]
+ignored = ["napi-build"]

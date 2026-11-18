@@ -30,7 +30,8 @@ val nativeLibraryName = when {
     osName.startsWith("Windows") -> "lean_pq_native.dll"
     else -> "liblean_pq_native.so"
 }
-val nativeLibrary = rootProject.projectDir.resolve("../../target/release/$nativeLibraryName")
+// The bindings' Cargo workspace (bindings/Cargo.toml) builds into bindings/target.
+val nativeLibrary = rootProject.projectDir.resolve("../target/release/$nativeLibraryName")
 
 val buildNative by tasks.registering(Exec::class) {
     commandLine("cargo", "build", "--manifest-path", "../native/Cargo.toml", "--release")

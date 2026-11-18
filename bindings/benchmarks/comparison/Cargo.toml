@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-lean-pq = { path = "../../bindings/rust" }
+lean-pq = { path = "../../rust" }
 lighthouse-bls = { package = "bls", git = "https://github.com/sigp/lighthouse.git", rev = "e423a66763bb1bd780492d635123f208d80c3538" }
 same-file = "1"
 serde = { version = "1", features = ["derive"] }

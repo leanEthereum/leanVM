@@ -13,9 +13,9 @@ if [ "$#" -ne 2 ]; then
 fi
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
-manifest="$repo_dir/bindings/native/Cargo.toml"
-target_dir=${CARGO_TARGET_DIR:-"$repo_dir/target"}
+bindings_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
+manifest="$bindings_dir/native/Cargo.toml"
+target_dir=${CARGO_TARGET_DIR:-"$bindings_dir/target"}
 platform=$1
 out_dir="$2/$platform"
 
@@ -28,6 +28,10 @@ case "$platform" in
 esac
 
 mkdir -p "$out_dir"
+out_dir=$(CDPATH= cd -- "$out_dir" && pwd)
+# Build from bindings/ so cargo reads bindings/.cargo/config.toml, which replaces the repository's
+# target-cpu=native with the portable baseline.
+cd "$bindings_dir"
 case "$platform" in
     linux-*)
         # Rust target triples without the glibc suffix, so .cargo/config.toml's per-target rustflags apply.
