@@ -12,8 +12,14 @@ pub struct ExperimentalProver;
 const GROUP: usize = 8;
 
 impl isa::Prover for ExperimentalProver {
+    const NAME: &'static str = "experimental";
+
     fn init() {
         parallel::init();
+    }
+
+    fn set_num_threads(n: usize) {
+        parallel::set_num_threads(n)
     }
 
     fn prove(

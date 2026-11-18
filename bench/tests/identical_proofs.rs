@@ -76,10 +76,7 @@ fn prove<P: Prover>(
 /// `# witness name:`) and with a wrong public input, through experimental's interpreter and hints too, at every rate.
 #[test]
 fn compiler_programs_prove_identically() {
-    let dir = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../crates/zkdsl_compiler/tests/programs"
-    );
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../crates/zkdsl_compiler/tests/programs");
     let mut paths: Vec<_> = std::fs::read_dir(dir)
         .unwrap()
         .map(|entry| entry.unwrap().path())

@@ -6,6 +6,7 @@ version = 4
 name = "aggregation"
 version = "0.1.0"
 dependencies = [
+ "claims",
  "fiat_shamir_prover",
  "isa",
  "keccak256",
@@ -28,6 +29,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "allocator"
+version = "0.1.0"
+dependencies = [
+ "tikv-jemallocator",
 ]
 
 [[package]]
@@ -90,12 +98,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "bench"
+name = "bench_harness"
 version = "0.1.0"
 dependencies = [
  "isa",
  "libc",
- "tikv-jemallocator",
  "tracing-forest",
  "tracing-subscriber",
 ]
@@ -124,6 +131,14 @@ name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
+
+[[package]]
+name = "claims"
+version = "0.1.0"
+dependencies = [
+ "lean_sphincs",
+ "lean_xmss",
+]
 
 [[package]]
 name = "clap"
@@ -210,7 +225,8 @@ dependencies = [
 name = "experimental_keccak_gkr"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "allocator",
+ "bench_harness",
  "experimental_keccak_gkr",
  "experimental_parallel",
  "experimental_pcs",
@@ -246,7 +262,8 @@ dependencies = [
 name = "experimental_pcs"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "allocator",
+ "bench_harness",
  "experimental_parallel",
  "experimental_primitives",
  "fiat_shamir_prover",
@@ -334,7 +351,7 @@ dependencies = [
 name = "keccak256"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "sha3",
  "stable_parallel",
  "verifier",
@@ -370,12 +387,15 @@ name = "lean_vm"
 version = "0.1.0"
 dependencies = [
  "aggregation",
+ "claims",
  "experimental_lean_vm_core",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
+ "sidecar",
  "stable_lean_vm_core",
+ "verifier",
 ]
 
 [[package]]
@@ -387,11 +407,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "leanvm-cli"
+name = "leanvm-bench"
 version = "0.1.0"
 dependencies = [
  "aggregation",
- "bench",
+ "allocator",
+ "bench_harness",
  "clap",
  "experimental_lean_vm_core",
  "isa",
@@ -403,6 +424,19 @@ dependencies = [
  "tracing",
  "verifier",
  "zkdsl_compiler",
+]
+
+[[package]]
+name = "leanvm-sidecar"
+version = "0.1.0"
+dependencies = [
+ "aggregation",
+ "allocator",
+ "clap",
+ "experimental_lean_vm_core",
+ "lean_vm",
+ "sidecar",
+ "stable_lean_vm_core",
 ]
 
 [[package]]
@@ -564,6 +598,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
+name = "sidecar"
+version = "0.1.0"
+dependencies = [
+ "aggregation",
+ "claims",
+ "isa",
+ "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
+ "libc",
+ "verifier",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -573,7 +621,8 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 name = "stable_keccak_gkr"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "allocator",
+ "bench_harness",
  "fiat_shamir_prover",
  "isa",
  "stable_keccak_gkr",
@@ -607,7 +656,8 @@ version = "0.1.0"
 name = "stable_pcs"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "allocator",
+ "bench_harness",
  "fiat_shamir_prover",
  "isa",
  "stable_parallel",

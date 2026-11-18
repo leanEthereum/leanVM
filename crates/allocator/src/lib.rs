@@ -1,4 +1,4 @@
-//! The global allocator of the CLI and the proving benchmarks.
+//! The global allocator of the benchmark CLI, the proving benchmarks and the sidecar.
 //!
 //! A proof allocates gigabytes of short-lived buffers and frees them before it returns.
 //!

@@ -6,8 +6,14 @@ use verifier::{E, layout::N_TABLES};
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
+    /// The prover's name: `stable` or `experimental`.
+    const NAME: &'static str;
+
     /// Warm up the prover's thread pool, so that no timed work pays for starting it. Idempotent.
     fn init();
+
+    /// Fixes the thread pool's size before it starts; `0` keeps the default. Panics if it is already another.
+    fn set_num_threads(n: usize);
 
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
     /// `witness` names the streams of its `hint_witness` calls, each with one entry per call, in the order they are

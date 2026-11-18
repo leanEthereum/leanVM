@@ -3,7 +3,7 @@
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
 use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, signers_cache};
-use bench::{Plan, Timing};
+use bench_harness::{Plan, Timing};
 use isa::{Prover, Stats, pretty_f64, pretty_integer};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
@@ -79,7 +79,7 @@ fn describe(n_lean_xmss: usize, n_lean_sphincs: usize) -> String {
 /// Prove signatures and `n_blobs` blobs in one leaf, then verify it.
 ///
 /// Proving runs one discarded warmup pass followed by `plan.repeat` measured
-/// passes; see [`bench`] for why the first pass is not
+/// passes; see [`bench_harness`] for why the first pass is not
 /// representative and why the cooldown matters.
 pub fn run_aggregation<P: Prover>(
     n_lean_xmss: usize,
@@ -99,7 +99,7 @@ pub fn run_aggregation<P: Prover>(
     // Only the final measured pass of each stage is traced: the tree describes the
     // proof the reported timings are about, instead of repeating itself per pass.
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         aggregate::<P>(
             &[],
             raw_lean_xmss.clone(),
@@ -111,7 +111,7 @@ pub fn run_aggregation<P: Prover>(
         .expect("leaf aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         assert!(sig.verify(&claims), "the leaf aggregate verifies");
     });
     drop(trace_span);
@@ -183,14 +183,14 @@ pub fn run_recursion<P: Prover>(
     let children = leaves_from_subprocess(n);
 
     if enable_tracing {
-        bench::init_tracing();
+        bench_harness::init_tracing();
     }
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         aggregate::<P>(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate).expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         assert!(sig.verify(&claims), "the recursive aggregate verifies");
     });
 
@@ -232,8 +232,8 @@ pub fn run_recursion<P: Prover>(
     );
 }
 
-/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims, then its proof's
-/// bytes after their length.
+/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims and its proof's bytes, each after
+/// its length.
 fn write_leaves<P: Prover>(
     n: usize,
     per_leaf: usize,
@@ -255,73 +255,27 @@ fn write_leaves<P: Prover>(
             log_inv_rate,
         )
         .expect("leaf aggregates");
+        // The proof carries no claims; the parent trusts its subprocess for them, standing in for a receiver that
+        // knows them.
         let (claims, leaf, _) = leaf;
-        write_claims(&mut bytes, &claims);
-        let proof = leaf.to_bytes();
-        bytes.extend((proof.len() as u64).to_le_bytes());
-        bytes.extend(proof);
+        for part in [claims.to_bytes(), leaf.to_bytes()] {
+            bytes.extend((part.len() as u64).to_le_bytes());
+            bytes.extend(part);
+        }
     }
     std::fs::write(out, bytes).expect("the leaves are written");
-}
-
-/// A leaf's claims in the leaves' file: each list as its length and its `(key, message)` pairs, then
-/// a 0/1 byte for whether there is a DA root and 32 root bytes, zero without one. The proof carries
-/// no claims; the parent trusts its subprocess for them, standing in for a receiver that knows them.
-fn write_claims(out: &mut Vec<u8>, claims: &AggregateClaims) {
-    out.extend((claims.lean_xmss.len() as u64).to_le_bytes());
-    for (pk, message) in &claims.lean_xmss {
-        out.extend(pk.to_bytes());
-        out.extend(message);
-    }
-    out.extend((claims.lean_sphincs.len() as u64).to_le_bytes());
-    for (pk, message) in &claims.lean_sphincs {
-        out.extend(pk.to_bytes());
-        out.extend(message);
-    }
-    out.push(u8::from(claims.da_commitment.is_some()));
-    out.extend(claims.da_commitment.unwrap_or_default());
 }
 
 /// The leaves' file, read back: the bytes not yet read.
 struct LeavesFile<'a>(&'a [u8]);
 
 impl<'a> LeavesFile<'a> {
-    fn take(&mut self, n: usize) -> &'a [u8] {
-        let (head, rest) = self.0.split_at(n);
+    /// The next length-prefixed part.
+    fn part(&mut self) -> &'a [u8] {
+        let (len, rest) = self.0.split_first_chunk().expect("a length");
+        let (part, rest) = rest.split_at(u64::from_le_bytes(*len) as usize);
         self.0 = rest;
-        head
-    }
-
-    fn array<const N: usize>(&mut self) -> [u8; N] {
-        self.take(N).try_into().expect("N bytes")
-    }
-
-    fn count(&mut self) -> usize {
-        u64::from_le_bytes(self.array()) as usize
-    }
-
-    /// The inverse of [`write_claims`].
-    fn claims(&mut self) -> AggregateClaims {
-        let n = self.count();
-        let lean_xmss = (0..n)
-            .map(|_| (LeanXmssPublicKey::from_bytes(&self.array()), self.array()))
-            .collect();
-        let n = self.count();
-        let lean_sphincs = (0..n)
-            .map(|_| {
-                (
-                    lean_sphincs::LeanSphincsPublicKey::from_bytes(&self.array()),
-                    self.array(),
-                )
-            })
-            .collect();
-        let [has_root] = self.array();
-        let root = self.array();
-        AggregateClaims {
-            lean_xmss,
-            lean_sphincs,
-            da_commitment: (has_root == 1).then_some(root),
-        }
+        part
     }
 }
 
@@ -351,12 +305,8 @@ fn leaves_from_subprocess(n: usize) -> Vec<(AggregateClaims, AggregateProof)> {
     let mut file = LeavesFile(&bytes);
     let mut leaves = Vec::with_capacity(n);
     while !file.0.is_empty() {
-        let claims = file.claims();
-        let len = file.count();
-        leaves.push((
-            claims,
-            AggregateProof::from_bytes(file.take(len)).expect("a leaf proof"),
-        ));
+        let claims = AggregateClaims::from_bytes(file.part()).expect("a leaf's claims");
+        leaves.push((claims, AggregateProof::from_bytes(file.part()).expect("a leaf proof")));
     }
     assert_eq!(leaves.len(), n, "one proof per leaf");
     leaves

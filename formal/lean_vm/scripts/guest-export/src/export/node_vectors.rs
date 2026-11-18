@@ -7,6 +7,8 @@
 //! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
 
 use super::*;
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::LeanXmssPublicKey;
 use lean_vm_core::StableProver;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
 use primitives::field::F128;

@@ -1,7 +1,7 @@
 //! Fibonacci in the exponent: the demo benchmark (`buff[g^k] = g^{F(k)}`,
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
-use bench::Plan;
+use bench_harness::Plan;
 use isa::{Prover, pretty_f64, pretty_integer};
 use verifier::{E, K};
 use zkdsl_compiler::{compile, parse};
@@ -9,7 +9,7 @@ use zkdsl_compiler::{compile, parse};
 /// Prove and verify Fibonacci-in-the-exponent over a `HeapBuf` (an unrolled
 /// `mul_range` recurrence), binding `g^{F(n)}` as the public input. Prints the
 /// benchmark report. Proving runs one discarded warmup pass followed by
-/// `plan.repeat` measured passes (see [`bench`]).
+/// `plan.repeat` measured passes (see [`bench_harness`]).
 pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
     let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate).entered();
 
@@ -19,11 +19,11 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
 
     // Only the final measured pass of each stage is traced (see `run_aggregation`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         P::prove(&program, &[], pi, log_inv_rate).expect("the Fibonacci program proves")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
         verifier::verify_execution(program.bytecode(), &public_input, &proof).unwrap()
     });
 
@@ -111,7 +111,7 @@ mod tests {
         super::run_fibonacci::<stable_lean_vm_core::StableProver>(
             200_000,
             stable_lean_vm_core::pcs::TEST_LOG_INV_RATE,
-            bench::Plan::default(),
+            bench_harness::Plan::default(),
         );
     }
 }

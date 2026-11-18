@@ -1,5 +1,5 @@
 [package]
-name = "bench"
+name = "allocator"
 version.workspace = true
 edition.workspace = true
 publish = false
@@ -8,8 +8,4 @@ publish = false
 workspace = true
 
 [dependencies]
-isa.workspace = true
-libc.workspace = true
 tikv-jemallocator.workspace = true
-tracing-forest.workspace = true
-tracing-subscriber.workspace = true
