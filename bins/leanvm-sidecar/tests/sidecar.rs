@@ -42,7 +42,7 @@ fn start(socket: &Path) -> (Sidecar, Client) {
     let mut sidecar = Sidecar(command(socket).spawn().unwrap());
     let start = Instant::now();
     loop {
-        if let Ok(client) = Client::connect(socket, None) {
+        if let Ok(client) = Client::connect(socket) {
             return (sidecar, client);
         }
         assert!(sidecar.0.try_wait().unwrap().is_none(), "the sidecar exited");
@@ -91,7 +91,7 @@ fn sidecar_end_to_end() {
 
     // A second connection while the first stays open: the leaf and one more signature, keeping only one leanXMSS
     // claim of each.
-    let mut other = Client::connect(socket, None).unwrap();
+    let mut other = Client::connect(socket).unwrap();
     let mut kept: Vec<_> = [&xmss[0], &xmss[2]].iter().map(|(pk, m, _)| (*pk, *m)).collect();
     kept.sort();
     let only = AggregateClaims {

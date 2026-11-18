@@ -28,12 +28,12 @@ It runs the stable prover, or, built with `--features experimental_prover`, the 
 From Rust, `lean_vm = { features = ["sidecar"] }` runs no prover, and `lean_vm::sidecar::Client` proves and verifies, with the library's arguments, blobs as they are and proofs as bytes:
 
 ```rust
-let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock", None)?;
+let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock")?;
 let (claims, proof) = sidecar.aggregate(&children, &raw_lean_xmss, &[], &[], OutputClaims::All, 2)?;
 assert!(sidecar.verify(&claims, &proof)?);
 ```
 
-`connect`'s timeout (`set_timeout` changes it) bounds each read and write; after one, drop the client.
+A call waits as long as the sidecar takes, unless `set_timeout` bounds it; after a timeout, drop the client.
 
 From another language, implement the protocol below.
 

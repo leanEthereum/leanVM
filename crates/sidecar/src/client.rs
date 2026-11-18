@@ -29,11 +29,9 @@ pub struct Client {
 
 impl Client {
     /// Connects to the sidecar listening on `socket`, and checks it speaks this protocol version and proves for this
-    /// verifier. `timeout` is [`Self::set_timeout`]'s, already for reading the sidecar's hello.
-    pub fn connect(socket: impl AsRef<Path>, timeout: Option<Duration>) -> Result<Self, SidecarError> {
+    /// verifier.
+    pub fn connect(socket: impl AsRef<Path>) -> Result<Self, SidecarError> {
         let mut stream = UnixStream::connect(socket)?;
-        stream.set_read_timeout(timeout)?;
-        stream.set_write_timeout(timeout)?;
         let body = match wire::read_frame(&mut stream, SHORT_ROOM)? {
             Incoming::Body(body) => body,
             Incoming::End => return Err(SidecarError::Protocol("closed before its hello".into())),
@@ -65,8 +63,9 @@ impl Client {
     }
 
     /// How long a call may wait on the sidecar, reading or writing, before it fails with [`SidecarError::Io`]; `None`,
-    /// the default, waits as long as it takes. Dropping the client then closes the connection, so the sidecar drops
-    /// the request unless it has started proving it.
+    /// the default, waits as long as it takes (a sidecar that dies closes the connection, failing the call at once).
+    /// Dropping the client then closes the connection, so the sidecar drops the request unless it has started proving
+    /// it.
     pub fn set_timeout(&self, timeout: Option<Duration>) -> std::io::Result<()> {
         self.stream.set_read_timeout(timeout)?;
         self.stream.set_write_timeout(timeout)
