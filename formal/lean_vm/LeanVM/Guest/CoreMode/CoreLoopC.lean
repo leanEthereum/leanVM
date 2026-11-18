@@ -507,7 +507,9 @@ theorem postOkW_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ :
     (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = [] ∧ (sigOf f).postQ = [])
     (h : PostOkW sigOf H rd σ ws0 es vs) : PostOkW sigOf H rd' σ ws0 es vs := by
   refine ⟨⟨fun c hc' ↦ writtenC_rd hpP hpPR hc (h.1.1 c hc'), fun r hr x hx ↦ writtenC_rd hpP hpPR hc
-    (h.1.2 r hr x hx)⟩, fun x hx ↦ ?_, fun x ⟨p, hp, _⟩ ↦ by rw [hqQ] at hp; cases hp⟩
+    (h.1.2 r hr x hx)⟩, fun x hx ↦ ?_, fun x ⟨p, hp, _⟩ ↦ (by rw [hqQ] at hp; cases hp),
+    fun c hc' ↦ writtenC_rd hpP hpPR hc (h.2.2.2.1 c hc'), fun r hr x hx ↦ writtenC_rd hpP hpPR hc
+    (h.2.2.2.2 r hr x hx)⟩
   rcases hx with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
   · rw [hqP] at hp; cases hp
   · rw [hqPR] at hp; cases hp

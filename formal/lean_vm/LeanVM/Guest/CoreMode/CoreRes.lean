@@ -166,15 +166,6 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
 
 /-! ## The values a residual names -/
 
-def CCell.vals (c : CCell) : List ℕ := c.bases.map (·.1)
-
-def CIdx.vals : CIdx → List ℕ
-  | .num _ => []
-  | .val v => [v]
-  | .mono c => c.vals
-
-def CRun.vals (r : CRun) : List ℕ := r.base.vals ++ r.lo.vals ++ r.hi.vals
-
 def CCond.vals : CCond → List ℕ
   | .arm x _ => [x]
   | .zero c => [c]

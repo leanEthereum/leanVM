@@ -70,6 +70,17 @@ structure CRun where
   hi : CIdx
   deriving DecidableEq, Repr, Inhabited
 
+/-! ## The values a cell, an index or a run names -/
+
+def CCell.vals (c : CCell) : List ℕ := c.bases.map (·.1)
+
+def CIdx.vals : CIdx → List ℕ
+  | .num _ => []
+  | .val v => [v]
+  | .mono c => c.vals
+
+def CRun.vals (r : CRun) : List ℕ := r.base.vals ++ r.lo.vals ++ r.hi.vals
+
 /-- **A branch condition** on core names: arm `j` of a `match`/`dispatch` on the value `x` (its word
 `g^j`), or the `0` / nonzero side of an `ite` / `callIf` guard `c`. -/
 inductive CCond where
@@ -201,6 +212,11 @@ structure HSig where
   /-- Own parameter words: `(c, j)`, ghost slot `j`'s word is the word at the cell `c` (over the parameters), where
   there is one (`GwOk`); in the own pass a `load` of `c` names it (`gwDef`). -/
   gw : List (CCell × ℕ) := []
+  /-- Guarantees over its own values, for its mode contract only (`sigOk`), not in its callers' heap view
+  (`EvW`): at return, the cells `postN` and runs `postRN` over slots, slot `i` the value `V.n nv[i]`. -/
+  nv : List ℕ := []
+  postN : List CCell := []
+  postRN : List CRun := []
   deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/

@@ -159,7 +159,8 @@ def noFA (body : List Stmt) : Bool :=
 
 /-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
 def noPost (h : HSig) : Bool :=
-  h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.postQ.isEmpty
+  h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.postQ.isEmpty &&
+    h.postN.isEmpty && h.postRN.isEmpty
 
 /-- **Frame run cells guaranteed**: a `frameAddr` atom, a guarantee, and frame run cells in the heap certificate
 (`HCert.fas`); then the walk's facts at the returns write them (`faRetOk`). -/
@@ -413,6 +414,54 @@ def rngXIs (r : Mode.Rng) (q : CRun) : Bool :=
   | some q' => decide (q' = q)
   | none => false
 
+/-! ## Guarantees over the body's values -/
+
+/-- A cell over values as a cell over the slots of the values `nv` (slot `i` the value `nv[i]`). -/
+def CCell.mapN (nv : List ℕ) (c : CCell) : CCell := ⟨c.bases.map fun b ↦ (nv.idxOf b.1, b.2), c.off⟩
+
+def CIdx.mapN (nv : List ℕ) : CIdx → CIdx
+  | .num n => .num n
+  | .val v => .val (nv.idxOf v)
+  | .mono c => .mono (c.mapN nv)
+
+def CRun.mapN (nv : List ℕ) (r : CRun) : CRun := ⟨r.base.mapN nv, r.stride, r.lo.mapN nv, r.hi.mapN nv⟩
+
+/-- **A run bound as an index over the body's values**: a constant below `2^62`, or the exponent of a base's
+word (`baseOfP`: a parameter's, a returned value's, a word a top-level `load` reads past a parameter's). -/
+noncomputable def idxN (X : AlignCtx) (body : List Stmt) (np : ℕ) : Mode.Idx → Option CIdx
+  | .num n => if n < 2 ^ 62 then some (.num n) else none
+  | .ex b c => if c = 0 then (match baseOfP X body np (b, 1) with
+    | some (v, 1) => some (.val v)
+    | _ => none) else none
+
+/-- **A promised cell among the guarantees over values** (`HSig.postN`): its product's bases those of `postIn`. -/
+noncomputable def postNIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (h : HSig) (m : Mode.Mono) :
+    Bool :=
+  monoOkP G np m && match monoF (baseOfP X body np) m with
+    | some c => c.vals.all (h.nv.contains ·) && cellIn (c.mapN h.nv) h.postN
+    | none => false
+
+/-- **A residual of `res` bounds the value `v`'s exponent** (`e(v) < m`, `m ≤ 2^62`). -/
+def expV (res : List CRes) (v : ℕ) : Bool := res.any fun
+  | .lt (.val v') (.num m) => Nat.beq v' v && decide (m ≤ capE)
+  | _ => false
+
+/-- A bound over values with an exponent: a constant, or a value a residual bounds (`expV`). -/
+def idxOkN (res : List CRes) : CIdx → Bool
+  | .num _ => true
+  | .val v => expV res v
+  | .mono _ => false
+
+/-- **A promised run among the guarantees over values** (`HSig.postRN`): its product and bounds over the bases of
+`postIn`, the bounds constants or exponents (`idxN`) a residual bounds (`idxOkN`). -/
+noncomputable def postRNIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (H : HCert) (r : Mode.Rng) :
+    Bool :=
+  monoOkP G np (rngM r) && match monoF (baseOfP X body np) r.q, idxN X body np r.lo, idxN X body np r.hi with
+    | some c, some lo, some hi => idxOkN H.res lo && idxOkN H.res hi &&
+        (CRun.vals ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩).all (H.sig.nv.contains ·) &&
+        H.sig.postRN.contains (CRun.mapN H.sig.nv ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩)
+    | _, _, _ => false
+
 /-- **A base as a slot's power, the caller's cells linked** (`CFun.gl`): a frame cell `2 + b`, or the caller's
 cell `d` (`.hp 1 d`) linked to slot `b` with no power of `g`. -/
 def baseOfL (gl : List (ℕ × ℕ × ℕ)) : Mode.Base × ℕ → Option (ℕ × ℕ)
@@ -633,13 +682,14 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng)
     G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
       | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m ||
-      hpIn G np true Cf.H.sig.postP Cf.posts m) &&
+      hpIn G np true Cf.H.sig.postP Cf.posts m || postNIn Cf.X Cf.fn.body G np Cf.H.sig m) &&
     (G.postR.all fun r ↦ (monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
       (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
-        Cf.H.sig.postR.any (rngXIs r ·)) || postRB G Cf np r) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
+        Cf.H.sig.postR.any (rngXIs r ·)) || postRB G Cf np r || postRNIn Cf.X Cf.fn.body G np Cf.H r) &&
+    Nat.ble Cf.H.sig.ghosts Cf.gl.length
 
 /-- **A callee's returned word's monomial its mode signature promises** (`retV`): returned word `k < nr` at
 the callee's frame cell `2 + na + k`, a product over its argument cells that is the cell `c`. -/
@@ -984,7 +1034,7 @@ the honest valuations, `HonF.res`). -/
 inductive HeapK (Cf : CFun) : Prop
   | m1 : heapOk Cf.pows (fun _ ↦ .empty) Cf.fn Cf.H = true → postOk Cf.pows Cf.H Cf.post Cf.fn.body = true →
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty &&
-        Cf.H.sig.postQ.isEmpty) = true →
+        Cf.H.sig.postQ.isEmpty && Cf.H.sig.postN.isEmpty && Cf.H.sig.postRN.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
       Cf.post = [] → Cf.H.ders = [] → Cf.H.sig.gw = [] → HeapK Cf

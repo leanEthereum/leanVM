@@ -144,6 +144,11 @@ def sig_of(G, m, drops):
     H.postV = each('postV', G.postV, pv)
     H.ghosts = len(G.ghosts)
     H.retEq = each('retEq', getattr(G, 'retEq', ()), lambda p: (cell(p[0]), cell(p[1])))
+    # guarantees over the body's values, over the slots of `nv`, their bases' order kept (`CCell.mapN`)
+    H.gw = [(cell(c), j) for c, j in getattr(G, 'gw', ())]
+    H.nv = list(getattr(G, 'nv', ()))
+    H.postN = [tuple(c) for c in getattr(G, 'postN', ())]
+    H.postRN = [tuple(r) for r in getattr(G, 'postRN', ())]
     # a returned pointer's cells (`retP`): `post` cells over the returned slot
     for j, offs in sorted(getattr(G, 'retP', {}).items()):
         for o in sorted(offs):
@@ -1339,6 +1344,21 @@ class Solver:
                 self.miss.append(('ret', 'postQ', t, tq))
                 return self.ret_done(None)
             ws += [('word', ns[-1])] + w
+        mn = C.monos(st.env, G.nv)
+        for c in G.postN:
+            t = C.instC(mn, c)
+            w = self.pt(st, t) if t is not None else None
+            if w is None:
+                self.miss.append(('ret', 'postN', t))
+                return self.ret_done(None)
+            ws.append(w)
+        for r in G.postRN:
+            t = C.instR(mn, r)
+            w = self.run(st, t) if t is not None else None
+            if w is None:
+                self.miss.append(('ret', 'postRN', t))
+                return self.ret_done(None)
+            ws += w
         return self.ret_done(ws)
 
     def ret_done(self, ws):
@@ -1665,6 +1685,14 @@ def lsig(G, ax):
         fs.append(f'ghosts := {G.ghosts}')
     if G.retEq:
         fs.append('retEq := [' + ', '.join(f'({lcell(a)}, {lcell(b)})' for a, b in G.retEq) + ']')
+    if getattr(G, 'gw', None):
+        fs.append('gw := [' + ', '.join(f'({lcell(c)}, {j})' for c, j in G.gw) + ']')
+    if getattr(G, 'nv', None):
+        fs.append(f'nv := {lnums(G.nv)}')
+    if getattr(G, 'postN', None):
+        fs.append('postN := ' + ax.lst('sig_postN', 'CoreMode.CCell', map(lcell, G.postN), '        '))
+    if getattr(G, 'postRN', None):
+        fs.append('postRN := ' + ax.lst('sig_postRN', 'CoreMode.CRun', map(lrun, G.postRN), '        '))
     if not fs:
         return '{}'
     return '\n    { ' + ',\n      '.join(fs) + ' }'
