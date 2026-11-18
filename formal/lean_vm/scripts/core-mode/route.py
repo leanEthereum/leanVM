@@ -232,6 +232,26 @@ def frame_nzr():
     return out, calls
 
 
+def ptr_vals(body):
+    """`CoreMode.ptrOf` over the statements, nested ones included: a `load`'s pointer, a hint's heap destination's."""
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            a = s[1]
+            if a[0] == 'load':
+                out.append(a[2])
+            elif a[0] == 'hint' and a[1][0] in ('witness', 'bits', 'bitsExp', 'digitsExp', 'windowsExp'):
+                d = a[1][-1]
+                if isinstance(d, tuple) and d and d[0] == 'heap':
+                    out.append(d[1])
+        elif s[0] == 'ite':
+            out += ptr_vals(s[2]) + ptr_vals(s[3])
+        elif s[0] == 'match':
+            for arm in s[2]:
+                out += ptr_vals(arm)
+    return out
+
+
 def route(verbose=False):
     import pair
     S = sigs()
@@ -244,6 +264,9 @@ def route(verbose=False):
     out = {}; why = collections.Counter()
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]
+        if any(p in pf['extra'] for p in ptr_vals(body)):
+            # `CoreMode.ptrCellB`: a dereferenced pointer at its certificate cell, no hint-only value
+            why['hint-only pointer'] += 1; continue
         if pf.get('kind') in ('c', 'l', 'lc'):
             # a body with calls (`callc.py`), a leaf loop helper (`loopc.py`) or one with calls (`loopcc.py`), its
             # certificate by the check with calls

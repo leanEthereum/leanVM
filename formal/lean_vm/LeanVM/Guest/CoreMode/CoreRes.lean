@@ -40,6 +40,8 @@ function's own code whose soundness at its honest instances is proved once, in `
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
+  `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
 These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest valuation whatever its
 ghost words (`CRes.holds_congr`). One family names a ghost:
@@ -127,6 +129,46 @@ noncomputable def expM (as : List Atom) : ℕ → V → Option ℕ
 /-- The fuel of `expM` the families use. -/
 def expFuel : ℕ := 6
 
+/-- The top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level branch on `c`
+that does not return, before the first statement that may return. -/
+noncomputable def nzAtoms (c : V) : List Stmt → List Atom
+  | [] => []
+  | s :: ss => (match s with
+      | .ite c' _ n => if c' = c ∧ Memory.noRetR s = true then Res.topAtoms n else []
+      | _ => []) ++ (if Memory.noRetR s = true then nzAtoms c ss else [])
+
+/-- `g⁻¹`: `w·g = 1`. -/
+noncomputable def invG (w : E) : Bool := decide (w * ofK (addressOfIndex 1) = 1)
+
+/-- **`x·v·g^off` below `g^n`** (`negFam`), `k` a branch condition: `v` the constant `g⁻¹` of the arm taken when `k`
+is nonzero (`nzAtoms`), `x` range checked, `k = y + w` and `y = x·w`, `w` the constant `g^off` (so `x ≠ 1` there), `y`
+range checked below `g^(n + 1)`. -/
+noncomputable def negPair (fn : Fn) (k x v off n : ℕ) : Bool :=
+  decide (off < 2 ^ 33) && (Res.rcBound (Res.topAtoms fn.body) (V.n x)).isSome &&
+  (nzAtoms (V.n k) fn.body).any (fun
+    | .const d w => decide (d = V.n v) && invG w
+    | _ => false) &&
+  (Res.topAtoms fn.body).any fun
+    | .add d y o => decide (d = V.n k) && (Res.topAtoms fn.body).any (fun
+        | .mul y' x' b => decide (y' = y) && decide (x' = V.n x) &&
+          (match Res.constOf (Res.topAtoms fn.body) o, Res.constOf (Res.topAtoms fn.body) b with
+          | some w, some w' => decide (w = w') && decide (w = ofK (addressOfIndex off))
+          | _, _ => false) &&
+          (match Res.rcBound (Res.topAtoms fn.body) y with
+          | some N => decide (N ≤ n + 1)
+          | none => false)
+        | _ => false)
+    | _ => false
+
+/-- **The `neg` family**, under a branch condition `k ≠ 0`: `e(x·v·g^off) < n` (`negPair`, either base first). -/
+noncomputable def negFam (fn : Fn) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num n) => decide (n < capE) && cs.any fun
+      | .nonzero k => match c.bases with
+        | [(a, 1), (b, 1)] => negPair fn k a b c.off n || negPair fn k b a c.off n
+        | _ => false
+      | _ => false
+  | _ => false
+
 /-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
@@ -161,7 +203,7 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
   | .subR q r => subRC q r
-  | .under _ r => resFam fn xc r
+  | .under cs r => resFam fn xc r || negFam fn cs r
   | _ => false
 
 /-! ## The values a residual names -/

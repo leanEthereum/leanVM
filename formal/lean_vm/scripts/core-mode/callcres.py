@@ -250,6 +250,59 @@ def sub_rc(q, r):
     return rl[1] <= ql[1] + k and qh[1] + k <= rh[1] and all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1]))
 
 
+def nz_atoms(c, body):
+    """`CoreMode.nzAtoms`: the top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level
+    branch on `c` that does not return, before the first statement that may return."""
+    out = []
+    for s in body:
+        if s[0] == 'ite' and s[1] == c and not has_ret(s):
+            out += top_atoms(s[3])
+        if s[0] == 'ret' or has_ret(s):
+            break
+    return out
+
+
+def const_of(atoms, v):
+    """`Res.constOf`: the first constant `v` gets among the atoms."""
+    for a in atoms:
+        if a[0] == 'const' and a[1] == v:
+            return tuple(a[2])
+    return None
+
+
+def neg_pair(body, k, x, v, off, n):
+    """`CoreMode.negPair`: `e(x·v·g^off) < n` where `k` is nonzero."""
+    top = top_atoms(body)
+    if not off < 2 ** 33 or rc_bound(top, x) is None:
+        return False
+    if not any(a[0] == 'const' and a[1] == v and a[2][1] == 0 and I.gf_mulx(a[2][0], 1) == 1 for a in nz_atoms(k, body)):
+        return False
+    for a in top:
+        if a[0] != 'add' or a[1] != k:
+            continue
+        y, o = a[2], a[3]
+        for b in top:
+            if b[0] == 'mul' and b[1] == y and b[2] == x:
+                w, w2 = const_of(top, o), const_of(top, b[3])
+                N = rc_bound(top, y)
+                if w is not None and w == w2 and w == (I.gf_mulx(1, off), 0) and N is not None and N <= n + 1:
+                    return True
+    return False
+
+
+def neg_fam(k, conds, r):
+    """`CoreMode.negFam`: under a condition `c ≠ 0`, `e(x·v·g^off) < n`, either base first (`neg_pair`)."""
+    if r[0] != 'lt' or r[1][0] != 'mono' or r[2][0] != 'num' or not r[2][1] < CAPE:
+        return False
+    (bs, off), n = r[1][1], r[2][1]
+    if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
+        return False
+    body = I.CORE[k][1]
+    (a, _), (b, _) = bs
+    return any(c[0] == 'nonzero' and (neg_pair(body, c[1], a, b, off, n) or neg_pair(body, c[1], b, a, off, n))
+               for c in conds)
+
+
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
@@ -259,7 +312,7 @@ def res_fam(k, r, G):
     import callc
     params, body = I.CORE[k]
     if r[0] == 'under':
-        return res_fam(k, r[2], G)
+        return res_fam(k, r[2], G) or neg_fam(k, r[1], r[2])
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
         x, n = r[1][1], r[2][1]
         if not n < CAPE:
