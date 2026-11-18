@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P45».Mode0
-public import LeanVM.Guest.Pack.«P45».Mode1
 
 set_option Elab.async false
 
@@ -207,48 +206,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1»
-
-namespace LeanVM.Guest.Fn.«level_positions__L3_L19_L7_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop196`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1145) (d := Data.adviceFn1145) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L3_L19_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L6_L26_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop425`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1418) (d := Data.adviceFn1418) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L6_L26_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop459`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1457) (d := Data.adviceFn1457) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»

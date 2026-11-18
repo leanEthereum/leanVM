@@ -16,7 +16,6 @@ public import LeanVM.Guest.Pack.«P38».ModeSig
 public import LeanVM.Guest.Pack.«P47».ModeSig
 public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P56».ModeSig
-public import LeanVM.Guest.Pack.«P59».ModeSig
 
 set_option Elab.async false
 
@@ -270,71 +269,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«level_residual__L17_L8_L4_L2»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop490`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node (some Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig)
-    .nil .nil)) .nil)) .nil) .nil) .nil) .nil) .nil)) .nil) .nil) .nil)))) .nil) (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node (some Fn.«walk_path__L12_L5».modeSig) .nil
-    .nil)) .nil) .nil)) .nil) .nil) .nil))))))))))) .nil), 524287⟩
-
-/-- `__loop490`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨426551, 223, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig, (.node
-    none .nil (.node none (.node (some [(.witnessStack "merkle_leaf_rows" 18 16)]) .nil .nil)
-    (.node none .nil (.node none (.node (some [(.alloc 80 153)]) .nil .nil) (.node none (.node none
-    (.node none .nil (.node (some [(.frameAddress 334)]) .nil .nil)) .nil) .nil))))), .nil, .nil,
-    false, .nil⟩
-
-/-- `__loop490`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop494`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node (some
-    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil))
-    .nil) .nil) .nil)))))) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node (some Fn.«walk_path__L18_L3».modeSig) .nil
-    .nil)) .nil) .nil)))) .nil))) .nil))) .nil))) .nil))), 524287⟩
-
-/-- `__loop494`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨429962, 102, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig, (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    [(.frameAddress 123)]) .nil .nil) .nil)) .nil))) (.node none (.node (some [(.witnessStack
-    "merkle_leaf_rows" 18 16)]) .nil .nil) (.node none .nil (.node none (.node (some [(.alloc 80
-    170)]) .nil .nil) .nil)))), .nil, .nil, false, .nil⟩
-
-/-- `__loop494`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0»

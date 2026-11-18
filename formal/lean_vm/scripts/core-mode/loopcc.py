@@ -1,6 +1,7 @@
 """The core route's loop helpers whose bodies have calls (`formal/notes/core-mode.md`, `CoreMode/CoreLoopC.lean`'s
 `LoopOkC`): bodies of atoms and calls, their tail call to themselves and `ret []`, checked by `heapOkC`'s loop rules
-with the function's heap signature its mode signature's translated (`CoreMode.sigOkL`, as `loopc.py`) and each
+with the function's heap signature its mode signature's translated (`CoreMode.sigOkLP`: `loopc.py`'s, its pointer
+runs `preP`/`postLP` as `prePR`/`postPR`) and each
 callee's its mode signature's (`CoreMode.fitB`, as `callc.py`). The certificate's witnesses come from the emitter's
 solver (`emitc.solve`) in `infer.py`'s pass at those signatures, which must not grow.
 
@@ -45,7 +46,19 @@ def infer_one(k, S):
         raise No('no self cell')
     if 0 not in G['entry'] or 1 not in G['entry']:
         raise No('header')
-    own = loopc.own_sig(G, np)
+    if any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch', 'frameAddr') for s in body):
+        raise No('memory read')
+    G2 = dict(G)
+    G2['preP'], G2['postLP'] = [], []
+    own = loopc.own_sig(G2, np)
+    # `sigOkLP`: the loop's pointer runs, its preconditions' and its loop's, translated, offsets as they are
+    for f, src in (('prePR', G['preP']), ('postPR', G['postLP'])):
+        for r, offs in src:
+            if list(offs) != sorted(set(offs)):
+                raise No('offsets')
+            getattr(own, f).append((loopc.run(G, np, r), tuple(offs)))
+    if any(p[0] not in own.preR for p in own.prePR) or any(p[0] not in own.postR for p in own.postPR):
+        raise No('own pointer run cells')
     if I.loop_params(k)[0] != 0:
         raise No('counter not 0')
     cs = {}
@@ -60,6 +73,16 @@ def infer_one(k, S):
             raise No('recursive')
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
         callc.exp_bounds(h, s[2], body)
+        # `CoreMode.fitBL`: a callee's pointer run's run is a run it guarantees written
+        for r, _ in Gf['postP']:
+            try:
+                q = callc.runX(r, len(s[2]) + len(s[3]))
+            except No:
+                continue
+            if q not in h.postR:
+                h.postR.append(q)
+        if h.postP or any(p[0] not in h.postR for p in h.postPR):
+            raise No('callee pointer run cells')
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h

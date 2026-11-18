@@ -103,36 +103,6 @@ end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
 
-namespace LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop191`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1139) (d := Data.adviceFn1139) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop385`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1371) (d := Data.adviceFn1371) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-
 namespace LeanVM.Guest.Fn.«eq_prefix_chain»
 
 open LeanVM.Guest LeanVM.Guest.Exec

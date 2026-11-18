@@ -9,10 +9,12 @@ module
 
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
+public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P41».Bundle
 public import LeanVM.Guest.Pack.«P41».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P50».ModeSig
+public import LeanVM.Guest.Pack.«P55».ModeSig
 
 namespace LeanVM.Guest.Fn.«g_power_of_word»
 
@@ -221,3 +223,54 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop1»
+
+namespace LeanVM.Guest.Fn.«level_positions__L4_L22_L4_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop306`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some Fn.«level_positions__L4_L22_L4_loop0».modeSig) .nil .nil) .nil))
+    .nil))) .nil) .nil)) .nil))) .nil) .nil) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node (some Fn.«decode_query_windows__L22_L4».modeSig) .nil
+    .nil) .nil) .nil))) .nil)) .nil) .nil))) .nil) .nil) .nil)) .nil)) .nil)), 524287⟩
+
+/-- `__loop306`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨353668, 48, Fn.«level_positions__L4_L22_L4_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_positions__L4_L22_L4_loop0»
+
+namespace LeanVM.Guest.Fn.«level_positions__L15_L25_L7_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop336`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some Fn.«decode_query_windows__L25_L7».modeSig) .nil .nil) .nil)) .nil)))
+    .nil) .nil) .nil)) .nil) .nil) .nil))))) .nil) (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«level_positions__L15_L25_L7_loop0».modeSig) .nil .nil)
+    .nil))) .nil) .nil)) .nil) .nil) .nil)))) .nil)))) .nil)), 524287⟩
+
+/-- `__loop336`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨365020, 48, Fn.«level_positions__L15_L25_L7_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_positions__L15_L25_L7_loop0»

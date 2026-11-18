@@ -223,21 +223,6 @@ end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L25_L7»
 
-namespace LeanVM.Guest.Fn.«level_positions__L6_L22_L4_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop341`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1320) (d := Data.adviceFn1320) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L6_L22_L4_loop0»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L28_L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec

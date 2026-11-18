@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Mode.HintsSplit
 public import LeanVM.Guest.Pack.«P43».Mode0
-public import LeanVM.Guest.Pack.«P43».Mode1
 public import LeanVM.Guest.Pack.«P43».ModeD0
 public import LeanVM.Guest.Pack.«P43».ModeH0P0
 public import LeanVM.Guest.Pack.«P43».ModeH0P1
@@ -155,21 +154,6 @@ end
 
 end LeanVM.Guest.Fn.«level_positions__L3_L22_L4»
 
-namespace LeanVM.Guest.Fn.«level_positions__L3_L16_L4_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop63`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 977) (d := Data.adviceFn977) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L3_L16_L4_loop0»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -184,36 +168,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1»
-
-namespace LeanVM.Guest.Fn.«level_positions__L6_L20_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop162`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1102) (d := Data.adviceFn1102) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L6_L20_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop528`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1537) (d := Data.adviceFn1537) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»
 
 namespace LeanVM.Guest.Fn.«main_loop2»
 
