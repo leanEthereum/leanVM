@@ -78,7 +78,7 @@ def vsSidePieces : List Atom :=
 
 /-- A statement is no atom needing a side condition, or one of `vsSidePieces`. -/
 def vsSideOk : Stmt → Bool
-  | .atom a => !needsSide a || vsSidePieces.contains a
+  | .atom a => !needsSide a || vsSidePieces.any (atomEqb a)
   | _ => true
 
 theorem vs_sideCls : vsCPre.all vsSideOk = true := by decide +kernel
@@ -86,8 +86,9 @@ theorem vs_sideCls : vsCPre.all vsSideOk = true := by decide +kernel
 theorem vs_side_mem {a : Atom} (hs : Stmt.atom a ∈ vsCPre) (hn : needsSide a = true) :
     a ∈ vsSidePieces := by
   have h := List.all_eq_true.mp vs_sideCls _ hs
-  simp only [vsSideOk, hn, Bool.not_true, Bool.false_or, List.contains_iff_mem] at h
-  exact h
+  simp only [vsSideOk, hn, Bool.not_true, Bool.false_or] at h
+  obtain ⟨b, hb, he⟩ := List.any_eq_true.mp h
+  exact atomEqb_sound he ▸ hb
 
 /-! ## What the sections take -/
 

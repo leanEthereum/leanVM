@@ -74,7 +74,8 @@ theorem verifySubGoalsTBR_deployedE {seed : Digest} {s : NodeStatement} {w : Nod
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
       (childShape bytecode w.children[c]).2 = childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w c := by
-    simp [childBv, List.getD_eq_getElem?_getD, hc]
+    rw [childBv, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hc, Option.map_some,
+      Option.getD_some]
   rw [hB] at h
   replace h := h.mono (T' := fun rd t ↦ (deployedVsH w c t ∧ SameStreams (t.pops coreProgram rd)
       (pvH bytecode seed w c)) ∧ t.Every (ExactAt coreProgram rd)) le_rfl fun rd t ht ↦ ⟨⟨⟨fun _ ↦ ⟨by
