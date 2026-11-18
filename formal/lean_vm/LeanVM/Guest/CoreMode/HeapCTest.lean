@@ -244,6 +244,12 @@ theorem useFill_subBad :
       res := [.sub ⟨[(1, 1)], 4⟩ ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 0⟩] } = false := by
   decide +kernel
 
+/-- `readAll`'s `preR` split at index `3` (`cat`): the points below by `pts`, the rest by the run. -/
+theorem useFill_cat :
+    heapOkC Data.powTree sigs useFill
+      { hUseFill with calls := [[], [.cat 3, .pts, .run 0 [0], .run 0 [0], .run 0 [0], .run 0 [0]]] } = true := by
+  decide +kernel
+
 /-- Without the residual the index is not known in the run. -/
 theorem useFill_bad : heapOkC Data.powTree sigs useFill { hUseFill with reads := [(3, [(1, 3, .run 0 [])])] } = false := by
   decide +kernel

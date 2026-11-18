@@ -510,12 +510,21 @@ noncomputable def ptsRun (X : CX) (st : CSt) (b : CCell) (S : ℕ) : ℕ → ℕ
   | j, n + 1, w :: ws => bif ptOk X st (b.shift (S * j)) w then ptsRun X st b S (j + 1) n ws else none
   | _, _ + 1, [] => none
 
-/-- **A run needed**: its witness, or `pts` and one point witness per cell (constant bounds). The
-witnesses left. -/
-noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+/-- A run needed, one part: its witness, or `pts` and one point witness per cell (constant bounds).
+The witnesses left. -/
+noncomputable def runOk1 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
   | .pts :: ws => bif constR Q then ptsRun X st Q.base Q.stride Q.lo.off (Q.hi.off - Q.lo.off) ws else none
   | w :: ws => bif rnOk X st Q w then some ws else none
   | [] => none
+
+/-- **A run needed**: one part (`runOk1`), or `cat k` and the parts below and from the constant index
+`k` (`k < 2^62`). The witnesses left. -/
+noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .cat k :: ws => bif Nat.blt k capE then
+      (match runOk1 X st ⟨Q.base, Q.stride, Q.lo, ⟨[], k⟩⟩ ws with
+      | some ws' => runOk1 X st ⟨Q.base, Q.stride, ⟨[], k⟩, Q.hi⟩ ws'
+      | none => none) else none
+  | ws => runOk1 X st Q ws
 
 /-- Signature runs at the slots `ms`, each with its witnesses: the witnesses left. -/
 noncomputable def reqR (X : CX) (st : CSt) (ms : List CCell) : List CRun → List Wit → Option (List Wit)

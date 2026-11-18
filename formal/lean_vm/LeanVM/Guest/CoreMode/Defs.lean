@@ -110,6 +110,9 @@ inductive Wit where
   /-- A dispatch arm that cannot run: a fact (the own termination facts and these residuals) puts its
   selector's exponent below the arm's index. -/
   | skip (res : List ℕ)
+  /-- A run needed, split at the constant index `k`: the witnesses of its part below `k`, then of its
+  part from `k`, follow. -/
+  | cat (k : ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
