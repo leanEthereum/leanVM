@@ -39,6 +39,7 @@ rejected.
   ghosts.
 * `joinf`, `joinm`: a cell stored by every branch of an `if` or every arm of a `match` falling through,
   read after it (joins).
+* `useDp`: a pointer fact every arm of a `dispatch` guarantees, read through after it.
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -648,6 +649,35 @@ theorem joinr_ok :
       { joinf with body := [.atom (.const (.n 2) (word 0 0)), .ite (.n 1) [.ret []] [.atom (.load (.n 2) (.n 0) 1)],
         .atom (.load (.n 3) (.n 0) 1), .ret []] }
       { hJoinf with reads := [(3, [(0, 1, .ev 0)])], rets := [[], []] } = true := by
+  decide +kernel
+
+/-! ## A dispatch's pointer facts -/
+
+/-- `usep` through a `dispatch` of `mkp` and `mkp`: the pointer fact both arms guarantee. -/
+def useDp : Fn where
+  name := "useDp"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 1) ["mkp", "mkp"] [.n 0] [], .atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 2) 1),
+    .ret []]
+
+/-- `useDp`'s certificate: the meet's `post` cell (point serial `0`), then its pointer fact (serial `1`). -/
+def hUseDp : HCert where
+  sig := {}
+  reads := [(2, [(0, 0, .ev 0)]), (3, [(2, 1, .pf 1)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+/-- `mkp`'s signature, and `mkq`'s: `p[0]` written, no pointer fact. -/
+def sigsP (g : String) : HSig :=
+  if g = "mkp" then hMkp.sig else if g = "mkq" then { post := [⟨[(0, 1)], 0⟩] } else .empty
+
+theorem useDp_ok : heapOkC Data.powTree sigsP useDp hUseDp = true := by decide +kernel
+
+/-- An arm without the pointer fact: not in the meet. -/
+theorem useDp_bad :
+    heapOkC Data.powTree sigsP { useDp with body := [.dispatch (.n 1) ["mkp", "mkq"] [.n 0] [],
+      .atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 2) 1), .ret []] } hUseDp = false := by
   decide +kernel
 
 end

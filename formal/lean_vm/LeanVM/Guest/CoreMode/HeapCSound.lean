@@ -1795,6 +1795,77 @@ theorem pushPost_ok {G : HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw �
             rw [← he]
             exact hx
 
+theorem pfBeq_eq {p q : CCell × List ℕ} (h : pfBeq p q = true) : p = q := by
+  unfold pfBeq at h
+  simp only [Bool.and_eq_true, beq_iff_eq] at h
+  exact Prod.ext (CCell.beq_eq h.1) h.2
+
+theorem prBeq_eq {p q : PRun × List ℕ} (h : prBeq p q = true) : p = q := by
+  unfold prBeq at h
+  simp only [Bool.and_eq_true, beq_iff_eq] at h
+  exact Prod.ext (PRun.beq_eq h.1) h.2
+
+theorem instArmsP_mem {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : List String}
+    {ps : List (List (CCell × List ℕ))} {rs : List (List (PRun × List ℕ))}, instArmsP sigOf ms gs = some (ps, rs) →
+    ∀ g ∈ gs, ∃ p ∈ ps, ∃ r ∈ rs, instPP ms (sigOf g).postP = some p ∧ instPRL ms (sigOf g).postPR = some r
+  | [], ps, rs, _, g, hg => by simp at hg
+  | g :: gs, ps, rs, h, g0, hg0 => by
+    simp only [instArmsP] at h
+    cases h1 : instPP ms (sigOf g).postP with
+    | none => simp [h1] at h
+    | some p =>
+      cases h2 : instPRL ms (sigOf g).postPR with
+      | none => simp [h1, h2] at h
+      | some r =>
+        cases h3 : instArmsP sigOf ms gs with
+        | none => simp [h1, h2, h3] at h
+        | some pr =>
+          obtain ⟨ps', rs'⟩ := pr
+          simp only [h1, h2, h3, Option.some.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          rcases List.mem_cons.mp hg0 with rfl | hg0
+          · exact ⟨p, List.mem_cons_self, r, List.mem_cons_self, h1, h2⟩
+          · obtain ⟨p', hp', r', hr', e1, e2⟩ := instArmsP_mem h3 g0 hg0
+            exact ⟨p', List.mem_cons_of_mem _ hp', r', List.mem_cons_of_mem _ hr', e1, e2⟩
+
+/-- **The pointer guarantees every arm gives, pushed**: those of the taken arm. -/
+theorem pushPtrM_ok {G : String → HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws))
+    {gs : List String} {g : String} (hg : g ∈ gs) {W' : K → Prop} {st : CSt} (hs : StOk rd W' σ st)
+    (hW : ∀ x, PostSet rd (G g) ws x → W' x) : StOk rd W' σ (pushPtrM (instArmsP G ms gs) st) := by
+  cases hi : instArmsP G ms gs with
+  | none => exact hs
+  | some pr =>
+    obtain ⟨ps, rs⟩ := pr
+    cases ps with
+    | nil => exact hs
+    | cons p ps =>
+      cases rs with
+      | nil => exact hs
+      | cons r rs =>
+        obtain ⟨pg, hpg, rg, hrg, e1, e2⟩ := instArmsP_mem hi g hg
+        simp only [pushPtrM]
+        refine pushPRL_ok (pushPL_ok hs (fun _ h ↦ h) fun q hq x hx ↦ ?_) (fun _ h ↦ h) fun q hq a ha x hx ↦ ?_
+        · obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
+          have hqg : q ∈ pg := by
+            rcases List.mem_cons.mp hpg with rfl | hpg
+            · exact hq1
+            · obtain ⟨q', hq', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp hq2 pg hpg)
+              rwa [← pfBeq_eq he]
+          obtain ⟨p0, hp0, hi0, he⟩ := instPP_ok e1 q hqg
+          refine hW x (Or.inr (Or.inl ⟨p0, hp0, ?_⟩))
+          rw [← he]
+          exact (ptrSet_inst hms hi0).mp hx
+        · obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
+          have hqg : q ∈ rg := by
+            rcases List.mem_cons.mp hrg with rfl | hrg
+            · exact hq1
+            · obtain ⟨q', hq', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp hq2 rg hrg)
+              rwa [← prBeq_eq he]
+          obtain ⟨p0, hp0, hi0, he⟩ := instPRL_ok e2 q hqg
+          refine hW x (Or.inr (Or.inr ⟨p0, hp0, a, (instR_set hms hi0).mp ha, ?_⟩))
+          rw [← he]
+          exact hx
+
 /-- **A call**: its callee's preconditions written; the state after it valid with its writes. -/
 theorem callC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st st' : CSt} {g : String}
     {args rets : List V} (hs : StOk rd W σ st) (h : callC X st g args rets = some st') :
@@ -2009,6 +2080,7 @@ theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.add
                   subst h
                   obtain ⟨pg, hpg, rg, hrg, e1, e2⟩ := instArms_mem hi g hg
                   rw [hX.sigOf] at e1 e2
+                  refine pushPtrM_ok hm hg ?_ fun x hx ↦ Or.inr (by rw [← hX.sigOf]; exact hx)
                   refine pushRL_ok (pushL_ok hs1 (fun _ ↦ Or.inl) fun c hc ↦ ?_) (fun _ h ↦ h)
                     fun q hq ↦ ?_
                   · obtain ⟨hc1, hc2⟩ := List.mem_filter.mp hc
@@ -2195,16 +2267,6 @@ theorem insL_ok {α : Type} {Q : α → Prop} : ∀ {l : List (ℕ × α)} {t : 
     rcases getF_setF h' with ⟨-, rfl⟩ | h'
     · exact hl p List.mem_cons_self
     · exact ht k' a' h'
-
-theorem pfBeq_eq {p q : CCell × List ℕ} (h : pfBeq p q = true) : p = q := by
-  unfold pfBeq at h
-  simp only [Bool.and_eq_true, beq_iff_eq] at h
-  exact Prod.ext (CCell.beq_eq h.1) h.2
-
-theorem prBeq_eq {p q : PRun × List ℕ} (h : prBeq p q = true) : p = q := by
-  unfold prBeq at h
-  simp only [Bool.and_eq_true, beq_iff_eq] at h
-  exact Prod.ext (PRun.beq_eq h.1) h.2
 
 /-- **The state after a join is valid** where the state before is and the end of a block taken that
 falls through is. -/

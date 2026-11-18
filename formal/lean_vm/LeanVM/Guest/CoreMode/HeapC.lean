@@ -751,12 +751,35 @@ noncomputable def callIfC (X : CX) (st : CSt) (c : V) (g : String) (args : List 
     | _ => none
   | _, _ => none
 
+/-- Two pointer facts are equal. -/
+def pfBeq (p q : CCell × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
+
+/-- Two pointer runs are equal. -/
+def prBeq (p q : PRun × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
+
+/-- Each callee's pointer guarantees at the slots `ms`. -/
+def instArmsP (sigOf : String → HSig) (ms : List CCell) : List String →
+    Option (List (List (CCell × List ℕ)) × List (List (PRun × List ℕ)))
+  | [] => some ([], [])
+  | g :: gs => match instPP ms (sigOf g).postP, instPRL ms (sigOf g).postPR, instArmsP sigOf ms gs with
+    | some p, some r, some (ps, rs) => some (p :: ps, r :: rs)
+    | _, _, _ => none
+
+/-- The pointer guarantees every arm gives, pushed: the first arm's pointer facts (point serials) and
+pointer runs (run serials) every other has; none if one does not instantiate. -/
+noncomputable def pushPtrM : Option (List (List (CCell × List ℕ)) × List (List (PRun × List ℕ))) → CSt → CSt
+  | some (p :: ps, r :: rs), st =>
+    pushPRL (r.filter fun q ↦ rs.all fun l ↦ l.any fun q' ↦ prBeq q' q)
+      (pushPL (p.filter fun q ↦ ps.all fun l ↦ l.any fun q' ↦ pfBeq q' q) st)
+  | _, st => st
+
 /-- The returned words' monomials every list has. -/
 def meetM (ls : List (List (ℕ × CCell))) (p : ℕ × CCell) : Bool :=
   ls.all fun l ↦ l.any fun q ↦ Nat.beq q.1 p.1 && q.2.beq p.2
 
 /-- **A dispatch** on `x`: every arm's preconditions but the arms a fact rules out (`armSkip`); the
-returned words' monomials every arm kept gives, then what every arm kept guarantees pushed. -/
+returned words' monomials every arm kept gives, then what every arm kept guarantees pushed (cells, runs,
+pointer facts, pointer runs). -/
 noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args rets : List V) : Option CSt :=
   match monos st.env args, monoOf st.env x, getF X.C st.nc with
   | some ma, some mx, some ws => match reqArmsX X st ma args mx 0 fs ws with
@@ -765,7 +788,8 @@ noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args ret
           (meetM (gs.map fun g' ↦ instRM ma (X.sigOf g').retM))) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
         | some mr => match instArms X.sigOf (ma ++ mr) (g :: gs) with
-          | some (p :: ps, r :: rs) => some (pushRL (r.filter (meetR rs)) (pushL (p.filter (meetC ps)) st1))
+          | some (p :: ps, r :: rs) => some (pushPtrM (instArmsP X.sigOf (ma ++ mr) (g :: gs))
+              (pushRL (r.filter (meetR rs)) (pushL (p.filter (meetC ps)) st1)))
           | _ => none
         | none => none
     | _ => none
@@ -865,12 +889,6 @@ def joinE {α : Type} (beq : α → α → Bool) (ls : List (Bool × List (ℕ �
 noncomputable def insL {α : Type} : List (ℕ × α) → Trie α → Trie α
   | [], t => t
   | p :: l, t => (setF p.2 Exec.indexDepth t p.1).seq fun t ↦ insL l t
-
-/-- Two pointer facts are equal. -/
-def pfBeq (p q : CCell × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
-
-/-- Two pointer runs are equal. -/
-def prBeq (p q : PRun × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
 
 /-- **The state after a join**: `st`'s, with the cells, runs, pointer facts and pointer runs that every
 block `b = (returns, start, end)` able to fall through added after its start, at the first such block's
