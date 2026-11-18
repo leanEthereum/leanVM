@@ -37,6 +37,8 @@ rejected.
 * `rdg`, `useG`: reads through a cursor into a caller's object, the object a precondition over two ghost
   slots, named by the caller (`ghosts`, `gargs`); `rdl`, the same in a loop, its tail call naming its own
   ghosts.
+* `joinf`, `joinm`: a cell stored by every branch of an `if` or every arm of a `match` falling through,
+  read after it (joins).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -581,6 +583,71 @@ theorem rdl_ok : heapOkC Data.powTree (fun g ↦ if g = "rdl" then hRdl.sig else
 theorem rdl_bad :
     heapOkC Data.powTree (fun g ↦ if g = "rdl" then hRdl.sig else .empty) rdl
       { hRdl with gargs := [("rdl", [9, 1, 2], [⟨[(1048577, 1)], 0⟩, ⟨[(1048576, 1)], 0⟩])] } = false := by
+  decide +kernel
+
+/-! ## Joins -/
+
+/-- Stores `p[0]` in both branches of an `if` (and `p[1]` in the second), reads `p[0]` after. -/
+def joinf : Fn where
+  name := "joinf"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)),
+    .ite (.n 1) [.atom (.load (.n 2) (.n 0) 0)] [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 2) (.n 0) 1)],
+    .atom (.load (.n 3) (.n 0) 0), .ret []]
+
+/-- `joinf`'s certificate: the read is the first branch's store (serial `0`), which the second branch also
+makes. -/
+def hJoinf : HCert where
+  sig := {}
+  reads := [(3, [(0, 0, .ev 0)])]
+  res := []
+  rets := [[]]
+
+theorem joinf_ok : heapOkC Data.powTree (fun _ ↦ .empty) joinf hJoinf = true := by decide +kernel
+
+/-- `p[1]`, stored in the second branch only, is not written after the join. -/
+theorem joinf_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty)
+      { joinf with body := [.atom (.const (.n 2) (word 0 0)),
+        .ite (.n 1) [.atom (.load (.n 2) (.n 0) 0)] [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 2) (.n 0) 1)],
+        .atom (.load (.n 3) (.n 0) 1), .ret []] }
+      { hJoinf with reads := [(3, [(0, 1, .ev 2)])] } = false := by
+  decide +kernel
+
+/-- A `match` whose last arm returns: what the other two arms both store is written after it. -/
+def joinm : Fn where
+  name := "joinm"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)),
+    .match_ (.n 1) [[.atom (.load (.n 2) (.n 0) 0)], [.atom (.load (.n 2) (.n 0) 1), .atom (.load (.n 2) (.n 0) 0)],
+      [.ret []]],
+    .atom (.load (.n 3) (.n 0) 0), .ret []]
+
+/-- `joinm`'s certificate: the read is the first arm's store (serial `0`). -/
+def hJoinm : HCert where
+  sig := {}
+  reads := [(3, [(0, 0, .ev 0)])]
+  res := []
+  rets := [[], []]
+
+theorem joinm_ok : heapOkC Data.powTree (fun _ ↦ .empty) joinm hJoinm = true := by decide +kernel
+
+/-- `p[1]`, stored in the second arm only, is not written after the `match`. -/
+theorem joinm_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty)
+      { joinm with body := [.atom (.const (.n 2) (word 0 0)),
+        .match_ (.n 1) [[.atom (.load (.n 2) (.n 0) 0)], [.atom (.load (.n 2) (.n 0) 1), .atom (.load (.n 2) (.n 0) 0)],
+          [.ret []]],
+        .atom (.load (.n 3) (.n 0) 1), .ret []] }
+      { hJoinm with reads := [(3, [(0, 1, .ev 1)])] } = false := by
+  decide +kernel
+
+/-- An `if` whose first branch returns: the second branch's store is written after it. -/
+theorem joinr_ok :
+    heapOkC Data.powTree (fun _ ↦ .empty)
+      { joinf with body := [.atom (.const (.n 2) (word 0 0)), .ite (.n 1) [.ret []] [.atom (.load (.n 2) (.n 0) 1)],
+        .atom (.load (.n 3) (.n 0) 1), .ret []] }
+      { hJoinf with reads := [(3, [(0, 1, .ev 0)])], rets := [[], []] } = true := by
   decide +kernel
 
 end

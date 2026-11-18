@@ -25,6 +25,8 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`).
 
+**Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them.
+
 **Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
@@ -837,6 +839,56 @@ noncomputable def atomC (X : CX) (st : CSt) : Atom → Option CSt
     | _, _, _ => some st
   | a => (atomH X.toH st.toH a).map st.ofH
 
+/-! ## Joins -/
+
+/-- A block returning on every path: a `ret` at its top level. -/
+def endsRet : List Stmt → Bool
+  | [] => false
+  | .ret _ :: _ => true
+  | _ :: ss => endsRet ss
+
+/-- A trie's entries at the keys `lo`, `lo + 1`, …, `n` keys. -/
+noncomputable def rng {α : Type} (t : Trie α) (lo : ℕ) : ℕ → List (ℕ × α)
+  | 0 => []
+  | n + 1 => match getF t lo with
+    | some a => (lo, a) :: rng t (lo + 1) n
+    | none => rng t (lo + 1) n
+
+/-- **The entries a join keeps**: of the blocks that can fall through (not returning, `false`), the
+first one's entries that every other one has too (`beq`). -/
+def joinE {α : Type} (beq : α → α → Bool) (ls : List (Bool × List (ℕ × α))) : List (ℕ × α) :=
+  match ls.filter fun l ↦ !l.1 with
+  | [] => []
+  | l0 :: rest => l0.2.filter fun p ↦ rest.all fun l ↦ l.2.any fun q ↦ beq q.2 p.2
+
+/-- Entries into a trie, by key. -/
+noncomputable def insL {α : Type} : List (ℕ × α) → Trie α → Trie α
+  | [], t => t
+  | p :: l, t => (setF p.2 Exec.indexDepth t p.1).seq fun t ↦ insL l t
+
+/-- Two pointer facts are equal. -/
+def pfBeq (p q : CCell × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
+
+/-- Two pointer runs are equal. -/
+def prBeq (p q : PRun × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
+
+/-- **The state after a join**: `st`'s, with the cells, runs, pointer facts and pointer runs that every
+block `b = (returns, start, end)` able to fall through added after its start, at the first such block's
+serials; `s`'s serials. -/
+noncomputable def joinSt (bs : List (Bool × CSt × CSt)) (st s : CSt) : CSt :=
+  ⟨st.env, insL (joinE CCell.beq (bs.map fun b ↦ (b.1, rng b.2.2.sc b.2.1.n (b.2.2.n - b.2.1.n)))) st.sc,
+    insL (joinE PRun.beq (bs.map fun b ↦ (b.1, rng b.2.2.rs b.2.1.nr (b.2.2.nr - b.2.1.nr)))) st.rs,
+    st.ad, st.sv, st.src,
+    insL (joinE pfBeq (bs.map fun b ↦ (b.1, rng b.2.2.pf b.2.1.n (b.2.2.n - b.2.1.n)))) st.pf,
+    insL (joinE prBeq (bs.map fun b ↦ (b.1, rng b.2.2.pr b.2.1.nr (b.2.2.nr - b.2.1.nr)))) st.pr,
+    s.n, s.nr, s.nc, s.nt⟩
+
+/-- The last block's end, or `st`. -/
+def lastSt : List (Bool × CSt × CSt) → CSt → CSt
+  | [], st => st
+  | [b], _ => b.2.2
+  | _ :: l, st => lastSt l st
+
 mutual
 /-- **The pass over a block**: the state at its end, or at its `ret`. -/
 noncomputable def chkC (X : CX) : List Stmt → CSt → Option CSt
@@ -846,11 +898,11 @@ noncomputable def chkC (X : CX) : List Stmt → CSt → Option CSt
     | none => none
   | .ite _ z n :: ss, st => match chkC X z st with
     | some s1 => match chkC X n (st.cnt s1) with
-      | some s2 => (st.cnt s2).seq fun st' ↦ chkC X ss st'
+      | some s2 => (joinSt [(endsRet z, st, s1), (endsRet n, st.cnt s1, s2)] st s2).seq fun st' ↦ chkC X ss st'
       | none => none
     | none => none
   | .match_ _ arms :: ss, st => match chkArmsC X arms st with
-    | some s => (st.cnt s).seq fun st' ↦ chkC X ss st'
+    | some bs => (joinSt bs st (lastSt bs st)).seq fun st' ↦ chkC X ss st'
     | none => none
   | .call g args rets :: ss, st => match callC X st g args rets with
     | some st' => st'.seq fun st' ↦ chkC X ss st'
@@ -863,11 +915,14 @@ noncomputable def chkC (X : CX) : List Stmt → CSt → Option CSt
     | none => none
   | .ret vs :: _, st => bif retC X st vs then some st.nextT else none
 
-/-- The pass over each arm, from the state before the `match`: the last arm's serials. -/
-noncomputable def chkArmsC (X : CX) : List (List Stmt) → CSt → Option CSt
-  | [], st => some st
+/-- The pass over each arm, from the state before the `match` with the serials running on: each arm's
+`(returns, start, end)`. -/
+noncomputable def chkArmsC (X : CX) : List (List Stmt) → CSt → Option (List (Bool × CSt × CSt))
+  | [], _ => some []
   | a :: as, st => match chkC X a st with
-    | some s1 => chkArmsC X as (st.cnt s1)
+    | some s1 => match chkArmsC X as (st.cnt s1) with
+      | some l => some ((endsRet a, st, s1) :: l)
+      | none => none
     | none => none
 end
 

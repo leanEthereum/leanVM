@@ -2128,6 +2128,109 @@ theorem pick_idx (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ)
       · exact Or.inr ⟨i + 1, by simpa using hi, by rw [show j + (i + 1) = j + 1 + i by omega]; exact hx',
           by simpa using h⟩
 
+/-! ### Joins -/
+
+/-- A block returning at its top level never falls through. -/
+theorem endsRet_walk : ∀ (ss : List Stmt), endsRet ss = true → ∀ es, walk σ ss ≠ .fall es
+  | [], h, _, _ => by simp [endsRet] at h
+  | s :: ss, h, es, hw => by
+    rw [walk] at hw
+    cases s with
+    | ret vs => simp [walk1, Out.seq] at hw
+    | _ =>
+      all_goals
+        simp only [endsRet] at h
+        cases h1 : walk1 σ _ with
+        | fall es1 =>
+          rw [h1, Out.seq] at hw
+          cases h2 : walk σ ss with
+          | fall es2 => exact endsRet_walk ss h es2 h2
+          | ret => rw [h2] at hw; simp [Out.pre] at hw
+          | stuck => rw [h2] at hw; simp [Out.pre] at hw
+        | ret => rw [h1] at hw; simp [Out.seq] at hw
+        | stuck => rw [h1] at hw; simp [Out.seq] at hw
+
+theorem endsRet_false {ss : List Stmt} {es : List Ev} (h : walk σ ss = .fall es) : endsRet ss = false := by
+  cases he : endsRet ss with
+  | false => rfl
+  | true => exact absurd h (endsRet_walk ss he es)
+
+theorem rng_mem {α : Type} {t : Trie α} : ∀ {lo n : ℕ} {p : ℕ × α}, p ∈ rng t lo n → getF t p.1 = some p.2
+  | _, 0, _, h => by simp [rng] at h
+  | lo, n + 1, p, h => by
+    simp only [rng] at h
+    cases hg : getF t lo with
+    | none => rw [hg] at h; exact rng_mem h
+    | some a =>
+      rw [hg] at h
+      rcases List.mem_cons.mp h with rfl | h
+      · exact hg
+      · exact rng_mem h
+
+/-- **A join's entries hold** where those of a block that can fall through do. -/
+theorem joinE_ok {α : Type} {beq : α → α → Bool} (hbeq : ∀ a b, beq a b = true → a = b) {Q : α → Prop}
+    {ls : List (Bool × List (ℕ × α))} {l : List (ℕ × α)} (hl : (false, l) ∈ ls) (hq : ∀ p ∈ l, Q p.2) :
+    ∀ p ∈ joinE beq ls, Q p.2 := by
+  intro p hp
+  unfold joinE at hp
+  have hf : (false, l) ∈ ls.filter fun l ↦ !l.1 := List.mem_filter.mpr ⟨hl, rfl⟩
+  generalize ls.filter (fun l ↦ !l.1) = F at hp hf
+  cases F with
+  | nil => simp at hf
+  | cons l0 rest =>
+    obtain ⟨hp1, hp2⟩ := List.mem_filter.mp hp
+    rcases List.mem_cons.mp hf with h0 | hr
+    · rw [← h0] at hp1
+      exact hq p hp1
+    · obtain ⟨q, hq', hb⟩ := List.any_eq_true.mp (List.all_eq_true.mp hp2 _ hr)
+      rw [← hbeq _ _ hb]
+      exact hq q hq'
+
+theorem insL_ok {α : Type} {Q : α → Prop} : ∀ {l : List (ℕ × α)} {t : Trie α}, (∀ k a, getF t k = some a → Q a) →
+    (∀ p ∈ l, Q p.2) → ∀ k a, getF (insL l t) k = some a → Q a
+  | [], _, ht, _, k, a, h => ht k a h
+  | p :: l, t, ht, hl, k, a, h => by
+    simp only [insL, Trie.seq_eq] at h
+    refine insL_ok (fun k' a' h' ↦ ?_) (fun p' hp' ↦ hl p' (List.mem_cons_of_mem _ hp')) k a h
+    rcases getF_setF h' with ⟨-, rfl⟩ | h'
+    · exact hl p List.mem_cons_self
+    · exact ht k' a' h'
+
+theorem pfBeq_eq {p q : CCell × List ℕ} (h : pfBeq p q = true) : p = q := by
+  unfold pfBeq at h
+  simp only [Bool.and_eq_true, beq_iff_eq] at h
+  exact Prod.ext (CCell.beq_eq h.1) h.2
+
+theorem prBeq_eq {p q : PRun × List ℕ} (h : prBeq p q = true) : p = q := by
+  unfold prBeq at h
+  simp only [Bool.and_eq_true, beq_iff_eq] at h
+  exact Prod.ext (PRun.beq_eq h.1) h.2
+
+/-- **The state after a join is valid** where the state before is and the end of a block taken that
+falls through is. -/
+theorem joinSt_ok {W : K → Prop} {st s : CSt} {bs : List (Bool × CSt × CSt)} (hs : StOk rd W σ st)
+    {b : Bool × CSt × CSt} (hb : b ∈ bs) (hb1 : b.1 = false) (hbs : StOk rd W σ b.2.2) :
+    StOk rd W σ (joinSt bs st s) := by
+  have hm : ∀ {α : Type} (g : Bool × CSt × CSt → List (ℕ × α)),
+      (false, g b) ∈ bs.map fun b ↦ (b.1, g b) := fun g ↦ List.mem_map.mpr ⟨b, hb, by rw [hb1]⟩
+  have h1 : ScOk W σ (insL (joinE CCell.beq (bs.map fun b ↦ (b.1, rng b.2.2.sc b.2.1.n (b.2.2.n - b.2.1.n)))) st.sc) :=
+    insL_ok (Q := fun c : CCell ↦ W (c.addr σ)) hs.sc (joinE_ok (Q := fun c : CCell ↦ W (c.addr σ)) (fun _ _ h ↦ CCell.beq_eq h)
+      (hm fun b ↦ rng b.2.2.sc b.2.1.n (b.2.2.n - b.2.1.n)) fun p hp ↦ hbs.sc _ _ (rng_mem hp))
+  have h2 : RsOk W σ (insL (joinE PRun.beq (bs.map fun b ↦ (b.1, rng b.2.2.rs b.2.1.nr (b.2.2.nr - b.2.1.nr))))
+      st.rs) :=
+    insL_ok (Q := fun R : PRun ↦ RunF W (vw σ) R.base R.stride R.lo R.hi) hs.rs (joinE_ok (Q := fun R : PRun ↦ RunF W (vw σ) R.base R.stride R.lo R.hi) (fun _ _ h ↦ PRun.beq_eq h)
+      (hm fun b ↦ rng b.2.2.rs b.2.1.nr (b.2.2.nr - b.2.1.nr)) fun p hp ↦ hbs.rs _ _ (rng_mem hp))
+  have h3 : PfOk rd W σ (insL (joinE pfBeq (bs.map fun b ↦ (b.1, rng b.2.2.pf b.2.1.n (b.2.2.n - b.2.1.n)))) st.pf) :=
+    insL_ok (Q := fun p : CCell × List ℕ ↦ ∀ x, PtrSet rd (p.1.addr σ) p.2 x → W x) hs.pf (joinE_ok (Q := fun p : CCell × List ℕ ↦ ∀ x, PtrSet rd (p.1.addr σ) p.2 x → W x) (fun _ _ h ↦ pfBeq_eq h)
+      (hm fun b ↦ rng b.2.2.pf b.2.1.n (b.2.2.n - b.2.1.n)) fun p hp ↦ hbs.pf _ _ (rng_mem hp))
+  have h4 : PrOk rd W σ (insL (joinE prBeq (bs.map fun b ↦ (b.1, rng b.2.2.pr b.2.1.nr (b.2.2.nr - b.2.1.nr))))
+      st.pr) :=
+    insL_ok (Q := fun p : PRun × List ℕ ↦ ∀ a, RunSet (vw σ) p.1.base p.1.stride p.1.lo p.1.hi a → ∀ x, PtrSet rd a p.2 x → W x)
+      hs.pr (joinE_ok (Q := fun p : PRun × List ℕ ↦ ∀ a, RunSet (vw σ) p.1.base p.1.stride p.1.lo p.1.hi a → ∀ x, PtrSet rd a p.2 x → W x) (fun _ _ h ↦ prBeq_eq h) (hm fun b ↦ rng b.2.2.pr b.2.1.nr (b.2.2.nr - b.2.1.nr))
+      fun p hp ↦ hbs.pr _ _ (rng_mem hp))
+  unfold joinSt
+  exact ⟨hs.env, h1, h2, hs.ad, hs.sv, hs.src, h3, h4⟩
+
 /-- A call, then a block: the call's needs, then the block's pass from the state after it. -/
 theorem blockC_call {W : K → Prop} (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ))
     {g : String} {args rets : List V} {ss : List Stmt} {st1 st' : CSt}
@@ -2191,25 +2294,52 @@ theorem chkC_ok (hX : XOk sigOf H f σ X) : ∀ (ss : List Stmt) {st st' : CSt} 
       | some s2 =>
         simp only [h2, CSt.seq_eq] at h
         rw [walk]
-        refine blockC_seq (W1 := fun _ ↦ W) ?_ fun es _ _ ↦
-          ⟨fun x hx ↦ Or.inl hx, chkC_ok hX ss hpre h (hs.cnt s2)⟩
-        simp only [walk1]
-        refine outC_pre ?_ c
-        by_cases hc : σ c = 0
-        · rw [ite_eq_left hc]
-          exact (chkC_ok hX z hpre h1 hs).1
-        · rw [ite_eq_right hc]
-          exact (chkC_ok hX n hpre h2 (hs.cnt s1)).1
+        refine blockC_seq (W1 := fun es x ↦ W x ∨ EW sigOf rd σ es x) ?_ fun es hw hh ↦
+          ⟨fun x hx ↦ hx, chkC_ok hX ss (fun c hc ↦ Or.inl (hpre c hc)) h ?_⟩
+        · simp only [walk1]
+          refine outC_pre ?_ c
+          by_cases hc : σ c = 0
+          · rw [ite_eq_left hc]
+            exact (chkC_ok hX z hpre h1 hs).1
+          · rw [ite_eq_right hc]
+            exact (chkC_ok hX n hpre h2 (hs.cnt s1)).1
+        · have hW : ∀ es', es = [Ev.inK c] ++ es' → ∀ x, (W x ∨ EW sigOf rd σ es' x) → W x ∨ EW sigOf rd σ es x :=
+            fun es' he x hx ↦ by rw [he]; exact hx.imp_right ew_append_right
+          simp only [walk1] at hw
+          by_cases hc : σ c = 0
+          · rw [ite_eq_left hc] at hw
+            cases hz : walk σ z with
+            | fall es' =>
+              rw [hz] at hw
+              simp only [Out.pre, Out.fall.injEq] at hw
+              subst hw
+              exact joinSt_ok (hs.mono fun _ ↦ Or.inl) List.mem_cons_self (endsRet_false hz)
+                (((chkC_ok hX z hpre h1 hs).2 es' hz (evsOk_append hh).2).mono (hW es' rfl))
+            | ret => rw [hz] at hw; simp [Out.pre] at hw
+            | stuck => rw [hz] at hw; simp [Out.pre] at hw
+          · rw [ite_eq_right hc] at hw
+            cases hn : walk σ n with
+            | fall es' =>
+              rw [hn] at hw
+              simp only [Out.pre, Out.fall.injEq] at hw
+              subst hw
+              exact joinSt_ok (hs.mono fun _ ↦ Or.inl) (List.mem_cons_of_mem _ List.mem_cons_self) (endsRet_false hn)
+                (((chkC_ok hX n hpre h2 (hs.cnt s1)).2 es' hn (evsOk_append hh).2).mono (hW es' rfl))
+            | ret => rw [hn] at hw; simp [Out.pre] at hw
+            | stuck => rw [hn] at hw; simp [Out.pre] at hw
   | .match_ x arms :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
     cases h1 : chkArmsC X arms st with
     | none => rw [h1] at h; cases h
-    | some s =>
+    | some bs =>
       rw [h1] at h
       simp only [CSt.seq_eq] at h
       rw [walk]
-      exact blockC_seq (W1 := fun _ ↦ W) (chkArmsC_ok hX arms hpre h1 hs x 0) fun es _ _ ↦
-        ⟨fun x hx ↦ Or.inl hx, chkC_ok hX ss hpre h (hs.cnt s)⟩
+      obtain ⟨ho, hb⟩ := chkArmsC_ok hX arms hpre h1 hs x 0
+      refine blockC_seq (W1 := fun es x ↦ W x ∨ EW sigOf rd σ es x) ho fun es hw hh ↦
+        ⟨fun x hx ↦ hx, chkC_ok hX ss (fun c hc ↦ Or.inl (hpre c hc)) h ?_⟩
+      obtain ⟨b, hb, hb1, hbs⟩ := hb es hw hh
+      exact joinSt_ok (hs.mono fun _ ↦ Or.inl) hb hb1 hbs
   | .call g args rets :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
     cases h1 : callC X st g args rets with
@@ -2269,21 +2399,35 @@ theorem chkC_ok (hX : XOk sigOf H f σ X) : ∀ (ss : List Stmt) {st st' : CSt} 
       obtain ⟨rfl, rfl⟩ := hw
       exact ⟨covC_nil W, (retC_ok hX hpre hs hr).mono fun _ ↦ Or.inl⟩
 
-/-- **The pass over the arms, on the path.** -/
-theorem chkArmsC_ok (hX : XOk sigOf H f σ X) : ∀ (arms : List (List Stmt)) {st st' : CSt} {W : K → Prop},
-    (∀ c ∈ H.sig.pre, W (c.addr σ)) → chkArmsC X arms st = some st' → StOk rd W σ st →
-      ∀ x j, OutC sigOf H σ rd (f.params.map σ) W (walkArms σ x j arms)
-  | [], _, _, _, _, _, _, x, j => ⟨fun es hw _ ↦ by simp [walkArms] at hw, fun es vs hw _ ↦ by simp [walkArms] at hw⟩
-  | a :: as, st, st', W, hpre, h, hs, x, j => by
+/-- **The pass over the arms, on the path**: the outcome's, and, falling through, an arm that can fall
+through whose end state is valid. -/
+theorem chkArmsC_ok (hX : XOk sigOf H f σ X) : ∀ (arms : List (List Stmt)) {st : CSt}
+    {bs : List (Bool × CSt × CSt)} {W : K → Prop},
+    (∀ c ∈ H.sig.pre, W (c.addr σ)) → chkArmsC X arms st = some bs → StOk rd W σ st →
+      ∀ x j, OutC sigOf H σ rd (f.params.map σ) W (walkArms σ x j arms) ∧
+        ∀ es, walkArms σ x j arms = .fall es → EvsOk sigOf rd σ es →
+          ∃ b ∈ bs, b.1 = false ∧ StOk rd (fun y ↦ W y ∨ EW sigOf rd σ es y) σ b.2.2
+  | [], _, _, _, _, _, _, x, j => ⟨⟨fun es hw _ ↦ by simp [walkArms] at hw, fun es vs hw _ ↦ by simp [walkArms] at hw⟩,
+      fun es hw _ ↦ by simp [walkArms] at hw⟩
+  | a :: as, st, bs, W, hpre, h, hs, x, j => by
     simp only [chkArmsC] at h
     cases h1 : chkC X a st with
     | none => rw [h1] at h; cases h
     | some s1 =>
-      rw [h1] at h
-      rw [walkArms]
-      split_ifs
-      · exact (chkC_ok hX a hpre h1 hs).1
-      · exact chkArmsC_ok hX as hpre h (hs.cnt s1) x (j + 1)
+      simp only [h1] at h
+      cases h2 : chkArmsC X as (st.cnt s1) with
+      | none => rw [h2] at h; cases h
+      | some l =>
+        simp only [h2, Option.some.injEq] at h
+        subst h
+        rw [walkArms]
+        split_ifs
+        · refine ⟨(chkC_ok hX a hpre h1 hs).1, fun es hw hh ↦ ⟨_, List.mem_cons_self, endsRet_false hw, ?_⟩⟩
+          exact (chkC_ok hX a hpre h1 hs).2 es hw hh
+        · obtain ⟨ho, hb⟩ := chkArmsC_ok hX as hpre h2 (hs.cnt s1) x (j + 1)
+          refine ⟨ho, fun es hw hh ↦ ?_⟩
+          obtain ⟨b, hb, hb1, hbs⟩ := hb es hw hh
+          exact ⟨b, List.mem_cons_of_mem _ hb, hb1, hbs⟩
 end
 
 end Pass
