@@ -43,6 +43,7 @@ rejected.
 * `useCd`: two dispatches on one selector, arm `j` of the second needing what arm `j` of the first wrote
   (guarantees under a selector).
 * `useM`: a run of stride `1` met by its two residue runs of stride `2` (`mrg`).
+* `mkv`, `useV`: a word stored at a guaranteed cell, named at return (`postV`) and read back by the caller.
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -752,6 +753,54 @@ theorem useM_noexp :
 /-- The residues in the wrong order. -/
 theorem useM_bad :
     heapOkC Data.powTree sigsM useM { hUseM with calls := [[], [.mrg 2 [0], .run 1 [], .run 0 []]] } = false := by
+  decide +kernel
+
+/-! ## Words at return -/
+
+/-- Stores `p·g` at `p[0]`. -/
+def mkv : Fn where
+  name := "mkv"
+  params := [.n 0]
+  body := [.atom (.const (.n 1) (word 2 0)), .atom (.mul (.n 2) (.n 0) (.n 1)), .atom (.load (.n 2) (.n 0) 0),
+    .ret []]
+
+/-- `mkv`'s certificate: `p[0]` written, holding `p·g` (`postV`, by the store, event `0`). -/
+def hMkv : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postV := [(0, ⟨[(0, 1)], 1⟩)] }
+  reads := []
+  res := []
+  rets := [[.ev 0]]
+
+theorem mkv_ok : heapOkC Data.powTree (fun _ ↦ .empty) mkv hMkv = true := by decide +kernel
+
+/-- The word stored is not `p·g^2`. -/
+theorem mkv_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) mkv { hMkv with sig := { hMkv.sig with postV := [(0, ⟨[(0, 1)], 2⟩)] } } =
+      false := by
+  decide +kernel
+
+/-- Calls `mkv`, reads `p[0]`, reads through the word read. -/
+def useV : Fn where
+  name := "useV"
+  params := [.n 0]
+  body := [.call "mkv" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .ret []]
+
+/-- `useV`'s certificate: the read of `p[0]` is the call's `post` cell (serial `0`), whose word `mkv`
+names (`hvs`): `p·g`, the precondition the second read is. -/
+def hUseV : HCert where
+  sig := { pre := [⟨[(0, 1)], 1⟩] }
+  reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 0, .pre 0)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+  hvs := [1]
+
+theorem useV_ok : heapOkC Data.powTree (fun g ↦ if g = "mkv" then hMkv.sig else .empty) useV hUseV = true := by
+  decide +kernel
+
+/-- Without `mkv`'s `postV`, the word read is its own base. -/
+theorem useV_bad :
+    heapOkC Data.powTree (fun g ↦ if g = "mkv" then { post := [⟨[(0, 1)], 0⟩] } else .empty) useV hUseV = false := by
   decide +kernel
 
 end

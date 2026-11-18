@@ -23,7 +23,7 @@ public import LeanVM.Guest.Memory.Fresh
 
 **The pass** (`chkC`). Milestone 1's state, plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
 
-**Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`).
+**Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them.
 
@@ -196,10 +196,15 @@ def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 
 `c`'s word at the parameters' words `ws0`. -/
 def RetMOk (G : HSig) (ws0 rets : List E) : Prop := ∀ k c, (k, c) ∈ G.retM → rets[k]? = some (c.valW (slotW ws0))
 
+/-- **Words at return**: each `(i, m)` of the signature's `postV`, the final memory holds `m`'s word at
+`post` cell `i`, at the slots' words `ws`. -/
+def RetVOk (rd : Reader) (G : HSig) (ws : List E) : Prop :=
+  ∀ i m, (i, m) ∈ G.postV → ∃ c, G.post[i]? = some c ∧ rd (c.addrW (slotW ws)) = some (m.valW (slotW ws))
+
 /-- **What an event gives beyond its writes**: an entered call, its callee's returned words'
-monomials at its words. -/
-def EvM (sigOf : String → HSig) (σ : Val) : Ev → Prop
-  | .call f args rets => RetMOk (sigOf f) (args.map σ) (rets.map σ)
+monomials and words at return, at its words. -/
+def EvM (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → Prop
+  | .call f args rets => RetMOk (sigOf f) (args.map σ) (rets.map σ) ∧ RetVOk rd (sigOf f) ((args ++ rets).map σ)
   | _ => True
 
 /-- **What an instance is given at entry**: its termination facts. -/
@@ -761,14 +766,30 @@ noncomputable def pushPost (G : HSig) (ms : List CCell) (st : CSt) : Option CSt 
   | some ps, some pps, some rs, some prs => some (pushPRL prs (pushRL rs (pushPL pps (pushL ps st))))
   | _, _, _, _ => none
 
+/-- A callee's words at return, at the slots `ms`, keyed by the point serials its `post` cells get from
+`n0`: `(serial, cell, word's monomial)`. -/
+def postVE (G : HSig) (ms : List CCell) (n0 : ℕ) : List (ℕ × CCell × CCell) :=
+  G.postV.filterMap fun p ↦ match nth G.post p.1 with
+    | some c => match instC ms c, instC ms p.2 with
+      | some c', some m' => some (n0 + p.1, c', m')
+      | _, _ => none
+    | none => none
+
+/-- Words stored, by point serial (`sv`). -/
+noncomputable def svPut : List (ℕ × CCell × CCell) → CSt → CSt
+  | [], st => st
+  | p :: l, st => (setF p.2 Exec.indexDepth st.sv p.1).seq fun sv ↦
+      svPut l ⟨st.env, st.sc, st.rs, st.ad, sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
+
 /-- **A call**: its callee's preconditions at its arguments; its returned words' monomials (`retM`),
-then its guarantees at its words pushed. -/
+then its guarantees at its words pushed, its words at return (`postV`) stored at its `post` cells'
+serials. -/
 noncomputable def callC (X : CX) (st : CSt) (g : String) (args rets : List V) : Option CSt :=
   match monos st.env args, getF X.C st.nc with
   | some ma, some ws => match reqG X st ma g args ws with
     | some [] => (retDefs rets (instRM ma (X.sigOf g).retM) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
-        | some mr => pushPost (X.sigOf g) (ma ++ mr) st1
+        | some mr => (pushPost (X.sigOf g) (ma ++ mr) st1).map (svPut (postVE (X.sigOf g) (ma ++ mr) st1.n))
         | none => none
     | _ => none
   | _, _ => none
@@ -861,15 +882,24 @@ def retMC (mp mv : List CCell) (l : List (ℕ × CCell)) : Bool :=
     | some m, some c => m.beq c
     | _, _ => false
 
-/-- **A return**: the own guarantees at the parameters and the returned words, and the returned
-words' monomials. -/
+/-- The own words at return: `post` cell `i`'s witness a load event (`ev n`) that stored `m`'s word. -/
+noncomputable def retVC (st : CSt) (ms : List CCell) (post : List CCell) (ws : List Wit) (l : List (ℕ × CCell)) :
+    Bool :=
+  l.all fun p ↦ match nth ws p.1, nth post p.1 with
+    | some (.ev n), some c => match getF st.sv n, instC ms c, instC ms p.2 with
+      | some q, some c', some m' => q.1.beq c' && q.2.beq m'
+      | _, _, _ => false
+    | _, _ => false
+
+/-- **A return**: the own guarantees at the parameters and the returned words, the returned words'
+monomials, and the words at return. -/
 noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
   match monos st.env X.params, monos st.env vs, getF X.T st.nt with
   | some mp, some mv, some ws => match reqP X st (mp ++ mv) X.sig.post ws with
     | some ws1 => match reqR X st (mp ++ mv) X.sig.postR ws1 with
       | some ws2 => match reqPP X st (mp ++ mv) X.sig.postP ws2 with
         | some ws3 => match reqPR X st (mp ++ mv) X.sig.postPR ws3 with
-          | some [] => retMC mp mv X.sig.retM
+          | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV
           | _ => false
         | none => false
       | none => false
@@ -1180,7 +1210,7 @@ noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
         match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ with
         | some st0 => match H.sig.term with
           | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ f.body st0).isSome
-          | [(.val 0, ei)] => H.sig.retM.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ f ei st0
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ f ei st0
           | _ => false
         | none => false
 

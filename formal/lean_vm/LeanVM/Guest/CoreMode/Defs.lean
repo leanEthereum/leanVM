@@ -137,6 +137,8 @@ structure HSig where
   postP : List (CCell × List ℕ) := []
   prePR : List (CRun × List ℕ) := []
   postPR : List (CRun × List ℕ) := []
+  /-- Words at return: `(i, m)`, the word at `post` cell `i` is `m`'s, both over slots. -/
+  postV : List (ℕ × CCell) := []
   /-- Ghost slots: slot `m + j` (`m` the parameter count, `j < ghosts`) of `preR`, `preP`, `prePR` is a
   word the caller names at each call (`HCert.gargs`), no parameter; in the own pass, value `GB + j`. -/
   ghosts : ℕ := 0
