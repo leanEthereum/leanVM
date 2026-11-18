@@ -82,9 +82,10 @@
 //! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
 //! weighted sum is a carry-less product (`basis`, `power`).
 //!
-//! `U`'s weighted bit sums are outer products: with GFNI (x86-64), one affine byte map per byte
-//! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
-//! the positions grouped by each byte of their weight (`prover`'s digit buckets).
+//! `U`'s weighted bit sums are outer products: with AVX2 and GFNI, one affine byte map per byte of eight
+//! positions' weights applied to the bit-transposed values of the products at six points of GF(2^8), which
+//! the inverse evaluation map turns into coefficients once a layer (`products_gfni`); elsewhere, the
+//! positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product

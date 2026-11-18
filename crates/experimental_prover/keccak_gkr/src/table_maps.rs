@@ -98,6 +98,8 @@ macro_rules! interleave_planes {
         w
     }};
 }
+#[cfg(target_feature = "gfni")]
+pub(crate) use interleave_planes;
 
 cfg_select! {
     all(target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
