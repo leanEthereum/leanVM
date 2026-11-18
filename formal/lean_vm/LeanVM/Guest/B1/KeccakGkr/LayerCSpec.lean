@@ -31,26 +31,26 @@ open LeanVM.Guest.B1.Fwd
 first record, the local point, the next claim's value, point, local point, lanes and flips. -/
 def layerSt (first : ℕ) : List Atom :=
   (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
-  [.load (.n (layOff first + 625)) (.n 12) 1,
-    .load (.n (layOff first + 539)) (.n (layOff first + 720)) 0,
-    .load (.n (layOff first + 540)) (.n (layOff first + 720)) 16,
-    .load (.n (layOff first + 541)) (.n (layOff first + 720)) 32,
-    .load (.n (layOff first + 542)) (.n (layOff first + 720)) 48,
-    .load (.n (layOff first + 543)) (.n (layOff first + 720)) 64,
-    .load (.n (layOff first + 722)) (.n (layOff first + 720)) 80,
-    .load (.n (layOff first + 717)) (.n (layOff first + 720)) 96] ++
-  (List.range 11).map (fun i ↦ .load (.n (layOff first + 771 + 33 * i)) (.n (layOff first + 746)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 25)) (.n 12) 0,
-    .load (.n (layOff first + 719)) (.n 12) 2, .load (.n (layOff first + 746)) (.n 12) 4] ++
-  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 30 + 4 * i))
-    (.n (weightEnd first (layOff first) + 26)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 26)) (.n 12) 3] ++
+  [.load (.n (layOff first + 624)) (.n 12) 1,
+    .load (.n (layOff first + 539)) (.n (layOff first + 719)) 0,
+    .load (.n (layOff first + 540)) (.n (layOff first + 719)) 16,
+    .load (.n (layOff first + 541)) (.n (layOff first + 719)) 32,
+    .load (.n (layOff first + 542)) (.n (layOff first + 719)) 48,
+    .load (.n (layOff first + 543)) (.n (layOff first + 719)) 64,
+    .load (.n (layOff first + 721)) (.n (layOff first + 719)) 80,
+    .load (.n (layOff first + 716)) (.n (layOff first + 719)) 96] ++
+  (List.range 11).map (fun i ↦ .load (.n (layOff first + 757 + 32 * i)) (.n (layOff first + 745)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 24)) (.n 12) 0,
+    .load (.n (layOff first + 718)) (.n 12) 2, .load (.n (layOff first + 745)) (.n 12) 4] ++
+  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 29 + 4 * i))
+    (.n (weightEnd first (layOff first) + 25)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 25)) (.n 12) 3] ++
   (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
     (.n (topV (weightEnd first (layOff first)) + 3)) i) ++
   [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n 12) 5]
 
 /-- The checker's count after the body. -/
-def layerN (first : ℕ) : ℕ := if first = 1 then 1835 else 2164
+def layerN (first : ℕ) : ℕ := if first = 1 then 1822 else 2151
 
 theorem layer_chk {first : ℕ} (hf : first < 2) :
     Fwd.chk 15 (layerT first) = some (layerN first) := by

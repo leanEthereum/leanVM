@@ -166,10 +166,13 @@ theorem armM_vals_sub (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) 
     x ∈ Stmt.valsList (armT W slots first n fold prodIn encIn prodOut encOut k a).1 := by
   unfold armM at hx
   unfold armT
-  simp only [hk, ↓reduceIte] at hx ⊢
-  split at hx <;>
-    simp only [valsList_append, List.mem_append, valsList_cons, valsList_nil, List.append_nil, copyS, cst,
-      addS, mulS, Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢ <;> tauto
+  cases fold <;> simp only [hk, ↓reduceIte, Bool.false_eq_true] at hx ⊢
+  · split at hx <;>
+      simp only [valsList_append, List.mem_append, valsList_cons, valsList_nil, List.append_nil, copyS, cst,
+        addS, mulS, Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢ <;> tauto
+  · simp only [valsList_append, List.mem_append, valsList_cons, valsList_nil, List.append_nil, copyS,
+      Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢
+    tauto
 
 /-- **A later arm's values**, `fold = false`, are numbered below any bound past its walks. -/
 theorem armT_numBelow_pos {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {prodIn encIn : V}
@@ -186,13 +189,11 @@ theorem armT_numBelow_pos {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : 
   have hP1 : ∀ x, NBv (vb + 6) x → ∃ j < E, x = .n j := by
     rintro x ⟨j, hj, rfl⟩; exact ⟨j, by omega, rfl⟩
   refine armT_vals hW' (by simpa [hk] using l1) (by simpa [hk] using l2) hP1 (fun x hx => ?_)
-    ⟨?_, ?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ hpw, ?_⟩
+    ⟨?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ hpw, fun _ => ?_⟩
   · obtain ⟨j, rfl, h⟩ := l3 x (by simpa [hk] using hx)
-    simp only [Bool.false_eq_true, ↓reduceIte] at h
     rcases h with h | h
     · exact ⟨j, by omega, rfl⟩
     · exact ⟨j, by omega, rfl⟩
-  · exact ⟨_, by omega, rfl⟩
   · exact ⟨_, by omega, rfl⟩
   · exact ⟨_, by omega, rfl⟩
   · rw [walksT_snd]
@@ -276,7 +277,7 @@ theorem sGroupMatch_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {p vb d 
     NumBelow (sGroupArms W p prodIn encIn vb).2
       (Stmt.valsList [.match_ (.n d) (sGroupArms W p prodIn encIn vb).1]) := by
   have hge := sGroupArms_end_one W hp prodIn encIn vb
-  have hgs : vb + 6 ≤ groupStart (p == 0) vb := by rw [groupStart_eq]; split <;> omega
+  have hgs : vb + 6 ≤ groupStart (p == 0) vb := by rw [groupStart_eq]
   simp only [valsList_cons, valsList_nil, List.append_nil, Stmt.vals]
   refine NumBelow.cons ⟨d, by omega, rfl⟩ ?_
   rcases Nat.lt_or_ge p 14 with hp' | hp'
@@ -301,7 +302,7 @@ theorem sGroupMatch_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {p vb d 
 /-! ## The groups' state -/
 
 theorem sgState_step (W : WotsT) (v0 : Nat) {p : Nat} (hp : p ≤ 14) :
-    (sgState W v0 p).2.2 + 6 + (if p == 0 then 1 else 0) + chainStride W * lxN p + 2 ≤
+    (sgState W v0 p).2.2 + 6 + chainStride W * lxN p + 2 ≤
       (sgState W v0 (p + 1)).2.2 + 6 := by
   rw [sgState_succ_end]
   have := sGroupArms_end_one W hp (sgState W v0 p).1 (sgState W v0 p).2.1 (sgState W v0 p).2.2
@@ -321,10 +322,6 @@ theorem sgState_in (W : WotsT) (v0 : Nat) : ∀ p, p ≤ 15 →
   | 0, _ => ⟨⟨0, by simp [sgState], rfl⟩, ⟨0, by simp [sgState], rfl⟩⟩
   | p + 1, hp => by
       have := sgState_step W v0 (p := p) (by omega)
-      have hs : ∀ x, x + 6 + (if p == 0 then 1 else 0) + chainStride W * lxN p + 2 ≤
-          (sgState W v0 (p + 1)).2.2 + 6 → x + 6 + (if p == 0 then 1 else 0) + chainStride W * lxN p + 1 <
-          (sgState W v0 (p + 1)).2.2 + 6 := fun x h => by omega
-      have h2 := hs _ this
       refine ⟨⟨_, ?_, rfl⟩, ⟨_, ?_, rfl⟩⟩ <;> simp only [groupStart_eq] <;> omega
 
 /-! ## The dispatches, in sequence -/
@@ -358,7 +355,7 @@ theorem sgTip_lt (W : WotsT) (v0 : Nat) {q t : Nat} (hq : q ≤ 14) (ht : t < lx
   have h3 : chainStride W * (t + 1) ≤ chainStride W * lxN q := Nat.mul_le_mul_left _ (by omega)
   have := sgState_step W v0 hq
   rw [groupStart_eq] at hs
-  constructor <;> split at hs <;> simp_all <;> omega
+  constructor <;> simp_all <;> omega
 
 /-- What the dispatches `p ..< p + m` establish: the step's reads, and per group its chains' starts
 loaded. -/

@@ -74,12 +74,13 @@ theorem armStart_mem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (
     hintW "chain_starts" [armStart W slots fold k b t] ∈
       (armT W slots first n fold prodIn encIn prodOut encOut k b).1 := by
   have hw := walkStart_mem W (first + t) (slots t) (if k = 0 then W.size + 1 else W.size)
-    (k / 4 ^ t % 4) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b))
+    (k / 4 ^ t % 4) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t b)
   have hm := mem_walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
-    (if fold then b + 1 else b) t ht _ (by simpa using hw)
+    b t ht _ (by simpa using hw)
   unfold armT armStart
   dsimp only
-  by_cases hk : k = 0 <;> simp only [hk, ↓reduceIte, List.mem_append] at hm ⊢ <;> exact Or.inl (Or.inr hm)
+  cases fold <;> by_cases hk : k = 0 <;>
+    simp only [hk, ↓reduceIte, List.mem_append, Bool.false_eq_true] at hm ⊢ <;> exact Or.inl hm
 
 /-! ## The starts of a group -/
 
@@ -87,9 +88,9 @@ theorem armStart_mem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (
 def grpPos (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k t : Nat) : V :=
   armStart W (slotsT W fold b) fold k (armB W first n fold prodIn encIn b k) t
 
-theorem walkEnd_lt (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) :
+theorem walkEnd_le (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) :
     walkBase (if k = 0 then W.size + 1 else W.size) k 0 n
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) <
+      (armB W first n fold prodIn encIn b k) ≤
       armB W first n fold prodIn encIn b (k + 1) := by
   by_cases hk : k = 0
   · subst hk
@@ -98,7 +99,7 @@ theorem walkEnd_lt (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) 
     omega
   · rw [armB_next_pos W first n fold prodIn encIn b k hk]
     simp only [hk, ↓reduceIte]
-    omega
+    split <;> omega
 
 theorem walkBase_lt_succ (S k a t : Nat) (hd : k / 4 ^ t % 4 ≠ 3) :
     walkBase S k 0 t a < walkBase S k 0 (t + 1) a := by
@@ -115,7 +116,7 @@ theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
       (k / 4 ^ t % 4 = 3 → k ≠ 0 ∧ slotsT W fold b t 2 + 1 ≤ groupStart fold b + chainStride W * n ∧
         j = slotsT W fold b t 2) ∧
       (k / 4 ^ t % 4 ≠ 3 → j = walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
-        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)) := by
+        (armB W first n fold prodIn encIn b k)) := by
   have ha : b + 6 ≤ armB W first n fold prodIn encIn b k := by
     rw [← armB_zero W first n fold prodIn encIn b]
     exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
@@ -126,14 +127,11 @@ theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
   rw [armB_one] at h1
   have hsl := slot_bounds W fold b t 2 (by norm_num)
   have hst : chainStride W * (t + 1) ≤ chainStride W * n := Nat.mul_le_mul_left _ ht
-  have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
-  have hwe := walkEnd_lt W first n fold prodIn encIn b k
+  have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]
+  have hwe := walkEnd_le W first n fold prodIn encIn b k
   have hwl := walkBase_le (if k = 0 then W.size + 1 else W.size) k
-    (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+    (armB W first n fold prodIn encIn b k)
     (show t + 1 ≤ n from ht)
-  have ha' : armB W first n fold prodIn encIn b k ≤
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) := by
-    split <;> omega
   unfold grpPos armStart walkStartV
   by_cases hd : k / 4 ^ t % 4 = 3
   · have hk0 : k ≠ 0 := by rintro rfl; simp at hd
@@ -141,9 +139,9 @@ theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
     exact ⟨_, rfl, by omega, by omega, fun _ => ⟨hk0, by omega, rfl⟩, fun h => absurd rfl h⟩
   · simp only [hd, ↓reduceIte]
     have hlt := walkBase_lt_succ (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) t hd
+      (armB W first n fold prodIn encIn b k) t hd
     have hb0 := walkBase_le (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+      (armB W first n fold prodIn encIn b k)
       (Nat.zero_le t)
     simp only [walkBase] at hb0
     exact ⟨_, rfl, by omega, by omega, fun h => h.elim, fun _ => rfl⟩
@@ -158,9 +156,6 @@ theorem grpPos_ne {W : WotsT} {first n : Nat} {fold : Bool} {prodIn encIn : V} {
   intro hj
   simp only [V.mk.injEq, true_and] at hj
   subst hj
-  have ha' : armB W first n fold prodIn encIn b k ≤
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) := by
-    split <;> omega
   by_cases hd : k / 4 ^ t % 4 = 3 <;> by_cases hd' : k / 4 ^ t' % 4 = 3
   · obtain ⟨-, -, e1⟩ := h3 hd
     obtain ⟨-, -, e2⟩ := h3' hd'
@@ -171,7 +166,7 @@ theorem grpPos_ne {W : WotsT} {first n : Nat} {fold : Bool} {prodIn encIn : V} {
   · obtain ⟨hk0, hs, e1⟩ := h3 hd
     have e2 := h4' hd'
     have hb0 := walkBase_le (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+      (armB W first n fold prodIn encIn b k)
       (Nat.zero_le t')
     simp only [walkBase] at hb0
     have := armB_pos W first n fold prodIn encIn b hk0
@@ -179,7 +174,7 @@ theorem grpPos_ne {W : WotsT} {first n : Nat} {fold : Bool} {prodIn encIn : V} {
   · obtain ⟨hk0, hs, e1⟩ := h3' hd'
     have e2 := h4 hd
     have hb0 := walkBase_le (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+      (armB W first n fold prodIn encIn b k)
       (Nat.zero_le t)
     simp only [walkBase] at hb0
     have := armB_pos W first n fold prodIn encIn b hk0
@@ -187,9 +182,9 @@ theorem grpPos_ne {W : WotsT} {first n : Nat} {fold : Bool} {prodIn encIn : V} {
   · have e1 := h4 hd
     have e2 := h4' hd'
     have := walkBase_lt_succ (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) t hd
+      (armB W first n fold prodIn encIn b k) t hd
     have := walkBase_le (if k = 0 then W.size + 1 else W.size) k
-      (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+      (armB W first n fold prodIn encIn b k)
       (show t + 1 ≤ t' from ht)
     omega
 

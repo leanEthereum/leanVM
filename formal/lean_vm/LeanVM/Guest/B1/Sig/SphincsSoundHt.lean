@@ -142,35 +142,44 @@ theorem sLayerPre_cells {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
     (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
     (h : AtomsHold L.read σ (sLayerPre l a0 a1 signed)) :
     ∃ N < 2 ^ 32, σ (sCtrOf l) = eOfNat N ∧
-      σ (sEncOf l) = (digestHalves (keccak256 ((cellsBytes [σ sPP, σ a0,
+      σ (sEncOf l) = (digestHalves (keccak256 ((cellsBytes [σ sPP, a0Val σ a0 (sAcOf l),
         σ a1 + lit (7 * 2 ^ 24), σ signed, eOfNat N]).take 68))).1 := by
-  have hC : AtomsHold L.read σ (sLayerCtr l).1 := h.left.left.right
+  have hC : AtomsHold L.read σ (sLayerCtr l).1 := h.left.left.left.left.right
   obtain ⟨N, hN, hlt⟩ := sFromMarks_sound hκ hbb (b := sLayerBase l) (n := 4) (x := sLayerBase l + 4)
     (by norm_num) (by norm_num) hC
   have hlt' : N < 2 ^ 32 := by simpa using hlt
   have hctr : σ (sLayerCtr l).2.2 = eOfNat N := hN
   refine ⟨N, hlt', by rw [← (sLayerCtr_out l).1]; exact hctr, ?_⟩
   have hA : AtomsHold L.read σ [cst (sLayerCtr l).2.1 (lit (7 * 2 ^ 24)),
-      addS (.n ((sLayerCtr l).2.1 + 1)) a1 (.n (sLayerCtr l).2.1)] := h.left.right
+      addS (.n ((sLayerCtr l).2.1 + 1)) a1 (.n (sLayerCtr l).2.1)] := h.left.left.left.right
   have c0 : σ (.n (sLayerCtr l).2.1) = lit (7 * 2 ^ 24) := hA.atom (a := .const _ _) (by simp [cst])
   have c1 : σ (.n ((sLayerCtr l).2.1 + 1)) = σ a1 + σ (.n (sLayerCtr l).2.1) :=
     hA.atom (a := .add _ _ _) (by simp [addS])
-  have hK : AtomsHold L.read σ (sLayerK l a0 signed).1 := h.right
+  have ha := a0Pre_sound (a0 := a0) h.left.left.right
+  have hK : AtomsHold L.read σ (sLayerK l a0 signed).1 := h.left.right
   have hrev : eOfNat N = eOfNat (beWordAt 0 (beWordAt 0 N)) := by
     rw [beWordAt_zero_beWordAt_zero hlt']
-  have hz := cellsBytes_counterCell_zero [σ sPP, σ a0, σ (.n ((sLayerCtr l).2.1 + 1)), σ signed]
-    (beWordAt 0 N)
+  have hz := cellsBytes_counterCell_zero [σ sPP, σ (a0Cell a0 (sAcOf l) ((sLayerCtr l).2.1 + 2)),
+    σ (.n ((sLayerCtr l).2.1 + 1)), σ signed] (beWordAt 0 N)
   rw [← hrev] at hz
-  have k := kMsg_sound (cells := [.cell sPP, .cell a0, .cell (.n ((sLayerCtr l).2.1 + 1)), .cell signed,
-      .cell (sLayerCtr l).2.2]) (len := 68) (tailRun := false) (out := none) hp
+  have k := kMsg_sound (cells := [.cell sPP, .cell (a0Cell a0 (sAcOf l) ((sLayerCtr l).2.1 + 2)),
+      .cell (.n ((sLayerCtr l).2.1 + 1)), .cell signed, .cell (sLayerCtr l).2.2]) (len := 68)
+    (tailRun := false) (out := none) hp
     (fun h => absurd h (by simp)) hK (by simp) (fun j hj => by
       simp only [List.map_cons, List.map_nil, KC.val, hctr]
       exact hz j (by simpa using hj))
   have e : sEncOf l = .n (sLayerK l a0 signed).2.2 := by rw [(sLayerK_out l a0 signed).1]; rfl
   have k1 := k
-  simp only [List.map_cons, List.map_nil, KC.val, hctr, c1, c0] at k1
+  simp only [List.map_cons, List.map_nil, KC.val, hctr, c1, c0, ha] at k1
   rw [e]
   exact k1
+
+/-- The call's `A0` holds the layer's `A0`. -/
+theorem sLayerPre_a0 {rd : Reader} {l : Nat} (hl : l < 3) {a1 signed : V}
+    (h : AtomsHold rd σ (sLayerPre l (sA0Of l) a1 signed)) :
+    σ (sA0Of l) = a0Val σ (sA0Of l) (sAcOf l) := by
+  have := a0Pre_sound (a0 := sA0Of l) h.right
+  rwa [sLayerCall_a0 hl] at this
 
 /-- **A layer before its call, sound**: the counter read is a number `N < 2^32` at `sCtrOf l`, and
 the encoding digest at `sEncOf l` is the statement's encoding hash of the message `signed` and the
@@ -179,7 +188,7 @@ are `a0`, `a1`. -/
 theorem sLayerPre_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
     (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
     (h : AtomsHold L.read σ (sLayerPre l a0 a1 signed)) {layer : Layer} {tree : TreeIndex}
-    {lf : TreeLeafIndex} (hl : layer.val = l) (ha0 : σ a0 = adrsCell0 l tree.val)
+    {lf : TreeLeafIndex} (hl : layer.val = l) (ha0 : a0Val σ a0 (sAcOf l) = adrsCell0 l tree.val)
     (ha1 : σ a1 = adrsCell1 0 lf.val 0 0) :
     ∃ N < 2 ^ 32, σ (sCtrOf l) = eOfNat N ∧
       Id.run (tweakableHash (m := Id) keccakF1600 (cellVal (σ sPP)) (.encoding layer tree lf)
@@ -203,35 +212,37 @@ theorem sLayerPre_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
 /-! ## The layer's path -/
 
 /-- Where `sPath … m z x` hints its level `j`'s children. -/
-def sPathPos : Nat → Nat → Nat → Nat → Nat
+def sPathPos (ac : Option E) : Nat → Nat → Nat → Nat → Nat
   | 0, _, x, _ => x
-  | m + 1, z, x, j => if j = z then x else sPathPos m (z + 1) (x + pathWidth m) j
+  | m + 1, z, x, j => if j = z then x else sPathPos ac m (z + 1) (x + pathWidth ac m) j
 
 /-- `sPathSib`'s siblings, at `sPathPos`. -/
-theorem sPathSib_eq (bit : Nat → V) (off : Nat) :
+theorem sPathSib_eq (bit : Nat → V) (off : Nat) (ac : Option E) :
     ∀ (m z x j : Nat), z ≤ j → j < z + m →
-      sPathSib σ bit off m z x j = siblingOf σ (bit (off + j)) (sPathPos m z x j)
+      sPathSib σ bit off ac m z x j = siblingOf σ (bit (off + j)) (sPathPos ac m z x j)
   | 0, _, _, _, _, h => absurd h (by omega)
   | m + 1, z, x, j, h1, h2 => by
       by_cases hj : j = z
       · subst hj; simp [sPathSib, sPathPos]
       · simp only [sPathSib, sPathPos, hj, ↓reduceIte]
-        exact sPathSib_eq bit off m (z + 1) (x + pathWidth m) j (by omega) (by omega)
+        exact sPathSib_eq bit off ac m (z + 1) (x + pathWidth ac m) j (by omega) (by omega)
 
 /-- The layers' siblings at `SphincsSig`'s positions. -/
 theorem sPathPos_layer : ∀ l < 3, ∀ j < sHeightOf l,
-    sPathPos (sHeightOf l) 0 (sLayerBase l + 48) j = sPathKid l j := by decide +kernel
+    sPathPos (sAcOf l) (sHeightOf l) 0 (sLayerBase l + 48 + 2 * a0W (sAcOf l)) j = sPathKid l j := by
+  decide +kernel
 
 /-- **A layer's path, sound**: the bits of the layer's leaf `layerLeafN T l` and its shifts as the
 digest block gives them, the root is `pFold` of `pNodeE` from the leaf `sp_wots` returns. -/
 theorem sLayerPath_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) {l : Nat} (hl : l < 3)
     {a0 signed : V} (h : AtomsHold rd σ (sLayerPath l a0 signed).1) :
-    σ (sLayerPath l a0 signed).2.2 = pFold (pNodeE (σ sPP) (σ a0) (layerLeafN T l)
-      (sPathSib σ sLeafBit (sOffOf l) (sHeightOf l) 0 ((sLayerK l a0 signed).2.1 + 1)))
-        (sHeightOf l) (σ (.n (sLayerK l a0 signed).2.1)) := by
+    σ (sLayerPath l a0 signed).2.2 = pFold (pNodeE (σ sPP) (a0Val σ a0 (sAcOf l)) (layerLeafN T l)
+      (sPathSib σ sLeafBit (sOffOf l) (sAcOf l) (sHeightOf l) 0
+        ((sLayerK l a0 signed).2.1 + a0W (sAcOf l) + 1)))
+        (sHeightOf l) (σ (.n ((sLayerK l a0 signed).2.1 + a0W (sAcOf l)))) := by
   have hlen : sLeafLen l ≤ 10 := sLeafLen_le.2
-  have hb := sPath_sound (rd := rd) (σ := σ) (pad := sPad) (pp := sPP) (a0 := a0) (bit := sLeafBit)
-    (val := sLVal) (off := sOffOf l) (e := layerLeafN T l) (height := sHeightOf l) hp
+  have hb := sPath_sound (rd := rd) (σ := σ) (pad := sPad) (pp := sPP) (a0 := a0) (ac := sAcOf l)
+    (bit := sLeafBit) (val := sLVal) (off := sOffOf l) (e := layerLeafN T l) (height := sHeightOf l) hp
     (by unfold sHeightOf; omega) (layerLeafN_lt T l)
     (fun z hz => by
       have hb26 : sLeafOff l + z < 26 := by
@@ -240,7 +251,8 @@ theorem sLayerPath_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) {l 
       simp only [show z < sLeafLen l from hz, decide_true, Bool.true_and]
       rfl)
     (fun z hz => hD.2.2.2.1 l hl z hz)
-    (sHeightOf l) 0 (.n (sLayerK l a0 signed).2.1) ((sLayerK l a0 signed).2.1 + 1) (by omega) h
+    (sHeightOf l) 0 (.n ((sLayerK l a0 signed).2.1 + a0W (sAcOf l)))
+    ((sLayerK l a0 signed).2.1 + a0W (sAcOf l) + 1) (by omega) h
   rw [← nIter_zero]
   exact hb
 
@@ -256,28 +268,33 @@ theorem layer_sound {P : Program} [Finds P "sp_wots" Fn.«sp_wots».core] {κ : 
     (hpre : AtomsHold L.read σ (sLayerPre l.val (sA0Of l.val) (sA1Of l.val) signed))
     (hcall : C "sp_wots" ([sPP, sA0Of l.val, sA1Of l.val,
       .n (sLayerK l.val (sA0Of l.val) signed).2.2].map σ)
-      ([.n (sLayerK l.val (sA0Of l.val) signed).2.1].map σ))
+      ([.n ((sLayerK l.val (sA0Of l.val) signed).2.1 + a0W (sAcOf l.val))].map σ))
     (hpath : AtomsHold L.read σ (sLayerPath l.val (sA0Of l.val) signed).1) {idx : Index}
-    (ha0 : σ (sA0Of l.val) = adrsCell0 l.val (treeOfIndex l idx).val)
+    (ha0 : a0Val σ (sA0Of l.val) (sAcOf l.val) = adrsCell0 l.val (treeOfIndex l idx).val)
     (ha1 : σ (sA1Of l.val) = adrsCell1 0 (leafOfIndex l idx).val 0 0)
     (hleaf : (leafOfIndex l idx).val = layerLeafN T l.val) :
     LayerReaches (cellVal (σ sPP)) idx (sphincsSigOf σ Vm) l (cellVal (σ signed))
       (cellVal (σ (sLayerPath l.val (sA0Of l.val) signed).2.2)) := by
+  have hl3 := l.isLt
   obtain ⟨N, hN, hctr, henc⟩ := sLayerPre_sound hκ hbb hp hpre rfl ha0 ha1
+  have ha0' : σ (sA0Of l.val) = adrsCell0 l.val (treeOfIndex l idx).val :=
+    (sLayerPre_a0 hl3 hpre).trans ha0
   have eK := sLayerK_out l.val (sA0Of l.val) signed
+  have eL : sLeafOf l.val = .n ((sLayerK l.val (sA0Of l.val) signed).2.1 + a0W (sAcOf l.val)) := by
+    rw [eK.2, sLeafOf, show sLayerBase l.val + 47 + a0W (sAcOf l.val) + a0W (sAcOf l.val) =
+      sLayerBase l.val + 47 + 2 * a0W (sAcOf l.val) by omega]
   simp only [List.map_cons, List.map_nil] at hcall
   obtain ⟨hv, hw⟩ := wots_call_sound hV hcall l (treeOfIndex l idx) (leafOfIndex l idx)
-    (by rw [ha0, ha1]; rfl)
+    (by rw [ha0', ha1]; rfl)
   have hc : ((sphincsSigOf σ Vm).layers l).counter = BitVec.ofNat 32 (beWordAt 0 N) := by
     simp only [sphincsSigOf, sLayerOf, hctr, cellNat_eOfNat (show N < 2 ^ 64 by omega)]
     rfl
   have hvals : ((sphincsSigOf σ Vm).layers l).chainValues =
       sChainValuesOf (Vm "sp_wots" [σ sPP, σ (sA0Of l.val), σ (sA1Of l.val),
         σ (.n (sLayerK l.val (sA0Of l.val) signed).2.2)]
-        [σ (.n (sLayerK l.val (sA0Of l.val) signed).2.1)]) := by
-    rw [eK.1, eK.2]
+        [σ (.n ((sLayerK l.val (sA0Of l.val) signed).2.1 + a0W (sAcOf l.val)))]) := by
+    rw [← eL, eK.1]
     rfl
-  have hl3 := l.isLt
   have hpth := sLayerPath_sound (rd := L.read) hp hD hl3 hpath
   refine layerReaches_of_cells (enc := cellVal (σ (sEncOf l.val))) ?_ ?_ (hw.trans ?_) ?_
   · rw [hc]; exact henc
@@ -290,8 +307,9 @@ theorem layer_sound {P : Program} [Finds P "sp_wots" Fn.«sp_wots».core] {κ : 
     rw [hh]
     refine htTreeFold_cells _ _ _ _ _ _ _ _ (by unfold sHeightOf; have := sLeafLen_le (l := l.val); omega)
       fun j hj => ?_
-    rw [sPathSib_eq sLeafBit _ _ 0 _ j (by omega) (by omega), eK.2,
-      show sLayerBase l.val + 47 + 1 = sLayerBase l.val + 48 by omega,
+    rw [sPathSib_eq sLeafBit _ _ _ 0 _ j (by omega) (by omega), eK.2,
+      show sLayerBase l.val + 47 + a0W (sAcOf l.val) + a0W (sAcOf l.val) + 1 =
+        sLayerBase l.val + 48 + 2 * a0W (sAcOf l.val) by omega,
       sPathPos_layer l.val hl3 j hj]
     simp only [layerPath, show j < layerHeight l by rw [hh]; exact hj, ↓reduceDIte, sphincsSigOf,
       sLayerOf]

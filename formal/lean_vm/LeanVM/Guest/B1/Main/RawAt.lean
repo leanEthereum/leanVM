@@ -36,7 +36,7 @@ words and `main`'s tags `lxTagWords`).
 An iteration of `main_loop2` (`rawX_step`) starts from `l2σ`, every value outside the check set
 (parameters, prelude, epilogue: `lean_ethereum.py`); the check's completeness
 (`Sig.verify_lean_xmss_complete_Spec`, the tags holding by `lxTagWords_hold`) changes only
-`.n 66 ..< .n 120764`, so the prelude and the epilogue still hold (`offSeg`); its loads are the
+`.n 66 ..< .n 119742`, so the prelude and the epilogue still hold (`offSeg`); its loads are the
 cover word and the claim's four words (`l2_loads`, by `Lift.xSeg_leafOk` for the check), its one
 call the next iteration (`l2_relIn_of_body`).
 -/
@@ -112,7 +112,7 @@ theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
 def l2ArgsAt (i nrx X cv tb : ℕ) : List E :=
   [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords
 
-/-- `main_loop2`'s valuation at the counter `g^i`, outside the check (`.n 66 ..< .n 120764`): its
+/-- `main_loop2`'s valuation at the counter `g^i`, outside the check (`.n 66 ..< .n 119742`): its
 parameters, its prelude's values (`lean_ethereum.py`: slot `s`, its range check, the
 cover word's pointer, the claim's pointer `lx_table · (g^s)^4`), its epilogue's (the next counter
 and the self-call's guard). -/
@@ -124,9 +124,9 @@ noncomputable def l2σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val := fun v =>
       (rd (addressOfIndex (X - 1 - s))).getD 0, gen ^ cv * gen ^ s, gen ^ s * gen ^ s,
       gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
       gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s))].getD (v.idx - 56) 0
-  else if 120764 ≤ v.idx then
+  else if 119742 ≤ v.idx then
     [word 2 0, gen ^ i * word 2 0, gen ^ i * word 2 0 + gen ^ nrx, word 2 0,
-      gen ^ i * word 2 0].getD (v.idx - 120764) 0
+      gen ^ i * word 2 0].getD (v.idx - 119742) 0
   else 0
 
 theorem lxTagWords_length : lxTagWords.length = 51 := by
@@ -180,9 +180,9 @@ theorem walk_append' (σ : Val) : ∀ (l l' : List Stmt), walk σ (l ++ l') = (w
       cases walk σ l' <;> simp [Out.seq, Out.pre]
   | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append' σ l l', out_seq_assoc']
 
-/-- The values of a block lie off the check's `.n 66 ..< .n 120764`. -/
+/-- The values of a block lie off the check's `.n 66 ..< .n 119742`. -/
 def offSeg (ss : List Stmt) : Bool :=
-  (Stmt.valsList ss).all fun v => decide (v.idx < 66) || decide (120764 ≤ v.idx)
+  (Stmt.valsList ss).all fun v => decide (v.idx < 66) || decide (119742 ≤ v.idx)
 
 /-- `main_loop2`'s epilogue holds at `l2σ`, the self-call's next iteration in `C`. -/
 theorem l2Post_holds {C : CallRel} {rd : Reader} {i nrx X cv tb s : ℕ} (hnrx : nrx < 2 ^ 34)

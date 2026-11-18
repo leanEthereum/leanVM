@@ -88,19 +88,19 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 2544) = gen ^ H.n ∧ σ (.n 2635) = 1 + gen ^ H.n ∧ σ (.n 2636) = 1 := by
+      σ (.n 2543) = gen ^ H.n ∧ σ (.n 2633) = 1 + gen ^ H.n ∧ σ (.n 2634) = 1 := by
     intro fp rd _ _
     have hl : (H.args B).length = 20 := rfl
-    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2591
-      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2544])))] (by decide +kernel)
-    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2664
-      [.atom (.const (.n 2634) (word 1 0)), .atom (.add (.n 2635) (.n 2634) (.n 2544)),
-        .atom (.const (.n 2636) (word 1 0))] (by decide +kernel)
+    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2590
+      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2543])))] (by decide +kernel)
+    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2662
+      [.atom (.const (.n 2632) (word 1 0)), .atom (.add (.n 2633) (.n 2632) (.n 2543)),
+        .atom (.const (.n 2634) (word 1 0))] (by decide +kernel)
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at g1 g2 ⊢
     simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq, and_true] at g1 g2
     obtain ⟨c19, a20, c21⟩ := g2
-    have w17 : σ (.n 2544) = gen ^ H.n := by
+    have w17 : σ (.n 2543) = gen ^ H.n := by
       rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w2544
     refine ⟨w17, ?_, ?_⟩
     · rw [a20, c19, w17, tb_word_one]
@@ -276,7 +276,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
         rcases Nat.eq_zero_or_pos H.n with h0 | h0
         · exfalso; apply ht; rw [v20, h0, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
         · exact h0
-      have hpre : LoopPre ([V.n 2636, V.n 2544, V.n 2627, V.n 18, V.n 16, V.n 2544, V.n 2630].map σ) := by
+      have hpre : LoopPre ([V.n 2634, V.n 2543, V.n 2625, V.n 18, V.n 16, V.n 2543, V.n 2628].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo

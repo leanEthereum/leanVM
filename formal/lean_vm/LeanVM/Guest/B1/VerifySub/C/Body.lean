@@ -48,28 +48,28 @@ def vsSPrng : List Atom :=
     .rangeCheck (.n 72) (.n 74) (.n 75) (.n 76) (.n 73),
     .rangeCheck (.n 79) (.n 80) (.n 81) (.n 82) (.n 77),
     .rangeCheck (.n 278) (.n 280) (.n 281) (.n 282) (.n 279),
-    .rangeCheck (.n 322) (.n 324) (.n 325) (.n 326) (.n 323)]
+    .rangeCheck (.n 321) (.n 323) (.n 324) (.n 325) (.n 322)]
 def vsSPdims : List Atom :=
-  .load (.n 72) (.n 71) 0 :: .load (.n 583) (.n 71) 6 ::
+  .load (.n 72) (.n 71) 0 :: .load (.n 566) (.n 71) 6 ::
     (List.range 6).map fun t ↦ .load (.n (86 + t)) (.n 71) (1 + t)
 def vsSPkb : List Atom := (List.range 8).map fun i ↦ .load (.n (84 + i)) (.n 83) i
 def vsSPpush : List Atom :=
   (List.range 54).map fun b ↦ .load (.n (vsPushD b)) (.n (vsPushP b)) (Tables.blockKappaAdj b)
 def vsSPfpw : List Atom :=
-  (List.range 16).map fun i ↦ .load (.n (if i = 0 then 313 else 335 + 14 * i)) (.n 335) i
+  (List.range 16).map fun i ↦ .load (.n (if i = 0 then 312 else 322 + 13 * i)) (.n 334) i
 def vsSPmaps : List Atom :=
-  .load (.n 602) (.n 595) 0 :: (List.range 16).map fun i ↦ .load (.n (vsCh i)) (.n 847) i
+  .load (.n 585) (.n 578) 0 :: (List.range 16).map fun i ↦ .load (.n (vsCh i)) (.n 814) i
 def vsSPctab : List Atom :=
   (List.range 8).flatMap fun b ↦ (List.range 8).map fun p ↦
-    .load (.n (vsCtabD b p)) (.n 848) (8 * p + b)
+    .load (.n (vsCtabD b p)) (.n 815) (8 * p + b)
 def vsSPlam : List Atom :=
-  .load (.n 1915) (.n 310) 0 :: (List.range 134).map fun i ↦
-    .load (.n (1376 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2
-def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n (1927 + k)) (.n 254) k
-def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n (1927 + k)) (.n 5) k
-def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n (1946 + k)) (.n 570) k
-def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n (1946 + k)) (.n 5) (19 + k)
-def vsSPlast : List Atom := [.load (.n 580) (.n 5) 23]
+  .load (.n 1881) (.n 309) 0 :: (List.range 134).map fun i ↦
+    .load (.n (1342 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2
+def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n (1893 + k)) (.n 254) k
+def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n (1893 + k)) (.n 5) k
+def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n (1912 + k)) (.n 553) k
+def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n (1912 + k)) (.n 5) (19 + k)
+def vsSPlast : List Atom := [.load (.n 563) (.n 5) 23]
 
 /-- The atoms of the body needing a side condition, piece by piece. -/
 def vsSidePieces : List Atom :=
@@ -131,15 +131,15 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   h253 : w 253 = gen ^ d
   h276 : w 276 = gen ^ m
   /-- `ood_value`, `fp_w`, `col_eval_words`, `claim_pool`. -/
-  hood : ∃ v, LoadHolds rd (w 310) 0 v
-  hfpw : ReadsAt rd (w 335) (w 313 :: ((vsFpwFs w).squeezeN 15).1)
-  hcol : ∀ k < 153, ∃ v, LoadHolds rd (w 582) k v
+  hood : ∃ v, LoadHolds rd (w 309) 0 v
+  hfpw : ReadsAt rd (w 334) (w 312 :: ((vsFpwFs w).squeezeN 15).1)
+  hcol : ∀ k < 153, ∃ v, LoadHolds rd (w 565) k v
   hpool : ∀ k ∈ [0, 1, 2, 3, 157, 158], ∃ v, LoadHolds rd (w 6) k v
   /-- The ring map's nonce, challenges and `c_table`. -/
   nonce : E
-  hnonce : LoadHolds rd (w 595) 0 nonce
-  hmaps : ReadsAt rd (w 847) (vsRchs (vsKCap w) nonce)
-  hct : ReadsAt rd (w 848) (ringCoefficients ((vsRchs (vsKCap w) nonce).take 8)
+  hnonce : LoadHolds rd (w 578) 0 nonce
+  hmaps : ReadsAt rd (w 814) (vsRchs (vsKCap w) nonce)
+  hct : ReadsAt rd (w 815) (ringCoefficients ((vsRchs (vsKCap w) nonce).take 8)
     ((vsRchs (vsKCap w) nonce).drop 8))
   /-- `zeta`, `bc_point` and the deferred claim's cells. -/
   zs : List E
@@ -147,8 +147,8 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hz : ReadsAt rd (w 254) zs
   al : List E
   hall : al.length = 4
-  hal : ReadsAt rd (w 570) al
-  hout : ReadsAt rd (args.getD 5 0) (zs.take 19 ++ al ++ [w 580])
+  hal : ReadsAt rd (w 553) al
+  hout : ReadsAt rd (args.getD 5 0) (zs.take 19 ++ al ++ [w 563])
 
 /-! ## Helpers -/
 
@@ -335,15 +335,15 @@ theorem vsSPfpw_holds (D : VsSecData rd w args) :
   intro a ha _
   obtain ⟨i, hi, rfl⟩ := List.mem_map.1 ha
   rw [List.mem_range] at hi
-  have hlen : (w 313 :: ((vsFpwFs w).squeezeN 15).1).length = 16 := by
+  have hlen : (w 312 :: ((vsFpwFs w).squeezeN 15).1).length = 16 := by
     simp [vs_squeezeN_length]
   have hr := vs_rdg D.hfpw (k := i) (by omega)
-  rw [← vs_w (rd := rd) (w := w) (args := args) D.hl (a := 335) (by decide)] at hr
+  rw [← vs_w (rd := rd) (w := w) (args := args) D.hl (a := 334) (by decide)] at hr
   refine vs_ld_store ?_ hr
   rcases i with _ | i
   · exact vs_w D.hl (by decide)
   · simp only [Nat.add_one_ne_zero, ↓reduceIte, List.getD_cons_succ]
-    rw [show 335 + 14 * (i + 1) = 349 + 14 * i by omega]
+    rw [show 322 + 13 * (i + 1) = 335 + 13 * i by omega]
     exact (vs_fpw (rd := rd) (w := w) D.hl).1 i (by omega)
 
 theorem vsRchs_length (cap : List E) (n : E) : (vsRchs cap n).length = 16 := by
@@ -373,7 +373,7 @@ theorem vsSPctab_holds (D : VsSecData rd w args) :
   generalize vsRchs (vsKCap w) D.nonce = R at hch hct hR
   have ht8 : (R.take 8).length = 8 := by simp [hR]
   refine vs_ld_store (vs_ctabV D.hl hb p hp) ?_
-  rw [hch p (by omega), hch (8 + b) (by omega), vs_w D.hl (a := 848) (by decide)]
+  rw [hch p (by omega), hch (8 + b) (by omega), vs_w D.hl (a := 815) (by decide)]
   have hr := vs_rdg hct (k := 8 * p + b)
     (by rw [ringCoefficients_eq ht8]; simp [List.length_flatMap, hR]; omega)
   rw [ringCoefficients_eq ht8, vs_getD_flatMap8 (fun q ↦ by simp [hR]) 8 p b hp hb] at hr
@@ -399,16 +399,16 @@ theorem vsSPlam_holds (D : VsSecData rd w args) :
       unfold vsClaimAt
       split_ifs with h
       · obtain ⟨v, hv⟩ := D.hcol (vsKept i - 4) (by omega)
-        exact ⟨v, by rw [vs_w D.hl (a := 582) (by decide)]; exact hv⟩
+        exact ⟨v, by rw [vs_w D.hl (a := 565) (by decide)]; exact hv⟩
       · obtain ⟨v, hv⟩ := D.hpool (vsKept i) (by
           simp only [List.mem_cons, List.not_mem_nil, or_false]; omega)
         exact ⟨v, by rw [vs_w D.hl (a := 6) (by decide)]; exact hv⟩
     obtain ⟨v, hv⟩ := hex
     exact vs_ld_new (vs_goodS D.hl hs) (vsLamT_notS i hi) hv
 
-theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1927 + k)) (.n 254) k ∉ vsSL := by decide +kernel
+theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1893 + k)) (.n 254) k ∉ vsSL := by decide +kernel
 
-theorem vsSPal_notS : ∀ k < 4, Atom.load (.n (1946 + k)) (.n 570) k ∉ vsSL := by decide +kernel
+theorem vsSPal_notS : ∀ k < 4, Atom.load (.n (1912 + k)) (.n 553) k ∉ vsSL := by decide +kernel
 
 theorem vsSPz_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPz, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -427,8 +427,8 @@ theorem vsSPal_holds (D : VsSecData rd w args) :
     (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hal (by have := D.hall; omega))
 
 theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
-    ς (.n (1927 + k)) = D.zs.getD k 0 := by
-  have hm : Stmt.atom (.load (.n (1927 + k)) (.n 254) k) ∈ vsTailP := by
+    ς (.n (1893 + k)) = D.zs.getD k 0 := by
+  have hm : Stmt.atom (.load (.n (1893 + k)) (.n 254) k) ∈ vsTailP := by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩)))
@@ -436,15 +436,15 @@ theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
     (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hz (by have := D.hzl; omega))
 
 theorem vs_alv (D : VsSecData rd w args) {k : ℕ} (hk : k < 4) :
-    ς (.n (1946 + k)) = D.al.getD k 0 := by
-  have hm : Stmt.atom (.load (.n (1946 + k)) (.n 570) k) ∈ vsTailP := by
+    ς (.n (1912 + k)) = D.al.getD k 0 := by
+  have hm : Stmt.atom (.load (.n (1912 + k)) (.n 553) k) ∈ vsTailP := by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩))
   exact vsg_read (vsTailP_good D.hl _ hm) (vsSPal_notS k hk)
     (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hal (by have := D.hall; omega))
 
-theorem vs_outLen (D : VsSecData rd w args) : (D.zs.take 19 ++ D.al ++ [w 580]).length = 24 := by
+theorem vs_outLen (D : VsSecData rd w args) : (D.zs.take 19 ++ D.al ++ [w 563]).length = 24 := by
   have := D.hzl; have := D.hall
   simp; omega
 
@@ -469,7 +469,7 @@ theorem vsSPout_holds (D : VsSecData rd w args) :
     rwa [List.getD_append _ _ _ _ (by rw [List.length_append, List.length_take]; omega),
       List.getD_append_right _ _ _ _ (by rw [List.length_take]; omega),
       show 19 + k - (D.zs.take 19).length = k by rw [List.length_take]; omega] at hr
-  · refine vs_ld_store (vs_w D.hl (a := 580) (by decide)) ?_
+  · refine vs_ld_store (vs_w D.hl (a := 563) (by decide)) ?_
     have hr := vs_rdg D.hout (k := 23) (by rw [vs_outLen]; omega)
     rw [h5]
     rwa [List.getD_append_right _ _ _ _ (by rw [List.length_append, List.length_take]; omega),
@@ -508,7 +508,7 @@ def vsDispOf : Stmt → Option (V × ℕ)
   | .dispatch x fs _ _ => some (x, fs.length)
   | _ => none
 
-theorem vs_disps : vsCPre.filterMap vsDispOf = [(.n 278, 11), (.n 322, 14), (.n 278, 11)] := by
+theorem vs_disps : vsCPre.filterMap vsDispOf = [(.n 278, 11), (.n 321, 14), (.n 278, 11)] := by
   decide +kernel
 
 /-- **The dispatches' indices**: `g^(m - 20)` (twice) and `g^(d - 20)`. -/

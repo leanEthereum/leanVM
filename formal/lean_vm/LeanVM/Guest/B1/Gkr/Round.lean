@@ -34,21 +34,20 @@ def gkRoundT (B q : ℕ) (cur pt claimV : V) (cap : List V) : List Stmt :=
     fsNextT cur (4 * q + 2) (B + 6) ++ fsNextT cur (4 * q + 3) (B + 9) ++
     [keccakA ([.n (B + 1), .n (B + 2), .n (B + 4), .n (B + 5), .n (B + 7), .n (B + 8),
         .n (B + 10), .n (B + 11)] ++ cap) ((List.range 13).map fun k ↦ .n (B + 12 + k))] ++
-    challengeT (.n (B + 12)) (B + 25) ++
-    [.atom (.load (.n (B + 26)) pt q), .atom (.add (.n (B + 27)) (.n B) (.n (B + 3))),
-      .atom (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 6))),
-      .atom (.add (.n (B + 29)) (.n (B + 28)) (.n (B + 9))),
-      .atom (.mul (.n (B + 30)) (.n (B + 26)) (.n (B + 29))),
-      .atom (.add (.n (B + 31)) claimV (.n (B + 30))),
-      .atom (.load (.n (B + 25)) pt (42 + q)),
-      .atom (.mul (.n (B + 32)) (.n (B + 25)) (.n (B + 9))),
-      .atom (.add (.n (B + 33)) (.n (B + 6)) (.n (B + 32))),
-      .atom (.mul (.n (B + 34)) (.n (B + 25)) (.n (B + 33))),
-      .atom (.add (.n (B + 35)) (.n (B + 3)) (.n (B + 34))),
-      .atom (.mul (.n (B + 36)) (.n (B + 25)) (.n (B + 35))),
-      .atom (.add (.n (B + 37)) (.n B) (.n (B + 36))),
-      .atom (.mul (.n (B + 38)) (.n (B + 25)) (.n (B + 37))),
-      .atom (.add (.n (B + 39)) (.n (B + 31)) (.n (B + 38)))]
+    [.atom (.load (.n (B + 25)) pt q), .atom (.add (.n (B + 26)) (.n B) (.n (B + 3))),
+      .atom (.add (.n (B + 27)) (.n (B + 26)) (.n (B + 6))),
+      .atom (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 9))),
+      .atom (.mul (.n (B + 29)) (.n (B + 25)) (.n (B + 28))),
+      .atom (.add (.n (B + 30)) claimV (.n (B + 29))),
+      .atom (.load (.n (B + 12)) pt (42 + q)),
+      .atom (.mul (.n (B + 31)) (.n (B + 12)) (.n (B + 9))),
+      .atom (.add (.n (B + 32)) (.n (B + 6)) (.n (B + 31))),
+      .atom (.mul (.n (B + 33)) (.n (B + 12)) (.n (B + 32))),
+      .atom (.add (.n (B + 34)) (.n (B + 3)) (.n (B + 33))),
+      .atom (.mul (.n (B + 35)) (.n (B + 12)) (.n (B + 34))),
+      .atom (.add (.n (B + 36)) (.n B) (.n (B + 35))),
+      .atom (.mul (.n (B + 37)) (.n (B + 12)) (.n (B + 36))),
+      .atom (.add (.n (B + 38)) (.n (B + 30)) (.n (B + 37)))]
 
 theorem gkRoundT_noRet (B q : ℕ) (cur pt claimV : V) (cap : List V) :
     Stmt.noRetList (gkRoundT B q cur pt claimV cap) = true := by
@@ -70,19 +69,19 @@ claim are one round of `gkrRun` from the carried capacity; the challenge is stor
 theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
     (h : Stmt.HoldsList C rd σ (gkRoundT B q cur pt claimV cap) True kret) :
     ∃ xs : List E, xs.length = 4 ∧ (∀ i < 4, LoadHolds rd (σ cur) (4 * q + i) (xs.getD i 0)) ∧
-      σ (.n (B + 25)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 ∧
+      σ (.n (B + 12)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (B + 20 + k))) =
         ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.2.cap ∧
-      LoadHolds rd (σ pt) (42 + q) (σ (.n (B + 25))) ∧
+      LoadHolds rd (σ pt) (42 + q) (σ (.n (B + 12))) ∧
       ∃ e, LoadHolds rd (σ pt) q e ∧
-        σ (.n (B + 39)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 25))) := by
+        σ (.n (B + 38)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 12))) := by
   unfold gkRoundT at h
   rw [tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
     tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
-    tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl)] at h
-  obtain ⟨⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, hk⟩, hch⟩, ht⟩ := h
+    tb_holdsList_append_noRet (by rfl)] at h
+  obtain ⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, hk⟩, ht⟩ := h
   rw [holds_fsNextT] at f0 f1 f2 f3
-  simp only [challengeT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, keccakA] at hk hch ht
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, keccakA] at hk ht
   obtain ⟨hl0, pk0⟩ := f0.1
   obtain ⟨hl1, pk1⟩ := f1.1
   obtain ⟨hl2, pk2⟩ := f2.1
@@ -112,10 +111,10 @@ theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
     intro k hk
     have := outs_eq hout ⟨k, hk⟩ (by simpa using hk)
     simpa [hperm] using this
-  have hch' : σ (.n (B + 25)) = challengeOf P := by
-    rw [hch, show B + 12 = B + 12 + 0 by rfl, hout' 0 (by omega), Keccak.challengeOf_cells]
+  have hch' : σ (.n (B + 12)) = challengeOf P := by
+    rw [show B + 12 = B + 12 + 0 by rfl, hout' 0 (by omega), Keccak.challengeOf_cells]
     rfl
-  refine ⟨xs, rfl, fun i hi => ?_, ?_, ?_, ht.2.2.2.2.2.2.1, σ (.n (B + 26)), ht.1, ?_⟩
+  refine ⟨xs, rfl, fun i hi => ?_, ?_, ?_, ht.2.2.2.2.2.2.1, σ (.n (B + 25)), ht.1, ?_⟩
   · interval_cases i
     · exact hl0
     · exact hl1

@@ -176,15 +176,15 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       have hv := hr.trans hpc.symm
       simp only [Prod.ext_iff] at hv
       obtain ⟨r6, r8⟩ := hrst j hj
-    · show LoadHolds rd (σ (.n 13)) (18 + 2 * j) (σ (.n (362 + 3 * j)))
-      have e : σ (.n (362 + 3 * j)) =
+    · show LoadHolds rd (σ (.n 13)) (18 + 2 * j) (σ (.n (l25Last j)))
+      have e : σ (.n (l25Last j)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD (5 + 2 * j) 0 := by
         rw [rowW_getD_rate hst' (by omega), hch, hv.1, ← r6]
         rfl
       rw [e, show 18 + 2 * j = 13 + (5 + 2 * j) by omega]
       exact hnext' _ (by omega)
-    · show LoadHolds rd (σ (.n 13)) (19 + 2 * j) (σ (.n (363 + 3 * j)))
-      have e : σ (.n (363 + 3 * j)) =
+    · show LoadHolds rd (σ (.n 13)) (19 + 2 * j) (σ (.n (l25Last j + 1)))
+      have e : σ (.n (l25Last j + 1)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD
             (5 + (2 * j + 1)) 0 := by
         rw [rowW_getD_rate hst' (by omega), hch, hv.2, ← r8]

@@ -46,13 +46,13 @@ def sqDecName (lv : OsLv) : String :=
   "decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
 
 /-- The positions' pointer of an iteration. -/
-def sqP1 (lv : OsLv) : List Stmt × ℕ × ℕ := osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))
+def sqP1 (lv : OsLv) : List Stmt × ℕ × ℕ := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
 
 /-- The window pointers' pointer of an iteration. -/
 def sqP2 (lv : OsLv) : List Stmt × ℕ × ℕ := osMat 4 lv.posOff ((sqP1 lv).2.2 + 1)
 
 /-- The decoder call's arguments. -/
-def sqDecArgs (lv : OsLv) : List V := [.n 33, .n (sqP1 lv).2.2, .n (sqP2 lv).2.2, .n 5]
+def sqDecArgs (lv : OsLv) : List V := [.n 20, .n (sqP1 lv).2.2, .n (sqP2 lv).2.2, .n 5]
 
 /-- The tail call's arguments. -/
 def sqTailArgs (lv : OsLv) : List V :=

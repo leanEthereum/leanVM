@@ -45,9 +45,16 @@ theorem good_of_any {A : List Atom} (hg : ∀ a ∈ A, Good rd S w σ a) {a : At
 theorem pack_vals {A : List Atom} {x : V} {b : ℕ} (h : packIn A x b = true)
     (hg : ∀ a ∈ A, Good rd S w σ a) : ∀ i < 2, σ (.n (b + i)) = fsPackVals (σ x) dsObserve i := by
   have hall := List.all_eq_true.mp h
-  have g0 : σ (.n b) = σ x := good_of_any hg (hall (.copy (.n b) x) (by simp [fsPackA]))
-  have g1 : σ (.n (b + 1)) = word 0 dsObserve :=
-    good_of_any hg (hall (.const (.n (b + 1)) (word 0 dsObserve)) (by simp [fsPackA]))
+  have g0 : σ (.n b) = σ x := by
+    rcases (Bool.or_eq_true _ _).mp (hall (.copy (.n b) x) (by simp [fsPackA])) with hs | hs
+    · simp only [isSelfCopy, decide_eq_true_eq] at hs
+      exact congrArg σ hs
+    · exact good_of_any hg hs
+  have g1 : σ (.n (b + 1)) = word 0 dsObserve := by
+    rcases (Bool.or_eq_true _ _).mp
+      (hall (.const (.n (b + 1)) (word 0 dsObserve)) (by simp [fsPackA])) with hs | hs
+    · simp only [isSelfCopy, Bool.false_eq_true] at hs
+    · exact good_of_any hg hs
   intro i hi
   rcases (show i = 0 ∨ i = 1 by omega) with rfl | rfl
   · exact g0

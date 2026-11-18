@@ -180,13 +180,13 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
       hretK⟩ :=
     hK (by rw [F.h589]; exact winTabs_of hwin) ((Tables.tableHeightsOf F.rowsN).getD 5 0) chis _ hτ9 (by omega) F.h583 hτc hchi hl25
       (by rw [F.h587]; exact hlR)
-  obtain ⟨hcapK, hK2⟩ := List.append_inj' (show [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593),
-    σ (.n 594)] ++ [σ (.n 595), σ (.n 596)] = _ from hretK) rfl
+  obtain ⟨hcapK, hK2⟩ := List.append_inj' (show [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576),
+    σ (.n 577)] ++ [σ (.n 578), σ (.n 579)] = _ from hretK) rfl
   simp only [List.cons.injEq, and_true] at hK2
   obtain ⟨e595, e596⟩ := hK2
   -- `keccakPhaseClaims`
   have h6 : RunsTo (keccakPhaseClaims (Tables.layoutOf bytecode F.logMem F.rowsN) F.claims)
-      ⟨[σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577)], []⟩ xsK
+      ⟨[σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560)], []⟩ xsK
       (F.claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ [⟨qkeccak, op, word⟩],
         point, slices) s' := by
     have hτL : (Tables.layoutOf bytecode F.logMem F.rowsN).tableLogHeights.getD opKeccak 0 = ((Tables.tableHeightsOf F.rowsN).getD 5 0) := by
@@ -224,7 +224,7 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have hbusL : F.bus.point.length = busDepth (Tables.layoutOf bytecode F.logMem F.rowsN) := by
     have := hgmu.symm.trans F.h253
     exact gen_pow_inj (by have := mem_size_le hκ L hbpR; omega) (by have := F.hdep34; omega) this
-  have hacc := hTacc (Tables.layoutOf bytecode F.logMem F.rowsN) F.bus F.claims ⟨qkeccak, op, word⟩ (σ (.n 1375)) point
+  have hacc := hTacc (Tables.layoutOf bytecode F.logMem F.rowsN) F.bus F.claims ⟨qkeccak, op, word⟩ (σ (.n 1329)) point
     (ringCoefficients (chs.take ringMapWidth) (chs.drop ringMapWidth)) F.z w.point (by
       refine ⟨termCtx_of_tctx F.hctx, F.hP, F.hKB, layoutOf_placements hbl' _ _,
         layoutOf_stackLog hbl' _ _, F.hst30, F.hm1,
@@ -248,32 +248,32 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
     simp only [decide_not] at this
     rw [hkc1]
     simp [stackClaims, this]
-  have hW' : Whir.RunsWith (Whir.whirOpen (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir (dot (powers (σ (.n 1375))
+  have hW' : Whir.RunsWith (Whir.whirOpen (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir (dot (powers (σ (.n 1329))
       (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).length) ((stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).map (·.2))))
-      ⟨[σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374)], []⟩
+      ⟨[σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341)], []⟩
       (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - Whir.minOpenLog) F.lir (vsOsArgs σ) (vsOsRets σ)).1
       (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - Whir.minOpenLog) F.lir (vsOsArgs σ) (vsOsRets σ)).2
       [(digestFromHalves (σ (.n 268), σ (.n 271)), Whir.stackShape (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir)] w s''
       roots' := by
     have hvals : (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).map
-        (·.2) = σ (.n 1361) :: ((F.claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map
-          (·.value) ++ [σ (.n 596), F.v]) := by
+        (·.2) = σ (.n 1328) :: ((F.claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map
+          (·.value) ++ [σ (.n 579), F.v]) := by
       rw [hkc1, hrs, hood, hrt, e596]
       simp only [stackClaims, ringSwitchClaim, ColumnClaim.stackClaim, List.map_cons,
         List.map_append, List.map_map, Function.comp_def, List.map_nil, List.cons_append,
         List.append_assoc, List.nil_append]
-    have ht : dot (powers (σ (.n 1375)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN)
+    have ht : dot (powers (σ (.n 1329)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN)
         kc1 rs.1 rs.2 ood).length) ((stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1
-        rs.1 rs.2 ood).map (·.2)) = σ (.n 1917) := by
+        rs.1 rs.2 ood).map (·.2)) = σ (.n 1883) := by
       rw [hvals, hcl8, htarget]
     rw [ht]; exact hW
-  have hAcc : w.Accepts fun x ↦ dot (powers (σ (.n 1375)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).length)
+  have hAcc : w.Accepts fun x ↦ dot (powers (σ (.n 1329)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).length)
       ((stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).map fun c ↦ c.1 x) := by
     unfold Whir.WhirEnd.Accepts
-    have e : (fun x ↦ dot (powers (σ (.n 1375)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).length)
+    have e : (fun x ↦ dot (powers (σ (.n 1329)) (stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).length)
         ((stackClaims (Tables.layoutOf bytecode F.logMem F.rowsN) kc1 rs.1 rs.2 ood).map fun c ↦ c.1 x)) =
         stackWeight (Tables.layoutOf bytecode F.logMem F.rowsN) (openedClaims F.claims [⟨qkeccak, op, word⟩]) point
-          (ringCoefficients (chs.take ringMapWidth) (chs.drop ringMapWidth)) F.z (σ (.n 1375)) := by
+          (ringCoefficients (chs.take ringMapWidth) (chs.drop ringMapWidth)) F.z (σ (.n 1329)) := by
       funext x
       simp [stackWeight, stackClaims, openedClaims, kc1, rs, ood, ringSwitchClaim]
     rw [e, ← e1934, ← e1935, ← e1931]
@@ -284,7 +284,7 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have h1 := readSizes_runsTo hbl' F.hm1 F.hm30 F.hrowsL F.hh31 F.hl1 F.hl4 F.hst30
     (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs)
   rw [← F.hwords, F.habs1] at h1
-  have hacc' := deferred_accepts (c := ⟨F.bus.bytecodePoint, σ (.n 580)⟩)
+  have hacc' := deferred_accepts (c := ⟨F.bus.bytecodePoint, σ (.n 563)⟩)
     (s0 := ⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩) ⟨F.hcap0.symm, rfl, rfl⟩
     h1 hcfg (σ (.n 268)) (σ (.n 271)) (by rw [F.habs2]; exact F.hO) (by have := F.hdep34; omega)
     F.hB F.hG F.hT h6 (hRS point slices) h8
@@ -294,11 +294,11 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have hidx : dispatchIdx (σ (.n 278)) = (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - Whir.minOpenLog :=
     dispatchIdx_eq hcand (by rw [F.h278, gen_pow_eq_ofK])
   -- the stream before the opening
-  have e320 : σ (.n 320) = σ (.n 25) * gen ^ 13 := by rw [F.h320, F.h312]; ring
-  have e567 : σ (.n 567) = σ (.n 25) * gen ^ (13 + F.xsG.length) := by rw [F.h567, e320]; ring
-  have e578 : σ (.n 578) = σ (.n 25) * gen ^ (13 + F.xsG.length + F.xsT.length) := by
+  have e320 : σ (.n 319) = σ (.n 25) * gen ^ 13 := by rw [F.h320, F.h312]; ring
+  have e567 : σ (.n 550) = σ (.n 25) * gen ^ (13 + F.xsG.length) := by rw [F.h567, e320]; ring
+  have e578 : σ (.n 561) = σ (.n 25) * gen ^ (13 + F.xsG.length + F.xsT.length) := by
     rw [F.h578, e567]; ring
-  have e595' : σ (.n 595) = σ (.n 25) * gen ^ (13 + F.xsG.length + F.xsT.length + xsK.length) := by
+  have e595' : σ (.n 578) = σ (.n 25) * gen ^ (13 + F.xsG.length + F.xsT.length + xsK.length) := by
     rw [e595, e578]; ring
   have r11 : ReadsAt L.read (σ (.n 25)) (vsWords σ ++ [σ (.n 268), σ (.n 271)] ++ [σ (.n 283)]) := by
     intro k hk
@@ -333,14 +333,14 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have rK := readsAt_append.2 ⟨rT, by
     rw [List.length_append, List.length_append, show (vsWords σ ++ [σ (.n 268), σ (.n 271)] ++
       [σ (.n 283)] ++ [F.v, F.nn]).length = 13 from rfl, ← e578]; exact hxsK⟩
-  have rR := (readsAt_append (ys := [σ (.n 602)])).2 ⟨rK, by
+  have rR := (readsAt_append (ys := [σ (.n 585)])).2 ⟨rK, by
     rw [List.length_append, List.length_append, List.length_append, show (vsWords σ ++
       [σ (.n 268), σ (.n 271)] ++ [σ (.n 283)] ++ [F.v, F.nn]).length = 13 from rfl, ← e595']
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk
     interval_cases k
     exact h602⟩
-  have hstream := readsAt_cursor (q := σ (.n 1919)) hκ L rR (by
+  have hstream := readsAt_cursor (q := σ (.n 1885)) hκ L rR (by
     rw [h1928, e595']
     simp only [List.length_append, List.length_cons, List.length_nil,
       show (vsWords σ).length = 8 from rfl]
@@ -350,8 +350,8 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have hrL := F.hrL
   have htake : (F.r.2.1.take 19).length = 19 := by rw [List.length_take]; omega
   have hcells : ReadsAt L.read (σ (.n 5))
-      (Node.DeferredBytecodeClaim.cells (⟨F.bus.bytecodePoint, σ (.n 580)⟩ : BytecodeClaim)) := by
-    show ReadsAt L.read (σ (.n 5)) (F.bus.bytecodePoint ++ [σ (.n 580)])
+      (Node.DeferredBytecodeClaim.cells (⟨F.bus.bytecodePoint, σ (.n 563)⟩ : BytecodeClaim)) := by
+    show ReadsAt L.read (σ (.n 5)) (F.bus.bytecodePoint ++ [σ (.n 563)])
     rw [F.hbp]
     refine readsAt_append.2 ⟨readsAt_append.2 ⟨fun k hk ↦ ?_, fun k hk ↦ ?_⟩, fun k hk ↦ ?_⟩
     · rw [htake] at hk
@@ -368,11 +368,11 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
       exact hd3
   -- the statement
   refine ⟨hrets, σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), rfl, F.seed, F.pi,
-    ⟨F.bus.bytecodePoint, σ (.n 580)⟩, F.hseed, F.hpi, ?_, hcells, ?_⟩
+    ⟨F.bus.bytecodePoint, σ (.n 563)⟩, F.hseed, F.hpi, ?_, hcells, ?_⟩
   · show (F.bus.bytecodePoint).length = 23
     rw [F.hbp, List.length_append, htake, F.hslL]; rfl
   · have hπ : vsPiOf L.read σ V = ⟨vsWords σ ++ [σ (.n 268), σ (.n 271)] ++ [σ (.n 283), F.v] ++
-        [F.nn] ++ F.xsG ++ F.xsT ++ xsK ++ [σ (.n 602)] ++
+        [F.nn] ++ F.xsG ++ F.xsT ++ xsK ++ [σ (.n 585)] ++
         (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - Whir.minOpenLog) F.lir (vsOsArgs σ) (vsOsRets σ)).1,
         (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - Whir.minOpenLog) F.lir (vsOsArgs σ) (vsOsRets σ)).2⟩ := by
       have hrate : rateOf (σ (.n 66)) = F.lir := by

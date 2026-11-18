@@ -101,7 +101,7 @@ def spForsBits : List (List Nat) := [
 def spPathKids : List (List Nat) := [
   [5297, 5310, 5323, 5336, 5349, 5362, 5375, 5388],
   [5455, 5468, 5481, 5494, 5507, 5520, 5533, 5546],
-  [5610, 5626, 5639, 5652, 5665, 5678, 5691, 5704, 5717, 5730]]
+  [5611, 5628, 5642, 5656, 5670, 5684, 5698, 5712, 5726, 5740]]
 
 /-- The bit `is_child` reads at layer `l`'s level `j` (`sLeafBit (8 l + j)`). -/
 def spPathBits : List (List Nat) := [
@@ -143,14 +143,15 @@ def forsOpeningA (T : SpTabs) (σ : Val) (c : ℕ) : Sphincs.ForsTreeOpening :=
     fun z ↦ cellVal (sibN σ (offAtA T.forsBit c z.val) (offAtA T.forsKid c z.val))⟩
 
 /-- Layer `l`'s base (`sLayerBase`): its counter at `+ 36`, its encoding at `+ 46`, its leaf at
-`+ 47`. -/
-def spLayerBase (l : ℕ) : ℕ := if l = 0 then 5249 else if l = 1 then 5407 else 5562
+`+ 47`, the top layer's (`l / 2 = 1`) one and two further (its `A0` set before its encoding and
+its call). -/
+def spLayerBase (l : ℕ) : ℕ := if l = 0 then 5249 else if l = 1 then 5407 else 5561
 def spCtr (l : ℕ) : ℕ := spLayerBase l + 36
-def spEnc (l : ℕ) : ℕ := spLayerBase l + 46
-def spLeaf (l : ℕ) : ℕ := spLayerBase l + 47
+def spEnc (l : ℕ) : ℕ := spLayerBase l + 46 + l / 2
+def spLeaf (l : ℕ) : ℕ := spLayerBase l + 47 + l / 2 + l / 2
 
 /-- Layer `l`'s key's address cells (`sA0Of`, `sA1Of`). -/
-def spA0 (l : ℕ) : ℕ := if l = 0 then 1379 else if l = 1 then 5404 else 5561
+def spA0 (l : ℕ) : ℕ := if l = 0 then 1379 else if l = 1 then 5404 else 5609
 def spA1 (l : ℕ) : ℕ := if l = 0 then 1381 else if l = 1 then 5406 else 5560
 
 /-- **Layer `l`'s signature**: its counter's cell, its `sp_wots` frame `w`, its path's pairs and

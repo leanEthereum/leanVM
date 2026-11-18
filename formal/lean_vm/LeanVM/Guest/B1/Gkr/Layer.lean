@@ -59,7 +59,7 @@ theorem lyFound : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr_loop0» 
   · exact absurd h (by simp)
 
 /-- `verify_bus_gkr_loop0`'s statements before its `ret`. -/
-noncomputable def lyPre : List Stmt := lyBody.take 192
+noncomputable def lyPre : List Stmt := lyBody.take 189
 
 theorem lyBody_eq : lyBody = lyPre ++ [.ret []] := tbStmtsEqb_sound (by decide +kernel)
 
@@ -161,11 +161,11 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
     (hslot : GkSlot rd (σ (.n 3)) (2 * j + 2 - sh) s cur st row pos half parity) :
     σ (.n 10) = gen ^ (2 * j) ∧ σ (.n 11) = gen ^ (2 * j + 2 - sh) ∧
       σ (.n 17) = σ (.n 3) * gen ^ (13 * (2 * j + 2 - sh)) ∧
-      σ (.n 42) = s.squeeze.1 ∧ σ (.n 46) = row ∧ σ (.n 47) = pos ∧
-      σ (.n 48) = σ (.n 5) * pos ∧ σ (.n 53) = half ∧ σ (.n 54) = parity ∧
-      TbCapAt rd (σ (.n 48)) 0 gkCap s.squeeze.2.cap ∧
-      LoadHolds rd (σ (.n 48)) (5 * gkCap) cur ∧
-      LoadHolds rd (σ (.n 48)) (6 * gkCap) (polyEval st.values s.squeeze.1) := by
+      σ (.n 29) = s.squeeze.1 ∧ σ (.n 45) = row ∧ σ (.n 46) = pos ∧
+      σ (.n 47) = σ (.n 5) * pos ∧ σ (.n 52) = half ∧ σ (.n 53) = parity ∧
+      TbCapAt rd (σ (.n 47)) 0 gkCap s.squeeze.2.cap ∧
+      LoadHolds rd (σ (.n 47)) (5 * gkCap) cur ∧
+      LoadHolds rd (σ (.n 47)) (6 * gkCap) (polyEval st.values s.squeeze.1) := by
   have hnr := lyPre_noRet
   obtain ⟨hcl, hcap, hpe, hcur, hvl, hval, hrow, -, -, hpos, hhalf, hpar⟩ := hslot
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
@@ -210,27 +210,25 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
       (List.range 5).map fun k ↦ V.n (18 + k)) : List V).map σ = rateOf s.pend ++ s.cap := by
     rw [ly_zero_rate c25 c26 c27 c28, hpe, hcapE]
   rw [hins] at hP
-  have c42 := a 20 (.copy (.n 42) (.n 29)) (by decide +kernel)
-  simp only [Atom.Holds] at c42
-  have e42 : σ (.n 42) = s.squeeze.1 := by
-    rw [c42, hP 0 (by omega)]
+  have e42 : σ (.n 29) = s.squeeze.1 := by
+    rw [hP 0 (by omega)]
     exact (Keccak.challengeOf_cells _).symm
   -- the slot's values, row, position, half and parity
-  have l43 := a 21 (.load (.n 43) (.n 17) 6) (by decide +kernel)
-  have l44 := a 22 (.load (.n 44) (.n 17) 7) (by decide +kernel)
-  have l45 := a 23 (.load (.n 45) (.n 17) 8) (by decide +kernel)
-  have l46 := a 24 (.load (.n 46) (.n 17) 9) (by decide +kernel)
-  have l47 := a 25 (.load (.n 47) (.n 17) 10) (by decide +kernel)
-  have m48 := a 26 (.mul (.n 48) (.n 5) (.n 47)) (by decide +kernel)
+  have l43 := a 20 (.load (.n 42) (.n 17) 6) (by decide +kernel)
+  have l44 := a 21 (.load (.n 43) (.n 17) 7) (by decide +kernel)
+  have l45 := a 22 (.load (.n 44) (.n 17) 8) (by decide +kernel)
+  have l46 := a 23 (.load (.n 45) (.n 17) 9) (by decide +kernel)
+  have l47 := a 24 (.load (.n 46) (.n 17) 10) (by decide +kernel)
+  have m48 := a 25 (.mul (.n 47) (.n 5) (.n 46)) (by decide +kernel)
   have l23 := a 13 (.load (.n 23) (.n 17) 5) (by decide +kernel)
-  have l23' := a 32 (.load (.n 23) (.n 48) 4310) (by decide +kernel)
-  have m49 := a 33 (.mul (.n 49) (.n 42) (.n 45)) (by decide +kernel)
-  have a50 := a 34 (.add (.n 50) (.n 44) (.n 49)) (by decide +kernel)
-  have m51 := a 35 (.mul (.n 51) (.n 42) (.n 50)) (by decide +kernel)
-  have a52 := a 36 (.add (.n 52) (.n 43) (.n 51)) (by decide +kernel)
-  have l52 := a 37 (.load (.n 52) (.n 48) 5172) (by decide +kernel)
-  have l53 := a 38 (.load (.n 53) (.n 17) 11) (by decide +kernel)
-  have l54 := a 39 (.load (.n 54) (.n 17) 12) (by decide +kernel)
+  have l23' := a 31 (.load (.n 23) (.n 47) 4310) (by decide +kernel)
+  have m49 := a 32 (.mul (.n 48) (.n 29) (.n 44)) (by decide +kernel)
+  have a50 := a 33 (.add (.n 49) (.n 43) (.n 48)) (by decide +kernel)
+  have m51 := a 34 (.mul (.n 50) (.n 29) (.n 49)) (by decide +kernel)
+  have a52 := a 35 (.add (.n 51) (.n 42) (.n 50)) (by decide +kernel)
+  have l52 := a 36 (.load (.n 51) (.n 47) 5172) (by decide +kernel)
+  have l53 := a 37 (.load (.n 52) (.n 17) 11) (by decide +kernel)
+  have l54 := a 38 (.load (.n 53) (.n 17) 12) (by decide +kernel)
   simp only [Atom.Holds] at l43 l44 l45 l46 l47 m48 l23 l23' m49 a50 m51 a52 l52 l53 l54
   have e43 := tb_loadHolds_unique ((ld _ _).mp l43) (hval 0 (by omega))
   have e44 := tb_loadHolds_unique ((ld _ _).mp l44) (hval 1 (by omega))
@@ -242,8 +240,8 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   have e23 := tb_loadHolds_unique ((ld _ _).mp l23) hcur
   rw [e47] at m48
   -- the first record
-  have hst := tb_holds_slice hnr h 27 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (37 + k)) (.n 48) (862 * k))) (by decide +kernel)
+  have hst := tb_holds_slice hnr h 26 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (37 + k)) (.n 47) (862 * k))) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hst
   simp only [Atom.Holds] at hst
   refine ⟨e10, e11, e17, e42, e46, e47, m48, e53, e54, ⟨by simp [Fs.squeeze, capOf], ?_⟩,
@@ -261,7 +259,7 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   · obtain ⟨v0, v1, v2, hv3⟩ : ∃ v0 v1 v2, st.values = [v0, v1, v2] := by
       match st.values, hvl with
       | [v0, v1, v2], _ => exact ⟨v0, v1, v2, rfl⟩
-    have hv : polyEval st.values s.squeeze.1 = σ (.n 52) := by
+    have hv : polyEval st.values s.squeeze.1 = σ (.n 51) := by
       rw [a52, m51, a50, m49, e43, e44, e45, e42, hv3]
       simp only [polyEval, List.foldr, List.getD_cons_zero, List.getD_cons_succ]
       ring

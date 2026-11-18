@@ -135,7 +135,7 @@ theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
 /-- A child proof's stream begins with its cursor's words. -/
 theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast.NFrames)
     (cl : E → E → ℕ) :
-    cl (σ (.n 25)) (σ (.n 1919)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
+    cl (σ (.n 25)) (σ (.n 1885)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
   have hw : ∀ (a : K) (n : ℕ), (Fast.wordsFrom rd a n).length = n := by
     intro a n
     induction n generalizing a with
@@ -156,7 +156,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
-    cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1919)) ≤ 8192 := by
+    cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1885)) ≤ 8192 := by
   intro rd σ fr
   have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
   rw [← decTop_eq] at hk

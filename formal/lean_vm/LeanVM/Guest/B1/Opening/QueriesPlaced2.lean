@@ -227,8 +227,10 @@ theorem oqIter1_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd j : ℕ} {wa
     (cap := .n 4) (flags := .n 5) (coefs := .n 6) (hsp := .n 7) (walk := walk) (C := anyCall) hs hfin
     (by rw [eP 6 (by omega), eP 7 (by omega), eB2]; exact hok2) eQ2 eX2 (hpr ▸ hp1.1) (hpr ▸ hp1.2)
     (eP 4 (by omega)) (eP 5 (by omega)) trivial
-  change σ (.n (oqRes s 16 true)) = oqResV s rounds w1 at hres1
-  change σ (.n (oqRes s (oqE1 s + 2) false)) = oqResV s rounds w2 at hres2
+  replace hres1 : s.final ≠ 1 → σ (.n (oqRes s 16 true)) = oqResV s rounds w1 := fun hf ↦ by
+    simp only [oqResV, hf, ↓reduceIte]; exact hres1 hf
+  replace hres2 : s.final ≠ 1 → σ (.n (oqRes s (oqE1 s + 2) false)) = oqResV s rounds w2 := fun hf ↦ by
+    simp only [oqResV, hf, ↓reduceIte]; exact hres2 hf
   have eG : ∀ o < 5, σ (.n (oqG1 s + o)) = (oqGuardV (gen ^ j) N).getD o 0 := fun o _ ↦ by
     rw [oqG1_eq, Nat.add_assoc, eC, oqIter1C_guard]
   obtain ⟨hG, eG2, eG4⟩ := oqGuardA_okC (rd := rd) (C := anyCall) (eP 0 (by omega))
@@ -295,11 +297,11 @@ theorem oqIter1_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd j : ℕ} {wa
       · show LoadHolds rd (σ (.n c)) 0 (σ (.n (c + 1)))
         rw [c0, c1, loadHolds_mul_gen_pow]; exact hv0
       · show σ (.n (c + 2)) = σ (.n (c + 1)) + σ (.n (oqRes s 16 true))
-        rw [c2, c1, hres1]
+        rw [c2, c1, hres1 hf]
       · show σ (.n (c + 3)) = σ (.n (c + 2)) * σ (.n 9)
         rw [c3, c2, eP 9 (by omega)]; rfl
       · show σ (.n (c + 4)) = σ (.n (c + 3)) + σ (.n (oqRes s (oqE1 s + 2) false))
-        rw [c4, c3, hres2]
+        rw [c4, c3, hres2 hf]
       · show σ (.n (c + 5)) = σ (.n (c + 4)) * σ (.n 9)
         rw [c5, c4, eP 9 (by omega)]; rfl
       · show σ (.n (c + 6)) = σ (.n 8) * σ (.n 0)
@@ -393,7 +395,8 @@ theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {j : ℕ} {walk :
     (flags := .n 5) (coefs := .n 6) (hsp := .n 7) (walk := walk) (C := anyCall) hs hfin
     (by rw [eP 6 (by omega), eP 7 (by omega), e13]; exact hok) eQ e11 hp.1 hp.2
     (eP 4 (by omega)) (eP 5 (by omega)) trivial
-  change σ (.n (oqRes s 14 true)) = oqResV s rounds w at hres
+  replace hres : s.final ≠ 1 → σ (.n (oqRes s 14 true)) = oqResV s rounds w := fun hf ↦ by
+    simp only [oqResV, hf, ↓reduceIte]; exact hres hf
   have eG : ∀ o < 5, σ (.n (oqG0 s + o)) = (oqGuardV (gen ^ j) N).getD o 0 := fun o _ ↦ by
     rw [oqG0_eq, Nat.add_assoc, eC, oqIter0C_guard]
   obtain ⟨hG, eG2, eG4⟩ := oqGuardA_okC (rd := rd) (C := anyCall) (eP 0 (by omega))
@@ -443,7 +446,7 @@ theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {j : ℕ} {walk :
       · show LoadHolds rd (σ (.n c)) 0 (σ (.n (c + 1)))
         rw [c0, c1, loadHolds_mul_gen_pow]; exact hv0
       · show σ (.n (c + 2)) = σ (.n (c + 1)) + σ (.n (oqRes s 14 true))
-        rw [c2, c1, hres]
+        rw [c2, c1, hres hf]
       · show σ (.n (c + 3)) = σ (.n (c + 2)) * σ (.n 9)
         rw [c3, c2, eP 9 (by omega)]; rfl
       · show σ (.n (c + 4)) = σ (.n 8) * σ (.n 0)

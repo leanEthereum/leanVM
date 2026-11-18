@@ -143,11 +143,11 @@ theorem vkBits_complete {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
 theorem sqZero_complete {capb o : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
     (hr : resid (atomsL (sqZeroT capb o)) = [])
     (hg : ∀ s ∈ sqZeroT capb o, GoodS rd S w σ s) (hz : ∀ k < 4, σ (.n (69 + k)) = 0) :
-    σ (.n (o + 13)) = (⟨(cap5 capb).map σ, []⟩ : Fs).squeeze.1 ∧
+    σ (.n o) = (⟨(cap5 capb).map σ, []⟩ : Fs).squeeze.1 ∧
       (cap5 (o + 8)).map σ = (⟨(cap5 capb).map σ, []⟩ : Fs).squeeze.2.cap ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (sqZeroT capb o) next kret := by
-  have hall : (sqZeroT capb o).all isAtom = true := by simp [sqZeroT, challengeT, keccakA, isAtom]
+  have hall : (sqZeroT capb o).all isAtom = true := by simp [sqZeroT, keccakA, isAtom]
   have H : ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ (sqZeroT capb o) next kret :=
     fun hn ↦ block_holds hall hσ hg (by rw [hr]; simp) hn
@@ -158,7 +158,7 @@ theorem sq_kernel0 : resid (atomsL (sqZeroT 12 73)) = [] := by
   decide +kernel
 
 theorem sq_kernelL : ∀ i < 5,
-    resid (atomsL (sqZeroT (if i = 0 then 81 else 82 + 14 * i) (88 + 14 * i))) = [] := by
+    resid (atomsL (sqZeroT (if i = 0 then 81 else 82 + 13 * i) (87 + 13 * i))) = [] := by
   decide +kernel
 
 set_option maxRecDepth 20000 in
@@ -176,20 +176,20 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     σ (.n 63) = 1 + σ (.n 18) ∧ σ (.n 64) = 1 ∧ σ (.n 66) = σ (.n 7) * gen ^ 4 ∧
     σ (.n 67) = σ (.n 61) * σ (.n 18) ∧
     (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
-      ([σ (.n 86)], ⟨(cap5 81).map σ, []⟩) ∧
+      ([σ (.n 73)], ⟨(cap5 81).map σ, []⟩) ∧
     (⟨(cap5 81).map σ, []⟩ : Fs).squeezeN 5 =
-      ((List.range 5).map (fun i ↦ σ (.n (101 + 14 * i))), ⟨(cap5 152).map σ, []⟩) ∧
-    σ (.n 158) = committed ∧ FsPackOk σ (.n 158) (158 + 1) dsObserve ∧
-    (σ (.n 159), σ (.n 160)) = Keccak.scalarCells committed dsObserve ∧
+      ((List.range 5).map (fun i ↦ σ (.n (87 + 13 * i))), ⟨(cap5 147).map σ, []⟩) ∧
+    σ (.n 152) = committed ∧ FsPackOk σ (.n 152) (152 + 1) dsObserve ∧
+    (σ (.n 153), σ (.n 154)) = Keccak.scalarCells committed dsObserve ∧
     ∀ {next : Prop} {kret : List E → Prop},
       (∀ i < 4, LoadHolds rd (σ (.n 9)) i (σ (.n (55 + i)))) →
-      LoadHolds rd (σ (.n 67)) 0 (σ (.n 86)) →
-      (∀ i < 5, LoadHolds rd (σ (.n 87)) i (σ (.n (101 + 14 * i)))) → next →
+      LoadHolds rd (σ (.n 67)) 0 (σ (.n 73)) →
+      (∀ i < 5, LoadHolds rd (σ (.n 86)) i (σ (.n (87 + 13 * i)))) → next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkHeadT next kret := by
   have hnp2 : (copyWordsT (.n 7) (.n 9) 0 0 55 4 ++ vkPointT ++ vkSqueezesT ++
-      fsNextT (.n 5) 0 158).all (fun s ↦ !pinB s) = true := by decide +kernel
+      fsNextT (.n 5) 0 152).all (fun s ↦ !pinB s) = true := by decide +kernel
   have gx : ∀ s, s ∈ copyWordsT (.n 7) (.n 9) 0 0 55 4 ++ vkPointT ++ vkSqueezesT ++
-      fsNextT (.n 5) 0 158 → GoodS rd S w σ s := fun s hs ↦
+      fsNextT (.n 5) 0 152 → GoodS rd S w σ s := fun s hs ↦
     hg s (by simp only [vkHeadT, List.mem_append] at hs ⊢; tauto)
       (by have := List.all_eq_true.mp hnp2 s hs; simpa using this)
   -- the copies
@@ -243,19 +243,19 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   rw [hcap12] at q0c q0p
   -- the lanes' squeezes
   have step : ∀ i < 5,
-      σ (.n (88 + 14 * i + 13)) =
-          (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
-        (cap5 (88 + 14 * i + 8)).map σ =
-          (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
+      σ (.n (87 + 13 * i)) =
+          (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
+        (cap5 (87 + 13 * i + 8)).map σ =
+          (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
         ∀ {next : Prop} {kret : List E → Prop}, next →
           Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
-            (sqZeroT (if i = 0 then 81 else 82 + 14 * i) (88 + 14 * i)) next kret := by
+            (sqZeroT (if i = 0 then 81 else 82 + 13 * i) (87 + 13 * i)) next kret := by
     intro i hi
     exact sqZero_complete hσ (sq_kernelL i hi)
       (fun s hs ↦ gsq s (List.mem_append_right _ (List.mem_flatten.mpr
         ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩, List.mem_append_left _ hs⟩))) hz
   have q1 : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
-      ([σ (.n 86)], ⟨(cap5 81).map σ, []⟩) := by
+      ([σ (.n 73)], ⟨(cap5 81).map σ, []⟩) := by
     simp only [Fs.squeezeN]
     rw [← q0c]
     have : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeeze.2 =
@@ -265,20 +265,19 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
         ← q0p]
     rw [this]
   have q5 : (⟨(cap5 81).map σ, []⟩ : Fs).squeezeN 5 =
-      ((List.range 5).map (fun i ↦ σ (.n (101 + 14 * i))), ⟨(cap5 152).map σ, []⟩) := by
-    have st : ∀ i < 5, σ (.n (101 + 14 * i)) =
-          (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
-        (cap5 (96 + 14 * i)).map σ =
-          (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2.cap := by
+      ((List.range 5).map (fun i ↦ σ (.n (87 + 13 * i))), ⟨(cap5 147).map σ, []⟩) := by
+    have st : ∀ i < 5, σ (.n (87 + 13 * i)) =
+          (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
+        (cap5 (95 + 13 * i)).map σ =
+          (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap := by
       intro i hi
       obtain ⟨a, b, -⟩ := step i hi
-      exact ⟨by rw [show 101 + 14 * i = 88 + 14 * i + 13 by omega]; exact a,
-        by rw [← b]; congr 2; omega⟩
-    have hs : ∀ i < 5, (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2 =
-        ⟨(cap5 (96 + 14 * i)).map σ, []⟩ := by
+      exact ⟨a, by rw [← b]; congr 2; omega⟩
+    have hs : ∀ i < 5, (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(cap5 (95 + 13 * i)).map σ, []⟩ := by
       intro i hi
-      rw [show (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2 =
-        ⟨(⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl,
+      rw [show (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl,
         ← (st i hi).2]
     have s0 := st 0 (by omega); have s1 := st 1 (by omega); have s2 := st 2 (by omega)
     have s3 := st 3 (by omega); have s4 := st 4 (by omega)
@@ -290,10 +289,10 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
       List.map_nil, List.cons_append, Nat.reduceMul, Nat.reduceAdd]
     rw [h0, h1, h2, h3, h4, ← s0.1, ← s1.1, ← s2.1, ← s3.1, ← s4.1]
   -- the committed word
-  have gfs : ∀ s ∈ fsNextT (.n 5) 0 158, GoodS rd S w σ s := fun s hs ↦
+  have gfs : ∀ s ∈ fsNextT (.n 5) 0 152, GoodS rd S w σ s := fun s hs ↦
     gx s (List.mem_append_right _ hs)
   obtain ⟨fv, fcells, FN⟩ := fsNext_complete (C := fun _ _ _ ↦ True) gfs (hS5 _ _) hcur
-  have fpk : FsPackOk σ (.n 158) (158 + 1) dsObserve :=
+  have fpk : FsPackOk σ (.n 152) (152 + 1) dsObserve :=
     ((holds_fsNextT _ _ _ _ _).1 (FN (next := True) (kret := fun _ ↦ True) trivial)).1.2
   refine ⟨h18, h20, h34, h48, e55, e63, by rw [c64, word_one], e66, m67', q1, q5, fv, fpk,
     fcells, fun {next kret} lw l86 lr hn ↦ ?_⟩

@@ -94,7 +94,7 @@ structure VtBases where
 def vtAllocVars : List ℕ :=
   [33, 34, 35, 36, 664, 699, 701, 702, 777] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2627, 2630, 2651]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2625, 2628, 2649]
 
 theorem vtAllocVars_length : vtAllocVars.length = 111 := by decide
 
@@ -185,7 +185,7 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
     w (vtPadV t + 1) = PadLead (H.τ t) (vtRw H.rows t) ∧
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
   w700 : w 700 = 0
-  w2544 : w 2544 = gen ^ H.n
+  w2544 : w 2543 = gen ^ H.n
   hwI : w 809 = indexMle (H.point.take H.lm) ∧ w 837 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0
@@ -193,13 +193,13 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
       blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point ∧
     w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
       gen ^ H.offP.getD (3 + i) 0
-  hw1 : (List.range 8).map (fun i ↦ w (1876 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw1 : (List.range 8).map (fun i ↦ w (1875 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw2 : (List.range 8).map (fun i ↦ w (1884 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw2 : (List.range 8).map (fun i ↦ w (1883 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw3 : (List.range 8).map (fun i ↦ w (1892 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw3 : (List.range 8).map (fun i ↦ w (1891 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2,
       (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.1, (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
   hwC : ∀ i < 45, w (vtSelE (vtCountSel.getD i default).2.2.1

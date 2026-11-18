@@ -38,10 +38,10 @@ theorem vbg_mem {s : Stmt} (h : vbgEvL.any (fun t ↦ tbStmtsEqb [s] [t]) = true
 def vbgLoadOk : Stmt → Bool
   | .atom (.load _ (.n p) off) =>
       (p == 5 && decide (off < 14)) || ((p == 16 && decide (off < 39)) ||
-        ((p == 18 && decide (off < 42)) || ((p == 64 && decide (off < 8)) ||
-        (((p == 73 || p == 74) && decide (off < 33)) ||
-        (((p == 141 || p == 377 || p == 381) && off == 0) ||
-        ((p == 388 && decide (off < 10)) || (p == 394 && decide (off < 3))))))))
+        ((p == 18 && decide (off < 42)) || ((p == 63 && decide (off < 8)) ||
+        (((p == 72 || p == 73) && decide (off < 33)) ||
+        (((p == 140 || p == 373 || p == 377) && off == 0) ||
+        ((p == 384 && decide (off < 10)) || (p == 390 && decide (off < 3))))))))
   | .atom (.load ..) => false
   | _ => true
 
@@ -56,10 +56,10 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     (hcl : cap0.length = 5) (hargs : args = cap0 ++ [cur, gen ^ depth, zeta, tabs])
     {layers rounds rows kmn bnd odd vals : E} (hW : W = vbgW layers rounds rows kmn bnd odd vals) :
     σ (.n 5) = cur ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 15) = gen ^ (13 * (depth + 2)) ∧
-      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 64) = kmn ∧
-      σ (.n 73) = bnd ∧ σ (.n 74) = odd ∧ σ (.n 141) = odd * gen ^ depth ∧
-      σ (.n 377) = bnd * gen ^ depth ∧ σ (.n 381) = bnd * gen ^ depth ∧
-      σ (.n 388) = layers * gen ^ (13 * depth) ∧ σ (.n 394) = vals := by
+      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 63) = kmn ∧
+      σ (.n 72) = bnd ∧ σ (.n 73) = odd ∧ σ (.n 140) = odd * gen ^ depth ∧
+      σ (.n 373) = bnd * gen ^ depth ∧ σ (.n 377) = bnd * gen ^ depth ∧
+      σ (.n 384) = layers * gen ^ (13 * depth) ∧ σ (.n 390) = vals := by
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
   have hl : args.length = 9 := by rw [hargs]; simp [hcl]
   have par : ∀ i < 9, σ (.n i) = args.getD i 0 := fun i hi ↦ by
@@ -88,23 +88,23 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     rw [al (.hint (.alloc (.n 17) 6034)) 17 (by decide +kernel) rfl, hW]; simp [vbgW]
   have e18 : σ (.n 18) = rows := by
     rw [al (.hint (.alloc (.n 18) 1640)) 18 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e64 : σ (.n 64) = kmn := by
-    rw [al (.hint (.alloc (.n 64) 8)) 64 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e73 : σ (.n 73) = bnd := by
+  have e64 : σ (.n 63) = kmn := by
+    rw [al (.hint (.alloc (.n 63) 8)) 63 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e73 : σ (.n 72) = bnd := by
+    rw [al (.hint (.alloc (.n 72) 33)) 72 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e74 : σ (.n 73) = odd := by
     rw [al (.hint (.alloc (.n 73) 33)) 73 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e74 : σ (.n 74) = odd := by
-    rw [al (.hint (.alloc (.n 74) 33)) 74 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e394 : σ (.n 394) = vals := by
-    rw [al (.hint (.alloc (.n 394) 3)) 394 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have m141 := mul 141 74 6 (by decide +kernel) (by omega) (by omega)
-  have m377 := mul 377 73 6 (by decide +kernel) (by omega) (by omega)
-  have m381 := mul 381 73 6 (by decide +kernel) (by omega) (by omega)
-  have m383 := mul 383 6 6 (by decide +kernel) (by omega) (by omega)
-  have m384 := mul 384 383 6 (by decide +kernel) (by omega) (by omega)
-  have m385 := mul 385 384 384 (by decide +kernel) (by omega) (by omega)
-  have m386 := mul 386 385 385 (by decide +kernel) (by omega) (by omega)
-  have m387 := mul 387 386 6 (by decide +kernel) (by omega) (by omega)
-  have m388 := mul 388 16 387 (by decide +kernel) (by omega) (by omega)
+  have e394 : σ (.n 390) = vals := by
+    rw [al (.hint (.alloc (.n 390) 3)) 390 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have m141 := mul 140 73 6 (by decide +kernel) (by omega) (by omega)
+  have m377 := mul 373 72 6 (by decide +kernel) (by omega) (by omega)
+  have m381 := mul 377 72 6 (by decide +kernel) (by omega) (by omega)
+  have m383 := mul 379 6 6 (by decide +kernel) (by omega) (by omega)
+  have m384 := mul 380 379 6 (by decide +kernel) (by omega) (by omega)
+  have m385 := mul 381 380 380 (by decide +kernel) (by omega) (by omega)
+  have m386 := mul 382 381 381 (by decide +kernel) (by omega) (by omega)
+  have m387 := mul 383 382 6 (by decide +kernel) (by omega) (by omega)
+  have m388 := mul 384 16 383 (by decide +kernel) (by omega) (by omega)
   refine ⟨e5, e6, ?_, e16, e17, e18, e64, e73, e74, by rw [m141, e74, e6], by rw [m377, e73, e6],
     by rw [m381, e73, e6], ?_, e394⟩
   · rw [m15, m14, m13, m12, m11, m10, e6, c9, ← pow_add, ← pow_add, ← pow_add, ← pow_add,

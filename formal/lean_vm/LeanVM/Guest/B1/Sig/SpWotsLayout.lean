@@ -144,12 +144,12 @@ def spStartAt (K : Nat → Nat) (i : Nat) : V :=
 /-! ## The guest's numbering -/
 
 /-- The constant cells of the steps without an address constant: chain `0`'s first step in the
-first group's arm `4j`, two above the arm's base (its encoding's `0`, then the chain's hint)
+first group's arm `4j`, one above the arm's base (the chain's hint)
 (`spZero_eq`). -/
 def spZero : List Nat :=
-  [29, 148, 245, 330, 399, 496, 581, 654, 711, 796, 869, 930, 975, 1044, 1101, 1146]
+  [28, 140, 229, 306, 367, 456, 533, 598, 647, 724, 789, 842, 879, 940, 989, 1026]
 
-theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n 0) (.n 0) (4 * j) + 2 := by
+theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n 0) (.n 0) (4 * j) + 1 := by
   decide +kernel
 
 /-- The guest's number of the template's value `i`: two fewer for each step without an address

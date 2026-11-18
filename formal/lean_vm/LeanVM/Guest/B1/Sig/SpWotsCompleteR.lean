@@ -33,10 +33,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 variable {C : CallRel} {rd : Reader}
 
-theorem spRi_small {j : Nat} (hj : j ≤ 29) : spRi j = j := by
+theorem spRi_small {j : Nat} (hj : j ≤ 28) : spRi j = j := by
   unfold spRi spZeroR
-  rw [show List.countP (fun x => decide (x < j)) [29, 146, 241, 324, 391, 486, 569, 640, 695, 778,
-    849, 908, 951, 1018, 1073, 1116] = 0 by
+  rw [show List.countP (fun x => decide (x < j)) [28, 138, 225, 300, 359, 446, 521, 584, 631, 706,
+    769, 820, 855, 914, 961, 996] = 0 by
       rw [List.countP_eq_zero]
       intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -79,7 +79,7 @@ theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i
       Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d
           vals]) := by
   obtain ⟨σ', h0, h1, h2, h3, hh⟩ := sp_wots_completeT (C := C) (pp := pp) (a0 := a0) (a1 := a1) (vals := vals) hd hsum hm
-  have e : ∀ j ≤ 29, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by
+  have e : ∀ j ≤ 28, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by
     simp [spUn, spRi_small hj, V.n]
   refine ⟨σ' ∘ spUn, by rw [e 0 (by norm_num), h0], by rw [e 1 (by norm_num), h1],
     by rw [e 2 (by norm_num), h2], by rw [e 3 (by norm_num), h3], ?_⟩

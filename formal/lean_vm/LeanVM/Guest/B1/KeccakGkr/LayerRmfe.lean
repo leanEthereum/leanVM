@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Keccak.LayerSum
 # The instance weights
 
 The two specializations of `keccak_layer` share this block up to an offset `o` of their values
-(`LayOff`: `0` for `__L0`, `20` for `__L1`; `s` the value `o + 544`, `out` the parameter `12`): the powers `s^0 .. s^5`, the eight factors
+(`LayOff`: `0` for `__L0`, `20` for `__L1`; `s` the value `o + 531`, `out` the parameter `12`): the powers `s^0 .. s^5`, the eight factors
 (`KECCAK_FAC_START`, `KECCAK_FAC_IDX`), their products (`KECCAK_EMB_A`, `KECCAK_EMB_B`), the
 embeddings stored (`KECCAK_EMB_OUT`) and summed. Its values are binary polynomials in `s` (`Mask`); by
 kernel evaluation (`rmfeCheck`) the sixteen stored at `out[6 + i]` are the embeddings
@@ -32,111 +32,111 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- The block from `s = o + 544` (`o` the specialization's offset). -/
+/-- The block from `s = o + 531` (`o` the specialization's offset). -/
 def rmfeBlockT (o : ℕ) : List Stmt :=
-  [.atom (.const (.n (o + 545)) (word 1 0)),
-    .atom (.copy (.n (o + 546)) (.n (o + 544))),
-    .atom (.mul (.n (o + 547)) (.n (o + 546)) (.n (o + 544))),
-    .atom (.mul (.n (o + 548)) (.n (o + 547)) (.n (o + 544))),
-    .atom (.mul (.n (o + 549)) (.n (o + 548)) (.n (o + 544))),
-    .atom (.mul (.n (o + 550)) (.n (o + 549)) (.n (o + 544))),
-    .atom (.copy (.n (o + 551)) (.n (o + 546))),
-    .atom (.add (.n (o + 552)) (.n (o + 545)) (.n (o + 546))),
-    .atom (.copy (.n (o + 553)) (.n (o + 552))),
-    .atom (.add (.n (o + 554)) (.n (o + 545)) (.n (o + 546))),
-    .atom (.add (.n (o + 555)) (.n (o + 554)) (.n (o + 547))),
-    .atom (.copy (.n (o + 556)) (.n (o + 555))),
-    .atom (.add (.n (o + 557)) (.n (o + 545)) (.n (o + 546))),
-    .atom (.add (.n (o + 558)) (.n (o + 557)) (.n (o + 548))),
-    .atom (.copy (.n (o + 559)) (.n (o + 558))),
-    .atom (.add (.n (o + 560)) (.n (o + 545)) (.n (o + 547))),
-    .atom (.add (.n (o + 561)) (.n (o + 560)) (.n (o + 548))),
-    .atom (.copy (.n (o + 562)) (.n (o + 561))),
-    .atom (.add (.n (o + 563)) (.n (o + 545)) (.n (o + 547))),
-    .atom (.add (.n (o + 564)) (.n (o + 563)) (.n (o + 550))),
-    .atom (.copy (.n (o + 565)) (.n (o + 564))),
-    .atom (.add (.n (o + 566)) (.n (o + 545)) (.n (o + 548))),
-    .atom (.add (.n (o + 567)) (.n (o + 566)) (.n (o + 550))),
-    .atom (.copy (.n (o + 568)) (.n (o + 567))),
-    .atom (.add (.n (o + 569)) (.n (o + 545)) (.n (o + 546))),
+  [.atom (.const (.n (o + 544)) (word 1 0)),
+    .atom (.copy (.n (o + 545)) (.n (o + 531))),
+    .atom (.mul (.n (o + 546)) (.n (o + 545)) (.n (o + 531))),
+    .atom (.mul (.n (o + 547)) (.n (o + 546)) (.n (o + 531))),
+    .atom (.mul (.n (o + 548)) (.n (o + 547)) (.n (o + 531))),
+    .atom (.mul (.n (o + 549)) (.n (o + 548)) (.n (o + 531))),
+    .atom (.copy (.n (o + 550)) (.n (o + 545))),
+    .atom (.add (.n (o + 551)) (.n (o + 544)) (.n (o + 545))),
+    .atom (.copy (.n (o + 552)) (.n (o + 551))),
+    .atom (.add (.n (o + 553)) (.n (o + 544)) (.n (o + 545))),
+    .atom (.add (.n (o + 554)) (.n (o + 553)) (.n (o + 546))),
+    .atom (.copy (.n (o + 555)) (.n (o + 554))),
+    .atom (.add (.n (o + 556)) (.n (o + 544)) (.n (o + 545))),
+    .atom (.add (.n (o + 557)) (.n (o + 556)) (.n (o + 547))),
+    .atom (.copy (.n (o + 558)) (.n (o + 557))),
+    .atom (.add (.n (o + 559)) (.n (o + 544)) (.n (o + 546))),
+    .atom (.add (.n (o + 560)) (.n (o + 559)) (.n (o + 547))),
+    .atom (.copy (.n (o + 561)) (.n (o + 560))),
+    .atom (.add (.n (o + 562)) (.n (o + 544)) (.n (o + 546))),
+    .atom (.add (.n (o + 563)) (.n (o + 562)) (.n (o + 549))),
+    .atom (.copy (.n (o + 564)) (.n (o + 563))),
+    .atom (.add (.n (o + 565)) (.n (o + 544)) (.n (o + 547))),
+    .atom (.add (.n (o + 566)) (.n (o + 565)) (.n (o + 549))),
+    .atom (.copy (.n (o + 567)) (.n (o + 566))),
+    .atom (.add (.n (o + 568)) (.n (o + 544)) (.n (o + 545))),
+    .atom (.add (.n (o + 569)) (.n (o + 568)) (.n (o + 546))),
     .atom (.add (.n (o + 570)) (.n (o + 569)) (.n (o + 547))),
-    .atom (.add (.n (o + 571)) (.n (o + 570)) (.n (o + 548))),
-    .atom (.add (.n (o + 572)) (.n (o + 571)) (.n (o + 550))),
-    .atom (.copy (.n (o + 573)) (.n (o + 572))),
-    .atom (.mul (.n (o + 574)) (.n (o + 551)) (.n (o + 553))),
-    .atom (.mul (.n (o + 575)) (.n (o + 559)) (.n (o + 562))),
-    .atom (.mul (.n (o + 576)) (.n (o + 565)) (.n (o + 574))),
-    .atom (.mul (.n (o + 577)) (.n (o + 568)) (.n (o + 573))),
-    .atom (.mul (.n (o + 578)) (.n (o + 553)) (.n (o + 575))),
-    .atom (.mul (.n (o + 579)) (.n (o + 551)) (.n (o + 576))),
-    .atom (.mul (.n (o + 580)) (.n (o + 575)) (.n (o + 577))),
-    .atom (.mul (.n (o + 581)) (.n (o + 578)) (.n (o + 579))),
-    .atom (.mul (.n (o + 582)) (.n (o + 559)) (.n (o + 577))),
-    .atom (.mul (.n (o + 583)) (.n (o + 551)) (.n (o + 568))),
-    .atom (.mul (.n (o + 584)) (.n (o + 551)) (.n (o + 580))),
-    .atom (.mul (.n (o + 585)) (.n (o + 553)) (.n (o + 562))),
-    .atom (.mul (.n (o + 586)) (.n (o + 553)) (.n (o + 573))),
-    .atom (.mul (.n (o + 587)) (.n (o + 556)) (.n (o + 576))),
-    .atom (.mul (.n (o + 588)) (.n (o + 577)) (.n (o + 585))),
-    .atom (.mul (.n (o + 589)) (.n (o + 581)) (.n (o + 583))),
-    .atom (.mul (.n (o + 590)) (.n (o + 551)) (.n (o + 589))),
-    .atom (.mul (.n (o + 591)) (.n (o + 553)) (.n (o + 576))),
-    .atom (.mul (.n (o + 592)) (.n (o + 553)) (.n (o + 589))),
-    .atom (.mul (.n (o + 593)) (.n (o + 565)) (.n (o + 577))),
-    .atom (.mul (.n (o + 594)) (.n (o + 565)) (.n (o + 584))),
-    .atom (.mul (.n (o + 595)) (.n (o + 568)) (.n (o + 575))),
-    .atom (.mul (.n (o + 596)) (.n (o + 573)) (.n (o + 581))),
-    .atom (.mul (.n (o + 597)) (.n (o + 574)) (.n (o + 578))),
-    .atom (.mul (.n (o + 598)) (.n (o + 574)) (.n (o + 580))),
-    .atom (.mul (.n (o + 599)) (.n (o + 574)) (.n (o + 584))),
-    .atom (.mul (.n (o + 600)) (.n (o + 576)) (.n (o + 578))),
-    .atom (.mul (.n (o + 601)) (.n (o + 576)) (.n (o + 580))),
-    .atom (.mul (.n (o + 602)) (.n (o + 576)) (.n (o + 582))),
-    .atom (.mul (.n (o + 603)) (.n (o + 578)) (.n (o + 593))),
-    .atom (.mul (.n (o + 604)) (.n (o + 579)) (.n (o + 588))),
+    .atom (.add (.n (o + 571)) (.n (o + 570)) (.n (o + 549))),
+    .atom (.copy (.n (o + 572)) (.n (o + 571))),
+    .atom (.mul (.n (o + 573)) (.n (o + 550)) (.n (o + 552))),
+    .atom (.mul (.n (o + 574)) (.n (o + 558)) (.n (o + 561))),
+    .atom (.mul (.n (o + 575)) (.n (o + 564)) (.n (o + 573))),
+    .atom (.mul (.n (o + 576)) (.n (o + 567)) (.n (o + 572))),
+    .atom (.mul (.n (o + 577)) (.n (o + 552)) (.n (o + 574))),
+    .atom (.mul (.n (o + 578)) (.n (o + 550)) (.n (o + 575))),
+    .atom (.mul (.n (o + 579)) (.n (o + 574)) (.n (o + 576))),
+    .atom (.mul (.n (o + 580)) (.n (o + 577)) (.n (o + 578))),
+    .atom (.mul (.n (o + 581)) (.n (o + 558)) (.n (o + 576))),
+    .atom (.mul (.n (o + 582)) (.n (o + 550)) (.n (o + 567))),
+    .atom (.mul (.n (o + 583)) (.n (o + 550)) (.n (o + 579))),
+    .atom (.mul (.n (o + 584)) (.n (o + 552)) (.n (o + 561))),
+    .atom (.mul (.n (o + 585)) (.n (o + 552)) (.n (o + 572))),
+    .atom (.mul (.n (o + 586)) (.n (o + 555)) (.n (o + 575))),
+    .atom (.mul (.n (o + 587)) (.n (o + 576)) (.n (o + 584))),
+    .atom (.mul (.n (o + 588)) (.n (o + 580)) (.n (o + 582))),
+    .atom (.mul (.n (o + 589)) (.n (o + 550)) (.n (o + 588))),
+    .atom (.mul (.n (o + 590)) (.n (o + 552)) (.n (o + 575))),
+    .atom (.mul (.n (o + 591)) (.n (o + 552)) (.n (o + 588))),
+    .atom (.mul (.n (o + 592)) (.n (o + 564)) (.n (o + 576))),
+    .atom (.mul (.n (o + 593)) (.n (o + 564)) (.n (o + 583))),
+    .atom (.mul (.n (o + 594)) (.n (o + 567)) (.n (o + 574))),
+    .atom (.mul (.n (o + 595)) (.n (o + 572)) (.n (o + 580))),
+    .atom (.mul (.n (o + 596)) (.n (o + 573)) (.n (o + 577))),
+    .atom (.mul (.n (o + 597)) (.n (o + 573)) (.n (o + 579))),
+    .atom (.mul (.n (o + 598)) (.n (o + 573)) (.n (o + 583))),
+    .atom (.mul (.n (o + 599)) (.n (o + 575)) (.n (o + 577))),
+    .atom (.mul (.n (o + 600)) (.n (o + 575)) (.n (o + 579))),
+    .atom (.mul (.n (o + 601)) (.n (o + 575)) (.n (o + 581))),
+    .atom (.mul (.n (o + 602)) (.n (o + 577)) (.n (o + 592))),
+    .atom (.mul (.n (o + 603)) (.n (o + 578)) (.n (o + 587))),
+    .atom (.mul (.n (o + 604)) (.n (o + 580)) (.n (o + 585))),
     .atom (.mul (.n (o + 605)) (.n (o + 581)) (.n (o + 586))),
-    .atom (.mul (.n (o + 606)) (.n (o + 582)) (.n (o + 587))),
-    .atom (.mul (.n (o + 607)) (.n (o + 582)) (.n (o + 597))),
-    .atom (.mul (.n (o + 608)) (.n (o + 586)) (.n (o + 600))),
-    .atom (.mul (.n (o + 609)) (.n (o + 587)) (.n (o + 595))),
-    .atom (.mul (.n (o + 610)) (.n (o + 588)) (.n (o + 591))),
-    .atom (.load (.n (o + 603)) (.n 12) 6),
-    .atom (.load (.n (o + 594)) (.n 12) 7),
-    .atom (.add (.n (o + 611)) (.n (o + 603)) (.n (o + 594))),
-    .atom (.load (.n (o + 610)) (.n 12) 8),
-    .atom (.add (.n (o + 612)) (.n (o + 611)) (.n (o + 610))),
-    .atom (.load (.n (o + 604)) (.n 12) 9),
-    .atom (.add (.n (o + 613)) (.n (o + 612)) (.n (o + 604))),
-    .atom (.load (.n (o + 606)) (.n 12) 10),
-    .atom (.add (.n (o + 614)) (.n (o + 613)) (.n (o + 606))),
-    .atom (.load (.n (o + 602)) (.n 12) 11),
-    .atom (.add (.n (o + 615)) (.n (o + 614)) (.n (o + 602))),
-    .atom (.load (.n (o + 598)) (.n 12) 12),
-    .atom (.add (.n (o + 616)) (.n (o + 615)) (.n (o + 598))),
-    .atom (.load (.n (o + 607)) (.n 12) 13),
-    .atom (.add (.n (o + 617)) (.n (o + 616)) (.n (o + 607))),
-    .atom (.load (.n (o + 599)) (.n 12) 14),
-    .atom (.add (.n (o + 618)) (.n (o + 617)) (.n (o + 599))),
-    .atom (.load (.n (o + 608)) (.n 12) 15),
-    .atom (.add (.n (o + 619)) (.n (o + 618)) (.n (o + 608))),
-    .atom (.load (.n (o + 596)) (.n 12) 16),
-    .atom (.add (.n (o + 620)) (.n (o + 619)) (.n (o + 596))),
-    .atom (.load (.n (o + 605)) (.n 12) 17),
-    .atom (.add (.n (o + 621)) (.n (o + 620)) (.n (o + 605))),
-    .atom (.load (.n (o + 592)) (.n 12) 18),
-    .atom (.add (.n (o + 622)) (.n (o + 621)) (.n (o + 592))),
-    .atom (.load (.n (o + 590)) (.n 12) 19),
-    .atom (.add (.n (o + 623)) (.n (o + 622)) (.n (o + 590))),
-    .atom (.load (.n (o + 609)) (.n 12) 20),
-    .atom (.add (.n (o + 624)) (.n (o + 623)) (.n (o + 609))),
-    .atom (.load (.n (o + 601)) (.n 12) 21),
-    .atom (.add (.n (o + 625)) (.n (o + 624)) (.n (o + 601))),
-    .atom (.load (.n (o + 625)) (.n 12) 1)]
+    .atom (.mul (.n (o + 606)) (.n (o + 581)) (.n (o + 596))),
+    .atom (.mul (.n (o + 607)) (.n (o + 585)) (.n (o + 599))),
+    .atom (.mul (.n (o + 608)) (.n (o + 586)) (.n (o + 594))),
+    .atom (.mul (.n (o + 609)) (.n (o + 587)) (.n (o + 590))),
+    .atom (.load (.n (o + 602)) (.n 12) 6),
+    .atom (.load (.n (o + 593)) (.n 12) 7),
+    .atom (.add (.n (o + 610)) (.n (o + 602)) (.n (o + 593))),
+    .atom (.load (.n (o + 609)) (.n 12) 8),
+    .atom (.add (.n (o + 611)) (.n (o + 610)) (.n (o + 609))),
+    .atom (.load (.n (o + 603)) (.n 12) 9),
+    .atom (.add (.n (o + 612)) (.n (o + 611)) (.n (o + 603))),
+    .atom (.load (.n (o + 605)) (.n 12) 10),
+    .atom (.add (.n (o + 613)) (.n (o + 612)) (.n (o + 605))),
+    .atom (.load (.n (o + 601)) (.n 12) 11),
+    .atom (.add (.n (o + 614)) (.n (o + 613)) (.n (o + 601))),
+    .atom (.load (.n (o + 597)) (.n 12) 12),
+    .atom (.add (.n (o + 615)) (.n (o + 614)) (.n (o + 597))),
+    .atom (.load (.n (o + 606)) (.n 12) 13),
+    .atom (.add (.n (o + 616)) (.n (o + 615)) (.n (o + 606))),
+    .atom (.load (.n (o + 598)) (.n 12) 14),
+    .atom (.add (.n (o + 617)) (.n (o + 616)) (.n (o + 598))),
+    .atom (.load (.n (o + 607)) (.n 12) 15),
+    .atom (.add (.n (o + 618)) (.n (o + 617)) (.n (o + 607))),
+    .atom (.load (.n (o + 595)) (.n 12) 16),
+    .atom (.add (.n (o + 619)) (.n (o + 618)) (.n (o + 595))),
+    .atom (.load (.n (o + 604)) (.n 12) 17),
+    .atom (.add (.n (o + 620)) (.n (o + 619)) (.n (o + 604))),
+    .atom (.load (.n (o + 591)) (.n 12) 18),
+    .atom (.add (.n (o + 621)) (.n (o + 620)) (.n (o + 591))),
+    .atom (.load (.n (o + 589)) (.n 12) 19),
+    .atom (.add (.n (o + 622)) (.n (o + 621)) (.n (o + 589))),
+    .atom (.load (.n (o + 608)) (.n 12) 20),
+    .atom (.add (.n (o + 623)) (.n (o + 622)) (.n (o + 608))),
+    .atom (.load (.n (o + 600)) (.n 12) 21),
+    .atom (.add (.n (o + 624)) (.n (o + 623)) (.n (o + 600))),
+    .atom (.load (.n (o + 624)) (.n 12) 1)]
 
 
 /-- The values stored at `out[6 + i]`. -/
 def rmfeStores : List ℕ :=
-  [603, 594, 610, 604, 606, 602, 598, 607, 599, 608, 596, 605, 592, 590, 609, 601]
+  [602, 593, 609, 603, 605, 601, 597, 606, 598, 607, 595, 604, 591, 589, 608, 600]
 
 /-- The sum of the embeddings, as a mask. -/
 def embedXor : ℕ := embedLit.foldl (· ^^^ ·) 0
@@ -146,9 +146,9 @@ def LayOff (o : ℕ) : Prop := o = 0 ∨ o = 20
 
 /-- The block's masks, checked. -/
 def rmfeCheck (o : ℕ) : Bool :=
-  match maskRun (.n (o + 544)) [(.n (o + 544), 2)] (rmfeBlockT o) with
+  match maskRun (.n (o + 531)) [(.n (o + 531), 2)] (rmfeBlockT o) with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (o + rmfeStores.getD i 0)) ==
-      some (embedLit.getD i 0)) && st.lookup (.n (o + 625)) == some embedXor
+      some (embedLit.getD i 0)) && st.lookup (.n (o + 624)) == some embedXor
   | none => false
 
 theorem rmfeCheck_true {o : ℕ} (ho : LayOff o) : rmfeCheck o = true := by
@@ -161,7 +161,7 @@ theorem rmfeBlock_stores {o : ℕ} (ho : LayOff o) : ∀ i < 16, (rmfeBlockT o).
   rcases ho with rfl | rfl <;> decide +kernel
 
 theorem rmfeBlock_kappa {o : ℕ} (ho : LayOff o) :
-    (rmfeBlockT o).any (fun s ↦ stmtEqb s (.atom (.load (.n (o + 625)) (.n 12) 1))) = true := by
+    (rmfeBlockT o).any (fun s ↦ stmtEqb s (.atom (.load (.n (o + 624)) (.n 12) 1))) = true := by
   rcases ho with rfl | rfl <;> decide +kernel
 
 /-! ## The weights as masks -/
@@ -213,13 +213,13 @@ claim's record holds `keccakInstanceWeights s` at `out[6 + i]` and their sum at 
 theorem rmfeBlock_holds {o : ℕ} (ho : LayOff o) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rmfeBlockT o) next kret) :
     (∀ i < 16, LoadHolds rd (σ (.n 12)) (6 + i)
-      ((keccakInstanceWeights (σ (.n (o + 544)))).getD i 0)) ∧
-    LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n (o + 544))))) := by
+      ((keccakInstanceWeights (σ (.n (o + 531)))).getD i 0)) ∧
+    LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n (o + 531))))) := by
   have hc := rmfeCheck_true ho
   unfold rmfeCheck at hc
   split at hc
   · rename_i st hst
-    have hok0 : MaskOk σ (σ (.n (o + 544))) [(.n (o + 544), 2)] := by
+    have hok0 : MaskOk σ (σ (.n (o + 531))) [(.n (o + 531), 2)] := by
       intro p hp
       rw [List.mem_singleton] at hp
       subst hp

@@ -29,10 +29,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- Round `q`'s first value. -/
-def l29B (q : ℕ) : ℕ := 17 + 40 * q
+def l29B (q : ℕ) : ℕ := 17 + 39 * q
 
 /-- Round `q`'s claim. -/
-def l29Claim (q : ℕ) : ℕ := 16 + 40 * q
+def l29Claim (q : ℕ) : ℕ := 16 + 39 * q
 
 /-- Round `q`'s capacity. -/
 def l29Cap (q : ℕ) : List V :=
@@ -49,13 +49,13 @@ def l29Body : List Stmt :=
     .atom (.load (.n 14) (.n 8) 3448), .atom (.load (.n 15) (.n 8) 4310),
     .atom (.load (.n 16) (.n 8) 5172)] ++
   ((List.range 8).map fun q ↦ gkRoundT (l29B q) q (.n 15) (.n 9) (.n (l29Claim q)) (l29Cap q)).flatten ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (317 + k)) (.n 8) (8 + 862 * k))) ++
-  [.atom (.const (.n 337) (word 4294967296 0)), .atom (.mul (.n 338) (.n 15) (.n 337)),
-    .atom (.load (.n 338) (.n 8) 4318), .atom (.load (.n 336) (.n 8) 5180),
-    .atom (.const (.n 339) (word 2 0)), .atom (.mul (.n 340) (.n 0) (.n 339)),
-    .atom (.add (.n 341) (.n 340) (.n 1)), .atom (.const (.n 342) (word 2 0)),
-    .atom (.mul (.n 343) (.n 0) (.n 342)),
-    .callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4], .ret []]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (310 + k)) (.n 8) (8 + 862 * k))) ++
+  [.atom (.const (.n 329) (word 4294967296 0)), .atom (.mul (.n 330) (.n 15) (.n 329)),
+    .atom (.load (.n 330) (.n 8) 4318), .atom (.load (.n 328) (.n 8) 5180),
+    .atom (.const (.n 331) (word 2 0)), .atom (.mul (.n 332) (.n 0) (.n 331)),
+    .atom (.add (.n 333) (.n 332) (.n 1)), .atom (.const (.n 334) (word 2 0)),
+    .atom (.mul (.n 335) (.n 0) (.n 334)),
+    .callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3, .n 4], .ret []]
 
 noncomputable def l29Check : Bool :=
   match coreProgram.find? name% «verify_bus_gkr_loop0_loop0» with
@@ -148,8 +148,8 @@ theorem l29_step {N head ptrow tabs : E} (d : ℕ) (x : E)
   -- the run
   have hrun : gkrRun [xs0, xs1, xs2, xs3, xs4, xs5, xs6, xs7] [e0, e1, e2, e3, e4, e5, e6, e7] (σ (.n 16))
       ⟨[σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14)], []⟩ =
-      ([σ (.n 42), σ (.n 82), σ (.n 122), σ (.n 162), σ (.n 202), σ (.n 242), σ (.n 282), σ (.n 322)], σ (.n 336),
-        ⟨(List.range 5).map fun k ↦ σ (.n (317 + k)), []⟩) := by
+      ([σ (.n 29), σ (.n 68), σ (.n 107), σ (.n 146), σ (.n 185), σ (.n 224), σ (.n 263), σ (.n 302)], σ (.n 328),
+        ⟨(List.range 5).map fun k ↦ σ (.n (310 + k)), []⟩) := by
     rw [tb_gkrRun_cons_of hc0 hcap0, ← hcl0, tb_gkrRun_cons_of hc1 hcap1, ← hcl1, tb_gkrRun_cons_of hc2 hcap2, ← hcl2, tb_gkrRun_cons_of hc3 hcap3, ← hcl3, tb_gkrRun_cons_of hc4 hcap4, ← hcl4, tb_gkrRun_cons_of hc5 hcap5, ← hcl5, tb_gkrRun_cons_of hc6 hcap6, ← hcl6, tb_gkrRun_cons_of hc7 hcap7, ← hcl7]
     simp [gkrRun]
   have hl4 : ∀ l : List E, l.length = 4 → ∃ a b c d, l = [a, b, c, d] := fun l hl => by
@@ -243,7 +243,7 @@ theorem l29_step {N head ptrow tabs : E} (d : ℕ) (x : E)
     have := hst j hj
     simp only [Atom.Holds] at this
     simpa [gkCap, Nat.mul_comm] using this
-  · rw [show σ (.n 15) * gen ^ (4 * 8) = σ (.n 338) by
+  · rw [show σ (.n 15) * gen ^ (4 * 8) = σ (.n 330) by
       rw [m338, c337, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num)]]
     exact s338
   · rw [hrun]
