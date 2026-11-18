@@ -3,6 +3,7 @@
 //! the target has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
 
 use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
+use core::ops::Range;
 
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
 pub(crate) trait Lane: Copy {
@@ -134,6 +135,26 @@ pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
         }
     }
     rest.iter_mut().for_each(keccak_f);
+}
+
+/// The first of `nonces` that, written into lane `at` of `template`, leaves lane `out` of the permuted state zero under
+/// `mask`, [`LANES`] nonces at a time.
+pub fn first_nonce(template: &[u64; STATE_LANES], at: usize, nonces: Range<u64>, out: usize, mask: u64) -> Option<u64> {
+    let template: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(template[i]));
+    let mut first = nonces.start;
+    while first < nonces.end {
+        let mut st = template;
+        st[at] = Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| first.wrapping_add(l as u64)));
+        permute(&mut st);
+        let mut words = [0; LANES];
+        st[out].store(&mut words);
+        let n = (nonces.end - first).min(LANES as u64) as usize;
+        if let Some(l) = words[..n].iter().position(|w| w & mask == 0) {
+            return Some(first + l as u64);
+        }
+        first = first.saturating_add(LANES as u64);
+    }
+    None
 }
 
 /// Batched Keccak-256 of `data` split into `len`-byte inputs, writing one 32-byte digest per input to `out`.
