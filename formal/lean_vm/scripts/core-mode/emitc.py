@@ -332,6 +332,14 @@ class Solver:
         for a2, x in self.fidx(st)[1].get(b, ()):
             if a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
                 return self.derive(st, a, b, x[1] if x else None)
+        if not b[0] and a[0] and b[1] < C.CAPE:
+            # a fact `(a·g^-s, g^k)`, `k + s <= e(b)`: both sides shifted
+            for b2, xs in self.fidx(st)[1].items():
+                if b2[0]:
+                    continue
+                for a2, x in xs:
+                    if a2[0] == a[0] and a2[1] <= a[1] and b2[1] + (a[1] - a2[1]) <= b[1]:
+                        return self.derive(st, a, b, x[1] if x else None)
         return None
 
     def factC(self, st, k, b):
@@ -559,7 +567,7 @@ class Solver:
             w = self.app(st, c, depth)
             if w is not None:
                 return w
-        return None
+        return self.cursor(st, c)
 
     def cursor(self, st, c):
         """`c = v·g^o`, `v` a word returned by a call one of whose arguments is the base of a long hint's run in scope

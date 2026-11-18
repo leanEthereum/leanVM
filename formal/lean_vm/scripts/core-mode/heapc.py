@@ -1035,6 +1035,10 @@ class Pass:
             if hd is not None:
                 p, off, n = hd
                 m = mono(st.env, p)
+                if n >= HINT_RUN and m is not None:
+                    # a long hint's cells as one run, in place of its points (`longRun`)
+                    st.pushR((cshift(m, off), 1, ((), 0), ((), n)))
+                    return
                 for j in range(n):
                     st.push(cshift(m, off + j))
             elif h[0] == 'log2Ceil' and h[1][0] == 'heap':
@@ -1503,7 +1507,7 @@ def tail_check(X, st, mp, mx, ex, ei, ws):
     return i
 
 
-HINT_RUN = 2048     # `hintRun`: a heap hint of at least this many cells also pushes its run
+HINT_RUN = 2048     # `longRun`: a heap hint of at least this many cells pushes its run, not its points
 
 
 def hint_heap(h):

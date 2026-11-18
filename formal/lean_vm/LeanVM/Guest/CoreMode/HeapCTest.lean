@@ -976,6 +976,25 @@ theorem keepF_bad : heapOkC Data.powTree sigsFE keepF
     { hKeepF with calls := [[.keep 0 ⟨[(0, 1)], 1⟩ ⟨[], 0⟩ ⟨[], 1⟩, .pts, .ev 0]] } = false := by
   decide +kernel
 
+/-- Hints 2048 cells at `p` (a stream) and guarantees them as one run (`hintRun`). -/
+def hintR : Fn where
+  name := "hintR"
+  params := [.n 0]
+  body := [.atom (.hint (.witness "stream" (.heap (.n 0) 0 2048))), .ret []]
+
+def hHintR : HCert where
+  sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2048⟩] }
+  reads := []
+  res := []
+  rets := [[.run 0 []]]
+
+theorem hintR_ok : heapOkC Data.powTree (fun _ ↦ .empty) hintR hHintR = true := by decide +kernel
+
+/-- One cell more than written. -/
+theorem hintR_bad : heapOkC Data.powTree (fun _ ↦ .empty) hintR
+    { hHintR with sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2049⟩] } } = false := by
+  decide +kernel
+
 /-- `rd3` needs `p·g^[0, 3)`. -/
 def sigsB (g : String) : HSig :=
   if g = "rd3" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 3⟩] } else .empty

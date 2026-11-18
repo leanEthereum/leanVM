@@ -2517,7 +2517,39 @@ theorem atomC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
     (∀ x, Reads H σ a x → W x) ∧ StOk rd (fun x ↦ W x ∨ Writes σ a x) σ st' := by
   unfold atomC at h
   rw [CSt.seq_eq] at h
-  exact atomC0_ok hX hpre h (eqAt_ok hs ha) ha
+  have hs0 := eqAt_ok (X := X) hs ha
+  generalize eqAt X st a = st0 at h hs0
+  cases hl : longRun st0 a with
+  | none =>
+    rw [hl] at h
+    exact atomC0_ok hX hpre h hs0 ha
+  | some r =>
+    rw [hl, Option.some.injEq] at h
+    subst h
+    cases a with
+    | hint hh =>
+      cases hd : hintHeap hh with
+      | none => simp [longRun, hd] at hl
+      | some t =>
+        obtain ⟨p, off, len⟩ := t
+        cases hb : Nat.ble 2048 len with
+        | false => simp [longRun, hd, hb] at hl
+        | true =>
+          simp only [longRun, hd, hb, Bool.cond_true] at hl
+          obtain ⟨m, hm, rfl⟩ := Option.map_eq_some_iff.mp hl
+          refine ⟨fun x hx ↦ ?_, pushR_stOk (hs0.mono fun _ ↦ Or.inl) (fun _ h ↦ h) ?_⟩
+          · cases hh <;> simp_all [hintHeap, Reads]
+          rintro x ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
+          have hj : j < len := by
+            obtain ⟨hyc, -⟩ := rep_spec h2
+            rcases Nat.lt_or_ge len capE with hl | hl
+            · rw [rep_const hl, Option.some.injEq] at h2
+              omega
+            · omega
+          refine Or.inr ⟨p, off, len, hd, j, hj, ?_⟩
+          rw [valW_shift, one_mul, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, ← pow_add, ← val_eq,
+            ← monoOf_ok hs0.env hm, cellAt, limb0_mul_ofK, addressOfIndex]
+    | _ => simp [longRun] at hl
 
 theorem instPP_ok {ms : List CCell} : ∀ {ps l : List (CCell × List ℕ)}, instPP ms ps = some l →
     ∀ p ∈ l, ∃ p0 ∈ ps, instC ms p0.1 = some p.1 ∧ p.2 = p0.2

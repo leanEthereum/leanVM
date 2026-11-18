@@ -1519,8 +1519,20 @@ noncomputable def eqAt (X : CX) (st : CSt) : Atom → CSt
   | .copy d s => eqPair X st d s
   | _ => st
 
-/-- **An atom**: its equation kept (`eqAt`), then `atomC0`. -/
-noncomputable def atomC (X : CX) (st : CSt) (a : Atom) : Option CSt := (eqAt X st a).seq fun st ↦ atomC0 X st a
+/-- **A long heap hint's cells as one run** (at least 2048 cells, a proof stream: a point witness each would not
+do, nor would its points fit the pass): `⟨p·g^off, 1, g^0, g^len⟩`, pushed in place of its points. -/
+noncomputable def longRun (st : CSt) : Atom → Option PRun
+  | .hint h => match hintHeap h with
+    | some (p, off, len) => bif Nat.ble 2048 len then (monoOf st.env p).map fun m ↦ ⟨m.shift off, 1, ⟨[], 0⟩, ⟨[], len⟩⟩
+      else none
+    | none => none
+  | _ => none
+
+/-- **An atom**: its equation kept (`eqAt`), then a long hint's run (`longRun`) or `atomC0`. -/
+noncomputable def atomC (X : CX) (st : CSt) (a : Atom) : Option CSt :=
+  (eqAt X st a).seq fun st ↦ match longRun st a with
+    | some r => some (st.pushR r)
+    | none => atomC0 X st a
 
 /-! ## Joins -/
 

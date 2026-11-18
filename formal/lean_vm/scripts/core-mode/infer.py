@@ -920,7 +920,10 @@ class Pass:
             x, y, t1, t2, kk = a[1:]
             if y not in st.D:
                 self.define(st, y, None, 'rangeCheck')
-            self.fact(st, self.mono(st, x), shift(self.mono(st, kk), 1), 'rangeCheck')
+            mk_ = self.mono(st, kk)
+            # over value numbers when the bound is a constant (the checked word itself, whatever its monomial)
+            ci = (('val', x), ('num', mk_[1] + 1)) if mk_ is not None and not mk_[0] and 0 <= mk_[1] < 2 ** 40 else None
+            self.fact(st, self.mono(st, x), shift(mk_, 1), 'rangeCheck', cidx=ci)
         elif k == 'keccak':
             for v in a[2]:
                 self.define(st, v, None, 'keccak')
