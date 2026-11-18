@@ -82,7 +82,7 @@ To confirm an arm is reached rather than silently skipped, put a `compile_error!
 
 Heavy benches are `benches/` targets, run with `cargo bench -p <package> --bench <name>`: `experimental_keccak_gkr`'s `hash_batch` and `experimental_pcs`'s `throughput` (and their `stable_*` copies), and `keccak256`'s `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
 
-Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
+Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the benchmark CLI and the sidecar, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
 
 ## Benchmarking
 
@@ -99,7 +99,7 @@ CI compares every PR with its base, never with a history: `bench.yml` runs both 
 
 ## The allocator
 
-The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench_harness::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
+The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the benchmark CLI, the sidecar and the benches install jemalloc with `dirty_decay_ms:-1` (`bench_harness::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
 
 ## The thread pool (`parallel`)
 
@@ -107,7 +107,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 - Nested dispatch panics, because it would deadlock the dispatch lock. Each pool only sees its own nesting, so a task of either pool must not dispatch on either: inside a `P::map_collect` task, the shared crates call no dispatching helper of the stable tree.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, beside the pool's dispatches of a signature loop's segments and of their Keccak blocks, and gone when it ends. Stable builds the Keccak witness after execution, in the pool.
-- The thread count is set in code, before a pool starts (`isa::Prover::set_num_threads`, which `lean_vm::setup` and the CLI's `--threads` call); `1` is strictly sequential. In experimental, workers fill the performance cores before the efficiency cores, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable the default is `available_parallelism()`, halved where Linux reports SMT active.
+- The thread count is set in code, before a pool starts (`isa::Prover::set_num_threads`, which `lean_vm::setup` and the benchmark CLI's and the sidecar's `--threads` call); `1` is strictly sequential. In experimental, workers fill the performance cores before the efficiency cores, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable the default is `available_parallelism()`, halved where Linux reports SMT active.
 
 ## Three verifiers, one protocol
 

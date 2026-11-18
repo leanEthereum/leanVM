@@ -6,7 +6,8 @@ use crate::wire::{
     self, Cursor, Frame, Hello, Incoming, OK, OP_AGGREGATE, OP_VERIFY, Outcome, Proven, RawLeanSphincs, RawLeanXmss,
 };
 use crate::{Blob, Rejection};
-use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims};
+use aggregation::{AggregateError, AggregateProof};
+use claims::{AggregateClaims, OutputClaims};
 use isa::Prover;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -63,11 +64,7 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
     thread::Builder::new()
         .name("accept".into())
         .spawn(move || accept(&listener, &jobs, hello.into(), max_request))?;
-    eprintln!(
-        "leanvm-sidecar: serving {} with the {} prover",
-        config.socket.display(),
-        P::NAME
-    );
+    eprintln!("serving {} with the {} prover", config.socket.display(), P::NAME);
     prove_forever::<P>(&queue)
 }
 
@@ -214,12 +211,12 @@ fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>, max_req
                     .name("connection".into())
                     .spawn(move || connection(stream, &jobs, &hello, max_request));
                 if let Err(e) = spawned {
-                    eprintln!("leanvm-sidecar: a connection dropped: {e}");
+                    eprintln!("a connection dropped: {e}");
                 }
             }
             Err(e) => {
                 // Out of file descriptors, say: wait for some to close rather than spin.
-                eprintln!("leanvm-sidecar: accept: {e}");
+                eprintln!("accept: {e}");
                 thread::sleep(Duration::from_millis(100));
             }
         }
@@ -333,9 +330,13 @@ fn decode_aggregate(
 ) -> Result<Request, (Rejection, String)> {
     let log_inv_rate = c.u8().ok_or_else(|| malformed("no rate"))?.into();
 
-    // Each child is at least its two lengths. Nothing is reserved: `aggregate` bounds the count, not this.
+    // Each child is at least its two lengths.
     let n = count(c, 16).ok_or_else(|| malformed("children"))?;
-    let mut children = Vec::new();
+    // `aggregate`'s bound, checked before decoding: a decoded child takes more memory than its bytes.
+    if n > aggregation::MAX_RECURSIONS {
+        return Err((Rejection::InvalidInput, "more than MAX_RECURSIONS children".into()));
+    }
+    let mut children = Vec::with_capacity(n);
     for i in 0..n {
         let claims = c.claims().ok_or_else(|| malformed(&format!("child {i}'s claims")))?;
         let proof = c.bytes().ok_or_else(|| malformed(&format!("child {i}'s proof")))?;
@@ -345,9 +346,8 @@ fn decode_aggregate(
     let n = count(c, XMSS_RECORD).ok_or_else(|| malformed("leanXMSS signatures"))?;
     let raw_lean_xmss = (0..n)
         .map(|_| {
-            let pk = LeanXmssPublicKey::from_bytes(c.array().unwrap());
             (
-                pk,
+                LeanXmssPublicKey::from_bytes(c.array().unwrap()),
                 *c.array().unwrap(),
                 LeanXmssSignature::from_bytes(c.array().unwrap()),
             )
@@ -356,9 +356,8 @@ fn decode_aggregate(
     let n = count(c, SPHINCS_RECORD).ok_or_else(|| malformed("leanSPHINCS signatures"))?;
     let raw_lean_sphincs = (0..n)
         .map(|_| {
-            let pk = LeanSphincsPublicKey::from_bytes(c.array().unwrap());
             (
-                pk,
+                LeanSphincsPublicKey::from_bytes(c.array().unwrap()),
                 *c.array().unwrap(),
                 LeanSphincsSignature::from_bytes(c.array().unwrap()),
             )
@@ -492,6 +491,12 @@ mod tests {
         let mut huge = vec![OP_AGGREGATE, 1];
         huge.extend(u64::MAX.to_le_bytes());
         assert!(decode_request(&huge).is_err());
+        let many = vec![(AggregateClaims::default(), Vec::new()); aggregation::MAX_RECURSIONS + 1];
+        let frame = encode_request(&many, &[], &[], &[], OutputClaims::All, 1);
+        assert!(matches!(
+            decode_request(&body(frame)),
+            Err((Rejection::InvalidInput, _))
+        ));
     }
 
     #[test]

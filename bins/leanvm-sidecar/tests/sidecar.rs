@@ -109,11 +109,14 @@ fn sidecar_end_to_end() {
         }
     }
 
-    // A client in another language sends an operation this version does not have.
+    // A client in another language sends an operation this version does not have, twice: a refusal keeps the
+    // connection usable.
     let mut raw = UnixStream::connect(socket).unwrap();
     assert!(read_frame(&mut raw).starts_with(b"leanvmsc"));
-    raw.write_all(&[&1u64.to_le_bytes()[..], &[7]].concat()).unwrap();
-    assert_eq!(read_frame(&mut raw)[0], Rejection::Malformed as u8);
+    for _ in 0..2 {
+        raw.write_all(&[&1u64.to_le_bytes()[..], &[7]].concat()).unwrap();
+        assert_eq!(read_frame(&mut raw)[0], Rejection::Malformed as u8);
+    }
 
     // A second sidecar leaves a live one's socket alone; a restart replaces the stale socket a killed one leaves.
     let refused = command(socket).output().unwrap();

@@ -10,6 +10,11 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::time::Duration;
 
+/// Room for a hello or a verdict, far more than either takes.
+const SHORT_ROOM: u64 = 1 << 16;
+/// Room for a proof in a response, far more than one takes.
+const PROOF_ROOM: u64 = 1 << 28;
+
 /// A connection to a sidecar, for one request at a time. Proofs are their bytes, as the library's
 /// `AggregateProof::to_bytes` writes them and `from_bytes` reads them.
 ///
@@ -29,7 +34,7 @@ impl Client {
         let mut stream = UnixStream::connect(socket)?;
         stream.set_read_timeout(timeout)?;
         stream.set_write_timeout(timeout)?;
-        let body = match wire::read_frame(&mut stream, 1 << 16)? {
+        let body = match wire::read_frame(&mut stream, SHORT_ROOM)? {
             Incoming::Body(body) => body,
             Incoming::End => return Err(SidecarError::Protocol("closed before its hello".into())),
             // Not a hello, as `hello_version` then says.
@@ -98,7 +103,7 @@ impl Client {
     /// The library's `AggregateProof::verify`, run by the sidecar: whether `proof` proves `claims`. Bytes that do not
     /// decode prove nothing.
     pub fn verify(&mut self, claims: &AggregateClaims, proof: &[u8]) -> Result<bool, SidecarError> {
-        let body = self.call(&wire::encode_verify(claims, proof), 1 << 16)?;
+        let body = self.call(&wire::encode_verify(claims, proof), SHORT_ROOM)?;
         match wire::decode_verdict(&body) {
             Some(Ok(valid)) => Ok(valid),
             Some(Err((rejection, message))) => Err(SidecarError::Rejected(rejection, message)),
@@ -128,6 +133,3 @@ impl Client {
         }
     }
 }
-
-/// Room for a proof in a response, far more than one takes.
-const PROOF_ROOM: u64 = 1 << 28;
