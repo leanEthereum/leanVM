@@ -278,7 +278,8 @@ def chain(P, st, v, runs, conds=None):
             pos += 1
         else:
             break
-    if len(parts) < 2 or not any(len(x) == 4 for x in parts):
+    if len(parts) < 2 or not any(len(x) == 4 for x in parts) and P.allocsz.get(v) != pos:
+        # points alone are what was read or written so far: the object only when they fill its allocation
         return None
     R = ((((v, 1),), 0), 1, num(0), num(pos))
     for R2, rw in runs:

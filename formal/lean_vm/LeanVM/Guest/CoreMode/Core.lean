@@ -283,7 +283,7 @@ def rngIs (r : Mode.Rng) (q : CRun) : Bool :=
   | none => false
 
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
-pointer fact or order; its heap preconditions each a cell or run of the signature's (over parameters);
+pointer fact or order, no ghost slot; its heap preconditions each a cell or run of the signature's (over parameters);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs. -/
 def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
@@ -295,16 +295,16 @@ def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
     G.post.all (fun m ↦ monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
       | none => false) &&
-    G.postR.all fun r ↦ monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
+    (G.postR.all fun r ↦ monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
-      | _, _ => false)
+      | _, _ => false)) && Nat.beq Cf.H.sig.ghosts 0
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: no self frame pointer or pointer precondition, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells); each guarantee of `h` one of `G`'s (cells or points over the arguments and
-returned words, runs `G`'s); `h` with no pointer guarantee or returned word's monomial. -/
+returned words, runs `G`'s); `h` with no pointer guarantee, returned word's monomial or ghost slot. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   G.self.isNone && G.preP.isEmpty && G.entry.contains 0 && G.entry.contains 1 &&
     h.postP.isEmpty && h.postPR.isEmpty && h.retM.isEmpty &&
@@ -317,7 +317,7 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
       | _, _ => false)) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
-    h.postR.all fun q ↦ G.postR.any fun r ↦ monoS G (na + nr) false r.q && rngIs r q
+    (h.postR.all fun q ↦ G.postR.any fun r ↦ monoS G (na + nr) false r.q && rngIs r q) && Nat.beq h.ghosts 0
 
 /-- **A call's `JUMP`**, its target a callee's entry (`ents`): that entry outside the function, and the
 callee's mode signature there holding of its heap signature at the call's site. -/
@@ -348,7 +348,8 @@ def retsN (n : ℕ) (body : List Stmt) : Bool :=
 monomial. -/
 def callsB (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
-    | .call g _ _ => !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty
+    | .call g _ _ => !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
+        (Cf.sigOf g).retEq.isEmpty && Nat.beq (Cf.sigOf g).ghosts 0
     | _ => true
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/

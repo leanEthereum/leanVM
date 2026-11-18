@@ -200,32 +200,82 @@ set_option linter.all false
 """
 
 
+
+# ---- Lean text (the printing of `emitc.py` before its rewrite: witnesses from `infer.py`'s pass)
+
+def lcell(c):
+    if any(e < 0 for _, e in c[0]) or c[1] < 0:
+        raise No('cell')
+    return '⟨[' + ', '.join(f'({b}, {e})' for b, e in c[0]) + f'], {c[1]}⟩'
+
+
+def lidx(i):
+    """A signature run's bound: `.num n` or `.val slot`."""
+    if not i[0]:
+        if i[1] >= 2 ** 62 or i[1] < 0:
+            raise No('idx')
+        return f'(.num {i[1]})'
+    if len(i[0]) == 1 and i[0][0][1] == 1 and i[1] == 0:
+        return f'(.val {i[0][0][0]})'
+    raise No('idx')
+
+
+def lrun(r):
+    Q, S, lo, hi = r
+    return f'⟨{lcell(Q)}, {S}, {lidx(lo)}, {lidx(hi)}⟩'
+
+
+def lwit(P, w):
+    k = w[0]
+    if k == 'ev':
+        return f'.ev {w[1]}'
+    if k == 'pre':
+        return f'.pre {w[1]}'
+    if k == 'run':
+        rw = w[1]
+        r = rw[1] if isinstance(rw, tuple) and rw[0] == 'preR' else (len(P.sig.preR) + rw if isinstance(rw, int) else None)
+        if r is None:
+            raise No('wit')
+        return f'.run {r} [{", ".join(str(P.wren[i]) for i in w[2])}]'
+    raise No('wit')
+
+
+def wrap(items, ind='    ', width=110):
+    lines, cur = [], ''
+    for it in items:
+        if cur and len(ind) + len(cur) + len(it) + 2 > width:
+            lines.append(cur + ',')
+            cur = ''
+        cur = f'{cur}, {it}' if cur else it
+    if cur:
+        lines.append(cur)
+    return ('\n' + ind).join(lines)
+
+
 def lsig(G, ind='    '):
-    import emitc as E
     f = []
     if G.pre:
-        f.append(f'pre := [{E.wrap(map(E.lcell, G.pre), ind + "  ")}]')
+        f.append(f'pre := [{wrap(map(lcell, G.pre), ind + "  ")}]')
     if G.post:
-        f.append(f'post := [{E.wrap(map(E.lcell, G.post), ind + "  ")}]')
+        f.append(f'post := [{wrap(map(lcell, G.post), ind + "  ")}]')
     if G.preR:
-        f.append(f'preR := [{E.wrap(map(E.lrun, G.preR), ind + "  ")}]')
+        f.append(f'preR := [{wrap(map(lrun, G.preR), ind + "  ")}]')
     if G.postR:
-        f.append(f'postR := [{E.wrap(map(E.lrun, G.postR), ind + "  ")}]')
+        f.append(f'postR := [{wrap(map(lrun, G.postR), ind + "  ")}]')
     if G.retM:
-        f.append(f'retM := [{E.wrap((f"({j}, {E.lcell(c)})" for j, c in sorted(G.retM.items())), ind + "  ")}]')
+        f.append(f'retM := [{wrap((f"({j}, {lcell(c)})" for j, c in sorted(G.retM.items())), ind + "  ")}]')
     return '{ ' + (',\n' + ind + '  ').join(f) + ' }' if f else '{}'
 
 
 def lcert(r):
-    import emitc as E
     P = r['pass_']
     P.wren = {}
     by_d = collections.defaultdict(list)
     for (d, p, off), w in sorted(P.reads.items()):
-        by_d[d].append(f'({p}, {off}, {E.lwit(P, w)})')
-    reads = E.wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
-    calls = E.wrap('[' + ', '.join(E.lwit(P, w) for _, w in ws) + ']' for f, ws in P.calls)
-    rets = E.wrap('[' + ', '.join(E.lwit(P, w) for _, w in ws) + ']' for ws in P.ret_wits)
+        by_d[d].append(f'({p}, {off}, {lwit(P, w)})')
+    reads = wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
+    calls = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for f, ws in P.calls)
+    rets = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for ws in P.ret_wits)
     return (f'  sig :=\n    {lsig(r["sig"])}\n  reads := [{reads}]\n  res := []\n  calls := [{calls}]\n'
             f'  rets := [{rets}]\n')
 

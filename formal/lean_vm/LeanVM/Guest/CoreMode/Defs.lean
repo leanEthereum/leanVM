@@ -70,6 +70,14 @@ structure CRun where
   hi : CIdx
   deriving DecidableEq, Repr, Inhabited
 
+/-- **A branch condition** on core names: arm `j` of a `match`/`dispatch` on the value `x` (its word
+`g^j`), or the `0` / nonzero side of an `ite` / `callIf` guard `c`. -/
+inductive CCond where
+  | arm (x j : ℕ)
+  | zero (c : ℕ)
+  | nonzero (c : ℕ)
+  deriving DecidableEq, Repr, Inhabited
+
 /-- A closed statement on core names (the residual families, a later milestone). -/
 inductive CRes where
   /-- The exponent of the first index is below the second's. -/
@@ -80,6 +88,10 @@ inductive CRes where
   | sub (c : CCell) (r : CRun)
   /-- Every cell of the first run is one of the second's. -/
   | subR (q r : CRun)
+  /-- The statement where the branch conditions hold (a residual asked on a branch path). -/
+  | under (g : List CCond) (r : CRes)
+  /-- The cell is one of the cells (its address among theirs). -/
+  | subP (c : CCell) (cs : List CCell)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **Why a read's cell is written.** -/
@@ -113,6 +125,19 @@ inductive Wit where
   /-- A run needed, split at the constant index `k`: the witnesses of its part below `k`, then of its
   part from `k`, follow. -/
   | cat (k : ℕ)
+  /-- A run needed, of stride `S'`, merged from its `S` residues: the witnesses of each residue run
+  `base·g^(S'·r)`, `r < S`, of stride `S'·S` from the lower bound's `S`-th part to the upper bound's
+  `S`-th root, follow; facts of these residuals give the root's exponent. -/
+  | mrg (s : ℕ) (res : List ℕ)
+  /-- A cell among cells: residual `k`, `subP c cs` at the site, and each cell of `cs` the write event of
+  the point serial at its position in `ns`. -/
+  | perm (k : ℕ) (ns : List ℕ)
+  /-- A cell of a run in scope of lower bound `g^0` extended by the point before it (`base·g^-stride`,
+  witnessed by `q`): the cell's index at most the upper bound's, which has an exponent by a fact. -/
+  | prep (r : ℕ) (q : Wit) (res : List ℕ)
+  /-- Leading a dispatch's witnesses: its returned word `j` is a pointer whose cells at the offsets
+  every arm kept writes (each arm's witnesses of them follow its preconditions'). -/
+  | vp (j : ℕ) (offs : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
@@ -133,6 +158,13 @@ structure HSig where
   postP : List (CCell × List ℕ) := []
   prePR : List (CRun × List ℕ) := []
   postPR : List (CRun × List ℕ) := []
+  /-- Words at return: `(i, m)`, the word at `post` cell `i` is `m`'s, both over slots. -/
+  postV : List (ℕ × CCell) := []
+  /-- Ghost slots: slot `m + j` (`m` the parameter count, `j < ghosts`) of `preR`, `preP`, `prePR` is a
+  word the caller names at each call (`HCert.gargs`), no parameter; in the own pass, value `GB + j`. -/
+  ghosts : ℕ := 0
+  /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
+  retEq : List (CCell × CCell) := []
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
@@ -154,6 +186,12 @@ structure HCert where
   divs : List ℕ := []
   /-- Reads taking the word stored at their cell (`hvs`, by value number). -/
   hvs : List ℕ := []
+  /-- Callees' ghost words, by call: `(g, args, ms)`, a call of `g` on the values `V.n a`, `a ∈ args`,
+  names its callee's ghost `j` by the monomial `ms[j]` over this function's values. -/
+  gargs : List (String × List ℕ × List CCell) := []
+  /-- Atoms whose equation the pass keeps, by value number: a `mul d a b` by `d` (`d`'s monomial is
+  `a`'s times `b`'s), an `assertEq a b` by `a`, a `copy d s` by `d`. -/
+  eqs : List ℕ := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

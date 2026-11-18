@@ -458,6 +458,10 @@ theorem atomH_ok (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c
           | empty => simp [witOk] at hl
           | skip => simp [witOk] at hl
           | cat => simp [witOk] at hl
+          | mrg => simp [witOk] at hl
+          | perm => simp [witOk] at hl
+          | prep => simp [witOk] at hl
+          | vp => simp [witOk] at hl
   | hint hn =>
     unfold atomH at h
     cases hh : hintHeap hn with
