@@ -40,6 +40,8 @@ rejected.
 * `joinf`, `joinm`: a cell stored by every branch of an `if` or every arm of a `match` falling through,
   read after it (joins).
 * `useDp`: a pointer fact every arm of a `dispatch` guarantees, read through after it.
+* `useCd`: two dispatches on one selector, arm `j` of the second needing what arm `j` of the first wrote
+  (guarantees under a selector).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -678,6 +680,43 @@ theorem useDp_ok : heapOkC Data.powTree sigsP useDp hUseDp = true := by decide +
 theorem useDp_bad :
     heapOkC Data.powTree sigsP { useDp with body := [.dispatch (.n 1) ["mkp", "mkq"] [.n 0] [],
       .atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 2) 1), .ret []] } hUseDp = false := by
+  decide +kernel
+
+/-! ## Guarantees under a selector -/
+
+/-- `wa` writes `p[0]`, `wb` `p[1]`; `ra` reads `p[0]`, `rb` `p[1]`. -/
+def sigsC (g : String) : HSig :=
+  if g = "wa" then { post := [⟨[(0, 1)], 0⟩] } else if g = "wb" then { post := [⟨[(0, 1)], 1⟩] }
+  else if g = "ra" then { pre := [⟨[(0, 1)], 0⟩] } else if g = "rb" then { pre := [⟨[(0, 1)], 1⟩] } else .empty
+
+/-- Dispatches `wa`/`wb` on `x`, then `ra`/`rb` on `x`: arm `j` of the second reads what arm `j` of the first
+wrote, though the arms write nothing in common. -/
+def useCd : Fn where
+  name := "useCd"
+  params := [.n 0, .n 1, .n 2]
+  body := [.dispatch (.n 1) ["wa", "wb"] [.n 0] [], .dispatch (.n 1) ["ra", "rb"] [.n 0] [], .ret []]
+
+/-- `useCd`'s certificate: each arm of the second dispatch sees the first's same arm's cell at the next
+point serial (`0`). -/
+def hUseCd : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[], [.ev 0, .ev 0]]
+  rets := [[]]
+
+theorem useCd_ok : heapOkC Data.powTree sigsC useCd hUseCd = true := by decide +kernel
+
+/-- The arms swapped: arm `0` needs `p[1]`, which arm `0` of the first did not write. -/
+theorem useCd_swap :
+    heapOkC Data.powTree sigsC { useCd with body := [.dispatch (.n 1) ["wa", "wb"] [.n 0] [],
+      .dispatch (.n 1) ["rb", "ra"] [.n 0] [], .ret []] } hUseCd = false := by
+  decide +kernel
+
+/-- Another selector: nothing under it. -/
+theorem useCd_other :
+    heapOkC Data.powTree sigsC { useCd with body := [.dispatch (.n 1) ["wa", "wb"] [.n 0] [],
+      .dispatch (.n 2) ["ra", "rb"] [.n 0] [], .ret []] } hUseCd = false := by
   decide +kernel
 
 end

@@ -27,6 +27,8 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them.
 
+**Under a selector.** A `dispatch` on `x` also keeps each arm `j`'s guarantees under `x`'s monomial and `j` (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier arm `j` pushed, from the next serials (`condSt`).
+
 **Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
@@ -244,6 +246,16 @@ structure PRun where
   lo : CCell
   hi : CCell
 
+/-- **A dispatch arm's guarantees under its selector**: if the selector's word (`mx`'s) is `g^j`, arm
+`j` ran, and its guarantees hold: cells, runs, pointer facts, pointer runs. -/
+structure CdE where
+  mx : CCell
+  j : ℕ
+  cs : List CCell
+  rs : List PRun
+  ps : List (CCell × List ℕ)
+  prs : List (PRun × List ℕ)
+
 /-- A signature run at a site. -/
 def instR (ms : List CCell) (r : CRun) : Option PRun :=
   match instC ms r.base, instI ms r.lo, instI ms r.hi with
@@ -330,7 +342,8 @@ def runRun (F : List (CCell × CCell)) (Q R : PRun) : Bool :=
 /-- The pass's state: milestone 1's, a run scope, the sums seen (`ad`, a value number to the
 monomials of its first `add`'s operands), the words stored (`sv`, a load event's serial to its cell
 and its word's monomial), the cells values were loaded from (`src`), the pointer facts (`pf`, by point
-serial) and pointer runs (`pr`, by run serial) in scope, the next run, call and ret serials. -/
+serial) and pointer runs (`pr`, by run serial) in scope, the next run, call and ret serials, and the
+guarantees of earlier dispatches' arms under their selectors (`cd`). -/
 structure CSt where
   env : Trie CCell
   sc : Trie CCell
@@ -344,22 +357,23 @@ structure CSt where
   nr : ℕ
   nc : ℕ
   nt : ℕ
+  cd : List CdE
 
 /-- `k st`, `st` evaluated first. -/
 def CSt.seq {β : Type} (st : CSt) (k : CSt → β) : β :=
   st.env.seq fun e ↦ st.sc.seq fun s ↦ st.rs.seq fun r ↦ st.ad.seq fun a ↦ st.sv.seq fun v ↦ st.src.seq fun sr ↦
     st.pf.seq fun pf ↦ st.pr.seq fun pr ↦ natSeq st.n fun n ↦ natSeq st.nr fun nr ↦ natSeq st.nc fun nc ↦
-      natSeq st.nt fun nt ↦ k ⟨e, s, r, a, v, sr, pf, pr, n, nr, nc, nt⟩
+      natSeq st.nt fun nt ↦ k ⟨e, s, r, a, v, sr, pf, pr, n, nr, nc, nt, st.cd⟩
 
 /-- `st`'s scope with `s`'s serials. -/
-def CSt.cnt (st s : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, s.n, s.nr, s.nc, s.nt⟩
+def CSt.cnt (st s : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, s.n, s.nr, s.nc, s.nt, st.cd⟩
 
 /-- Milestone 1's part of the state. -/
 def CSt.toH (st : CSt) : HSt := ⟨st.env, st.sc, st.n⟩
 
 /-- The state with milestone 1's part `h`. -/
 def CSt.ofH (st : CSt) (h : HSt) : CSt :=
-  ⟨h.env, h.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, h.n, st.nr, st.nc, st.nt⟩
+  ⟨h.env, h.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, h.n, st.nr, st.nc, st.nt, st.cd⟩
 
 /-- A write event of the cell `c`. -/
 noncomputable def CSt.push (st : CSt) (c : CCell) : CSt := st.ofH (st.toH.push c)
@@ -370,7 +384,7 @@ noncomputable def CSt.def (st : CSt) (k : ℕ) (c : CCell) : CSt := st.ofH (st.t
 /-- A load's write event of the cell `c`, the word's monomial `m` stored with its serial. -/
 noncomputable def CSt.pushV (st : CSt) (c m : CCell) : CSt :=
   m.seq fun m ↦ (setF (c, m) Exec.indexDepth st.sv st.n).seq fun sv ↦
-    (st.push c).seq fun s ↦ ⟨s.env, s.sc, s.rs, s.ad, sv, s.src, s.pf, s.pr, s.n, s.nr, s.nc, s.nt⟩
+    (st.push c).seq fun s ↦ ⟨s.env, s.sc, s.rs, s.ad, sv, s.src, s.pf, s.pr, s.n, s.nr, s.nc, s.nt, s.cd⟩
 
 /-- `c` the cell the value `d` was loaded from, if it has none. -/
 noncomputable def CSt.srcPut (st : CSt) (d : V) (c : CCell) : CSt :=
@@ -378,36 +392,36 @@ noncomputable def CSt.srcPut (st : CSt) (d : V) (c : CCell) : CSt :=
   | some k => match getF st.src k with
     | some _ => st
     | none => (setF c Exec.indexDepth st.src k).seq fun src ↦
-        ⟨st.env, st.sc, st.rs, st.ad, st.sv, src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt⟩
+        ⟨st.env, st.sc, st.rs, st.ad, st.sv, src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
   | none => st
 
 /-- A pointer fact into the scope, at the next point serial. -/
 noncomputable def CSt.pushP (st : CSt) (p : CCell × List ℕ) : CSt :=
   p.1.seq fun c ↦ (setF (c, p.2) Exec.indexDepth st.pf st.n).seq fun pf ↦
-    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, pf, st.pr, st.n + 1, st.nr, st.nc, st.nt⟩
+    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, pf, st.pr, st.n + 1, st.nr, st.nc, st.nt, st.cd⟩
 
 /-- A pointer run into the scope, at the next run serial. -/
 noncomputable def CSt.pushPR (st : CSt) (p : PRun × List ℕ) : CSt :=
   p.1.seq fun r ↦ (setF (r, p.2) Exec.indexDepth st.pr st.nr).seq fun pr ↦
-    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, pr, st.n, st.nr + 1, st.nc, st.nt⟩
+    ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, pr, st.n, st.nr + 1, st.nc, st.nt, st.cd⟩
 
 /-- A run into the scope, at the next run serial. -/
 noncomputable def CSt.pushR (st : CSt) (r : PRun) : CSt :=
   (setF r Exec.indexDepth st.rs st.nr).seq fun rs ↦
-    ⟨st.env, st.sc, rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr + 1, st.nc, st.nt⟩
+    ⟨st.env, st.sc, rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr + 1, st.nc, st.nt, st.cd⟩
 
 /-- The next call serial. -/
-def CSt.nextC (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc + 1, st.nt⟩
+def CSt.nextC (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc + 1, st.nt, st.cd⟩
 
 /-- The next ret serial. -/
-def CSt.nextT (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt + 1⟩
+def CSt.nextT (st : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt + 1, st.cd⟩
 
 /-- The sum `k = a + b` seen, if `k` has none yet. -/
 noncomputable def CSt.addS (st : CSt) (k : ℕ) (a b : CCell) : CSt :=
   match getF st.ad k with
   | some _ => st
   | none => (setF (a, b) Exec.indexDepth st.ad k).seq fun ad ↦
-      ⟨st.env, st.sc, st.rs, ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt⟩
+      ⟨st.env, st.sc, st.rs, ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd⟩
 
 /-- What the pass reads. -/
 structure CX where
@@ -623,17 +637,6 @@ noncomputable def armSkip (X : CX) (st : CSt) (mx : CCell) (j : ℕ) : List Wit 
   | .skip res :: ws => bif Nat.blt j capE && hasFU (facts X st.env res) mx j then some ws else none
   | _ => none
 
-/-- Each arm's preconditions at the slots `ms`, arm indices from `j`, an arm left out by `armSkip`:
-the witnesses left and the arms kept. -/
-noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (args : List V) (mx : CCell) :
-    ℕ → List String → List Wit → Option (List Wit × List String)
-  | _, [], ws => some (ws, [])
-  | j, g :: gs, ws => match armSkip X st mx j ws with
-    | some ws' => reqArmsX X st ms args mx (j + 1) gs ws'
-    | none => match reqG X st ms g args ws with
-      | some ws' => (reqArmsX X st ms args mx (j + 1) gs ws').map fun p ↦ (p.1, g :: p.2)
-      | none => none
-
 /-- Signature cells at the slots `ms`. -/
 def instAll (ms : List CCell) : List CCell → Option (List CCell)
   | [] => some []
@@ -681,6 +684,26 @@ noncomputable def pushPL : List (CCell × List ℕ) → CSt → CSt
 noncomputable def pushPRL : List (PRun × List ℕ) → CSt → CSt
   | [], st => st
   | p :: ps, st => (st.pushPR p).seq fun st ↦ pushPRL ps st
+
+/-- **Guarantees under a selector**, for arm `j` of a dispatch on the selector `mx`: those of each
+earlier dispatch's arm `j` on the same selector, pushed (its cells, pointer facts, runs, pointer runs). -/
+noncomputable def condSt (mx : CCell) (j : ℕ) : List CdE → CSt → CSt
+  | [], st => st
+  | e :: l, st => bif e.mx.beq mx && Nat.beq e.j j then
+      (pushPRL e.prs (pushRL e.rs (pushPL e.ps (pushL e.cs st)))).seq fun st ↦ condSt mx j l st
+    else condSt mx j l st
+
+/-- Each arm's preconditions at the slots `ms`, arm indices from `j`, an arm left out by `armSkip`;
+arm `j`'s seeing the guarantees of earlier dispatches' arms `j` on the same selector (`condSt`): the
+witnesses left and the arms kept. -/
+noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (args : List V) (mx : CCell) :
+    ℕ → List String → List Wit → Option (List Wit × List String)
+  | _, [], ws => some (ws, [])
+  | j, g :: gs, ws => match armSkip X st mx j ws with
+    | some ws' => reqArmsX X st ms args mx (j + 1) gs ws'
+    | none => match reqG X (condSt mx j st.cd st) ms g args ws with
+      | some ws' => (reqArmsX X st ms args mx (j + 1) gs ws').map fun p ↦ (p.1, g :: p.2)
+      | none => none
 
 /-- The cells every list has. -/
 def meetC (ls : List (List CCell)) (c : CCell) : Bool := ls.all fun l ↦ l.any fun c' ↦ c'.beq c
@@ -777,9 +800,22 @@ noncomputable def pushPtrM : Option (List (List (CCell × List ℕ)) × List (Li
 def meetM (ls : List (List (ℕ × CCell))) (p : ℕ × CCell) : Bool :=
   ls.all fun l ↦ l.any fun q ↦ Nat.beq q.1 p.1 && q.2.beq p.2
 
+/-- Each arm's guarantees at the slots `ms`, under the selector `mx` at its index, from `j` (the arms
+whose guarantees instantiate). -/
+def condE (sigOf : String → HSig) (ms : List CCell) (mx : CCell) : ℕ → List String → List CdE
+  | _, [] => []
+  | j, g :: gs => match instAll ms (sigOf g).post, instAllR ms (sigOf g).postR, instPP ms (sigOf g).postP,
+      instPRL ms (sigOf g).postPR with
+    | some cs, some rs, some ps, some prs => ⟨mx, j, cs, rs, ps, prs⟩ :: condE sigOf ms mx (j + 1) gs
+    | _, _, _, _ => condE sigOf ms mx (j + 1) gs
+
+/-- The guarantees under a selector, added. -/
+def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l⟩
+
 /-- **A dispatch** on `x`: every arm's preconditions but the arms a fact rules out (`armSkip`); the
 returned words' monomials every arm kept gives, then what every arm kept guarantees pushed (cells, runs,
-pointer facts, pointer runs). -/
+pointer facts, pointer runs); and each arm's guarantees kept under the selector (`condE`). -/
 noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args rets : List V) : Option CSt :=
   match monos st.env args, monoOf st.env x, getF X.C st.nc with
   | some ma, some mx, some ws => match reqArmsX X st ma args mx 0 fs ws with
@@ -788,8 +824,9 @@ noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args ret
           (meetM (gs.map fun g' ↦ instRM ma (X.sigOf g').retM))) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
         | some mr => match instArms X.sigOf (ma ++ mr) (g :: gs) with
-          | some (p :: ps, r :: rs) => some (pushPtrM (instArmsP X.sigOf (ma ++ mr) (g :: gs))
-              (pushRL (r.filter (meetR rs)) (pushL (p.filter (meetC ps)) st1)))
+          | some (p :: ps, r :: rs) => some ((pushPtrM (instArmsP X.sigOf (ma ++ mr) (g :: gs))
+              (pushRL (r.filter (meetR rs)) (pushL (p.filter (meetC ps)) st1))).addCd
+                (bif Nat.blt fs.length capE then condE X.sigOf (ma ++ mr) mx 0 fs else []))
           | _ => none
         | none => none
     | _ => none
@@ -899,7 +936,7 @@ noncomputable def joinSt (bs : List (Bool × CSt × CSt)) (st s : CSt) : CSt :=
     st.ad, st.sv, st.src,
     insL (joinE pfBeq (bs.map fun b ↦ (b.1, rng b.2.2.pf b.2.1.n (b.2.2.n - b.2.1.n)))) st.pf,
     insL (joinE prBeq (bs.map fun b ↦ (b.1, rng b.2.2.pr b.2.1.nr (b.2.2.nr - b.2.1.nr)))) st.pr,
-    s.n, s.nr, s.nc, s.nt⟩
+    s.n, s.nr, s.nc, s.nt, st.cd⟩
 
 /-- The last block's end, or `st`. -/
 def lastSt : List (Bool × CSt × CSt) → CSt → CSt
@@ -1097,7 +1134,7 @@ noncomputable def initC (X : CX) : Option CSt :=
   | some mp => match instPP (mp ++ ghostMs X.sig.ghosts) X.sig.preP, instAllR (mp ++ ghostMs X.sig.ghosts) X.sig.preR,
       instPRL (mp ++ ghostMs X.sig.ghosts) X.sig.prePR with
     | some pps, some rs, some prs =>
-      some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0⟩)))
+      some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0, []⟩)))
     | _, _, _ => none
   | none => none
 
