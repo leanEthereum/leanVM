@@ -74,6 +74,62 @@ pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackS
     (placements, StackShape { mu, n_lanes })
 }
 
+/// A run of a column's rows the stack holds as a block: its first row, its log length and where it sits.
+#[derive(Clone, Copy, Debug)]
+pub struct Run {
+    pub start: usize,
+    pub n_vars: usize,
+    pub offset: usize,
+}
+
+/// The committed stack of the columns of these log sizes (`None` virtual), each table column of `rows` rows stacked as
+/// its runs (`verifier::layout::dyadic_pieces`): per column its runs, and the stack's shape. `table` names a column's
+/// table, if it has one. Both sides derive this from the announced sizes alone.
+pub(crate) fn runs_of(
+    kappas: &[Option<usize>],
+    table: impl Fn(usize) -> Option<usize>,
+    rows: &[usize],
+) -> (Vec<Vec<Run>>, StackShape) {
+    let pieces: Vec<(usize, u64, usize)> = kappas
+        .iter()
+        .enumerate()
+        .filter_map(|(column, k)| k.map(|kappa| (column, kappa)))
+        .flat_map(|(column, kappa)| {
+            let runs = match table(column) {
+                Some(t) => verifier::layout::dyadic_pieces(rows[t] as u64, kappa),
+                None => vec![(0, kappa)],
+            };
+            runs.into_iter().map(move |(start, log)| (column, start, log))
+        })
+        .collect();
+    let sizes: Vec<usize> = pieces.iter().map(|p| p.2).collect();
+    let (offsets, placed_log) = verifier::stack_offsets(&sizes);
+    let mut runs = vec![Vec::new(); kappas.len()];
+    for ((column, start, n_vars), offset) in pieces.into_iter().zip(offsets) {
+        runs[column].push(Run {
+            start: start as usize,
+            n_vars,
+            offset: offset as usize,
+        });
+    }
+    let mu = placed_log.max(crate::pcs::MIN_STACKED_LOG);
+    let placed: usize = sizes.iter().map(|k| 1 << k).sum();
+    let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
+    (runs, StackShape { mu, n_lanes })
+}
+
+/// The stack of `runs`, each copied from its column's window of `arena` at `placements`, the tail zero.
+pub(crate) fn stack_runs(arena: &[F64], placements: &[Placement], runs: &[Vec<Run>], shape: StackShape) -> Vec<F64> {
+    let mut q = parallel::filled(shape.committed_len(), F64::ZERO);
+    for (column, column_runs) in runs.iter().enumerate() {
+        for run in column_runs {
+            let len = 1 << run.n_vars;
+            q[run.offset..][..len].copy_from_slice(&arena[placements[column].offset + run.start..][..len]);
+        }
+    }
+    q
+}
+
 /// Carve the stack into one mutable window per committed column, in column order, so that each column is
 /// written in its final place. A virtual column gets an empty window: it is not in the stack, so its values need
 /// storage of their own.
