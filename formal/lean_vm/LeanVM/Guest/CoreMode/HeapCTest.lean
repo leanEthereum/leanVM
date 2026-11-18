@@ -149,6 +149,25 @@ theorem useMk2_ok :
     heapOkC Data.powTree sigs useMk2 { hUseMk with reads := [(3, [(2, 1, .ev 1)])] } = true := by
   decide +kernel
 
+/-- A dispatch of `mk` and an arm `nope` that guarantees nothing, ruled out by the residual `e(x) < 1`
+(`skip`): what `mk` guarantees is pushed. -/
+def useMkX : Fn where
+  name := "useMkX"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 1) ["mk", "nope"] [.n 0] [.n 2], .atom (.load (.n 3) (.n 2) 1), .ret [.n 3]]
+
+theorem useMkX_ok :
+    heapOkC Data.powTree sigs useMkX
+      { hUseMk with reads := [(3, [(2, 1, .ev 1)])], res := [.lt (.val 1) (.num 1)], calls := [[.skip [0]]] } =
+      true := by
+  decide +kernel
+
+/-- Without the arm ruled out, the meet is empty. -/
+theorem useMkX_bad :
+    heapOkC Data.powTree sigs useMkX
+      { hUseMk with reads := [(3, [(2, 1, .ev 1)])], res := [.lt (.val 1) (.num 1)], calls := [[]] } = false := by
+  decide +kernel
+
 /-! ## A loop's run consumed -/
 
 /-- Stores `0` at `p·i` for the counter `i` from its start to `n`. -/

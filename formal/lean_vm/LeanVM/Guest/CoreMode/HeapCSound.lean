@@ -842,6 +842,7 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | word => simp [ptOk] at h
   | pts => simp [ptOk] at h
   | empty => simp [ptOk] at h
+  | skip => simp [ptOk] at h
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H f σ X)
@@ -867,6 +868,7 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | pfr => simp [rnOk] at h
   | word => simp [rnOk] at h
   | pts => simp [rnOk] at h
+  | skip => simp [rnOk] at h
 
 /-- The cells past a word, each witnessed: written. -/
 theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H f σ X)
@@ -1154,20 +1156,76 @@ theorem reqS_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr
         exact ⟨⟨reqP_ok hX hpre hs hms h1, reqR_ok hX hpre hs hms h2⟩,
           ptrOk_of (reqPP_ok hX hpre hs hms h3) (reqPR_ok hX hpre hs hms h)⟩
 
-theorem reqArms_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws)) :
-    ∀ {gs : List String} {wl wl' : List Wit}, reqArms X st ms gs wl = some wl' →
-      ∀ g ∈ gs, SigOk W (sigOf g).pre (sigOf g).preR ws ∧ PtrOk W rd (sigOf g).preP (sigOf g).prePR ws
-  | [], _, _, _, g, hg => by simp at hg
-  | g :: gs, wl, wl', h, g0, hg0 => by
-    simp only [reqArms] at h
-    cases h1 : reqS X st ms (X.sigOf g) wl with
-    | none => rw [h1] at h; cases h
-    | some wl1 =>
-      rw [h1] at h
-      rcases List.mem_cons.mp hg0 with rfl | hg0
-      · rw [← hX.sigOf]; exact reqS_ok hX hpre hs hms h1
-      · exact reqArms_ok hX hpre hs hms h g0 hg0
+/-- A dispatch arm left out: the selector is not its power of `g`. -/
+theorem armSkip_ok (hX : XOk sigOf H f σ X) {st : CSt} (hs : StOk rd W σ st) {mx : CCell} {j : ℕ}
+    {wl wl' : List Wit} (h : armSkip X st mx j wl = some wl') : mx.valW (vw σ) ≠ ofK (addressOfIndex j) := by
+  cases wl with
+  | nil => simp [armSkip] at h
+  | cons w wl =>
+    cases w
+    case skip res =>
+      simp only [armSkip] at h
+      cases hb : (Nat.blt j capE && hasFU (facts X st.env res) mx j) with
+      | false => rw [hb] at h; simp at h
+      | true =>
+        simp only [Bool.and_eq_true] at hb
+        obtain ⟨hj, hu⟩ := hb
+        obtain ⟨p, hp, hq⟩ := List.any_eq_true.mp hu
+        simp only [Bool.and_eq_true] at hq
+        obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := hq
+        obtain ⟨ya, yb, ha, hb', hlt⟩ := facts_ok hX hs.env res p hp
+        rw [CCell.beq_eq h1] at ha
+        rw [rep_nil h2 (Nat.blt_eq.mp h4), Option.some.injEq] at hb'
+        intro he
+        rw [he, rep_of (Nat.blt_eq.mp hj), Option.some.injEq] at ha
+        have := Nat.le_of_ble_eq_true h3
+        omega
+    all_goals simp [armSkip] at h
+
+theorem reqArmsX_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws)) {mx : CCell} {y : E}
+    (hmx : mx.valW (vw σ) = y) :
+    ∀ {j : ℕ} {gs : List String} {wl wl' : List Wit} {kept : List String},
+      reqArmsX X st ms mx j gs wl = some (wl', kept) → ∀ i (hi : i < gs.length), y = ofK (addressOfIndex (j + i)) →
+        gs[i] ∈ kept ∧ (SigOk W (sigOf gs[i]).pre (sigOf gs[i]).preR ws ∧
+          PtrOk W rd (sigOf gs[i]).preP (sigOf gs[i]).prePR ws)
+  | _, [], _, _, _, _, i, hi, _ => by simp at hi
+  | j, g :: gs, wl, wl', kept, h, i, hi, hy => by
+    simp only [reqArmsX] at h
+    cases hk : armSkip X st mx j wl with
+    | some ws' =>
+      rw [hk] at h
+      cases i with
+      | zero => exact absurd (hmx.trans hy) (armSkip_ok hX hs hk)
+      | succ i =>
+        have := reqArmsX_ok hX hpre hs hms hmx h i (by simpa using hi)
+          (by rw [hy, show j + (i + 1) = j + 1 + i by omega])
+        simpa using this
+    | none =>
+      rw [hk] at h
+      dsimp only at h
+      cases hr : reqS X st ms (X.sigOf g) wl with
+      | none => rw [hr] at h; cases h
+      | some ws' =>
+        rw [hr] at h
+        dsimp only at h
+        cases h2 : reqArmsX X st ms mx (j + 1) gs ws' with
+        | none => rw [h2] at h; cases h
+        | some pr =>
+          rw [h2] at h
+          obtain ⟨wl2, kept2⟩ := pr
+          simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          cases i with
+          | zero =>
+            refine ⟨List.mem_cons_self, ?_⟩
+            have := reqS_ok hX hpre hs hms hr
+            rw [hX.sigOf] at this
+            exact this
+          | succ i =>
+            obtain ⟨m, r⟩ := reqArmsX_ok hX hpre hs hms hmx h2 i (by simpa using hi)
+              (by rw [hy, show j + (i + 1) = j + 1 + i by omega])
+            exact ⟨List.mem_cons_of_mem _ (by simpa using m), by simpa using r⟩
 
 end Inv
 
@@ -1403,6 +1461,7 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .word _ => hs
   | .pts => hs
   | .empty => hs
+  | .skip _ => hs
 
 theorem loadPush_ok {st : CSt} (hs : StOk rd W σ st) {W' : K → Prop} (hw : ∀ x, W x → W' x) {c : CCell} {d : V}
     (hc : W' (c.addr σ)) (hd : rd (c.addr σ) = some (σ d)) : StOk rd W' σ (loadPush st c d) := by
@@ -1827,30 +1886,41 @@ theorem instArms_mem {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : Lis
 /-- **A dispatch**: every arm's preconditions written; the state after it valid with the taken arm's
 writes. -/
 theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st st' : CSt}
-    {fs : List String} {args rets : List V} (hs : StOk rd W σ st) (h : dispC X st fs args rets = some st') :
-    (∀ g ∈ fs, SigOk W (sigOf g).pre (sigOf g).preR (args.map σ) ∧
-      PtrOk W rd (sigOf g).preP (sigOf g).prePR (args.map σ)) ∧
-      ∀ g ∈ fs, RetMOk (sigOf g) (args.map σ) (rets.map σ) →
-        StOk rd (fun x ↦ W x ∨ EvW sigOf rd σ (.call g args rets) x) σ st' := by
+    {x : V} {fs : List String} {args rets : List V} (hs : StOk rd W σ st)
+    (h : dispC X st x fs args rets = some st') :
+    ∀ i (hi : i < fs.length), σ x = ofK (addressOfIndex i) →
+      (SigOk W (sigOf fs[i]).pre (sigOf fs[i]).preR (args.map σ) ∧
+        PtrOk W rd (sigOf fs[i]).preP (sigOf fs[i]).prePR (args.map σ)) ∧
+      (RetMOk (sigOf fs[i]) (args.map σ) (rets.map σ) →
+        StOk rd (fun x' ↦ W x' ∨ EvW sigOf rd σ (.call fs[i] args rets) x') σ st') := by
+  intro i hi hxi
   unfold dispC at h
-  cases fs with
-  | nil => simp at h
-  | cons g0 gs =>
   cases ha : monos st.env args with
   | none => simp [ha] at h
   | some ma =>
+    cases hmx : monoOf st.env x with
+    | none => simp [ha, hmx] at h
+    | some mx =>
       cases hc : getF X.C st.nc with
-      | none => simp [ha, hc] at h
+      | none => simp [ha, hmx, hc] at h
       | some wl =>
-        simp only [ha, hc] at h
+        simp only [ha, hmx, hc] at h
         obtain ⟨hma, hla⟩ := monos_ok hs.env args ma ha
-        cases hq : reqArms X st ma (g0 :: gs) wl with
+        cases hq : reqArmsX X st ma mx 0 fs wl with
         | none => simp [hq] at h
-        | some wl' =>
-          refine ⟨reqArms_ok hX hpre hs hma hq, fun g hg hM ↦ ?_⟩
+        | some pr =>
+          obtain ⟨wl', kept⟩ := pr
+          obtain ⟨hgk, hreq⟩ := reqArmsX_ok hX hpre hs hma (y := σ x)
+            (by rw [← val_eq, ← monoOf_ok hs.env hmx]) hq i hi (by simpa using hxi)
+          refine ⟨hreq, fun hM ↦ ?_⟩
+          generalize fs[i] = g at hgk hM ⊢
           cases wl' with
           | cons _ _ => simp [hq] at h
           | nil =>
+            cases kept with
+            | nil => simp at hgk
+            | cons g0 gs =>
+            have hg := hgk
             simp only [hq, CSt.seq_eq] at h
             -- the returned words' monomials every arm gives, the taken arm's among them
             have hs1 := retDefs_ok (rets := rets) (l := (instRM ma (X.sigOf g0).retM).filter
@@ -1995,6 +2065,19 @@ theorem pick_cases (x : V) (args rets : List V) : ∀ (fs : List String) (j : �
       · exact Or.inl h
       · exact Or.inr ⟨g', List.mem_cons_of_mem _ hg', h⟩
 
+theorem pick_idx (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
+    pick σ x args rets j fs = .stuck ∨ ∃ i, ∃ hi : i < fs.length, σ x = ofK (addressOfIndex (j + i)) ∧
+      pick σ x args rets j fs = .fall [.call fs[i] args rets]
+  | [], _ => Or.inl rfl
+  | g :: fs, j => by
+    unfold pick
+    split_ifs with hx
+    · exact Or.inr ⟨0, by simp, by simpa using hx, rfl⟩
+    · rcases pick_idx x args rets fs (j + 1) with h | ⟨i, hi, hx', h⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨i + 1, by simpa using hi, by rw [show j + (i + 1) = j + 1 + i by omega]; exact hx',
+          by simpa using h⟩
+
 /-- A call, then a block: the call's needs, then the block's pass from the state after it. -/
 theorem blockC_call {W : K → Prop} (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ))
     {g : String} {args rets : List V} {ss : List Stmt} {st1 st' : CSt}
@@ -2111,20 +2194,20 @@ theorem chkC_ok (hX : XOk sigOf H f σ X) : ∀ (ss : List Stmt) {st st' : CSt} 
       · rw [ite_eq_right hc]; exact ReqOk.mono (e := .call g args []) (fun _ ↦ Or.inl) hreq
   | .dispatch x fs args rets :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
-    cases h1 : dispC X st fs args rets with
+    cases h1 : dispC X st x fs args rets with
     | none => rw [h1] at h; cases h
     | some st1 =>
       rw [h1] at h
       simp only [CSt.seq_eq] at h
-      obtain ⟨hreq, hpost⟩ := dispC_ok hX hpre hs h1
       rw [walk]
       simp only [walk1]
-      rcases pick_cases x args rets fs 0 with hp | ⟨g, hg, hp⟩
+      rcases pick_idx x args rets fs 0 with hp | ⟨i, hi, hx, hp⟩
       · rw [hp]
         exact ⟨⟨fun es hw _ ↦ by simp [Out.seq] at hw, fun es vs hw _ ↦ by simp [Out.seq] at hw⟩,
           fun es hw _ ↦ by simp [Out.seq] at hw⟩
       · rw [hp]
-        exact blockC_call hpre (hreq g hg) (hpost g hg) fun hp hs' ↦ chkC_ok hX ss hp h hs'
+        obtain ⟨hreq, hpost⟩ := dispC_ok hX hpre hs h1 i hi (by simpa using hx)
+        exact blockC_call hpre hreq hpost fun hp hs' ↦ chkC_ok hX ss hp h hs'
   | .ret vs :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
     cases hr : retC X st vs with

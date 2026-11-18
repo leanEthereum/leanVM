@@ -556,12 +556,26 @@ noncomputable def reqS (X : CX) (st : CSt) (ms : List CCell) (G : HSig) (ws : Li
     | none => none
   | none => none
 
-/-- Each arm's preconditions at the slots `ms`: the witnesses left. -/
-noncomputable def reqArms (X : CX) (st : CSt) (ms : List CCell) : List String → List Wit → Option (List Wit)
-  | [], ws => some ws
-  | g :: gs, ws => match reqS X st ms (X.sigOf g) ws with
-    | some ws' => reqArms X st ms gs ws'
-    | none => none
+/-- A fact `(a, g^h)` with `h ≤ j`, `h < 2^62`: the exponent of `a` below `j`. -/
+def hasFU (F : List (CCell × CCell)) (a : CCell) (j : ℕ) : Bool :=
+  F.any fun p ↦ p.1.beq a && p.2.bases.isEmpty && Nat.ble p.2.off j && Nat.blt p.2.off capE
+
+/-- **A dispatch arm left out**, arm `j` of the selector `mx`: `skip res` and a fact of `res` putting
+`mx`'s exponent below `j` (`j < 2^62`). The witnesses left. -/
+noncomputable def armSkip (X : CX) (st : CSt) (mx : CCell) (j : ℕ) : List Wit → Option (List Wit)
+  | .skip res :: ws => bif Nat.blt j capE && hasFU (facts X st.env res) mx j then some ws else none
+  | _ => none
+
+/-- Each arm's preconditions at the slots `ms`, arm indices from `j`, an arm left out by `armSkip`:
+the witnesses left and the arms kept. -/
+noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (mx : CCell) :
+    ℕ → List String → List Wit → Option (List Wit × List String)
+  | _, [], ws => some (ws, [])
+  | j, g :: gs, ws => match armSkip X st mx j ws with
+    | some ws' => reqArmsX X st ms mx (j + 1) gs ws'
+    | none => match reqS X st ms (X.sigOf g) ws with
+      | some ws' => (reqArmsX X st ms mx (j + 1) gs ws').map fun p ↦ (p.1, g :: p.2)
+      | none => none
 
 /-- Signature cells at the slots `ms`. -/
 def instAll (ms : List CCell) : List CCell → Option (List CCell)
@@ -684,12 +698,13 @@ noncomputable def callIfC (X : CX) (st : CSt) (c : V) (g : String) (args : List 
 def meetM (ls : List (List (ℕ × CCell))) (p : ℕ × CCell) : Bool :=
   ls.all fun l ↦ l.any fun q ↦ Nat.beq q.1 p.1 && q.2.beq p.2
 
-/-- **A dispatch**: every arm's preconditions; the returned words' monomials every arm gives, then
-what every arm guarantees pushed. -/
-noncomputable def dispC (X : CX) (st : CSt) (fs : List String) (args rets : List V) : Option CSt :=
-  match fs, monos st.env args, getF X.C st.nc with
-  | g :: gs, some ma, some ws => match reqArms X st ma (g :: gs) ws with
-    | some [] => (retDefs rets ((instRM ma (X.sigOf g).retM).filter
+/-- **A dispatch** on `x`: every arm's preconditions but the arms a fact rules out (`armSkip`); the
+returned words' monomials every arm kept gives, then what every arm kept guarantees pushed. -/
+noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args rets : List V) : Option CSt :=
+  match monos st.env args, monoOf st.env x, getF X.C st.nc with
+  | some ma, some mx, some ws => match reqArmsX X st ma mx 0 fs ws with
+    | some ([], []) => some st.nextC
+    | some ([], g :: gs) => (retDefs rets ((instRM ma (X.sigOf g).retM).filter
           (meetM (gs.map fun g' ↦ instRM ma (X.sigOf g').retM))) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
         | some mr => match instArms X.sigOf (ma ++ mr) (g :: gs) with
@@ -786,7 +801,7 @@ noncomputable def chkC (X : CX) : List Stmt → CSt → Option CSt
   | .callIf c g args :: ss, st => match callIfC X st c g args with
     | some st' => st'.seq fun st' ↦ chkC X ss st'
     | none => none
-  | .dispatch _ fs args rets :: ss, st => match dispC X st fs args rets with
+  | .dispatch x fs args rets :: ss, st => match dispC X st x fs args rets with
     | some st' => st'.seq fun st' ↦ chkC X ss st'
     | none => none
   | .ret vs :: _, st => bif retC X st vs then some st.nextT else none

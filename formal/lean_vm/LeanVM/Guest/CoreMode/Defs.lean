@@ -107,6 +107,9 @@ inductive Wit where
   | pts
   /-- A run needed with constant bounds, the upper at most the lower: no cell. -/
   | empty
+  /-- A dispatch arm that cannot run: a fact (the own termination facts and these residuals) puts its
+  selector's exponent below the arm's index. -/
+  | skip (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
