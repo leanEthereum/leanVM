@@ -521,7 +521,7 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hP0 : ParAt K.F.sig Cf.fn.params.length (stOf s.mem s.fp) (Cf.fn.params.map σ0))
     (hT : TermAt s.mem s.fp K.F.sig) (hX : ExpM K.F.sig (expCells K.F.sig) (stOf s'.mem s.fp))
     (hcs : ∀ a ∈ cs, stopL a = false) :
-    Back s'.mem K.F.sig s1.fp s'.fp := by
+    Mode.BackM s'.mem K.F.sig s1.fp s'.fp := by
   intro m' hm' _ _ hR
   have hs := sigLP_of hok.sig
   have hsigf : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
@@ -628,7 +628,7 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hXN : ExpM K.F.sig (tailPass Cf.fn.body) (stOf s'.mem s'.fp)) (hcs : ∀ a ∈ cs, stopL a = false) :
     s'.pc = K.F.entry ∧ (∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true) ∧
       (∀ o < 2, ∃ u, s'.mem.get (s1.fp + o) = some u ∧ s'.mem.get (s'.fp + o) = some u) ∧
-      Back s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
+      Mode.BackM s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
   have hs := sigLP_of hok.sig
   have hle : s.mem ≤ s'.mem := Mem.le_trans hle1 hle'
   have hwN : ∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true := fun o ho ↦ hentry.w o (hok.fsig ▸ ho)
@@ -689,8 +689,9 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     (hle' : s1.mem ≤ s'.mem) (hjo : JumpOut img Cf.frame K.code (∃ c, K.code[i]? = some (.jump c 0 1)) s1 s')
     {oc od of : ℕ} (hci : K.code[i]? = some (.jump oc od of)) (h0 : s1.mem.get (s1.fp + od) = some (ofK (g ^ s'.pc)))
     (h1 : s1.mem.get (s1.fp + of) = some (ofK (g ^ s'.fp))) (hpcs : s'.pc < C.ops.size)
-    (hsz : C.ops.size ≤ 2 ^ 30) (hcj : callJ Cf (.jump oc od of) = true) (hz : Cf.X.zeroAt oc = false) :
-    Out K (CoreAt img Cf K.code) i s1 s' := by
+    (hsz : C.ops.size ≤ 2 ^ 30) (hcj : callJ Cf (.jump oc od of) = true) (hz : Cf.X.zeroAt oc = false)
+    {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    Out Ct K (CoreAt img Cf K.code) i s1 s' := by
   obtain ⟨-, hentw, hheap⟩ := hat
   obtain ⟨hnz, hsf', hr01, hcall⟩ := callJ_spec hcj hz
   have hsh := hok.shape
@@ -833,6 +834,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     · obtain ⟨u, hu⟩ := Mem.get_of_written (hentry.w 1 hG1)
       rw [hu, rd_get hκ hf' (by norm_num) hk1 hu, hm.fp]
     · -- the callee's entry facts
+      rw [Mode.preAt_none (hCt.2 _ _ hsigK)]
       refine holds_entryAbs ?_ fun o ho ↦ ?_
       swap
       · -- its self cell (a loop's)
@@ -939,7 +941,9 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
           exact ⟨ha, hpa⟩
         · cases hrq
     · -- resumed once the callee guarantees its signature
-      intro m hm0 hwf hu hfpE hfpC hR hL hLP hT
+      intro m hm0 hwf hu hfpE hfpC hP hT
+      rw [Mode.postAt_none (hCt.2 _ _ hsigK)] at hP
+      obtain ⟨hR, hL, hLP⟩ := hP
       refine ⟨by rw [Mode.stOf, hm.fp]; exact hxw, fun m' hm' ham' ↦ ?_⟩
       have hle0 : s.mem ≤ m' := Mem.le_trans hm.le (Mem.le_trans hle' (Mem.le_trans hm0 hm'))
       refine ⟨?_, fun o' ho' ↦ ?_, fun σ hσ ↦ ?_⟩
@@ -1086,7 +1090,8 @@ theorem calls_tailC (pre : List Stmt) (c : V) (f : String) (args : List V) :
 theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : Prover.Exec.Advice} {C : Ctx}
     (hC : Prover.Exec.Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) (hK : CodeOk C K)
     {img : MemoryImage κ} {Y : St → Prop} (hκ : κ ≤ 28) (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
-    (hH : CoreHon img Y K Cf) (hU : UsedNext C img Y) : FrameSpec C (refMem img) Y K (CoreAt img Cf K.code) := by
+    (hH : CoreHon img Y K Cf) (hU : UsedNext C img Y) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    FrameSpec C (refMem img) Y Ct K (CoreAt img Cf K.code) := by
   obtain ⟨pre0, c0, args0, hbody, hargs, hpre0⟩ := loopBC_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
   obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod,
@@ -1120,6 +1125,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   refine ⟨fun hle hfp h ↦ h.mono hle hfp, ?_, ?_⟩
   · -- the entry
     intro s hH0 hs0
+    rw [Mode.preAt_none hCt.1] at hH0
     obtain ⟨hw, hpre, hpreR, hself⟩ := entry_facts hent' (fun o ho ↦ (hso o ho).1) hH0
     refine coreAt_of (by rw [hok.fsig]; exact expW_entry hκ hs0.agree hH0)
       ⟨atF_mono (s := s) (Mem.le_refl _) rfl (atF_entry henv ⟨fun o ho ↦ hw o (hok.fsig ▸ ho),
@@ -1332,7 +1338,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           · obtain ⟨v, hv, hv0⟩ := hcn _ _ _ hci
             exact absurd (rd_get hκ hm.fine soc (by rw [hm.fp]; exact hσ0.jc.zero _ hzz) hv) hv0
         exact k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (call_stepC hok hK hκ hU hi hpc hYs hs0 hat0 hxw hσ0 hT hjtR e1
-          (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc)
+          (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc hCt)
       swap
       · -- the return
         have hrj : ∃ c, K.code[i]? = some (.jump c 0 1) := ⟨_, hci⟩
@@ -1343,6 +1349,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | call G' t hnr => exact absurd hrj hnr
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
+          rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
           obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
@@ -1421,8 +1428,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           · rw [hhd i] at hpairs
             exact (flow_wrk hκ e1 hs0 hm hpairs ha hfa (fun q hq ↦ hσ0.ptr _ _ hb a q
               (by rw [heq]; simp [hma]) hq) hwa).mono hle'
-        have hout : EntryFr img Cf.frame.sig s' → Out K (CoreAt img Cf K.code) i s1 s' := fun hentry ↦
-          .tail hok.sigE fun hTE ↦ tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
+        have hout : EntryFr img Cf.frame.sig s' → Out Ct K (CoreAt img Cf K.code) i s1 s' := fun hentry ↦
+          .tail hok.sigE fun hTE ↦ Mode.tail_of_mode hCt.1 <| tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
             (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
@@ -1453,7 +1460,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
 
 /-- **A loop helper with calls on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) : Mode.FnSpecC K Cf :=
-  fun _ _ hC ha hK _ _ _ hκ hY hH hU ↦ frameSpec_loopC hok hC ha hK hκ hY hH hU
+  fun _ _ hC ha hK _ _ _ _ hκ hY hH hU hCt ↦ frameSpec_loopC hok hC ha hK hκ hY hH hU hCt
 
 end
 

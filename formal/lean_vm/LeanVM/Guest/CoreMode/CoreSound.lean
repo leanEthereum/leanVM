@@ -1661,7 +1661,8 @@ where its frames have honest valuations. -/
 theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Prover.Exec.Advice} {C : Ctx}
     (hC : Prover.Exec.Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) (hK : CodeOk C K)
     {img : MemoryImage κ} {Y : St → Prop} (hκ : κ ≤ 28) (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
-    (hH : CoreHon img Y K Cf) (hU : UsedNext C img Y) : FrameSpec C (refMem img) Y K (CoreAt img Cf K.code) := by
+    (hH : CoreHon img Y K Cf) (hU : UsedNext C img Y) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    FrameSpec C (refMem img) Y Ct K (CoreAt img Cf K.code) := by
   have hsh := hok.shape
   simp only [shapeOk, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none] at hsh
@@ -1684,6 +1685,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
   refine ⟨fun hle hfp h ↦ h.mono hle hfp, ?_, ?_⟩
   · -- the entry
     intro s hH0 hs
+    rw [Mode.preAt_none hCt.1] at hH0
     have hA : entryAbs K.E K.F.sig = ⟨Mode.foldlT .nil K.F.sig.entry, .nil, .nil, [], K.F.sig.pre,
         Mode.jtRng K.E :: K.F.sig.preR, K.F.sig.term, [], .nil, K.F.sig.preP, []⟩ := by
       unfold entryAbs
@@ -1966,6 +1968,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         | call G t hnr => exact absurd hrj hnr
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret oc hci (by omega) h0 h1 ?_)
+          rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
           obtain ⟨-, hreads, hposts, hpostRs, hretM, hpostM, hptrs⟩ := heapK_sound hok.heap hok.pows hbody hb hh0
           obtain ⟨as, hpairs, hpr⟩ := pair_retC hok.pair hpos hci hz hfw hpc0 hself1 hwp hreads
@@ -2358,6 +2361,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           · obtain ⟨u, hu⟩ := Mem.get_of_written (hentry.w 1 hG1)
             rw [hu, rd_get hκ hf' (by norm_num) hk1 hu, hm.fp]
           · -- the callee's entry facts
+            rw [Mode.preAt_none (hCt.2 _ _ hsigK)]
             refine holds_entryAbs ?_ fun o ho ↦ ?_
             swap
             · -- its self cell (a loop's)
@@ -2464,7 +2468,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 exact ⟨ha, hpa⟩
               · cases hrq
           · -- resumed once the callee guarantees its signature
-            intro m hm0 hwf hu hfpE hfpC hR hL hLP hT
+            intro m hm0 hwf hu hfpE hfpC hP hT
+            rw [Mode.postAt_none (hCt.2 _ _ hsigK)] at hP
+            obtain ⟨hR, hL, hLP⟩ := hP
             refine ⟨by rw [Mode.stOf, hm.fp]; exact hxw, fun m' hm' ham' ↦ ?_⟩
             have hle0 : s.mem ≤ m' := Mem.le_trans hm.le (Mem.le_trans hle' (Mem.le_trans hm0 hm'))
             refine ⟨?_, fun o' ho' ↦ ?_, fun σ hσ ↦ ?_⟩

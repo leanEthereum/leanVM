@@ -178,7 +178,7 @@ with the guest's hints, its code the executor's, the walk's frame predicate `AtO
 `FrameSpec` for any memory and states. -/
 def FnSpecW (K : Cert) : Prop :=
   ∀ adv C, Ctx.of guestProgram adv = .ok C → adv.hints = Data.adviceHints → CodeOk C K →
-    ∀ M Y, FrameSpec C M Y K (AtOff K.E K.F K.code)
+    ∀ M Y Ct, ModeCts Ct K → FrameSpec C M Y Ct K (AtOff K.E K.F K.code)
 
 /-- **A function on the core route meets its frame interface**, its core data `Cf`: on the
 executor's tables for any advice with the guest's hints, its code the executor's, on a reference
@@ -186,9 +186,9 @@ image within `2^28` words, at states on its run where its frames have honest val
 (`CoreHon`), `CoreAt` meets `FrameSpec`. -/
 def FnSpecC (K : Cert) (Cf : CoreMode.CFun) : Prop :=
   ∀ adv C, Ctx.of guestProgram adv = .ok C → adv.hints = Data.adviceHints → CodeOk C K →
-    ∀ {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop), κ ≤ 28 → (∀ s, Y s → ∃ n, OnRef guestProgram img n s) →
-      CoreMode.CoreHon img Y K Cf → CoreMode.UsedNext C img Y →
-        FrameSpec C (refMem img) Y K (CoreMode.CoreAt img Cf K.code)
+    ∀ {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (Ct : Cts), κ ≤ 28 →
+      (∀ s, Y s → ∃ n, OnRef guestProgram img n s) → CoreMode.CoreHon img Y K Cf → CoreMode.UsedNext C img Y →
+        ModeCts Ct K → FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code)
 
 /-- **A guest function's frame interface**: the walk's, or the core route's with core data among
 `T` at its entry. -/
@@ -204,12 +204,12 @@ noncomputable def guestQ (T : List CoreMode.CFun) {κ : ℕ} (img : MemoryImage 
     fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.CoreAt img Cf K.code i s
   else AtOff K.E K.F K.code
 
-theorem Resume.imp {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → Q' i s) {fpC ro : ℕ} {G : Sig} {fpE : ℕ}
-    {m0 : Mem} (hr : Resume Q fpC ro G fpE m0) : Resume Q' fpC ro G fpE m0 :=
-  fun m h1 h2 h3 h4 h5 h6 h7 h8 h9 ↦ h _ _ (hr m h1 h2 h3 h4 h5 h6 h7 h8 h9)
+theorem Resume.imp {Ct : Cts} {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → Q' i s) {fpC ro t : ℕ} {G : Sig}
+    {fpE : ℕ} {m0 : Mem} (hr : Resume Ct Q fpC ro t G fpE m0) : Resume Ct Q' fpC ro t G fpE m0 :=
+  fun m h1 h2 h3 h4 h5 h6 h7 ↦ h _ _ (hr m h1 h2 h3 h4 h5 h6 h7)
 
-theorem Out.imp {K : Cert} {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → Q' i s) {i : ℕ} {s1 s' : St}
-    (ho : Out K Q i s1 s') : Out K Q' i s1 s' := by
+theorem Out.imp {Ct : Cts} {K : Cert} {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → Q' i s) {i : ℕ} {s1 s' : St}
+    (ho : Out Ct K Q i s1 s') : Out Ct K Q' i s1 s' := by
   cases ho with
   | move j h1 h2 h3 h4 => exact .move j h1 h2 h3 (h _ _ h4)
   | ret c h1 h2 h3 h4 h5 => exact .ret c h1 h2 h3 h4 h5
@@ -224,18 +224,19 @@ theorem Out.imp {K : Cert} {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → 
 `2^28` words, at states on its run where the frames of a core function have honest valuations. -/
 theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {adv : Advice} {C : Ctx}
     (hC : Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) (hK : CodeOk C K)
-    {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (hκ : κ ≤ 28)
+    {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (Ct : Cts) (hκ : κ ≤ 28)
     (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
-    (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) (hU : CoreMode.UsedNext C img Y) :
-    FrameSpec C (refMem img) Y K (guestQ T img K) := by
+    (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) (hU : CoreMode.UsedNext C img Y)
+    (hCt : ModeCts Ct K) :
+    FrameSpec C (refMem img) Y Ct K (guestQ T img K) := by
   by_cases hc : ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf
   · have hq : guestQ T img K = fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧
         CoreMode.CoreAt img Cf K.code i s := by
       unfold guestQ; rw [ite_eq_left hc]
     rw [hq]
     have hS : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → FnSpecC K Cf →
-        FrameSpec C (refMem img) Y K (CoreMode.CoreAt img Cf K.code) := fun Cf hCf he hs ↦
-      hs adv C hC ha hK img Y hκ hY (hH Cf hCf he) hU
+        FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code) := fun Cf hCf he hs ↦
+      hs adv C hC ha hK img Y Ct hκ hY (hH Cf hCf he) hU hCt
     obtain ⟨Cf0, hCf0, he0, hs0⟩ := hc
     refine ⟨fun hle hfp ⟨Cf, hCf, he, hs, hq⟩ ↦ ⟨Cf, hCf, he, hs, (hS Cf hCf he hs).mono hle hfp hq⟩,
       fun hA hf ↦ ⟨Cf0, hCf0, he0, hs0, (hS Cf0 hCf0 he0 hs0).entry hA hf⟩, ?_⟩
@@ -247,7 +248,7 @@ theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {ad
       unfold guestQ; rw [ite_eq_right hc]
     rw [hq]
     rcases h with h | h
-    · exact h adv C hC ha hK _ Y
+    · exact h adv C hC ha hK _ Y Ct hCt
     · exact absurd h hc
 
 /-- **A function on the walk meets its frame interface**: its walk, its length, its hints the
@@ -255,9 +256,9 @@ advice's and its loop's runs over its termination facts. -/
 theorem fnSpecW_of_walk {K : Cert} (hw : walk K.E K.F K.code = true) (hlen : K.F.len = K.code.length)
     (hh : HintsOk K.F Data.adviceHints)
     (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term) : FnSpecW K := by
-  intro adv C hC ha hK M Y
+  intro adv C hC ha hK M Y Ct hCt
   obtain ⟨hsize, -⟩ := ctx_of_spec hC
-  refine frameSpec_walk ⟨hw, hlen, hK.ops, fun i hi ↦ ?_⟩ hrng
+  refine frameSpec_walk ⟨hw, hlen, hK.ops, fun i hi ↦ ?_⟩ hrng hCt
   have hpc := code_pc hK hi
   rw [hsize] at hpc
   exact (ctx_hintsOk hC ha hh (hlen ▸ hi) hpc).symm
@@ -287,7 +288,7 @@ theorem hintsEq_of_fn {K : Cert} {Fh : List (ℕ × List Hint)} {j : ℕ} {d : �
 
 /-- **A function on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of {K : Cert} {Cf : CoreMode.CFun} (hok : CoreMode.CoreOk K Cf) : FnSpecC K Cf :=
-  fun _ _ hC ha hK _ _ _ hκ hY hH hU ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH hU
+  fun _ _ hC ha hK _ _ _ _ hκ hY hH hU hCt ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH hU hCt
 
 /-! ## On the guest -/
 
@@ -301,16 +302,16 @@ theorem guest_inv_rule {adv : Advice} {κ n : ℕ} {img : MemoryImage κ} {C : C
       C.ops[s.pc]? = some op →
       StepOk C (refMem img) (fun s' ↦ Pro s' ∨ StartMain Km E0 s') op ((C.hints[s.pc]?).getD []) s) :
     InvRule guestProgram img n C (refMem img)
-      (guestInv guestProgram Ks Km E0 (fun K ↦ AtOff K.E K.F K.code) X Pro) :=
+      (guestInv guestProgram Ks Km E0 (fun _ ↦ none) (fun K ↦ AtOff K.E K.F K.code) X Pro) :=
   inv_rule hκ hC P hW R hpro
 
 /-- **The invariant holds at the guest's initial state.** -/
 theorem guest_inv_init {adv : Advice} {input : PublicInput} {Ks : List Cert} {Km : Cert} {E0 : Env}
-    {Q : Cert → ℕ → St → Prop} {X Pro : St → Prop}
+    {Ct : Cts} {Q : Cert → ℕ → St → Prop} {X Pro : St → Prop}
     (hinit : ∀ C m, Ctx.of guestProgram adv = .ok C → initMem adv input = .ok m →
       X (initSt C adv m) ∧ Pro (initSt C adv m)) :
     ∀ C m, Ctx.of guestProgram adv = .ok C → initMem adv input = .ok m →
-      guestInv guestProgram Ks Km E0 Q X Pro (initSt C adv m) :=
+      guestInv guestProgram Ks Km E0 Ct Q X Pro (initSt C adv m) :=
   fun C m hC hm ↦ inv_init (hinit C m hC hm).1 (hinit C m hC hm).2
 
 end
