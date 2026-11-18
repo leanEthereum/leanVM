@@ -445,7 +445,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«rs_eq_rows__L4».cfun, Fn.«padding_weight__L28».cfun, Fn.«plus_one_run__L9».cfun,
-    Fn.«index_mle__L16».cfun, Fn.«squeeze_point_from__L20».cfun, Fn.«claim_list_last__L2».cfun]
+    Fn.«index_mle__L16».cfun, Fn.«squeeze_point_from__L20».cfun, Fn.«claim_list_last__L2».cfun,
+    Fn.«walk_path__L12_L3».cfun]
 
 end
 
@@ -670,8 +671,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem22)
     ⟨Fn.«level_positions__L19_L26_L2_loop0».modeOk,
     Fn.«level_positions__L19_L26_L2_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem23) ⟨Fn.«walk_path__L12_L3».modeOk,
-    Fn.«walk_path__L12_L3».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«walk_path__L12_L3».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl, Fn.«walk_path__L12_L3».fnSpecC⟩)
     (Mode.fa_nil))))))))))))))))))))))))
 
 end

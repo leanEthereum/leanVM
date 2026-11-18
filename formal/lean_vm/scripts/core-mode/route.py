@@ -146,11 +146,11 @@ def promised(G, np, body=(), loc=lambda v: None):
         if G[k] != []: return None
     cells = []
     for m in G['post']:
-        c = mono_cell(G, np, m)  # `CoreMode.sigOk`'s products: over parameters (`mono_post`, `baseOfP`, not yet)
+        c = mono_post(G, np, m, body, loc)  # `CoreMode.sigOk`'s `postIn`
         if c is None: return None
         cells.append(c)
     for q, lo, hi, S, d in G['postR']:
-        c = mono_cell(G, np, q)
+        c = mono_post(G, np, q, body, loc)
         if c is None or lo[0] != 'num' or hi[0] != 'num': return None
         a, b = lo[1], hi[1]
         cells += [(c[0], c[1] + S * (a + j) + d) for j in range(b - a)]

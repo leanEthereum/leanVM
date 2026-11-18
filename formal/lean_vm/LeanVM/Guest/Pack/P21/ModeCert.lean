@@ -11,7 +11,6 @@ public import LeanVM.Guest.CoreMode.Gen.«P21».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P21».Mode0
 public import LeanVM.Guest.Pack.«P21».Mode1
-public import LeanVM.Guest.Pack.«P21».Mode2
 public import LeanVM.Guest.Pack.«P21».ModeC
 public import LeanVM.Guest.Pack.«P21».ModeH
 meta import LeanVM.Guest.KernelLit
@@ -604,7 +603,7 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«rs_eq_rows__L0».cfun, Fn.«index_mle__L12».cfun, Fn.«squeeze_point_from__L24».cfun,
-    Fn.«claim_list_last__L6».cfun]
+    Fn.«claim_list_last__L6».cfun, Fn.«walk_path__L12_L7».cfun]
 
 end
 
@@ -931,8 +930,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem29)
     ⟨Fn.«level_residual__L73_L21_L6_L3_loop0».modeOk,
     Fn.«level_residual__L73_L21_L6_L3_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem30) ⟨Fn.«walk_path__L12_L7».modeOk,
-    Fn.«walk_path__L12_L7».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«walk_path__L12_L7».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«walk_path__L12_L7».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem31)
     ⟨Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».modeHintsOk⟩)

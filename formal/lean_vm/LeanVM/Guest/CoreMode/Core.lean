@@ -74,8 +74,10 @@ structure CFun where
 def CFun.sigOf (Cf : CFun) (f : String) : HSig :=
   bif f == Cf.fn.name then Cf.H.sig else (Cf.cs.lookup f).getD {}
 
-/-- The heap cells the function promises, over slots (parameters, then returned words). -/
-def CFun.posts (Cf : CFun) : List CCell := Cf.post.map (·.1) ++ Cf.H.sig.post
+/-- The heap cells the function promises, over slots (parameters, then returned words): milestone 1's
+over parameters, the heap signature's. -/
+def CFun.posts (Cf : CFun) : List CCell :=
+  (Cf.post.map (·.1)).filter (fun c ↦ preOver Cf.fn.params.length [c]) ++ Cf.H.sig.post
 
 /-- The pairing's context. -/
 noncomputable def CFun.P (Cf : CFun) : PairCtx := PairCtx.ofH Cf.X Cf.H Cf.frame.O Cf.frame.S
@@ -285,20 +287,21 @@ def rngIs (r : Mode.Rng) (q : CRun) : Bool :=
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no ghost slot; its heap preconditions each a cell or run of the signature's (over parameters);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
-`Cf.posts` or the heap signature's runs. -/
-def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
+`Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
+words a top-level `load` reads, among milestone 1's promised cells. -/
+noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty && G.postP.isEmpty && G.postLP.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.isEmpty && Cf.H.sig.prePR.isEmpty &&
     Cf.H.sig.pre.all (fun c ↦ G.pre.any (fun m ↦ monoS G np false m && monoIs m c) ||
       G.preR.any fun r ↦ monoS G np false r.q && ptIn c r) &&
     Cf.H.sig.preR.all (fun q ↦ G.preR.any fun r ↦ monoS G np false r.q && rngIs r q) &&
-    G.post.all (fun m ↦ monoR G np nr m && match monoC m with
+    G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
-      | none => false) &&
-    (G.postR.all fun r ↦ monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
+      | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m) &&
+    (G.postR.all fun r ↦ (monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
-      | _, _ => false)) && Nat.beq Cf.H.sig.ghosts 0
+      | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r) && Nat.beq Cf.H.sig.ghosts 0
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: no self frame pointer or pointer precondition, its header cells entry cells;
@@ -488,8 +491,7 @@ line, its promised cells over parameters), or the check with calls (`heapOkC`, a
 signatures `Cf.sigOf`, no termination fact or residual, no callee's returned word's monomial). -/
 inductive HeapK (Cf : CFun) : Prop
   | m1 : heapOk Cf.pows (fun _ ↦ .empty) Cf.fn Cf.H = true → postOk Cf.pows Cf.H Cf.post Cf.fn.body = true →
-      (stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) = true → preOver Cf.fn.params.length (Cf.post.map (·.1)) = true → Cf.H.sig.retM = [] →
-      HeapK Cf
+      (stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) = true → Cf.H.sig.retM = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → Cf.H.res = [] → callsB Cf = true →
       Cf.post = [] → HeapK Cf
 

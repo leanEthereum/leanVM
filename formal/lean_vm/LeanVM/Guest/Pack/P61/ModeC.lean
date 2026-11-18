@@ -67,6 +67,25 @@ end
 
 end LeanVM.Guest.Fn.«index_mle__L30»
 
+namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_factors__L6_L7_L128`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `da_factors__L6_L7_L128`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨249941, 504, Fn.«da_factors__L6_L7_L128».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
+
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L19»
 
 open LeanVM.Guest LeanVM.Guest.Exec

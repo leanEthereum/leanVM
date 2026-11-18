@@ -12,6 +12,24 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P32».Bundle
 public import LeanVM.Guest.Pack.«P32».ModeSig
 
+namespace LeanVM.Guest.Fn.«selector_tables»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `selector_tables`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `selector_tables`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨29567, 531, Fn.«selector_tables».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«selector_tables»
+
 namespace LeanVM.Guest.Fn.«block_selector__L31»
 
 open LeanVM.Guest LeanVM.Guest.Exec
