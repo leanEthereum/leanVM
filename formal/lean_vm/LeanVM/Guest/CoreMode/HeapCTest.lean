@@ -1192,6 +1192,94 @@ theorem useDV_bad :
       .atom (.load (.n 2) (.n 1) 0), .atom (.load (.n 3) (.n 2) 0), .ret []] } hUseDV = false := by
   decide +kernel
 
+/-- A frame run `p = [v₂, v₃, v₄]` (`frameAddr`), `v₂` by a hint and `v₃` by a constant after it, `v₄` never
+defined; `p` stored at `p₀[0]` (as `decode_query_windows`). -/
+def fa1 : Fn where
+  name := "fa1"
+  params := [.n 0]
+  body := [.atom (.frameAddr (.n 1) [.n 2, .n 3, .n 4]), .atom (.hint (.witness "s" (.stack [.n 2]))),
+    .atom (.const (.n 3) (word 0 0)), .atom (.load (.n 1) (.n 0) 0), .ret []]
+
+/-- `fa1`'s certificate: the word at `p₀[0]` points to two written cells, the frame run's cells `0` and `1`
+(`fas`), pushed at the return after the store's event (serials `1`, `2`). -/
+def hFa1 : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postP := [(⟨[(0, 1)], 0⟩, [0, 1])] }
+  reads := []
+  res := []
+  rets := [[.ev 0, .word 0, .ev 1, .ev 2]]
+  fas := [(1, 0), (1, 1)]
+
+theorem fa1_ok : heapOkC Data.powTree (fun _ ↦ .empty) fa1 hFa1 = true := by decide +kernel
+
+/-- The caller reads through the stored pointer (`usep`'s pattern). -/
+def useFa1 : Fn where
+  name := "useFa1"
+  params := [.n 0]
+  body := [.call "fa1" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 1), .ret []]
+
+def hUseFa1 : HCert where
+  sig := {}
+  reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 1, .pf 1)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+theorem useFa1_ok : heapOkC Data.powTree (fun g ↦ if g = "fa1" then hFa1.sig else .empty) useFa1 hUseFa1 = true := by
+  decide +kernel
+
+/-- Cell `2` of the run: its value `v₄` is defined by no atom. -/
+theorem fa1_bad_undef :
+    heapOkC Data.powTree (fun _ ↦ .empty) fa1
+      { hFa1 with sig := { post := [⟨[(0, 1)], 0⟩], postP := [(⟨[(0, 1)], 0⟩, [0, 2])] }, fas := [(1, 0), (1, 2)] } =
+      false := by
+  decide +kernel
+
+/-- No `fas`: the run's cells are not written. -/
+theorem fa1_bad_none : heapOkC Data.powTree (fun _ ↦ .empty) fa1 { hFa1 with fas := [] } = false := by decide +kernel
+
+/-- A `fas` naming a value that is no `frameAddr`'s pointer. -/
+theorem fa1_bad_ptr :
+    heapOkC Data.powTree (fun _ ↦ .empty) fa1 { hFa1 with fas := [(0, 0), (1, 1)] } = false := by
+  decide +kernel
+
+/-- The `frameAddr` under a branch: not on every path that returns. -/
+theorem fa1_bad_branch :
+    heapOkC Data.powTree (fun _ ↦ .empty)
+      { fa1 with body := [.ite (.n 0) [.atom (.frameAddr (.n 1) [.n 2, .n 3, .n 4])] [],
+        .atom (.hint (.witness "s" (.stack [.n 2]))), .atom (.const (.n 3) (word 0 0)), .atom (.load (.n 1) (.n 0) 0),
+        .ret []] } hFa1 = false := by
+  decide +kernel
+
+/-- The defining atoms past a statement with a `ret`: not on every path that returns. -/
+theorem fa1_bad_ret :
+    heapOkC Data.powTree (fun _ ↦ .empty)
+      { fa1 with body := [.atom (.frameAddr (.n 1) [.n 2, .n 3, .n 4]), .ite (.n 0) [.ret []] [],
+        .atom (.hint (.witness "s" (.stack [.n 2]))), .atom (.const (.n 3) (word 0 0)), .atom (.load (.n 1) (.n 0) 0),
+        .ret []] } { hFa1 with rets := [[], [.ev 0, .word 0, .ev 1, .ev 2]] } = false := by
+  decide +kernel
+
+/-- A frame run over values defined before it, its pointer moved by `g` and returned (as `da_expand`): the
+returned word's cell `0` is the run's cell `1`. -/
+def fa2 : Fn where
+  name := "fa2"
+  params := [.n 0]
+  body := [.atom (.mul (.n 1) (.n 0) (.n 0)), .atom (.add (.n 2) (.n 0) (.n 0)),
+    .atom (.frameAddr (.n 3) [.n 1, .n 2]), .atom (.const (.n 4) (word 2 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
+    .ret [.n 5]]
+
+/-- `fa2`'s certificate: `post` over the returned word (slot `1`), `p₃·g` in the pass, the run's cell `1`. -/
+def hFa2 : HCert where
+  sig := { post := [⟨[(1, 1)], 0⟩] }
+  reads := []
+  res := []
+  rets := [[.ev 0]]
+  fas := [(3, 1)]
+
+theorem fa2_ok : heapOkC Data.powTree (fun _ ↦ .empty) fa2 hFa2 = true := by decide +kernel
+
+/-- The run's cell `0` is not the returned word's cell `0`. -/
+theorem fa2_bad : heapOkC Data.powTree (fun _ ↦ .empty) fa2 { hFa2 with fas := [(3, 0)] } = false := by decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test
