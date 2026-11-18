@@ -5,15 +5,16 @@ Generates and verifies leanVM proofs, in a dedicated process, communicating with
 ## Running
 
 ```bash
-cargo build --release -p leanvm-sidecar
-target/release/leanvm-sidecar --socket /run/leanvm/sidecar.sock
+cargo build --release -p leanvm-sidecar --features experimental_prover
+mkdir -p -m 700 ~/.leanvm
+target/release/leanvm-sidecar --socket ~/.leanvm/sidecar.sock
 ```
 
-It runs the stable prover, or, built with `--features experimental_prover`, the experimental one (the same proofs, faster).
+Built so, it runs the experimental prover; without `--features experimental_prover`, the stable one (the same proofs, slower).
 
 | flag | default | meaning |
 | --- | --- | --- |
-| `--socket` | required | the socket to listen on |
+| `--socket` | required | the socket to listen on, in a directory that exists |
 | `--threads` | 0 | thread count, 0 for one per core |
 
 - It warms up (two discarded proofs) before listening, so the socket appears once it is ready. It logs to standard error.
@@ -28,7 +29,8 @@ It runs the stable prover, or, built with `--features experimental_prover`, the 
 From Rust, with `lean_vm = { features = ["sidecar"] }`, the client neither proves nor verifies itself: `lean_vm::sidecar::Client` does both, with the library's arguments, blobs as they are and proofs as bytes:
 
 ```rust
-let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock")?;
+let socket = std::path::Path::new(&std::env::var("HOME")?).join(".leanvm/sidecar.sock");
+let mut sidecar = lean_vm::sidecar::Client::connect(socket)?;
 let (claims, proof) = sidecar.aggregate(&children, &raw_lean_xmss, &[], &[], OutputClaims::All, 2)?;
 assert!(sidecar.verify(&claims, &proof)?);
 ```
