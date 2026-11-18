@@ -39,6 +39,20 @@ def quote(mod):
                                      re.fullmatch(r'P\d+', p)) else p for p in mod.split('.'))
 
 
+def frame_term(mod):
+    """The frame walk's acceptance from its module: one check, or a long function's windows chained."""
+    if '.FrameL' in mod:
+        return '⟨by decide +kernel, by decide +kernel, frameAcc⟩'
+    return 'CoreMode.frameAcc_of (by decide +kernel) frameOk'
+
+
+def pair_mod(g, n):
+    """The module of function `n`'s pairing in pack `g`: the pack's, or a long function's own (windows)."""
+    if os.path.exists(os.path.join(GEN, g, n, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.Gen.%s.%s.Ok' % (g, n)
+    return 'LeanVM.Guest.CoreMode.Gen.%s.Pair' % g
+
+
 def main():
     R = route.route_sub()
     packs = collections.defaultdict(list)
@@ -57,34 +71,47 @@ def main():
     tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
     files = {}
     for p, ks in sorted(packs.items()):
-        imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Gen.«%s».Ok' % p, 'LeanVM.Guest.CoreMode.Gen.«%s».Pair' % p,
+        imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Gen.«%s».Ok' % p, 'LeanVM.Guest.CoreMode.Small',
                 'LeanVM.Guest.Pack.«%s».ModeC' % p, 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
         body = []
         for k in ks:
             j = R[k]['j']
             imps.add(quote(frames[k])); imps.add(quote(codes[str(j)]))
+            imps.add(quote(pair_mod(p, k)))
             K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
             body.append(
                 f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
                 f'/-- `{k}`: what the core route knows of it. -/\n'
                 f'noncomputable def cfun : CoreMode.CFun :=\n'
                 f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, hpost⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
+                f'/-- `{k}`: its promised cells witnessed. -/\n'
+                f'theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by\n  decide +kernel\n\n'
+                f'/-- `{k}`: its signature translated. -/\n'
+                f'theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by\n'
+                f'  decide +kernel\n\n'
+                f'/-- `{k}`: its returned products. -/\n'
+                f'theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by\n  decide +kernel\n\n'
+                f'/-- `{k}`: its shape. -/\n'
+                f'theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by\n  decide +kernel\n\n'
+                f'/-- `{k}`: its reads of the jump table. -/\n'
+                f'theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by\n  decide +kernel\n\n'
                 f'/-- `{k}`: the kernel\'s checks of the core route, tied to its mode certificate. -/\n'
                 f'theorem core_ok : CoreMode.CoreOk {K} cfun where\n'
                 f'  heap := heap_ok\n'
-                f'  post := by decide +kernel\n'
+                f'  post := core_post\n'
                 f'  pair := pair_ok\n'
-                f'  frame := frameOk\n'
-                f'  sig := by decide +kernel\n'
-                f'  retv := by decide +kernel\n'
-                f'  shape := by decide +kernel\n'
+                f'  frame := {frame_term(frames[k])}\n'
+                f'  sig := core_sig\n'
+                f'  retv := core_retv\n'
+                f'  shape := core_shape\n'
+                f'  jtd := core_jtd\n'
                 f'  fsig := rfl\n'
                 f'  fentry := rfl\n'
                 f'  xentry := by decide +kernel\n'
                 f'  dhints := rfl\n'
                 f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
                 f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
-                f'  small := Mode.smallOps_of (by decide +kernel)\n'
+                f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
                 f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
                 f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n\n'
                 f'/-- `{k}`: its frame interface, by the core route. -/\n'

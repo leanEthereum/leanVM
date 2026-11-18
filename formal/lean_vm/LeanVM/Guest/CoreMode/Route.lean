@@ -17,8 +17,8 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
-honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`, its returned values at their cells,
-each dereferenced pointer at its certificate cell within the frame, no hint-only cell.
+honest frames have them (`honB`): its body the core route's shape, its parameters `V.n k` at cells `2 + k`, its returned values at
+their cells, each dereferenced pointer at its certificate cell within the frame, no hint-only cell; not `main`, no chained `match`.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -41,12 +41,36 @@ noncomputable def retCellB (j : ℕ) : Stmt → Bool
       decide (2 ≤ B2C.cellJ j v) && decide (B2C.cellJ j v < B2C.fsN j)
   | _ => true
 
-/-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers at their cells. -/
+/-- A value at its certificate cell within the frame, not a hint-only value. -/
+noncomputable def cellB (j : ℕ) (v : V) : Bool :=
+  ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) && decide (2 ≤ B2C.cellJ j v) &&
+    decide (B2C.cellJ j v < B2C.fsN j)
+
+/-- No `match` among the statements. -/
+def noMatch (l : List Stmt) : Bool :=
+  l.all fun s ↦ match s with
+    | .match_ .. => false
+    | _ => true
+
+/-- **Each `match` of a body at its top level**, its selector used by a top-level atom before it (`seen`)
+and at its certificate cell; none nested, none past a `ret`. -/
+noncomputable def selGo (j : ℕ) : List Atom → List Stmt → Bool
+  | _, [] => true
+  | seen, .atom a :: ss => selGo j (a :: seen) ss
+  | seen, .match_ x arms :: ss => cellB j x && seen.any (fun a ↦ decide (x ∈ Memory.atomUses a)) &&
+      noMatch (Bridge.stmtsArms arms) && selGo j seen ss
+  | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selGo j seen ss
+  | _, .ret _ :: ss => noMatch (Bridge.stmtsOf ss)
+  | _, _ :: _ => false
+
+/-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
+at their cells; `j` neither `main` nor with chained `match`es. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
-  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && straight fn.body &&
-    fn.body.all (ptrCellB j) && paramsN fn.params 0 &&
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && bodyC fn.body &&
+    (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    fn.body.all (retCellB j)
+    (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty &&
+    selGo j [] fn.body
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=

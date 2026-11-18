@@ -197,7 +197,8 @@ theorem plainStep_pos {P : PairCtx} {i : ℕ} {ins : OffsetInstruction} {z z' : 
       z.pos = bs.map Stmt.atom ++ .atom (.load d p off) :: (cs.map Stmt.atom ++ z'.pos) ∧
       (∀ a ∈ bs, stopS P.R a = false) ∧ (∀ a ∈ cs, stopL a = false) ∧ cellsAt P.X o1 o2 o3 d p off = true ∧
       hasP P.O i = isRead P.R (.load d p off) ∧ hasP P.S i = !isRead P.R (.load d p off)) ∨
-    (z' = z ∧ hasP P.O i = false ∧ hasP P.S i = false) := by
+    (z' = z ∧ hasP P.S i = false ∧ (hasP P.O i = false ∨
+      ∃ o1 o2 o3, ins = .deref o1 o2 o3 .cell ∧ jtd P.X o1 o2 o3 = true)) := by
   unfold plainStep at h
   split at h
   · rename_i o1 o2 o3
@@ -214,11 +215,16 @@ theorem plainStep_pos {P : PairCtx} {i : ℕ} {ins : OffsetInstruction} {z z' : 
       · cases h
     · simp only [Bool.cond_eq_ite] at h
       split at h
-      · rename_i hk; cases h; exact Or.inr ⟨rfl, kindOk_none hk⟩
+      · rename_i hk
+        cases h
+        rcases Bool.or_eq_true_iff.mp hk with hk | hk
+        · exact Or.inr ⟨rfl, (kindOk_none hk).2, Or.inl (kindOk_none hk).1⟩
+        · simp only [Bool.and_eq_true, Bool.not_eq_true'] at hk
+          exact Or.inr ⟨rfl, hk.2, Or.inr ⟨o1, o2, o3, rfl, hk.1⟩⟩
       · cases h
   · simp only [Bool.cond_eq_ite] at h
     split at h
-    · rename_i hk; cases h; exact Or.inr ⟨rfl, kindOk_none hk⟩
+    · rename_i hk; cases h; exact Or.inr ⟨rfl, (kindOk_none hk).2, Or.inl (kindOk_none hk).1⟩
     · cases h
 
 /-! ## The pairing at an offset -/
@@ -239,7 +245,8 @@ theorem pairAt_step {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : Li
             cellsAt X o1 o2 o3 dv pv off = true ∧
             pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some pos' ∧
             hasP O i = (H.readWit dv pv off).isSome ∧ hasP S i = !(H.readWit dv pv off).isSome) ∨
-          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ hasP O i = false ∧ hasP S i = false))) ∨
+          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ hasP S i = false ∧
+            (hasP O i = false ∨ ∃ o1 o2 o3, ins = .deref o1 o2 o3 .cell ∧ jtd X o1 o2 o3 = true)))) ∨
       ∃ oc od of zs, ins = .jump oc od of ∧ hasP O i = false ∧ hasP S i = false ∧
         (PairCtx.ofH X H O S).nS z = some zs ∧ ZOk body zs ∧
         (∃ bs : List Atom, z.pos = bs.map Stmt.atom ++ zs.pos ∧ ∀ a ∈ bs, stopS H.readT a = false) ∧
@@ -358,7 +365,7 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {o1 o2 o3 : ℕ}
-    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true)
+    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true) (hjt : jtd X o1 o2 o3 = false)
     {σ : Val} {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsWritten H σ (pre ++ es)) :
     ∃ (as : List Atom) (dv pv : V) (off : ℕ),
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
@@ -368,7 +375,7 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
   obtain ⟨ins, z, as, hins', -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hins] at hins'
   cases hins'
-  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, hO', -⟩⟩ |
+  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, -, hO'⟩⟩ |
     ⟨oc, od, of, -, heq, -⟩
   · simp only [OffsetInstruction.deref.injEq] at heq
     obtain ⟨rfl, rfl, rfl, -⟩ := heq
@@ -394,7 +401,11 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     · exact Or.inl h
     · rw [List.mem_filter] at ha
       exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
-  · simp [hO] at hO'
+  · rcases hO' with hO' | ⟨o1', o2', o3', heq, hj⟩
+    · simp [hO] at hO'
+    · simp only [OffsetInstruction.deref.injEq] at heq
+      obtain ⟨rfl, rfl, rfl, -⟩ := heq
+      simp [hjt] at hj
   · cases heq
 
 /-- **Atoms on the path add to `Written` only what those among `fs` write**, the others no stores:

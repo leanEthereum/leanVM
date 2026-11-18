@@ -12,6 +12,7 @@ public import LeanVM.Guest.Checked.Link1
 public import LeanVM.Guest.CoreMode.Gen.«P58».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
 public import LeanVM.Guest.CoreMode.Pack.«P58».Frame0
+public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«P58».ModeC
@@ -35,22 +36,43 @@ public section
 
 attribute [local irreducible] pairO pairS
 
+/-- `eq_prefix_run__L2`: its promised cells witnessed. -/
+theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L2`: its signature translated. -/
+theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L2`: its returned products. -/
+theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L2`: its shape. -/
+theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L2`: its reads of the jump table. -/
+theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
+  decide +kernel
+
 /-- `eq_prefix_run__L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_ok
-  post := by decide +kernel
+  post := core_post
   pair := pair_ok
-  frame := frameOk
-  sig := by decide +kernel
-  retv := by decide +kernel
-  shape := by decide +kernel
+  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
+  sig := core_sig
+  retv := core_retv
+  shape := core_shape
+  jtd := core_jtd
   fsig := rfl
   fentry := rfl
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 44) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code44 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (by decide +kernel)
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code44 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
 
@@ -77,22 +99,43 @@ public section
 
 attribute [local irreducible] pairO pairS
 
+/-- `eq_prefix_run__L19`: its promised cells witnessed. -/
+theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L19`: its signature translated. -/
+theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L19`: its returned products. -/
+theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L19`: its shape. -/
+theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L19`: its reads of the jump table. -/
+theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
+  decide +kernel
+
 /-- `eq_prefix_run__L19`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_ok
-  post := by decide +kernel
+  post := core_post
   pair := pair_ok
-  frame := frameOk
-  sig := by decide +kernel
-  retv := by decide +kernel
-  shape := by decide +kernel
+  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
+  sig := core_sig
+  retv := core_retv
+  shape := core_shape
+  jtd := core_jtd
   fsig := rfl
   fentry := rfl
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 61) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code61 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (by decide +kernel)
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code61 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
 
@@ -119,22 +162,43 @@ public section
 
 attribute [local irreducible] pairO pairS
 
+/-- `plus_one_run__L26`: its promised cells witnessed. -/
+theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by
+  decide +kernel
+
+/-- `plus_one_run__L26`: its signature translated. -/
+theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+  decide +kernel
+
+/-- `plus_one_run__L26`: its returned products. -/
+theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+  decide +kernel
+
+/-- `plus_one_run__L26`: its shape. -/
+theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
+  decide +kernel
+
+/-- `plus_one_run__L26`: its reads of the jump table. -/
+theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
+  decide +kernel
+
 /-- `plus_one_run__L26`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_ok
-  post := by decide +kernel
+  post := core_post
   pair := pair_ok
-  frame := frameOk
-  sig := by decide +kernel
-  retv := by decide +kernel
-  shape := by decide +kernel
+  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
+  sig := core_sig
+  retv := core_retv
+  shape := core_shape
+  jtd := core_jtd
   fsig := rfl
   fentry := rfl
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 157) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code157 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (by decide +kernel)
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code157 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
 
@@ -161,22 +225,43 @@ public section
 
 attribute [local irreducible] pairO pairS
 
+/-- `block_selector__L15`: its promised cells witnessed. -/
+theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by
+  decide +kernel
+
+/-- `block_selector__L15`: its signature translated. -/
+theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+  decide +kernel
+
+/-- `block_selector__L15`: its returned products. -/
+theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+  decide +kernel
+
+/-- `block_selector__L15`: its shape. -/
+theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
+  decide +kernel
+
+/-- `block_selector__L15`: its reads of the jump table. -/
+theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
+  decide +kernel
+
 /-- `block_selector__L15`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_ok
-  post := by decide +kernel
+  post := core_post
   pair := pair_ok
-  frame := frameOk
-  sig := by decide +kernel
-  retv := by decide +kernel
-  shape := by decide +kernel
+  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
+  sig := core_sig
+  retv := core_retv
+  shape := core_shape
+  jtd := core_jtd
   fsig := rfl
   fentry := rfl
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 180) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code180 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (by decide +kernel)
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code180 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
 

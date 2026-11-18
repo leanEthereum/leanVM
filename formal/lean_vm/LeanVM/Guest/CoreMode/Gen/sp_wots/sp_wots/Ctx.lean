@@ -19,7 +19,7 @@ open LeanVM.Guest
 
 /-- `sp_wots`: the offsets of its reads' `DEREF`s, the oracle. -/
 noncomputable def pairO : Exec.Trie Unit :=
-  CoreMode.offsT []
+  CoreMode.offsT [25, 1117, 2240, 3364, 4488, 5612, 6736, 7860, 8984, 10108, 11231, 12355, 13479, 14603, 15727, 16851, 17975, 19099, 20223, 21347, 22471, 23596]
 
 /-- `sp_wots`: the offsets of its stores' `DEREF`s. -/
 noncomputable def pairS : Exec.Trie Unit :=
