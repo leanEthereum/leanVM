@@ -88,6 +88,8 @@ noncomputable def loopShapeOk (Cf : CFun) : Bool :=
 structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
   res : Cf.H.res = []
+  ders : Cf.H.ders = []
+  nofa : noFA Cf.fn.body = true
   cs : Cf.cs = []
   body : loopB Cf.fn = true
   code : loopCode Cf.X K.code = true
@@ -160,7 +162,7 @@ its termination fact holding: every event's needs written before it, its guarant
 theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd : Reader} {es : List Ev}
     {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) {s : St}
     (hP : ParAt K.F.sig Cf.fn.params.length s (Cf.fn.params.map σ)) (hT : ∀ p ∈ K.F.sig.term, LTF s p.1 p.2) :
-    ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧ PostOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
+    ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧ PostOkW Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
   have hs := sigL_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e _ ↦ by
@@ -170,8 +172,8 @@ theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd
         cases hf : (f == Cf.fn.name) <;> simp_all [hs.hretM, hs.hpostV, hs.hretEq]
     | _ => trivial
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryF hs hP hT)
-    (resF_nil hok.res σ)
-  exact ⟨hr, hp⟩
+    (resF_nil hok.res σ) (derOk_nil hok.ders rd σ)
+  exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The signature at a frame -/
 
@@ -416,7 +418,7 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
       hPN.mono (s := stOf s'.mem s'.fp) (s' := stOf m' s'.fp) hm' rfl
     have hnext := postSet_of_retAll (rd := rd) hs hPN' hR
     obtain ⟨-, hposts⟩ := loop_heap hok hb hh0 hP0 hT
-    simp only [PostOkC, List.map_nil, List.append_nil] at hposts
+    simp only [PostOkW, List.map_nil, List.append_nil] at hposts
     have hWall : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK m' x := by
       intro x hx
       rw [heq, ← List.append_assoc] at hx
@@ -437,6 +439,7 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
   · -- the next iteration's entry facts: the tail call's preconditions
     have hreq := hrw0 (pre ++ evs ++ [Ev.inK c]) (.call Cf.fn.name args []) (cs.map Ev.atom)
       (by rw [heq]; simp)
+    replace hreq := callReq_pre hok.ders hreq
     have hreqS := hreq.2.1
     have hga : gargsW Cf.H σ0 Cf.fn.name args = [] := by
       rw [← List.length_eq_zero_iff]
@@ -482,7 +485,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
     unfold heapOkC at h
     simp only [Bool.and_eq_true] at h
     rw [List.range_eq_range']
-    exact paramsN_eq _ 0 h.1.1.1.1
+    exact paramsN_eq _ 0 h.1.1.1.1.1
   set np := Cf.fn.params.length with hnp
   have hws0 : ∀ {fp : ℕ} {σ : Val}, HonF img Cf fp σ →
       ∀ b < np, Rd img fp (2 + b) = some (slotW (Cf.fn.params.map σ) b) := by
@@ -701,7 +704,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
                 (fun q hq ↦ hσ0.ptr _ _ hb a q (List.mem_append_right _ hma) hq) hwa
           have hvs : vs = [] := (hselfs hσ0 hb).2
           subst hvs
-          simp only [PostOkC, List.map_nil, List.append_nil] at hposts
+          simp only [PostOkW, List.map_nil, List.append_nil] at hposts
           exact retAll_of_wrk hs (hP1 hσ0) hT1 (fun c hc ↦ W1 _ (hposts.1.1 c hc))
             (fun r hr x hx ↦ W1 x (hposts.1.2 r hr x hx))
       · -- the tail call

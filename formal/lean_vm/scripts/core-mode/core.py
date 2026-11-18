@@ -102,7 +102,7 @@ def cfun_c(k, j, K, frame):
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
-            + checks(k, j, K, frame, '.c heap_okC rfl rfl (by decide +kernel) rfl'))
+            + checks(k, j, K, frame, '.c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)'))
 
 
 def cfun_l(k, j, K, frame):
@@ -126,6 +126,8 @@ def cfun_l(k, j, K, frame):
             f'theorem loop_ok : CoreMode.LoopOk {K} cfun where\n'
             f'  heap := heap_okC\n'
             f'  res := rfl\n'
+            f'  ders := rfl\n'
+            f'  nofa := by decide +kernel\n'
             f'  cs := rfl\n'
             f'  body := by decide +kernel\n'
             f'  code := loop_code\n'

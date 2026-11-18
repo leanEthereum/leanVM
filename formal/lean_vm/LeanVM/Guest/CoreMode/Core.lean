@@ -607,6 +607,12 @@ noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
     !Cf.frame.F.fpOne && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
+/-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
+def noFA (body : List Stmt) : Bool :=
+  (stmtsOf body).all fun s ↦ match s with
+    | .atom (.frameAddr ..) => false
+    | _ => true
+
 /-- **The heap check of a function on the core route**: milestone 1's (`heapOk`, `postOk`, straight
 line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
 signatures `Cf.sigOf`, no termination fact or residual, no callee's returned word's monomial). -/
@@ -615,7 +621,7 @@ inductive HeapK (Cf : CFun) : Prop
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty) = true →
       Cf.H.sig.retM = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → Cf.H.res = [] → callsB Cf = true →
-      Cf.post = [] → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
 
 /-- **The kernel's checks of a function on the core route**, and its ties to its mode certificate
 `K`: the code, entry and signatures, the advice's hints at its pcs, its fetches, its operands small,

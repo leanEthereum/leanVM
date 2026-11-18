@@ -482,6 +482,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code
@@ -551,7 +553,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -620,7 +622,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -689,7 +691,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -758,7 +760,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl rfl (by decide +kernel) rfl rfl (by decide +kernel)
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -821,6 +823,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code
@@ -884,6 +888,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code
@@ -947,6 +953,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code
@@ -1010,6 +1018,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code
@@ -1073,6 +1083,8 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   res := rfl
+  ders := rfl
+  nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
   code := loop_code

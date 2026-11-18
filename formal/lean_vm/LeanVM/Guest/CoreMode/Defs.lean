@@ -138,6 +138,16 @@ inductive Wit where
   /-- Leading a dispatch's witnesses: its returned word `j` is a pointer whose cells at the offsets
   every arm kept writes (each arm's witnesses of them follow its preconditions'). -/
   | vp (j : ℕ) (offs : List ℕ)
+  /-- A run needed, split at the symbolic index `k`: `k·h` is the upper bound's word (`eqV`), `k`'s and
+  `h`'s exponents exist by facts of these residuals; the witnesses of the part below `k`, then of the
+  part from `k` (base times `k^stride`, from `g^0` to `h`), follow, each possibly `cat` or `mrg`. -/
+  | catM (k h : CCell) (res : List ℕ)
+  /-- `mrg` with its root given: the root's `s`-th power is the upper bound's word (`eqV`). -/
+  | mrgE (s : ℕ) (r : CCell) (res : List ℕ)
+  /-- Leading a dispatch's witnesses (after its `vp`s): every kept arm `j` writes the run
+  `⟨q, stride, 0, j + d⟩` (its witnesses follow the arm's `vp` points), so after the dispatch the run
+  `⟨q, stride, g^0, x·g^d⟩` is written, `x` the selector. -/
+  | ab (q : CCell) (stride d : ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
@@ -192,6 +202,12 @@ structure HCert where
   /-- Atoms whose equation the pass keeps, by value number: a `mul d a b` by `d` (`d`'s monomial is
   `a`'s times `b`'s), an `assertEq a b` by `a`, a `copy d s` by `d`. -/
   eqs : List ℕ := []
+  /-- Frame run cells guaranteed at return, `(kp, i)`: cell `i` of a `frameAddr (V.n kp) run` among the
+  top-level atoms before the body's first `ret`, `run[i]` defined by one of them (`HeapC.lean`, `faOk`). -/
+  fas : List (ℕ × ℕ) := []
+  /-- Words at cells (`HeapC.lean`, `DB`): value `DB + k` is the word at the cell `ders[k]`, over this
+  function's values; callees' ghost monomials (`gargs`) may name it. -/
+  ders : List CCell := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

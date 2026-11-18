@@ -225,6 +225,29 @@ theorem pow_of_ofK {a b : ℕ} (h : ofK ((g : K) ^ a) = ofK (g ^ b)) : (g : K) ^
 
 /-! ## The heap facts -/
 
+/-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
+def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
+    (vs : List V) : Prop :=
+  SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ)
+
+/-- A body without `frameAddr` atoms guarantees no frame run cell (`FAW`). -/
+theorem noFAW {body : List Stmt} (h : noFA body = true) {σ : Val} {es : List Ev} {vs : List V}
+    (hw : walk σ body = .ret es vs) (x : K) : ¬ FAW σ es x := by
+  rintro ⟨p, run, i, v, he, -⟩
+  have hs := Bridge.walk_atomS body (by rw [hw]; exact he)
+  have := List.all_eq_true.mp h _ hs
+  simp at this
+
+theorem postOkW_of {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E} {es : List Ev}
+    {vs : List V} (hn : ∀ x, ¬ FAW σ es x) (h : PostOkC sigOf H rd σ ws0 es vs) : PostOkW sigOf H rd σ ws0 es vs :=
+  ⟨h.1.mono fun x hx ↦ hx.resolve_right (hn x), fun x hx ↦ (h.2 x hx).resolve_right (hn x)⟩
+
+/-- A call needs its callee's preconditions written, no word at a cell (`HCert.ders`) among its ghosts. -/
+theorem callReq_pre {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {W : K → Prop} {g : String}
+    {args : List V} (hd : H.ders = []) (h : CallReq sigOf H rd σ W g args) : CallPre sigOf H rd σ W g args :=
+  h.2 fun k _ c hc ↦ by rw [hd] at hc; cases hc
+
 /-- What made a call event of a body the core route takes: a `call` statement, or a `callIf`
 returning nothing. -/
 theorem body_callS {body : List Stmt} (hb : bodyC body = true) {σ : Val} {es : List Ev} {vs : List V}
@@ -308,11 +331,11 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
       rw [List.append_nil] at ha
       rw [hv, ha]
       exact h1
-  | c hok hterm hres hcb hpost =>
+  | c hok hterm hres hcb hpost hders hnofa =>
     have hok' := hok
     unfold heapOkC at hok'
     simp only [Bool.and_eq_true] at hok'
-    obtain ⟨⟨⟨⟨hpar, -⟩, -⟩, -⟩, -⟩ := hok'
+    obtain ⟨⟨⟨⟨⟨hpar, -⟩, -⟩, -⟩, -⟩, -⟩ := hok'
     have hpar' : Cf.fn.params = (List.range Cf.fn.params.length).map V.n := by
       rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
@@ -327,8 +350,9 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
         · rw [h2] at him; cases him
         · rw [h3] at hp; cases hp
       | _ => trivial
-    obtain ⟨hreads, ⟨⟨hpc, hpr⟩, hptr⟩, hretm, -⟩ := heapOkC_sound hp hok hself hw hh hM
-      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) (resF_nil hres σ)
+    obtain ⟨hreads, hpo, hretm, -⟩ := heapOkC_sound hp hok hself hw hh hM
+      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) (resF_nil hres σ) (derOk_nil hders rd σ)
+    obtain ⟨⟨hpc, hpr⟩, hptr⟩ := postOkW_of (noFAW hnofa hw) hpo
     refine ⟨hpar', hreads, fun c hc ↦ ?_, fun r hr x hx ↦ hpr r hr x hx, hretm,
       fun p hp' ↦ (by rw [hpost] at hp'; cases hp'), hptr⟩
     simp only [CFun.posts, hpost, List.map_nil, List.filter_nil, List.nil_append] at hc
@@ -342,7 +366,17 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {�
   | m1 _ _ hstr0 _ =>
     simp only [Bool.and_eq_true] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ <;> simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
-  | c _ _ _ hcb _ => exact hcb
+  | c _ _ _ hcb _ _ _ => exact hcb
+
+/-- A path through a call: no word at a cell among the heap certificate's ghosts. -/
+theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) {f : String} {args rets : List V}
+    (he : Ev.call f args rets ∈ es) : Cf.H.ders = [] := by
+  cases hk with
+  | m1 _ _ hstr0 _ =>
+    simp only [Bool.and_eq_true] at hstr0
+    rcases body_callS hst hw he with h | ⟨-, c, h⟩ <;> simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
+  | c _ _ _ _ _ hd _ => exact hd
 
 /-- **A call's callee runs' bounds have exponents** (`callsB`'s `idxPow`). -/
 theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets : List V}
@@ -835,7 +869,7 @@ theorem heapK_params {Cf : CFun} (hk : HeapK Cf) : Cf.fn.params = (List.range Cf
   have h : paramsN Cf.fn.params 0 = true := by
     cases hk with
     | m1 hok _ _ _ => unfold heapOk at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1
-    | c hok _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1
+    | c hok _ _ _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1.1
   rw [List.range_eq_range']; exact paramsN_eq _ 0 h
 
 theorem fwdOff_spec {X : AlignCtx} {i t o : ℕ} (h : X.fwdOff i t = some o) : X.entry + i < t ∧ o = t - X.entry := by
@@ -1960,7 +1994,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 rw [hwsE b (by omega), List.map_append, slotW_lt (by simpa using hb')]) hentry.w hm'
             have hW1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x :=
               fun x hx ↦ (hWs1 x hx).mono hle'
-            obtain ⟨hgl, ⟨hrpre, hrpreR⟩, hrptr⟩ := hreq
+            obtain ⟨hgl, ⟨hrpre, hrpreR⟩, hrptr⟩ := callReq_pre (ders_of hok.heap hbody hb hcallE) hreq
             have hga : gargsW Cf.H σ0 f args = [] := by
               rw [← List.length_eq_zero_iff]
               simp only [gargsW, List.length_map, hgl]
