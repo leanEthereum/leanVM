@@ -66,8 +66,7 @@ open LeanVM.Guest.CoreMode
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
     | "fold_final_msg__L2" => Fn.«fold_final_msg__L2».hcert.sig
-    | "grind_check__L15" => Fn.«grind_check__L15».hcert.sig
-    | "grind_check__L17" => Fn.«grind_check__L17».hcert.sig
+    | "grind_check__L15" => Fn.«grind_check__L15».hcert.sig | "grind_check__L17" => Fn.«grind_check__L17».hcert.sig
     | "level_positions__L11_L22_L4" => Fn.«level_positions__L11_L22_L4».hcert.sig
     | "level_positions__L14_L26_L2" => Fn.«level_positions__L14_L26_L2».hcert.sig
     | "level_positions__L15_L25_L7" => Fn.«level_positions__L15_L25_L7».hcert.sig
@@ -135,14 +134,12 @@ noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
     | "level_residual__L73_L22_L6_L3" => Fn.«level_residual__L73_L22_L6_L3».hcert.sig
     | "opening_message__L6_L1" => Fn.«opening_message__L6_L1».hcert.sig
     | "opening_message__L8_L1" => Fn.«opening_message__L8_L1».hcert.sig
-    | "opening_round" => Fn.«opening_round».hcert.sig
-    | "opening_tail_round" => Fn.«opening_tail_round».hcert.sig
+    | "opening_round" => Fn.«opening_round».hcert.sig | "opening_tail_round" => Fn.«opening_tail_round».hcert.sig
     | "squeeze_point_from__L10" => Fn.«squeeze_point_from__L10».hcert.sig
     | "squeeze_point_from__L14" => Fn.«squeeze_point_from__L14».hcert.sig
     | "squeeze_point_from__L18" => Fn.«squeeze_point_from__L18».hcert.sig
     | "squeeze_point_from__L22" => Fn.«squeeze_point_from__L22».hcert.sig
-    | "squeeze_point_from__L6" => Fn.«squeeze_point_from__L6».hcert.sig
-    | _ => .empty)
+    | "squeeze_point_from__L6" => Fn.«squeeze_point_from__L6».hcert.sig | _ => .empty)
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L8».HeapW

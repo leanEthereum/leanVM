@@ -706,21 +706,16 @@ def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 4)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 8, .run 11 [])]), (14, [(5, 9, .run 12 [])])]
+  reads := [(13, [(5, 8, .run 4 [])]), (14, [(5, 9, .run 5 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [],
+        .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [],
+        .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [],
+        .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L32_L7_L4_L2»

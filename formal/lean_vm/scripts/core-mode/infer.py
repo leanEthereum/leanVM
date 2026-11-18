@@ -252,6 +252,8 @@ class Sig:
         self.retEq = []      # (x, y): monomials over the parameters and returned words (`m + j`), equal at return
         self.retP = {}       # returned word j -> offsets `o` with `ret_j·g^o` written at return
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
+        self.noptr = set()   # a loop's record cells over its counter whose next one the iteration stores: no pointer
+                             # facts over them (a caller cannot have written the table), reads through them by `obj`
         self.ctr = None      # a loop's counter and bound parameters
         self.bnd = None
 
@@ -268,6 +270,7 @@ class Sig:
         G.retM, G.ctr, G.bnd = dict(self.retM), self.ctr, self.bnd
         G.retIn, G.narrow = dict(self.retIn), dict(self.narrow)
         G.retP = dict(self.retP)
+        G.noptr = set(self.noptr)
         return G
 
     def size(self):
@@ -577,7 +580,7 @@ class Pass:
         if best is not None and best[3] and best[4]:
             self.stats['w-run'] += 1
             return ('run', best[1], used)
-        if 'retP' in F and c[0] and c[1] < 2 ** 20 and not getattr(self, 'in_pre', False):
+        if 'retP' in F and c[0] and c[1] < 2 ** 20 and getattr(self, 'in_pre', 0) < 2:
             w = self.prepend(st, c, site, allow_pre, conds)
             if w is not None:
                 return w
@@ -589,6 +592,8 @@ class Pass:
         if 'ptr' in F and len(c[0]) == 1 and c[0][0][1] == 1:
             d = c[0][0][0]
             s = st.src.get(d)
+            if s is not None and s[0] in self.sig.noptr:
+                s = None
             if s is not None:
                 f = st.pf.get(s[0])
                 if f is not None and c[1] in f[0]:
@@ -617,7 +622,8 @@ class Pass:
                             return ('run', ('preR', self.sig.preR.index(r)), [])
             if arm_only:
                 return None
-            if allow_pre and not self.at_tail and self.iface(c) and c[0]:
+            if allow_pre and not self.at_tail and self.iface(c) and (c[0] or self.key == 'main' and 0 <= c[1] < 2 ** 20):
+                # (an absolute cell only for the root: its preconditions are the public input's cells, `preSet_const`)
                 if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
                     if c not in self.sig.pre:
                         self.sig.pre.append(c)
@@ -632,7 +638,7 @@ class Pass:
         # under a selector's arm, a point precondition binds every caller to what only that arm reads: the object's
         # run with a residual (asked under the arm's path) goes first
         late = 'obj' in F and any(p[0] == 'arm' for p in self.path) and len(c[0]) == 1 and c[0][0][1] == 1 \
-            and c[0][0][0] < self.m and c[1] < 2 ** 20
+            and c[0][0][0] < self.m and c[1] < 2 ** 20 and c not in self.sig.pre
         w = pre_point(arm_only=late)
         if w is not None:
             return w
@@ -741,11 +747,12 @@ class Pass:
             j = self.idx_in(c, R2)
             if j is None or negidx(j) or ioff(j, shift(hi, 1)) is None or ioff(j, shift(hi, 1)) <= 0:
                 continue
-            self.in_pre = True
+            # the point itself possibly before another run (one level: a chain's record after two loops)
+            self.in_pre = getattr(self, 'in_pre', 0) + 1
             try:
                 w = self.cover(st, Q, site, allow_pre=allow_pre, conds=conds)
             finally:
-                self.in_pre = False
+                self.in_pre -= 1
             if w is None or w[0] == 'run' and w[2]:
                 continue
             k = self.addres(('sub', R2, (r, Q), 'concat'))
@@ -1381,7 +1388,7 @@ class Pass:
             st.runs = runs + [x for x in st.runs if x[0] not in {r for r, _ in runs}]
         self.fact(st, xm, num(len(fs)), 'selector', cidx=(('val', x), ('num', len(fs))))
         if 'armblock' in F:
-            self.arm_blocks(st, xm, outs)
+            self.arm_blocks(st, xm, outs, (x, tuple(s[2]), tuple(args)))
 
     def common_ghosts(self, st, x, fs, args):
         """A callee in several arms of a dispatch has one ghost instantiation (`HCert.gargs` is keyed by callee and
@@ -1456,7 +1463,7 @@ class Pass:
                 self.calls.append((('retP', v), [('retP', w[o]) for w in ws for o in sorted(common)]))
         return out
 
-    def arm_blocks(self, st, xm, outs):
+    def arm_blocks(self, st, xm, outs, key=None):
         """Arms of a selector `x` each writing a growing block `Q·g^(c..j+c)`, `c <= 0`: the run `Q·[0, e(x) + d)`
         (`armBlocks`), `d` the least block's excess over its arm index."""
         if len(outs) < 3 or any(t is None for t in outs) or not xm[0]:
@@ -1479,6 +1486,9 @@ class Pass:
             if d < 0 or K * (len(outs) - 1) + d < 2:
                 continue
             r = ((Q, 0), 1, num(0), shift(mpow(xm, K), d))
+            if d % K == 0 and key is not None:
+                # the dispatch's blocks, for the check's `ab` (`emitc.py`): `K` residue runs of stride `K`
+                self.__dict__.setdefault('armblk', {}).setdefault(key, []).append(((Q, 0), K, d))
             self.stats['arm-block'] += 1
             self.pushR(st, r)
 
@@ -1670,6 +1680,7 @@ def infer(key, rules=True):
             loop_finish(P, G)
         else:
             retsig(P, G)
+            coalesce_pre(G)
         k = G.key()
         if 'obj' in F:
             import objs
@@ -1682,6 +1693,23 @@ def infer(key, rules=True):
         SIGS[key] = G
     P.iters = it + 1
     return P
+
+
+def coalesce_pre(G):
+    """Constant residue preconditions `⟨Q·g^r, S, 0, n⟩`, every `r < S`, as the one run `⟨Q, 1, 0, S·n⟩` (the same
+    cells): the function's callees then take their residues by points (`ptsrun`), its callers meet one run."""
+    by = collections.defaultdict(dict)
+    for r in G.preR:
+        Q, S, lo, hi = r
+        if S > 1 and Q[0] and Q[1] < S and lo == num(0) and not hi[0]:
+            by[(Q[0], S, hi)][Q[1]] = r
+    for (bs, S, hi), rs in by.items():
+        if len(rs) != S or S * hi[1] > MAXPTS:
+            continue
+        R = (mk(bs, 0), 1, num(0), num(S * hi[1]))
+        G.preR = [r for r in G.preR if r not in rs.values()]
+        if R not in G.preR:
+            G.preR.append(R)
 
 
 def loop_finish(P, G):

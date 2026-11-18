@@ -9,9 +9,6 @@ module
 
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S6
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S7
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W6A0
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W6A1
-public import LeanVM.Guest.CoreMode.HeapCWinM
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
@@ -23,20 +20,9 @@ open LeanVM.Guest.CoreMode
 
 @[expose] public section
 
-/-- The join of statement 84's arms. -/
-theorem join6 : joinOk ((Memory.loopBody core).drop 84) 256 st6 [sum6_0, sum6_1].flatten (4, 1, 0, 0) st7 = true := by
+/-- Statements 84 to 84. -/
+theorem win6 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 84).take (85 - 84)) st6 st7 = true := by
   decide +kernel
-
-/-- No `ret` in statement 84. -/
-theorem nr6 : nrL (((Memory.loopBody core).drop 84).take 1) = true := by
-  decide +kernel
-
-/-- Statement 84, from 2 windows of its arms. -/
-theorem win6 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 84).take (85 - 84)) st6 st7 = true :=
-  winOk_of_arms (a := 84) (ss := [sum6_0, sum6_1]) (l := [(134, (4, 1, 0, 0)), (256, (4, 1, 0, 0))]) join6 nr6
-    ⟨arms6_0, by omega,
-    arms6_1, by omega,
-    trivial⟩ rfl
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

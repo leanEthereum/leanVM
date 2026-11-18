@@ -173,9 +173,11 @@ def content_obj(P, st, t, depth=0, conds=None):
 
 
 def matches(P, t, Q, S):
+    """`t` one of the cells `Q·g^(S·j)` (`j` an index, possibly one below the pattern's base: a loop's pattern is
+    over its next counter, `i·g`)."""
     if S == 0:
         return t == Q
-    return P.idx_in(t, (Q, S, num(0), num(0))) is not None
+    return any(P.idx_in(t, (shift(Q, -S * k), S, num(0), num(0))) is not None for k in range(3) if Q[1] >= S * k)
 
 
 def resolve(P, st, anc, args, ginst, depth=0, conds=None):

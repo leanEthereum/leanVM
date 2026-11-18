@@ -101,7 +101,8 @@ def cover(P, st, t, offs, conds):
 
 
 def loop_finish(P, G, tails, end):
-    """A loop's pointer facts over its counter: its `preP` cells over the counter become `prePR` runs; the pointer
+    """A loop's pointer facts over its counter: its `preP` cells over the counter become `prePR` runs (unless each
+    iteration gives the next one's, chained); the pointer
     facts its iteration gains over the counter (callees' `postP`) its `postPR` runs."""
     i = G.ctr
     keep = []
@@ -109,6 +110,18 @@ def loop_finish(P, G, tails, end):
         S = dict(c[0]).get(i)
         if not S:
             keep.append((c, offs))
+            continue
+        nxt = shift(c, S)
+        if tails and all(nxt in st.pf and set(offs) <= st.pf[nxt][0] for st in tails):
+            # chained: this iteration gives the next one's pointer fact
+            keep.append((c, offs))
+            P.stats['chained-ptr'] += 1
+            continue
+        if tails and all(nxt in st.pts for st in tails):
+            # the iteration stores the next record's word: no caller wrote the table past the counter's record, so no
+            # pointer run over it; the reads through it go to their object (`obj`)
+            G.noptr.add(c)
+            P.stats['noptr'] += 1
             continue
         Q = mk(tuple((b, e) for b, e in c[0] if b != i), c[1])
         r = (Q, S, base(i), end)
@@ -131,6 +144,38 @@ def loop_finish(P, G, tails, end):
                 if Q[0]:
                     got[(Q, S, base(i), end)] = frozenset(offs)
         cand = got if cand is None else {r: o & got[r] for r, o in cand.items() if r in got and o & got[r]}
+    # the words the iteration stores at a cell over the counter: pointers whose cells it knows written (in its scope
+    # without a residual), accumulated over the iterations (`fillP`)
+    acc = None
+    for st in tails:
+        got = {}
+        for c, w in st.hv.items():
+            if not c[0] or not all(b < P.m for b, _ in c[0]) or not w[0]:
+                continue
+            if len(w[0]) == 1 and w[0][0][1] == 1 and P.defkind.get(w[0][0][0]) == 'load' and \
+                    (st.src.get(w[0][0][0]) or (None,))[0] == c:
+                continue  # a word loaded from the cell, not stored there
+            S = dict(c[0]).get(i)
+            Q = mk(tuple((b, e) for b, e in c[0] if b != i), c[1]) if S else None
+            if not S or not Q[0] or any(c == shift(x, S) for x in G.noptr):
+                # (the next record's field of a walk: no table, `noptr`)
+                continue
+            offs = set()
+            for o in range(64):
+                x = shift(w, o)
+                if x in st.pts:
+                    offs.add(o)
+                    continue
+                u = []
+                b = P.find_run(st, x, st.runs, u)
+                if b is not None and b[3] and b[4] and not u:
+                    offs.add(o)
+            if offs:
+                got[(Q, S, base(i), end)] = frozenset(offs)
+        acc = got if acc is None else {r: o & got[r] for r, o in acc.items() if r in got and o & got[r]}
+    for r, o in (acc or {}).items():
+        cand = dict(cand or {})
+        cand[r] = (cand.get(r, frozenset()) | o)
     pre = {r for r, _ in G.prePR}
     G.postPR = sorted((r, tuple(sorted(o))) for r, o in (cand or {}).items() if r not in pre)
 

@@ -231,7 +231,17 @@ class Solver:
     # -- residuals and facts
     def on(self, pool, st):
         """The residuals usable on the site's path, their monomials over the check's own (a value's monomial in the
-        check's environment for the value: one word, `idxF` takes `.mono` cells literally)."""
+        check's environment for the value: one word, `idxF` takes `.mono` cells literally). Cached per pool, path and
+        environment (which only grows)."""
+        key = (id(pool), tuple(self.X.path), id(st.env), len(st.env))
+        c = self.__dict__.setdefault('_on', {})
+        if key not in c:
+            if len(c) > 64:
+                c.clear()
+            c[key] = self.on0(pool, st)
+        return c[key]
+
+    def on0(self, pool, st):
         out = []
         for i, r, wr in pool:
             if C.unU(self.X.path, wr) is None:
@@ -250,15 +260,30 @@ class Solver:
             self.H.res.append(r)
         return j
 
+    def fidx(self, st):
+        """The facts usable at the site, own (source `None`) then the residuals' `(i, wr)`, indexed by each side
+        (cached per path and environment, which only grows)."""
+        key = (tuple(self.X.path), id(st.env), len(st.env))
+        if getattr(self, '_fi', (None,))[0] != key:
+            by_a, by_b = collections.defaultdict(list), collections.defaultdict(list)
+            for p in self.X.facts(st.env, []):
+                by_a[p[0]].append((p[1], None))
+                by_b[p[1]].append((p[0], None))
+            for i, r, wr in self.on(self.pool_lt, st):
+                a, b = C.idxF(st.env, r[1]), C.idxF(st.env, r[2])
+                by_a[a].append((b, (i, wr)))
+                by_b[b].append((a, (i, wr)))
+            self._fi = (key, by_a, by_b)
+        return self._fi[1], self._fi[2]
+
+    def src(self, x):
+        return [] if x is None else [self.use(*x)]
+
     def fact(self, st, a, b):
         """Residuals giving the fact `(a, b)`: `[]` from the own term, `None` if none."""
-        X = self.X
-        for p in X.facts(st.env, []):
-            if p == (a, b):
-                return []
-        for i, r, wr in self.on(self.pool_lt, st):
-            if C.idxF(st.env, r[1]) == a and C.idxF(st.env, r[2]) == b:
-                return [self.use(i, wr)]
+        for a2, x in self.fidx(st)[1].get(b, ()):
+            if a2 == a:
+                return self.src(x)
         return None
 
     def idx(self, st, m):
@@ -285,35 +310,38 @@ class Solver:
             return f
         if a[1] >= C.CAPE:
             return None
-        cands = [(p, None) for p in self.X.facts(st.env, [])]
-        for i, r, wr in self.on(self.pool_lt, st):
-            cands.append(((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])), (i, wr)))
-        for (a2, b2), src in cands:
-            if b2 == b and a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
-                return self.derive(st, a, b, src[1] if src else None)
+        for a2, x in self.fidx(st)[1].get(b, ()):
+            if a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
+                return self.derive(st, a, b, x[1] if x else None)
         return None
 
     def factC(self, st, k, b):
         """A fact `(g^k', b)`, `k <= k' < 2^62`."""
-        X = self.X
-        for p in X.facts(st.env, []):
-            if not p[0][0] and k <= p[0][1] < C.CAPE and p[1] == b:
-                return []
-        for i, r, wr in self.on(self.pool_lt, st):
-            a = C.idxF(st.env, r[1])
-            if not a[0] and k <= a[1] < C.CAPE and C.idxF(st.env, r[2]) == b:
-                return [self.use(i, wr)]
+        for a2, x in self.fidx(st)[1].get(b, ()):
+            if not a2[0] and k <= a2[1] < C.CAPE:
+                return self.src(x)
         return None
 
     def factU(self, st, a, j):
         """A fact `(a, g^h)`, `h <= j`."""
-        for p in self.X.facts(st.env, []):
-            if p[0] == a and not p[1][0] and p[1][1] <= j:
-                return []
-        for i, r, wr in self.on(self.pool_lt, st):
-            b = C.idxF(st.env, r[2])
-            if not b[0] and b[1] <= j and C.idxF(st.env, r[1]) == a:
-                return [self.use(i, wr)]
+        for b, x in self.fidx(st)[0].get(a, ()):
+            if not b[0] and b[1] <= j:
+                return self.src(x)
+        return None
+
+    def factU_eq(self, st, mx, j):
+        """No fact `(mx, g^h)`, `h <= j`, but `mx·g^t = b` by a kept equation and a fact `(b, g^h')`, `h' - t <= j`: the
+        bound `e(mx) < h' - t` stated (under the site's path). A constant selector `g^c`, `c < j`: `c < c + 1`."""
+        if not mx[0] and mx[1] < j:
+            return self.derive(st, mx, ((), mx[1] + 1), None)
+        for a, b in st.eqs:
+            for u, v in ((a, b), (b, a)):
+                if u[0] != mx[0] or u[1] < mx[1]:
+                    continue
+                t = u[1] - mx[1]
+                for b2, _ in self.fidx(st)[0].get(v, ()):
+                    if not b2[0] and t <= b2[1] <= j + t:
+                        return self.derive(st, mx, ((), b2[1] - t), None)
         return None
 
     def factE(self, st, m):
@@ -343,7 +371,8 @@ class Solver:
             if f is not None:
                 return f
         J = C.idxOf(base, c, S)
-        if c == C.cmul(base, C.cpow(J, S)):
+        if c == C.cmul(base, C.cpow(J, S)) and (J[0] or not self.const_ok(st, R, c)):
+            # (a constant index goes by the constant form below, whose fact `(g^k', hi)` serves every `k <= k'`)
             f = self.factD(st, J, hi)
             if f is not None:
                 if lo == ((), 0) or lo == J:
@@ -359,6 +388,10 @@ class Solver:
                 f = self.factC(st, k, hi)
                 if f is not None:
                     return f
+                K = max(self.arm_above(st, k, hi), self.fact_shifted(st, k, hi))
+                if K >= k:
+                    # the largest bound the source gives, so one residual serves every cell below it
+                    return self.derive(st, ((), K), hi, None)
         k = C.backK(R, c)
         if 0 < k and C.cshift(c, S * k) == C.cmul(base, C.cpow(hi, S)) and not lo[0] and lo[1] < C.CAPE:
             f = self.factC(st, k - 1 + lo[1], hi)
@@ -371,6 +404,45 @@ class Solver:
                 self.stats['ptBack'] += 1
                 return f
         return None
+
+    def all_facts(self, st):
+        """The usable facts as pairs."""
+        return [(a, b) for a, l in self.fidx(st)[0].items() for b, _ in l]
+
+    def fact_shifted(self, st, k, hi):
+        """The largest `k' - s` of a fact `(g^k', hi·g^s)`: `e(hi) > k' - s` (`-1`: none)."""
+        if not hi[0]:
+            return -1
+        K = -1
+        for b, l in self.fidx(st)[1].items():
+            if b[0] == hi[0] and b[1] >= hi[1]:
+                for a, _ in l:
+                    if not a[0] and a[1] < C.CAPE:
+                        K = max(K, a[1] - (b[1] - hi[1]))
+        return K
+
+    def arm_above(self, st, k, hi):
+        """On the site's path, an arm `j` of a selector `x` whose monomial times `g^t` is `hi` by a kept equation: then
+        `e(hi) > j + t - 1` there (the residual is stated under the path); the largest such bound, `-1` if none."""
+        K = -1
+        for c in self.X.path:
+            if c[0] != 'arm':
+                continue
+            mx = C.mono(st.env, c[1])
+            for a, b in st.eqs:
+                for u, v in ((a, b), (b, a)):
+                    if v == hi and u[0] == mx[0] and u[1] >= mx[1]:
+                        K = max(K, c[2] + u[1] - mx[1] - 1)
+        return K
+
+    def const_ok(self, st, R, c):
+        """The constant form (`ptConst`) holds `c` by a constant bound or a fact in scope."""
+        base, S, lo, hi = R
+        if not (c[0] == base[0] and base[1] <= c[1] and S and (c[1] - base[1]) % S == 0 and not lo[0]
+                and lo[1] < C.CAPE):
+            return False
+        k = (c[1] - base[1]) // S
+        return lo[1] <= k and ((not hi[0] and hi[1] < C.CAPE and k < hi[1]) or self.factC(st, k, hi) is not None)
 
     def run_in(self, st, Q, R):
         """`runRun`: the run `Q` inside `R`, the residuals it needs."""
@@ -523,6 +595,12 @@ class Solver:
                         return [('run', r, [self.use(i, wr)])]
         if C.emptyR(Q):
             return [('empty',)]
+        w = self.suffix(st, Q)
+        if w is not None:
+            return w
+        w = self.inner(st, Q)
+        if w is not None:
+            return w
         if C.constR(Q) and Q[3][1] - Q[2][1] <= PTSMAX:
             ws = [('pts',)]
             for j in range(Q[2][1], Q[3][1]):
@@ -533,8 +611,109 @@ class Solver:
             return ws
         return None
 
+    def divides(self, st, h, H):
+        """A kept equation `u = H` (either side) with `u = h·k`, `k` a monomial."""
+        for a, b in st.eqs:
+            for u, v in ((a, b), (b, a)):
+                if v == H and u[1] >= h[1] and all(C.expOf(u[0], x) >= e for x, e in h[0]) and u != h:
+                    return True
+        return False
+
+    def inner(self, st, Q):
+        """A constant-bounds run of more than 8 cells whose first and last cells a run `R` in scope holds by the
+        constant form (`ptConst`): the residual `subR Q R` (under the site's path), not one point witness a cell."""
+        base, S, lo, hi = Q
+        if not C.constR(Q) or hi[1] - lo[1] <= 8 or not S:
+            return None
+        first, last = C.cshift(base, S * lo[1]), C.cshift(base, S * (hi[1] - 1))
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R[1] != S or R[0][0] != base[0] or not self.const_ok(st, R, first) or not self.const_ok(st, R, last):
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            q = (base, S, ('num', lo[1]), ('num', hi[1]))
+            Rr = (R[0], S, self.idx(st, R[2]), self.idx(st, R[3]))
+            if C.runF(st.env, Rr) != R:
+                continue
+            res = ('subR', q, Rr)
+            self.stats['inner'] += 1
+            return [('run', r, [self.use(('inner', q, Rr, g), ('under', g, res) if g else res)])]
+        return None
+
+    def suffix(self, st, Q):
+        """`Q = ⟨B·k^S, S, 0, h⟩` the part from `k` of a run `⟨B, S, 0, H⟩` in scope with `k·h = H` by the kept
+        equations: the residual `subR Q R` stated (under the site's path), its witness the run."""
+        base, S, lo, hi = Q
+        if lo != ((), 0) or not st.eqs or not S:
+            return None
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R[0] == base and R[1] == S and R[2] == lo and R != Q and self.divides(st, hi, R[3]):
+                # a prefix: `R`'s upper bound `hi·k` by a kept equation
+                g = tuple(dict.fromkeys(self.X.path))
+                q, Rr = (base, S, ('num', 0), self.idx(st, hi)), (base, S, ('num', 0), self.idx(st, R[3]))
+                if C.runF(st.env, q) == Q and C.runF(st.env, Rr) == R:
+                    res = ('subR', q, Rr)
+                    self.stats['prefix'] += 1
+                    return [('run', r, [self.use(('prefix', q, Rr, g), ('under', g, res) if g else res)])]
+            if R[1] != S or R[2] != ((), 0) or R[0][1] > base[1] or (base[1] - R[0][1]) % S or R == Q:
+                continue
+            if any(C.expOf(base[0], b) < e for b, e in R[0][0]):
+                continue
+            rest = tuple((b, e - C.expOf(R[0][0], b)) for b, e in base[0] if e > C.expOf(R[0][0], b))
+            if not rest or any(e % S for _, e in rest):
+                continue
+            k = (tuple((b, e // S) for b, e in rest), (base[1] - R[0][1]) // S)
+            if C.cmul(R[0], C.cpow(k, S)) != base or not C.eqV(st.eqs, C.cmul(k, hi), R[3]):
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            q = (base, S, ('num', 0), self.idx(st, hi))
+            Rr = (R[0], S, ('num', 0), self.idx(st, R[3]))
+            if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
+                continue
+            res = ('subR', q, Rr)
+            self.stats['suffix'] += 1
+            return [('run', r, [self.use(('suffix', q, Rr, g), ('under', g, res) if g else res)])]
+        return None
+
     def run(self, st, Q):
-        """A run needed (`runOk`): one part, `cat k`, `mrg S`."""
+        """A run needed (`runOk`): `runOk0`, else `catM k h`: split at a symbolic index `k` where a run of this base
+        ends, the part from it a run in scope, `k·h` the upper bound by the kept equations."""
+        ws = self.run0(st, Q)
+        if ws is not None or not st.eqs:
+            return ws
+        base, S0, lo, hi = Q
+        if not S0:
+            return None
+        ks = []
+        for R in st.rs.values():
+            if R[0] == base and R[1] == S0:
+                ks.append(R[3])
+            elif R[0][0] == base[0] and R[1] % S0 == 0 and R[1] > S0 and R[0][1] == base[1]:
+                ks.append(C.cpow(R[3], R[1] // S0))
+        for k in dict.fromkeys(ks):
+            if not k[0] or k == hi:
+                continue
+            b2 = C.cmul(base, C.cpow(k, S0))
+            hs = []
+            for R in st.rs.values():
+                if R[0] == b2 and R[1] == S0:
+                    hs.append(R[3])
+                elif R[0][0] == b2[0] and R[1] % S0 == 0 and R[1] > S0 and R[0][1] == b2[1]:
+                    hs.append(C.cpow(R[3], R[1] // S0))
+            for h in dict.fromkeys(hs):
+                if not C.eqV(st.eqs, C.cmul(k, h), hi):
+                    continue
+                fk, fh = self.factE(st, k), self.factE(st, h)
+                a = self.run0(st, (base, S0, lo, k))
+                b = self.run0(st, (b2, S0, ((), 0), h)) if a is not None else None
+                if b is not None:
+                    self.stats['catM'] += 1
+                    return [('catM', k, h, sorted(set(fk + fh)))] + a + b
+        return None
+
+    def run0(self, st, Q):
+        """A run needed, one level (`runOk0`): one part, `cat k`, `mrg S`, `mrgE S r`."""
         ws = self.run1(st, Q)
         if ws is not None:
             return ws
@@ -562,11 +741,20 @@ class Solver:
                 continue
             rt = C.rootC(hi, S)
             if C.cpow(rt, S) != hi:
-                continue
-            f = self.factE(st, rt)
-            if f is None:
-                continue
-            ws = [('mrg', S, f)]
+                # `mrgE`: the root a residue run's bound, its `S`-th power the upper bound by the kept equations
+                rts = [R[3] for R in st.rs.values() if R[0][0] == base[0] and R[1] == S0 * S and
+                       C.eqV(st.eqs, C.cpow(R[3], S), hi)]
+                if not rts:
+                    continue
+                rt = rts[0]
+                f = self.factE(st, rt)
+                ws = [('mrgE', S, rt, f)]
+                self.stats['mrgE'] += 1
+            else:
+                f = self.factE(st, rt)
+                if f is None:
+                    continue
+                ws = [('mrg', S, f)]
             for r in range(S):
                 w = self.run1(st, C.mrgPart(Q, S, r, ((), lo[1] // S), rt))
                 if w is None:
@@ -697,7 +885,7 @@ class Solver:
                 self.stats['div'] += 1
                 return
 
-    def ghosts(self, g, args):
+    def ghosts(self, g, args, st=None):
         """The callee's ghost monomials at this call (`gargs`, by callee and arguments)."""
         G = self.X.sigOf(g)
         if not G.ghosts:
@@ -710,14 +898,15 @@ class Solver:
             self.miss.append(('ghosts', g, gi))
             return
         try:
-            ms = [cell(x) for x in gi]
+            # over the check's monomials (a value's monomial for the value: the same word)
+            ms = [ncell(st.env, cell(x)) if st is not None else cell(x) for x in gi]
         except Unsupported:
             self.miss.append(('ghosts', g, gi))
             return
         self.H.gargs.append((g, list(args), ms))
 
     def call(self, pas, st, site, g, args, ma):
-        self.ghosts(g, args)
+        self.ghosts(g, args, st)
         ga = C.gargsOf(self.H.gargs, g, args)
         ws = self.reqs(st, ma + ga, self.X.sigOf(g), site)
         assert len(self.H.calls) == st.nc, (len(self.H.calls), st.nc)
@@ -727,14 +916,20 @@ class Solver:
     def dispatch(self, pas, st, x, fs, args, ma, mx, rets=()):
         vps = [(j, self.P.vpoffs[v]) for j, v in enumerate(rets or ()) if v in getattr(self.P, 'vpoffs', {})]
         arms = []          # (skip witness) or (precondition witnesses, per vp the cells' witnesses or None)
+        arms_j = [None] * len(fs)
+        armj = []
         ok = True
         for j, g in enumerate(fs):
             f = self.factU(st, mx, j)
+            if f is None:
+                f = self.factU_eq(st, mx, j)
             if f is not None:
                 arms.append(('skip', f))
+                arms_j[j] = arms[-1]
+                armj.append(j)
                 self.stats['skip'] += 1
                 continue
-            self.ghosts(g, args)
+            self.ghosts(g, args, st)
             ga = C.gargsOf(self.H.gargs, g, args)
             sj = C.condSt(mx, j, st.cd, st)
             w = pas.under(('arm', x, j), lambda: self.reqs(sj, ma + ga, self.X.sigOf(g), ('dispatch', g, j)))
@@ -742,19 +937,52 @@ class Solver:
                 ok = False
                 continue
             arms.append((w, pas.under(('arm', x, j), lambda: self.vp_arm(sj, ma, g, rets, vps))))
+            arms_j[j] = arms[-1]
+            armj.append(j)
         keep = [t for t, vp in enumerate(vps) if all(a[0] == 'skip' or a[1][t] is not None for a in arms)]
-        ws = [('vp', vps[t][0], list(vps[t][1])) for t in keep]
-        for a in arms:
+        # the arms' growing blocks (`ab`): arm `j` writes `⟨q, 1, 0, j + d⟩`
+        abs_, abw = [], []
+        blks = []
+        for q, K, d in getattr(self.P, 'armblk', {}).get((x, tuple(fs), tuple(args)), ()):
+            blks += [(C.cshift(cell(q), r), K, d // K) for r in range(K)]
+        for q, K, d in blks:
+            per = []
+            for j, g in enumerate(fs):
+                if arms_j[j] is None or arms_j[j][0] == 'skip':
+                    per.append([])
+                    continue
+                sj = C.condSt(mx, j, st.cd, st)
+                w = pas.under(('arm', x, j), lambda: self.ab_arm(sj, ma, g, rets, (q, K, ((), 0), ((), j + d))))
+                if w is None:
+                    break
+                per.append(w)
+            else:
+                abs_.append((q, K, d))
+                abw.append(per)
+                self.stats['ab'] += 1
+        ws = [('vp', vps[t][0], list(vps[t][1])) for t in keep] + [('ab',) + a for a in abs_]
+        for j, a in enumerate(arms):
             if a[0] == 'skip':
                 ws.append(a)
             else:
                 ws += a[0]
                 for t in keep:
                     ws += a[1][t]
+                for per in abw:
+                    ws += per[armj[j]]
         self.stats['vp'] += len(keep)
         assert len(self.H.calls) == st.nc
         self.H.calls.append(ws if ok else [('fail',)])
         return ws if ok else None
+
+    def ab_arm(self, st, ma, g, rets, Q):
+        """A block's run in the arm's state with the callee's guarantees pushed (`abArm`)."""
+        G = self.X.sigOf(g)
+        mr = C.setRM(C.monos(st.env, rets), C.instRM(ma, G.retM))
+        S = st.copy()
+        if not C.pushPost(G, ma + mr, S):
+            return None
+        return self.run(S, Q)
 
     def vp_arm(self, st, ma, g, rets, vps):
         """Per returned pointer, its cells' witnesses in the arm's state with the callee's guarantees pushed."""
@@ -930,6 +1158,10 @@ def wit_res(w, f):
         return (k, [f(i) for i in w[1]])
     if k == 'mrg':
         return (k, w[1], [f(i) for i in w[2]])
+    if k == 'mrgE':
+        return (k, w[1], w[2], [f(i) for i in w[3]])
+    if k == 'catM':
+        return (k, w[1], w[2], [f(i) for i in w[3]])
     if k == 'perm':
         return (k, f(w[1]), w[2])
     if k == 'prep':
@@ -1059,6 +1291,12 @@ def lwit(w):
         return f'.prep {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
     if k == 'vp':
         return f'.vp {w[1]} {lnums(w[2])}'
+    if k == 'mrgE':
+        return f'.mrgE {w[1]} {lcell(w[2])} {lnums(w[3])}'
+    if k == 'catM':
+        return f'.catM {lcell(w[1])} {lcell(w[2])} {lnums(w[3])}'
+    if k == 'ab':
+        return f'.ab {lcell(w[1])} {w[2]} {w[3]}'
     raise ValueError(w)
 
 
@@ -1165,11 +1403,20 @@ def lcert(H, sig_only=False):
         out += f'  eqs := {lnums(sorted(H.eqs))}\n'
     if H.fas:
         out += '  fas := [' + wrap(f'({a}, {b})' for a, b in H.fas) + ']\n'
+    if H.ders:
+        out += '  ders := [' + wrap(map(lcell, H.ders)) + ']\n'
     if H.hvs:
         out += '  hvs := ' + ax.lst('hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
     if H.gargs:
         out += '  gargs := [' + wrap((f'("{g}", {lnums(a)}, [{", ".join(map(lcell, ms))}])' for g, a, ms in H.gargs)) + ']\n'
     return ax.defs, out
+
+
+def sig_text(arms):
+    """The callees' signatures as a `match` on the name, its arms packed several to a line."""
+    if not arms:
+        return '(fun _ ↦ .empty)'
+    return '(fun g ↦ match g with\n    ' + wrap(arms + ['| _ => .empty)'], '    ', 118).replace(',\n', '\n').replace(', |', ' |')
 
 
 def pack_of():
@@ -1250,7 +1497,11 @@ def emit(out, res, check_only, only=None):
     passing = {k for k in certs if k not in why}
     import heapwin
     sigOf = lambda g: sigs.get(I.callee(g), C.EMPTY)
-    wins = sorted(k for k in passing if k in KERNEL_WIN or heapwin.fn_cost(k, certs[k], sigOf) > heapwin.BUDGET)
+    # a certificate whose context alone (its tries, built in every window) is over a window's budget cannot be checked
+    # in windows: passing the Python check, no kernel check (`nokernel`)
+    nokernel = {k for k in passing if heapwin.W_CERT * heapwin.cert_size(certs[k]) > heapwin.BUDGET / 2}
+    wins = sorted(k for k in passing - nokernel
+                  if k in KERNEL_WIN or heapwin.fn_cost(k, certs[k], sigOf) > heapwin.BUDGET)
     closed = set()
     for k in I.ORDER:
         if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
@@ -1264,7 +1515,7 @@ def emit(out, res, check_only, only=None):
         d = os.path.join(out, pack)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in passing and k not in wins]
+        oks = [k for k in ks if k in passing and k not in wins and k not in nokernel]
         cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
@@ -1273,15 +1524,15 @@ def emit(out, res, check_only, only=None):
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
-            aux, body = lcert(certs[k], sig_only=k not in passing)
+            aux, body = lcert(certs[k], sig_only=k not in passing or k in nokernel)
             auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
             data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                     f'/-- `{k}`: its heap certificate{"" if k in passing else " (its signature only: not checked)"}. -/\n'
+                     f'/-- `{k}`: its heap certificate{"" if k in passing and k not in nokernel else " (its signature only: not checked)"}. -/\n'
                      f'def hcert : CoreMode.HCert where\n{body}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for k in oks:
             names = sorted(stmt_names[k])
-            arms = ''.join(f'\n    | "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE)
-            sig = f'(fun g ↦ match g with{arms}\n    | _ => .empty)' if arms else '(fun _ ↦ .empty)'
+            arms = [f'| "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE]
+            sig = sig_text(arms)
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
                    f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
@@ -1328,6 +1579,7 @@ def emit(out, res, check_only, only=None):
           f'the inference closes {len(inf_closed)}, of which pass {len(passing & inf_closed)}; '
           f'{len(packs)} packs, {lines} lines')
     print('  failures by first cause:', dict(cw.most_common()))
+    print(f'  passing, no kernel check (certificate over half a window): {sorted(nokernel)}')
     print('  of the inference\'s closed:', dict(collections.Counter(cause(k, why[k], res[k]) for k in why
                                                                      if k in inf_closed).most_common()))
     print('  signature entries dropped:', dict(collections.Counter(x[0] for v in drops.values() for x in v)))

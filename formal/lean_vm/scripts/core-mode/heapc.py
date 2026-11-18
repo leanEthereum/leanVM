@@ -14,6 +14,7 @@ import collections
 
 CAPE = 2 ** 62
 GB = 1 << 20
+DB = 1 << 19   # value `DB + k` is the word at the cell `ders[k]` (`HCert.ders`)
 
 
 # ---- monomials (`CoreMode/Heap.lean`)
@@ -95,6 +96,7 @@ class HCert:
         self.gargs = []
         self.eqs = []
         self.fas = []            # frame run cells guaranteed at return: `(kp, i)`, cell `i` of `frameAddr kp run`
+        self.ders = []           # words at cells: value `DB + k` is the word at the cell `ders[k]`
 
 
 def nth(l, n):
@@ -618,18 +620,23 @@ def runOk1(X, st, Q, ws, i):
     return i + 1 if rnOk(X, st, Q, ws[i]) else None
 
 
-def runOk(X, st, Q, ws, i):
+def runOk0(X, st, Q, ws, i):
     if i < len(ws) and ws[i][0] == 'cat':
         k = ws[i][1]
         if k >= CAPE:
             return None
         j = runOk1(X, st, (Q[0], Q[1], Q[2], ((), k)), ws, i + 1)
         return None if j is None else runOk1(X, st, (Q[0], Q[1], ((), k), Q[3]), ws, j)
-    if i < len(ws) and ws[i][0] == 'mrg':
-        S, res = ws[i][1], ws[i][2]
+    if i < len(ws) and ws[i][0] in ('mrg', 'mrgE'):
+        S, res = ws[i][1], ws[i][-1]
         lo, hi = Q[2], Q[3]
-        rt = rootC(hi, S)
-        if not (0 < S and not lo[0] and lo[1] % S == 0 and lo[1] < CAPE and cpow(rt, S) == hi
+        if ws[i][0] == 'mrg':
+            rt = rootC(hi, S)
+            rok = cpow(rt, S) == hi
+        else:
+            rt = ws[i][2]
+            rok = eqV(st.eqs, cpow(rt, S), hi)
+        if not (0 < S and not lo[0] and lo[1] % S == 0 and lo[1] < CAPE and rok
                 and hasExp(X.facts(st.env, res), rt)):
             return None
         j = i + 1
@@ -639,6 +646,18 @@ def runOk(X, st, Q, ws, i):
                 return None
         return j
     return runOk1(X, st, Q, ws, i)
+
+
+def runOk(X, st, Q, ws, i):
+    """`catM k h res`: the run split at the symbolic index `k` (`k·h` the upper bound by `eqV`), else `runOk0`."""
+    if i < len(ws) and ws[i][0] == 'catM':
+        _, k, h, res = ws[i]
+        F = X.facts(st.env, res)
+        if not (eqV(st.eqs, cmul(k, h), Q[3]) and hasExp(F, k) and hasExp(F, h)):
+            return None
+        j = runOk0(X, st, (Q[0], Q[1], Q[2], k), ws, i + 1)
+        return None if j is None else runOk0(X, st, (cmul(Q[0], cpow(k, Q[1])), Q[1], ((), 0), h), ws, j)
+    return runOk0(X, st, Q, ws, i)
 
 
 def reqR(X, st, ms, rs, ws, i):
@@ -682,11 +701,45 @@ def reqS(X, st, ms, G, ws, i):
     return i
 
 
+def derKs(ms):
+    """The words at cells the monomials name: `k` for each base `DB + k` below `GB`, once, in order (`derKs`)."""
+    out = []
+    for c in ms:
+        for b, _ in c[0]:
+            if DB <= b < GB and b - DB not in out:
+                out.append(b - DB)
+    return out
+
+
+def derWs(X, st, ks, ws, i):
+    for k in ks:
+        c = nth(X.H.ders, k)
+        if c is None or i >= len(ws) or not ptOk(X, st, c, ws[i]):
+            return None
+        i += 1
+    return i
+
+
+def derSt(X, ks, st):
+    if not ks:
+        return st
+    st = st.copy()
+    for k in ks:
+        c = nth(X.H.ders, k)
+        if c is not None:
+            st.src[DB + k] = c
+    return st
+
+
 def reqG(X, st, ma, g, args, ws, i):
     ga = gargsOf(X.H.gargs, g, args)
     if len(ga) != X.sigOf(g).ghosts:
         return None
-    return reqS(X, st, ma + ga, X.sigOf(g), ws, i)
+    ks = derKs(ga)
+    i = derWs(X, st, ks, ws, i)
+    if i is None:
+        return None
+    return reqS(X, derSt(X, ks, st), ma + ga, X.sigOf(g), ws, i)
 
 
 def armSkip(X, st, mx, j, ws, i):
@@ -701,16 +754,18 @@ def pushL(st, cs):
 
 
 def condSt(mx, j, cd, st):
+    """`cd`: per dispatch `(mx, arms)`, arm `j`'s guarantees `arms[j] = (cs, rs, ps, prs)`."""
     st = st.copy()
     for e in cd:
-        if e[0] == mx and e[1] == j:
-            for c in e[2]:
+        if e[0] == mx and j < len(e[1]):
+            cs, rs, ps, prs = e[1][j]
+            for c in cs:
                 st.push(c)
-            for p in e[4]:
+            for p in ps:
                 st.pushP(p)
-            for r in e[3]:
+            for r in rs:
                 st.pushR(r)
-            for p in e[5]:
+            for p in prs:
                 st.pushPR(p)
     return st
 
@@ -779,13 +834,14 @@ def joinSt(bs, st, s):
 
 
 def condE(sigOf, ms, mx, fs):
-    out = []
-    for j, g in enumerate(fs):
+    """One entry for the dispatch: each arm's guarantees, empty where they do not instantiate."""
+    arms = []
+    for g in fs:
         G = sigOf(g)
         cs, rs, ps, prs = instAll(ms, G.post), instAllR(ms, G.postR), instPP(ms, G.postP), instPRL(ms, G.postPR)
-        if None not in (cs, rs, ps, prs):
-            out.append((mx, j, tuple(cs), tuple(rs), tuple(ps), tuple(prs)))
-    return out
+        arms.append((tuple(cs), tuple(rs), tuple(ps), tuple(prs)) if None not in (cs, rs, ps, prs) else
+                    ((), (), (), ()))
+    return [(mx, tuple(arms))]
 
 
 class Pass:
@@ -968,6 +1024,7 @@ class Pass:
                 raise Fail(('no-call-wits', st.nc))
         kept = []
         vps, i = vpHead(ws) if ws is not None else ([], 0)
+        abs_, i = abHead(ws, i) if ws is not None else ([], 0)
         if ws is not None:
             for j, g in enumerate(fs):
                 i2 = armSkip(X, st, mx, j, ws, i)
@@ -978,6 +1035,8 @@ class Pass:
                 i2 = self.under(('arm', x, j), lambda: reqG(X, sj, ma, g, args, ws, i))
                 if i2 is not None:
                     i2 = self.under(('arm', x, j), lambda: vpArm(X, sj, ma, g, rets, vps, ws, i2))
+                if i2 is not None:
+                    i2 = self.under(('arm', x, j), lambda: abArm(X, sj, ma, g, rets, j, abs_, ws, i2))
                 if i2 is None:
                     self.fail('dispatch-check', fs, j, ws)
                     i = None
@@ -1037,6 +1096,8 @@ class Pass:
             if m is not None:
                 for o in offs:
                     st.push(cshift(m, o))
+        for q, S, d in abs_:
+            st.pushR((q, S, ((), 0), cshift(mx, d)))
         if len(fs) < CAPE:
             st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
 
@@ -1161,6 +1222,31 @@ def vpHead(ws):
         vps.append((ws[i][1], tuple(ws[i][2])))
         i += 1
     return vps, i
+
+
+def abHead(ws, i):
+    abs_ = []
+    while i < len(ws) and ws[i][0] == 'ab':
+        abs_.append((ws[i][1], ws[i][2], ws[i][3]))
+        i += 1
+    return abs_, i
+
+
+def abArm(X, st, ma, g, rets, j, abs_, ws, i):
+    """A dispatch arm `j`'s blocks: the runs `⟨q, S, 0, j + d⟩`, witnessed with the callee's guarantees pushed
+    (`abArm`)."""
+    if not abs_:
+        return i
+    G = X.sigOf(g)
+    mr = setRM(monos(st.env, rets), instRM(ma, G.retM))
+    S_ = st.copy()
+    if not pushPost(G, ma + mr, S_):
+        return None
+    for q, S, d in abs_:
+        i = runOk(X, S_, (q, S, ((), 0), ((), j + d)), ws, i)
+        if i is None:
+            return None
+    return i
 
 
 def setRM(mr, l):
@@ -1378,6 +1464,10 @@ def idxOver(m, i):
     return all(b < m for b, _ in i[1][0])
 
 
+def dersOk(ders):
+    return len(ders) < GB - DB and all(b < DB or b >= GB for c in ders for b, _ in c[0])
+
+
 def heapOkC(pows, sigOf, name, params, body, H, solver=None):
     """The check; with a `solver`, the pass finding the witnesses (into `H`). Returns the `Pass` (its `fails`), or
     raises `Fail` (check mode)."""
@@ -1391,8 +1481,10 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.fail('preOver')
     if not all(idxOver(m, a) and idxOver(m, b) for a, b in G.term):
         P.fail('term-over')
-    if any(v >= GB for v in values(params, body)):
+    if any(v >= DB for v in values(params, body)):
         P.fail('noGhost')
+    if not dersOk(H.ders):
+        P.fail('dersOk')
     if not set(map(tuple, H.fas)) <= set(fa_pairs(body)):
         P.fail('faOk')
     st = St()

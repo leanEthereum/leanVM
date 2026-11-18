@@ -20,64 +20,32 @@ open LeanVM.Guest.Exec (Trie)
 @[expose] public section
 
 noncomputable def tr0 : Trie CCell :=
-  (.node (some ⟨[(3, 1)], 0⟩)
-    (.node none
-    (.node none
-    .nil
-    (.node none
-    .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some ⟨[], 63⟩) .nil .nil) .nil) .nil)))))
-    .nil)
-    (.node none
-    (.node none
-    .nil
-    (.node none
-    .nil
-    (.node none
-    .nil
-    (.node none (.node none .nil (.node none (.node none (.node (some ⟨[], 63⟩) .nil .nil) .nil) .nil)) .nil))))
-    (.node none (.node none .nil (.node (some ⟨[], 63⟩) .nil .nil)) .nil)))
+  (.node (some ⟨[(3, 1)], 0⟩) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some ⟨[], 63⟩) .nil .nil) .nil) .nil))))) .nil) (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some ⟨[], 63⟩) .nil .nil) .nil)
+    .nil)) .nil)))) (.node none (.node none .nil (.node (some ⟨[], 63⟩) .nil .nil)) .nil)))
 
 noncomputable def tr1 : Trie CCell :=
-  (.node none
-    (.node none
-    (.node none
-    .nil
-    (.node none
-    .nil
-    (.node none
-    .nil
-    (.node none (.node none .nil (.node none (.node none (.node (some ⟨[(2, 1)], 2⟩) .nil .nil) .nil) .nil)) .nil))))
-    .nil)
-    (.node none
-    .nil
-    (.node none
-    (.node none
-    .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some ⟨[(2, 1)], 1⟩) .nil .nil) .nil) .nil))))
-    .nil)))
+  (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node (some ⟨[(2, 1)], 2⟩) .nil .nil) .nil) .nil)) .nil)))) .nil) (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node (some ⟨[(2, 1)], 1⟩) .nil .nil) .nil)
+    .nil)))) .nil)))
 
 noncomputable def st1_cd : List CdE := st0_cd ++ []
 
 noncomputable def st1_eqs : List (CCell × CCell) := [] ++ st0_eqs
 
 /-- The state before statement 14. -/
-noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩)
-    (.node (some ⟨[(1, 1)], 0⟩) tr0 .nil)
-    (.node (some ⟨[(2, 1)], 0⟩)
-    (.node (some ⟨[(4, 1)], 0⟩) .nil .nil)
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some ⟨[], 0⟩) .nil .nil)) .nil) .nil)))),
+noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some ⟨[(1, 1)], 0⟩) tr0 .nil) (.node (some ⟨[(2,
+    1)], 0⟩) (.node (some ⟨[(4, 1)], 0⟩) .nil .nil) (.node none .nil (.node none (.node none (.node none .nil (.node
+    (some ⟨[], 0⟩) .nil .nil)) .nil) .nil)))),
     (.node (some ⟨[(2, 1)], 0⟩) (.node (some ⟨[(2, 1)], 1⟩) .nil .nil) (.node (some ⟨[(2, 1)], 2⟩) .nil .nil)),
     .nil,
     .nil,
-    (.node (some (⟨[(2, 1)], 0⟩, ⟨[(101, 1)], 0⟩))
-    (.node (some (⟨[(2, 1)], 1⟩, ⟨[(1262, 1)], 0⟩)) .nil .nil)
-    (.node (some (⟨[(2, 1)], 2⟩, ⟨[(2418, 1)], 0⟩)) .nil .nil)),
-    (.node none
-    (.node none
-    .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some ⟨[(2, 1)], 0⟩) .nil .nil)) .nil) .nil)))
-    (.node none .nil tr1)),
+    (.node (some (⟨[(2, 1)], 0⟩, ⟨[(101, 1)], 0⟩)) (.node (some (⟨[(2, 1)], 1⟩, ⟨[(1262, 1)], 0⟩)) .nil .nil) (.node
+        (some (⟨[(2, 1)], 2⟩, ⟨[(2418, 1)], 0⟩)) .nil .nil)),
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some ⟨[(2, 1)], 0⟩)
+        .nil .nil)) .nil) .nil))) (.node none .nil tr1)),
     .nil,
     .nil,
     3, 0, 0, 0,

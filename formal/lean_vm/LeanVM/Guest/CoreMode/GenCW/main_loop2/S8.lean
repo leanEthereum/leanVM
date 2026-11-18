@@ -24,26 +24,17 @@ noncomputable def st8_cd : List CdE := st7_cd ++ []
 noncomputable def st8_eqs : List (CCell × CCell) := [] ++ st7_eqs
 
 /-- The state before statement 86. -/
-noncomputable def st8 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩)
-    (.node (some ⟨[(1, 1)], 0⟩)
-    tr5
-    (.node (some ⟨[(5, 1)], 0⟩) (.node (some ⟨[(9, 1)], 0⟩) tr6 tr7) (.node (some ⟨[(13, 1)], 0⟩) tr8 tr9)))
-    (.node (some ⟨[(2, 1)], 0⟩) tr11 (.node (some ⟨[(6, 1)], 0⟩) tr12 tr13))),
-    (.node (some ⟨[(3, 1), (56, 1)], 0⟩)
-    (.node (some ⟨[(4, 1), (56, 4)], 1⟩) (.node (some ⟨[(4, 1), (56, 4)], 3⟩) .nil .nil) .nil)
-    (.node (some ⟨[(4, 1), (56, 4)], 2⟩) .nil .nil)),
-    (.node (some ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩) .nil .nil),
-    (.node none
-    tr14
-    (.node none
-    .nil
-    (.node none
-    (.node none .nil (.node none .nil (.node none (.node (some (⟨[(67, 1)], 0⟩, ⟨[(89, 1)], 0⟩)) .nil .nil) .nil)))
-    .nil))),
-    (.node (some (⟨[(3, 1), (56, 1)], 0⟩, ⟨[(0, 1)], 0⟩))
-    (.node (some (⟨[(4, 1), (56, 4)], 1⟩, ⟨[(66, 1)], 0⟩)) (.node (some (⟨[(4, 1), (56, 4)], 3⟩, ⟨[(92, 1)], 0⟩)) .nil .nil) .nil)
-    (.node (some (⟨[(4, 1), (56, 4)], 2⟩, ⟨[(91, 1)], 0⟩)) .nil .nil)),
-    tr15,
+noncomputable def st8 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some ⟨[(1, 1)], 0⟩) tr6 (.node (some ⟨[(5, 1)],
+    0⟩) tr8 tr10)) (.node (some ⟨[(2, 1)], 0⟩) tr12 (.node (some ⟨[(6, 1)], 0⟩) tr13 tr14))),
+    (.node (some ⟨[(3, 1), (56, 1)], 0⟩) (.node (some ⟨[(4, 1), (56, 4)], 1⟩) (.node (some ⟨[(4, 1), (56, 4)], 3⟩)
+        .nil .nil) .nil) (.node (some ⟨[(4, 1), (56, 4)], 2⟩) .nil .nil)),
+    (.node (some v4) .nil .nil),
+    (.node none tr15 (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node (some (⟨[(67,
+        1)], 0⟩, ⟨[(89, 1)], 0⟩)) .nil .nil) .nil))) .nil))),
+    (.node (some (⟨[(3, 1), (56, 1)], 0⟩, ⟨[(0, 1)], 0⟩)) (.node (some (⟨[(4, 1), (56, 4)], 1⟩, ⟨[(66, 1)], 0⟩))
+        (.node (some (⟨[(4, 1), (56, 4)], 3⟩, ⟨[(92, 1)], 0⟩)) .nil .nil) .nil) (.node (some (⟨[(4, 1), (56, 4)],
+        2⟩, ⟨[(91, 1)], 0⟩)) .nil .nil)),
+    tr16,
     .nil,
     .nil,
     4, 1, 0, 0,

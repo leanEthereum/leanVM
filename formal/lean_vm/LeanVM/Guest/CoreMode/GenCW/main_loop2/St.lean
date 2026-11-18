@@ -20,8 +20,7 @@ open LeanVM.Guest.CoreMode
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop2" => Fn.«main_loop2».hcert.sig
-    | _ => .empty)
+    | "__loop2" => Fn.«main_loop2».hcert.sig | _ => .empty)
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW
