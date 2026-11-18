@@ -57,8 +57,11 @@ FEATURES = {
     'fa': 'a frame run\'s cells written when their values are defined (`frameAddr`)',
     'lts': 'range checks and selectors give exponent facts without a residual',
     'rules': 'residual rules (`rules.py`: `tabIdx`, `linSub`, ...)',
+    'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
+            'as `CCell.mul` does',
 }
 F = set(FEATURES)
+WRAP = [True]
 
 
 def callee(name):
@@ -72,7 +75,7 @@ def mk(bs, off):
     m = collections.defaultdict(int)
     for b, e in bs:
         m[b] += e
-    return (tuple(sorted((b, e) for b, e in m.items() if e)), off % ORD)
+    return (tuple(sorted((b, e) for b, e in m.items() if e)), off % ORD if WRAP[0] else off)
 
 
 def mmul(a, b):
@@ -94,7 +97,7 @@ def mdiv(a, b):
 
 
 def shift(a, o):
-    return (a[0], (a[1] + o) % ORD)
+    return (a[0], (a[1] + o) % ORD if WRAP[0] else a[1] + o)
 
 
 def base(v):
@@ -102,13 +105,15 @@ def base(v):
 
 
 def num(k):
-    return ((), k % ORD)
+    return ((), k % ORD if WRAP[0] else k)
 
 
 def ioff(a, b):
     """`b - a` when the two differ by a constant (same bases), else `None`."""
     if a[0] != b[0]:
         return None
+    if not WRAP[0]:
+        return b[1] - a[1]
     d = (b[1] - a[1]) % ORD
     return d if d < 2 ** 63 else d - ORD
 
@@ -415,7 +420,9 @@ class Pass:
         rest = {b: e for b, e in rest.items() if e}
         if any(e % S for e in rest.values()):
             return None
-        do = (c[1] - Q[1]) % ORD
+        do = (c[1] - Q[1]) % ORD if WRAP[0] else c[1] - Q[1]
+        if not WRAP[0] and do < 0:
+            return None
         if do < 2 ** 40:
             if do % S:
                 return None
@@ -801,7 +808,7 @@ class Pass:
         if hi == hi2:
             return True
         if not hi[0] and not hi2[0]:
-            return hi[1] <= hi2[1] and hi[1] < 2 ** 62
+            return hi[1] <= hi2[1] < 2 ** 62
         if not hi[0] and hi[1] < 2 ** 62:
             return any(self.lt_fact(st, num(k), hi2, u) for k in range(max(0, hi[1] - 1), hi[1] + 64))
         return False
@@ -1200,8 +1207,9 @@ def retsig(P, G):
         # a returned word `p·g^k` over a parameter: the cells past `p` also over the returned word's slot
         G.retM = {}
         for p_, slot, k in alias:
-            post |= {mk(((slot, 1),), c[1] - k) for c in post if c[0] == ((p_, 1),)}
-            postR |= {((((slot, 1),), r[0][1] - k), r[1], r[2], r[3]) for r in postR if r[0][0] == ((p_, 1),)}
+            post |= {mk(((slot, 1),), c[1] - k) for c in post if c[0] == ((p_, 1),) and (WRAP[0] or c[1] >= k)}
+            postR |= {((((slot, 1),), (r[0][1] - k) % ORD if WRAP[0] else r[0][1] - k), r[1], r[2], r[3])
+                      for r in postR if r[0][0] == ((p_, 1),) and (WRAP[0] or r[0][1] >= k)}
     G.post = sorted(c for c in post if c not in pre)[:MAXPTS]
     G.postR = sorted(r for r in postR if r not in set(G.preR))
     G.postV = sorted(postV)[:MAXPTS]
@@ -1288,6 +1296,7 @@ def loop_finish(P, G):
 
 def run_all(rules=True):
     SIGS.clear()
+    WRAP[0] = 'wrap' in F
     out = {}
     t = time.time()
     for k in ORDER:

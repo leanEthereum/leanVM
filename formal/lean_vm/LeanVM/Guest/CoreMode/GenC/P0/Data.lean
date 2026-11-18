@@ -595,9 +595,7 @@ namespace LeanVM.Guest.Fn.«opening_round»
 /-- `opening_round`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := ⟨[⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
-    [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩, ⟨[(15, 1)], 18446744073709551610⟩,
-    ⟨[(15, 1)], 18446744073709551611⟩, ⟨[(15, 1)], 18446744073709551612⟩, ⟨[(15, 1)], 18446744073709551613⟩,
-    ⟨[(15, 1)], 18446744073709551614⟩],
+    [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩],
     [],
     [],
     []⟩
@@ -605,7 +603,7 @@ def hcert : CoreMode.HCert where
     (40, [(5, 4, .pre 4)])]
   res := []
   calls := [[]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 0, .ev 1, .ev 2, .ev 3, .ev 4]]
+  rets := [[.ev 5, .ev 6, .ev 7]]
 
 end
 end LeanVM.Guest.Fn.«opening_round»
