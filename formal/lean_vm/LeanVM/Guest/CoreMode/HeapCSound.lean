@@ -864,6 +864,49 @@ theorem ltF_congr {w w' : ℕ → E} {a a' b b' : CCell} (ha : a.valW w = a'.val
     LtF w a b ↔ LtF w' a' b' := by
   simp only [LtF, ha, hb]
 
+theorem expFacts_ok {w : ℕ → E} {m : CCell} {e : ℕ} (hm : m.valW w = ofK (addressOfIndex e)) :
+    FOk w (expFacts m e) := by
+  unfold expFacts
+  cases hb : Nat.blt (e + 1) capE with
+  | false => intro p hp; simp at hp
+  | true =>
+    have he := Nat.blt_eq.mp hb
+    have hr : rep (m.valW w) = some e := by rw [hm]; exact rep_of (by omega)
+    rw [Bool.cond_true]
+    intro p hp
+    rcases List.mem_append.mp hp with hp | hp
+    · cases h0 : Nat.beq e 0 with
+      | true => rw [h0] at hp; cases hp
+      | false =>
+        rw [h0] at hp
+        rw [List.mem_singleton.mp hp]
+        have := Nat.ne_of_beq_eq_false h0
+        exact ⟨e - 1, e, rep_const (by omega), hr, by omega⟩
+    · rw [List.mem_singleton.mp hp]
+      exact ⟨e, e + 1, hr, rep_const he, by omega⟩
+
+theorem baseFacts_ok {w : ℕ → E} {m : CCell} {j : ℕ} (hm : m.valW w = ofK (addressOfIndex j)) :
+    FOk w (baseFacts m j) := by
+  obtain ⟨bs, t⟩ := m
+  unfold baseFacts
+  dsimp only
+  split
+  · rename_i _ b
+    cases hle : Nat.ble t j with
+    | false => intro p hp; simp at hp
+    | true =>
+      rw [Bool.cond_true]
+      have hle := Nat.le_of_ble_eq_true hle
+      refine expFacts_ok ?_
+      have hne : ofK (addressOfIndex t) ≠ 0 := fun h ↦
+        pow_ne_zero t g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
+      refine mul_right_cancel₀ hne ?_
+      rw [valW_baseC]
+      have : w b * ofK (addressOfIndex t) = (⟨[(b, 1)], t⟩ : CCell).valW w := by
+        simp [CCell.valW, prodW]
+      rw [this, hm, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hle]
+  · intro p hp; simp at hp
+
 /-- **A path's facts hold** where its conditions do. -/
 theorem pathF_ok {env : Trie CCell} (he : EnvOk σ env) : ∀ {path : List CCond}, (∀ c ∈ path, c.Holds σ) →
     FOk (vw σ) (pathF env path)
@@ -874,27 +917,15 @@ theorem pathF_ok {env : Trie CCell} (he : EnvOk σ env) : ∀ {path : List CCond
     simp only [pathF]; exact pathF_ok he fun c hc ↦ hp c (List.mem_cons_of_mem _ hc)
   | .arm x j :: l, hp => by
     have hl := pathF_ok he fun c hc ↦ hp c (List.mem_cons_of_mem _ hc)
+    have hx : (idxF env (.val x)).valW (vw σ) = ofK (addressOfIndex j) := by
+      rw [idxF_val he, idxC, valW_baseC]; exact hp _ List.mem_cons_self
     simp only [pathF]
-    cases hb : Nat.blt (j + 1) capE with
-    | false => exact hl
-    | true =>
-      rw [Bool.cond_true]
-      have hj := Nat.blt_eq.mp hb
-      have hx : (idxF env (.val x)).valW (vw σ) = ofK (addressOfIndex j) := by
-        rw [idxF_val he, idxC, valW_baseC]; exact hp _ List.mem_cons_self
-      have hr : rep ((idxF env (.val x)).valW (vw σ)) = some j := by rw [hx]; exact rep_of (by omega)
-      intro p hp'
-      rcases List.mem_append.mp hp' with hp' | hp'
-      · cases h0 : Nat.beq j 0 with
-        | true => rw [h0] at hp'; cases hp'
-        | false =>
-          rw [h0] at hp'
-          rw [List.mem_singleton.mp hp']
-          have := Nat.ne_of_beq_eq_false h0
-          exact ⟨j - 1, j, rep_const (by omega), hr, by omega⟩
-      · rcases List.mem_cons.mp hp' with rfl | hp'
-        · exact ⟨j, j + 1, hr, rep_const hj, by omega⟩
-        · exact hl p hp'
+    intro p hp'
+    rcases List.mem_append.mp hp' with hp' | hp'
+    rcases List.mem_append.mp hp' with hp' | hp'
+    · exact expFacts_ok hx p hp'
+    · exact baseFacts_ok hx p hp'
+    · exact hl p hp'
 
 theorem facts_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H f σ X)
     {env : Trie CCell} (he : EnvOk σ env) (res : List ℕ) : FOk (vw σ) (facts X env res) := by

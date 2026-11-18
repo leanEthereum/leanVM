@@ -1068,6 +1068,31 @@ theorem useBig_bad :
     heapOkC Data.powTree sigsL useBig { hUseBig with calls := [[], .pts :: (List.range 2047).map .ev] } = false := by
   decide +kernel
 
+/-! ## A selector's base under an arm (round 4) -/
+
+/-- Matches on `x = b·g^2`; arm `3` reads `p[0]`. -/
+def selB : Fn where
+  name := "selB"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 4 0)), .atom (.mul (.n 3) (.n 1) (.n 2)),
+    .match_ (.n 3) [[], [], [], [.atom (.load (.n 4) (.n 0) 0)]], .ret []]
+
+/-- `selB`'s certificate: the precondition run `p·g^[0, e(b))`, `e(b) = 1` in arm `3` (`b = x·g^-2`). -/
+def hSelB : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := [(4, [(0, 0, .run 0 [])])]
+  res := []
+  rets := [[]]
+
+theorem selB_ok : heapOkC Data.powTree (fun _ ↦ .empty) selB hSelB = true := by decide +kernel
+
+/-- `p[1]` in arm `3`: past `e(b) = 1`. -/
+theorem selB_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) { selB with body := [.atom (.const (.n 2) (word 4 0)),
+      .atom (.mul (.n 3) (.n 1) (.n 2)), .match_ (.n 3) [[], [], [], [.atom (.load (.n 4) (.n 0) 1)]], .ret []] }
+      { hSelB with reads := [(4, [(0, 1, .run 0 [])])] } = false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test

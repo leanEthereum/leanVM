@@ -540,14 +540,23 @@ def carm (x : V) (j : ℕ) : List CCond := match vnum x with
   | some k => [.arm k j]
   | none => []
 
-/-- **The facts a path gives**: under arm `j` of a selector `x` (`j + 1 < 2^62`), `x`'s exponent is `j`:
-`(g^(j-1), x)` if `j > 0`, and `(x, g^(j+1))`. -/
+/-- The facts of a monomial of exponent `e` (`e + 1 < 2^62`): `(g^(e-1), m)` if `e > 0`, and `(m, g^(e+1))`. -/
+def expFacts (m : CCell) (e : ℕ) : List (CCell × CCell) :=
+  bif Nat.blt (e + 1) capE then
+    (bif Nat.beq e 0 then [] else [(⟨[], e - 1⟩, m)]) ++ [(m, ⟨[], e + 1⟩)]
+  else []
+
+/-- A selector's monomial `b·g^t` of exponent `j`, `t ≤ j`: its base `b`'s facts, of exponent `j - t`. -/
+def baseFacts (m : CCell) (j : ℕ) : List (CCell × CCell) :=
+  match m.bases with
+  | [(b, 1)] => bif Nat.ble m.off j then expFacts (baseC b) (j - m.off) else []
+  | _ => []
+
+/-- **The facts a path gives**: under arm `j` of a selector `x`, `x`'s exponent is `j` (`expFacts`), and,
+`x`'s monomial being `b·g^t`, `b`'s is `j - t` (`baseFacts`). -/
 noncomputable def pathF (env : Trie CCell) : List CCond → List (CCell × CCell)
   | [] => []
-  | .arm x j :: l => bif Nat.blt (j + 1) capE then
-      (bif Nat.beq j 0 then [] else [(⟨[], j - 1⟩, idxF env (.val x))]) ++
-        (idxF env (.val x), ⟨[], j + 1⟩) :: pathF env l
-    else pathF env l
+  | .arm x j :: l => expFacts (idxF env (.val x)) j ++ baseFacts (idxF env (.val x)) j ++ pathF env l
   | .zero _ :: l => pathF env l
   | .nonzero _ :: l => pathF env l
 
