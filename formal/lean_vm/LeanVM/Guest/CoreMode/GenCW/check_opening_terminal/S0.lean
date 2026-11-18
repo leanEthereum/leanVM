@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«check_opening_terminal».St
+public import LeanVM.Guest.CoreMode.GenCW.«check_opening_terminal».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -75,7 +75,8 @@ noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr1),
     .nil,
     0, 22, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«check_opening_terminal».HeapW

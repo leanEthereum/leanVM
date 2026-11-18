@@ -38,6 +38,14 @@ noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
     | none => true
   | _ => true
 
+/-- A frame run's first value at its certificate cell, not a hint-only value. -/
+noncomputable def faCellB (j : ℕ) : Stmt → Bool
+  | .atom (.frameAddr _ (r :: _)) => ((Bridge.extraOf j).lookup r.idx).isNone && decide (r.idx < 2 ^ 30)
+  | _ => true
+
+/-- Where frame run cells are guaranteed (`faNeed`), the frame runs' first values at their cells (`HonB.fa`). -/
+noncomputable def faOkB (j : ℕ) (Cf : CFun) : Bool := !faNeed Cf || (Bridge.stmtsOf Cf.fn.body).all (faCellB j)
+
 /-- A `ret`'s values at their certificate cells, within the frame, not hint-only values. -/
 noncomputable def retCellB (j : ℕ) : Stmt → Bool
   | .ret vs => vs.all fun v ↦ ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) &&
@@ -78,16 +86,31 @@ noncomputable def selGo (j : ℕ) (ps : List V) : List Atom → List Stmt → Bo
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
 at their cells; `j` neither `main` nor with chained `match`es. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
-  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyC fn.body || loopBC fn) &&
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyCore fn.body || loopBC fn) &&
     (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
     (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty &&
     (selGo j fn.params [] fn.body || loopBC fn)
 
+/-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
+checks apart. -/
+noncomputable def honRest (j : ℕ) (fn : Fn) : Bool :=
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && paramsN fn.params 0 &&
+    ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
+    Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty
+
+theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true)
+    (h2 : (Bridge.stmtsOf fn.body).all (ptrCellB j) = true) (h3 : (Bridge.stmtsOf fn.body).all (retCellB j) = true)
+    (h4 : (selGo j fn.params [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
+  simp only [honRest, Bool.and_eq_true] at h5
+  obtain ⟨⟨⟨⟨r1, r2⟩, r3⟩, r4⟩, r5⟩ := h5
+  simp only [honB, Bool.and_eq_true]
+  exact ⟨⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, r5⟩, h4⟩
+
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
   ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
-    (honB j Cf.fn && resOk Cf && glOk Cf) = true
+    (honB j Cf.fn && resOk Cf && glOk Cf && faOkB j Cf) = true
 
 
 /-- **Core data of the deployed guest**, from the tables' entries of function `j` and its checks. -/
@@ -98,7 +121,7 @@ theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P :
     (hfn : cf = Cf.fn)
     (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
       f.instructionCount = Cf.X)
-    (hb : (honB j Cf.fn && resOk Cf && glOk Cf) = true) : CfOk Cf := by
+    (hb : (honB j Cf.fn && resOk Cf && glOk Cf && faOkB j Cf) = true) : CfOk Cf := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, -⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl

@@ -25,10 +25,13 @@ def hcert : CoreMode.HCert where
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(3, 4)], 0⟩)⟩],
       ghosts := 2 }
   reads := []
-  res := [.under [.zero 20, .nonzero 6] (.lt (.val 3) (.num 4611686018427387903)),
-    .lt (.val 3) (.num 4611686018427387903)]
-  calls := [[], [.mrg 4 [0], .run 1 [], .run 2 [], .run 3 [], .run 4 []], [.run 1 [], .run 2 [], .run 3 [], .run 4 []]]
-  rets := [[.mrg 4 [1], .run 1 [], .run 2 [], .run 3 [], .run 4 []]]
+  res := [.under [.zero 6] (.lt (.val 3) (.num 4611686018427387903)),
+    .under [.zero 20, .nonzero 6] (.lt (.val 3) (.num 4611686018427387903)),
+    .under [.nonzero 6] (.lt (.val 3) (.num 4611686018427387903))]
+  calls := [[], [.mrg 4 [1], .run 1 [], .run 2 [], .run 3 [], .run 4 []], [.run 1 [], .run 2 [], .run 3 [], .run 4 []]]
+  rets := [[.mrg 4 [0], .run 1 [], .run 2 [], .run 3 [], .run 4 []],
+    [.mrg 4 [2], .run 1 [], .run 2 [], .run 3 [], .run 4 []]]
+  dups := [6]
   gargs := [("child_claim_list_mono", [0, 1, 2, 3, 15, 16, 17], [⟨[(0, 1)], 0⟩, ⟨[(3, 4)], 0⟩])]
 
 end

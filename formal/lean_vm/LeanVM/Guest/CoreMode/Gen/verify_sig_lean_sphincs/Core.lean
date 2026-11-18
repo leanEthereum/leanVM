@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GenW.verify_sig_lean_sphincs.Ok
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
@@ -37,8 +38,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
-  decide +kernel
+theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
 
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
 theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
@@ -62,7 +62,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `verify_sig_lean_sphincs`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -81,6 +81,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code21 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `verify_sig_lean_sphincs`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok

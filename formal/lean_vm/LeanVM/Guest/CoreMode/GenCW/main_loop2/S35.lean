@@ -514,7 +514,8 @@ noncomputable def st35 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr98 tr103),
     .nil,
     4, 1, 0, 0,
     st35_cd,
-    st35_eqs⟩
+    st35_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

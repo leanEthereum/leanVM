@@ -8,25 +8,9 @@
 module
 
 public import LeanVM.Guest.Mode.HintsData
-public import LeanVM.Guest.Pack.«P3».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `decode_query_windows__L23_L5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1180) (d := Data.adviceFn1180) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
 
 namespace LeanVM.Guest.Fn.«verify_keccak»
 

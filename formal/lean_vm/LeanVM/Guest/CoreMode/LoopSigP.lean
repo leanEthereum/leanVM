@@ -102,7 +102,8 @@ def rngKX (G : Mode.Sig) (ps : List ℕ) (r : Mode.Rng) : Bool := idxKX G ps r.l
 fact's or an entry run's bound cell's (`idxKX`; for the preconditions, one the tail call passes on, `ps`). -/
 def sigOkLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Bool :=
   G.ret.isEmpty && G.postP.isEmpty && G.retV.isEmpty && G.postT.isEmpty && G.postC.isEmpty &&
-    h.preP.isEmpty && h.postP.isEmpty && h.retM.isEmpty && h.postV.isEmpty && h.retEq.isEmpty && Nat.beq h.ghosts 0 &&
+    h.preP.isEmpty && h.postP.isEmpty && h.retM.isEmpty && (h.postV.isEmpty && h.postQ.isEmpty) && h.retEq.isEmpty &&
+    Nat.beq h.ghosts 0 &&
     (match G.term, h.term with
       | [(lo, hi)], [(.val 0, ei)] => decide (lo = .ex (.fr 2) 0) && parCell G np 2 && decide (idxT G np hi = some ei)
       | _, _ => false) &&
@@ -125,6 +126,7 @@ structure SigLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Prop wher
   hpostP : h.postP = []
   hretM : h.retM = []
   hpostV : h.postV = []
+  hpostQ : h.postQ = []
   hretEq : h.retEq = []
   hghost : h.ghosts = 0
   term : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ h.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
@@ -153,7 +155,7 @@ theorem sigLP_of {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : sigO
   simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq, List.all_eq_true] at hs
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩,
     hterm⟩, hpre⟩, hpreR⟩, hpost⟩, hpostR⟩, hpP⟩, hpLP⟩, hk1⟩, hk2⟩, hk3⟩, hk4⟩, hi1⟩, hi2⟩ := hs
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, by simpa using h11, ?_, hpre, hpreR, hpost, hpostR, hpP, hpLP,
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9.1, h9.2, h10, by simpa using h11, ?_, hpre, hpreR, hpost, hpostR, hpP, hpLP,
     hk1, hk2, hk3, hk4, fun p hp ↦ runIn_mem (hi1 p hp), fun p hp ↦ runIn_mem (hi2 p hp)⟩
   split at hterm
   · rename_i lo hi ei hG hh

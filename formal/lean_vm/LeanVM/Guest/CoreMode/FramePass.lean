@@ -746,6 +746,32 @@ theorem atF_step {Fn : FFun} {code : List OffsetInstruction} (har : armsOk Fn = 
   have hij := (hP2 G hG).2.1 j hjG
   exact covF_forward har hw (j - (i + 1)) (i + 1) (by omega) h2 hc
 
+/-- **The walk's state at offset `i`**: the live path and the groups into `i`, cut and joined (`atF_step`'s). -/
+noncomputable def retSt (Fn : FFun) (code : List OffsetInstruction) (i : ℕ) : Option FSt :=
+  match preF Fn code i with
+  | some (cur, pend) => match cutF Fn i cur pend with
+    | some (c1, p1) => (joinF i c1 p1).1
+    | none => none
+  | none => none
+
+/-- **The state at an offset holds** (`retSt`), at a state the walk reaches there. -/
+theorem atF_ret {Fn : FFun} {code : List OffsetInstruction} (har : armsOk Fn = true)
+    (hw : FrameAcc Fn code) {i : ℕ} (hi : i < code.length) {s : Prover.Exec.St}
+    (h : AtF img Fn code i s) : ∃ A, retSt Fn code i = some A ∧ FHolds img s A := by
+  obtain ⟨cur, pend, h0, hh⟩ := h
+  obtain ⟨⟨c2, p2⟩, h2⟩ := preF_isSome hw (i + 1)
+  rw [preF_succ hi, h0, Option.bind_some, frameRunH_one] at h2
+  obtain ⟨c1, p1, hcut, -⟩ := passH_cases h2
+  have hP := preF_ok img har (by omega) h0
+  obtain ⟨hc1, -, hc3⟩ := cutF_spec (img := img) hcut
+  obtain ⟨A, hA, hH⟩ := joinF_holds (hc3 _ i hP) (hc1 s hh)
+  refine ⟨A, ?_, hH⟩
+  unfold retSt
+  rw [h0]
+  dsimp only
+  rw [hcut]
+  exact hA
+
 end Off
 
 end

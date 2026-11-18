@@ -45,6 +45,10 @@ ORD = 2 ** 64 - 1
 
 # The inference's rules beyond `heapOkC`'s format (`m2-format.md`), each switchable to measure what it buys:
 FEATURES = {
+    'dup': 'a top-level `ite` on `p == k` (`p` a parameter, `k` a constant) followed by atoms and its `ret` takes the '
+           'continuation into each branch (`HCert.dups`); a guarantee empty where the zero branch\'s equation holds',
+    'postQ': 'a run at the word a callee stores at a cell (its own buffer), guaranteed at return (`postQ`); the '
+             'caller reads the cell to name the word',
     'join': 'facts of both sides of an `ite`/`match` kept after it (their meet)',
     'hv': 'a read of a cell whose word is known (a store, a callee\'s `postV`) names that word',
     'cond': 'facts kept under a selector\'s value (a dispatch arm), used by a later dispatch or `match` on it; an arm '
@@ -79,6 +83,8 @@ FEATURES = {
 }
 F = set(FEATURES)
 WRAP = [True]
+# `arm_blocks` reads the arms' runs too (set by `callc.py` only, so `emitc.py`'s certificates do not move)
+ARMRUN = [False]
 
 
 def callee(name):
@@ -231,7 +237,7 @@ def shape(k):
 
 class Sig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn', 'prePR', 'postPR',
-              'retEq')
+              'retEq', 'postQ')
 
     def __init__(self, m):
         self.m = m
@@ -250,6 +256,7 @@ class Sig:
         self.postPR = []
         self.retIn = {}      # returned word j -> the anchor of the object it points into
         self.retEq = []      # (x, y): monomials over the parameters and returned words (`m + j`), equal at return
+        self.postQ = []      # (cell, (b, S, lo, hi)): the run `w·b·g^(S·j)`, `lo <= j < hi`, `w` the word at the cell
         self.retP = {}       # returned word j -> offsets `o` with `ret_j·g^o` written at return
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.noptr = set()   # a loop's record cells over its counter whose next one the iteration stores: no pointer
@@ -286,19 +293,21 @@ GB = 1 << 20   # ghost slot j is the value `GB + j`
 # ---- the pass
 
 class St:
-    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr', 'vpf')
+    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr', 'vpf', 'dq')
 
     def __init__(self):
         self.env, self.pts, self.hv, self.pf, self.src = {}, {}, {}, {}, {}
         self.runs, self.lts, self.D, self.alias, self.cond = [], set(), set(), {}, {}
         self.pfr = []
         self.vpf = {}        # value -> offsets `o` with `v·g^o` written (`retP`: a dispatch's returned pointer)
+        self.dq = ()         # (cell, (b, S, lo, hi)): a callee's `postQ`, the run at the word the cell holds
 
     def copy(self):
         s = St()
         s.env, s.pts, s.hv, s.pf, s.src = dict(self.env), dict(self.pts), dict(self.hv), dict(self.pf), dict(self.src)
         s.pfr = list(self.pfr)
         s.vpf = dict(self.vpf)
+        s.dq = self.dq
         s.runs, s.lts, s.D, s.alias, s.cond = list(self.runs), set(self.lts), set(self.D), dict(self.alias), \
             dict(self.cond)
         return s
@@ -346,6 +355,9 @@ class Pass:
     def __init__(self, key, sig, rules=True):
         self.key = key
         self.params, self.body = CORE[key]
+        self.dups = dup_guards(key) if 'dup' in F else []
+        if self.dups:
+            self.body = dup_body(self.dups, self.body)
         self.m = len(self.params)
         self.sig = sig
         self.loop = key in IS_LOOP
@@ -357,6 +369,7 @@ class Pass:
         self.res = []                    # residuals
         self.unc = []                    # uncovered reads: (class, cell, site)
         self.rets = []                   # (state, returned values) at each `ret`
+        self.retpaths = []               # the branch path at each `ret`
         self.tails = []                  # (state, args, cond) at the loop's tail call
         self.ret_wits = []               # per `ret`, the witnesses of the own guarantees
         self.at_tail = False
@@ -897,6 +910,9 @@ class Pass:
                 self.define(st, d, None, 'load')
                 if 'ptr' in F:
                     st.src[d] = (c, self.n)
+                for c2, r in st.dq:
+                    if c2 == c:
+                        self.pushR(st, (mmul(self.mono(st, d), r[0]), r[1], r[2], r[3]))
                 if 'hv' in F:
                     st.hv.setdefault(c, self.mono(st, d))
             self.push(st, c)
@@ -906,7 +922,10 @@ class Pass:
             x, y, t1, t2, kk = a[1:]
             if y not in st.D:
                 self.define(st, y, None, 'rangeCheck')
-            self.fact(st, self.mono(st, x), shift(self.mono(st, kk), 1), 'rangeCheck')
+            mk_ = self.mono(st, kk)
+            # over value numbers when the bound is a constant (the checked word itself, whatever its monomial)
+            ci = (('val', x), ('num', mk_[1] + 1)) if mk_ is not None and not mk_[0] and 0 <= mk_[1] < 2 ** 40 else None
+            self.fact(st, self.mono(st, x), shift(mk_, 1), 'rangeCheck', cidx=ci)
         elif k == 'keccak':
             for v in a[2]:
                 self.define(st, v, None, 'keccak')
@@ -1001,6 +1020,28 @@ class Pass:
             false = (not okl and ioff(R[2], jl) is not None) or (not okh and ioff(jh, R[3]) is not None)
             if not false and (best is None or (okl or okh) and not (best[2] or best[3])):
                 best = (R, rw, okl, okh, jl, jh)
+        if self.key in CTR_PRE and lo == num(0) and hi[0]:
+            # a run in scope with points before and after it: `Q·g^(S·i)`, `i < t`, then `⟨Q·g^(S·t), S, 0, h⟩`, then
+            # its next `u` points, `hi = h·g^(t+u)` (`catM g^t (h·g^u)`, `catM h g^u`)
+            for R, rw in reversed(st.runs):
+                t, rem = divmod(R[0][1] - Q[1], S) if S else (0, 1)
+                if R[1] != S or R[2] != num(0) or R[0][0] != Q[0] or t < 0 or rem or R[3][0] != hi[0]:
+                    continue
+                u = hi[1] - R[3][1] - t
+                end = mmul(R[0], mpow(R[3], S))
+                if u >= 0 and t + u > 0 and all(shift(Q, S * i) in st.pts for i in range(t)) and \
+                        all(shift(end, S * j) in st.pts for j in range(u)):
+                    self.stats['wr-run-around'] += 1
+                    return ('sub', ('run', rw, []), [])
+        if self.key in CTR_CALLERS and lo == num(0) and S and hi[0]:
+            # residue runs `⟨Q·g^(S·d), S·K, 0, h⟩`, `d < K`, reaching past the upper bound: `e(hi) < e(h^K·g)`, a residual
+            for K in (2, 4):
+                hs = {R[3] for R, _ in st.runs if R[1] == S * K and R[2] == num(0) and R[0] == shift(Q, 0)}
+                for h in hs:
+                    if h[0] and all(any(R == (shift(Q, S * d), S * K, num(0), h) for R, _ in st.runs) for d in range(K)):
+                        k = self.addres(('lt', hi, shift(mpow(h, K), 1), 'mrg-le'))
+                        self.stats['wr-mrg-le'] += 1
+                        return ('sub', ('run', 0, []), [k])
         if n is not None and n <= (MAXPTS if 'ptsrun-long' in F else 64) and not lo[0] and 'ptsrun' in F:
             ws = []
             for i in range(n):
@@ -1013,7 +1054,7 @@ class Pass:
                 self.stats['wr-pts'] += 1
                 return ('pts', ws)
         if not self.at_tail and self.iface(Q) and self.iface(lo) and self.iface(hi) and Q[0] and not (
-                self.loop and any(b == self.sig.ctr for b, _ in Q[0])):
+                self.loop and any(b == self.sig.ctr for b, _ in Q[0]) and self.key not in CTR_PRE):
             if r not in self.sig.preR:
                 self.sig.preR.append(r)
             self.stats['wr-preR'] += 1
@@ -1167,8 +1208,13 @@ class Pass:
                 continue
             # a loop's run over `[lo, hi)` is empty when the loop is not entered (`lo = hi`)
             if conditional and not ('callIfR' in F and cond is not None and self.cond_is(st, cond, t[2], t[3])):
-                continue
+                if not (f in CTR_PRE and cond is not None and self.kept_if_not_entered(st, cond, t)):
+                    continue
             self.pushR(st, t)
+        for c, r in (G.postQ if 'postQ' in F and not conditional else ()):
+            tc, t = self.tr(st, c, args, rets), self.trR(st, r, args, rets)
+            if tc is not None and t is not None:
+                st.dq += ((tc, t),)
         for r, offs in (G.postPR if 'pfr' in F else ()):
             t = self.trR(st, r, args, rets)
             if t is None or conditional and not ('callIfR' in F and cond is not None and
@@ -1176,6 +1222,33 @@ class Pass:
                 continue
             st.pfr.append((t, frozenset(offs), ('evR', self.n)))
             self.n += 1
+
+    def kept_if_not_entered(self, st, c, t):
+        """A `callIf` guarantee written where the call is not entered: `c = a + b`, the run with `a` (one base)
+        replaced by `b` covered in scope (`keep`)."""
+        d = self.adds.get(c)
+        if d is None:
+            return False
+        ms = [self.mono(st, d[0]), self.mono(st, d[1])]
+        for a, b in (ms, ms[::-1]):
+            if a is None or b is None or len(a[0]) != 1 or a[0][0][1] != 1 or a[1]:
+                continue
+            x = a[0][0][0]
+
+            def sub(m):
+                e = dict(m[0]).get(x, 0)
+                return mmul(mk(tuple((k, f) for k, f in m[0] if k != x), m[1]), mpow(b, e))
+            r = (sub(t[0]), t[1], sub(t[2]), sub(t[3]))
+            old = self.at_tail
+            self.at_tail = True
+            try:
+                w = self.cover_run(st, r, ('keep',))
+            finally:
+                self.at_tail = old
+            if w is not None:
+                self.stats['kept'] += 1
+                return True
+        return False
 
     def cond_is(self, st, c, a, b):
         """The condition `c` is `x + y`, the words of the indices `a`, `b` (so `c ≠ 0` iff `a ≠ b`)."""
@@ -1258,6 +1331,7 @@ class Pass:
                 if self.retvals is None:
                     self.retvals = s[1]
                 self.rets.append((st, s[1]))
+                self.retpaths.append(tuple(self.path))
                 self.ret_wits.append(self.ret_wit(st, s[1]))
                 return None
         return st
@@ -1472,11 +1546,26 @@ class Pass:
         for c in outs[-1].pts:
             if c[1] < 2 ** 20 and c[0] and c not in st.pts:
                 by[c[0]].add(c[1])
+        if ARMRUN[0]:
+            # the arms' blocks also as runs at constant bounds (the callees' guarantees translated from mode
+            # signatures, `callc.py`)
+            for r, _ in outs[-1].runs:
+                if r[1] == 1 and r[0][0] and r[0][1] == 0 and r[0] not in st.pts:
+                    by[r[0][0]].add(0)
+
+        def has(t, c):
+            if c in t.pts:
+                return True
+            if not ARMRUN[0]:
+                return False
+            u = []
+            b = self.find_run(t, c, t.runs, u)
+            return b is not None and b[3] and b[4] and not u
         for Q, offs in by.items():
             ns = []
             for j, t in enumerate(outs):
                 n = 0
-                while (Q, n) in t.pts:
+                while n < 2 ** 12 and has(t, (Q, n)):
                     n += 1
                 ns.append(n)
             K = (ns[-1] - ns[0]) // (len(outs) - 1)
@@ -1509,6 +1598,42 @@ class Pass:
             st.pf[c] = (frozenset(offs), ('preP', k))
         self.block(st, self.body)
         return self
+
+
+# Loops whose run preconditions may be over the counter: a table the loop fills itself, row by row, each iteration
+# reading the row the previous one wrote (`verify_bus_gkr`'s point triangle). The tail meets the next row.
+CTR_PRE = {'verify_bus_gkr_loop0'}
+CTR_CALLERS = {f for k in CTR_PRE for f in CALLERS[k] if f not in CTR_PRE}
+
+
+def dup_guards(key):
+    """The guards of the top-level `ite`s whose continuation goes into each branch (`HCert.dups`): a function (not a
+    loop) whose `ite c` on `c = p + k` (`p` a parameter, `k` a constant) is followed only by atoms and its `ret`."""
+    params, body = CORE[key]
+    if key in IS_LOOP:
+        return []
+    adds, consts = {}, set()
+    for i, s in enumerate(body):
+        if s[0] == 'a' and s[1][0] == 'add':
+            adds[s[1][1]] = (s[1][2], s[1][3])
+        elif s[0] == 'a' and s[1][0] == 'const':
+            consts.add(s[1][1])
+        elif s[0] == 'ite':
+            rest = body[i + 1:]
+            a = adds.get(s[1])
+            if rest and rest[-1][0] == 'ret' and all(t[0] == 'a' for t in rest[:-1]) and a is not None and \
+                    any(x < len(params) for x in a) and any(x in consts for x in a):
+                return [s[1]]
+    return []
+
+
+def dup_body(ds, ss):
+    """`dupB` (`heapc.dupB`)."""
+    for i, s in enumerate(ss):
+        if s[0] == 'ite' and s[1] in ds:
+            rest = list(ss[i + 1:])
+            return list(ss[:i]) + [('ite', s[1], list(s[2]) + rest, list(s[3]) + rest)]
+    return ss
 
 
 # ---- inference of one function
@@ -1594,6 +1719,7 @@ def retsig(P, G):
             if rx is not None and ry is not None and rx != ry and (rx[0] or ry[0]) and (rx, ry) not in G.retEq:
                 G.retEq.append((rx, ry))
     post = postR = postV = postP = None
+    rss = []
     for st, vs in P.rets:
         cs = {rename(c) for c in st.pts}
         cs.discard(None)
@@ -1605,6 +1731,7 @@ def retsig(P, G):
             if None not in t and t[0][0]:
                 rs.add((t[0], r[1], t[1], t[2]))
         postR = rs if postR is None else postR & rs
+        rss.append(rs)
         hv = set()
         pp = {}
         for c, w in st.hv.items():
@@ -1626,6 +1753,32 @@ def retsig(P, G):
                 pp[rc] = pp.get(rc, frozenset()) | offs
         postV = hv if postV is None else postV & hv
         postP = pp if postP is None else {c: o & pp[c] for c, o in postP.items() if c in pp and o & pp[c]}
+    if P.dups and rss:
+        # a run guaranteed at one `ret` and empty at the others by their zero branch's equation (`emptyE`)
+        def eqs_at(st, path):
+            E = []
+            for c in path:
+                if c[0] == 'ite' and c[2] and c[1] in P.adds:
+                    x, y = (P.mono(st, v) for v in P.adds[c[1]])
+                    if x is not None and y is not None:
+                        rx, ry = rename(x) if x[0] else x, rename(y) if y[0] else y
+                        if rx is not None and ry is not None:
+                            E.append((rx, ry))
+            return E
+
+        def empty(E, r):
+            lo, hi = r[2], r[3]
+            if lo == hi:
+                return True
+            for a, b in E:
+                for M, N in ((a, b), (b, a)):
+                    if M[0] and hi[0]:
+                        k = dict(hi[0]).get(M[0][0][0], 0) // M[0][0][1]
+                        if k and mpow(M, k) == hi and mpow(N, k) == lo:
+                            return True
+            return False
+        Es = [eqs_at(st, pth) for (st, _), pth in zip(P.rets, P.retpaths)]
+        postR = {r for rs in rss for r in rs if all(r in rs_ or empty(E, r) for rs_, E in zip(rss, Es))}
     pre = set(G.pre)
     if 'retM' not in F or 'obj' in F:
         # a returned word `p·g^k` over a parameter: the cells past `p` also over the returned word's slot (with `obj`
@@ -1657,6 +1810,24 @@ def retsig(P, G):
                     if r not in G.postR:
                         G.postR.append(r)
                 i = j + 1
+    if 'postQ' in F and P.key not in IS_LOOP:
+        postQ = None
+        for st, vs in P.rets:
+            q = set()
+            for c, w in st.hv.items():
+                rc = rename(c)
+                if rc is None or not rc[0] or not (len(w[0]) == 1 and w[0][0][1] == 1 and w[0][0][0] >= m):
+                    continue
+                # an own buffer's runs, published by the store of its pointer at `c`
+                for r, _ in st.runs:
+                    if dict(r[0][0]).get(w[0][0][0]) != 1:
+                        continue
+                    b = mk(tuple(x for x in r[0][0] if x[0] != w[0][0][0]), r[0][1] - w[1])
+                    t = tuple(rename(x) if x[0] else x for x in (b, r[2], r[3]))
+                    if None not in t:
+                        q.add((rc, (t[0], r[1], t[1], t[2])))
+            postQ = q if postQ is None else postQ & q
+        G.postQ = sorted(postQ or ())
     G.postV = sorted(postV)[:MAXPTS]
     G.postP = sorted((c, tuple(sorted(o))) for c, o in postP.items())
     if 'pfr' in F:
@@ -1760,6 +1931,28 @@ def loop_finish(P, G):
         elif c not in G.pre:
             post.append(c)
     G.post, G.postR = post[:MAXPTS], [r for r in postR if r not in G.preR]
+    if P.key in CTR_PRE and tails and end[0] and len(end[0]) == 1 and end[1] == 0:
+        # a run precondition over the counter, met at the tail for the next iteration: at the exit (`i·g = end`) the
+        # path wrote it over `end`, and possibly a few cells further (the largest the tails cover)
+        for r in G.preR:
+            Q, S, lo, hi = r
+            if not any(b == i for b, _ in Q[0]) or any(b == i for b, _ in lo[0]):
+                continue
+            sub = lambda m: mk(tuple((end[0][0][0], e * end[0][0][1]) if b == i else (b, e) for b, e in m[0]), m[1])
+            best = None
+            for t in range(3):
+                g_ = (sub(Q), S, lo, shift(sub(hi), t))
+                nxt = (mk(tuple((b, e) for b, e in Q[0] if b != i) + ((i, dict(Q[0])[i]),), Q[1] + dict(Q[0])[i]), S, lo,
+                       shift(mk(tuple((b, e) for b, e in hi[0]), hi[1]) if not any(b == i for b, _ in hi[0]) else
+                             mk(hi[0], hi[1] + dict(hi[0])[i]), t))
+                P.at_tail = True
+                ok = all(P.cover_run(st, nxt, ('tail',)) is not None for st in tails)
+                P.at_tail = False
+                if ok:
+                    best = g_
+            if best is not None and best not in G.postR:
+                G.postR.append(best)
+                P.stats['exit-run'] += 1
     if 'pfr' in F:
         import ptrrun
         ptrrun.loop_finish(P, G, tails, end)

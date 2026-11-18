@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 1479 to 2181. -/
 theorem win10 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 1479).take (2182 - 1479)) st10 st11 = true := by
+  simp only [winOk, withCx_cx hcx]
   decide +kernel
 
 end

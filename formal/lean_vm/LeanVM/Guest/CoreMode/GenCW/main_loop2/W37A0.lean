@@ -66,6 +66,7 @@ def sum37_0 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
 
 /-- Arms 0 to 157. -/
 theorem arms37_0 : armsOkW Data.powTree sigW core hcert ((Memory.loopBody core).drop 319) 0 (158 - 0) st37 (cntOf st37) sum37_0 (4, 1, 0, 0) = true := by
+  simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 
 end

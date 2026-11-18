@@ -232,6 +232,9 @@ def res_fam(k, r, G):
         c, j = r[2][1], r[1][1]
         if len(c[0]) != 1 or c[0][0][1] != 1 or not j < c[1]:
             return False
+        # `sel`: `x` a top-level selector of `m` arms, `m + c < 2^62`
+        if any(x == c[0][0][0] and m + c[1] < CAPE for x, m in callc.top_sels(body)):
+            return True
         B = expq_bound(k, c[0][0][0])
         return B is not None and B + c[1] < CAPE
     if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'mono':
@@ -355,20 +358,21 @@ def extend(out, why, S, verbose=False):
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
         for k in cands:
-            try:
+            # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
+            # (`armblock`, `ab`), each with residuals of families
+            r, err = None, None
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}):
+                I.F.clear()
+                I.F.update(feats)
                 try:
                     r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
-                except callc.No:
-                    # the check with calls' own features (`ptr`, `pfr`), its residuals of families
-                    I.F.clear()
-                    I.F.update(saved)
-                    try:
-                        r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
-                    finally:
-                        I.F.clear()
-                        I.F.update(FEATURES)
-            except callc.No as e:
-                lost[str(e).split(':')[0]] += 1
+                    break
+                except callc.No as e:
+                    err = err or e
+            I.F.clear()
+            I.F.update(FEATURES)
+            if r is None:
+                lost[str(err).split(':')[0]] += 1
                 continue
             r['text'] = callc.ldata(k, r)
             got[k] = r

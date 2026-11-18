@@ -50,7 +50,8 @@ noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some �
     .nil,
     3, 0, 0, 0,
     st1_cd,
-    st1_eqs⟩
+    st1_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«walk_path__L24_L4».HeapW

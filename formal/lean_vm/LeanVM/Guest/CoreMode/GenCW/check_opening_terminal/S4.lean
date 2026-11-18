@@ -408,7 +408,8 @@ noncomputable def st4 : CSt := ⟨tr159,
     .nil,
     316, 34, 65, 0,
     st4_cd,
-    st4_eqs⟩
+    st4_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«check_opening_terminal».HeapW

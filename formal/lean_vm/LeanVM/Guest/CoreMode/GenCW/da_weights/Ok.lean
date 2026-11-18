@@ -21,10 +21,12 @@ open LeanVM.Guest.CoreMode
 
 /-- The parameters, the entry state. -/
 theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+  simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 567 to the end. -/
 theorem last_ok : lastOkF Data.powTree sigW core hcert 567 st2 = true := by
+  simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
 end

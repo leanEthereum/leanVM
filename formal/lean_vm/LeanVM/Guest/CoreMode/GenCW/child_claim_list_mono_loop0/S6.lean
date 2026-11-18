@@ -1875,7 +1875,8 @@ noncomputable def st6 : CSt := ⟨tr1814,
     .nil,
     550, 1, 0, 0,
     st6_cd,
-    st6_eqs⟩
+    st6_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW
