@@ -345,6 +345,12 @@ def hcert : CoreMode.HCert where
     (2371, [(2, 3, .pre 3)])]
   res := []
 
+/-- `walk_path__L12_L8`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(2, 1)], 0⟩, .ev 0), (⟨[(2, 1)], 1⟩, .ev 1), (⟨[(2, 1)], 2⟩, .ev 2), (⟨[(2, 1)], 3⟩, .ev 3),
+    (⟨[(4, 1), (2371, 1)], 128⟩, .ev 4), (⟨[(3, 1), (2370, 2), (2371, 4)], 512⟩, .ev 5),
+    (⟨[(3, 1), (2370, 2), (2371, 4)], 513⟩, .ev 6)]
+
 end
 end LeanVM.Guest.Fn.«walk_path__L12_L8»
 
@@ -358,6 +364,12 @@ def hcert : CoreMode.HCert where
   reads := [(77, [(2, 0, .pre 0)]), (1238, [(2, 1, .pre 1)]), (2394, [(2, 2, .pre 2)]),
     (3550, [(2, 3, .pre 3)]), (3551, [(2, 4, .pre 4)])]
   res := []
+
+/-- `walk_path__L18_L2`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(2, 1)], 0⟩, .ev 0), (⟨[(2, 1)], 1⟩, .ev 1), (⟨[(2, 1)], 2⟩, .ev 2),
+    (⟨[(4, 1), (3551, 1)], 2⟩, .ev 5), (⟨[(2, 1)], 3⟩, .ev 3), (⟨[(2, 1)], 4⟩, .ev 4),
+    (⟨[(3, 1), (3550, 2), (3551, 4)], 8⟩, .ev 6), (⟨[(3, 1), (3550, 2), (3551, 4)], 9⟩, .ev 7)]
 
 end
 end LeanVM.Guest.Fn.«walk_path__L18_L2»

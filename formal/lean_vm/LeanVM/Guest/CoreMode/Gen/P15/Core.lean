@@ -42,7 +42,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `eq_prefix_run__L9`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `eq_prefix_run__L9`: its returned products. -/
@@ -105,7 +105,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `eq_prefix_run__L12`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `eq_prefix_run__L12`: its returned products. -/
@@ -168,7 +168,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `plus_one_run__L14`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `plus_one_run__L14`: its returned products. -/
@@ -231,7 +231,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `squeeze_point_from__L6`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `squeeze_point_from__L6`: its returned products. -/

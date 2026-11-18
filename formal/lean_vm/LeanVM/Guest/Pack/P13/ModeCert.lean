@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.CoreMode.Gen.«P13».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P13».Mode0
-public import LeanVM.Guest.Pack.«P13».Mode1
 public import LeanVM.Guest.Pack.«P13».ModeC
 public import LeanVM.Guest.Pack.«P13».ModeH
 meta import LeanVM.Guest.KernelLit
@@ -295,7 +294,7 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L3».cfun, Fn.«eq_prefix_run__L18».cfun, Fn.«plus_one_run__L27».cfun,
-    Fn.«block_selector__L14».cfun]
+    Fn.«block_selector__L14».cfun, Fn.«walk_path__L24_L2».cfun]
 
 end
 
@@ -425,8 +424,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13)
     ⟨Fn.«level_positions__L22_L24_L6_loop0».modeOk,
     Fn.«level_positions__L22_L24_L6_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem14) ⟨Fn.«walk_path__L24_L2».modeOk,
-    Fn.«walk_path__L24_L2».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«walk_path__L24_L2».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«walk_path__L24_L2».fnSpecC⟩)
     (Mode.fa_nil)))))))))))))))
 
 end

@@ -16,6 +16,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P52».Pair
 public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P23».ModeSig
 public import LeanVM.Guest.Pack.«P26».ModeSig
@@ -729,18 +730,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil) .nil)) .nil) .nil)) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node none (.node none .nil (.node none (.node none (.node (some 1) .nil .nil) .nil)
     .nil)) .nil) .nil))))), (.node (some frameArm0) (.node (some frameArm1) .nil .nil) (.node (some
-    frameArm2) .nil .nil)), .nil, (.node (some ()) (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)) .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))) .nil)) .nil)
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)) .nil) .nil)) .nil) .nil) (.node none (.node (some ()) (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil))) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil) .nil) .nil))))), .nil,
-    .nil⟩
+    frameArm2) .nil .nil)), .nil, Fn.«walk_path__L18_L6».pairO, Fn.«walk_path__L18_L6».pairS, .nil⟩
 
 /-- `walk_path__L18_L6`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

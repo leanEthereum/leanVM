@@ -41,7 +41,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `block_selector__L9`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `block_selector__L9`: its returned products. -/
@@ -104,7 +104,7 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `index_mle__L7`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
+theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by
   decide +kernel
 
 /-- `index_mle__L7`: its returned products. -/

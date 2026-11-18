@@ -104,6 +104,7 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
   par : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k))
   rets : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ v ∈ vs, Rd img fp (Cf.X.locAt v.idx) = some (σ v)
   jc : JumpF img Cf.X Cf.fn.body fp σ
+  holds : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ e ∈ es, e.Holds img.read σ
 
 /-- **The core route's frame predicate.** -/
 def CoreAt (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) (s : St) : Prop :=
@@ -135,16 +136,53 @@ def baseOfMono : Mode.Base × ℕ → Option (ℕ × ℕ)
   | (.fr o, e) => if 2 ≤ o then some (o - 2, e) else none
   | _ => none
 
+/-- **A signature's product as a cell**, its bases translated by `f` into powers of core values: no
+frame address. -/
+def monoF (f : Mode.Base × ℕ → Option (ℕ × ℕ)) (m : Mode.Mono) : Option CCell :=
+  if m.fp = 0 then (m.bs.mapM f).map fun bs ↦ ⟨bs, m.k⟩ else none
+
 /-- **A signature's product as a cell** over parameter numbers: no frame address, bases frame cells
 `2 + k`. -/
-def monoC (m : Mode.Mono) : Option CCell :=
-  if m.fp = 0 then (m.bs.mapM baseOfMono).map fun bs ↦ ⟨bs, m.k⟩ else none
+def monoC (m : Mode.Mono) : Option CCell := monoF baseOfMono m
 
 /-- A product's bases are entry cells `2 + k` of parameters. -/
 def monoOk (G : Mode.Sig) (np : ℕ) (m : Mode.Mono) : Bool :=
   m.bs.all fun b ↦ match b.1 with
     | .fr o => G.entry.contains o && decide (2 ≤ o) && decide (o - 2 < np) && decide (o < 2 ^ 28)
     | .hp _ _ => false
+
+/-- The value a `load` at the body's top level reads at parameter `k`'s word past `d`, before any `ret`
+there: the first. -/
+def hpVal : List Stmt → ℕ → ℕ → Option ℕ
+  | [], _, _ => none
+  | .atom (.load v p off) :: ss, k, d => match vnum p, vnum v with
+    | some k', some n => bif Nat.beq k' k && Nat.beq off d then some n else hpVal ss k d
+    | _, _ => hpVal ss k d
+  | .ret _ :: _, _, _ => none
+  | _ :: ss, k, d => hpVal ss k d
+
+/-- The values the body's first top-level `ret` returns. -/
+def retVals : List Stmt → Option (List V)
+  | [] => none
+  | .ret vs :: _ => some vs
+  | _ :: ss => retVals ss
+
+/-- The number of the value returned at frame cell `o`. -/
+noncomputable def retAtCell (X : AlignCtx) (body : List Stmt) (o : ℕ) : Option ℕ :=
+  (retVals body).bind fun vs ↦ (vs.find? fun v ↦ Nat.beq (X.locAt v.idx) o).bind vnum
+
+/-- **A promised product's base as a power of a core value**: a parameter's frame cell `2 + k`, a
+return cell's returned value, the word a top-level `load` reads past a parameter's. -/
+noncomputable def baseOfP (X : AlignCtx) (body : List Stmt) (np : ℕ) : Mode.Base × ℕ → Option (ℕ × ℕ)
+  | (.fr o, e) => if 2 ≤ o ∧ o - 2 < np then some (o - 2, e) else (retAtCell X body o).map fun n ↦ (n, e)
+  | (.hp q d, e) => if 2 ≤ q ∧ q - 2 < np then (hpVal body (q - 2) d).map fun n ↦ (n, e) else none
+
+/-- A promised product's bases: entry cells of parameters, return cells, words past parameters'. -/
+def monoOkP (G : Mode.Sig) (np : ℕ) (m : Mode.Mono) : Bool :=
+  m.bs.all fun b ↦ match b.1 with
+    | .fr o => decide (o < 2 ^ 28) && ((G.entry.contains o && decide (2 ≤ o) && decide (o - 2 < np)) ||
+        G.ret.contains o)
+    | .hp q _ => G.entry.contains q && decide (2 ≤ q) && decide (q - 2 < np) && decide (q < 2 ^ 28)
 
 /-- A cell among cells. -/
 def cellIn (c : CCell) (l : List CCell) : Bool := l.any fun c' ↦ c'.beq c
@@ -156,14 +194,16 @@ def runPts (c : CCell) (r : Mode.Rng) : Option (List CCell) :=
   | _, _ => none
 
 /-- A promised cell: a product of the signature, a promised cell's. -/
-def postIn (G : Mode.Sig) (np : ℕ) (posts : List CCell) (m : Mode.Mono) : Bool :=
-  monoOk G np m && match monoC m with
+noncomputable def postIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (posts : List CCell)
+    (m : Mode.Mono) : Bool :=
+  monoOkP G np m && match monoF (baseOfP X body np) m with
     | some c => cellIn c posts
     | none => false
 
 /-- A promised run: each of its points promised. -/
-def postRIn (G : Mode.Sig) (np : ℕ) (posts : List CCell) (r : Mode.Rng) : Bool :=
-  monoOk G np r.q && match monoC r.q with
+noncomputable def postRIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (posts : List CCell)
+    (r : Mode.Rng) : Bool :=
+  monoOkP G np r.q && match monoF (baseOfP X body np) r.q with
     | some c => match runPts c r with
       | some l => l.all (cellIn · posts)
       | none => false
@@ -183,11 +223,13 @@ def preIn (G : Mode.Sig) (np : ℕ) (c : CCell) : Bool :=
 
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer run or order (returned products: `retVOk`); each heap precondition one of the signature's
-(`preIn`); each heap cell and run it promises among the promised cells `post`. -/
-def sigOk (G : Mode.Sig) (H : HCert) (post : List (CCell × Wit)) (np : ℕ) : Bool :=
+(`preIn`); each heap cell and run it promises (`monoOkP`, `baseOfP`: over parameters, returned values and
+words past parameters' a top-level `load` reads) among the promised cells `post`. -/
+noncomputable def sigOk (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (H : HCert) (post : List (CCell × Wit))
+    (np : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty && G.postP.isEmpty && G.postLP.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty && H.sig.pre.all (preIn G np) &&
-    G.post.all (postIn G np (post.map (·.1))) && G.postR.all (postRIn G np (post.map (·.1)))
+    G.post.all (postIn X body G np (post.map (·.1))) && G.postR.all (postRIn X body G np (post.map (·.1)))
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
 noncomputable def retAt (X : AlignCtx) (env : Exec.Trie CCell) (vs : List V) (o : ℕ) (c : CCell) : Bool :=
@@ -307,7 +349,7 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   post : postOk Cf.pows Cf.H Cf.post Cf.fn.body = true
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : envOk Cf.frame = true ∧ armsOk Cf.frame = true ∧ FrameAcc Cf.frame K.code
-  sig : sigOk K.F.sig Cf.H Cf.post Cf.fn.params.length = true
+  sig : sigOk Cf.X Cf.fn.body K.F.sig Cf.H Cf.post Cf.fn.params.length = true
   retv : retVOk Cf K.F.sig = true
   shape : shapeOk Cf K.code = true
   jtd : jtdOk Cf K.E K.code = true

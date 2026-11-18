@@ -10,10 +10,8 @@ module
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.Pack.«P0».Mode0
 public import LeanVM.Guest.Pack.«P10».Mode0
-public import LeanVM.Guest.Pack.«P10».Mode1
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P12».Mode0
-public import LeanVM.Guest.Pack.«P13».Mode1
 public import LeanVM.Guest.Pack.«P15».Mode0
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode0
@@ -22,20 +20,14 @@ public import LeanVM.Guest.Pack.«P18».Mode0
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P21».Mode0
-public import LeanVM.Guest.Pack.«P21».Mode2
 public import LeanVM.Guest.Pack.«P23».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P25».Mode0
 public import LeanVM.Guest.Pack.«P26».Mode0
-public import LeanVM.Guest.Pack.«P26».Mode2
-public import LeanVM.Guest.Pack.«P27».Mode2
 public import LeanVM.Guest.Pack.«P28».Mode0
-public import LeanVM.Guest.Pack.«P28».Mode2
 public import LeanVM.Guest.Pack.«P29».Mode0
-public import LeanVM.Guest.Pack.«P29».Mode1
 public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P2».Mode0
-public import LeanVM.Guest.Pack.«P2».Mode1
 public import LeanVM.Guest.Pack.«P30».Mode0
 public import LeanVM.Guest.Pack.«P32».Mode0
 public import LeanVM.Guest.Pack.«P33».Mode0
@@ -48,31 +40,23 @@ public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P40».Mode0
-public import LeanVM.Guest.Pack.«P40».Mode2
-public import LeanVM.Guest.Pack.«P40».Mode3
 public import LeanVM.Guest.Pack.«P42».Mode1
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P44».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode0
-public import LeanVM.Guest.Pack.«P45».Mode2
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode0
-public import LeanVM.Guest.Pack.«P47».Mode1
 public import LeanVM.Guest.Pack.«P49».Mode0
 public import LeanVM.Guest.Pack.«P4».Mode0
 public import LeanVM.Guest.Pack.«P50».Mode0
 public import LeanVM.Guest.Pack.«P51».Mode0
 public import LeanVM.Guest.Pack.«P52».Mode0
-public import LeanVM.Guest.Pack.«P52».Mode2
 public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode0
-public import LeanVM.Guest.Pack.«P54».Mode2
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P56».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
-public import LeanVM.Guest.Pack.«P58».Mode2
 public import LeanVM.Guest.Pack.«P59».Mode0
-public import LeanVM.Guest.Pack.«P59».Mode2
 public import LeanVM.Guest.Pack.«P5».Mode0
 public import LeanVM.Guest.Pack.«P60».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode0
@@ -80,11 +64,9 @@ public import LeanVM.Guest.Pack.«P62».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 public import LeanVM.Guest.Pack.«P6».Mode0
 public import LeanVM.Guest.Pack.«P7».Mode0
-public import LeanVM.Guest.Pack.«P7».Mode2
 public import LeanVM.Guest.Pack.«P7».ModeD0
 public import LeanVM.Guest.Pack.«P8».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode0
-public import LeanVM.Guest.Pack.«P9».Mode1
 public import LeanVM.Guest.Pack.«open_stacked__L0».ModeD0
 public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0
 public import LeanVM.Guest.Pack.«open_stacked__L1».ModeD0
@@ -126,24 +108,7 @@ theorem nzMul_guest : ∀ p ∈ nzFns, nzMul p.1 p.2 = true :=
 
 /-- `walk_path`'s specializations: their walks' data and code, and their positions' window count. -/
 noncomputable def wpFns : List (Fun × List OffsetInstruction × ℕ) := [
-  (Fn.«walk_path__L12_L2».modeFun, Fn.«walk_path__L12_L2».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L3».modeFun, Fn.«walk_path__L12_L3».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L4».modeFun, Fn.«walk_path__L12_L4».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L5».modeFun, Fn.«walk_path__L12_L5».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L6».modeFun, Fn.«walk_path__L12_L6».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L7».modeFun, Fn.«walk_path__L12_L7».code.chunks.flatten, 2),
-  (Fn.«walk_path__L12_L8».modeFun, Fn.«walk_path__L12_L8».code.chunks.flatten, 2),
-  (Fn.«walk_path__L18_L2».modeFun, Fn.«walk_path__L18_L2».code.chunks.flatten, 3),
-  (Fn.«walk_path__L18_L3».modeFun, Fn.«walk_path__L18_L3».code.chunks.flatten, 3),
-  (Fn.«walk_path__L18_L4».modeFun, Fn.«walk_path__L18_L4».code.chunks.flatten, 3),
-  (Fn.«walk_path__L18_L5».modeFun, Fn.«walk_path__L18_L5».code.chunks.flatten, 3),
-  (Fn.«walk_path__L18_L6».modeFun, Fn.«walk_path__L18_L6».code.chunks.flatten, 3),
-  (Fn.«walk_path__L18_L7».modeFun, Fn.«walk_path__L18_L7».code.chunks.flatten, 3),
-  (Fn.«walk_path__L24_L2».modeFun, Fn.«walk_path__L24_L2».code.chunks.flatten, 4),
-  (Fn.«walk_path__L24_L3».modeFun, Fn.«walk_path__L24_L3».code.chunks.flatten, 4),
-  (Fn.«walk_path__L24_L4».modeFun, Fn.«walk_path__L24_L4».code.chunks.flatten, 4),
-  (Fn.«walk_path__L6_L6».modeFun, Fn.«walk_path__L6_L6».code.chunks.flatten, 1),
-  (Fn.«walk_path__L6_L7».modeFun, Fn.«walk_path__L6_L7».code.chunks.flatten, 1)]
+  ]
 
 /-- **Every order residual of `walk_path` bounds a window.** -/
 theorem ltWin_guest : ∀ p ∈ wpFns, ltWin p.1 p.2.1.length 4 p.2.2 64 = true :=
@@ -233,25 +198,7 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«open_stacked__L9».modeFun, Fn.«open_stacked__L9».code.chunks.flatten),
   (Fn.«verify_bus_gkr_loop0_loop0».modeFun, Fn.«verify_bus_gkr_loop0_loop0».code.chunks.flatten),
   (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten),
-  (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten),
-  (Fn.«walk_path__L12_L2».modeFun, Fn.«walk_path__L12_L2».code.chunks.flatten),
-  (Fn.«walk_path__L12_L3».modeFun, Fn.«walk_path__L12_L3».code.chunks.flatten),
-  (Fn.«walk_path__L12_L4».modeFun, Fn.«walk_path__L12_L4».code.chunks.flatten),
-  (Fn.«walk_path__L12_L5».modeFun, Fn.«walk_path__L12_L5».code.chunks.flatten),
-  (Fn.«walk_path__L12_L6».modeFun, Fn.«walk_path__L12_L6».code.chunks.flatten),
-  (Fn.«walk_path__L12_L7».modeFun, Fn.«walk_path__L12_L7».code.chunks.flatten),
-  (Fn.«walk_path__L12_L8».modeFun, Fn.«walk_path__L12_L8».code.chunks.flatten),
-  (Fn.«walk_path__L18_L2».modeFun, Fn.«walk_path__L18_L2».code.chunks.flatten),
-  (Fn.«walk_path__L18_L3».modeFun, Fn.«walk_path__L18_L3».code.chunks.flatten),
-  (Fn.«walk_path__L18_L4».modeFun, Fn.«walk_path__L18_L4».code.chunks.flatten),
-  (Fn.«walk_path__L18_L5».modeFun, Fn.«walk_path__L18_L5».code.chunks.flatten),
-  (Fn.«walk_path__L18_L6».modeFun, Fn.«walk_path__L18_L6».code.chunks.flatten),
-  (Fn.«walk_path__L18_L7».modeFun, Fn.«walk_path__L18_L7».code.chunks.flatten),
-  (Fn.«walk_path__L24_L2».modeFun, Fn.«walk_path__L24_L2».code.chunks.flatten),
-  (Fn.«walk_path__L24_L3».modeFun, Fn.«walk_path__L24_L3».code.chunks.flatten),
-  (Fn.«walk_path__L24_L4».modeFun, Fn.«walk_path__L24_L4».code.chunks.flatten),
-  (Fn.«walk_path__L6_L6».modeFun, Fn.«walk_path__L6_L6».code.chunks.flatten),
-  (Fn.«walk_path__L6_L7».modeFun, Fn.«walk_path__L6_L7».code.chunks.flatten)]
+  (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten)]
 
 /-- **Every residual of the listed functions has an obligation of its own.** -/
 theorem famOk_guest : ∀ p ∈ famFns, famOk p.1 p.2.length = true :=

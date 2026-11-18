@@ -55,29 +55,30 @@ def pair_mod(g, n):
 
 def main():
     R = route.route_sub()
-    packs = collections.defaultdict(list)
     po = heap.pack_of()
-    for k in sorted(R):
-        packs[po[k][0]].append(k)
-    # in the order of the pack's `coreFns` (`scripts/mode-cert/gen.py`, the pack's functions in order)
-    for p, ks in packs.items():
-        mc = open(os.path.join(GUEST, 'Pack', p, 'ModeCert.lean'), encoding='utf-8').read()
-        m = re.search(r'def coreFns : List CoreMode.CFun :=\s*\[(.*?)\]\n', mc, re.S)
-        order = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)) if m else []
-        assert sorted(order) == sorted(ks), (p, order, ks)
-        packs[p] = order
+    # by mode pack, in the order of the pack's `coreFns` (`scripts/mode-cert/gen.py`, its functions in order); a
+    # function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
+    packs = {}
+    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
+        m = re.search(r'def coreFns : List CoreMode.CFun :=\s*\[(.*?)\]\n', open(f, encoding='utf-8').read(), re.S)
+        if m:
+            packs[os.path.basename(os.path.dirname(f))] = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
+    packs = {p: ks for p, ks in packs.items() if ks}
+    listed = sorted(k for ks in packs.values() for k in ks)
+    assert listed == sorted(R), (set(listed) ^ set(R))
     frames = index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
     tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
     files = {}
     for p, ks in sorted(packs.items()):
-        imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Gen.«%s».Ok' % p, 'LeanVM.Guest.CoreMode.Small',
+        imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Small',
                 'LeanVM.Guest.Pack.«%s».ModeC' % p, 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
         body = []
         for k in ks:
             j = R[k]['j']
             imps.add(quote(frames[k])); imps.add(quote(codes[str(j)]))
-            imps.add(quote(pair_mod(p, k)))
+            imps.add(quote(pair_mod(po[k][0], k)))
+            imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
             body.append(
                 f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
@@ -87,7 +88,7 @@ def main():
                 f'/-- `{k}`: its promised cells witnessed. -/\n'
                 f'theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by\n  decide +kernel\n\n'
                 f'/-- `{k}`: its signature translated. -/\n'
-                f'theorem core_sig : CoreMode.sigOk modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by\n'
+                f'theorem core_sig : CoreMode.sigOk cfun.X cfun.fn.body modeFun.sig cfun.H cfun.post cfun.fn.params.length = true := by\n'
                 f'  decide +kernel\n\n'
                 f'/-- `{k}`: its returned products. -/\n'
                 f'theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by\n  decide +kernel\n\n'

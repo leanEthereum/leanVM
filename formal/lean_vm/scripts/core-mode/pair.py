@@ -291,7 +291,7 @@ def collect():
             fails[k] = str(e)
             continue
         out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
-                      bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]))
+                      bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]), locs=B['locs'], extra=dict(extra))
     return out, fails
 
 

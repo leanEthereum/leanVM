@@ -27,7 +27,7 @@ namespace LeanVM.Guest.CoreMode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Bridge (AlignCtx Zip ZOk fwdJ flowAtom isaFlowHint stmtsOf stmtsSub zok_stmts Pairs fwdOff_eq
-  walk_ret_cons)
+  walk_ret_cons walk_atom_cons pre_eq_ret)
 open LeanVM.Guest.Check (getF)
 open LeanVM.Prover.Exec (Hint St Ctx Fine Moves StepOk HintOk refMem maxCells runOp Mem gpow_inj
   Mem.get_of_written OpModed OnRef)
@@ -165,7 +165,7 @@ theorem bsVal_eq {s : St} {σ : Val} : ∀ (bs : List (Mode.Base × ℕ)) (cb : 
 
 theorem monoC_spec {m : Mode.Mono} {c : CCell} (h : monoC m = some c) :
     m.fp = 0 ∧ ∃ cb, m.bs.mapM baseOfMono = some cb ∧ c = ⟨cb, m.k⟩ := by
-  unfold monoC at h
+  unfold monoC monoF at h
   split_ifs at h with h0
   obtain ⟨cb, hcb, rfl⟩ := Option.map_eq_some_iff.mp h
   exact ⟨h0, cb, hcb, rfl⟩
@@ -248,6 +248,222 @@ theorem baseCells_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : M
   · rw [hb1] at h
     cases h
 
+
+
+/-! ## Promised products, at the return -/
+
+/-- The bases `bs` translated by `f` into powers of core values: each base's word the value's. -/
+def BaseCellsF (f : Mode.Base × ℕ → Option (ℕ × ℕ)) (s : St) (σ : Val) (bs : List (Mode.Base × ℕ)) : Prop :=
+  ∀ b ∈ bs, ∀ k e, f b = some (k, e) → ∀ u, BaseVal s b.1 u ↔ u = σ (V.n k)
+
+/-- `f` keeps the exponents. -/
+def ExpKeep (f : Mode.Base × ℕ → Option (ℕ × ℕ)) : Prop := ∀ b e k e', f (b, e) = some (k, e') → e' = e
+
+theorem expKeep_P (X : AlignCtx) (body : List Stmt) (np : ℕ) : ExpKeep (baseOfP X body np) := by
+  intro b e k e' h
+  cases b with
+  | fr o =>
+    simp only [baseOfP] at h
+    split_ifs at h
+    · cases h; rfl
+    · obtain ⟨n, -, he⟩ := Option.map_eq_some_iff.mp h
+      cases he; rfl
+  | hp q d =>
+    simp only [baseOfP] at h
+    split_ifs at h
+    obtain ⟨n, -, he⟩ := Option.map_eq_some_iff.mp h
+    cases he; rfl
+
+theorem bsVal_eqF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) {s : St} {σ : Val} :
+    ∀ (bs : List (Mode.Base × ℕ)) (cb : List (ℕ × ℕ)),
+    bs.mapM f = some cb → BaseCellsF f s σ bs → ∀ w, (BsVal s bs w ↔ w = prodB σ cb)
+  | [], cb, h, _, w => by
+    simp only [List.mapM_nil, Option.pure_def, Option.some.injEq] at h
+    subst h
+    simp [BsVal, prodB]
+  | (b, e) :: bs, cb, h, hc, w => by
+    simp only [List.mapM_cons, Option.bind_eq_bind, Option.bind_eq_some_iff, Option.pure_def,
+      Option.some.injEq] at h
+    obtain ⟨⟨k, e'⟩, hx, xs, hxs, rfl⟩ := h
+    obtain rfl := hf b e k e' hx
+    have hb := hc (b, _) List.mem_cons_self k _ hx
+    have ih := bsVal_eqF hf bs xs hxs (fun b hb ↦ hc b (List.mem_cons_of_mem _ hb))
+    constructor
+    · rintro ⟨u, w', hu, hw', rfl⟩
+      rw [(hb u).mp hu, (ih w').mp hw']
+      rfl
+    · rintro rfl
+      exact ⟨_, _, (hb _).mpr rfl, (ih _).mpr rfl, rfl⟩
+
+theorem monoF_spec {f : Mode.Base × ℕ → Option (ℕ × ℕ)} {m : Mode.Mono} {c : CCell} (h : monoF f m = some c) :
+    m.fp = 0 ∧ ∃ cb, m.bs.mapM f = some cb ∧ c = ⟨cb, m.k⟩ := by
+  unfold monoF at h
+  split_ifs at h with h0
+  obtain ⟨cb, hcb, rfl⟩ := Option.map_eq_some_iff.mp h
+  exact ⟨h0, cb, hcb, rfl⟩
+
+theorem monoVal_iffF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) {s : St} {σ : Val} {m : Mode.Mono}
+    {c : CCell} (hm : monoF f m = some c) (hc : BaseCellsF f s σ m.bs) (v : E) : MonoVal s m v ↔ v = c.val σ := by
+  obtain ⟨h0, cb, hcb, rfl⟩ := monoF_spec hm
+  have hb := bsVal_eqF hf m.bs cb hcb hc
+  simp only [MonoVal, h0, pow_zero, one_mul, CCell.val, addressOfIndex]
+  constructor
+  · rintro ⟨w, hw, rfl⟩
+    rw [(hb w).mp hw, mul_comm]
+  · rintro rfl
+    exact ⟨_, (hb _).mpr rfl, mul_comm _ _⟩
+
+theorem wrk_hwF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) {s : St} {σ : Val} {m : Mode.Mono}
+    {c : CCell} (hm : monoF f m = some c) (hc : BaseCellsF f s σ m.bs) (h : WrK s.mem (c.addr σ)) : HW s m := by
+  obtain ⟨x, hx, hlt, hw⟩ := h
+  exact ⟨c.val σ, x, (monoVal_iffF hf hm hc _).mpr rfl, ⟨hx, hlt⟩, hw⟩
+
+theorem wrk_rwF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) {s : St} {σ : Val} {r : Mode.Rng} {c : CCell}
+    {l : List CCell} (hm : monoF f r.q = some c) (hc : BaseCellsF f s σ r.q.bs) (hl : runPts c r = some l)
+    (h : ∀ p ∈ l, WrK s.mem (p.addr σ)) : RW s r := by
+  unfold runPts at hl
+  split at hl
+  · rename_i a b hlo hhi
+    cases hl
+    refine ⟨c.val σ, a, b, (monoVal_iffF hf hm hc _).mpr rfl, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j hj1 hj2 ↦ ?_⟩
+    obtain ⟨x, hx, hlt, hw⟩ := h _ (List.mem_map.mpr ⟨j - a, List.mem_range.mpr (by omega), rfl⟩)
+    refine ⟨x, ⟨?_, hlt⟩, hw⟩
+    rw [← hx]
+    simp only [CCell.addr, CCell.val, addressOfIndex, pow_add, ofK_mul', show a + (j - a) = j by omega]
+    ring_nf
+  · cases hl
+
+/-- On a returning path of a body of the core route's shape, the first top-level `ret`'s values. -/
+theorem retVals_eq {σ : Val} : ∀ {body : List Stmt}, body.all topOk = true → ∀ {es : List Ev} {vs : List V},
+    walk σ body = .ret es vs → retVals body = some vs
+  | [], _, _, _, h => by simp [walk] at h
+  | s :: ss, ht, es, vs, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    cases s with
+    | ret vs' =>
+      rw [walk_ret_cons, Out.ret.injEq] at h
+      obtain ⟨-, rfl⟩ := h
+      rfl
+    | _ =>
+      obtain ⟨es1, es2, h2, -⟩ := walk_cons_noRet ht.1 h
+      exact retVals_eq ht.2 h2
+
+/-- **A top-level `load` before the `ret` is on the path.** -/
+theorem hpVal_mem {σ : Val} {k d n : ℕ} : ∀ {body : List Stmt}, body.all topOk = true →
+    ∀ {es : List Ev} {vs : List V}, walk σ body = .ret es vs → hpVal body k d = some n →
+      Ev.atom (.load (V.n n) (V.n k) d) ∈ es
+  | [], _, _, _, _, h => by simp [hpVal] at h
+  | s :: ss, ht, es, vs, hw, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    cases s with
+    | ret vs' => simp [hpVal] at h
+    | atom a =>
+      rw [walk_atom_cons] at hw
+      obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+      have hrec : hpVal ss k d = some n → Ev.atom (.load (V.n n) (V.n k) d) ∈ Ev.atom a :: es' :=
+        fun h' ↦ List.mem_cons_of_mem _ (hpVal_mem ht.2 hw' h')
+      cases a with
+      | load v p off =>
+        simp only [hpVal] at h
+        split at h
+        · rename_i k' n' hp hv
+          cases hb : (Nat.beq k' k && Nat.beq off d) <;> simp only [hb, Bool.cond_true, Bool.cond_false] at h
+          · exact hrec h
+          · simp only [Bool.and_eq_true, Nat.beq_eq] at hb
+            obtain ⟨rfl, rfl⟩ := hb
+            cases h
+            rw [← vnum_eq hp, ← vnum_eq hv]
+            exact List.mem_cons_self
+        · exact hrec h
+      | _ => exact hrec h
+    | _ =>
+      obtain ⟨es1, es2, h2, rfl⟩ := walk_cons_noRet ht.1 hw
+      exact List.mem_append_right _ (hpVal_mem ht.2 h2 h)
+
+/-- **The promised products' bases at the return**: a parameter's frame cell, a return cell holding the
+returned value, the word past a parameter's a top-level `load` read, written. -/
+theorem baseCellsP_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mode.Sig} {m : Mode.Mono}
+    (hm : monoOkP G Cf.fn.params.length m = true) (htop : Cf.fn.body.all topOk = true) {s : St}
+    (hs : Fine (refMem img) s) (hw : ∀ o ∈ G.entry, s.mem.written (s.fp + o) = true)
+    (hwr : ∀ o ∈ G.ret, s.mem.written (s.fp + o) = true) {σ : Val} (hσ : HonF img Cf s.fp σ) {es : List Ev}
+    {vs : List V} (hb : walk σ Cf.fn.body = .ret es vs) (hW : ∀ y, Written Cf.H σ es y → WrK s.mem y) :
+    BaseCellsF (baseOfP Cf.X Cf.fn.body Cf.fn.params.length) s σ m.bs := by
+  have hframe : ∀ o, o < 2 ^ 28 → s.mem.written (s.fp + o) = true → ∀ v, Rd img s.fp o = some v →
+      ∀ u, BaseVal s (.fr o) u ↔ u = v := fun o ho hwo v hrd u ↦ by
+    obtain ⟨u', hu'⟩ := Mem.get_of_written hwo
+    have hv := rd_get hκ hs ho hrd hu'
+    simp only [Mode.BaseVal, hu', Option.some.injEq]
+    rw [hv]
+    exact eq_comm
+  intro b hbm k e hf u
+  have h := List.all_eq_true.mp hm b hbm
+  obtain ⟨b1, e0⟩ := b
+  cases b1 with
+  | fr o =>
+    simp only [Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq, List.contains_iff_mem] at h
+    obtain ⟨ho, hcase⟩ := h
+    simp only [baseOfP] at hf
+    split_ifs at hf with hpar
+    · cases hf
+      have hr : Rd img s.fp o = some (σ (V.n (o - 2))) := by
+        have := hσ.par (o - 2) hpar.2
+        rwa [show 2 + (o - 2) = o by omega] at this
+      have hwo : s.mem.written (s.fp + o) = true := by
+        rcases hcase with ⟨⟨hoe, -⟩, -⟩ | hret
+        · exact hw o hoe
+        · exact hwr o hret
+      exact hframe o ho hwo _ hr u
+    · obtain ⟨n, hn, he⟩ := Option.map_eq_some_iff.mp hf
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      have hret : o ∈ G.ret := by
+        rcases hcase with ⟨⟨-, h2⟩, h3⟩ | hret
+        · exact absurd ⟨h2, h3⟩ hpar
+        · exact hret
+      unfold retAtCell at hn
+      rw [retVals_eq htop hb, Option.bind_some] at hn
+      obtain ⟨v, hv, hvn⟩ := Option.bind_eq_some_iff.mp hn
+      have hvm := List.mem_of_find?_eq_some hv
+      have hloc : Cf.X.locAt v.idx = o :=
+        Nat.beq_eq.mp (List.find?_some (p := fun w : V ↦ Nat.beq (Cf.X.locAt w.idx) o) hv)
+      have hr : Rd img s.fp o = some (σ (V.n n)) := by
+        rw [← vnum_eq hvn, ← hloc]
+        exact hσ.rets _ _ hb v hvm
+      exact hframe o ho (hwr o hret) _ hr u
+  | hp q d =>
+    simp only [Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at h
+    obtain ⟨⟨⟨hqe, hq2⟩, hqn⟩, hq28⟩ := h
+    simp only [baseOfP, show 2 ≤ q ∧ q - 2 < Cf.fn.params.length from ⟨hq2, hqn⟩] at hf
+    obtain ⟨n, hn, he⟩ := Option.map_eq_some_iff.mp hf
+    simp only [Prod.mk.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    have hl := hpVal_mem htop hb hn
+    have hrq : Rd img s.fp q = some (σ (V.n (q - 2))) := by
+      have := hσ.par (q - 2) hqn
+      rwa [show 2 + (q - 2) = q by omega] at this
+    obtain ⟨P, hP⟩ := Mem.get_of_written (hw q hqe)
+    have hPv : P = σ (V.n (q - 2)) := rd_get hκ hs hq28 hrq hP
+    obtain ⟨x, hx, hxlt, hxw⟩ := hW _ (Or.inr ⟨_, hl, rfl⟩)
+    obtain ⟨-, hrd⟩ := hσ.holds _ _ hb _ hl
+    have hcx : (σ (V.n (q - 2))).limb 0 * addressOfIndex d = g ^ x := hx
+    rw [hcx] at hrd
+    have hrefx : refMem img x = σ (V.n n) :=
+      (Prover.Exec.refRd_img hκ img x _ (by unfold maxCells at hxlt; omega) hrd).2
+    obtain ⟨u', hu'⟩ := Mem.get_of_written hxw
+    have hu'v : u' = σ (V.n n) := by rw [← hrefx]; exact (hs.agree.get _ _ hu').symm
+    have hnames : (P * ofK (g ^ d)).limb 0 = g ^ x := by
+      rw [limb0_mul_ofK, hPv, ← hcx]
+    constructor
+    · rintro ⟨p, y, hp, hy, hu⟩
+      rw [hP, Option.some.injEq] at hp
+      subst hp
+      have hyx : y = x := gpow_inj (by have := hy.2; unfold maxCells at this; omega)
+        (by unfold maxCells at hxlt; omega) (hy.1.symm.trans hnames)
+      subst hyx
+      rw [hu', Option.some.injEq] at hu
+      rw [← hu, hu'v]
+    · rintro rfl
+      exact ⟨P, x, hP, ⟨hnames, hxlt⟩, by rw [hu', hu'v]⟩
 
 /-! ## Returned products -/
 
@@ -987,6 +1203,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           have hσ1 : HonF img Cf s1.fp σ0 := hm.fp ▸ hσ0
           have hcells : ∀ m, monoOk K.F.sig Cf.fn.params.length m = true → BaseCells (stOf s1.mem s1.fp) σ0 m.bs :=
             fun m hmk ↦ baseCells_of (s := s1) hκ hmk hm.fine hw1 hσ1
+          have htop : Cf.fn.body.all topOk = true := by
+            simp only [bodyC, Bool.and_eq_true] at hbody
+            exact hbody.2
+          have hcellsP : ∀ m, monoOkP K.F.sig Cf.fn.params.length m = true →
+              BaseCellsF (baseOfP Cf.X Cf.fn.body Cf.fn.params.length) (stOf s1.mem s1.fp) σ0 m.bs :=
+            fun m hmk ↦ baseCellsP_of (s := s1) hκ hmk htop hm.fine hw1 (fun o ho ↦ hretw o (hok.fsig ▸ ho)) hσ1
+              hb hWr
           have hin : ∀ c, cellIn c (Cf.post.map (·.1)) = true → WrK s1.mem (c.addr σ0) := by
             intro c hc
             obtain ⟨c', hc', hbeq⟩ := List.any_eq_true.mp hc
@@ -1000,7 +1223,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             obtain ⟨hmk, hc⟩ := h
             split at hc
             · rename_i c hmc
-              exact wrk_hw hmc (hcells m hmk) (hin c hc)
+              exact wrk_hwF (expKeep_P _ _ _) hmc (hcellsP m hmk) (hin c hc)
             · cases hc
           · have h := hpostR r hr
             simp only [postRIn, Bool.and_eq_true] at h
@@ -1009,7 +1232,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             · rename_i c hmc
               split at hc
               · rename_i l hl
-                exact wrk_rw hmc (hcells r.q hmk) hl fun p hp ↦ hin p (List.all_eq_true.mp hc p hp)
+                exact wrk_rwF (expKeep_P _ _ _) hmc (hcellsP r.q hmk) hl fun p hp ↦ hin p (List.all_eq_true.mp hc p hp)
               · cases hc
             · cases hc
           · rw [hpostP] at hq; cases hq

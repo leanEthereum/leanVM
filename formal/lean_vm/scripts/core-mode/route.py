@@ -104,18 +104,53 @@ def mono_cell(G, np, m):
     return (tuple(out), k)
 
 
-def promised(G, np):
+def hp_val(body, k, d):
+    """The value a top-level `load` reads at parameter `k`'s word past `d`, before any `ret` (`CoreMode.hpVal`)."""
+    for s in body:
+        if s[0] == 'ret': return None
+        if s[0] == 'a' and s[1][0] == 'load' and s[1][2] == k and s[1][3] == d: return s[1][1]
+    return None
+
+
+def mono_post(G, np, m, body, loc):
+    """`monoF (baseOfP ..)` with `monoOkP`: a promised product's cell, its bases parameters' frame cells, return
+    cells' returned values, words past parameters' a top-level `load` reads; or None."""
+    fp, k, bs = m
+    if fp != 0: return None
+    out = []
+    for b, e in bs:
+        if b[0] == 'fr':
+            o = b[1]
+            if not (o < 2 ** 28 and ((o in G['entry'] and 2 <= o and o - 2 < np) or o in G['ret'])): return None
+            if 2 <= o and o - 2 < np:
+                out.append((o - 2, e)); continue
+            vs = next((s[1] for s in body if s[0] == 'ret'), None)
+            v = next((v for v in vs if loc(v) == o), None) if vs is not None else None
+            if v is None: return None
+            out.append((v, e))
+        elif b[0] == 'hp':
+            q, d = b[1], b[2]
+            if not (q in G['entry'] and 2 <= q and q - 2 < np and q < 2 ** 28): return None
+            v = hp_val(body, q - 2, d)
+            if v is None: return None
+            out.append((v, e))
+        else:
+            return None
+    return (tuple(out), k)
+
+
+def promised(G, np, body=(), loc=lambda v: None):
     """The heap cells the signature promises (`post`, `postR`'s points), or None if it promises more."""
     if G['self'] != ('id', 'none'): return None
     for k in ('term', 'postL', 'postP', 'postLP', 'postT', 'postC'):
         if G[k] != []: return None
     cells = []
     for m in G['post']:
-        c = mono_cell(G, np, m)
+        c = mono_post(G, np, m, body, loc)
         if c is None: return None
         cells.append(c)
     for q, lo, hi, S, d in G['postR']:
-        c = mono_cell(G, np, q)
+        c = mono_post(G, np, q, body, loc)
         if c is None or lo[0] != 'num' or hi[0] != 'num': return None
         a, b = lo[1], hi[1]
         cells += [(c[0], c[1] + S * (a + j) + d) for j in range(b - a)]
@@ -215,7 +250,9 @@ def route(verbose=False):
         if k in NZR: why['residual divisors'] += 1; continue
         if k in CALLS: why['callees'] += 1; continue
         if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue
-        cells = promised(G, len(params))
+        ex, locs = pf['extra'], pf['locs']
+        loc = lambda v: ex[v] if v in ex else (locs[v] if v < len(locs) else 0)
+        cells = promised(G, len(params), body, loc)
         if cells is None: why['signature'] += 1; continue
         f = heap.Fn(k)
         stf = f.block([{}, {}, 0], f.body)

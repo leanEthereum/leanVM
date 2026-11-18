@@ -223,21 +223,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L73_L21_L6_L3_loop1»
 
-namespace LeanVM.Guest.Fn.«walk_path__L12_L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `walk_path__L12_L6`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1460) (d := Data.adviceFn1460) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«walk_path__L12_L6»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
