@@ -890,6 +890,105 @@ theorem armCall_bad2 :
       false := by
   decide +kernel
 
+/-! ## A cell among cells, a run's point before it, a dispatch's returned pointers (round 4) -/
+
+/-- Stores at `p·a` and `p·b` (hinted indices), reads `p[0]`. -/
+def pm : Fn where
+  name := "pm"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.const (.n 3) (word 0 0)), .atom (.mul (.n 4) (.n 0) (.n 1)), .atom (.load (.n 3) (.n 4) 0),
+    .atom (.mul (.n 5) (.n 0) (.n 2)), .atom (.load (.n 3) (.n 5) 0), .atom (.load (.n 6) (.n 0) 0), .ret []]
+
+/-- `pm`'s certificate: `p[0]` is one of `p·a`, `p·b` (`subP`), the stores `0`, `1`. -/
+def hPm : HCert where
+  sig := {}
+  reads := [(6, [(0, 0, .perm 0 [0, 1])])]
+  res := [.subP ⟨[(0, 1)], 0⟩ [⟨[(0, 1), (1, 1)], 0⟩, ⟨[(0, 1), (2, 1)], 0⟩]]
+  rets := [[]]
+
+theorem pm_ok : heapOkC Data.powTree (fun _ ↦ .empty) pm hPm = true := by decide +kernel
+
+/-- The serials swapped. -/
+theorem pm_swap : heapOkC Data.powTree (fun _ ↦ .empty) pm { hPm with reads := [(6, [(0, 0, .perm 0 [1, 0])])] } =
+    false := by
+  decide +kernel
+
+/-- A residual about another cell. -/
+theorem pm_other :
+    heapOkC Data.powTree (fun _ ↦ .empty) pm
+      { hPm with res := [.subP ⟨[(0, 1)], 1⟩ [⟨[(0, 1), (1, 1)], 0⟩, ⟨[(0, 1), (2, 1)], 0⟩]] } = false := by
+  decide +kernel
+
+/-- `fillR` writes `p·g^(1+j)`, `j < e(n)`. -/
+def sigsR (g : String) : HSig :=
+  if g = "fillR" then { postR := [⟨⟨[(0, 1)], 1⟩, 1, .num 0, .val 1⟩] } else .empty
+
+/-- Stores `p[0]`, calls `fillR`, reads `p·n` (row `n` of a table whose row `0` is the point). -/
+def prp : Fn where
+  name := "prp"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 0) 0), .call "fillR" [.n 0, .n 1] [],
+    .atom (.mul (.n 3) (.n 0) (.n 1)), .atom (.load (.n 4) (.n 3) 0), .ret []]
+
+/-- `prp`'s certificate: the read in `fillR`'s run extended by the store before it (`prep`), `e(n)` by the
+residual `0 < e(n)`. -/
+def hPrp : HCert where
+  sig := {}
+  reads := [(4, [(3, 0, .prep 0 (.ev 0) [0])])]
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[]]
+  rets := [[]]
+
+theorem prp_ok : heapOkC Data.powTree sigsR prp hPrp = true := by decide +kernel
+
+/-- No exponent for the upper bound. -/
+theorem prp_noexp : heapOkC Data.powTree sigsR prp { hPrp with reads := [(4, [(3, 0, .prep 0 (.ev 0) [])])] } =
+    false := by
+  decide +kernel
+
+/-- The read one past: `p·n·g`. -/
+theorem prp_past :
+    heapOkC Data.powTree sigsR { prp with body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 0) 0),
+      .call "fillR" [.n 0, .n 1] [], .atom (.mul (.n 3) (.n 0) (.n 1)), .atom (.load (.n 4) (.n 3) 1), .ret []] }
+      { hPrp with reads := [(4, [(3, 1, .prep 0 (.ev 0) [0])])] } = false := by
+  decide +kernel
+
+/-- `ra` returns `p`, `rb` returns `p·g^2`. -/
+def sigsV (g : String) : HSig :=
+  if g = "ra" then { retM := [(0, ⟨[(0, 1)], 0⟩)] }
+  else if g = "rb" then { retM := [(0, ⟨[(0, 1)], 2⟩)] } else .empty
+
+/-- Stores `p[0..3]`, dispatches on `x` to `ra`, `rb`, reads `r[0]`, `r[1]`, returns `r`. -/
+def vpd : Fn where
+  name := "vpd"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 1) 0), .atom (.load (.n 2) (.n 1) 1),
+    .atom (.load (.n 2) (.n 1) 2), .atom (.load (.n 2) (.n 1) 3), .dispatch (.n 0) ["ra", "rb"] [.n 1] [.n 3],
+    .atom (.load (.n 4) (.n 3) 0), .atom (.load (.n 5) (.n 3) 1), .ret [.n 3]]
+
+/-- `vpd`'s certificate: the returned word `r` with its cells `0`, `1` written whichever arm ran (`vp`:
+arm `ra`'s `p[0]`, `p[1]`, arm `rb`'s `p[2]`, `p[3]`), pushed at serials `4`, `5`, read and guaranteed
+over the returned slot. -/
+def hVpd : HCert where
+  sig := { post := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩] }
+  reads := [(4, [(3, 0, .ev 4)]), (5, [(3, 1, .ev 5)])]
+  res := []
+  calls := [[.vp 0 [0, 1], .ev 0, .ev 1, .ev 2, .ev 3]]
+  rets := [[.ev 4, .ev 5]]
+
+theorem vpd_ok : heapOkC Data.powTree sigsV vpd hVpd = true := by decide +kernel
+
+/-- Three cells: arm `rb`'s `p[4]` is not written. -/
+theorem vpd_bad :
+    heapOkC Data.powTree sigsV vpd { hVpd with calls := [[.vp 0 [0, 1, 2], .ev 0, .ev 1, .ev 2, .ev 2, .ev 3, .ev 3]] } =
+      false := by
+  decide +kernel
+
+/-- Arm `rb` witnessed by `ra`'s cells. -/
+theorem vpd_bad2 :
+    heapOkC Data.powTree sigsV vpd { hVpd with calls := [[.vp 0 [0, 1], .ev 0, .ev 1, .ev 0, .ev 1]] } = false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test

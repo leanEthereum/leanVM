@@ -129,6 +129,15 @@ inductive Wit where
   `base·g^(S'·r)`, `r < S`, of stride `S'·S` from the lower bound's `S`-th part to the upper bound's
   `S`-th root, follow; facts of these residuals give the root's exponent. -/
   | mrg (s : ℕ) (res : List ℕ)
+  /-- A cell among cells: residual `k`, `subP c cs` at the site, and each cell of `cs` the write event of
+  the point serial at its position in `ns`. -/
+  | perm (k : ℕ) (ns : List ℕ)
+  /-- A cell of a run in scope of lower bound `g^0` extended by the point before it (`base·g^-stride`,
+  witnessed by `q`): the cell's index at most the upper bound's, which has an exponent by a fact. -/
+  | prep (r : ℕ) (q : Wit) (res : List ℕ)
+  /-- Leading a dispatch's witnesses: its returned word `j` is a pointer whose cells at the offsets
+  every arm kept writes (each arm's witnesses of them follow its preconditions'). -/
+  | vp (j : ℕ) (offs : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
