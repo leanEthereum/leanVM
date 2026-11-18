@@ -133,3 +133,91 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L32_L5_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop41`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node (some Fn.«da_levels__L32_L5_loop1».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil)
+    .nil) .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil), 524287⟩
+
+/-- `__loop41`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨274705, 35, Fn.«da_levels__L32_L5_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L32_L5_loop1»
+
+namespace LeanVM.Guest.Fn.«level_residual__L109_L15_L6_L3_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop104`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node (some Fn.«level_residual__L109_L15_L6_L3_loop1».modeSig) .nil
+    .nil) .nil) .nil) .nil)))) .nil) .nil))) .nil)))) .nil)) .nil)), 524287⟩
+
+/-- `__loop104`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨291700, 138, Fn.«level_residual__L109_L15_L6_L3_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L109_L15_L6_L3_loop1»
+
+namespace LeanVM.Guest.Fn.«level_residual__L32_L7_L4_L2_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop116`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (some Fn.«level_residual__L32_L7_L4_L2_loop0».modeSig) .nil .nil) .nil)
+    .nil)) .nil) .nil) .nil) .nil) .nil))) .nil)))))) .nil) .nil), 524287⟩
+
+/-- `__loop116`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨295803, 366, Fn.«level_residual__L32_L7_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L32_L7_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop278`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node none (.node (some Fn.«level_residual__L55_L20_L6_L3_loop1».modeSig) .nil .nil)
+    .nil)) .nil)) .nil) .nil) .nil))))) .nil) .nil)) .nil) .nil))), 524287⟩
+
+/-- `__loop278`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨346002, 168, Fn.«level_residual__L55_L20_L6_L3_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop1»

@@ -77,34 +77,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L1»
 
-namespace LeanVM.Guest.Fn.«da_column_offsets_loop2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop27`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_column_offsets_loop2».modeSig) .nil .nil)))) .nil)) .nil) .nil))
-    .nil)) .nil))) .nil) .nil) .nil) .nil), 524287⟩
-
-/-- `__loop27`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨250543, 49, Fn.«da_column_offsets_loop2».modeSig, (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node (some [(.frameAddress 40)]) .nil .nil) .nil) .nil))) .nil),
-    .nil, .nil, false, .nil⟩
-
-/-- `__loop27`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_column_offsets_loop2»
-
 namespace LeanVM.Guest.Fn.«grind_check__L29»
 
 open LeanVM.Guest LeanVM.Guest.Exec

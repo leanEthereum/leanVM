@@ -70,6 +70,28 @@ end
 
 end LeanVM.Guest.Fn.«index_mle__L33»
 
+namespace LeanVM.Guest.Fn.«claim_list_digest_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop16`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some Fn.«claim_list_digest_loop0».modeSig) .nil .nil))) .nil) .nil)) .nil) .nil)))
+    .nil) .nil) .nil)) .nil) .nil) .nil)), 524287⟩
+
+/-- `__loop16`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨234256, 1242, Fn.«claim_list_digest_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_digest_loop0»
+
 namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -153,3 +175,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop4»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop49`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node (some Fn.«da_levels__L128_L7_loop4».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil)
+    .nil)) .nil) .nil) .nil)) .nil)) .nil) .nil) .nil), 524287⟩
+
+/-- `__loop49`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨274983, 35, Fn.«da_levels__L128_L7_loop4».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L128_L7_loop4»

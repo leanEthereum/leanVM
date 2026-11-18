@@ -43,21 +43,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L1»
 
-namespace LeanVM.Guest.Fn.«da_column_offsets_loop2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop27`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 418) (d := Data.adviceFn418) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_column_offsets_loop2»
-
 namespace LeanVM.Guest.Fn.«grind_check__L29»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -327,21 +312,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_positions__L44_L22_L4_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L73_L21_L6_L3_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop311`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1286) (d := Data.adviceFn1286) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L73_L21_L6_L3_loop0»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0»
 

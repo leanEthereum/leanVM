@@ -384,7 +384,8 @@ noncomputable def coreFns : List CoreMode.CFun :=
     Fn.«squeeze_point_from__L16».cfun, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».cfun,
     Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».cfun,
     Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».cfun,
-    Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».cfun]
+    Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».cfun,
+    Fn.«level_residual__L37_L20_L4_L2_loop1».cfun]
 
 end
 
@@ -571,9 +572,11 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem17)
     ⟨Fn.«level_positions__L4_L18_L6_loop0».modeOk,
     Fn.«level_positions__L4_L18_L6_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem18)
-    ⟨Fn.«level_residual__L37_L20_L4_L2_loop1».modeOk,
-    Fn.«level_residual__L37_L20_L4_L2_loop1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_residual__L37_L20_L4_L2_loop1».cfun, hT _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))), rfl,
+    Fn.«level_residual__L37_L20_L4_L2_loop1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem19)
     ⟨Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeOk,
     Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeHintsOk⟩)

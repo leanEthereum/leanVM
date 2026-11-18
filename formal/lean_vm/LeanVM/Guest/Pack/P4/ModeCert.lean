@@ -13,7 +13,6 @@ public import LeanVM.Guest.Pack.«P4».Mode0
 public import LeanVM.Guest.Pack.«P4».Mode1
 public import LeanVM.Guest.Pack.«P4».ModeC
 public import LeanVM.Guest.Pack.«P4».ModeH
-public import LeanVM.Guest.Pack.«P4».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -367,9 +366,9 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«padding_weight__L7».cfun, Fn.«padding_weight__L12».cfun, Fn.«index_mle__L33».cfun,
-    Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun,
+    Fn.«claim_list_digest_loop0».cfun, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun,
     Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».cfun,
-    Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun]
+    Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun, Fn.«da_levels__L128_L7_loop4».cfun]
 
 end
 
@@ -503,8 +502,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«index_mle__L33».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«block_selector_tab__L8».modeOk,
     Fn.«block_selector_tab__L8».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«claim_list_digest_loop0».modeOk,
-    Fn.«claim_list_digest_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«claim_list_digest_loop0».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«claim_list_digest_loop0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«child_claim_list_mono_last__L2».modeOk,
     Fn.«child_claim_list_mono_last__L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«level_residual__L73_L14_L6_L3».modeOk,
@@ -518,17 +518,20 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11) ⟨Fn.«level_positions__L22_L24_L6».modeOk,
     Fn.«level_positions__L22_L24_L6».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun, hT _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)))), rfl, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».cfun, hT _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self))))), rfl, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self)))))), rfl,
+    Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».cfun, hT _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self)))))), rfl,
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl,
     Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem15) ⟨Fn.«da_levels__L128_L7_loop4».modeOk,
-    Fn.«da_levels__L128_L7_loop4».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«da_levels__L128_L7_loop4».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))), rfl,
+    Fn.«da_levels__L128_L7_loop4».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem16) ⟨Fn.«verify_merkle_cap__L6».modeOk,
     Fn.«verify_merkle_cap__L6».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem17)

@@ -21,6 +21,9 @@ public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P20».ModeSig
@@ -587,15 +590,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 315406, 95,
     Fn.«level_residual__L25_L9_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1129.2.2, .nil,
-    .nil, .nil, .nil, (.node none (.node none (.node (some ()) (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some ())
-    .nil .nil)))) (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node none (.node (some ())
-    .nil .nil) .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    .nil .nil))) (.node (some ()) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil .nil) (.node
-    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)))))), .nil, .nil⟩
+    .nil, .nil, .nil, Fn.«level_residual__L25_L9_L4_L2_loop1».pairO,
+    Fn.«level_residual__L25_L9_L4_L2_loop1».pairS, .nil⟩
 
 /-- `__loop184`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -615,18 +611,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 336987, 131,
     Fn.«level_residual__L37_L15_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1208.2.2, .nil,
-    .nil, .nil, .nil, (.node none (.node none (.node (some ()) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil) .nil) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) (.node none (.node
-    (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node (some
-    ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node none (.node (some ())
-    .nil .nil) .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))))), .nil, .nil⟩
+    .nil, .nil, .nil, Fn.«level_residual__L37_L15_L4_L2_loop1».pairO,
+    Fn.«level_residual__L37_L15_L4_L2_loop1».pairS, .nil⟩
 
 /-- `__loop247`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -646,18 +632,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 340032, 366,
     Fn.«level_residual__L19_L7_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1218.2.2, .nil,
-    .nil, .nil, .nil, (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil
-    .nil) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node (some ())
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node (some ()) .nil
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil)) (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
-    .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) .nil))), .nil,
-    .nil⟩
+    .nil, .nil, .nil, Fn.«level_residual__L19_L7_L4_L2_loop0».pairO,
+    Fn.«level_residual__L19_L7_L4_L2_loop0».pairS, .nil⟩
 
 /-- `__loop257`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

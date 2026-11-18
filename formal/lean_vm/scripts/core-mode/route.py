@@ -242,9 +242,9 @@ def route(verbose=False):
     out = {}; why = collections.Counter()
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]
-        if pf.get('kind') == 'c':
-            # a body with calls, its certificate by the check with calls (`callc.py`)
-            out[k] = dict(post=[], pre=[], O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind='c')
+        if pf.get('kind') in ('c', 'l'):
+            # a body with calls (`callc.py`) or a leaf loop helper (`loopc.py`), its certificate by the check with calls
+            out[k] = dict(post=[], pre=[], O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind=pf['kind'])
             continue
         F = fns[k]
         ns = F.get('ns', k)

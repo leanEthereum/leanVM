@@ -101,6 +101,9 @@ def fnData(D, n, cuts):
     w.run(f['ops'])
     byentry = {g['entry']: m for m, g in D['fns'].items()}
     sigs = {pc: '%s.modeSig' % MG.fnq(byentry[pc]) for pc in sorted(w.used)}
+    if rt and rt.get('kind') == 'l':
+        # a leaf loop helper on the core route: its walk is told no callee (`CoreMode.loopShapeOk`)
+        sigs = {}
     packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used}
     fx = D['facts'][n]
     facts = '{ env := %s, fpOne := %s, pows := Data.powTree, scaled := %s }' % (
@@ -177,6 +180,10 @@ def main(argv):
     gen_pack = {k: v[0] for k, v in heap.pack_of().items()}
     for n, f in D['fns'].items():
         f['ns'] = f.get('ns', n)
+        # a function the compiler names apart from its stable name (a loop helper `__loopN`): on the route by the latter
+        if f['ns'] != n and f['ns'] in ROUTE:
+            ROUTE[n] = ROUTE[f['ns']]
+            gen_pack[n] = gen_pack[f['ns']]
     files = {}
     stats = collections.Counter()
     for p, names in sorted(MG.packs().items()):

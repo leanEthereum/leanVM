@@ -14,21 +14,6 @@ public import LeanVM.Guest.Pack.«P17».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«main_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 37) (d := Data.adviceFn37) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«main_loop0»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L14»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -149,21 +134,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L32_L20_L4_L2»
 
-namespace LeanVM.Guest.Fn.«level_residual__L37_L13_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop177`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1122) (d := Data.adviceFn1122) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L37_L13_L4_L2_loop0»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -178,21 +148,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L18_L6_L3_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop199`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1151) (d := Data.adviceFn1151) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L109_L18_L6_L3_loop0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L15_L23_L5_loop0»
 
@@ -253,21 +208,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
-
-namespace LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop415`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1404) (d := Data.adviceFn1404) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2_loop1»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»
 

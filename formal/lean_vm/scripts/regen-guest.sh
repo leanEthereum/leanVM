@@ -139,6 +139,8 @@ part_core_mode() {
   python3 -I scripts/core-mode/emitc.py "${check[@]}"
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
   python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
+  step "core-mode: leaf loop helpers (scripts/core-mode/loopc.py)"
+  python3 -I scripts/core-mode/loopc.py --emit "${check[@]}"
   step "core-mode: heap certificates (scripts/core-mode/heap.py)"
   python3 -I scripts/core-mode/heap.py --emit LeanVM/Guest/CoreMode/Gen "${check[@]}"
   step "core-mode: pairings (scripts/core-mode/pair.py)"
