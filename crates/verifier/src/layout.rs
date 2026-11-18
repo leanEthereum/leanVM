@@ -79,7 +79,7 @@ pub const K_BITS: usize = 64;
 
 // The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
 // slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
-pub const KECCAK_DEPTH: usize = 12;
+pub const KECCAK_DEPTH: usize = 24;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 /// Every size a proof announces or commits is at most `2^30`: a table's rows, the memory, the bytecode and the stack.

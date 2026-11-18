@@ -476,7 +476,8 @@ fn claim_placeholders(ph: &mut Placeholders, pool: &[ClaimSite], kbc: usize) {
     ph.set("KECCAK_OUT_POOL", out_pool);
     // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
     // Keccak reduction's claim on its output word and level 0's OOD claim; the batching is accounted for up to a cap.
-    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + 1;
+    let outputs = usize::from(KECCAK_MIN_SHAPE.segments() > 1);
+    let stacked = 1 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + outputs + 1;
     assert!(stacked <= verifier::MAX_STACKED_CLAIMS, "too many stacked claims");
     ph.set("QKECCAK_COMMITTED_COL", qkeccak);
 }
@@ -494,7 +495,6 @@ fn keccak_placeholders(ph: &mut Placeholders) {
         ph.set(entries, rows.concat());
     };
     let bits = |word: u64, n: usize| (0..n).filter(|b| word >> b & 1 == 1).collect::<Vec<_>>();
-    assert!(segments > 1, "the guest opens a committed segment output");
     // Each unit vector's embedding is a product of small irreducible factors (the modulus's,
     // by the CRT): the factors' monomials, then a straight line of products over them.
     let factored: Vec<Vec<u64>> = RMFE_EMBED.iter().map(|&e| poly_factors(e as u64)).collect();

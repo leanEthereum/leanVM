@@ -24,7 +24,7 @@ use primitives::hash::STATE_LANES;
 use verifier::layout::keccak_cell_lanes;
 
 /// Rounds between two committed states.
-pub const DEPTH: usize = 12;
+pub const DEPTH: usize = verifier::layout::KECCAK_DEPTH;
 /// The reduction's shape at its fewest steps.
 const MIN_SHAPE: Shape = shape(0);
 /// `log2` of the slots the committed column holds per step: one per lane of each state but the
