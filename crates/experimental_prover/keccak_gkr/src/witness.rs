@@ -413,10 +413,14 @@ impl Witness {
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
         parallel::for_each(written, |g| {
             // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
-            // input reads the all-zero input the block pads with.
-            let inputs: Vec<[u64; STATE_LANES]> = (g * BLOCK..(g + 1) * BLOCK)
-                .map(|i| std::array::from_fn(|lane| committed[lane * n + i].0))
-                .collect();
+            // input reads the all-zero input the block pads with. Read a slot at a time: the slots are
+            // `n` words apart, so an instance at a time their 25 streams share cache sets.
+            let mut inputs = vec![[0u64; STATE_LANES]; BLOCK];
+            for (lane, column) in committed[..STATE_LANES * n].chunks_exact(n).enumerate() {
+                for (input, word) in inputs.iter_mut().zip(&column[g * BLOCK..][..BLOCK]) {
+                    input[lane] = word.0;
+                }
+            }
             // SAFETY: block `g` owns its slot.
             unsafe { block(shape.depth, &inputs, Some(slots[g]), |_, _, _| {}) };
         });
