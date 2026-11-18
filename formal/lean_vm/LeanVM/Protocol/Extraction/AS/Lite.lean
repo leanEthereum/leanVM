@@ -31,6 +31,8 @@ open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest refNConstraints)
 
 @[expose] public section
 
+attribute [local instance] lexOrd
+
 /-- The tables' widths. -/
 def tableWidthsL : List ℕ := [13, 13, 7, 14, 14, 92]
 
@@ -186,36 +188,61 @@ def laneRow (i : ℕ) (lv : Array (List K)) (h w v : ℕ) : Array E :=
 def laneRows (n i : ℕ) (lv : Array (List K)) (h w : ℕ) : AV :=
   Array.ofFn fun v : Fin n ↦ laneRow i lv h w v
 
-/-- A root's leaves. -/
-def leavesAt (qs : List (PermutationQuery KeccakState × KeccakState)) (x : Digest × ℕ × ℕ) :
-    Array (List K) :=
-  Fast.leavesOf qs x.2.2 x.2.1 x.1
+/-- The longest lookup of the roots' leaves: a node's `64` bytes, a leaf's `8w`. -/
+def capOf : List (Digest × ℕ × ℕ) → ℕ
+  | [] => 64
+  | x :: xs =>
+    let c := capOf xs
+    max (8 * x.2.2) c
+
+theorem le_capOf : ∀ (roots : List (Digest × ℕ × ℕ)) (x : Digest × ℕ × ℕ), x ∈ roots →
+    max 64 (8 * x.2.2) ≤ capOf roots
+  | [], _, h => absurd h List.not_mem_nil
+  | y :: ys, x, h => by
+    have h64 : 64 ≤ capOf ys := by
+      cases ys with
+      | nil => exact le_rfl
+      | cons z zs => exact le_trans (le_max_left _ _) (le_capOf (z :: zs) z List.mem_cons_self)
+    rcases List.mem_cons.1 h with rfl | h
+    · simp only [capOf]; omega
+    · have := le_capOf ys x h; simp only [capOf]; omega
+
+/-- A root's leaves, read through the roots' shared index `I`. -/
+def leavesAt (I : SortedMap (List UInt64 × ℕ) Hits) (x : Digest × ℕ × ℕ) : Array (List K) :=
+  Fast.leavesIn I x.2.2 x.2.1 x.1
 
 /-- Root `i`'s word, column by column. -/
-def wordArrOf (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) (i : ℕ)
-    (x : Digest × ℕ × ℕ) : AV :=
-  laneRows (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) i (leavesAt qs x) x.2.1 x.2.2
+def wordArrOf (μ R : ℕ) (I : SortedMap (List UInt64 × ℕ) Hits) (i : ℕ) (x : Digest × ℕ × ℕ) : AV :=
+  laneRows (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) i (leavesAt I x) x.2.1 x.2.2
 
 /-- Every root's word from root `i` on. -/
-def wordsGo (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) :
+def wordsGo (μ R : ℕ) (I : SortedMap (List UInt64 × ℕ) Hits) :
     ℕ → List (Digest × ℕ × ℕ) → List AV
   | _, [] => []
-  | i, x :: xs => wordArrOf μ R qs i x :: wordsGo μ R qs (i + 1) xs
+  | i, x :: xs => wordArrOf μ R I i x :: wordsGo μ R I (i + 1) xs
 
-theorem wordsGo_eq (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) :
+theorem wordsGo_eq (μ R : ℕ) (I : SortedMap (List UInt64 × ℕ) Hits) :
     ∀ (roots : List (Digest × ℕ × ℕ)) (i : ℕ),
-      wordsGo μ R qs i roots = roots.mapIdx fun j x ↦ wordArrOf μ R qs (j + i) x
+      wordsGo μ R I i roots = roots.mapIdx fun j x ↦ wordArrOf μ R I (j + i) x
   | [], _ => rfl
   | x :: xs, i => by
-    rw [wordsGo, List.mapIdx_cons, wordsGo_eq μ R qs xs (i + 1), Nat.zero_add]
+    rw [wordsGo, List.mapIdx_cons, wordsGo_eq μ R I xs (i + 1), Nat.zero_add]
     congr 1
     refine List.mapIdx_eq_mapIdx_iff.mpr fun j _ ↦ ?_
     rw [Nat.add_right_comm, Nat.add_assoc]
 
+/-- **One index for every root**: at the roots' longest lookup, the words are the per-root ones. -/
 theorem wordsGo_zero (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState))
-    (roots : List (Digest × ℕ × ℕ)) : wordsGo μ R qs 0 roots = wordsC μ R qs roots := by
+    (roots : List (Digest × ℕ × ℕ)) :
+    wordsGo μ R (transcriptIndex qs (capOf roots)) 0 roots = wordsC μ R qs roots := by
   rw [wordsGo_eq]
-  rfl
+  unfold wordsC
+  refine List.mapIdx_eq_mapIdx_iff.mpr fun i hi ↦ ?_
+  have hl : leavesAt (transcriptIndex qs (capOf roots)) roots[i] =
+      Fast.leavesOf qs roots[i].2.2 roots[i].2.1 roots[i].1 :=
+    leavesIn_transcriptIndex qs _ _ (le_capOf roots _ (List.getElem_mem hi)) _
+  unfold wordArrOf laneRows laneRow
+  rw [hl, Nat.add_zero]
 
 /-- **The extractor's finish on the lite layout**, its candidate run the indexed runner. -/
 def finishL (prog : LeanIsaProgram) (input : PublicInput)
@@ -225,7 +252,8 @@ def finishL (prog : LeanIsaProgram) (input : PublicInput)
   if laneBits ≤ r.1.2.1.1.stackLog ∧ 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤
       2 ^ ((lvC r.1.2.1.1.stackLog r.1.2.1.2 0).1 + (lvC r.1.2.1.1.stackLog r.1.2.1.2 0).2.1) then
     (descendTraceC r.1.2.1.1.stackLog r.1.2.1.2
-      (wordsGo r.1.2.1.1.stackLog r.1.2.1.2 qs 0 r.2.roots) r.1.2.2 0).bind fun T ↦
+      (wordsGo r.1.2.1.1.stackLog r.1.2.1.2 (transcriptIndex qs (capOf r.2.roots)) 0 r.2.roots)
+      r.1.2.2 0).bind fun T ↦
     if T.1 = laneBits then
       candidateRunner prog input r.1.2.1.1 (stackA r.1.2.1.1.stackLog T.2)
     else none
@@ -245,7 +273,8 @@ theorem finishL_eq (prog : LeanIsaProgram) (input : PublicInput)
 def extractL (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
     Option (Execution prog) :=
-  let F := fwdF (fwdIndex qs)
+  let M := fwdIndex qs
+  let F := fwdF M
   (seedWithHash (KeccakHash.keccak256With F) F (bytecodeWords prog)
     (publicInputDigest input)).bind fun seed ↦
   (skelReplayP F skSizes (startState π seed)).bind fun r₁ ↦

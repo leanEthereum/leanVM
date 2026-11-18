@@ -26,7 +26,7 @@ import LeanVM.Protocol.Extraction.Merkle
 * `nttStageAt_cost`, `nttStage_cost`, `nttGo_cost`, `ntt_cost`: the additive NTT of `2^κ` entries
   on `2^(κ+R)` positions, `κ·(110·2^(κ+R) + 100) + 28·2^(κ+R) + 35`; `stageTwiddles_cost`;
 * **`upAtA_cost`** (`upPrice κ κ' m R L`), **`stackA_cost`**;
-* `lanesOf_cost`, `laneRow_cost`, `laneRows_cost`, `leavesOfC_cost_w` and `leavesAt_cost`
+* `lanesOf_cost`, `laneRow_cost`, `laneRows_cost`, `leavesInC_cost` and `leavesAt_cost`
   (`leavesPrice`), `lvC_cost` (the levels' shapes from the fold table, `lvC_small`),
   **`wordArrOf_cost`** (`wordPrice`), **`wordsGoWorker_cost`** (`wordsPrice`).
 -/
@@ -655,46 +655,41 @@ theorem laneRows_cost (hP : Includes P laneRowsC.costDeps) (n i : ℕ) (lv : Arr
 
 /-! ## A root's leaves -/
 
-/-- The price bound of a root's leaves: the transcript's index for leaves of `w` words, `qn`
-queries, then the subtree of height `h`. -/
-@[expose] def leavesPrice (D Wl qn w h : ℕ) : ℕ :=
-  19 + transcriptIndexPrice D (8 * w) qn Wl +
-    2 ^ h * (2 * (D * (20 + (162 + 9 * Wl) * (D + 2)) + 42) + 468 * w + 30760 + 5 * h)
+/-- The price bound of a root's leaves through the roots' index: the subtree of height `h`, leaves
+of `w` words. -/
+@[expose] def leavesPrice (D Wl w h : ℕ) : ℕ :=
+  19 + 2 ^ h * (2 * (D * (20 + (162 + 9 * Wl) * (D + 2)) + 42) + 468 * w + 30760 + 5 * h)
 
-/-- **The committed leaves at width `w`** (`leavesOfC`). -/
-theorem leavesOfC_cost_w (hP : Includes P Extractor.leavesOfC.costDeps)
-    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (D Wl : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D) (w h : ℕ)
-    (hw8 : 8 ≤ w) (hw : w < 2 ^ 57) (root : LeanVM.Protocol.Digest) :
-    machineCost P Extractor.leavesOfC.costIdx [encodeValue qs, encodeValue w, encodeValue h, encodeValue root] ≤
-      leavesPrice D Wl qs.length w h := by
-  rw [Extractor.leavesOfC.costEq P hP]
-  rw [show max 64 (8 * w) = 8 * w by omega]
-  have hT := transcriptIndex_cost P (by includes) D (8 * w) Wl hW (by omega) qs hN
+/-- **The committed leaves through the transcript's index at `L`** (`leavesInC`). -/
+theorem leavesInC_cost (hP : Includes P Extractor.leavesInC.costDeps)
+    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (L D Wl : ℕ)
+    (hL : L < 2 ^ 64) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D)
+    (w h : ℕ) (hw : w < 2 ^ 57) (root : LeanVM.Protocol.Digest) :
+    machineCost P Extractor.leavesInC.costIdx [encodeValue (Extraction.Fast.transcriptIndex qs L),
+      encodeValue w, encodeValue h, encodeValue root] ≤ leavesPrice D Wl w h := by
+  rw [Extractor.leavesInC.costEq P hP]
   have hS := subtreeLeavesWithC_cost P (by includes) _
-    (.closure Extractor.leavesOfC.lam0.costIdx [encodeValue (Extraction.Fast.transcriptIndex qs (8 * w))])
-    (fun d n ↦ RunsApp.of_spec (Extractor.leavesOfC.lam0.costSpec P (by includes) _ d n))
+    (.closure Extractor.leavesInC.lam0.costIdx [encodeValue (Extraction.Fast.transcriptIndex qs L)])
+    (fun d n ↦ RunsApp.of_spec (Extractor.leavesInC.lam0.costSpec P (by includes) _ d n))
     (D * (20 + (162 + 9 * Wl) * (D + 2)) + 42)
-    (fun d n hn ↦ preimageLookup_cost P (by includes) qs (8 * w) D Wl (by omega) hW hN d n hn)
+    (fun d n hn ↦ preimageLookup_cost P (by includes) qs L D Wl hL hW hN d n hn)
     w (by omega) h root
-  rw [limbs_of_lt (by omega : w < 2 ^ 64), limbs_of_lt (by omega : 8 * w < 2 ^ 64)]
   have e : D * (20 + (162 + 9 * Wl) * (D + 2)) + 42 + 15 * w + 30725 +
       (D * (20 + (162 + 9 * Wl) * (D + 2)) + 42 + 453 * w + 35) + 5 * h =
       2 * (D * (20 + (162 + 9 * Wl) * (D + 2)) + 42) + 468 * w + 30760 + 5 * h := by ring
   rw [e] at hS
-  unfold leavesPrice transcriptIndexPrice
-  simp only [show 64 ≤ 8 * w from by omega, ↓reduceIte, max_self]
+  unfold leavesPrice
   omega
 
 /-- **A root's leaves** (`leavesAtC`). -/
 theorem leavesAt_cost (hP : Includes P leavesAtC.costDeps)
-    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (D Wl : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D)
-    (x : LeanVM.Protocol.Digest × ℕ × ℕ) (hw8 : 8 ≤ x.2.2) (hw : x.2.2 < 2 ^ 57) :
-    machineCost P leavesAtC.costIdx [encodeValue qs, encodeValue x] ≤
-      leavesPrice D Wl qs.length x.2.2 x.2.1 + 10 := by
+    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (L D Wl : ℕ)
+    (hL : L < 2 ^ 64) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D)
+    (x : LeanVM.Protocol.Digest × ℕ × ℕ) (hw : x.2.2 < 2 ^ 57) :
+    machineCost P leavesAtC.costIdx [encodeValue (Extraction.Fast.transcriptIndex qs L), encodeValue x] ≤
+      leavesPrice D Wl x.2.2 x.2.1 + 10 := by
   rw [leavesAtC.costEq P hP]
-  have := leavesOfC_cost_w P (by includes) qs D Wl hW hN x.2.2 x.2.1 hw8 hw x.1
+  have := leavesInC_cost P (by includes) qs L D Wl hL hW hN x.2.2 x.2.1 hw x.1
   omega
 
 /-! ## The levels' shapes -/
@@ -828,18 +823,20 @@ theorem lvC_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lvC.c341.costD
 /-! ## The roots' words -/
 
 /-- The price bound of root `i`'s word. -/
-@[expose] def wordPrice (D Wl qn μ R i : ℕ) (x : LeanVM.Protocol.Digest × ℕ × ℕ) : ℕ :=
-  2 * (15 * (μ + R + i) + 20000) + leavesPrice D Wl qn x.2.2 x.2.1 +
+@[expose] def wordPrice (D Wl μ R i : ℕ) (x : LeanVM.Protocol.Digest × ℕ × ℕ) : ℕ :=
+  2 * (15 * (μ + R + i) + 20000) + leavesPrice D Wl x.2.2 x.2.1 +
     (45 * x.2.2 + 68) * 2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1) + 60
 
 /-- **Root `i`'s word** (`wordArrOfC`): its level's shape, its leaves, its columns' lanes. -/
 theorem wordArrOf_cost (hP : Includes P wordArrOfC.costDeps) (μ R : ℕ)
-    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (i : ℕ)
-    (x : LeanVM.Protocol.Digest × ℕ × ℕ) (D Wl : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl)
-    (hN : qs.length + 2 ≤ 2 ^ D) (hw8 : 8 ≤ x.2.2) (hw : x.2.2 < 2 ^ 57) (hh : x.2.1 < 64)
+    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (L : ℕ) (i : ℕ)
+    (x : LeanVM.Protocol.Digest × ℕ × ℕ) (D Wl : ℕ) (hL : L < 2 ^ 64)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl)
+    (hN : qs.length + 2 ≤ 2 ^ D) (hw : x.2.2 < 2 ^ 57) (hh : x.2.1 < 64)
     (hμ : μ < 2 ^ 60) (hR : R < 2 ^ 60) (hi : i < 2 ^ 60) :
-    machineCost P wordArrOfC.costIdx [encodeValue μ, encodeValue R, encodeValue qs, encodeValue i,
-      encodeValue x] ≤ wordPrice D Wl qs.length μ R i x := by
+    machineCost P wordArrOfC.costIdx [encodeValue μ, encodeValue R,
+      encodeValue (Extraction.Fast.transcriptIndex qs L), encodeValue i, encodeValue x] ≤
+      wordPrice D Wl μ R i x := by
   rw [wordArrOfC.costEq P hP]
   have hs := lvC_small μ R i
   have hN2 : 2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1) ≤ 2 ^ 34 := Nat.pow_le_pow_right (by norm_num) hs
@@ -847,37 +844,39 @@ theorem wordArrOf_cost (hP : Includes P wordArrOfC.costDeps) (μ R : ℕ)
     limbs_of_lt (by omega : (lvC μ R i).1 < 2 ^ 64), limbs_of_lt (by omega : (lvC μ R i).2.1 < 2 ^ 64),
     limbs_shift (by omega : (lvC μ R i).1 + (lvC μ R i).2.1 < 64)]
   have h1 := lvC_cost P (by includes) μ R i hμ hR hi
-  have h2 := leavesAt_cost P (by includes) qs D Wl hW hN x hw8 hw
+  have h2 := leavesAt_cost P (by includes) qs L D Wl hL hW hN x hw
   have h3 := laneRows_cost P (by includes) (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) i
-    (LeanVM.Extraction.AS.leavesAt qs x) x.2.1 x.2.2 x.2.2
+    (LeanVM.Extraction.AS.leavesAt (Extraction.Fast.transcriptIndex qs L) x) x.2.1 x.2.2 x.2.2
     (fun l hl ↦ (subtreeLeavesWith_mem_length _ _ _ _ l hl).le) le_rfl (by omega) hh (by omega) (by omega)
   unfold wordPrice
   simp only [max_self]
   omega
 
 /-- The price bound of the roots' words from root `i` on. -/
-@[expose] def wordsPrice (D Wl qn μ R : ℕ) : ℕ → List (LeanVM.Protocol.Digest × ℕ × ℕ) → ℕ
+@[expose] def wordsPrice (D Wl μ R : ℕ) : ℕ → List (LeanVM.Protocol.Digest × ℕ × ℕ) → ℕ
   | _, [] => 3
-  | i, x :: xs => wordPrice D Wl qn μ R i x + 21 + wordsPrice D Wl qn μ R (i + 1) xs
+  | i, x :: xs => wordPrice D Wl μ R i x + 21 + wordsPrice D Wl μ R (i + 1) xs
 
-/-- **Every root's word from root `a` on, the recursive worker** (`wordsGo.c506`). -/
+/-- **Every root's word from root `a` on, the recursive worker** (`wordsGo.c506`), through the
+transcript's index at `L`. -/
 theorem wordsGoWorker_cost (hP : Includes P Auto.LeanVM.Extraction.AS.wordsGo.c506.costDeps) (μ R : ℕ)
-    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (D Wl : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D) (hμ : μ < 2 ^ 60)
-    (hR : R < 2 ^ 60) :
+    (qs : List (Common.PermutationQuery Semantics.KeccakState × Semantics.KeccakState)) (L D Wl : ℕ)
+    (hL : L < 2 ^ 64) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D)
+    (hμ : μ < 2 ^ 60) (hR : R < 2 ^ 60) :
     ∀ (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) (a : ℕ),
-      (∀ x ∈ roots, 8 ≤ x.2.2 ∧ x.2.2 < 2 ^ 57 ∧ x.2.1 < 64) → a + roots.length < 2 ^ 60 →
+      (∀ x ∈ roots, x.2.2 < 2 ^ 57 ∧ x.2.1 < 64) → a + roots.length < 2 ^ 60 →
       machineCost P Auto.LeanVM.Extraction.AS.wordsGo.c506.costIdx [encodeValue μ, encodeValue R,
-        encodeValue qs, encodeValue a, encodeValue roots] ≤ wordsPrice D Wl qs.length μ R a roots
+        encodeValue (Extraction.Fast.transcriptIndex qs L), encodeValue a, encodeValue roots] ≤
+        wordsPrice D Wl μ R a roots
   | [], a, _, _ => by
     rw [Auto.LeanVM.Extraction.AS.wordsGo.c506.costEq_nil P hP]
     simp [wordsPrice]
   | x :: xs, a, hx, ha => by
     rw [Auto.LeanVM.Extraction.AS.wordsGo.c506.costEq_cons P hP]
     simp only [List.length_cons] at ha
-    obtain ⟨h1, h2, h3⟩ := hx x List.mem_cons_self
-    have c1 := wordArrOf_cost P (by includes) μ R qs a x D Wl hW hN h1 h2 h3 hμ hR (by omega)
-    have c2 := wordsGoWorker_cost hP μ R qs D Wl hW hN hμ hR xs (a + 1)
+    obtain ⟨h2, h3⟩ := hx x List.mem_cons_self
+    have c1 := wordArrOf_cost P (by includes) μ R qs L a x D Wl hL hW hN h2 h3 hμ hR (by omega)
+    have c2 := wordsGoWorker_cost hP μ R qs L D Wl hL hW hN hμ hR xs (a + 1)
       (fun y hy ↦ hx y (List.mem_cons_of_mem _ hy)) (by omega)
     rw [limbs_of_lt (by omega : a + 1 < 2 ^ 64), limbs_of_lt (by omega : a < 2 ^ 64)]
     simp only [wordsPrice, max_self]

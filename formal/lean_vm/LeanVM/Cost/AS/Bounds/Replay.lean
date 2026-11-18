@@ -18,7 +18,7 @@ public meta import Lean.Elab.Tactic
   `fwdLookupPrice D W`;
 * `keccakIdx_cost`: Keccak-256 of `L` bytes through the index, `L/136 + 1` blocks of a lookup and
   `430004`, and `8·L + 85`; **`extractSeed_cost`**: the seed of a bytecode of `n` words
-  (`extractLC`'s rebuilds the index in its hash closure);
+  (`extractLC`'s, its hash closure over the index built once);
 * the sponge (`absorb_cost`, `squeeze_cost`, `absorbNonce_cost`, at most four scalars waiting:
   `SpOk`) and **`skelReplay_cost`**: the skeleton's replay, per operation two lookups, `34000` and
   `11` per root;
@@ -504,41 +504,40 @@ theorem keccakIdx_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.keccak25
   rw [show fwdLookupPrice D W + 4 + 430000 = fwdLookupPrice D W + 430004 by omega] at ha
   omega
 
-/-- **The extractor's seed** (`seedWithHash.c536` as `extractLC` calls it: the IV hashed through a
-closure that rebuilds the index of the `N` queries, then one lookup), for `N < 2^D`. -/
+/-- **The extractor's seed** (`seedWithHash.c537` as `extractLC` calls it: the IV hashed through a
+closure over the index of the `N` queries, then one lookup), for `N < 2^D`. -/
 theorem extractSeed_cost (hP : Includes P extractLC.costDeps) (D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (qs : List (Common.PermutationQuery LeanVM.Semantics.KeccakState × LeanVM.Semantics.KeccakState))
     (hq : qs.length < 2 ^ D) (bytecode : List K) (hb : bytecode.length ≤ 2 ^ 34)
     (pd : LeanVM.Protocol.Digest) :
-    machineCost P Auto.LeanVM.Protocol.Verifier.seedWithHash.c536.costIdx
-      [.closure extractLC.lam1.costIdx [encodeValue qs],
+    machineCost P Auto.LeanVM.Protocol.Verifier.seedWithHash.c537.costIdx
+      [.closure extractLC.lam1.costIdx [encodeValue (fwdIndex qs)],
         .closure hashMC.lam0.costIdx [encodeValue (fwdIndex qs)], encodeValue bytecode,
         encodeValue pd] ≤
-      (fwdStepPrice D W + 14) * qs.length + 9 +
-        ((9 + 8 * bytecode.length) / 136 + 2) * (fwdLookupPrice D W + 430004) +
+      ((9 + 8 * bytecode.length) / 136 + 2) * (fwdLookupPrice D W + 430004) +
         520 * bytecode.length + 2000 := by
   obtain ⟨hg, hw⟩ := fwdIndex_good qs
   have hN : smWeightSum (fwdIndex qs) < 2 ^ D := by omega
   have hF : ∀ x, RunsApp P (.closure hashMC.lam0.costIdx [encodeValue (fwdIndex qs)]) [encodeValue x]
       (encodeValue (fwdF (fwdIndex qs) x)) := fun x ↦
     RunsApp.of_spec (hashMC.lam0.costSpec P (by includes) (fwdIndex qs) x)
-  have hH : ∀ m, RunsApp P (.closure extractLC.lam1.costIdx [encodeValue qs]) [encodeValue m]
+  have hH : ∀ m, RunsApp P (.closure extractLC.lam1.costIdx [encodeValue (fwdIndex qs)]) [encodeValue m]
       (encodeValue (LeanVM.Protocol.KeccakHash.keccak256With (fwdF (fwdIndex qs)) m)) := fun m ↦
-    RunsApp.of_spec (extractLC.lam1.costSpec P (by includes) qs m)
+    RunsApp.of_spec (extractLC.lam1.costSpec P (by includes) (fwdIndex qs) m)
   have hlen : (LeanVM.Protocol.Verifier.versionTag ++
       bytecode.flatMap K.toBytes).length = 9 + 8 * bytecode.length := by
     rw [List.length_append, versionTag_eq, List.length_flatMap]
     simp [length_toBytes, List.sum_replicate, Nat.mul_comm]
-  rw [Auto.LeanVM.Protocol.Verifier.seedWithHash.c536.costEq P (by includes) _ _ hH
+  rw [Auto.LeanVM.Protocol.Verifier.seedWithHash.c537.costEq P (by includes) _ _ hH
     (fwdF (fwdIndex qs)) _ hF,
-    Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c540.costEq P (by includes) _ _ hH]
+    Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c541.costEq P (by includes) _ _ hH]
   have h1 := map_cost P (by includes) _
-    (.closure Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c540.lam0.costIdx [])
-    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c540.lam0.costSpec P
+    (.closure Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c541.lam0.costIdx [])
+    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c541.lam0.costSpec P
       (by includes) a)) 337 bytecode (fun a _ ↦ by
         rw [appCost_fn, List.nil_append,
-          Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c540.lam0.costEq P (by includes)]
+          Auto.LeanVM.Protocol.Verifier.fiatShamirIvWithHash.c541.lam0.costEq P (by includes)]
         have := LeanVM.Cost.Bounds.wordBytes_cost P (by includes) a.lane
         simp only [List.length_nil]
         omega)
@@ -547,33 +546,31 @@ theorem extractSeed_cost (hP : Includes P extractLC.costDeps) (D W : ℕ)
   have h3 := append_cost P (by includes) LeanVM.Protocol.Verifier.versionTag
     (bytecode.flatMap K.toBytes)
   have hv : LeanVM.Protocol.Verifier.versionTag.length = 9 := by rw [versionTag_eq]; rfl
-  have h4 : appCost P (.closure extractLC.lam1.costIdx [encodeValue qs])
+  have h4 : appCost P (.closure extractLC.lam1.costIdx [encodeValue (fwdIndex qs)])
       [encodeValue (LeanVM.Protocol.Verifier.versionTag ++ bytecode.flatMap K.toBytes)] ≤
-      (fwdStepPrice D W + 14) * qs.length + 9 +
       ((9 + 8 * bytecode.length) / 136 + 1) * (fwdLookupPrice D W + 430004) +
         8 * (9 + 8 * bytecode.length) + 92 := by
     rw [appCost_fn, List.singleton_append, extractLC.lam1.costEq P (by includes)]
     have k1 := keccakIdx_cost P (by includes) (by includes) D W hW (fwdIndex qs) hg hN
       (LeanVM.Protocol.Verifier.versionTag ++ bytecode.flatMap K.toBytes) (by rw [hlen]; omega)
-    have k2 := fwdIndex_cost P (by includes) D W hW qs (by omega)
     rw [hlen] at k1
     simp only [List.length_singleton]
     omega
   have h5 := bind_cost P (by includes) _
-    (.closure Auto.LeanVM.Protocol.Verifier.seedWithHash.c536.lam0.costIdx
+    (.closure Auto.LeanVM.Protocol.Verifier.seedWithHash.c537.lam0.costIdx
       [.closure hashMC.lam0.costIdx [encodeValue (fwdIndex qs)], encodeValue pd])
-    (fun iv ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Verifier.seedWithHash.c536.lam0.costSpec P
+    (fun iv ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Verifier.seedWithHash.c537.lam0.costSpec P
       (by includes) (fwdF (fwdIndex qs)) _ hF pd iv)) (fwdLookupPrice D W + 900) (fun iv ↦ by
         rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-          Auto.LeanVM.Protocol.Verifier.seedWithHash.c536.lam0.costEq P (by includes) _ _ hF,
-          Auto.LeanVM.Protocol.Compile.seedInput.c538.costEq P (by includes), ofFnFrom_length]
+          Auto.LeanVM.Protocol.Verifier.seedWithHash.c537.lam0.costEq P (by includes) _ _ hF,
+          Auto.LeanVM.Protocol.Compile.seedInput.c539.costEq P (by includes), ofFnFrom_length]
         have := ofFnFrom_cost P (by includes) (n := 25) (by norm_num) _
-          (.closure Auto.LeanVM.Protocol.Compile.seedInput.c538.lam0.costIdx
+          (.closure Auto.LeanVM.Protocol.Compile.seedInput.c539.lam0.costIdx
             [encodeValue iv, encodeValue pd])
-          (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Compile.seedInput.c538.lam0.costSpec P
+          (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Compile.seedInput.c539.lam0.costSpec P
             (by includes) iv pd j)) 16 (fun j ↦ by
               rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-                Auto.LeanVM.Protocol.Compile.seedInput.c538.lam0.costEq P (by includes),
+                Auto.LeanVM.Protocol.Compile.seedInput.c539.lam0.costEq P (by includes),
                 limbs_of_lt (by omega : (j : ℕ) < 2 ^ 64)]
               simp only [List.length_cons, List.length_nil]
               split_ifs <;> omega) 0 (Nat.zero_le _)
@@ -587,11 +584,11 @@ theorem extractSeed_cost (hP : Includes P extractLC.costDeps) (D W : ℕ)
         fwdLookupPrice D W + 430004 := by ring
   omega
 
-/-- The public input's digest (`publicInputDigest.c543`). -/
-theorem publicInputDigest_cost (hP : Includes P Auto.LeanVM.publicInputDigest.c543.costDeps)
+/-- The public input's digest (`publicInputDigest.c544`). -/
+theorem publicInputDigest_cost (hP : Includes P Auto.LeanVM.publicInputDigest.c544.costDeps)
     (input : LeanVM.Semantics.PublicInput) :
-    machineCost P Auto.LeanVM.publicInputDigest.c543.costIdx [encodeValue input] ≤ 200 := by
-  rw [Auto.LeanVM.publicInputDigest.c543.costEq P hP, Auto.Fin.ofNat.c129.costEq P (by includes),
+    machineCost P Auto.LeanVM.publicInputDigest.c544.costIdx [encodeValue input] ≤ 200 := by
+  rw [Auto.LeanVM.publicInputDigest.c544.costEq P hP, Auto.Fin.ofNat.c129.costEq P (by includes),
     Auto.Fin.ofNat.c129.costEq P (by includes), Auto.Fin.ofNat.c129.costEq P (by includes),
     Auto.Fin.ofNat.c129.costEq P (by includes)]
   rw [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
@@ -671,14 +668,14 @@ theorem absorbNonce_ok {π : LeanVM.Semantics.KeccakState → Option LeanVM.Sema
       have := (duplex_some hd).1
       exact ⟨by simp [this], by simp [this]⟩
 
-/-- The waiting scalars' lanes (`pendingLanes.c522`): at most `382`. -/
-theorem pendingLanes_cost (hP : Includes P pendingLanes.c522.costDeps) (sp : Sponge) (h : SpOk sp) :
-    machineCost P pendingLanes.c522.costIdx [encodeValue sp.pending] ≤ 382 := by
-  rw [pendingLanes.c522.costEq P hP]
-  have h1 := map_cost P (by includes) _ (.closure pendingLanes.c522.lam0.costIdx [])
-    (fun a ↦ RunsApp.of_spec (pendingLanes.c522.lam0.costSpec P (by includes) a)) 25 sp.pending
+/-- The waiting scalars' lanes (`pendingLanes.c523`): at most `382`. -/
+theorem pendingLanes_cost (hP : Includes P pendingLanes.c523.costDeps) (sp : Sponge) (h : SpOk sp) :
+    machineCost P pendingLanes.c523.costIdx [encodeValue sp.pending] ≤ 382 := by
+  rw [pendingLanes.c523.costEq P hP]
+  have h1 := map_cost P (by includes) _ (.closure pendingLanes.c523.lam0.costIdx [])
+    (fun a ↦ RunsApp.of_spec (pendingLanes.c523.lam0.costSpec P (by includes) a)) 25 sp.pending
     (fun a ha ↦ by
-      rw [appCost_fn, List.nil_append, pendingLanes.c522.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, pendingLanes.c523.lam0.costEq P (by includes)]
       obtain ⟨e, t⟩ := a
       have := h.2 _ ha
       dsimp only at this ⊢
@@ -693,15 +690,15 @@ theorem pendingLanes_cost (hP : Includes P pendingLanes.c522.costDeps) (sp : Spo
     simp only [List.length_map]
     omega
 
-/-- A permutation's input (`duplexInput.c520`): at most `16312`. -/
-theorem duplexInput_cost (hP : Includes P duplexInput.c520.costDeps) (sp : Sponge) (h : SpOk sp) :
-    machineCost P duplexInput.c520.costIdx [encodeValue sp] ≤ 16312 := by
-  rw [duplexInput.c520.costEq P hP, ofFnFrom_length]
+/-- A permutation's input (`duplexInput.c521`): at most `16312`. -/
+theorem duplexInput_cost (hP : Includes P duplexInput.c521.costDeps) (sp : Sponge) (h : SpOk sp) :
+    machineCost P duplexInput.c521.costIdx [encodeValue sp] ≤ 16312 := by
+  rw [duplexInput.c521.costEq P hP, ofFnFrom_length]
   have := ofFnFrom_cost P (by includes) (n := 25) (by norm_num) _
-    (.closure duplexInput.c520.lam0.costIdx [encodeValue sp])
-    (fun j ↦ RunsApp.of_spec (duplexInput.c520.lam0.costSpec P (by includes) sp j)) 635
+    (.closure duplexInput.c521.lam0.costIdx [encodeValue sp])
+    (fun j ↦ RunsApp.of_spec (duplexInput.c521.lam0.costSpec P (by includes) sp j)) 635
     (fun j ↦ by
-      rw [appCost_fn, List.singleton_append, duplexInput.c520.lam0.costEq P (by includes),
+      rw [appCost_fn, List.singleton_append, duplexInput.c521.lam0.costEq P (by includes),
         limbs_of_lt (by omega : (j : ℕ) < 2 ^ 64)]
       simp only [List.length_singleton]
       split_ifs with hj
@@ -719,39 +716,39 @@ variable (π : LeanVM.Semantics.KeccakState → Option LeanVM.Semantics.KeccakSt
   (hB : ∀ a : LeanVM.Semantics.KeccakState, appCost P πVal [encodeValue a] ≤ B)
 
 include hπ hB in
-/-- **A permutation** (`duplex.c518`): `B + 16340`. -/
-theorem duplex_cost (hP : Includes P duplex.c518.costDeps) (sp : Sponge) (h : SpOk sp) :
-    machineCost P duplex.c518.costIdx [πVal, encodeValue sp] ≤ B + 16340 := by
-  rw [duplex.c518.costEq P hP π πVal hπ]
+/-- **A permutation** (`duplex.c519`): `B + 16340`. -/
+theorem duplex_cost (hP : Includes P duplex.c519.costDeps) (sp : Sponge) (h : SpOk sp) :
+    machineCost P duplex.c519.costIdx [πVal, encodeValue sp] ≤ B + 16340 := by
+  rw [duplex.c519.costEq P hP π πVal hπ]
   have h1 := duplexInput_cost P (by includes) sp h
   have h2 := hB (duplexInput sp)
-  have h3 := bind_cost P (by includes) _ (.closure duplex.c518.lam0.costIdx [encodeValue sp])
-    (fun st ↦ RunsApp.of_spec (duplex.c518.lam0.costSpec P (by includes) sp st)) 11
+  have h3 := bind_cost P (by includes) _ (.closure duplex.c519.lam0.costIdx [encodeValue sp])
+    (fun st ↦ RunsApp.of_spec (duplex.c519.lam0.costSpec P (by includes) sp st)) 11
     (fun st ↦ by
-      rw [appCost_fn, List.singleton_append, duplex.c518.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.singleton_append, duplex.c519.lam0.costEq P (by includes)]
       rfl) (π (duplexInput sp))
   omega
 
 include hπ hB in
-/-- **A scalar absorbed** (`absorb.c516`): `B + 16500`. -/
-theorem absorb_cost (hP : Includes P absorb.c516.costDeps) (sp : Sponge) (x : E) (tag : ℕ)
+/-- **A scalar absorbed** (`absorb.c517`): `B + 16500`. -/
+theorem absorb_cost (hP : Includes P absorb.c517.costDeps) (sp : Sponge) (x : E) (tag : ℕ)
     (h : SpOk sp) :
-    machineCost P absorb.c516.costIdx [πVal, encodeValue sp, encodeValue x, encodeValue tag] ≤
+    machineCost P absorb.c517.costIdx [πVal, encodeValue sp, encodeValue x, encodeValue tag] ≤
       B + 16500 := by
-  rw [absorb.c516.costEq P hP π πVal hπ, limbs_of_lt (by have := h.1; omega : sp.pending.length < 2 ^ 64),
+  rw [absorb.c517.costEq P hP π πVal hπ, limbs_of_lt (by have := h.1; omega : sp.pending.length < 2 ^ 64),
     limbs_of_lt (by unfold rateScalars; norm_num : rateScalars < 2 ^ 64)]
   have h1 := length_cost P (by includes) sp.pending (by have := h.1; omega)
   have h0 := h.1
   have hr : rateScalars = 4 := rfl
   have hlam : ∀ (o : Option Sponge), (∀ a, o = some a → a.pending.length ≤ 4) →
       machineCost P Auto.Option.bind.c47.costIdx [encodeValue o,
-        .closure absorb.c516.lam0.costIdx [encodeValue x, encodeValue tag]] ≤ 77 := by
+        .closure absorb.c517.lam0.costIdx [encodeValue x, encodeValue tag]] ≤ 77 := by
     intro o ho
-    have := bind_le P (by includes) _ (.closure absorb.c516.lam0.costIdx [encodeValue x, encodeValue tag])
-      (fun a ↦ RunsApp.of_spec (absorb.c516.lam0.costSpec P (by includes) x tag a)) o 71
+    have := bind_le P (by includes) _ (.closure absorb.c517.lam0.costIdx [encodeValue x, encodeValue tag])
+      (fun a ↦ RunsApp.of_spec (absorb.c517.lam0.costSpec P (by includes) x tag a)) o 71
       (fun a ha ↦ by
         rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-          absorb.c516.lam0.costEq P (by includes)]
+          absorb.c517.lam0.costEq P (by includes)]
         have := append_cost P (by includes) a.pending [(x, tag)]
         have := ho a ha
         simp only [List.length_cons, List.length_nil]
@@ -765,41 +762,41 @@ theorem absorb_cost (hP : Includes P absorb.c516.costDeps) (sp : Sponge) (x : E)
     omega
 
 include hπ hB in
-/-- **A challenge squeezed** (`squeeze.c526`): `B + 16400`. -/
-theorem squeeze_cost (hP : Includes P squeeze.c526.costDeps) (sp : Sponge) (h : SpOk sp) :
-    machineCost P squeeze.c526.costIdx [πVal, encodeValue sp] ≤ B + 16400 := by
-  rw [squeeze.c526.costEq P hP π πVal hπ]
+/-- **A challenge squeezed** (`squeeze.c527`): `B + 16400`. -/
+theorem squeeze_cost (hP : Includes P squeeze.c527.costDeps) (sp : Sponge) (h : SpOk sp) :
+    machineCost P squeeze.c527.costIdx [πVal, encodeValue sp] ≤ B + 16400 := by
+  rw [squeeze.c527.costEq P hP π πVal hπ]
   cases hg : sp.ground with
   | some g => dsimp only; omega
   | none =>
     dsimp only
     have h1 := duplex_cost P π πVal hπ B hB (by includes) sp h
-    have h2 := bind_cost P (by includes) _ (.closure squeeze.c526.lam0.costIdx [])
-      (fun d ↦ RunsApp.of_spec (squeeze.c526.lam0.costSpec P (by includes) d)) 20
+    have h2 := bind_cost P (by includes) _ (.closure squeeze.c527.lam0.costIdx [])
+      (fun d ↦ RunsApp.of_spec (squeeze.c527.lam0.costSpec P (by includes) d)) 20
       (fun d ↦ by
-        rw [appCost_fn, List.nil_append, squeeze.c526.lam0.costEq P (by includes)]
+        rw [appCost_fn, List.nil_append, squeeze.c527.lam0.costEq P (by includes)]
         rfl) (duplex π sp)
     omega
 
 include hπ hB in
-/-- **A grinding nonce absorbed and permuted** (`absorbNonce.c530`): `2·B + 33000`. -/
-theorem absorbNonce_cost (hP : Includes P absorbNonce.c530.costDeps) (sp : Sponge) (n : E)
+/-- **A grinding nonce absorbed and permuted** (`absorbNonce.c531`): `2·B + 33000`. -/
+theorem absorbNonce_cost (hP : Includes P absorbNonce.c531.costDeps) (sp : Sponge) (n : E)
     (h : SpOk sp) :
-    machineCost P absorbNonce.c530.costIdx [πVal, encodeValue sp, encodeValue n] ≤
+    machineCost P absorbNonce.c531.costIdx [πVal, encodeValue sp, encodeValue n] ≤
       2 * B + 33000 := by
-  rw [absorbNonce.c530.costEq P hP π πVal hπ]
+  rw [absorbNonce.c531.costEq P hP π πVal hπ]
   have h1 := absorb_cost P π πVal hπ B hB (by includes) sp n dsPowNonce h
-  have h2 := bind_le P (by includes) _ (.closure absorbNonce.c530.lam0.costIdx [πVal])
-    (fun a ↦ RunsApp.of_spec (absorbNonce.c530.lam0.costSpec P (by includes) π πVal hπ a))
+  have h2 := bind_le P (by includes) _ (.closure absorbNonce.c531.lam0.costIdx [πVal])
+    (fun a ↦ RunsApp.of_spec (absorbNonce.c531.lam0.costSpec P (by includes) π πVal hπ a))
     (LeanVM.Protocol.Compile.absorb π sp n dsPowNonce) (B + 16400)
     (fun a ha ↦ by
-      rw [appCost_fn, List.singleton_append, absorbNonce.c530.lam0.costEq P (by includes) π πVal hπ]
+      rw [appCost_fn, List.singleton_append, absorbNonce.c531.lam0.costEq P (by includes) π πVal hπ]
       have := duplex_cost P π πVal hπ B hB (by includes) a
         (absorb_ok h (by unfold dsPowNonce; norm_num) ha)
-      have := bind_cost P (by includes) _ (.closure absorbNonce.c530.lam0.lam0.costIdx [])
-        (fun d ↦ RunsApp.of_spec (absorbNonce.c530.lam0.lam0.costSpec P (by includes) d)) 34
+      have := bind_cost P (by includes) _ (.closure absorbNonce.c531.lam0.lam0.costIdx [])
+        (fun d ↦ RunsApp.of_spec (absorbNonce.c531.lam0.lam0.costSpec P (by includes) d)) 34
         (fun d ↦ by
-          rw [appCost_fn, List.nil_append, absorbNonce.c530.lam0.lam0.costEq P (by includes)]
+          rw [appCost_fn, List.nil_append, absorbNonce.c531.lam0.lam0.costEq P (by includes)]
           rfl) (duplex π a)
       simp only [List.length_singleton]
       omega)
@@ -821,32 +818,32 @@ variable (F : LeanVM.Semantics.KeccakState → Option LeanVM.Semantics.KeccakSta
   (hB : ∀ a : LeanVM.Semantics.KeccakState, appCost P FVal [encodeValue a] ≤ B)
 
 include hF hB in
-/-- **The skeleton's replay** (`skelReplayP.c513`), the permutation's closure at most `B`: per
+/-- **The skeleton's replay** (`skelReplayP.c514`), the permutation's closure at most `B`: per
 operation at most two permutations, `34000`, and `11` per root read so far (`R` bounds the roots
 and the operations). -/
-theorem skelReplay_cost (hP : Includes P skelReplayP.c513.costDeps) (R : ℕ) :
+theorem skelReplay_cost (hP : Includes P skelReplayP.c514.costDeps) (R : ℕ) :
     ∀ (sk : List LeanVM.Protocol.EndToEnd.Sound.Op) (s : VerifierProgramState),
       s.roots.length + sk.length ≤ R → SpOk s.sponge →
-      machineCost P skelReplayP.c513.costIdx [FVal, encodeValue sk, encodeValue s] ≤
+      machineCost P skelReplayP.c514.costIdx [FVal, encodeValue sk, encodeValue s] ≤
         sk.length * (2 * B + 34000 + 11 * R) + 9 := by
   intro sk
   induction sk with
-  | nil => intro s _ _; rw [skelReplayP.c513.costEq P hP F FVal hF]; simp
+  | nil => intro s _ _; rw [skelReplayP.c514.costEq P hP F FVal hF]; simp
   | cons op tail ih =>
     intro s hR hs
     simp only [List.length_cons] at hR ⊢
     have hmul : (tail.length + 1) * (2 * B + 34000 + 11 * R) =
         tail.length * (2 * B + 34000 + 11 * R) + (2 * B + 34000 + 11 * R) := by ring
     have hmap : ∀ (s' : VerifierProgramState),
-        machineCost P Auto.Option.map.c90.costIdx [.closure skelReplayP.c513.lam4.costIdx [],
+        machineCost P Auto.Option.map.c90.costIdx [.closure skelReplayP.c514.lam4.costIdx [],
           encodeValue (LeanVM.Protocol.EndToEnd.Sound.skelReplayP F tail s')] ≤ 23 := by
       intro s'
-      have := optionMap_cost P (by includes) _ (.closure skelReplayP.c513.lam4.costIdx [])
-        (fun r ↦ RunsApp.of_spec (skelReplayP.c513.lam4.costSpec P (by includes) r)) 15
+      have := optionMap_cost P (by includes) _ (.closure skelReplayP.c514.lam4.costIdx [])
+        (fun r ↦ RunsApp.of_spec (skelReplayP.c514.lam4.costSpec P (by includes) r)) 15
         (LeanVM.Protocol.EndToEnd.Sound.skelReplayP F tail s')
-        (fun r _ ↦ by rw [appCost_fn, List.nil_append, skelReplayP.c513.lam4.costEq P (by includes)]; rfl)
+        (fun r _ ↦ by rw [appCost_fn, List.nil_append, skelReplayP.c514.lam4.costEq P (by includes)]; rfl)
       omega
-    rw [skelReplayP.c513.costEq P hP F FVal hF]
+    rw [skelReplayP.c514.costEq P hP F FVal hF]
     cases op with
     | read =>
       dsimp only
@@ -856,25 +853,25 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.c513.costDeps) (R : ℕ) :
         rcases hg : s.sponge.ground with _ | g
         · dsimp only
           have h1 := absorb_cost P F FVal hF B hB (by includes) s.sponge x dsObserve hs
-          have h2 := bind_le P (by includes) _ (.closure 515 [encodeValue x, encodeValue xs,
+          have h2 := bind_le P (by includes) _ (.closure 516 [encodeValue x, encodeValue xs,
               encodeValue tail, FVal, encodeValue s])
-            (fun sp ↦ RunsApp.of_spec (skelReplayP.c513.lam1.costSpec P (by includes) x xs tail F FVal
+            (fun sp ↦ RunsApp.of_spec (skelReplayP.c514.lam1.costSpec P (by includes) x xs tail F FVal
               hF s sp))
             (LeanVM.Protocol.Compile.absorb F s.sponge x dsObserve)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
             (fun sp hsp ↦ by
-              rw [appCost_fn, show (515 : ℕ) = skelReplayP.c513.lam1.costIdx from rfl]
+              rw [appCost_fn, show (516 : ℕ) = skelReplayP.c514.lam1.costIdx from rfl]
               simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.c513.lam1.costEq P (by includes) x xs tail F FVal hF]
+              rw [skelReplayP.c514.lam1.costEq P (by includes) x xs tail F FVal hF]
               have h3 := ih { sponge := sp, stream := xs, openings := s.openings, roots := s.roots }
                 (by dsimp only; omega) (absorb_ok hs (by unfold dsObserve; norm_num) hsp)
               have h4 := optionMap_cost P (by includes) _
-                (.closure skelReplayP.c513.lam0.costIdx [encodeValue x])
-                (fun r ↦ RunsApp.of_spec (skelReplayP.c513.lam0.costSpec P (by includes) x r)) 18
+                (.closure skelReplayP.c514.lam0.costIdx [encodeValue x])
+                (fun r ↦ RunsApp.of_spec (skelReplayP.c514.lam0.costSpec P (by includes) x r)) 18
                 (LeanVM.Protocol.EndToEnd.Sound.skelReplayP F tail
                   { sponge := sp, stream := xs, openings := s.openings, roots := s.roots })
                 (fun r _ ↦ by
-                  rw [appCost_fn, List.singleton_append, skelReplayP.c513.lam0.costEq P (by includes)]
+                  rw [appCost_fn, List.singleton_append, skelReplayP.c514.lam0.costEq P (by includes)]
                   rfl)
               omega)
           omega
@@ -882,23 +879,23 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.c513.costDeps) (R : ℕ) :
     | sample =>
       dsimp only
       have h1 := squeeze_cost P F FVal hF B hB (by includes) s.sponge hs
-      have h2 := bind_le P (by includes) _ (.closure 525 [encodeValue tail, FVal, encodeValue s])
-        (fun c ↦ RunsApp.of_spec (skelReplayP.c513.lam3.costSpec P (by includes) tail F FVal hF s c))
+      have h2 := bind_le P (by includes) _ (.closure 526 [encodeValue tail, FVal, encodeValue s])
+        (fun c ↦ RunsApp.of_spec (skelReplayP.c514.lam3.costSpec P (by includes) tail F FVal hF s c))
         (LeanVM.Protocol.Compile.squeeze F s.sponge)
         (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
         (fun c hc ↦ by
-          rw [appCost_fn, show (525 : ℕ) = skelReplayP.c513.lam3.costIdx from rfl]
+          rw [appCost_fn, show (526 : ℕ) = skelReplayP.c514.lam3.costIdx from rfl]
           simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [skelReplayP.c513.lam3.costEq P (by includes) tail F FVal hF]
+          rw [skelReplayP.c514.lam3.costEq P (by includes) tail F FVal hF]
           have h3 := ih { sponge := c.2, stream := s.stream, openings := s.openings, roots := s.roots }
             (by dsimp only; omega) (squeeze_ok hs hc)
           have h4 := optionMap_cost P (by includes) _
-            (.closure skelReplayP.c513.lam2.costIdx [encodeValue c])
-            (fun r ↦ RunsApp.of_spec (skelReplayP.c513.lam2.costSpec P (by includes) c r)) 19
+            (.closure skelReplayP.c514.lam2.costIdx [encodeValue c])
+            (fun r ↦ RunsApp.of_spec (skelReplayP.c514.lam2.costSpec P (by includes) c r)) 19
             (LeanVM.Protocol.EndToEnd.Sound.skelReplayP F tail
               { sponge := c.2, stream := s.stream, openings := s.openings, roots := s.roots })
             (fun r _ ↦ by
-              rw [appCost_fn, List.singleton_append, skelReplayP.c513.lam2.costEq P (by includes)]
+              rw [appCost_fn, List.singleton_append, skelReplayP.c514.lam2.costEq P (by includes)]
               rfl)
           omega)
       omega
@@ -910,16 +907,16 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.c513.costDeps) (R : ℕ) :
         rcases hg : s.sponge.ground with _ | g
         · dsimp only
           have h1 := absorbNonce_cost P F FVal hF B hB (by includes) s.sponge x hs
-          have h2 := bind_le P (by includes) _ (.closure 529 [encodeValue xs, encodeValue tail, FVal,
+          have h2 := bind_le P (by includes) _ (.closure 530 [encodeValue xs, encodeValue tail, FVal,
               encodeValue s])
-            (fun c ↦ RunsApp.of_spec (skelReplayP.c513.lam5.costSpec P (by includes) xs tail F FVal hF
+            (fun c ↦ RunsApp.of_spec (skelReplayP.c514.lam5.costSpec P (by includes) xs tail F FVal hF
               s c))
             (LeanVM.Protocol.Compile.absorbNonce F s.sponge x)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
             (fun c hc ↦ by
-              rw [appCost_fn, show (529 : ℕ) = skelReplayP.c513.lam5.costIdx from rfl]
+              rw [appCost_fn, show (530 : ℕ) = skelReplayP.c514.lam5.costIdx from rfl]
               simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.c513.lam5.costEq P (by includes) xs tail F FVal hF]
+              rw [skelReplayP.c514.lam5.costEq P (by includes) xs tail F FVal hF]
               have h3 := ih { sponge := c.2, stream := xs, openings := s.openings, roots := s.roots }
                 (by dsimp only; omega) (absorbNonce_ok hc)
               have h4 := hmap { sponge := c.2, stream := xs, openings := s.openings, roots := s.roots }
@@ -935,30 +932,30 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.c513.costDeps) (R : ℕ) :
         rcases hg : s.sponge.ground with _ | g
         · dsimp only
           have h1 := absorb_cost P F FVal hF B hB (by includes) s.sponge x0 dsObserve hs
-          have h2 := bind_le P (by includes) _ (.closure 534 [encodeValue x1, encodeValue xs,
+          have h2 := bind_le P (by includes) _ (.closure 535 [encodeValue x1, encodeValue xs,
               encodeValue x0, encodeValue height, encodeValue width, encodeValue tail, FVal,
               encodeValue s])
-            (fun sp ↦ RunsApp.of_spec (skelReplayP.c513.lam7.costSpec P (by includes) x1 xs x0 height
+            (fun sp ↦ RunsApp.of_spec (skelReplayP.c514.lam7.costSpec P (by includes) x1 xs x0 height
               width tail F FVal hF s sp))
             (LeanVM.Protocol.Compile.absorb F s.sponge x0 dsObserve)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + B + 16700 + 11 * s.roots.length)
             (fun sp0 hsp0 ↦ by
-              rw [appCost_fn, show (534 : ℕ) = skelReplayP.c513.lam7.costIdx from rfl]
+              rw [appCost_fn, show (535 : ℕ) = skelReplayP.c514.lam7.costIdx from rfl]
               simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.c513.lam7.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
+              rw [skelReplayP.c514.lam7.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
               have hok0 := absorb_ok hs (by unfold dsObserve; norm_num) hsp0
               have h3 := absorb_cost P F FVal hF B hB (by includes) sp0 x1 dsObserve hok0
-              have h4 := bind_le P (by includes) _ (.closure skelReplayP.c513.lam6.costIdx
+              have h4 := bind_le P (by includes) _ (.closure skelReplayP.c514.lam6.costIdx
                   [encodeValue x1, encodeValue xs, encodeValue x0, encodeValue height,
                     encodeValue width, encodeValue tail, FVal, encodeValue s])
-                (fun sp ↦ RunsApp.of_spec (skelReplayP.c513.lam6.costSpec P (by includes) x1 xs x0
+                (fun sp ↦ RunsApp.of_spec (skelReplayP.c514.lam6.costSpec P (by includes) x1 xs x0
                   height width tail F FVal hF s sp))
                 (LeanVM.Protocol.Compile.absorb F sp0 x1 dsObserve)
                 (tail.length * (2 * B + 34000 + 11 * R) + 9 + 130 + 11 * s.roots.length)
                 (fun sp1 hsp1 ↦ by
                   rw [appCost_fn]
                   simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-                  rw [skelReplayP.c513.lam6.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
+                  rw [skelReplayP.c514.lam6.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
                   have h5 := digestOfScalars_cost P (by includes) (x0, x1)
                   have h6 := append_cost P (by includes) s.roots
                     [(LeanVM.Protocol.KeccakHash.digestFromHalves (x0, x1), height, width)]

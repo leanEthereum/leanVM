@@ -84,6 +84,39 @@ evaluations of at most `max 64 (8·w)` bytes. -/
     (root : Digest) : Array (List K) :=
   subtreeLeavesWith (preimageIn (transcriptIndex qs (max 64 (8 * w)))) w h root
 
+/-- A root's committed leaves, read through a preimage index `I`. -/
+@[expose] def leavesIn (I : SortedMap (List UInt64 × ℕ) Hits) (w h : ℕ) (root : Digest) :
+    Array (List K) :=
+  subtreeLeavesWith (preimageIn I) w h root
+
+/-- **An index of the evaluations of at most `L` bytes answers every lookup of at most `L' ≤ L`
+bytes as the index at `L'` does**, so one index at the largest length serves every root. -/
+theorem preimageIn_transcriptIndex_mono (T : List (PermutationQuery KeccakState × KeccakState))
+    {L L' len : ℕ} (hL : L' ≤ L) (hlen : len ≤ L') (d : Digest) :
+    preimageIn (transcriptIndex T L) d len = preimageIn (transcriptIndex T L') d len := by
+  unfold transcriptIndex
+  simp only [preimageIn_preimageIndex, answerPairs_firstAnswers]
+  rw [keccakEvaluationsFast_eq, keccakEvaluationsFast_eq]
+  generalize keccakEvaluationsOfTranscript T = E
+  have hf : E.filter (fun e ↦ decide (e.1.length ≤ L')) =
+      (E.filter fun e ↦ decide (e.1.length ≤ L)).filter fun e ↦ decide (e.1.length ≤ L') := by
+    rw [List.filter_filter]
+    refine List.filter_congr fun e _ ↦ ?_
+    by_cases h : e.1.length ≤ L' <;> simp [h]; omega
+  have ha := filter_answerPairs (E.filter fun e ↦ decide (e.1.length ≤ L)) L'
+  simp only at ha
+  rw [hf, ← ha, preimage_filter]
+  intro p _ hp
+  simp [hp, hlen]
+
+/-- One index at a length at least a root's lookups' gives its leaves. -/
+theorem leavesIn_transcriptIndex (T : List (PermutationQuery KeccakState × KeccakState)) {L : ℕ}
+    (w h : ℕ) (hL : max 64 (8 * w) ≤ L) (root : Digest) :
+    leavesIn (transcriptIndex T L) w h root = leavesOf T w h root :=
+  subtreeLeavesWith_congr
+    (fun d ↦ preimageIn_transcriptIndex_mono T hL (le_max_left _ _) d)
+    (fun d ↦ preimageIn_transcriptIndex_mono T hL (le_max_right _ _) d) h root
+
 end
 
 end LeanVM.Extraction.Fast

@@ -10,7 +10,8 @@ import all LeanVM.Protocol.Extraction.AS.Lite
 
 **`asExtractor_output`**: `compiledASExtractor` (its entry at `0`, its bodies held,
 `asProgram_includes_all`), run within a size bound `S` at least its size and within `asBudget` at
-the stack size the proof announces and the transcript's number of permutation queries, outputs,
+the stack size the proof announces and the transcript's number of permutation queries (or any larger
+budget), outputs,
 decoded, what `transcriptExtractorL` returns: where the extraction succeeds its price is within the
 budget (`extractL_cost`, `asPrice_le`, `announced_of_decSizesL`).
 -/
@@ -53,19 +54,19 @@ theorem asPrice_within (prog : LeanIsaProgram) (input : PublicInput) (T : Oracle
   omega
 
 /-- **The extractor `compiledASExtractor` computes**, within a size bound at least its size and
-within `asBudget`, is `transcriptExtractorL`. -/
-theorem asExtractor_output (S : ℕ) (hS : compiledASExtractor.size ≤ S) (prog : LeanIsaProgram)
+within any budget `B` at least `asBudget`, is `transcriptExtractorL`. -/
+theorem asExtractor_output (S : ℕ) (hS : compiledASExtractor.size ≤ S) (B : ℕ → ℕ → ℕ)
+    (hB : ∀ μ N, asBudget μ N ≤ B μ N) (prog : LeanIsaProgram)
     (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
     (outputWithin compiledASExtractor S
-        (asBudget (announcedStackLog prog proof) (permutationQueries T).length)
+        (B (announcedStackLog prog proof) (permutationQueries T).length)
         (encodeLeanVmKnowledgeExtractorInput prog input T proof)).bind (decodeExecution prog) =
       transcriptExtractorL prog input T proof :=
   asOutput compiledASExtractor S hS extractLC.costIdx asProgram_entry
     (fun prog input qs π ↦ machineCost compiledASExtractor extractLC.costIdx
       [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π])
     (fun prog input qs π ↦ extractLC.costSpec compiledASExtractor asProgram_includes prog input qs π)
-    prog input T proof _ fun t ht ↦ asPrice_within prog input T proof t ht
-
+    prog input T proof _ fun t ht ↦ (asPrice_within prog input T proof t ht).trans (hB _ _)
 end
 
 end LeanVM.Cost.AS

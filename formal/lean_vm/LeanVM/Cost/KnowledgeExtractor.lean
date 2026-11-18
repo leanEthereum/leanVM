@@ -12,8 +12,8 @@ agreement-set extractor behind its entry (`Cost/AS/Program.lean`).
 
 * `extractorProgram_size_le`: its size is within `leanVmKnowledgeExtractorSizeBound`
   (`asProgram_size_le`, `Cost/AS/ProgramSize.lean`);
-* `leanVmKnowledgeExtractorBudget_eq`: the statement's budget is `asBudget`, which the compiled
-  extractor's price is proved within wherever it extracts (`asPrice_within`, `Cost/AS/End.lean`);
+* the compiled extractor's price is proved within `asBudget` wherever it extracts (`asPrice_within`,
+  `Cost/AS/End.lean`), within the statement's budget (`asBudget_le_statement`);
 * **`extractorOf_extractorProgram`**: the extractor it computes is `transcriptExtractor`
   (`asExtractor_output`).
 -/
@@ -30,20 +30,13 @@ theorem extractorProgram_size_le :
     compiledKnowledgeExtractor.size ≤ leanVmKnowledgeExtractorSizeBound :=
   AS.asProgram_size_le.trans (by decide)
 
-/-- The statement's budget is the one the price is proved within. -/
-theorem leanVmKnowledgeExtractorBudget_eq :
-    leanVmKnowledgeExtractorBudget = Bounds.AS.asBudget := rfl
-
 /-- **The extractor `compiledKnowledgeExtractor` computes is `transcriptExtractor`**: its spec and
-its price within the budget. -/
+its price within `asBudget`, within the statement's budget (`asBudget_le_statement`). -/
 theorem extractorOf_extractorProgram :
     LeanVM.extractorComputedBy compiledKnowledgeExtractor = transcriptExtractor := by
   funext prog input T proof
-  have h := AS.asExtractor_output leanVmKnowledgeExtractorSizeBound extractorProgram_size_le prog
-    input T proof
-  rw [← leanVmKnowledgeExtractorBudget_eq] at h
-  exact h
-
+  exact AS.asExtractor_output leanVmKnowledgeExtractorSizeBound extractorProgram_size_le
+    leanVmKnowledgeExtractorBudget Bounds.AS.asBudget_le_statement prog input T proof
 end
 
 end LeanVM.Cost

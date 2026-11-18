@@ -213,16 +213,16 @@ theorem transcriptIndex_keys (T : List (Common.PermutationQuery KeccakState × K
   have := keccakEvaluationsFast_mem_length_le he
   omega
 
-/-- **A preimage lookup** in the transcript's index (`leavesOfC.lam0`, `preimageIn.c262`): a
+/-- **A preimage lookup** in the transcript's index (`leavesInC.lam0`, `preimageIn.c262`): a
 binary search per level, at most `D·(20 + (162 + 9·W)·(D + 2)) + 42`. -/
-theorem preimageLookup_cost (hP : Includes P leavesOfC.lam0.costDeps)
+theorem preimageLookup_cost (hP : Includes P leavesInC.lam0.costDeps)
     (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (L D W : ℕ) (hL : L < 2 ^ 64)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
     (d : LeanVM.Protocol.Digest) (len : ℕ) (hlen : len < 2 ^ 64) :
-    appCost P (.closure leavesOfC.lam0.costIdx [encodeValue (transcriptIndex qs L)]) [encodeValue d, encodeValue len] ≤
+    appCost P (.closure leavesInC.lam0.costIdx [encodeValue (transcriptIndex qs L)]) [encodeValue d, encodeValue len] ≤
       D * (20 + (162 + 9 * W) * (D + 2)) + 42 := by
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-  rw [leavesOfC.lam0.costEq P hP,
+  rw [leavesInC.lam0.costEq P hP,
     Auto.LeanVM.Extraction.Fast.preimageIn.c262.costEq P (by includes)]
   obtain ⟨hg, hw⟩ := transcriptIndex_bounds qs L
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := D)

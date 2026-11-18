@@ -12,7 +12,7 @@ import all Statement.LeanIsa
 The end of the compiled chain the agreement-set extractor (`Cost/AS/`) and the guest decoder
 (`Cost/Decoder/`) build on (the transcript side, the candidate runner, the replay; each module
 reusing the earlier ones' functions): the bytecode's words (`bytecodeWordsC`) and a root's
-committed leaves through the transcript's index (`leavesOfC`).
+committed leaves through a preimage index (`leavesInC`).
 -/
 
 namespace LeanVM.Cost.Extractor
@@ -25,7 +25,7 @@ public section
 cost_compile bytecodeWordsC := LeanVM.bytecodeWords
 
 -- A root's committed leaves.
-cost_compile leavesOfC := leavesOf
+cost_compile leavesInC := leavesIn
 
 end
 

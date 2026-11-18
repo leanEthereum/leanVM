@@ -5,12 +5,13 @@ public import LeanVM.Cost.AS.Bounds.Top
 /-!
 # The agreement-set extractor's price within its budget
 
-`asBudget μ N = 2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^17 + 8D)`, `D = log₂(N + 2) + 1`: the
+`asBudget μ N = 2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, `D = log₂(N + 2) + 1`: the
 first term pays for the descent (level 0's dominating), level 0's stack, the candidate run and every
-other price independent of the transcript (`traceBound_ok`); the second for the transcript's index
-and every lookup in it, per query (`queryPart_le`) and per committed leaf or replayed operation
-(`fixedPart_le`). **`asPrice_le`**: the price where the extraction succeeds, the entry's `14`
-included, is within it.
+other price independent of the transcript (`traceBound_ok`); the second for the transcript's two
+indexes (its first forward answers, and one preimage index every root shares) and every lookup in
+them, per query (`queryPart_le`) and per committed leaf or replayed operation (`fixedPart_le`).
+**`asPrice_le`**: the price where the extraction succeeds, the entry's `14` included, is within it;
+`asBudget_le_statement`: within the statement's budget too.
 -/
 
 namespace LeanVM.Cost.Bounds.AS
@@ -23,7 +24,12 @@ public section
 /-- **The agreement-set extractor's budget**, at a stack of `2^μ` and `N` permutation queries. -/
 @[expose] def asBudget (μ N : ℕ) : ℕ :=
   2 ^ max 58 (2 * μ + 9) +
-    (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 17 + 8 * (Nat.log2 (N + 2) + 1))
+    (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
+
+/-- The budget is within the statement's. -/
+theorem asBudget_le_statement (μ N : ℕ) : asBudget μ N ≤ leanVmKnowledgeExtractorBudget μ N := by
+  unfold asBudget leanVmKnowledgeExtractorBudget
+  gcongr <;> omega
 
 /-- An index's price per query. -/
 @[expose] def idxPerQuery (L D W : ℕ) : ℕ :=
@@ -42,10 +48,9 @@ theorem transcriptIndexPrice_split (D L N W : ℕ) :
   unfold transcriptIndexPrice idxPerQuery idxFixed
   ring
 
-/-- **The price per query**: four indexes of the first forward answers, the roots' indexes. -/
+/-- **The price per query**: the index of the first forward answers and the roots' index. -/
 theorem queryPart_le (D W : ℕ) (hD : 2 ≤ D) (hW : 64 * W ≤ D + 65) :
-    4 * (fwdStepPrice D W + 14) + idxPerQuery 1792 D W + 6 * idxPerQuery 0 D W ≤
-      (D + 2) ^ 2 * (2 ^ 17 + 8 * D) := by
+    (fwdStepPrice D W + 14) + idxPerQuery 512 D W ≤ (D + 2) ^ 2 * (2 ^ 15 + 2 * D) := by
   unfold fwdStepPrice fwdGetPrice idxPerQuery replayStepPrice firstAnswersStepPrice preimageStepPrice
   nlinarith [Nat.mul_le_mul_right (D * D) hW, Nat.mul_le_mul_right D hW, hW,
     Nat.zero_le (D * D * D), Nat.zero_le (D * D), Nat.zero_le (W * D * D)]
@@ -53,9 +58,8 @@ theorem queryPart_le (D W : ℕ) (hD : 2 ≤ D) (hW : 64 * W ≤ D + 65) :
 /-- **The price but per query**, per committed leaf, hashed block or replayed operation. -/
 theorem fixedPart_le (D W : ℕ) (hD : 2 ≤ D) (hW : 64 * W ≤ D + 65) :
     (2 ^ 30 + 2) * fwdLookupPrice D W + 80016 * (fwdLookupPrice D W + 4) +
-        6 * (2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) + idxFixed 1792 D W +
-        6 * idxFixed 0 D W + 1000 ≤
-      2 ^ 30 * ((D + 2) ^ 2 * (2 ^ 17 + 8 * D)) := by
+        6 * (2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) + idxFixed 512 D W + 1000 ≤
+      2 ^ 30 * ((D + 2) ^ 2 * (2 ^ 15 + 2 * D)) := by
   unfold fwdLookupPrice fwdGetPrice idxFixed firstAnswersStepPrice preimageStepPrice
   nlinarith [Nat.mul_le_mul_right (D * D) hW, Nat.mul_le_mul_right D hW, hW,
     Nat.zero_le (D * D * D), Nat.zero_le (D * D), Nat.zero_le (W * D * D)]
@@ -108,40 +112,32 @@ theorem asPrice_le (N ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
   generalize limbsBelowTwoPow (D + 1) = W at hW64 ⊢
   have hA := queryPart_le D W hD2 hW64
   have hB := fixedPart_le D W hD2 hW64
-  -- the words
+  -- the words and the roots' index
   obtain ⟨hl, hx, hs⟩ := hroots
   rw [List.length_map] at hl
-  have hw := wordsPrice_le D W N lay.stackLog ρ 28 h2 h4 le_rfl roots 0 (by omega) fun x hx' ↦ by
+  have hw := wordsPrice_le D W lay.stackLog ρ 28 h2 h4 le_rfl roots 0 (by omega) fun x hx' ↦ by
     have := hx x.2 (List.mem_map_of_mem hx'); omega
-  have hsum := sum_transcriptIndexPrice_le D N W roots
-  have hsw : 8 * (roots.map fun x ↦ x.2.2).sum ≤ 1792 := by
-    have : (roots.map fun x ↦ x.2.2) = (roots.map Prod.snd).map Prod.snd := by simp [List.map_map]
-    rw [this]; omega
-  have hmono := transcriptIndexPrice_mono D N W hsw
-  have hlen0 := Nat.mul_le_mul_right (transcriptIndexPrice D 0 N W) hl
+  have hcap := capOf_le 64 roots fun x hx' ↦ (hx x.2 (List.mem_map_of_mem hx')).2.2
+  have hmono := transcriptIndexPrice_mono D N W (show capOf roots ≤ 512 by omega)
   have hlenw := Nat.mul_le_mul_right (wordConst + 2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) hl
   rw [transcriptIndexPrice_split, transcriptIndexPrice_split] at hmono
-  rw [transcriptIndexPrice_split] at hlen0
-  rw [transcriptIndexPrice_split, transcriptIndexPrice_split] at hsum
   -- the seed's blocks
   have hpl : 2 ^ ℓ ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hℓ
   have hq : (9 + 8 * (16 * 2 ^ ℓ)) / 136 + 2 ≤ 2 ^ 30 + 2 := by omega
   have hseed := Nat.mul_le_mul_right (fwdLookupPrice D W + 430004) hq
   -- the queries
   have hNA := Nat.mul_le_mul_left N hA
-  have e1 : N * (4 * (fwdStepPrice D W + 14) + idxPerQuery 1792 D W + 6 * idxPerQuery 0 D W) =
-      4 * ((fwdStepPrice D W + 14) * N) + N * idxPerQuery 1792 D W + 6 * (N * idxPerQuery 0 D W) := by
-    ring
-  have e2 : (N + 2 ^ 30) * (D + 2) ^ 2 * (2 ^ 17 + 8 * D) =
-      N * ((D + 2) ^ 2 * (2 ^ 17 + 8 * D)) + 2 ^ 30 * ((D + 2) ^ 2 * (2 ^ 17 + 8 * D)) := by ring
+  have e1 : N * ((fwdStepPrice D W + 14) + idxPerQuery 512 D W) =
+      (fwdStepPrice D W + 14) * N + N * idxPerQuery 512 D W := by ring
+  have e2 : (N + 2 ^ 30) * (D + 2) ^ 2 * (2 ^ 15 + 2 * D) =
+      N * ((D + 2) ^ 2 * (2 ^ 15 + 2 * D)) + 2 ^ 30 * ((D + 2) ^ 2 * (2 ^ 15 + 2 * D)) := by ring
   have e3 : (2 ^ 30 + 2) * (fwdLookupPrice D W + 430004) =
       (2 ^ 30 + 2) * fwdLookupPrice D W + (2 ^ 30 + 2) * 430004 := by ring
   have e4 : 6 * (wordConst + 2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) =
       6 * wordConst + 6 * (2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) := by ring
-  have e5 : 6 * (N * idxPerQuery 0 D W + idxFixed 0 D W) =
-      6 * (N * idxPerQuery 0 D W) + 6 * idxFixed 0 D W := by ring
   rw [e2]
   unfold headPrice finishPrice bytecodeWordsPrice at *
+  rw [transcriptIndexPrice_split]
   have hwc : wordConst ≤ 70000000000000 := by unfold wordConst; norm_num
   linarith
 

@@ -120,7 +120,7 @@ theorem skelReplayP_spOk (F : KeccakState → Option KeccakState) :
 /-- **The agreement-set extractor's price but its finish**, for `N` queries, `D` levels of the
 sorted maps, positions of `W` limbs, a program of `2^ℓ` instructions. -/
 @[expose] def headPrice (N D W ℓ : ℕ) : ℕ :=
-  4 * ((fwdStepPrice D W + 14) * N + 9) + 2 * bytecodeWordsPrice ℓ + 200 +
+  ((fwdStepPrice D W + 14) * N + 9) + 2 * bytecodeWordsPrice ℓ + 200 +
     ((9 + 8 * (16 * 2 ^ ℓ)) / 136 + 2) * (fwdLookupPrice D W + 430004) + 520 * (16 * 2 ^ ℓ) + 2000 +
     (8 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 8) + 9) + (80 * 8 + 8 * (16 * 2 ^ ℓ) + 977124100) +
     1000000000 + (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) + 1001400000 + 10000
@@ -214,10 +214,12 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       omega)
   -- the body's skeleton and its replay
   have k2 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue r₁])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.costSpec P (by includes) prog input qs r₁ a))
+    (.closure extractLC.lam0.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
+      encodeValue (fwdIndex qs), encodeValue r₁])
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs)
+      r₁ a))
     (decSizesL (bytecodeWords prog) r₁.1)
-    ((fwdStepPrice D W + 14) * qs.length + 9 + 1000000000 +
+    (1000000000 +
       (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
       (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10)
     (fun a ha ↦ by
@@ -234,11 +236,12 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       omega)
   -- the announced sizes' decoder
   have k1 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.costSpec P (by includes) prog input qs a))
+    (.closure extractLC.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
+      encodeValue (fwdIndex qs)])
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs) a))
     (skelReplayP (fwdF (fwdIndex qs)) skSizes (startState π seed))
     (bytecodeWordsPrice prog.logSize + (80 * 8 + 8 * (16 * 2 ^ prog.logSize) + 977124100) +
-      ((fwdStepPrice D W + 14) * qs.length + 9 + 1000000000 +
+      (1000000000 +
         (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
         (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10) +
       6 + 15 + 10)
@@ -254,13 +257,14 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       omega)
   -- the replay of the announced sizes
   have k0 := bind_le P (by includes) _
-    (.closure extractLC.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.costSpec P (by includes) prog input qs π a))
+    (.closure extractLC.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π,
+      encodeValue (fwdIndex qs)])
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.costSpec P (by includes) prog input qs π (fwdIndex qs) a))
     (seedWithHash (Protocol.KeccakHash.keccak256With (fwdF (fwdIndex qs))) (fwdF (fwdIndex qs))
       (bytecodeWords prog) (publicInputDigest input))
-    ((fwdStepPrice D W + 14) * qs.length + 9 + 200 + 17 + (8 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 8) + 9) +
+    (200 + 17 + (8 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 8) + 9) +
       (bytecodeWordsPrice prog.logSize + (80 * 8 + 8 * (16 * 2 ^ prog.logSize) + 977124100) +
-        ((fwdStepPrice D W + 14) * qs.length + 9 + 1000000000 +
+        (1000000000 +
           (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
           (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10) +
         6 + 15 + 10) + 6 + 20 + 10)
@@ -270,7 +274,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [appCost_fn]
       try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.costEq P (by includes),
-        Auto.LeanVM.Protocol.EndToEnd.Sound.startState.c535.costEq P (by includes)]
+        Auto.LeanVM.Protocol.EndToEnd.Sound.startState.c536.costEq P (by includes)]
       have hl6 : tables.length = 6 := by decide +kernel
       rw [hl6, limbs_of_lt (by norm_num : 2 + 6 < 2 ^ 64), limbs_of_lt (by norm_num : 6 < 2 ^ 64)]
       have c1 := replicate_cost P (by includes) Op.read (2 + 6) (by norm_num)
