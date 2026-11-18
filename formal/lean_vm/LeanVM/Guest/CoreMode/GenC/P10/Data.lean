@@ -116,10 +116,12 @@ namespace LeanVM.Guest.Fn.«bus_grind_check__L5»
 /-- `bus_grind_check__L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 512)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+    { preR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 3)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 512)⟩,
+        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
+      ghosts := 2 }
   reads := []
   res := []
-  calls := [[.run 1 [], .run 1 []]]
+  calls := [[.run 2 [], .run 2 []]]
   rets := [[]]
 
 end
@@ -196,6 +198,7 @@ def hcert : CoreMode.HCert where
         ⟨[(0, 1)], 12⟩, ⟨[(0, 1)], 13⟩, ⟨[(0, 1)], 14⟩, ⟨[(0, 1)], 15⟩, ⟨[(0, 1)], 16⟩, ⟨[(0, 1)], 17⟩,
         ⟨[(0, 1)], 18⟩, ⟨[(0, 1)], 19⟩, ⟨[(0, 1)], 20⟩, ⟨[(0, 1)], 21⟩, ⟨[(0, 1)], 22⟩, ⟨[(0, 1)], 23⟩,
         ⟨[(0, 1)], 24⟩],
+      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 25)⟩],
       postV := [(0, ⟨[(1, 1)], 0⟩)] }
   reads := [(4, [(2, 0, .pre 0)]), (5, [(3, 0, .pre 1)]), (8, [(2, 1, .pre 2)]), (9, [(3, 1, .pre 3)]),
     (12, [(2, 2, .pre 4)]), (13, [(3, 2, .pre 5)]), (16, [(2, 3, .pre 6)]), (17, [(3, 3, .pre 7)]),
@@ -211,6 +214,8 @@ def hcert : CoreMode.HCert where
     (92, [(2, 22, .pre 44)]), (93, [(3, 22, .pre 45)]), (96, [(2, 23, .pre 46)]), (97, [(3, 23, .pre 47)])]
   res := []
   rets := [[.ev 0, .ev 3, .ev 6, .ev 9, .ev 12, .ev 15, .ev 18, .ev 21, .ev 24, .ev 27, .ev 30, .ev 33, .ev 36,
+        .ev 39, .ev 42, .ev 45, .ev 48, .ev 51, .ev 54, .ev 57, .ev 60, .ev 63, .ev 66, .ev 69, .ev 72, .pts,
+        .ev 0, .ev 3, .ev 6, .ev 9, .ev 12, .ev 15, .ev 18, .ev 21, .ev 24, .ev 27, .ev 30, .ev 33, .ev 36,
         .ev 39, .ev 42, .ev 45, .ev 48, .ev 51, .ev 54, .ev 57, .ev 60, .ev 63, .ev 66, .ev 69, .ev 72]]
 
 end

@@ -26,8 +26,9 @@ import heapc as C
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 NAME = {k: nm for nm, k in I.STABLE.items()}
 # the inference's features `heapOkC` has no counterpart of, off by default: offsets modulo `g`'s order (cells are
-# naturals there) and range checks as free facts (there every fact is a residual)
-OFF = {'wrap', 'lts'}
+# naturals there), range checks as free facts (there every fact is a residual), a dispatch's returned pointers and a
+# run with its point before it (`retP`: no witness form places `Q·h^S` in `⟨Q·g^S, S, 0, h⟩`)
+OFF = {'wrap', 'lts', 'retP'}
 PTSMAX = 4096
 # functions whose kernel check runs past the build's memory cap (`lake-build.py --cap 36`): their certificate is
 # emitted, their `heap_okC` not (one `decide` over the whole body; a windowed check is a request to the heap side)
@@ -148,6 +149,16 @@ def res_of(r):
     return None
 
 
+def conds_of(paths):
+    """The branch conditions common to the paths a residual was asked on (`CRes.under`)."""
+    cs = None
+    for p in paths:
+        c = [('zero', x[1]) if x[0] == 'ite' and x[2] else ('nonzero', x[1]) if x[0] == 'ite' else ('arm', x[1], x[2])
+             for x in p]
+        cs = c if cs is None else [x for x in cs if x in c]
+    return tuple(dict.fromkeys(cs or ()))
+
+
 # ---- the solver: each witness found in the check's scope
 
 class Solver:
@@ -165,7 +176,9 @@ class Solver:
                 continue
             if r is None:
                 continue
-            (self.pool_lt if r[0] == 'lt' else self.pool_sub).append((i, r))
+            g = conds_of(P.rpath.get(i, ()))
+            wr = ('under', g, r) if g else r
+            (self.pool_lt if r[0] == 'lt' else self.pool_sub).append((i, r, wr))
         self.sites = collections.defaultdict(list)
         for f, args, gi, _ in P.sites:
             self.sites[(f, tuple(args))].append(gi)
@@ -173,6 +186,10 @@ class Solver:
         self.stats = collections.Counter()
 
     # -- residuals and facts
+    def on(self, pool):
+        """The residuals usable on the site's path."""
+        return [e for e in pool if C.unU(self.X.path, e[2]) is not None]
+
     def use(self, i, r):
         j = self.lean_res.get(i)
         if j is None:
@@ -186,9 +203,9 @@ class Solver:
         for p in X.facts(st.env, []):
             if p == (a, b):
                 return []
-        for i, r in self.pool_lt:
+        for i, r, wr in self.on(self.pool_lt):
             if C.idxF(st.env, r[1]) == a and C.idxF(st.env, r[2]) == b:
-                return [self.use(i, r)]
+                return [self.use(i, wr)]
         return None
 
     def factC(self, st, k, b):
@@ -197,10 +214,10 @@ class Solver:
         for p in X.facts(st.env, []):
             if not p[0][0] and k <= p[0][1] < C.CAPE and p[1] == b:
                 return []
-        for i, r in self.pool_lt:
+        for i, r, wr in self.on(self.pool_lt):
             a = C.idxF(st.env, r[1])
             if not a[0] and k <= a[1] < C.CAPE and C.idxF(st.env, r[2]) == b:
-                return [self.use(i, r)]
+                return [self.use(i, wr)]
         return None
 
     def factU(self, st, a, j):
@@ -208,10 +225,10 @@ class Solver:
         for p in self.X.facts(st.env, []):
             if p[0] == a and not p[1][0] and p[1][1] <= j:
                 return []
-        for i, r in self.pool_lt:
+        for i, r, wr in self.on(self.pool_lt):
             b = C.idxF(st.env, r[2])
             if not b[0] and b[1] <= j and C.idxF(st.env, r[1]) == a:
-                return [self.use(i, r)]
+                return [self.use(i, wr)]
         return None
 
     def factE(self, st, m):
@@ -221,9 +238,9 @@ class Solver:
         for p in self.X.facts(st.env, []):
             if m in p:
                 return []
-        for i, r in self.pool_lt:
+        for i, r, wr in self.on(self.pool_lt):
             if C.idxF(st.env, r[1]) == m or C.idxF(st.env, r[2]) == m:
-                return [self.use(i, r)]
+                return [self.use(i, wr)]
         # none: the inference's `merge` takes the root's exponent for granted; stated as a residual of its own
         # (`exp`: the word is `g^y`, `y < 2^62 - 1`)
         r = ('lt', ('val', m[0][0][0]) if m[1] == 0 and len(m[0]) == 1 and m[0][0][1] == 1 else ('mono', m),
@@ -318,12 +335,12 @@ class Solver:
                     if f is not None:
                         return ('pfr', r, f)
         # residuals placing the cell in a run in scope (`sub`, `subR`)
-        for i, res in self.pool_sub:
+        for i, res, wr in self.on(self.pool_sub):
             if res[0] == 'sub' and res[1] == c:
                 R = C.runF(st.env, res[2])
                 for r, R2 in st.rs.items():
                     if R2 == R:
-                        return ('run', r, [self.use(i, res)])
+                        return ('run', r, [self.use(i, wr)])
             elif res[0] == 'subR':
                 R = C.runF(st.env, res[2])
                 q = C.runF(st.env, res[1])
@@ -332,7 +349,7 @@ class Solver:
                     continue
                 for r, R2 in st.rs.items():
                     if R2 == R:
-                        return ('run', r, sorted(set(f + [self.use(i, res)])))
+                        return ('run', r, sorted(set(f + [self.use(i, wr)])))
         return None
 
     def run1(self, st, Q):
@@ -341,12 +358,12 @@ class Solver:
             f = self.run_in(st, Q, st.rs[r])
             if f is not None:
                 return [('run', r, f)]
-        for i, res in self.pool_sub:
+        for i, res, wr in self.on(self.pool_sub):
             if res[0] == 'subR' and C.runF(st.env, res[1]) == Q:
                 R = C.runF(st.env, res[2])
                 for r, R2 in st.rs.items():
                     if R2 == R:
-                        return [('run', r, [self.use(i, res)])]
+                        return [('run', r, [self.use(i, wr)])]
         if C.emptyR(Q):
             return [('empty',)]
         if C.constR(Q) and Q[3][1] - Q[2][1] <= PTSMAX:
@@ -550,7 +567,7 @@ class Solver:
         self.H.calls.append(ws if ws is not None else [('fail',)])
         return ws
 
-    def dispatch(self, pas, st, fs, args, ma, mx):
+    def dispatch(self, pas, st, x, fs, args, ma, mx):
         ws = []
         ok = True
         for j, g in enumerate(fs):
@@ -561,7 +578,8 @@ class Solver:
                 continue
             self.ghosts(g, args)
             ga = C.gargsOf(self.H.gargs, g, args)
-            w = self.reqs(C.condSt(mx, j, st.cd, st), ma + ga, self.X.sigOf(g), ('dispatch', g, j))
+            w = pas.under(('arm', x, j), lambda: self.reqs(C.condSt(mx, j, st.cd, st), ma + ga, self.X.sigOf(g),
+                                                           ('dispatch', g, j)))
             if w is None:
                 ok = False
                 continue
@@ -755,7 +773,13 @@ def lrun(r):
     return f'⟨{lcell(r[0])}, {r[1]}, {lidx(r[2])}, {lidx(r[3])}⟩'
 
 
+def lcond(c):
+    return f'.{c[0]} ' + ' '.join(str(x) for x in c[1:])
+
+
 def lres(r):
+    if r[0] == 'under':
+        return f'.under [{", ".join(map(lcond, r[1]))}] ({lres(r[2])})'
     if r[0] == 'lt':
         return f'.lt {lidx(r[1])} {lidx(r[2])}'
     if r[0] == 'sub':

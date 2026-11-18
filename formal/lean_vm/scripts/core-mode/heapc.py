@@ -375,25 +375,31 @@ class Fail(Exception):
 # ---- the check (and, with a solver, the pass that finds the witnesses)
 
 class X:
-    """What the pass reads (`CX`), and the solver if the witnesses are being found."""
+    """What the pass reads (`CX`), the branch conditions of the site (`path`), and the solver if the witnesses are
+    being found."""
 
     def __init__(self, pows, H, sigOf, params, solver=None):
         self.pows, self.H, self.sigOf, self.params = pows, H, sigOf, params
         self.sig = H.sig
         self.dv, self.hv = set(H.divs), set(H.hvs)
         self.solver = solver
+        self.path = []
+
+    def resAt(self, i):
+        r = nth(self.H.res, i)
+        return unU(self.path, r) if r is not None else None
 
     def facts(self, env, res):
         F = [(idxF(env, a), idxF(env, b)) for a, b in self.sig.term]
         for i in res:
-            r = nth(self.H.res, i)
+            r = self.resAt(i)
             if r is not None and r[0] == 'lt':
                 F.append((idxF(env, r[1]), idxF(env, r[2])))
-        return F
+        return F + pathF(env, self.path)
 
     def subPt(self, F, env, res, R, c):
         for i in res:
-            r = nth(self.H.res, i)
+            r = self.resAt(i)
             if r is None:
                 continue
             if r[0] == 'sub' and r[1] == c and runF(env, r[2]) == R:
@@ -404,10 +410,35 @@ class X:
 
     def subRun(self, env, res, Q, R):
         for i in res:
-            r = nth(self.H.res, i)
+            r = self.resAt(i)
             if r is not None and r[0] == 'subR' and runF(env, r[1]) == Q and runF(env, r[2]) == R:
                 return True
         return False
+
+
+def onPath(path, g):
+    return all(c in path for c in g)
+
+
+def unU(path, r):
+    """`under g r` is `r` on a path with `g` (`unU`)."""
+    while r[0] == 'under':
+        if not onPath(path, r[1]):
+            return None
+        r = r[2]
+    return r
+
+
+def pathF(env, path):
+    """The facts of arm conditions: in arm `j` of `x`, `(g^(j-1), x)` (`j > 0`) and `(x, g^(j+1))`."""
+    F = []
+    for c in path:
+        if c[0] == 'arm' and c[2] + 1 < CAPE:
+            mx = idxF(env, ('val', c[1]))
+            if c[2] != 0:
+                F.append((((), c[2] - 1), mx))
+            F.append((mx, ((), c[2] + 1)))
+    return F
 
 
 def srcOf(st, c):
@@ -819,7 +850,8 @@ class Pass:
         X = self.X
         ma = monos(st.env, args)
         G = X.sigOf(g)
-        self.call_ws(st, ('callIf', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i), g, args, ma)
+        self.under(('nonzero', c), lambda: self.call_ws(st, ('callIf', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i),
+                                                         g, args, ma))
         st.nc += 1
         p = st.ad.get(c)
         qs, prs = instAllR(ma, G.postR), instPRL(ma, G.postPR)
@@ -836,7 +868,7 @@ class Pass:
         ma = monos(st.env, args)
         mx = mono(st.env, x)
         if X.solver is not None:
-            ws = X.solver.dispatch(self, st, fs, args, ma, mx)
+            ws = X.solver.dispatch(self, st, x, fs, args, ma, mx)
             if ws is None:
                 self.fail('dispatch', fs)
         else:
@@ -851,7 +883,7 @@ class Pass:
                 if i2 is not None:
                     i = i2
                     continue
-                i2 = reqG(X, condSt(mx, j, st.cd, st), ma, g, args, ws, i)
+                i2 = self.under(('arm', x, j), lambda: reqG(X, condSt(mx, j, st.cd, st), ma, g, args, ws, i))
                 if i2 is None:
                     self.fail('dispatch-check', fs, j, ws)
                     i = None
@@ -932,20 +964,28 @@ class Pass:
         st.nt += 1
 
     # -- statements
+    def under(self, c, f):
+        """`f()` with the branch condition `c` on the site's path (`CX.ext`)."""
+        self.X.path.insert(0, c)
+        try:
+            return f()
+        finally:
+            self.X.path.pop(0)
+
     def block(self, ss, st):
         for s in ss:
             k = s[0]
             if k == 'a':
                 self.atom(st, s[1])
             elif k == 'ite':
-                s1 = self.block(s[2], st.copy())
-                s2 = self.block(s[3], st.cnt(s1))
+                s1 = self.under(('zero', s[1]), lambda: self.block(s[2], st.copy()))
+                s2 = self.under(('nonzero', s[1]), lambda: self.block(s[3], st.cnt(s1)))
                 st = joinSt([(endsRet(s[2]), st, s1), (endsRet(s[3]), st.cnt(s1), s2)], st, s2)
             elif k == 'match':
                 bs = []
                 cur = st
-                for arm in s[2]:
-                    s1 = self.block(arm, cur.copy())
+                for j, arm in enumerate(s[2]):
+                    s1 = self.under(('arm', s[1], j), lambda: self.block(arm, cur.copy()))
                     bs.append((endsRet(arm), cur, s1))
                     cur = st.cnt(s1)
                 st = joinSt(bs, st, bs[-1][2] if bs else st)
