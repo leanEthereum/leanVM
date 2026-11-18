@@ -305,7 +305,7 @@ theorem reads_of_writes {H : HCert} {σ : Val} {a : Atom} (hq : stopS H.readT a 
 theorem no_writes_of_stopL {σ : Val} {a : Atom} (h : stopL a = false) {x : K} : ¬ Writes σ a x := by
   intro hw
   have hS : stopS (.nil : Exec.Trie (List (ℕ × ℕ × Wit))) a = false := stopS_of_stopL h
-  have hr := reads_of_writes (H := ⟨HSig.empty, [], []⟩) (by simpa [HCert.readT] using hS) hw
+  have hr := reads_of_writes (H := { sig := HSig.empty, reads := [], res := [] }) (by simpa [HCert.readT] using hS) hw
   cases a with
   | load d p off => simp [stopL, isLoad] at h
   | hint h' => simp [Reads] at hr; split at hr <;> simp_all [stopL, flowAtom, coreFlow]

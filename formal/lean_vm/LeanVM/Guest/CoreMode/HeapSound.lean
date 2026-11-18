@@ -155,10 +155,10 @@ section Inv
 variable {σ : Val}
 
 /-- **The environment is valid**: each entry is its value's word under `σ`. -/
-def EnvOk (σ : Val) (env : Trie CCell) : Prop := ∀ k c, getF env k = some c → σ (V.n k) = c.val σ
+@[expose] def EnvOk (σ : Val) (env : Trie CCell) : Prop := ∀ k c, getF env k = some c → σ (V.n k) = c.val σ
 
 /-- **The scope is written**: each cell's address is in `W`. -/
-def ScOk (W : K → Prop) (σ : Val) (sc : Trie CCell) : Prop := ∀ n c, getF sc n = some c → W (c.addr σ)
+@[expose] def ScOk (W : K → Prop) (σ : Val) (sc : Trie CCell) : Prop := ∀ n c, getF sc n = some c → W (c.addr σ)
 
 theorem ScOk.mono {W W' : K → Prop} (hw : ∀ x, W x → W' x) {sc : Trie CCell} (h : ScOk W σ sc) :
     ScOk W' σ sc :=

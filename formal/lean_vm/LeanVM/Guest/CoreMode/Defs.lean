@@ -20,7 +20,7 @@ public import LeanVM.Guest.Renumber
 
 **Events, in order.** The core semantics is relational over a final memory, so "written before" is read off the path: `walk σ body` (`Memory/Eval.lean`) is the sequence of events a valuation's path runs, in statement order, branches decided by `σ`; the tree track (`Bridge/Track.lean`) splits it at every frame's position into the events run (`pre`) and left. An atom of the path writes (`Writes`): a `load`, its cell (a store writes it, a read finds it written; `load`s the certificate does not name as reads are stores, which the frame walk confirms by the frame side being written), and a hint with a heap destination, each cell of it. An atom reads (`Reads`): a `load` the certificate names as a read (`HCert.readWit`, keyed by the atom's word, pointer and offset, so a store of a read word elsewhere is not a read), and a `log2Ceil` hint whose bits are on the heap, each bit. `Written H σ es x`: `x` is a precondition's address or written by an atom of `es`. What the route proves of a function (`CoreMode/HeapSound.lean`): on a path, every address an atom reads is `Written` by the events before it.
 
-**Certificates.** `HSig` is the calling convention (milestone 1 uses `pre`, point cells over the parameter numbers, whose addresses the caller guarantees written; the rest is for calls and loops, later milestones, and empty for now). `HCert` adds the reads with their witnesses (`Wit`: a write event of the pass in scope, by its serial, or a precondition) and the residuals.
+**Certificates.** `HSig` is the calling convention (milestone 1 uses `pre`, point cells over the parameter numbers, whose addresses the caller guarantees written; calls and loops, `CoreMode/HeapC.lean`, use all of it, over slots: the parameters, then the returned words). `HCert` adds the reads with their witnesses (`Wit`: a write event of the pass in scope, by its serial, a precondition, or a run), the residuals, and the witnesses of the calls' callee preconditions and of the returns' guarantees.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -54,10 +54,12 @@ def cellAt (σ : Val) (p : V) (off : ℕ) : K := (σ p).limb 0 * addressOfIndex 
 
 /-! ## Witnesses and certificates -/
 
-/-- An index of a run: a constant, or the exponent of the `g`-power a value holds. -/
+/-- An index of a run: a constant, the exponent of the `g`-power a value (a slot, in a signature)
+holds, or that of a monomial's word. -/
 inductive CIdx where
   | num (n : ℕ)
   | val (v : ℕ)
+  | mono (c : CCell)
   deriving DecidableEq, Repr, Inhabited
 
 /-- A run of cells `base · g^(stride · j)`, `lo ≤ j < hi` (loops, a later milestone). -/
@@ -106,11 +108,17 @@ structure HSig where
 def HSig.empty : HSig := ⟨[], [], [], [], []⟩
 
 /-- **A function's heap certificate**: its signature; its reads, by the word's value number `d`,
-each read `load (.n d) (.n p) off` as `(p, off, w)` with its witness `w`; its residuals. -/
+each read `load (.n d) (.n p) off` as `(p, off, w)` with its witness `w`; its residuals; and, for the
+check with calls and loops (`CoreMode/HeapC.lean`), the witnesses of each call statement's callee
+preconditions (`calls`, by call serial: the callee's `pre` cells then its `preR` runs) and of the own
+guarantees at each `ret` (`rets`, by ret serial: `post` then `postR`). Milestone 1's check reads
+neither. -/
 structure HCert where
   sig : HSig
   reads : List (ℕ × List (ℕ × ℕ × Wit))
   res : List CRes
+  calls : List (List Wit) := []
+  rets : List (List Wit) := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/
