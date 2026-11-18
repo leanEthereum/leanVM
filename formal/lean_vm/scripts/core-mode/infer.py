@@ -72,6 +72,8 @@ FEATURES = {
             'before it (`prepend`)',
     'ptsread': 'a read at a bounded index of a run formed by points (at most 64)',
     'perm': 'a constant cell of an own buffer written at hinted indices: one of those cells, a residual `perm`',
+    'ptsrun-long': 'a run met by its points up to 4096 cells (not 64), and long blocks of guaranteed points also '
+                   'guaranteed as runs',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -363,6 +365,7 @@ class Pass:
         self.ltkey = {}
         self.eqs = []
         self.eqpath = []                 # the branch path of each equation
+        self.allocsz = {}                # an allocation's constant size in cells
         self.defs = {}
         self.ginst = None                # the ghost instantiation of the call being met
         self.retsite = {}                # returned value -> (callee, args, j, ginst)
@@ -927,6 +930,8 @@ class Pass:
                 mp = self.mono(st, p)
                 for j in range(min(h[2], ln)):
                     self.read(st, shift(mp, off + j), ('log2Ceil', j))
+            if h[0] == 'alloc' and isinstance(h[2], int):
+                self.allocsz[h[1]] = h[2]
             for v in hint_stack_dests(h):
                 self.define(st, v, None, 'alloc' if h[0] in ('alloc', 'allocDyn') else 'hint')
             bnd = {'windowsExp': lambda: 2 ** h[3], 'digitsExp': lambda: 2 ** h[4],
@@ -987,7 +992,7 @@ class Pass:
             false = (not okl and ioff(R[2], jl) is not None) or (not okh and ioff(jh, R[3]) is not None)
             if not false and (best is None or (okl or okh) and not (best[2] or best[3])):
                 best = (R, rw, okl, okh, jl, jh)
-        if n is not None and n <= 64 and not lo[0] and 'ptsrun' in F:
+        if n is not None and n <= (MAXPTS if 'ptsrun-long' in F else 64) and not lo[0] and 'ptsrun' in F:
             ws = []
             for i in range(n):
                 c = shift(Q, S * (lo[1] + i))
@@ -1580,6 +1585,25 @@ def retsig(P, G):
                       for r in postR if r[0][0] == ((p_, 1),) and (WRAP[0] or r[0][1] >= k)}
     G.post = sorted(c for c in post if c not in pre)[:MAXPTS]
     G.postR = sorted(r for r in postR if r not in set(G.preR))
+    if 'ptsrun-long' in F:
+        # long contiguous blocks of guaranteed points (an unrolled table) also as runs, for callers' run
+        # preconditions; witnessed at the `ret` by their points
+        by = collections.defaultdict(set)
+        for c in G.post:
+            if c[1] < 2 ** 20:
+                by[c[0]].add(c[1])
+        for bs, offs in by.items():
+            offs = sorted(offs)
+            i = 0
+            while i < len(offs):
+                j = i
+                while j + 1 < len(offs) and offs[j + 1] == offs[j] + 1:
+                    j += 1
+                if j - i + 1 >= 16:
+                    r = ((bs, offs[i]), 1, num(0), num(j - i + 1))
+                    if r not in G.postR:
+                        G.postR.append(r)
+                i = j + 1
     G.postV = sorted(postV)[:MAXPTS]
     G.postP = sorted((c, tuple(sorted(o))) for c, o in postP.items())
     if 'pfr' in F:
