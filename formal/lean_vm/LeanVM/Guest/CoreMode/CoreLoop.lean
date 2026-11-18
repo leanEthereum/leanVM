@@ -539,7 +539,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
       fun hσ ↦ parAt_of hκ hs0.agree hs0.fp hwE (hws0 hσ)
     have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
         (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-      fun σ pre es vs rd hσ hb hh0 ↦ (loop_heap hok hb hh0 hσ.res (hPs hσ) hT).1
+      fun σ pre es vs rd hσ hb hh0 ↦ (loop_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -700,7 +700,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
           rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-          obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 hσ0.res (hPs hσ0) hT
+          obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
@@ -785,7 +785,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
                 (by rw [heq]; simp [hma]) hq) hwa).mono hle'
           exact Mode.tail_of_mode hCt.1 <| tail_next (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle' hfpS hS30
             (hpc'.trans hok.fentry) hentry hr0 hr1 hTE (hjtR s' hle) hwE (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0
-            hσ0.res (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
+            (hσ0.res hxw) (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
 
 /-- **A leaf loop helper on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) : Mode.FnSpecC K Cf :=

@@ -1860,7 +1860,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             hpos hb hwp
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) (Bool.eq_false_iff.mpr hj) hwp
-          (hrwOf σ0 pre es vs rd hb hh0 hσ0.res)
+          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw))
         have hwk : WrK s1.mem (cellAt σ0 pv off) := by
           rcases hwr with h | ⟨a', ha', hfa', hma, hwa⟩
           · exact (hW _ h).mono hm.le
@@ -1914,13 +1914,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         have e1' : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := by
           rw [hhd i]; exact e1
         obtain ⟨pos', hpos', evs, es', rfl, hwp', hWr⟩ := core_jfall hκ hok.pair hctrl hci (hsm oc od of hci).1 e1' hs hm
-          (hc0 oc od of hci) hσ hpos hb hwp (hrwOf σ pre _ vs rd hb hh0 hσ.res) hW
+          (hc0 oc od of hci) hσ hpos hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw)) hW
         exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
           by rw [List.append_assoc]; exact hh0, fun y hy ↦ (hWr y hy).mono hle'⟩
       have hnj : ∀ oc od of, K.code[i]? ≠ some (.jump oc od of) := fun oc od of h ↦ hj ⟨oc, od, of, h⟩
       obtain ⟨pos', hpos', as, hpairs, hfallP⟩ := pair_fallC (sigOf := Cf.sigOf) (rd := rd)
         (ws0 := Cf.fn.params.map σ) hok.pair hpos hnj
-      obtain ⟨evs, es', rfl, hwp', hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hb hh0 hσ.res)
+      obtain ⟨evs, es', rfl, hwp', hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw))
       refine ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
         by rw [List.append_assoc]; exact hh0, fun y hy ↦ ?_⟩
       rcases hWr y hy with h | ⟨a, ha', hfa', hma, hwa⟩ | ⟨o1, o2, o3, dv, pv, off, hci, hS, hcell, hmem, rfl⟩
@@ -1971,7 +1971,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         have hpcs' : s'.pc < 2 ^ 30 := by omega
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
         rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ0 hpos hb hwp
-          (hrwOf σ0 pre es vs rd hb hh0 hσ0.res) hW with ⟨-, h1', -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
+          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw)) hW with ⟨-, h1', -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
         · exact absurd h1' hof1
         have hol := pairAt_lt hok.pair hpos0
         cases hjo with
@@ -1985,7 +1985,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           rw [hfp', hm.fp] at hσ
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ hσ
           rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ hpos hb
-            hwp (hrwOf σ pre es vs rd hb hh0 hσ.res) hW with ⟨-, h1', -⟩ | ⟨-, o', pos', hpco', -, hpos', evs, es', rfl, hwp', hWr⟩
+            hwp (hrwOf σ pre es vs rd hb hh0 (hσ.res hxw)) hW with ⟨-, h1', -⟩ | ⟨-, o', pos', hpco', -, hpos', evs, es', rfl, hwp', hWr⟩
           · exact absurd h1' hof1
           have ho' : o' = t := by omega
           subst ho'
@@ -2019,7 +2019,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret oc hci (by omega) h0 h1 ?_)
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-          obtain ⟨-, hreads, hposts, hpostRs, hretM, hpostM, hptrs⟩ := heapK_sound hok.heap hok.pows hbody hb hh0 hσ0.res
+          obtain ⟨-, hreads, hposts, hpostRs, hretM, hpostM, hptrs⟩ := heapK_sound hok.heap hok.pows hbody hb hh0 (hσ0.res hxw)
           obtain ⟨as, hpairs, hpr⟩ := pair_retC hok.pair hpos hci hz hfw hpc0 hself1 hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
@@ -2291,7 +2291,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               refine ⟨t, ht, hte, ?_⟩
               rw [← htg]
               exact honF_dsp hσ (pre := pre ++ evs) (by rw [hb', hes, List.append_assoc]) hsite (by omega) hte
-            obtain ⟨f0, hf0, evs0, cs0, es0, hes0, -⟩ := hkD hwp (hrwOf σ0 pre es vs rd hb hh0 hσ0.res)
+            obtain ⟨f0, hf0, evs0, cs0, es0, hes0, -⟩ := hkD hwp (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw))
             obtain ⟨t, ht, hte, hrdt⟩ := hpick hσ0 hb hes0 hf0
             have hpt := hpcs t ht
             simp only [dspPc] at hpt
@@ -2360,8 +2360,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
                 Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
           intro σ pre es vs rd hσ hp hb hwp hh0
-          obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hb hh0 hσ.res)
-          have hreq := hrwOf σ pre _ vs rd hb hh0 hσ.res (pre ++ evs) (.call f args rets) (cs.map Ev.atom ++ es')
+          obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw))
+          have hreq := hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (pre ++ evs) (.call f args rets) (cs.map Ev.atom ++ es')
             (by simp)
           obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
             ⟨f, args, rets, true⟩ of st (by rw [← List.append_assoc]; exact calls_mid) rfl hsite
