@@ -13,21 +13,6 @@ public import LeanVM.Guest.Pack.«P2».Mode1
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `rs_eq_rows__L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 85) (d := Data.adviceFn85) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L1»
-
 namespace LeanVM.Guest.Fn.«column_selector__L23»
 
 open LeanVM.Guest LeanVM.Guest.Exec

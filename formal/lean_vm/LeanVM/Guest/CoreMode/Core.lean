@@ -28,7 +28,7 @@ it promises its callers (`post`, with their witnesses).
 
 `HonF img Cf fp σ`: `σ` is the valuation of an honest instance of `Cf.fn` in frame `fp` of the
 reference image `img`: its path returns with its events holding, each `load`'s pointer at its cell
-(`X.locAt`), each parameter at its cell `2 + k`.
+(`X.locAt`), each parameter at its cell `2 + k`, each returned value at its cell.
 
 `CoreAt img Cf code i s`: frame `s.fp` at offset `i`: the frame walk's state there holds (`AtF`), the
 entry cells are written, and for every honest valuation of the frame, its path splits at the
@@ -88,6 +88,7 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
   ptr : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ a p, Ev.atom a ∈ es → ptrOf a = some p →
     Rd img fp (Cf.X.locAt p.idx) = some (σ p)
   par : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k))
+  rets : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ v ∈ vs, Rd img fp (Cf.X.locAt v.idx) = some (σ v)
 
 /-- **The core route's frame predicate.** -/
 def CoreAt (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) (s : St) : Prop :=
@@ -154,15 +155,38 @@ def postRIn (G : Mode.Sig) (np : ℕ) (posts : List CCell) (r : Mode.Rng) : Bool
     | none => false
 
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
-pointer run, returned product or order; each heap precondition one of the signature's; each heap
+pointer run or order (returned products: `retVOk`); each heap precondition one of the signature's; each heap
 cell and run it promises among the promised cells `post`. -/
 def sigOk (G : Mode.Sig) (H : HCert) (post : List (CCell × Wit)) (np : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty && G.postP.isEmpty && G.postLP.isEmpty &&
-    G.retV.isEmpty && G.postT.isEmpty && G.postC.isEmpty &&
+    G.postT.isEmpty && G.postC.isEmpty &&
     H.sig.pre.all (fun c ↦ G.pre.any fun m ↦ monoOk G np m && match monoC m with
       | some c' => c'.beq c
       | none => false) &&
     G.post.all (postIn G np (post.map (·.1))) && G.postR.all (postRIn G np (post.map (·.1)))
+
+/-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
+noncomputable def retAt (X : AlignCtx) (env : Exec.Trie CCell) (vs : List V) (o : ℕ) (c : CCell) : Bool :=
+  vs.any fun v ↦ Nat.beq (X.locAt v.idx) o && match monoOf env v with
+    | some c' => c'.beq c
+    | none => false
+
+/-- The heap check's pass to the `ret`, where each returned product of the signature (`retV`) is a
+return cell holding a returned value whose monomial is the product's. -/
+noncomputable def retVGo (X : AlignCtx) (G : Mode.Sig) (np : ℕ) (hx : HX) : List Stmt → HSt → Bool
+  | .atom a :: ss, st => match atomH hx st a with
+    | some st' => st'.seq fun st' ↦ retVGo X G np hx ss st'
+    | none => false
+  | .ret vs :: _, st => G.retV.all fun p ↦ decide (p.1 < 2 ^ 28) && G.ret.contains p.1 && monoOk G np p.2 &&
+      match monoC p.2 with
+      | some c => retAt X st.env vs p.1 c
+      | none => false
+  | _, _ => false
+
+/-- **The returned products' check** (`retV`): none, or each a returned value's monomial. -/
+noncomputable def retVOk (Cf : CFun) (G : Mode.Sig) : Bool :=
+  G.retV.isEmpty || Cf.H.readT.seq fun R ↦ (trieFrom Cf.H.sig.pre 0 .nil).seq fun P ↦
+    retVGo Cf.X G Cf.fn.params.length ⟨Cf.pows, R, P⟩ Cf.fn.body ⟨.nil, .nil, 0⟩
 
 /-! ## The shape -/
 
@@ -211,6 +235,7 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : frameOk Cf.frame K.code = true
   sig : sigOk K.F.sig Cf.H Cf.post Cf.fn.params.length = true
+  retv : retVOk Cf K.F.sig = true
   shape : shapeOk Cf K.code = true
   fsig : Cf.frame.sig = K.F.sig
   fentry : Cf.frame.entry = K.F.entry

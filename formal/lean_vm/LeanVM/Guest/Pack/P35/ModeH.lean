@@ -29,21 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«assert_small_g_power»
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `rs_eq_rows__L6`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 90) (d := Data.adviceFn90) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L6»
-
 namespace LeanVM.Guest.Fn.«column_selector__L24»
 
 open LeanVM.Guest LeanVM.Guest.Exec

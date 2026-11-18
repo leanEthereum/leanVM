@@ -30,6 +30,24 @@ end
 
 end LeanVM.Guest.Fn.«eq_prefix_run__L39»
 
+namespace LeanVM.Guest.Fn.«rs_eq_rows__L3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `rs_eq_rows__L3`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `rs_eq_rows__L3`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨183810, 712, Fn.«rs_eq_rows__L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_rows__L3»
+
 namespace LeanVM.Guest.Fn.«index_mle__L11»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -84,6 +102,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«squeeze_point_from__L27»
+
+namespace LeanVM.Guest.Fn.«opening_message__L1_L1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `opening_message__L1_L1`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `opening_message__L1_L1`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨212654, 30, Fn.«opening_message__L1_L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«opening_message__L1_L1»
 
 namespace LeanVM.Guest.Fn.«claim_list_last__L5»
 

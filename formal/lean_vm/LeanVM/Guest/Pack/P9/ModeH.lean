@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P9».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode1
-public import LeanVM.Guest.Pack.«P9».Mode2
 
 set_option Elab.async false
 
@@ -28,21 +27,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«ring_switch_weight»
-
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `rs_eq_rows__L4`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 88) (d := Data.adviceFn88) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L4»
 
 namespace LeanVM.Guest.Fn.«column_selector__L26»
 

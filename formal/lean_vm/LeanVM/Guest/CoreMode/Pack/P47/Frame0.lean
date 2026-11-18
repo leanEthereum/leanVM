@@ -58,24 +58,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `rs_eq_rows__L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 183291, 519,
-    Fn.«rs_eq_rows__L2».modeSig, .nil, 524287, Data.adviceFn86.2.2, .nil, .nil, .nil, .nil, (.node
-    (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ())
-    .nil (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
-    (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil)
-    (.node (some ()) .nil .nil))) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil)
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)))) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node
-    (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)))
-    (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
-    (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))))) (.node (some ())
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node
-    (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some
-    ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)))) (.node (some ()) (.node (some ())
-    (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node (some ()) (.node (some ())
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
-    .nil) (.node (some ()) .nil .nil))))))) .nil)), .nil, .nil⟩
+    Fn.«rs_eq_rows__L2».modeSig, .nil, 524287, Data.adviceFn86.2.2, .nil, .nil, .nil, .nil,
+    Fn.«rs_eq_rows__L2».pairO, Fn.«rs_eq_rows__L2».pairS, .nil⟩
 
 /-- `rs_eq_rows__L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

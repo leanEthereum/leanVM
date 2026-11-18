@@ -64,6 +64,22 @@ theorem ptrOf_uses {a : Atom} {p : V} (h : CoreMode.ptrOf a = some p) : p ∈ Me
     | _ => simp [CoreMode.hintHeap] at hd
   | _ => cases h
 
+theorem straight_ret {σ : Val} : ∀ {body : List Stmt}, CoreMode.straight body = true → ∀ {es : List Ev} {vs : List V},
+    walk σ body = .ret es vs → Stmt.ret vs ∈ body
+  | [], _, es, vs, hw => by simp [walk] at hw
+  | s :: body, h, es, vs, hw => by
+    simp only [CoreMode.straight, List.all_cons, Bool.and_eq_true] at h
+    cases s with
+    | atom b =>
+      rw [Bridge.walk_atom_cons] at hw
+      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
+      exact List.mem_cons_of_mem _ (straight_ret (by simpa [CoreMode.straight] using h.2) hw')
+    | ret vs' =>
+      rw [Bridge.walk_ret_cons, Memory.Out.ret.injEq] at hw
+      obtain ⟨-, rfl⟩ := hw
+      exact List.mem_cons_self
+    | _ => simp at h
+
 /-- **The core route's frames are honest**, on the tracks' invariant. -/
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
@@ -107,9 +123,10 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   rw [hc0] at hfn
   -- the honest valuation
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
-  obtain ⟨⟨⟨⟨hlocs, hst0⟩, hptr⟩, hpar⟩, hcells⟩ := hb0
+  obtain ⟨⟨⟨⟨⟨hlocs, hst0⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
-  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_⟩⟩
+  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
+    fun es0 vs0 hw0 v hv ↦ ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -149,6 +166,21 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have := hF.val (V.n k) hnamed (by omega) (by omega)
     rw [hc.1] at this
     rw [← hfpL]
+    simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- a returned value at its cell
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    have hc := hrc _ (straight_ret hst0 (by rw [hfn]; exact hw))
+    simp only [CoreMode.retCellB, List.all_eq_true] at hc
+    have hc := hc v hv
+    simp only [Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
+    have hloc : Cf.X.locAt v.idx = cellJ j v := by
+      rw [← hx0]
+      exact Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
+    have hnamed : v ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := List.mem_append_right _ hv
+    have := hF.val v hnamed h2 h3
+    rw [hloc, ← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
 
 end

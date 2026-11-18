@@ -109,6 +109,13 @@ def hcert : CoreMode.HCert where
     (37, [(5, 4, .pre 4)]), (40, [(5, 5, .pre 5)]), (43, [(5, 6, .pre 6)])]
   res := []
 
+/-- `opening_message__L6_L1`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(5, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 0⟩, .ev 1), (⟨[(5, 1)], 1⟩, .ev 2), (⟨[(6, 1)], 1⟩, .ev 3),
+    (⟨[(5, 1)], 2⟩, .ev 4), (⟨[(6, 1)], 2⟩, .ev 5), (⟨[(5, 1)], 3⟩, .ev 6), (⟨[(6, 1)], 3⟩, .ev 7),
+    (⟨[(5, 1)], 4⟩, .ev 8), (⟨[(6, 1)], 4⟩, .ev 9), (⟨[(5, 1)], 5⟩, .ev 10), (⟨[(6, 1)], 5⟩, .ev 11),
+    (⟨[(5, 1)], 6⟩, .ev 12)]
+
 end
 end LeanVM.Guest.Fn.«opening_message__L6_L1»
 

@@ -14,21 +14,6 @@ public import LeanVM.Guest.Pack.«P53».Mode2
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«sumcheck_round4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `sumcheck_round4`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 7) (d := Data.adviceFn7) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«sumcheck_round4»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L32»
 
 open LeanVM.Guest LeanVM.Guest.Exec

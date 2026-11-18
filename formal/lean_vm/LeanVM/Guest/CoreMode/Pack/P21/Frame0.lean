@@ -44,8 +44,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `rs_eq_rows__L0`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 182962, 3,
-    Fn.«rs_eq_rows__L0».modeSig, .nil, 524287, Data.adviceFn84.2.2, .nil, .nil, .nil, .nil, .nil,
-    .nil, .nil⟩
+    Fn.«rs_eq_rows__L0».modeSig, .nil, 524287, Data.adviceFn84.2.2, .nil, .nil, .nil, .nil,
+    Fn.«rs_eq_rows__L0».pairO, Fn.«rs_eq_rows__L0».pairS, .nil⟩
 
 /-- `rs_eq_rows__L0`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

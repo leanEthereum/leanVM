@@ -336,6 +336,68 @@ theorem baseCells_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : M
     cases h
 
 
+/-! ## Returned products -/
+
+theorem retVGo_sound {X : AlignCtx} {G : Mode.Sig} {np : ℕ} {hx : HX} {H : HCert} (hR : hx.R = H.readT)
+    (hP : ∀ k c, Check.getF hx.pre k = some c → c ∈ H.sig.pre) (hpows : hx.pows.Ok) {σ : Val} {rd : Reader} :
+    ∀ (ss : List Stmt) {st : HSt} {W : K → Prop} {es : List Ev} {vs : List V},
+      (∀ c ∈ H.sig.pre, W (c.addr σ)) → retVGo X G np hx ss st = true → EnvOk σ st.env → ScOk W σ st.sc →
+      walk σ ss = .ret es vs → AllHold rd σ es → ∀ p ∈ G.retV, p.1 < 2 ^ 28 ∧ p.1 ∈ G.ret ∧
+        monoOk G np p.2 = true ∧ ∃ c v, monoC p.2 = some c ∧ v ∈ vs ∧ X.locAt v.idx = p.1 ∧ σ v = c.val σ
+  | [], _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+  | .atom a :: ss, st, W, es, vs, hpre, h, he, hs, hw, hh => by
+    simp only [retVGo] at h
+    cases ha : atomH hx st a with
+    | none => rw [ha] at h; cases h
+    | some st1 =>
+      rw [ha] at h
+      simp only [HSt.seq_eq] at h
+      rw [Bridge.walk_atom_cons] at hw
+      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
+      obtain ⟨-, he1, hs1⟩ := atomH_ok hR hP hpows hpre ha he hs (hh _ List.mem_cons_self)
+      exact retVGo_sound hR hP hpows ss (fun c hc ↦ Or.inl (hpre c hc)) h he1 hs1 hw'
+        (fun e he ↦ hh e (List.mem_cons_of_mem _ he))
+  | .ret vs' :: _, st, W, es, vs, hpre, h, he, hs, hw, _ => by
+    rw [Bridge.walk_ret_cons, Out.ret.injEq] at hw
+    obtain ⟨-, rfl⟩ := hw
+    simp only [retVGo, List.all_eq_true] at h
+    intro p hp
+    have hp' := h p hp
+    simp only [Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at hp'
+    obtain ⟨⟨⟨h28, hret⟩, hmo⟩, hc⟩ := hp'
+    refine ⟨h28, hret, hmo, ?_⟩
+    split at hc
+    · rename_i c hmc
+      obtain ⟨v, hv, hb⟩ := List.any_eq_true.mp hc
+      simp only [Bool.and_eq_true, Nat.beq_eq] at hb
+      obtain ⟨hloc, hm⟩ := hb
+      split at hm
+      · rename_i c' hc'
+        exact ⟨c, v, hmc, hv, hloc, by rw [monoOf_ok he hc', CCell.beq_eq hm]⟩
+      · cases hm
+    · cases hc
+  | .ite .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+  | .match_ .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+  | .call .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+  | .callIf .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+  | .dispatch .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
+
+/-- **The returned products**: on a path that returns, each product of `retV` is a return cell
+holding a returned value whose word is the product's. -/
+theorem retVOk_sound {Cf : CFun} {G : Mode.Sig} (hp : Cf.pows.Ok) (hok : retVOk Cf G = true) {σ : Val}
+    {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) :
+    ∀ p ∈ G.retV, p.1 < 2 ^ 28 ∧ p.1 ∈ G.ret ∧ monoOk G Cf.fn.params.length p.2 = true ∧
+      ∃ c v, monoC p.2 = some c ∧ v ∈ vs ∧ Cf.X.locAt v.idx = p.1 ∧ σ v = c.val σ := by
+  unfold retVOk at hok
+  rcases Bool.or_eq_true_iff.mp hok with h | hok
+  · intro p hp; rw [List.isEmpty_iff.mp h] at hp; cases hp
+  rw [Exec.Trie.seq_eq, Exec.Trie.seq_eq] at hok
+  exact retVGo_sound (hx := ⟨Cf.pows, Cf.H.readT, trieFrom Cf.H.sig.pre 0 .nil⟩) (H := Cf.H) (rd := rd) rfl
+    (fun k c h ↦ (getF_trieFrom _ _ _ h).resolve_right (by simp [getF_nil])) hp Cf.fn.body
+    (W := fun x ↦ ∃ c ∈ Cf.H.sig.pre, c.addr σ = x) (fun c hc ↦ ⟨c, hc, rfl⟩) hok envOk_nil
+    (fun n c h ↦ by simp [getF_nil] at h) hw hh
+
+
 /-! ## The frame interface -/
 
 theorem refOk_fp {M : ℕ → E} {s s' : St} (h : s'.fp = s.fp) {op : Prover.Exec.Op} (hr : RefOk M s op) :
@@ -433,7 +495,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
   obtain ⟨henv, harm, hacc⟩ := frameAcc_of hincr hok.frame
   have hsig := hok.sig
   simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff, List.all_eq_true] at hsig
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hself, hterm⟩, hpostL⟩, hpostP⟩, hpostLP⟩, hretV⟩, hpostT⟩, hpostC⟩, hpre⟩, hpost⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hself, hterm⟩, hpostL⟩, hpostP⟩, hpostLP⟩, hpostT⟩, hpostC⟩, hpre⟩, hpost⟩,
     hpostR⟩ := hsig
   have hent' : ∀ x ∈ K.F.sig.entry, x + 1 < 2 ^ Exec.envDepth := hok.fsig ▸ hent
   refine ⟨fun hle hfp h ↦ h.mono hle hfp, ?_, ?_⟩
@@ -621,7 +683,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             · cases hc
           · cases hc
         · rw [hpostP] at hq; cases hq
-        · rw [hretV] at hp; cases hp
+        · obtain ⟨h28, hret, hmo, c, v, hmc, hv, hloc, hval⟩ :=
+            retVOk_sound hok.pows hok.retv hb hh0 p hp
+          obtain ⟨u, hu⟩ := Mem.get_of_written (hretw p.1 (hok.fsig ▸ hret))
+          have hrd : Rd img s1.fp p.1 = some (σ0 v) := by
+            rw [hm.fp, ← hloc]; exact hσ0.rets _ _ hb v hv
+          refine ⟨u, hu, (monoVal_iff hmc (hcells p.2 hmo) u).mpr ?_⟩
+          rw [rd_get hκ hm.fine h28 hrd hu, hval]
         · rw [hpostT] at hp; cases hp
         · rw [hpostC] at hq; cases hq
         · rw [hpostL] at hr; cases hr

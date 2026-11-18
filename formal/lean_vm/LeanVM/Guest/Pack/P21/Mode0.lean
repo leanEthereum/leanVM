@@ -28,28 +28,6 @@ public import LeanVM.Guest.Pack.«P62».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `rs_eq_rows__L0`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `rs_eq_rows__L0`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨182962, 3, Fn.«rs_eq_rows__L0».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `rs_eq_rows__L0`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L0»
-
 namespace LeanVM.Guest.Fn.«column_selector__L22»
 
 open LeanVM.Guest LeanVM.Guest.Exec

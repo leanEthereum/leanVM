@@ -58,21 +58,6 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L22»
 
-namespace LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `keccak_plain_rounds__L4_L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 274) (d := Data.adviceFn274) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L15»
 
 open LeanVM.Guest LeanVM.Guest.Exec

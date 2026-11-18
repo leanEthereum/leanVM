@@ -25,28 +25,6 @@ public import LeanVM.Guest.Pack.«P7».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `rs_eq_rows__L1`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `rs_eq_rows__L1`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨182965, 326, Fn.«rs_eq_rows__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `rs_eq_rows__L1`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L1»
-
 namespace LeanVM.Guest.Fn.«column_selector__L23»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -464,3 +442,31 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«level_positions__L4_L19_L7_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L73_L21_L6_L3_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop312`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node (some Fn.«level_residual__L73_L21_L6_L3_loop1».modeSig) .nil .nil)
+    .nil)) .nil)))) .nil) .nil) .nil))) .nil))) .nil) .nil)) .nil), 524287⟩
+
+/-- `__loop312`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨356785, 174, Fn.«level_residual__L73_L21_L6_L3_loop1».modeSig, (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node (some [(.frameAddress
+    182)]) .nil .nil) .nil)) .nil) .nil) .nil) .nil)), .nil, .nil, false, .nil⟩
+
+/-- `__loop312`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L73_L21_L6_L3_loop1»

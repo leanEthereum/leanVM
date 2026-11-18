@@ -30,21 +30,6 @@ end
 
 end LeanVM.Guest.Fn.«shared_selector_tables»
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `rs_eq_rows__L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 87) (d := Data.adviceFn87) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L3»
-
 namespace LeanVM.Guest.Fn.«column_selector__L18»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -74,21 +59,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L21»
-
-namespace LeanVM.Guest.Fn.«opening_message__L1_L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `opening_message__L1_L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 323) (d := Data.adviceFn323) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_message__L1_L1»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L2»
 

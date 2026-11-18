@@ -2,7 +2,7 @@
 passing `heapOk` and the pairing whose body is straight-line, whose only `JUMP` is its last
 instruction, a return the pairing takes by its head statement, and whose signature its callers know
 (`Mode.Sig`, `Pack/*/ModeSig.lean`) promises only frame cells, heap cells and runs of constant bounds over
-its parameters; each with the heap cells it promises (`CFun.post`) and their witnesses, the preconditions
+its parameters (and returned products `retV`, each a returned value's monomial); each with the heap cells it promises (`CFun.post`) and their witnesses, the preconditions
 the heap check then names (`HCert.sig.pre`), its pairing's oracle and stores. Which functions take the
 route; the kernel's checks (`CoreMode.CoreOk`) confirm it.
 
@@ -107,7 +107,7 @@ def mono_cell(G, np, m):
 def promised(G, np):
     """The heap cells the signature promises (`post`, `postR`'s points), or None if it promises more."""
     if G['self'] != ('id', 'none'): return None
-    for k in ('term', 'postL', 'postP', 'postLP', 'retV', 'postT', 'postC'):
+    for k in ('term', 'postL', 'postP', 'postLP', 'postT', 'postC'):
         if G[k] != []: return None
     cells = []
     for m in G['post']:
@@ -171,6 +171,10 @@ def route(verbose=False):
         if cells is None: why['signature'] += 1; continue
         f = heap.Fn(k)
         stf = f.block([{}, {}, 0], f.body)
+        rets = [s[1] for s in body if s[0] == 'ret'][0]
+        if not all(o < 2 ** 28 and o in G['ret'] and mono_cell(G, len(params), m) is not None and
+                   any(f.mono(stf[0], v) == mono_cell(G, len(params), m) for v in rets) for o, m in G['retV']):
+            why['returned product'] += 1; continue
         post = []
         for c in cells:
             w = f.witness(stf[1], c)

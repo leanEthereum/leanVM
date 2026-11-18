@@ -142,6 +142,14 @@ def hcert : CoreMode.HCert where
     (62, [(5, 8, .pre 8)])]
   res := []
 
+/-- `opening_message__L8_L1`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(5, 1)], 0⟩, .ev 0), (⟨[(5, 1)], 1⟩, .ev 2), (⟨[(5, 1)], 2⟩, .ev 4), (⟨[(5, 1)], 3⟩, .ev 6),
+    (⟨[(5, 1)], 4⟩, .ev 8), (⟨[(5, 1)], 5⟩, .ev 10), (⟨[(5, 1)], 6⟩, .ev 12),
+    (⟨[(5, 1)], 7⟩, .ev 14), (⟨[(5, 1)], 8⟩, .ev 16), (⟨[(6, 1)], 0⟩, .ev 1), (⟨[(6, 1)], 1⟩, .ev 3),
+    (⟨[(6, 1)], 2⟩, .ev 5), (⟨[(6, 1)], 3⟩, .ev 7), (⟨[(6, 1)], 4⟩, .ev 9), (⟨[(6, 1)], 5⟩, .ev 11),
+    (⟨[(6, 1)], 6⟩, .ev 13), (⟨[(6, 1)], 7⟩, .ev 15)]
+
 end
 end LeanVM.Guest.Fn.«opening_message__L8_L1»
 

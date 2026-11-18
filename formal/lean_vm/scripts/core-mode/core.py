@@ -76,6 +76,7 @@ def main():
                 f'  pair := pair_ok\n'
                 f'  frame := frameOk\n'
                 f'  sig := by decide +kernel\n'
+                f'  retv := by decide +kernel\n'
                 f'  shape := by decide +kernel\n'
                 f'  fsig := rfl\n'
                 f'  fentry := rfl\n'

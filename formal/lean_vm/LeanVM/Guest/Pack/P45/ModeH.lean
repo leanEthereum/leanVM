@@ -11,24 +11,8 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode1
 public import LeanVM.Guest.Pack.«P45».Mode2
-public import LeanVM.Guest.Pack.«P45».Mode3
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«opening_tail_round»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `opening_tail_round`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 9) (d := Data.adviceFn9) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«opening_tail_round»
 
 namespace LeanVM.Guest.Fn.«grind_check__L7»
 
@@ -44,21 +28,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«grind_check__L7»
-
-namespace LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `keccak_plain_rounds__L6_L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 272) (d := Data.adviceFn272) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
 
 namespace LeanVM.Guest.Fn.«column_selector__L13»
 
@@ -89,21 +58,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L9»
-
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L8»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `rs_eq_rows__L8`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 428) (d := Data.adviceFn428) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_rows__L8»
 
 namespace LeanVM.Guest.Fn.«keccak_layer__L1_loop0»
 

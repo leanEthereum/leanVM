@@ -12,6 +12,24 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P45».Bundle
 public import LeanVM.Guest.Pack.«P45».ModeSig
 
+namespace LeanVM.Guest.Fn.«opening_tail_round»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `opening_tail_round`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `opening_tail_round`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨19521, 34, Fn.«opening_tail_round».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«opening_tail_round»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L32»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -84,3 +102,40 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L23»
+
+namespace LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `keccak_plain_rounds__L6_L0`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `keccak_plain_rounds__L6_L0`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨209489, 105, Fn.«keccak_plain_rounds__L6_L0».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
+
+namespace LeanVM.Guest.Fn.«rs_eq_rows__L8»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `rs_eq_rows__L8`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `rs_eq_rows__L8`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨251683, 1677, Fn.«rs_eq_rows__L8».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_rows__L8»

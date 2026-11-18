@@ -489,7 +489,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«index_mle__L14».cfun, Fn.«squeeze_point_from__L22».cfun, Fn.«claim_list_last__L0».cfun]
+  [Fn.«rs_eq_rows__L6».cfun, Fn.«index_mle__L14».cfun, Fn.«squeeze_point_from__L22».cfun,
+    Fn.«claim_list_last__L0».cfun]
 
 end
 
@@ -679,16 +680,17 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«assert_small_g_power».modeOk,
     Fn.«assert_small_g_power».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«rs_eq_rows__L6».modeOk,
-    Fn.«rs_eq_rows__L6».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L14».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«index_mle__L14».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«rs_eq_rows__L6».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«rs_eq_rows__L6».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L14».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«index_mle__L14».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«column_selector__L24».modeOk,
     Fn.«column_selector__L24».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L22».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«squeeze_point_from__L22».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«squeeze_point_from__L22».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«claim_list_last__L0».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«claim_list_last__L0».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«claim_list_last__L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«child_claim_list_last__L7».modeOk,
     Fn.«child_claim_list_last__L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«da_column_offsets_loop4».modeOk,

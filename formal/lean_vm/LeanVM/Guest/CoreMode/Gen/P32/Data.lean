@@ -178,6 +178,12 @@ def hcert : CoreMode.HCert where
     (75, [(7, 4, .pre 4)]), (78, [(7, 5, .pre 5)]), (100, [(7, 6, .pre 6)]), (103, [(7, 7, .pre 7)])]
   res := []
 
+/-- `keccak_plain_rounds__L4_L1`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(9, 1)], 0⟩, .ev 2), (⟨[(9, 1)], 1⟩, .ev 5), (⟨[(9, 1)], 2⟩, .ev 8), (⟨[(9, 1)], 3⟩, .ev 11),
+    (⟨[(7, 1)], 0⟩, .ev 0), (⟨[(7, 1)], 1⟩, .ev 1), (⟨[(7, 1)], 2⟩, .ev 3), (⟨[(7, 1)], 3⟩, .ev 4),
+    (⟨[(7, 1)], 4⟩, .ev 6), (⟨[(7, 1)], 5⟩, .ev 7), (⟨[(7, 1)], 6⟩, .ev 9), (⟨[(7, 1)], 7⟩, .ev 10)]
+
 end
 end LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
 

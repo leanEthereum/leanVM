@@ -90,5 +90,12 @@ def hcert : CoreMode.HCert where
     (8, [(0, 4, .pre 4)]), (9, [(1, 0, .pre 5)]), (12, [(1, 1, .pre 6)]), (15, [(1, 2, .pre 7)])]
   res := []
 
+/-- `sumcheck_round4`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 0⟩, .ev 5), (⟨[(0, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 1⟩, .ev 6),
+    (⟨[(0, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 2⟩, .ev 7), (⟨[(0, 1)], 3⟩, .ev 3), (⟨[(0, 1)], 4⟩, .ev 4),
+    (⟨[(0, 1)], 7⟩, .ev 8), (⟨[(0, 1)], 8⟩, .ev 9), (⟨[(0, 1)], 9⟩, .ev 10),
+    (⟨[(0, 1)], 10⟩, .ev 11), (⟨[(0, 1)], 11⟩, .ev 12)]
+
 end
 end LeanVM.Guest.Fn.«sumcheck_round4»

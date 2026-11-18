@@ -12,6 +12,24 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P16».Bundle
 public import LeanVM.Guest.Pack.«P16».ModeSig
 
+namespace LeanVM.Guest.Fn.«rs_eq_rows__L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `rs_eq_rows__L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `rs_eq_rows__L7`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨187816, 1484, Fn.«rs_eq_rows__L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_rows__L7»
+
 namespace LeanVM.Guest.Fn.«index_mle__L15»
 
 open LeanVM.Guest LeanVM.Guest.Exec

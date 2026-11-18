@@ -95,6 +95,10 @@ def hcert : CoreMode.HCert where
   reads := []
   res := []
 
+/-- `rs_eq_rows__L0`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  []
+
 end
 end LeanVM.Guest.Fn.«rs_eq_rows__L0»
 

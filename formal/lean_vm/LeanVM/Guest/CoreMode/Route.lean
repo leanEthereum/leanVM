@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
-honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`,
+honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`, its returned values at their cells,
 each dereferenced pointer at its certificate cell within the frame, no hint-only cell.
 -/
 
@@ -35,11 +35,18 @@ noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
     | none => true
   | _ => true
 
+/-- A `ret`'s values at their certificate cells, within the frame, not hint-only values. -/
+noncomputable def retCellB (j : ℕ) : Stmt → Bool
+  | .ret vs => vs.all fun v ↦ ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) &&
+      decide (2 ≤ B2C.cellJ j v) && decide (B2C.cellJ j v < B2C.fsN j)
+  | _ => true
+
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers at their cells. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
   (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && straight fn.body &&
     fn.body.all (ptrCellB j) && paramsN fn.params 0 &&
-    (List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)
+    ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
+    fn.body.all (retCellB j)
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=

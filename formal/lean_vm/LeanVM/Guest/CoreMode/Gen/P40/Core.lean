@@ -44,6 +44,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
@@ -85,6 +86,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
@@ -126,6 +128,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
@@ -167,6 +170,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
@@ -208,6 +212,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
@@ -249,6 +254,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
+  retv := by decide +kernel
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl

@@ -54,10 +54,10 @@ public import LeanVM.Guest.Pack.«P42».Mode1
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P44».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode0
-public import LeanVM.Guest.Pack.«P45».Mode3
+public import LeanVM.Guest.Pack.«P45».Mode2
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode0
-public import LeanVM.Guest.Pack.«P47».Mode2
+public import LeanVM.Guest.Pack.«P47».Mode1
 public import LeanVM.Guest.Pack.«P49».Mode0
 public import LeanVM.Guest.Pack.«P4».Mode0
 public import LeanVM.Guest.Pack.«P50».Mode0
@@ -84,7 +84,7 @@ public import LeanVM.Guest.Pack.«P7».Mode2
 public import LeanVM.Guest.Pack.«P7».ModeD0
 public import LeanVM.Guest.Pack.«P8».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode0
-public import LeanVM.Guest.Pack.«P9».Mode2
+public import LeanVM.Guest.Pack.«P9».Mode1
 public import LeanVM.Guest.Pack.«open_stacked__L0».ModeD0
 public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0
 public import LeanVM.Guest.Pack.«open_stacked__L1».ModeD0
