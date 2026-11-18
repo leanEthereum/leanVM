@@ -57,16 +57,32 @@ def mono(G, np, m):
     return callc.cell(m, np, lambda o: o in G['entry'])
 
 
-def run(G, np, r):
-    """`CoreMode.rngT`, its bounds `rngK`."""
+def exp_cells(G):
+    """`CoreMode.expCells`: the frame cells the entry runs (`preR`, `preP`) bound by exponent."""
+    return [b[1][1] for r in list(G['preR']) + [p[0] for p in G['preP']] for b in (r[1], r[2])
+            if b[0] == 'ex' and b[1][0] == 'fr']
+
+
+def idx_kx(G, ps, i):
+    """`CoreMode.idxKX`: `idx_k`, or an entry run's bound cell's exponent among `ps`."""
+    if idx_k(G, i):
+        return True
+    return (i[0] == 'ex' and i[1][0] == 'fr' and i[2] == 0 and i[1][1] in exp_cells(G) and i[1][1] in ps and
+            i[1][1] in G['entry'] and i[1][1] < 2 ** 28)
+
+
+def run(G, np, r, ps=None):
+    """`CoreMode.rngT`, its bounds `rngK` (`rngKX` with the cells `ps`, if given)."""
     q, lo, hi, S, d = r
-    if not (idx_k(G, lo) and idx_k(G, hi)):
+    ok = (lambda i: idx_k(G, i)) if ps is None else (lambda i: idx_kx(G, ps, i))
+    if not (ok(lo) and ok(hi)):
         raise No('run bound')
     return (I.shift(mono(G, np, q), d), S, idx(G, np, lo), idx(G, np, hi))
 
 
-def own_sig(G, np):
-    """`sigOkL`: the loop's heap signature, its mode signature's translated field by field."""
+def own_sig(G, np, ps=None):
+    """`sigOkL`: the loop's heap signature, its mode signature's translated field by field (`sigOkLP`'s bounds
+    with the cells `ps` the tail call passes on, if given)."""
     for f in ('ret', 'postP', 'postLP', 'preP', 'retV', 'postT', 'postC'):
         if G[f]:
             raise No('own ' + f)
@@ -80,9 +96,10 @@ def own_sig(G, np):
     h.term = [(I.base(0), ei)]
     h.ctr, h.bnd = 0, (('num', ei[1]) if not ei[0] else 1)
     h.pre = [mono(G, np, m) for m in G['pre']]
-    h.preR = [run(G, np, r) for r in G['preR']]
+    post_ps = None if ps is None else exp_cells(G)
+    h.preR = [run(G, np, r, ps) for r in G['preR']]
     h.post = [mono(G, np, m) for m in G['post']]
-    h.postR = [run(G, np, r) for r in G['postR'] + G['postL']]
+    h.postR = [run(G, np, r, post_ps) for r in G['postR'] + G['postL']]
     if len(set(h.pre)) != len(h.pre) or len(set(h.preR)) != len(h.preR):
         raise No('duplicate precondition')
     return h

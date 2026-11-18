@@ -49,17 +49,22 @@ def infer_one(k, S):
         raise No('no self cell')
     if 0 not in G['entry'] or 1 not in G['entry']:
         raise No('header')
-    if any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch', 'frameAddr') for s in body):
+    # `CoreMode.LoopOkC.rdFree`: a range check or `touch` reads memory only with no pointer fact on the path
+    # (`noPtrL`, checked below); no `frameAddr`
+    mem_read = any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch') for s in body)
+    if any(s[0] == 'a' and s[1][0] == 'frameAddr' for s in body) or (mem_read and (G['preP'] or G['postLP'])):
         raise No('memory read')
+    # `CoreMode.tailPass`: the parameters' cells the tail call passes on unchanged
+    ps = [2 + b for b, a in enumerate(body[-2][3]) if a == params[b]]
     G2 = dict(G)
     G2['preP'], G2['postLP'] = [], []
-    own = loopc.own_sig(G2, np)
+    own = loopc.own_sig(G2, np, ps)
     # `sigOkLP`: the loop's pointer runs, its preconditions' and its loop's, translated, offsets as they are
-    for f, src in (('prePR', G['preP']), ('postPR', G['postLP'])):
+    for f, src, kps in (('prePR', G['preP'], ps), ('postPR', G['postLP'], loopc.exp_cells(G))):
         for r, offs in src:
             if list(offs) != sorted(set(offs)):
                 raise No('offsets')
-            getattr(own, f).append((loopc.run(G, np, r), tuple(offs)))
+            getattr(own, f).append((loopc.run(G, np, r, kps), tuple(offs)))
     if any(p[0] not in own.preR for p in own.prePR) or any(p[0] not in own.postR for p in own.postPR):
         raise No('own pointer run cells')
     if I.loop_params(k)[0] != 0:
@@ -91,6 +96,8 @@ def infer_one(k, S):
                 h.postR.append(q)
         if h.postP or any(p[0] not in h.postR for p in h.postPR):
             raise No('callee pointer run cells')
+        if mem_read and h.postPR:
+            raise No('memory read')
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h

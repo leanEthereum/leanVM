@@ -143,6 +143,14 @@ noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
   | .call g _ _ => (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
   | _ => true
 
+/-- **No pointer fact on the loop's path**: no pointer run of its own, no callee's pointer run (its pointer
+cells excluded by `calleePtrOk`): the heap facts read the memory through no reader. -/
+noncomputable def noPtrL (Cf : CFun) : Bool :=
+  Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty &&
+    (stmtsOf Cf.fn.body).all fun s ↦ match s with
+      | .call g _ _ => (Cf.sigOf g).postPR.isEmpty
+      | _ => true
+
 /-- **Each call of the body** (not its tail `callIf`) checked by `callChk`. -/
 noncomputable def callsBL (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
@@ -168,14 +176,14 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   body : loopBC Cf.fn = true
   calls : callsBL Cf = true
   top : Cf.fn.body.all topOk = true
-  rdFree : (stmtsOf Cf.fn.body).all rdFree = true
+  rdFree : ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true
   cptr : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true
   ders : Cf.H.ders = []
   nofa : noFA Cf.fn.body = true
   code : loopCodeC Cf K.code = true
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : envOk Cf.frame = true ∧ armsOk Cf.frame = true ∧ FrameAcc Cf.frame K.code
-  sig : sigOkLP K.F.sig Cf.H.sig Cf.fn.params.length = true
+  sig : sigOkLP K.F.sig Cf.H.sig Cf.fn.params.length (tailPass Cf.fn.body) = true
   shape : loopShapeOkC Cf = true
   sigE : K.E.sigs.get K.F.entry = some K.F.sig
   fsig : Cf.frame.sig = K.F.sig
@@ -358,7 +366,8 @@ theorem atom_holds_swap {rd rd' : Reader} {σ : Val} {a : Atom} (hf : rdFree (.a
 
 /-- **The path's events hold at a reader agreeing with the reference at the cells written at the tail
 call.** -/
-theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : MemoryImage κ} {m : Mem} {rd : Reader}
+theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) (hrf : (stmtsOf Cf.fn.body).all rdFree = true)
+    {img : MemoryImage κ} {m : Mem} {rd : Reader}
     {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
     (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
@@ -391,7 +400,7 @@ theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memo
   have h := hh0 e he
   cases e with
   | atom a =>
-    refine atom_holds_swap (List.all_eq_true.mp hok.rdFree _ (hatoms a he)) (fun d p off ha ↦ ?_) h
+    refine atom_holds_swap (List.all_eq_true.mp hrf _ (hatoms a he)) (fun d p off ha ↦ ?_) h
     subst ha
     have hin : Ev.atom (.load d p off) ∈ pre ++ evs := by
       rw [heq, ← List.append_assoc] at he
@@ -440,6 +449,62 @@ theorem writtenC_swap {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {�
           exact hW x (Or.inr ⟨_, he, Or.inr (Or.inr ⟨p, hp, b, hb', w, hw, o, ho, hx⟩)⟩)
     | _ => cases hwe
 
+/-- **Written, through no reader**: with no pointer fact of the signature's or the calls' callees', the
+cells the events write are the same through any reader. -/
+theorem writtenC_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ : Val} {ws0 : List E}
+    {es : List Ev} (hpP : H.sig.preP = []) (hpPR : H.sig.prePR = [])
+    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = []) {x : K}
+    (h : WrittenC sigOf H rd σ ws0 es x) : WrittenC sigOf H rd' σ ws0 es x := by
+  rcases h with (hS | hP) | ⟨e, he, hwe⟩
+  · exact Or.inl (Or.inl hS)
+  · rcases hP with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
+    · rw [hpP] at hp; cases hp
+    · rw [hpPR] at hp; cases hp
+  · cases e with
+    | atom a => exact Or.inr ⟨.atom a, he, hwe⟩
+    | call f a r =>
+      obtain ⟨h1, h2⟩ := hc f a r he
+      rcases hwe with hS | hP
+      · exact Or.inr ⟨_, he, Or.inl hS⟩
+      · rcases hP with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
+        · rw [h1] at hp; cases hp
+        · rw [h2] at hp; cases hp
+    | _ => cases hwe
+
+/-- `PostOkW` through no reader (`writtenC_rd`), no pointer guarantee of the signature's. -/
+theorem postOkW_rd {sigOf : String → HSig} {H : HCert} {rd rd' : Reader} {σ : Val} {ws0 : List E}
+    {es : List Ev} {vs : List V} (hpP : H.sig.preP = []) (hpPR : H.sig.prePR = []) (hqP : H.sig.postP = [])
+    (hqPR : H.sig.postPR = [])
+    (hc : ∀ f a r, Ev.call f a r ∈ es → (sigOf f).postP = [] ∧ (sigOf f).postPR = [])
+    (h : PostOkW sigOf H rd σ ws0 es vs) : PostOkW sigOf H rd' σ ws0 es vs := by
+  refine ⟨⟨fun c hc' ↦ writtenC_rd hpP hpPR hc (h.1.1 c hc'), fun r hr x hx ↦ writtenC_rd hpP hpPR hc
+    (h.1.2 r hr x hx)⟩, fun x hx ↦ ?_⟩
+  rcases hx with ⟨p, hp, -⟩ | ⟨p, hp, -⟩
+  · rw [hqP] at hp; cases hp
+  · rw [hqPR] at hp; cases hp
+
+/-- **The entry runs' bound cells hold powers of `g`** in a memory agreeing with the reference, the
+entry cells written. -/
+theorem expM_of {img : MemoryImage κ} (hκ : κ ≤ 28) {m : Mem} (ha : Agree m (refMem img)) {fp : ℕ}
+    (hfp : fp < maxCells) {G : Mode.Sig} (hx : ExpW img (expCells G) fp)
+    (hw : ∀ o ∈ G.entry, m.written (fp + o) = true) (ps : List ℕ) : ExpM G ps (stOf m fp) := by
+  intro o h1 _ h3 h4
+  obtain ⟨e, he, hr⟩ := hx o h1
+  obtain ⟨u, hu⟩ := Mem.get_of_written (hw o h3)
+  exact ⟨e, he, by rw [show (stOf m fp).mem = m from rfl, show (stOf m fp).fp = fp from rfl, hu,
+    rd_getA hκ ha hfp h4 hr hu]⟩
+
+/-- **The next frame's cells a call passes on hold the same powers of `g`.** -/
+theorem expM_next {img : MemoryImage κ} (hκ : κ ≤ 28) {m : Mem} (ha : Agree m (refMem img)) {fp fp' : ℕ}
+    (hfp' : fp' < maxCells) {G : Mode.Sig} (hx : ExpW img (expCells G) fp)
+    (hw' : ∀ o ∈ G.entry, m.written (fp' + o) = true) {ps : List ℕ} (hpass : ∀ o ∈ ps, Rd img fp' o = Rd img fp o) :
+    ExpM G ps (stOf m fp') := by
+  intro o h1 h2 h3 h4
+  obtain ⟨e, he, hr⟩ := hx o h1
+  obtain ⟨u, hu⟩ := Mem.get_of_written (hw' o h3)
+  exact ⟨e, he, by rw [show (stOf m fp').mem = m from rfl, show (stOf m fp').fp = fp' from rfl, hu,
+    rd_getA hκ ha hfp' h4 ((hpass o h2).trans hr) hu]⟩
+
 /-- **This iteration returns what the next one does** (`Back`): the heap facts of its path taken again
 at the reader of the later memory (`memRd m' img.read`), its path's events holding there (each
 `load`'s cell written at the tail call), the pointer cells its writes before the tail call name written
@@ -452,7 +517,8 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x)
     (hPN : ParAt K.F.sig Cf.fn.params.length (stOf s'.mem s'.fp) (args.map σ0))
     (hP0 : ParAt K.F.sig Cf.fn.params.length (stOf s.mem s.fp) (Cf.fn.params.map σ0))
-    (hT : TermAt s.mem s.fp K.F.sig) (hcs : ∀ a ∈ cs, stopL a = false) :
+    (hT : TermAt s.mem s.fp K.F.sig) (hX : ExpM K.F.sig (expCells K.F.sig) (stOf s'.mem s.fp))
+    (hcs : ∀ a ∈ cs, stopL a = false) :
     Back s'.mem K.F.sig s1.fp s'.fp := by
   intro m' hm' _ _ hR
   have hs := sigLP_of hok.sig
@@ -492,8 +558,26 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
           obtain ⟨rfl, -, -⟩ := he
           rw [hsigf]
           exact ⟨hs.hpostP, hs.inPost⟩
-  have hhB := holds_memRd hok hb hh0 heq hWc hcs hsame
-  obtain ⟨-, hposts⟩ := loopC_heap hok hb hhB hP0 hT
+  have hposts : PostOkW Cf.sigOf Cf.H (memRd m' img.read) σ0 (Cf.fn.params.map σ0) (pre ++ es) [] := by
+    rcases Bool.or_eq_true_iff.mp hok.rdFree with hrf | hnp
+    · exact (loopC_heap hok hb (holds_memRd hok hrf hb hh0 heq hWc hcs hsame) hP0 hT).2
+    · simp only [noPtrL, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hnp
+      obtain ⟨⟨hpPR, hqPR⟩, hcPR⟩ := hnp
+      refine postOkW_rd hs.hpreP hpPR hs.hpostP hqPR (fun f a r he ↦ ⟨(hcalls f a r he).1, ?_⟩)
+        (loopC_heap hok hb hh0 hP0 hT).2
+      rw [hev] at he
+      rcases List.mem_append.mp he with he | he
+      · have hm : Stmt.call f a r ∈ stmtsOf Cf.fn.body := by
+          rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
+        simpa using hcPR _ hm
+      · simp only [List.mem_cons, List.not_mem_nil, or_false] at he
+        rcases he with he | he
+        · cases he
+        · by_cases hc : σ0 c0 = 0
+          · simp only [hc, ↓reduceIte] at he; cases he
+          · simp only [hc, ↓reduceIte, Ev.call.injEq] at he
+            obtain ⟨rfl, -, -⟩ := he
+            rw [hsigf]; exact hqPR
   simp only [PostOkW, List.map_nil, List.append_nil] at hposts
   -- what the path writes, at the later memory's reader
   have hWB := writtenC_swap (es := pre ++ evs) hWc hsame hs.hpreP hs.inPre fun f a r he ↦
@@ -515,6 +599,7 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
   have hP1 : ParAt K.F.sig Cf.fn.params.length (stOf m' s1.fp) (Cf.fn.params.map σ0) :=
     hP0.mono (s := stOf s.mem s.fp) (s' := stOf m' s1.fp) (Mem.le_trans hle hm') hfp1
   exact retAll_of_wrkP hs hP1 (fun p hp ↦ by rw [hfp1]; exact Mode.LTF.mem (Mem.le_trans hle hm') (hT p hp))
+    (by rw [hfp1]; exact hX.mono (s := stOf s'.mem s.fp) (s' := stOf m' s.fp) hm' rfl)
     (fun c hc ↦ hWall _ (hposts.1.1 c hc)) (fun r hr x hx ↦ hWall x (hposts.1.2 r hr x hx))
     (rdM_memRd m' img.read) fun x hx ↦ hWall x (hposts.2 x hx)
 
@@ -537,7 +622,8 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hnargs : ∀ k (hk : k < args.length), Rd img (s.fp + S) (2 + k) = some (σ0 args[k]))
     (hargs : args.length = Cf.fn.params.length)
     (hP0 : ParAt K.F.sig Cf.fn.params.length (stOf s.mem s.fp) (Cf.fn.params.map σ0))
-    (hT : TermAt s.mem s.fp K.F.sig) (hcs : ∀ a ∈ cs, stopL a = false) :
+    (hT : TermAt s.mem s.fp K.F.sig) (hX : ExpM K.F.sig (expCells K.F.sig) (stOf s'.mem s.fp))
+    (hXN : ExpM K.F.sig (tailPass Cf.fn.body) (stOf s'.mem s'.fp)) (hcs : ∀ a ∈ cs, stopL a = false) :
     s'.pc = K.F.entry ∧ (∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true) ∧
       (∀ o < 2, ∃ u, s'.mem.get (s1.fp + o) = some u ∧ s'.mem.get (s'.fp + o) = some u) ∧
       Back s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
@@ -553,7 +639,7 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
       simpa using hnargs b hba
   have hsigf : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hb0 : s.fp < 2 ^ 28 := by unfold maxCells at hfp0; omega
-  refine ⟨hpc', hwN, fun o ho ↦ ?_, back_nextC hok hκ hfp1 hle hf' hu' hb hh0 heq hWc hPN hP0 hT hcs, ?_⟩
+  refine ⟨hpc', hwN, fun o ho ↦ ?_, back_nextC hok hκ hfp1 hle hf' hu' hb hh0 heq hWc hPN hP0 hT hX hcs, ?_⟩
   · -- the header copied
     have hwo : ∀ o ∈ K.F.sig.entry, s'.mem.written (s1.fp + o) = true := fun o ho ↦ by
       rw [hfp1]; exact written_mono hle (hwE o ho)
@@ -572,7 +658,7 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
       rw [← List.length_eq_zero_iff]
       simp only [gargsW, List.length_map, hreq.1, hsigf, hs.hghost]
     rw [hsigf, hga, List.append_nil] at hreqS hreqP
-    obtain ⟨hpreN, hpreRN, hprePN⟩ := entry_of_preP hs hPN hTN
+    obtain ⟨hpreN, hpreRN, hprePN⟩ := entry_of_preP hs hPN hTN hXN
       (W := WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs ++ [Ev.inK c]))
       (fun x hx ↦ hWc x (writtenC_noAtom (fun a h ↦ by cases h) (fun f a r h ↦ by cases h) hx)) hreqS hreqP
       (rdM_img hκ hf'.agree hu')
@@ -1229,7 +1315,11 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           simp only [PostOkW, List.map_nil, List.append_nil] at hposts
           have hu1 : s1.mem.used ≤ 2 ^ κ := le_trans hle'.used
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e')
-          exact retAll_of_wrkP hs (hP1 hσ0) hT1 (fun c hc ↦ W1 _ (hposts.1.1 c hc))
+          have hX1 : ExpM K.F.sig (expCells K.F.sig) (stOf s1.mem s1.fp) := by
+            rw [hm.fp]
+            exact expM_of hκ hm.fine.agree hs0.fp (hok.fsig ▸ hxw)
+              (fun o ho ↦ written_mono hm.le (hwE o ho)) _
+          exact retAll_of_wrkP hs (hP1 hσ0) hT1 hX1 (fun c hc ↦ W1 _ (hposts.1.1 c hc))
             (fun r hr x hx ↦ W1 x (hposts.1.2 r hr x hx)) (rdM_img hκ hm.fine.agree hu1)
             fun x hx ↦ W1 x (hposts.2 x hx)
       · -- the tail call
@@ -1293,7 +1383,14 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
             (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
-            hargs (hPs hσ0) hT hcs
+            hargs (hPs hσ0) hT
+            (expM_of hκ hf'.agree hs0.fp (hok.fsig ▸ hxw) (fun o ho ↦ written_mono hle (hwE o ho)) _)
+            (expM_next hκ hf'.agree hf'.fp (hok.fsig ▸ hxw) (fun o ho ↦ hentry.w o (hok.fsig ▸ ho))
+              fun o ho ↦ by
+                obtain ⟨k, rfl, hk⟩ := tailPass_spec hbody ho
+                have hkl : k < args.length := (List.getElem?_eq_some_iff.mp hk).1
+                rw [hfpS, hnargs k hkl, show args[k] = V.n k from (List.getElem?_eq_some_iff.mp hk).2,
+                  ← hσ0.par k (by omega)]) hcs
         cases hjo with
         | ret _ _ hr =>
           obtain ⟨c', hc'⟩ := hr

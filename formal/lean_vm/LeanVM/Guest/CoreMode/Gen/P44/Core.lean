@@ -817,7 +817,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L11_L17_L5_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
   decide +kernel
 
 /-- `level_positions__L11_L17_L5_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -886,7 +886,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L4_L13_L7_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
   decide +kernel
 
 /-- `level_positions__L4_L13_L7_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1085,7 +1085,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L5_L20_L2_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
   decide +kernel
 
 /-- `level_positions__L5_L20_L2_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1154,7 +1154,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L5_L22_L4_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
   decide +kernel
 
 /-- `level_positions__L5_L22_L4_loop0`: its code, its calls' jumps and its last two instructions. -/
@@ -1357,7 +1357,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0`: its signature translated. -/
-theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by
+theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0`: its code, its calls' jumps and its last two instructions. -/
