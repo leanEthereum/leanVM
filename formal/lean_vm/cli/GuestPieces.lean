@@ -517,7 +517,7 @@ partial def pStmt : Stmt → String
   | .ret vs => s!"(.ret {pVs vs})"
 
 def pKind : Kind → String
-  | .cell => ".cell" | .pooled => ".pooled" | .site => ".site" | .addr => ".addr"
+  | .cell => ".cell" | .pooled => ".pooled" | .unnamed => ".unnamed" | .addr => ".addr"
   | .ret => ".ret" | .padRun => ".padRun" | .spongeRun => ".spongeRun"
 
 def pEvent : Event → String

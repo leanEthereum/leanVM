@@ -691,7 +691,7 @@ theorem onAlloc_grows {vs : List V} {kind : Kind} (up : List Stmt)
   | cell => exact takeRun_grows vs n st hg
   | pooled => exact GrowsAt.quiet hg rfl rfl rfl rfl (fun _ h => h) trivial
   | addr => exact GrowsAt.quiet hg rfl rfl rfl rfl (fun _ h => h) trivial
-  | site => exact GrowsAt.ofPure hg trivial
+  | unnamed => exact GrowsAt.ofPure hg trivial
   | ret =>
       refine GrowsAt.read_bind (GrowsAt.ofSame hg ?_)
       refine bindRun_same hg fun k hk => ⟨by omega, ?_⟩

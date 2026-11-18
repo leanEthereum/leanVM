@@ -837,7 +837,7 @@ theorem allocsOf_right {vs : List V} {k : Kind} {es : List Event} :
 
 /-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a message run not read in
 place), a return area in return cells the constraint leaves free, a message run read in place
-whose copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.site`).
+whose copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.unnamed`).
 Apart from a return area, the cells the constraint leaves free stay free. -/
 theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Prop}
     (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
@@ -863,7 +863,7 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
   | addr =>
     exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb,
       fun _ h => Or.inl h⟩
-  | site => exact FAt.pure ⟨rfl, FlushR.refl hv, fun _ _ _ hb => hb, fun _ h => Or.inl h⟩
+  | unnamed => exact FAt.pure ⟨rfl, FlushR.refl hv, fun _ _ _ hb => hb, fun _ h => Or.inl h⟩
   | ret =>
     obtain ⟨hb, hbl⟩ := hret rfl
     refine FAt.read_bind (FAt.mono (bindRunAssign_fat vs _ hb fun Ψ k w hk h => hbl k hk Ψ w h)

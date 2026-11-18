@@ -11,6 +11,7 @@ module
 public import LeanVM.Core.Source
 public import LeanVM.Core
 public import LeanVM.Compiler.Trace
+public import LeanVM.Compiler.Unnamed
 
 /-!
 # Expansion
@@ -69,7 +70,10 @@ trace (`Compiler.Event`, `Compiler/Trace.lean`), each value made with its `Kind`
 emitted, each branch and arm entered and left, and what the core IR drops (an address used as a
 value, an address shifted, a chained `match`, a hint's offset); and beside it the source line of
 each statement begun (`St.lines`). Neither is read to decide a statement: `expandProgramTraced` is
-the back end's input, and `expandProgram`, its core functions, the same pass.
+the back end's input, and `expandProgram`, its core functions, the same pass. When a function is
+expanded, every value its core function never names is marked `Kind.unnamed` in its trace
+(`Compiler.markUnnamed`), so that it takes no frame cell, and its source lines move with the
+events (`Compiler.markLines`).
 -/
 
 namespace LeanVM.Core.Expand
@@ -1264,7 +1268,7 @@ def tryInline : Nat → String → List Expr → Option (List V) → M (Option (
       checkNotReserved p
       modify fun st => { st with names := (p, ⟨b, none⟩) :: st.names.filter (·.1 != p) }
     modify fun st => { st with inlineCalls := callee :: st.inlineCalls }
-    let site ← fresh .site
+    let site ← fresh .unnamed
     let savedLine := ((← get).lines.back?.map (·.2)).getD 0
     let bound ← withSeg (.i callee site.tag) do
       stmts n body
@@ -2004,7 +2008,8 @@ def expandQueue (p : Source.Program) : Nat → Nat → Array Func → Nat →
           else do
             let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Compiler.loopSource f, []⟩, lines))
+              (⟨fn, Compiler.markUnnamed fn trace, (f.returnShapes.map Shape.cells).sum,
+                Compiler.loopSource f, []⟩, Compiler.markLines fn trace lines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
 and what the back end reads of its source as queued (`Compiler.TracedFn`), and the source lines
