@@ -39,10 +39,11 @@ public section
 /-! ## Trees -/
 
 mutual
-/-- **The addresses a subtree writes**: an atom of an instance's path, or a callee's subtree's. -/
+/-- **The addresses a subtree writes**: an atom of an instance's path, or a frame run's cell of the path
+(`FAW`), or a callee's subtree's. -/
 @[expose] def treeWr (P : Program) : Tree → K → Prop
   | .node f σ _ kids, x => (∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧
-      ∃ a, Ev.atom a ∈ es ∧ Writes σ a x) ∨ kidsWr P kids x
+      ((∃ a, Ev.atom a ∈ es ∧ Writes σ a x) ∨ FAW σ es x)) ∨ kidsWr P kids x
   | .phantom .., _ => False
 
 /-- The addresses the callees' subtrees write. -/
@@ -265,7 +266,7 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
   have hng : noGhost fn = true := by
     unfold heapOkC at hok
     simp only [Bool.and_eq_true] at hok
-    exact hok.1.2
+    exact hok.1.1.2
   have hag : ∀ v ∈ Stmt.usesList fn.body ++ Stmt.tmpsList fn.body ++ fn.params, setG σ gw v = σ v :=
     fun v hv ↦ setG_eq (noGhost_idx hng hv)
   have hw' : walk (setG σ gw) fn.body = .ret es vs := by
@@ -319,13 +320,18 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
     unfold PostOkC at hpost
     rw [hvs'] at hpost
     refine ⟨fun hlen x hx ↦ ?_, hrm, hrv, hre⟩
-    have hW : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es x := by
+    have hW' : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (setG σ gw) (fn.params.map σ) es x ∨
+        FAW (setG σ gw) es x := by
       rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx
       · exact hpost.1.1 c hc
       · exact hpost.1.2 r hr x hx
       · exact hpost.2 x hx
+    rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩
+    rotate_left
+    · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩)
+      rw [cellAt, cellAt, hag _ hfa p (by simp [Ev.uses, atomUses])]
     have := written_tree hreads (T := treeWr P (.node f σ bufs kids))
-      (fun a x ha hx ↦ Or.inl ⟨fn, es, vs, hf, hw, a, ha, (writes_congr (fun v hv ↦ hag _ ha v hv) x).mp hx⟩)
+      (fun a x ha hx ↦ Or.inl ⟨fn, es, vs, hf, hw, Or.inl ⟨a, ha, (writes_congr (fun v hv ↦ hag _ ha v hv) x).mp hx⟩⟩)
       (fun g a r hg x hx ↦ ?_) es.length es [] le_rfl (by simp) x hW
     · rwa [ownG_setG hlen] at this
     obtain ⟨k, hk', hn, -, hkp⟩ := hkids _ (mem_calls_of_call hg) rfl

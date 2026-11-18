@@ -31,6 +31,11 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
+**Frame runs at return.** The certificate may list cells of `frameAddr` runs (`HCert.fas`): cell `i` of a
+`frameAddr p run` whose `run[i]` an atom defines (`atomDst`), both among the top-level atoms before the body's
+first `ret` (`topAtoms`, `faOk`), so on every path that returns. They are pushed as write events at each `ret`,
+for its guarantees only (`faCells`): the frame cell holding `run[i]` is written by then (`FAW`, `PostOkC`).
+
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
 
 Written for the kernel as milestone 1's: tries keyed by `ℕ`, states and cells handed on evaluated.
@@ -186,11 +191,37 @@ def ReqOk (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (W : K 
 def ReadsOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev) : Prop :=
   ∀ es1 e es2, es = es1 ++ e :: es2 → ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 es1) e
 
-/-- **The guarantees at return are written**, at the parameters' words `ws0` and the returned `vs`. -/
+/-- The values a hint's destination names in the frame. -/
+def destStack : Dest → List V
+  | .stack cs => cs
+  | .heap .. => []
+
+/-- **The values an atom defines in its frame**: a constant's, a sum's, a product's, a copy's, and a hint's
+frame destinations. -/
+def atomDst : Atom → List V
+  | .const d _ => [d]
+  | .add d _ _ => [d]
+  | .mul d _ _ => [d]
+  | .copy d _ => [d]
+  | .hint (.witness _ dst) => destStack dst
+  | .hint (.bits _ _ _ dst) => destStack dst
+  | .hint (.bitsExp _ _ dst) => destStack dst
+  | .hint (.digitsExp _ _ _ _ _ _ dst) => destStack dst
+  | .hint (.windowsExp _ _ _ _ dst) => destStack dst
+  | _ => []
+
+/-- **A frame run's cell at return**: the cell `p·g^i` of a `frameAddr p run` on the path, whose value
+`run[i]` an atom on the path defines (the frame cell holding it, written by then). -/
+def FAW (σ : Val) (es : List Ev) (x : K) : Prop :=
+  ∃ p run i v, Ev.atom (.frameAddr p run) ∈ es ∧ run[i]? = some v ∧ (∃ a, Ev.atom a ∈ es ∧ v ∈ atomDst a) ∧
+    x = cellAt σ p i
+
+/-- **The guarantees at return are written**, at the parameters' words `ws0` and the returned `vs`: by the
+events, or a frame run's cells (`FAW`). -/
 def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
     (vs : List V) : Prop :=
-  SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
-    PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ)
+  SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ)
 
 /-- **Returned words' monomials**: each `(k, c)` of the signature's `retM`, returned word `k` is
 `c`'s word at the parameters' words `ws0`. -/
@@ -504,13 +535,15 @@ structure CX where
   path : List CCond
   /-- The atoms whose equations are kept (`HCert.eqs`). -/
   eqk : Trie Unit
+  /-- The frame run cells guaranteed at return (`HCert.fas`). -/
+  fas : List (ℕ × ℕ)
 
 /-- Milestone 1's part. -/
 def CX.toH (X : CX) : HX := ⟨X.pows, X.R, X.pre⟩
 
 /-- The site under the further branch conditions `l`. -/
 def CX.ext (X : CX) (l : List CCond) : CX :=
-  ⟨X.pows, X.R, X.pre, X.C, X.T, X.res, X.dv, X.hv, X.ga, X.sigOf, X.sig, X.params, l ++ X.path, X.eqk⟩
+  ⟨X.pows, X.R, X.pre, X.C, X.T, X.res, X.dv, X.hv, X.ga, X.sigOf, X.sig, X.params, l ++ X.path, X.eqk, X.fas⟩
 
 /-- Two branch conditions are equal. -/
 def CCond.beq : CCond → CCond → Bool
@@ -1133,9 +1166,14 @@ def retEqC (E : List (CCell × CCell)) (ms : List CCell) (l : List (CCell × CCe
     | some a, some b => eqV E a b
     | _, _ => false
 
-/-- **A return**: the own guarantees at the parameters and the returned words, the returned words'
-monomials, and the words at return. -/
-noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
+/-- The cells of the frame runs guaranteed at return, `(kp, i)` the cell `V.n kp · g^i`, at the
+environment's monomials. -/
+noncomputable def faCells (env : Trie CCell) (fas : List (ℕ × ℕ)) : List CCell :=
+  fas.map fun p ↦ ((getF env p.1).getD (baseC p.1)).shift p.2
+
+/-- The own guarantees at the parameters and the returned words, the returned words' monomials, and the
+words at return. -/
+noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
   match monos st.env X.params, monos st.env vs, getF X.T st.nt with
   | some mp, some mv, some ws => match reqP X st (mp ++ mv) X.sig.post ws with
     | some ws1 => match reqR X st (mp ++ mv) X.sig.postR ws1 with
@@ -1148,6 +1186,11 @@ noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
       | none => false
     | none => false
   | _, _, _ => false
+
+/-- **A return**: the frame run cells guaranteed at return pushed (`faCells`, write events from the next
+point serial), then `retC1`. -/
+noncomputable def retC (X : CX) (st0 : CSt) (vs : List V) : Bool :=
+  (pushL (faCells st0.env X.fas) st0).seq fun st ↦ retC1 X st vs
 
 /-- A read of the cell `c` into `d`, `d` listed (`HCert.hvs`), whose witness is a load event of that
 very cell: `d`'s first monomial the word stored there (memory is written once). -/
@@ -1470,18 +1513,47 @@ noncomputable def keysT : List ℕ → Trie Unit → Trie Unit
 depend on its ghost words. -/
 def noGhost (f : Fn) : Bool := (Stmt.usesList f.body ++ Stmt.tmpsList f.body ++ f.params).all fun v ↦ Nat.blt v.idx GB
 
+/-- **The top-level atoms before a block's first `ret`**: on every path through the block that returns. -/
+def topAtoms : List Stmt → List Atom
+  | [] => []
+  | s :: ss => bif Memory.Stmt.noRet s then
+      (match s with
+        | .atom a => a :: topAtoms ss
+        | _ => topAtoms ss) else []
+
+/-- The value numbers the atoms define (`atomDst`), as a trie. -/
+noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
+
+/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number). -/
+noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
+  | .frameAddr p run => (match vnum p with
+      | some k => Nat.beq k kp
+      | none => false) && (match run[i]? with
+      | some v => match vnum v with
+        | some k => (getF D k).isSome
+        | none => false
+      | none => false)
+  | _ => false
+
+/-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
+`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`). -/
+noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
+  | [] => true
+  | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l
+
 /-- **The heap check with calls and loops.** The parameters `V.n i`, the preconditions over them, no
 ghost value named, the entry state, then the pass over the body, or a loop helper's
 (`term = [(.val 0, end)]`, no returned word). -/
 noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) && noGhost f &&
+    faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
       (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
-        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ with
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas⟩ with
         | some st0 => match H.sig.term with
-          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ f.body st0).isSome
-          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩ f ei st0
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas⟩ f.body st0).isSome
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas⟩ f ei st0
           | _ => false
         | none => false
 

@@ -23,9 +23,6 @@ to `Sᵢ₊₁` (`CSt` with `DecidableEq`), that they contain no `ret`, and that
 (`headOk`) decides the rest of `heapOkC` for a loop helper: the parameters, the shape of the tail, the entry
 state `S₀`; the tail (`tailOk`), the tail call and the guarantees at `ret []` from `Sₙ`. `heapOkC_of_wins`
 assembles them.
-
-A `match` too large for one window splits by arms the same way (`armsOk`, `chkArmsC_of_arms`): each arm's pass
-from the state before the `match` with the serials so far, its end state stated.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -70,7 +67,7 @@ end
 noncomputable def cxOf (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : CX :=
   ⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
     trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
-    keysT H.eqs .nil⟩
+    keysT H.eqs .nil, H.fas⟩
 
 /-- `k (cxOf pows sigOf f H)`, the context's tries evaluated first (as `heapOkC` does). -/
 noncomputable def withCx {β : Type} (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (k : CX → β) :
@@ -78,7 +75,7 @@ noncomputable def withCx {β : Type} (pows : PowTree) (sigOf : String → HSig) 
   H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
     (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦
       (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
-        k ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ⟩
+        k ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas⟩
 
 theorem withCx_eq {β : Type} (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (k : CX → β) :
     withCx pows sigOf f H k = k (cxOf pows sigOf f H) := by
@@ -327,7 +324,7 @@ noncomputable def mkCSt (env sc : List (ℕ × CCell)) (rs : List (ℕ × PRun))
 
 /-- **The head of a loop helper's check**: the parameters, the preconditions over them, the termination
 fact `[(.val 0, ei)]`, no `retM`/`postV`/`retEq`, the tail's shape (`loopTail`), the parameters and the two
-tail statements naming no ghost, the windows reaching past the body (`N`), and the entry state `S₀`. -/
+tail statements naming no ghost, the frame run cells at return (`faOk`), the windows reaching past the body (`N`), and the entry state `S₀`. -/
 noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (ei : CIdx) (N : ℕ)
     (S0 : CSt) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
@@ -335,6 +332,7 @@ noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
     decide (H.sig.term = [(.val 0, ei)]) &&
     H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty &&
     f.params.all okV && noGhostL (f.body.drop (f.body.length - 2)) &&
+    faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
     (match endOf ei with
       | some endc => (loopTail f endc).isSome
       | none => false) &&
@@ -358,7 +356,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
     (ht : tailOk pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
   simp only [headOk, Bool.and_eq_true, decide_eq_true_eq, withCx_eq] at hh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpok⟩, hng2⟩, hlt⟩, hN⟩, hinit⟩ := hh
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
   obtain ⟨hc, hnr, hng, -⟩ := winsOk_chain l 0 S0 hw
   rw [hl] at hc hnr hng
   simp only [List.drop_zero, Nat.sub_zero] at hc hnr hng
@@ -373,11 +371,11 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     exact ⟨⟨h1.1, h1.2⟩, hpok⟩
   unfold heapOkC
   simp only [Bool.and_eq_true]
-  refine ⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hghost⟩, ?_⟩
+  refine ⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hghost⟩, hfa⟩, ?_⟩
   simp only [Trie.seq_eq]
   have hX : (⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
       trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
-      keysT H.eqs .nil⟩ : CX) = cxOf pows sigOf f H := rfl
+      keysT H.eqs .nil, H.fas⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
   simp only [Bool.and_eq_true]
   refine ⟨⟨⟨hrm, hpv⟩, hre⟩, ?_⟩

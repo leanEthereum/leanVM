@@ -192,6 +192,9 @@ structure HCert where
   /-- Atoms whose equation the pass keeps, by value number: a `mul d a b` by `d` (`d`'s monomial is
   `a`'s times `b`'s), an `assertEq a b` by `a`, a `copy d s` by `d`. -/
   eqs : List ℕ := []
+  /-- Frame run cells guaranteed at return, `(kp, i)`: cell `i` of a `frameAddr (V.n kp) run` among the
+  top-level atoms before the body's first `ret`, `run[i]` defined by one of them (`HeapC.lean`, `faOk`). -/
+  fas : List (ℕ × ℕ) := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/
