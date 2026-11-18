@@ -78,6 +78,8 @@ inductive CRes where
   | nz (v : ℕ)
   /-- The cell is one of the run's. -/
   | sub (c : CCell) (r : CRun)
+  /-- Every cell of the first run is one of the second's. -/
+  | subR (q r : CRun)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **Why a read's cell is written.** -/

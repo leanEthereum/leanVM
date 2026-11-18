@@ -209,6 +209,22 @@ def hUseFill : HCert where
 
 theorem useFill_ok : heapOkC Data.powTree sigs useFill hUseFill = true := by decide +kernel
 
+/-- The same read by a residual `sub` (the cell is one of the run's), and `readAll`'s `preR` by a `subR`. -/
+theorem useFill_sub :
+    heapOkC Data.powTree sigs useFill { hUseFill with
+      reads := [(3, [(1, 3, .run 0 [0])])]
+      res := [.sub ⟨[(1, 1)], 3⟩ ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 0⟩,
+        .subR ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 0⟩ ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 0⟩]
+      calls := [[], [.run 0 [1]]] } = true := by
+  decide +kernel
+
+/-- A `sub` residual of another cell does not place it. -/
+theorem useFill_subBad :
+    heapOkC Data.powTree sigs useFill { hUseFill with
+      reads := [(3, [(1, 3, .run 0 [0])])]
+      res := [.sub ⟨[(1, 1)], 4⟩ ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 0⟩] } = false := by
+  decide +kernel
+
 /-- Without the residual the index is not known in the run. -/
 theorem useFill_bad : heapOkC Data.powTree sigs useFill { hUseFill with reads := [(3, [(1, 3, .run 0 [])])] } = false := by
   decide +kernel

@@ -690,9 +690,58 @@ theorem facts_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : X
       cases c with
       | lt a b =>
         cases hi
-        exact (ltF_congr (idxF_val he _) (idxF_val he _)).mpr (hX.resF a b (hX.res i _ hr))
+        exact (ltF_congr (idxF_val he _) (idxF_val he _)).mpr (hX.resF.1 a b (hX.res i _ hr))
       | nz => cases hi
       | sub => cases hi
+      | subR => cases hi
+
+theorem PRun.beq_eq {a b : PRun} (h : a.beq b = true) : a = b := by
+  unfold PRun.beq at h
+  simp only [Bool.and_eq_true] at h
+  obtain ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩ := h
+  obtain ⟨b1, s1, l1, h1⟩ := a
+  obtain ⟨b2, s2, l2, h2⟩ := b
+  simp only at e1 e2 e3 e4
+  rw [CCell.beq_eq e1, Nat.eq_of_beq_eq_true e2, CCell.beq_eq e3, CCell.beq_eq e4]
+
+theorem runF_set {env : Trie CCell} (he : EnvOk σ env) (r : CRun) {x : K} :
+    RunSet (vw σ) (runF env r).base (runF env r).stride (runF env r).lo (runF env r).hi x ↔ r.Set (vw σ) x :=
+  runSet_congr rfl (idxF_val he _) (idxF_val he _)
+
+/-- **A residual placing a cell in a written run**: the cell written. -/
+theorem subPt_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H f σ X)
+    {env : Trie CCell} (he : EnvOk σ env) {F : List (CCell × CCell)} (hF : FOk (vw σ) F) {res : List ℕ}
+    {R : PRun} {c : CCell} (hR : RunF W (vw σ) R.base R.stride R.lo R.hi) (h : subPt X F env res R c = true) :
+    W (c.addr σ) := by
+  obtain ⟨i, -, hb⟩ := List.any_eq_true.mp h
+  split at hb
+  · rename_i c' r' hi
+    simp only [Bool.and_eq_true] at hb
+    rw [← PRun.beq_eq hb.2] at hR
+    rw [addr_eq, ← CCell.beq_eq hb.1]
+    exact hR _ ((runF_set he r').mpr (hX.resF.2.1 c' r' (hX.res i _ hi)))
+  · rename_i q r' hi
+    simp only [Bool.and_eq_true] at hb
+    rw [← PRun.beq_eq hb.1] at hR
+    have hq := ptRun_ok (W := fun x ↦ RunSet (vw σ) (runF env q).base (runF env q).stride (runF env q).lo
+      (runF env q).hi x) hF (fun _ hx ↦ hx) hb.2
+    rw [addr_eq]
+    exact hR _ ((runF_set he r').mpr (hX.resF.2.2 q r' (hX.res i _ hi) _ ((runF_set he q).mp hq)))
+  · cases hb
+
+/-- **A residual placing a run in a written run**: the run written. -/
+theorem subRun_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H f σ X)
+    {env : Trie CCell} (he : EnvOk σ env) {res : List ℕ} {Q R : PRun}
+    (hR : RunF W (vw σ) R.base R.stride R.lo R.hi) (h : subRun X env res Q R = true) :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  obtain ⟨i, -, hb⟩ := List.any_eq_true.mp h
+  split at hb
+  · rename_i q r' hi
+    simp only [Bool.and_eq_true] at hb
+    rw [← PRun.beq_eq hb.1]
+    rw [← PRun.beq_eq hb.2] at hR
+    exact fun x hx ↦ hR _ ((runF_set he r').mpr (hX.resF.2.2 q r' (hX.res i _ hi) _ ((runF_set he q).mp hx)))
+  · cases hb
 
 /-- The cell the word under a cell was loaded from: that word at it. -/
 theorem srcOf_ok {st : CSt} (hs : StOk rd W σ st) {c a : CCell} (h : srcOf st c = some a) :
@@ -753,8 +802,10 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
     | none => rw [hr] at h; cases h
     | some R =>
       rw [hr] at h
-      rw [addr_eq]
-      exact ptRun_ok (facts_ok hX hs.env res) (hs.rs r R hr) h
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · rw [addr_eq]
+        exact ptRun_ok (facts_ok hX hs.env res) (hs.rs r R hr) h
+      · exact subPt_ok hX hs.env (facts_ok hX hs.env res) (hs.rs r R hr) h
   | pf n =>
     simp only [ptOk] at h
     cases hn : getF st.pf n with
@@ -803,7 +854,9 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
     | none => rw [hr] at h; cases h
     | some R =>
       rw [hr] at h
-      exact runRun_ok (facts_ok hX hs.env res) (hs.rs r R hr) h
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · exact runRun_ok (facts_ok hX hs.env res) (hs.rs r R hr) h
+      · exact subRun_ok hX hs.env (hs.rs r R hr) h
   | empty =>
     simp only [rnOk] at h
     exact fun x hx ↦ absurd hx (emptyR_ok h)

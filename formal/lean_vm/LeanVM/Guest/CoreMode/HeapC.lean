@@ -166,7 +166,9 @@ def EntryF (H : HCert) (ws0 : List E) : Prop := ∀ p ∈ H.sig.term, LtF (slotW
 
 /-- **The residuals' order facts hold** at the instance. -/
 def ResF (H : HCert) (σ : Val) : Prop :=
-  ∀ a b, CRes.lt a b ∈ H.res → LtF (vw σ) (idxC a) (idxC b)
+  (∀ a b, CRes.lt a b ∈ H.res → LtF (vw σ) (idxC a) (idxC b)) ∧
+  (∀ c r, CRes.sub c r ∈ H.res → r.Set (vw σ) (c.addrW (vw σ))) ∧
+  (∀ q r, CRes.subR q r ∈ H.res → ∀ x, q.Set (vw σ) x → r.Set (vw σ) x)
 
 /-! ## Monomials at a site -/
 
@@ -391,6 +393,23 @@ noncomputable def facts (X : CX) (env : Trie CCell) (res : List ℕ) : List (CCe
       | some (.lt a b) => some (idxF env a, idxF env b)
       | _ => none
 
+/-- A residual's run in the pass's monomials: bounds through the environment, as facts. -/
+noncomputable def runF (env : Trie CCell) (r : CRun) : PRun := ⟨r.base, r.stride, idxF env r.lo, idxF env r.hi⟩
+
+/-- **A residual placing the cell `c` in the run `R`**: `sub c R`, or `subR q R` with `c` a cell of `q`. -/
+noncomputable def subPt (X : CX) (F : List (CCell × CCell)) (env : Trie CCell) (res : List ℕ) (R : PRun)
+    (c : CCell) : Bool :=
+  res.any fun i ↦ match getF X.res i with
+    | some (.sub c' r') => c'.beq c && (runF env r').beq R
+    | some (.subR q r') => (runF env r').beq R && ptRun F (runF env q) c
+    | _ => false
+
+/-- **A residual placing the run `Q` in the run `R`**: `subR Q R`. -/
+noncomputable def subRun (X : CX) (env : Trie CCell) (res : List ℕ) (Q R : PRun) : Bool :=
+  res.any fun i ↦ match getF X.res i with
+    | some (.subR q r') => (runF env q).beq Q && (runF env r').beq R
+    | _ => false
+
 /-- The cell the word under the cell `c = b·g^o` was loaded from: `b`'s (`src`). -/
 noncomputable def srcOf (st : CSt) (c : CCell) : Option CCell :=
   match c.bases with
@@ -406,7 +425,7 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
     | some c' => c'.beq c
     | none => false
   | .run r res => match getF st.rs r with
-    | some R => ptRun (facts X st.env res) R c
+    | some R => ptRun (facts X st.env res) R c || subPt X (facts X st.env res) st.env res R c
     | none => false
   | .pf n => match getF st.pf n, srcOf st c with
     | some p, some a => a.beq p.1 && p.2.any (Nat.beq c.off)
@@ -427,7 +446,7 @@ def constR (Q : PRun) : Bool :=
 /-- **A witness of the run `Q`.** -/
 noncomputable def rnOk (X : CX) (st : CSt) (Q : PRun) : Wit → Bool
   | .run r res => match getF st.rs r with
-    | some R => runRun (facts X st.env res) Q R
+    | some R => runRun (facts X st.env res) Q R || subRun X st.env res Q R
     | none => false
   | .empty => emptyR Q
   | _ => false
