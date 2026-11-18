@@ -480,7 +480,8 @@ def hcert : CoreMode.HCert where
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
         ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(2, 1)], 8⟩, ⟨[(2, 1)], 9⟩, ⟨[(2, 1)], 10⟩, ⟨[(2, 1)], 11⟩],
       preR := [⟨⟨[(4, 1)], 0⟩, 2, (.num 0), (.num 109)⟩, ⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 109)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 2, (.num 0), (.num 109)⟩, ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩],
+        ⟨⟨[(5, 1)], 0⟩, 2, (.num 0), (.num 109)⟩, ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩,
+        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 218)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 218)⟩],
       postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 12)⟩, ⟨⟨[(4, 1)], 0⟩, 2, (.num 0), (.num 109)⟩,
         ⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 109)⟩, ⟨⟨[(5, 1)], 0⟩, 2, (.num 0), (.num 109)⟩,
         ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩],
@@ -495,8 +496,8 @@ def hcert : CoreMode.HCert where
         .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
         .ev 29, .ev 30, .ev 31, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]
-  rets := [[.run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 [], .pfr 11 [], .pfr 12 []]]
+        .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 6 [], .pfr 7 []]]
+  rets := [[.run 8 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .pfr 13 [], .pfr 14 []]]
 
 /-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

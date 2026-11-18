@@ -132,16 +132,24 @@ theorem slot_hw {s : St} {ws : List E} {m : Mode.Mono} {c : CCell} (hm : monoC m
   obtain ⟨x, hx, hw⟩ := names_wrk h
   exact ⟨_, x, monoVal_slot' hm hc, hx, hw⟩
 
+theorem addr_mod (n : ℕ) : addressOfIndex (n % (2 ^ 64 - 1)) = addressOfIndex n := by
+  show Parameters.g ^ _ = Parameters.g ^ _
+  rw [← orderOf_g, pow_mod_orderOf]
+
 theorem rngC_spec {r : Mode.Rng} {q : CRun} (h : rngC r = some q) :
-    ∃ a b c, r.lo = .num a ∧ r.hi = .num b ∧ a < 2 ^ 62 ∧ b < 2 ^ 62 ∧ monoC r.q = some c ∧
-      q = ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩ := by
+    ∃ a b c t o, r.lo = .num a ∧ r.hi = .num b ∧ a < 2 ^ 62 ∧ b < 2 ^ 62 ∧ monoC r.q = some c ∧ t ≤ a ∧
+      addressOfIndex o = addressOfIndex (c.off + r.d + r.S * t) ∧
+      q = ⟨⟨c.bases, o⟩, r.S, .num (a - t), .num (b - t)⟩ := by
   unfold rngC at h
   split at h
   · rename_i a b hlo hhi
     simp only [Bool.cond_eq_ite, Bool.and_eq_true, decide_eq_true_eq] at h
     split_ifs at h with hab
     obtain ⟨c, hc, rfl⟩ := Option.map_eq_some_iff.mp h
-    exact ⟨a, b, c, hlo, hhi, hab.1, hab.2, hc, rfl⟩
+    split_ifs with hd
+    · exact ⟨a, b, c, 0, c.off + r.d, hlo, hhi, hab.1, hab.2, hc, Nat.zero_le _, by simp, by simp⟩
+    · exact ⟨a, b, c, a, (c.off + r.d + r.S * a) % (2 ^ 64 - 1), hlo, hhi, hab.1, hab.2, hc, le_rfl, addr_mod _,
+        by simp⟩
   · cases h
 
 theorem valW_shiftc {w : ℕ → E} (c : CCell) (d : ℕ) :
@@ -166,37 +174,67 @@ theorem runSet_const {w : ℕ → E} {q : CRun} {a b : ℕ} (hlo : q.lo = .num a
 /-- **A run of constant bounds written is its heap run's cells written.** -/
 theorem rw_slot {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngC r = some q)
     (hc : SlotEq s ws r.q.bs) (h : RW s r) : ∀ x, q.Set (slotW ws) x → WrK s.mem x := by
-  obtain ⟨a, b, c, hlo, hhi, ha, hb, hmc, rfl⟩ := rngC_spec hr
+  obtain ⟨a, b, c, t, o, hlo, hhi, ha, hb, hmc, ht, ho, rfl⟩ := rngC_spec hr
   intro x hx
-  obtain ⟨j, h1, h2, rfl⟩ := (runSet_const rfl rfl ha hb).mp hx
+  obtain ⟨j, h1, h2, rfl⟩ := (runSet_const rfl rfl (by omega) (by omega)).mp hx
   obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
   rw [hlo] at hil
   rw [hhi] at hih
   simp only [IdxVal] at hil hih
   subst hil hih
-  obtain ⟨y, hy, hw⟩ := hall j h1 h2
+  obtain ⟨y, hy, hw⟩ := hall (j + t) (by omega) (by omega)
   rw [monoVal_slot hmc hc hv] at hy
-  have : (c.valW (slotW ws) * ofK (g ^ (r.S * j + r.d))) =
-      ((⟨c.bases, c.off + r.d⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * j))) := by
-    rw [valW_shiftc]
-    simp only [addressOfIndex, pow_add, ofK_mul']
+  have : (c.valW (slotW ws) * ofK (g ^ (r.S * (j + t) + r.d))) =
+      ((⟨c.bases, o⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * j))) := by
+    simp only [CCell.valW, ho]
+    simp only [addressOfIndex, pow_add, mul_add, ofK_mul']
     ring
   rw [this] at hy
   exact wrk_names hy hw
 
 theorem slot_rw {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngC r = some q)
     (hc : SlotGet s ws r.q.bs) (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) : RW s r := by
-  obtain ⟨a, b, c, hlo, hhi, ha, hb, hmc, rfl⟩ := rngC_spec hr
+  obtain ⟨a, b, c, t, o, hlo, hhi, ha, hb, hmc, ht, ho, rfl⟩ := rngC_spec hr
   refine ⟨_, a, b, monoVal_slot' hmc hc, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j h1 h2 ↦ ?_⟩
-  have hx := h _ ((runSet_const (q := ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩) rfl rfl ha hb).mpr
-    ⟨j, h1, h2, rfl⟩)
+  have hx := h _ ((runSet_const (q := ⟨⟨c.bases, o⟩, r.S, .num (a - t), .num (b - t)⟩) rfl rfl (by omega)
+    (by omega)).mpr ⟨j - t, by omega, by omega, rfl⟩)
   have : (c.valW (slotW ws) * ofK (g ^ (r.S * j + r.d))) =
-      ((⟨c.bases, c.off + r.d⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * j))) := by
-    rw [valW_shiftc]
-    simp only [addressOfIndex, pow_add, ofK_mul']
+      ((⟨c.bases, o⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * (j - t)))) := by
+    obtain ⟨j', rfl⟩ : ∃ j', j = j' + t := ⟨j - t, by omega⟩
+    simp only [Nat.add_sub_cancel, CCell.valW, ho]
+    simp only [addressOfIndex, pow_add, mul_add, ofK_mul']
     ring
   rw [this]
   exact names_wrk hx
+
+/-- **A stride-one run made of the mode signature's runs** (`runCov`), each of them written: its cells written. -/
+theorem rw_cov {s : St} {ws : List E} {G : Mode.Sig} {np : ℕ} {q : CRun} (h : runCov G np q = true)
+    (hc : ∀ r ∈ G.preR, monoS G np false r.q = true → SlotEq s ws r.q.bs) (hw : ∀ r ∈ G.preR, RW s r) :
+    ∀ x, q.Set (slotW ws) x → WrK s.mem x := by
+  unfold runCov at h
+  split at h
+  · rename_i m hlo hhi
+    simp only [Bool.and_eq_true, Nat.beq_eq, List.any_eq_true, List.all_eq_true, List.mem_range,
+      decide_eq_true_eq] at h
+    obtain ⟨⟨hS1, hm⟩, r0, -, ⟨hpos, hmod⟩, hall⟩ := h
+    intro x hx
+    obtain ⟨j, -, hj, rfl⟩ := (runSet_const hlo hhi (by norm_num) hm).mp hx
+    obtain ⟨r, hr, hmS, hri⟩ := hall (j % r0.S) (Nat.mod_lt _ hpos)
+    unfold rngIs at hri
+    split at hri
+    · rename_i q' hq'
+      obtain rfl := of_decide_eq_true hri
+      have hdvd : r0.S ∣ m := Nat.dvd_of_mod_eq_zero hmod
+      have hk : j / r0.S < m / r0.S := Nat.div_lt_div_of_lt_of_dvd hdvd hj
+      refine rw_slot hq' (hc r hr hmS) (hw r hr) _ ((runSet_const rfl rfl (by norm_num)
+        (lt_of_le_of_lt (Nat.div_le_self _ _) hm)).mpr ⟨j / r0.S, Nat.zero_le _, hk, ?_⟩)
+      have hj' : j = j % r0.S + r0.S * (j / r0.S) := (Nat.mod_add_div j r0.S).symm
+      simp only [strand, CCell.valW, hS1, one_mul]
+      conv_lhs => rw [hj']
+      simp only [addressOfIndex, pow_add, ofK_mul']
+      ring_nf
+    · cases hri
+  · cases h
 
 theorem runPts_spec {r : Mode.Rng} {l : List CCell} (h : runPts ⟨[], 0⟩ r = some l) :
     ∃ a b, r.lo = .num a ∧ r.hi = .num b ∧ ∀ p, p ∈ l ↔ ∃ j, a ≤ j ∧ j < b ∧ p = ⟨[], r.S * j + r.d⟩ := by

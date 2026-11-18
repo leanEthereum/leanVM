@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P62».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector_tab__L15»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector_tab__L15`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 248) (d := Data.adviceFn248) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L15»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L19_L7»
 
 open LeanVM.Guest LeanVM.Guest.Exec

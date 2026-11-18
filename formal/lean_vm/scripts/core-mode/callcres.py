@@ -102,7 +102,11 @@ def res_fam(k, r, G):
         c, n = r[1][1], r[2][1]
         if len(c[0]) != 1 or c[0][0][1] != 1 or not n < CAPE:
             return False
-        return any(x == c[0][0][0] and m + c[1] <= n for x, m in callc.top_sels(body))
+        if any(x == c[0][0][0] and m + c[1] <= n for x, m in callc.top_sels(body)):
+            return True
+        # `rc` likewise: `x` range checked against `g^(N - 1)`, `N + c <= n`
+        N = rc_bound(top_atoms(body), c[0][0][0])
+        return N is not None and N + c[1] <= n
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)

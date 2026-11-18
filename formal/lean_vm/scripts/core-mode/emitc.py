@@ -313,6 +313,16 @@ class Solver:
         for a2, x in self.fidx(st)[1].get(b, ()):
             if a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
                 return self.derive(st, a, b, x[1] if x else None)
+        if not b[0] and b[1] < C.CAPE:
+            # a constant bound a fact's smaller constant bound gives
+            for b2, x in self.fidx(st)[0].get(a, ()):
+                if not b2[0] and b2[1] <= b[1]:
+                    return self.derive(st, a, b, x[1] if x else None)
+            # `a = x·g^c` and a fact `e(x) < n`, `n + c <= b`
+            if a[0] and a[1]:
+                for b2, x in self.fidx(st)[0].get((a[0], 0), ()):
+                    if not b2[0] and b2[1] + a[1] <= b[1]:
+                        return self.derive(st, a, b, x[1] if x else None)
         return None
 
     def factC(self, st, k, b):

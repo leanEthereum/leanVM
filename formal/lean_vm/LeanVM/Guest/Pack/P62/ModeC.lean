@@ -123,6 +123,25 @@ end
 
 end LeanVM.Guest.Fn.«block_selector__L24»
 
+namespace LeanVM.Guest.Fn.«block_selector_tab__L15»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `block_selector_tab__L15`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `block_selector_tab__L15`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨204899, 44, Fn.«block_selector_tab__L15».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«block_selector_tab__L15»
+
 namespace LeanVM.Guest.Fn.«bus_grind_check__L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

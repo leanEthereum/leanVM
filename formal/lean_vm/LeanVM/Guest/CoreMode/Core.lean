@@ -312,12 +312,18 @@ def runPts (c : CCell) (r : Mode.Rng) : Option (List CCell) :=
   | .num a, .num b => some ((List.range (b - a)).map fun j ↦ ⟨c.bases, c.off + (r.S * (a + j) + r.d)⟩)
   | _, _ => none
 
-/-- **A run of constant bounds as a heap run** over slots. -/
+/-- **A run of constant bounds `[a, b)` as a heap run** over slots; one whose cell offset is `2^62` or more (a negative
+offset, modulo the order of `g`) starts at its first cell, over `[0, b - a)`. -/
 def rngC (r : Mode.Rng) : Option CRun :=
   match r.lo, r.hi with
   | .num a, .num b => bif decide (a < 2 ^ 62) && decide (b < 2 ^ 62) then
-      (monoC r.q).map fun c ↦ ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩ else none
+      (monoC r.q).map fun c ↦ bif decide (c.off + r.d < 2 ^ 62) then ⟨⟨c.bases, c.off + r.d⟩, r.S, .num a, .num b⟩
+        else ⟨⟨c.bases, (c.off + r.d + r.S * a) % (2 ^ 64 - 1)⟩, r.S, .num 0, .num (b - a)⟩ else none
   | _, _ => none
+
+/-- Strand `i` of a stride-one run of `S·n` cells: its cells `i, i + S, …`. -/
+def strand (q : CRun) (S n i : ℕ) : CRun := ⟨⟨q.base.bases, q.base.off + i⟩, S, .num 0, .num n⟩
+
 
 /-- The cell `c` is a point of the run of constant bounds `r`. -/
 def ptIn (c : CCell) (r : Mode.Rng) : Bool :=
@@ -510,9 +516,18 @@ def rngIs (r : Mode.Rng) (q : CRun) : Bool :=
   | some q' => decide (q' = q)
   | none => false
 
+/-- **A stride-one run `[0, S·n)` of constant bounds made of `S` runs of the mode signature** `G` of stride `S`, its
+strands (`strand`), each a run of constant bounds over the slots below `np`. -/
+def runCov (G : Mode.Sig) (np : ℕ) (q : CRun) : Bool :=
+  match q.lo, q.hi with
+  | .num 0, .num m => Nat.beq q.stride 1 && decide (m < 2 ^ 62) && G.preR.any fun r0 ↦ decide (0 < r0.S) && Nat.beq (m % r0.S) 0 &&
+      (List.range r0.S).all fun i ↦ G.preR.any fun r ↦ monoS G np false r.q && rngIs r (strand q r0.S (m / r0.S) i)
+  | _, _ => false
+
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
-signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`);
+signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`, or a
+stride-one run the signature's runs make up, `runCov`);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
 words a top-level `load` reads, among milestone 1's promised cells. -/
@@ -525,8 +540,9 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
     Cf.H.sig.pre.all (fun c ↦ G.pre.any (fun m ↦ monoS G np false m && monoIs m c) ||
       G.preR.any fun r ↦ monoS G np false r.q && ptIn c r) &&
-    Cf.H.sig.preR.all (fun q ↦ G.preR.any fun r ↦ (monoS G np false r.q && rngIs r q) ||
-      (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl np ·.1) && rngLIs Cf.gl r q)) &&
+    Cf.H.sig.preR.all (fun q ↦ (G.preR.any fun r ↦ (monoS G np false r.q && rngIs r q) ||
+      (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl np ·.1) && rngLIs Cf.gl r q)) ||
+      runCov G np q) &&
     G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
       | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m ||
@@ -802,6 +818,9 @@ def noFA (body : List Stmt) : Bool :=
     | .atom (.frameAddr ..) => false
     | _ => true
 
+/-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
+def noPost (h : HSig) : Bool := h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty
+
 /-- **The heap check of a function on the core route**: milestone 1's (`heapOk`, `postOk`, straight
 line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
 signatures `Cf.sigOf`, no termination fact, no callee's returned word's monomial; its residuals hold at
@@ -811,7 +830,7 @@ inductive HeapK (Cf : CFun) : Prop
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
-      Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → (noFA Cf.fn.body || noPost Cf.H.sig) = true → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
 def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=

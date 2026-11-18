@@ -27,36 +27,6 @@ end
 
 end LeanVM.Guest.Fn.«certify_placement»
 
-namespace LeanVM.Guest.Fn.«block_selector_tab__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector_tab__L5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 238) (d := Data.adviceFn238) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L5»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L23»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector_tab__L23`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 256) (d := Data.adviceFn256) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L23»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L26_L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec
