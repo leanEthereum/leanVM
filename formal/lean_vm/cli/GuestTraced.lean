@@ -48,7 +48,7 @@ def pList (items : List String) : String :=
 def pN (v : V) : String := s!".n {v.idx}"
 
 def pKind : Kind → String
-  | .cell => ".cell" | .pooled => ".pooled" | .site => ".site" | .addr => ".addr"
+  | .cell => ".cell" | .pooled => ".pooled" | .unnamed => ".unnamed" | .addr => ".addr"
   | .ret => ".ret" | .padRun => ".padRun" | .spongeRun => ".spongeRun"
 
 def pEvent : Event → String

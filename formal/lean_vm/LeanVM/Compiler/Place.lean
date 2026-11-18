@@ -402,7 +402,7 @@ def onAlloc (vs : List V) (kind : Kind) (upcoming : List Stmt) : P Unit := do
   match kind with
   | .cell => takeRun vs
   | .pooled | .addr => modify fun s => { s with lazy := vs.head?.map (·, kind) }
-  | .site => pure ()
+  | .unnamed => pure ()
   | .ret => bindRun vs (2 + (← read).argCells)
   | .padRun =>
       takeRun vs

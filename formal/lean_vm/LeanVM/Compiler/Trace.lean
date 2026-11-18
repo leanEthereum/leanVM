@@ -18,11 +18,10 @@ The core IR keeps a function's relations, not its frame. The Rust lowering
 (`Expand.fresh`, `Expand.freshRun`), and the core IR names a value only where a statement uses
 it. So the following are gone from the core IR, and each moves cells:
 
-* a cell no statement names: a `StackBuf` never read, the destination of an `@inline` call whose
-  return aliases a run or an address;
-* the declared length of a `StackBuf` whose last cells no statement names;
-* which values are no cell at all: the site of an `@inline` call (`Core.Seg.i`), an `addr`
-  pointer, the return area;
+* a value no statement names (a `StackBuf` cell never read, the destination of an `@inline` call
+  whose return aliases a run or an address, the site of an `@inline` call): the trace marks it
+  `Kind.unnamed` (`markUnnamed`) and it takes no cell, where the Rust lowering gave it one;
+* which values are no cell at all: an `addr` pointer, the return area;
 * which constants, sums, products and loads the lowering takes from a pool, and which it writes
   into a cell of their own (`const_cell` and `pure` against `expr_into`, `xor_byte`, an anchor);
 * when a cell is taken relative to the cells a statement takes for its own plumbing (a pooled
@@ -55,8 +54,9 @@ inductive Kind where
   /-- The result of `const_cell`, `pure` or a cached load: the pool's cell if the scope holds one,
   else the next free one, written by the statement that follows. -/
   | pooled
-  /-- The site of an `@inline` call: no cell. -/
-  | site
+  /-- A value no statement of the function names, such as the site of an `@inline` call
+  (`Core.Seg.i`): no cell. -/
+  | unnamed
   /-- An `addr` pointer: no cell, the frame pointer and an offset (`stack_addr`). -/
   | addr
   /-- The return area, which the frame holds past its arguments. -/
