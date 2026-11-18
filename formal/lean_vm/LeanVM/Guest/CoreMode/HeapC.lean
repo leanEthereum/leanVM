@@ -231,6 +231,14 @@ def DerOk (H : HCert) (rd : Reader) (σ : Val) : Prop :=
 theorem derOk_nil {H : HCert} (h : H.ders = []) (rd : Reader) (σ : Val) : DerOk H rd σ := fun k c hk ↦ by
   rw [h] at hk; cases hk
 
+/-- **The own parameter words are the ghosts'**: ghost `j` holds the word at the cell `c` of each `(c, j)` of
+`HSig.gw`, where there is one. -/
+def GwOk (G : HSig) (rd : Reader) (σ : Val) : Prop :=
+  ∀ c j, (c, j) ∈ G.gw → ∀ w, rd (c.addrW (vw σ)) = some w → vw σ (GB + j) = w
+
+theorem gwOk_nil {G : HSig} (h : G.gw = []) (rd : Reader) (σ : Val) : GwOk G rd σ := fun c j hc ↦ by
+  rw [h] at hc; cases hc
+
 theorem callDers_nil {H : HCert} (h : H.gargs = []) (g : String) (args : List V) : callDers H g args = [] := by
   simp [callDers, gargsOf, h, derKs, nubN]
 
@@ -1416,6 +1424,12 @@ noncomputable def hvDef (X : CX) (st : CSt) (c : CCell) (d : V) : Wit → CSt
     | none => st
   | _ => st
 
+/-- **A read of an own parameter word** (`HSig.gw`): `d`'s monomial its ghost's. -/
+noncomputable def gwDef (G : HSig) (st : CSt) (c : CCell) (d : V) : CSt :=
+  match vnum d, G.gw.find? fun p ↦ p.1.beq c with
+  | some k, some p => st.def k (baseC (GB + p.2))
+  | _, _ => st
+
 /-- A load's write event of the cell `c`, with its word's monomial; `c` the cell `d` was loaded
 from. -/
 noncomputable def loadPush (st : CSt) (c : CCell) (d : V) : CSt :=
@@ -1448,8 +1462,9 @@ cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`
 noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with
     | some m => (m.shift off).seq fun c ↦ match readWitT X.R d p off with
-      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush st1 c d) else none
-      | none => some (loadPush st c d)
+      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush (gwDef X.sig st1 c d) c d)
+          else none
+      | none => some (loadPush (gwDef X.sig st c d) c d)
     | none => none
   | .mul d a b => match divOf X st d a b, divOf X st d b a with
     | some p, _ => some (st.def p.1 p.2)

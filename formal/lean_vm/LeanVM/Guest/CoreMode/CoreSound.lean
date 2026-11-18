@@ -369,7 +369,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
       rw [List.append_nil] at ha
       rw [hv, ha]
       exact h1
-  | c hok hterm hcb hpost hders hnofa =>
+  | c hok hterm hcb hpost hders hnofa hgw =>
     have hok' := hok
     unfold heapOkC at hok'
     simp only [Bool.and_eq_true] at hok'
@@ -378,7 +378,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
       rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
     obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := heapOkC_sound hp hok hself hw hh hM
-      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ)
+      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) (gwOk_nil hgw rd σ)
     obtain ⟨⟨hpc, hpr⟩, hptr⟩ := postOkW_of (noFAW hnofa hw) hpo
     refine ⟨hpar', hreads, fun c hc ↦ ?_, fun r hr x hx ↦ hpr r hr x hx, hretm,
       fun p hp' ↦ (by rw [hpost] at hp'; cases hp'), hptr, hrv, hre⟩
@@ -401,9 +401,9 @@ theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
       | _ => trivial
     exact fun es1 e es2 he _ ↦
       (heapK_sound (.m1 hok hpo hstr0 hrm hpv hre) hp hst hw hh hR hM).2.1 es1 e es2 he
-  | c hok hterm hcb hpost hders hnofa =>
+  | c hok hterm hcb hpost hders hnofa hgw =>
     exact (heapOkC_soundP hp hok (by simp [CFun.sigOf]) hw hh
-      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ)).1
+      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) (gwOk_nil hgw rd σ)).1
 
 /-- A path through a call: the function's heap check is the one with calls. -/
 theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {σ : Val} {es : List Ev}
@@ -414,7 +414,7 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {�
     simp only [Bool.and_eq_true] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
-  | c _ _ hcb _ _ _ => exact hcb
+  | c _ _ hcb _ _ _ _ => exact hcb
 
 theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
   cases hk with
@@ -423,7 +423,7 @@ theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
     refine List.all_eq_true.mpr fun s hs ↦ ?_
     have := List.all_eq_true.mp hstr0.1.1 s hs
     cases s <;> simp_all [isCall]
-  | c _ _ hcb _ _ _ => exact hcb
+  | c _ _ hcb _ _ _ _ => exact hcb
 
 /-- A path through a call: no word at a cell among the heap certificate's ghosts. -/
 theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {σ : Val} {es : List Ev}
@@ -434,7 +434,7 @@ theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {σ 
     simp only [Bool.and_eq_true] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
-  | c _ _ _ _ hd _ => exact hd
+  | c _ _ _ _ hd _ _ => exact hd
 
 /-- **A call's callee runs' bounds have exponents** (`callsB`'s `idxPow`). -/
 theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets : List V}
@@ -1073,7 +1073,7 @@ theorem heapK_params {Cf : CFun} (hk : HeapK Cf) : Cf.fn.params = (List.range Cf
   have h : paramsN Cf.fn.params 0 = true := by
     cases hk with
     | m1 hok _ _ _ _ _ => unfold heapOk at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1
-    | c hok _ _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1.1
+    | c hok _ _ _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1.1
   rw [List.range_eq_range']; exact paramsN_eq _ 0 h
 
 theorem fwdOff_spec {X : AlignCtx} {i t o : ℕ} (h : X.fwdOff i t = some o) : X.entry + i < t ∧ o = t - X.entry := by

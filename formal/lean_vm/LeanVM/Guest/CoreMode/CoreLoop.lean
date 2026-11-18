@@ -88,6 +88,7 @@ noncomputable def loopShapeOk (Cf : CFun) : Bool :=
 structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
   ders : Cf.H.ders = []
+  gw : Cf.H.sig.gw = []
   nofa : noFA Cf.fn.body = true
   cs : Cf.cs = []
   body : loopB Cf.fn = true
@@ -179,7 +180,7 @@ theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e _ ↦ loop_evM hok rd σ e
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryF hs hP hT)
-    hR (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The signature at a frame -/

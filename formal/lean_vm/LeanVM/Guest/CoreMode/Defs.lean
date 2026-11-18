@@ -175,6 +175,9 @@ structure HSig where
   ghosts : ℕ := 0
   /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
   retEq : List (CCell × CCell) := []
+  /-- Own parameter words: `(c, j)`, ghost slot `j`'s word is the word at the cell `c` (over the parameters), where
+  there is one (`GwOk`); in the own pass a `load` of `c` names it (`gwDef`). -/
+  gw : List (CCell × ℕ) := []
   deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/

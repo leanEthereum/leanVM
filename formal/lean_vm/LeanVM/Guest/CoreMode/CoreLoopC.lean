@@ -180,6 +180,7 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   rdFree : ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true
   cptr : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true
   ders : Cf.H.ders = []
+  gw : Cf.H.sig.gw = []
   nofa : noFA Cf.fn.body = true
   code : loopCodeC Cf K.code = true
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
@@ -358,7 +359,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
   obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
-    hR (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The tail call -/

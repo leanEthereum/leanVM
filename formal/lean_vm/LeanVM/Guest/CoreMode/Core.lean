@@ -848,7 +848,7 @@ inductive HeapK (Cf : CFun) : Prop
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
-      Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → Cf.H.sig.gw = [] → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
 def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=

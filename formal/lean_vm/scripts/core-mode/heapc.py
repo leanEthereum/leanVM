@@ -72,6 +72,16 @@ def isconst(c):
 
 # ---- signatures and certificates
 
+def gw_def(st, gw, c, d):
+    """`CoreMode.gwDef`: `d` read from the cell `c` of an own parameter word `(c, j)` (`HSig.gw`) names ghost `j`; then
+    `d`'s monomial."""
+    for cg, j in gw:
+        if cg == c:
+            st.define(d, baseC(GB + j))
+            break
+    return mono(st.env, d)
+
+
 class HSig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq')
 
@@ -79,6 +89,7 @@ class HSig:
         for f in self.FIELDS:
             setattr(self, f, list(kw.get(f, ())))
         self.ghosts = kw.get('ghosts', 0)
+        self.gw = list(kw.get('gw', ()))   # own parameter words: (cell, j), ghost `j` the word at the cell (`HSig.gw`)
 
 
 EMPTY = HSig()
@@ -905,8 +916,8 @@ class Pass:
                     p2 = st.sv.get(w[1])
                     if p2 is not None and p2[0] == c:
                         st.define(d, p2[1])
-            # loadPush
-            st.sv[st.n] = (c, mono(st.env, d))
+            # loadPush (after `gwDef`: a read of an own parameter word names its ghost)
+            st.sv[st.n] = (c, gw_def(st, X.sig.gw, c, d) if getattr(X.sig, "gw", None) else mono(st.env, d))
             st.push(c)
             if d not in st.src:
                 st.src[d] = c
