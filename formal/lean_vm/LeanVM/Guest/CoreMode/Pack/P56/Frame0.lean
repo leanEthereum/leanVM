@@ -32,6 +32,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P14».ModeSig
@@ -376,10 +377,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 279468, 38,
     Fn.«verify_merkle_cap__L2».modeSig, .nil, 524287, Data.adviceFn968.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) (.node (some ()) .nil .nil)
-    (.node (some ()) .nil .nil)))) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil)
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil))), .nil, .nil⟩
+    Fn.«verify_merkle_cap__L2».pairO, Fn.«verify_merkle_cap__L2».pairS, .nil⟩
 
 /-- `verify_merkle_cap__L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

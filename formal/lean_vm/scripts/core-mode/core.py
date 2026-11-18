@@ -103,7 +103,7 @@ def cfun_c(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, {dsp_arg(k)}, false, []⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, {dsp_arg(k)}, hcFlag, hcCallees⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
@@ -209,6 +209,20 @@ def cfun_lc(k, j, K, frame):
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := CoreMode.fnSpecC_of_loopC loop_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
 
+def hctab_file(packs):
+    """`Gen/HcTab.lean`: the table of heap contracts (`CoreMode.hcTab`), each function's by its core data."""
+    hc = sorted(heap.hc_fns())
+    pk = {k: p for p, ks in packs.items() for k in ks}
+    imps = ['LeanVM.Guest.CoreMode.Contracts'] + sorted({'LeanVM.Guest.CoreMode.Gen.«%s».Core' % pk[k] for k in hc})
+    items = ',\n    '.join('CoreMode.hcEnt LeanVM.Guest.Fn.«%s».cfun' % k for k in hc)
+    return (HEADER.format(mod='LeanVM.Guest.CoreMode.Gen.HcTab',
+                          what='The functions whose contract is their own heap signature (`CFun.hc`), by their core data.') +
+            ''.join('public import %s\n' % m for m in imps) +
+            '\nnamespace LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
+            '/-- **The heap contracts\' table**: each function on a heap contract, its entry, signature, frame cells and '
+            'counts. -/\nnoncomputable def hcTab : List HcEnt :=\n  [%s]\n\nend\n\nend LeanVM.Guest.CoreMode\n' % items)
+
+
 def main():
     R = route.route_sub()
     po = heap.pack_of()
@@ -250,8 +264,8 @@ def main():
                 body.append(cfun_lc(k, j, K, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'c':
-                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % p)
-                imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
+                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
+                imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
                 body.append(cfun_c(k, j, K, frame_term(frames[k])))
                 continue
             imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % p)
@@ -273,7 +287,7 @@ def main():
             j = R[k]['j']
             rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
             oks.append(f'CoreMode.cfOk_of (by decide) Checked.code{j} Checked.core{j} Checked.cert{j} Checked.plumbEq{j}\n'
-                       f'      Bridge.ProgAl.tab{j} rfl rfl rfl (by decide +kernel) rfl rfl')
+                       f'      Bridge.ProgAl.tab{j} rfl rfl rfl (by decide +kernel)')
         chain = 'Mode.fa_nil'
         for q in reversed(oks):
             chain = 'Mode.fa_cons (%s)\n    (%s)' % (q, chain)
@@ -284,6 +298,7 @@ def main():
             f'namespace LeanVM.Guest.ModePack.«{p}»\n\nopen LeanVM.Guest\n\npublic section\n\n'
             f'/-- The pack\'s core data, each the deployed guest\'s. -/\n'
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
+    files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     stale = []
     have = set(glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')))
     for path in sorted(have - set(files)):

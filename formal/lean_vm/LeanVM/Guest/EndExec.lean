@@ -127,7 +127,8 @@ among `T`, each the deployed guest's, `CfOk`); and they are tied to each other a
 structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   fn : ∀ K ∈ Ks, ∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc ∧
     K.code.all offSmall = true
-  spec : ∃ T : List CoreMode.CFun, (∀ Cf ∈ T, CoreMode.CfOk Cf) ∧ ∀ K ∈ Ks, FnSpec T K
+  spec : ∃ (tab : List CoreMode.HcEnt) (T : List CoreMode.CFun), (∀ Cf ∈ T, CoreMode.CfOk Cf) ∧
+    (∀ K ∈ Ks, FnSpec tab T K) ∧ CoreMode.hcNone tab Km.F.entry = true
   ne : ∀ K ∈ Ks, 0 < K.code.length
   uniq : ∀ K ∈ Ks, ∀ K' ∈ Ks, K.F.entry = K'.F.entry → K = K'
   sigs : ∀ K ∈ Ks, ∀ t G, K.E.sigs.get t = some G →
@@ -292,16 +293,14 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
   have hmain : r.adv.mainFrame < maxCells := by
     show Data.adviceMainFrame < maxCells
     decide
-  obtain ⟨T, hT, hspec⟩ := G.certs.spec
+  obtain ⟨tab, T, hT, hspec, hmc⟩ := G.certs.spec
   obtain ⟨t, he, hv, -, -, -, -, hsz⟩ := execute_complete_guest (Ks := Ks) (Km := Km) (E0 := E0)
-    (Ct := fun _ ↦ none) (Q := guestQ T r.img) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
+    (Ct := CoreMode.ctOf r.img tab) (Q := guestQ tab T r.img) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
     (fun C hC ↦ progOk_of G.certs hC)
     (fun C hC K hK ↦ frameSpec_guest (hspec K hK) hC rfl ((progOk_of G.certs hC).ok K hK) r.img (OnRun X r)
-      (fun _ ↦ none) hκ
-      (fun s h ↦ ⟨r.n, h.2.2⟩) (fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
+      hκ (fun s h ↦ ⟨r.n, h.2.2⟩) (fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
       (fun s op s1 s' hY hop e1 hm e ↦ G.used r hr { s' with steps := s'.steps + 1 }
-        (G.keepOp r hr C hC s op s1 s' hY hop e1 hm e)) ⟨rfl, fun _ _ _ ↦ rfl⟩
-      fun Cf hCf _ ↦ CoreMode.ctOk_none (hT Cf hCf).2.1 (hT Cf hCf).2.2) rfl
+        (G.keepOp r hr C hC s op s1 s' hY hop e1 hm e))) (CoreMode.ctOf_none (CoreMode.hcFind_none hmc))
     (fun C hC ↦
       { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
           have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp

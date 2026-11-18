@@ -39,37 +39,37 @@ public section
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
   Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code3 Checked.core3 Checked.cert3 Checked.plumbEq3
-      Bridge.ProgAl.tab3 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab3 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code56 Checked.core56 Checked.cert56 Checked.plumbEq56
-      Bridge.ProgAl.tab56 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab56 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code143 Checked.core143 Checked.cert143 Checked.plumbEq143
-      Bridge.ProgAl.tab143 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab143 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code183 Checked.core183 Checked.cert183 Checked.plumbEq183
-      Bridge.ProgAl.tab183 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab183 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code451 Checked.core451 Checked.cert451 Checked.plumbEq451
-      Bridge.ProgAl.tab451 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab451 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code560 Checked.core560 Checked.cert560 Checked.plumbEq560
-      Bridge.ProgAl.tab560 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab560 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code583 Checked.core583 Checked.cert583 Checked.plumbEq583
-      Bridge.ProgAl.tab583 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab583 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code591 Checked.core591 Checked.cert591 Checked.plumbEq591
-      Bridge.ProgAl.tab591 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab591 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code802 Checked.core802 Checked.cert802 Checked.plumbEq802
-      Bridge.ProgAl.tab802 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab802 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code841 Checked.core841 Checked.cert841 Checked.plumbEq841
-      Bridge.ProgAl.tab841 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab841 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code936 Checked.core936 Checked.cert936 Checked.plumbEq936
-      Bridge.ProgAl.tab936 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab936 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1033 Checked.core1033 Checked.cert1033 Checked.plumbEq1033
-      Bridge.ProgAl.tab1033 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1033 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1045 Checked.core1045 Checked.cert1045 Checked.plumbEq1045
-      Bridge.ProgAl.tab1045 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1045 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1246 Checked.core1246 Checked.cert1246 Checked.plumbEq1246
-      Bridge.ProgAl.tab1246 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1246 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1278 Checked.core1278 Checked.cert1278 Checked.plumbEq1278
-      Bridge.ProgAl.tab1278 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1278 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1311 Checked.core1311 Checked.cert1311 Checked.plumbEq1311
-      Bridge.ProgAl.tab1311 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1311 rfl rfl rfl (by decide +kernel))
     (Mode.fa_nil))))))))))))))))
 
 end

@@ -338,6 +338,25 @@ end
 
 end LeanVM.Guest.Fn.«da_levels__L128_L7_loop4»
 
+namespace LeanVM.Guest.Fn.«verify_merkle_cap__L6»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `verify_merkle_cap__L6`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `verify_merkle_cap__L6`: its entry, length and signature; on the core route, nothing for a
+    walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨277929, 698, Fn.«verify_merkle_cap__L6».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«verify_merkle_cap__L6»
+
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

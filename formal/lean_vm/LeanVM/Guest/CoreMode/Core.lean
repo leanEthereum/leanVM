@@ -746,16 +746,20 @@ noncomputable def ownOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
 noncomputable def wsAt (img : MemoryImage κ) (fp n : ℕ) : List E := (List.range n).map fun b ↦ (Rd img fp (2 + b)).getD 0
 
 /-- **A core function's heap contract**: its heap signature `h` at the words of its frame's slots in the
-reference (`np` parameters, `nr` returned words), its mode signature `G` for the frame cells: at entry, its
+reference (`np` parameters, `nr` returned words), its entry and return frame cells `ent`, `ret`: at entry, its
 entry cells written and its preconditions; at return, its return cells written, its guarantees and its
 returned words' monomials. -/
-noncomputable def heapCtr (img : MemoryImage κ) (h : HSig) (G : Mode.Sig) (np nr : ℕ) : Mode.Ctr where
-  pre m fp := (∀ o ∈ G.entry, m.written (fp + o) = true) ∧
+noncomputable def heapCtrL (img : MemoryImage κ) (h : HSig) (ent ret : List ℕ) (np nr : ℕ) : Mode.Ctr where
+  pre m fp := (∀ o ∈ ent, m.written (fp + o) = true) ∧
     ∀ y, PreSet img.read h (wsAt img fp np) y → WrK m y
-  post m fp := (∀ o ∈ G.ret, m.written (fp + o) = true) ∧
+  post m fp := (∀ o ∈ ret, m.written (fp + o) = true) ∧
     (∀ y, PostSet img.read h (wsAt img fp (np + nr)) y → WrK m y) ∧
     RetMOk h (wsAt img fp np) ((wsAt img fp (np + nr)).drop np)
   mono hle h := ⟨fun o ho ↦ written_mono hle (h.1 o ho), fun y hy ↦ (h.2.1 y hy).mono hle, h.2.2⟩
+
+/-- `heapCtrL` at the frame cells of the mode signature `G`. -/
+noncomputable def heapCtr (img : MemoryImage κ) (h : HSig) (G : Mode.Sig) (np nr : ℕ) : Mode.Ctr :=
+  heapCtrL img h G.entry G.ret np nr
 
 /-- The contract the core data `Cf` assumes of its callee `f`, of mode signature `G`: its heap contract
 (`hcs`), or its mode signature's. -/
@@ -792,12 +796,6 @@ theorem ct_callee {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : C
     {t : ℕ} {G : Mode.Sig} {f : String} (hG : K.E.sigs.get t = some G) (hf : getF Cf.X.ents t = some f) :
     Ct t = hcAt img Cf G f := by
   rw [h.2 t G hG, hf]; rfl
-
-/-- Mode contracts everywhere, for core data naming none. -/
-theorem ctOk_none {img : MemoryImage κ} {K : Mode.Cert} {Cf : CFun} (hc : Cf.hc = false) (hcs : Cf.hcs = []) :
-    CtOk img (fun _ ↦ none) K Cf := by
-  refine ⟨by rw [hc]; rfl, fun t G _ ↦ ?_⟩
-  cases getF Cf.X.ents t <;> simp [hcAt, hcs]
 
 /-- Mode contracts for core data naming none. -/
 theorem modeCts_of {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
