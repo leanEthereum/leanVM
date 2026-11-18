@@ -376,8 +376,10 @@ jobs:
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
       # runs the one `lake build` with the modules admitted by their recorded memory, those of the
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
+      # The runner runs nothing else, so the budget is its memory less 2 GB, not the default 4: the
+      # scope's cap (memory less 1 GB) and the swap stay the guards.
       - name: Build
-        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests --mem "$(awk '/^MemTotal:/ {printf "%.1f", $2 / 1048576 - 2}' /proc/meminfo)"
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
         run: |
