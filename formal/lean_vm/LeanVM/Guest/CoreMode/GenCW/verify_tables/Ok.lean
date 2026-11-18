@@ -58,8 +58,8 @@ theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 5494 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 5494 st36 = true := by
+/-- Statements 5492 to the end. -/
+theorem last_ok : lastOkF Data.powTree sigW core hcert 5492 st36 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -221,7 +221,7 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
     | "plus_one_run__L9" => Fn.«plus_one_run__L9».hcert.sig
     | "shared_selector_tables" => Fn.«shared_selector_tables».hcert.sig | _ => .empty)
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(606, HeapW.st1), (790, HeapW.st2), (795, HeapW.st3), (856, HeapW.st4), (888, HeapW.st5), (928, HeapW.st6), (963, HeapW.st7), (998, HeapW.st8), (1028, HeapW.st9), (1058, HeapW.st10), (1088, HeapW.st11), (1118, HeapW.st12), (1148, HeapW.st13), (1178, HeapW.st14), (1208, HeapW.st15), (1238, HeapW.st16), (1268, HeapW.st17), (1298, HeapW.st18), (1328, HeapW.st19), (1492, HeapW.st20), (1518, HeapW.st21), (1548, HeapW.st22), (1578, HeapW.st23), (1608, HeapW.st24), (1638, HeapW.st25), (1668, HeapW.st26), (1698, HeapW.st27), (1728, HeapW.st28), (1758, HeapW.st29), (1788, HeapW.st30), (1818, HeapW.st31), (1848, HeapW.st32), (1878, HeapW.st33), (1908, HeapW.st34), (3394, HeapW.st35), (5494, HeapW.st36)]) HeapW.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(606, HeapW.st1), (790, HeapW.st2), (795, HeapW.st3), (856, HeapW.st4), (888, HeapW.st5), (928, HeapW.st6), (963, HeapW.st7), (998, HeapW.st8), (1028, HeapW.st9), (1058, HeapW.st10), (1088, HeapW.st11), (1118, HeapW.st12), (1148, HeapW.st13), (1178, HeapW.st14), (1208, HeapW.st15), (1238, HeapW.st16), (1268, HeapW.st17), (1298, HeapW.st18), (1328, HeapW.st19), (1492, HeapW.st20), (1518, HeapW.st21), (1548, HeapW.st22), (1578, HeapW.st23), (1608, HeapW.st24), (1638, HeapW.st25), (1668, HeapW.st26), (1698, HeapW.st27), (1728, HeapW.st28), (1758, HeapW.st29), (1788, HeapW.st30), (1818, HeapW.st31), (1848, HeapW.st32), (1878, HeapW.st33), (1908, HeapW.st34), (3393, HeapW.st35), (5492, HeapW.st36)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,
     HeapW.win1, by omega,
     HeapW.win2, by omega,

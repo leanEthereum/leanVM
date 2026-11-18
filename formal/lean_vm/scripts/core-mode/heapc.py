@@ -98,6 +98,7 @@ class HCert:
         self.eqs = []
         self.fas = []            # frame run cells guaranteed at return: `(kp, i)`, cell `i` of `frameAddr kp run`
         self.ders = []           # words at cells: value `DB + k` is the word at the cell `ders[k]`
+        self.dups = []           # `ite`s (by guard) whose continuation is checked in each branch (`dupB`)
 
 
 def nth(l, n):
@@ -330,6 +331,37 @@ def eqV(E, x, y):
     return x == y or any(eqR(p, x, y) or eqR((p[1], p[0]), x, y) for p in E)
 
 
+def cdivC(x, m):
+    return (tuple((k, tsub(e, expOf(m[0], k))) for k, e in x[0] if tsub(e, expOf(m[0], k)) != 0), tsub(x[1], m[1]))
+
+
+def eqM(p, x, y):
+    k = powK(p[0], x)
+    m = cpow(p[0], k)
+    A = cdivC(x, m)
+    return x == cmul(A, m) and y == cmul(A, cpow(p[1], k))
+
+
+def eqVM(E, x, y):
+    return eqV(E, x, y) or any(eqM(p, x, y) or eqM((p[1], p[0]), x, y) for p in E)
+
+
+def keepL(X, st, qs, ws, i):
+    """`keepL`: the guarantee runs a `callIf` keeps (where it is not entered, rewritten by the equations), and the
+    index after their witnesses; `None` if one fails."""
+    ks = []
+    while i < len(ws):
+        w = ws[i]
+        q = nth(qs, w[1]) if w[0] == 'keep' else None
+        if q is None or not (eqVM(st.eqs, q[0], w[2]) and eqVM(st.eqs, q[2], w[3]) and eqVM(st.eqs, q[3], w[4])):
+            return None
+        i = runOk(X, st, (w[2], q[1], w[3], w[4]), ws, i + 1)
+        if i is None:
+            return None
+        ks.append(q)
+    return i, ks
+
+
 def loOk(F, E, Q, R):
     return eqV(E, Q[2], R[2]) or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < CAPE) or \
         (Q[2] == cshift(R[2], 1) and hasF(F, R[2], R[3]))
@@ -347,6 +379,10 @@ def runRun(F, E, Q, R):
 
 def emptyR(Q):
     return not Q[2][0] and not Q[3][0] and Q[3][1] <= Q[2][1] and Q[2][1] < CAPE
+
+
+def emptyE(E, Q):
+    return emptyR(Q) or eqV(E, Q[3], Q[2])
 
 
 def constR(Q):
@@ -376,6 +412,17 @@ def prepIdx(F, R, c):
     J = idxOf(Q, c, S)
     return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
         J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
+
+
+def appQ(R):
+    return cmul(R[0], cpow(R[3], R[1]))
+
+
+def appIdx(F, R, c):
+    """A cell of a run extended by its point after it (`appIdx`)."""
+    base, S, lo, hi = R
+    J = idxOf(base, c, S)
+    return not lo[0] and lo[1] == 0 and c == cmul(base, cpow(J, S)) and hasF(F, J, cshift(hi, 1))
 
 
 def subL(offs, o):
@@ -535,6 +582,9 @@ def ptOk(X, st, c, w):
     if k == 'prep':
         R = st.rs.get(w[1])
         return R is not None and prepIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, prepQ(R), w[2])
+    if k == 'app':
+        R = st.rs.get(w[1])
+        return R is not None and appIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, appQ(R), w[2])
     return False
 
 
@@ -543,7 +593,7 @@ def rnOk(X, st, Q, w):
         R = st.rs.get(w[1])
         return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R))
     if w[0] == 'empty':
-        return emptyR(Q)
+        return emptyE(st.eqs, Q)
     return False
 
 
@@ -591,7 +641,7 @@ def ptrROk(X, st, Q, offs, ws, i):
         return i + 1 if p is not None and runRun(X.facts(st.env, w[2]), st.eqs, Q, p[0]) and subL(offs, p[1]) \
             else None
     if w[0] == 'empty':
-        return i + 1 if emptyR(Q) else None
+        return i + 1 if emptyE(st.eqs, Q) else None
     if w[0] == 'pts':
         return ptrPts(X, st, Q[0], Q[1], offs, Q[2][1], tsub(Q[3][1], Q[2][1]), ws, i + 1) if constR(Q) else None
     return None
@@ -637,7 +687,7 @@ def runOk0(X, st, Q, ws, i):
             rok = cpow(rt, S) == hi
         else:
             rt = ws[i][2]
-            rok = eqV(st.eqs, cpow(rt, S), hi)
+            rok = eqV(st.eqs, cpow(rt, S), hi) or hasF(X.facts(st.env, res), hi, cshift(cpow(rt, S), 1))
         if not (0 < S and not lo[0] and lo[1] % S == 0 and lo[1] < CAPE and rok
                 and hasExp(X.facts(st.env, res), rt)):
             return None
@@ -1038,15 +1088,46 @@ class Pass:
         X = self.X
         ma = monos(st.env, args)
         G = X.sigOf(g)
-        self.under(('nonzero', c), lambda: self.call_ws(st, ('callIf', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i),
-                                                         g, args, ma))
-        st.nc += 1
         p = st.ad.get(c)
         qs, prs = instAllR(ma, G.postR), instPRL(ma, G.postPR)
-        if p is not None and qs is not None and prs is not None:
+        full = p is not None and qs is not None and prs is not None
+        st0 = zeroEq(st.copy(), c)
+        kept = []
+
+        def check(ws, i):
+            j = reqG(X, st, ma, g, args, ws, i)
+            if j is None or not full:
+                return j
+            # the kept runs, where the call is not entered (`X.ext (czero c)`, `zeroEq`)
+            saved = X.path
+            X.path = [('zero', c)] + saved[1:]
+            try:
+                r = keepL(X, st0, qs, ws, j)
+            finally:
+                X.path = saved
+            if r is None:
+                return None
+            kept[:] = r[1]
+            return r[0]
+
+        def ws_of():
+            ws = self.call_ws(st, ('callIf', g), check, g, args, ma)
+            if ws is not None and X.solver is not None and full:
+                extra = X.solver.keeps(self, st, st0, c, g, qs, ws)
+                if extra:
+                    ws += extra
+                    X.H.calls[st.nc] = ws
+                    if check(ws, 0) != len(ws):
+                        self.fail('call-check', ('callIf', g), ws)
+            return ws
+        self.under(('nonzero', c), ws_of)
+        st.nc += 1
+        if full:
             for q in qs:
                 if boundsOf(p, q):
                     st.pushR(q)
+            for q in kept:
+                st.pushR(q)
             for q in prs:
                 if boundsOf(p, q[0]):
                     st.pushPR(q)
@@ -1196,7 +1277,7 @@ class Pass:
             if k == 'a':
                 self.atom(st, s[1])
             elif k == 'ite':
-                s1 = self.under(('zero', s[1]), lambda: self.block(s[2], st.copy()))
+                s1 = self.under(('zero', s[1]), lambda: self.block(s[2], zeroEq(st.copy(), s[1])))
                 s2 = self.under(('nonzero', s[1]), lambda: self.block(s[3], st.cnt(s1)))
                 st = joinSt([(endsRet(s[2]), st, s1), (endsRet(s[3]), st.cnt(s1), s2)], st, s2)
             elif k == 'match':
@@ -1402,9 +1483,15 @@ def tail_check(X, st, mp, mx, ex, ei, ws):
             return None
         i += 1
     for r in G.postR:
-        if i >= len(ws) or not tailR1(X, st, mp, mx, ex, ei, r, ws[i]):
+        if i >= len(ws):
             return None
-        i += 1
+        if tailR1(X, st, mp, mx, ex, ei, r, ws[i]):
+            i += 1
+            continue
+        q = instR(mx, r) if ex and noSlot0R(r) else None
+        i = runOk(X, st, q, ws, i) if q is not None else None
+        if i is None:
+            return None
     for p in G.postP:
         i = tailPP1(X, st, mp, mx, ex, p, ws, i)
         if i is None:
@@ -1414,6 +1501,9 @@ def tail_check(X, st, mp, mx, ex, ei, ws):
         if i is None:
             return None
     return i
+
+
+HINT_RUN = 2048     # `hintRun`: a heap hint of at least this many cells also pushes its run
 
 
 def hint_heap(h):
@@ -1509,6 +1599,25 @@ def dersOk(ders):
     return len(ders) < GB - DB and all(b < DB or b >= GB for c in ders for b, _ in c[0])
 
 
+def zeroEq(st, c):
+    """`zeroEq`: an `ite`'s zero branch keeps the equation of its guard's sum."""
+    p = st.ad.get(c)
+    if p is not None and p[0] is not None and p[1] is not None:
+        st.eqs = (p,) + st.eqs
+    return st
+
+
+def dupB(ds, ss):
+    """`dupB`: a top-level `ite` whose guard is listed takes its continuation into each branch."""
+    out = []
+    for i, s in enumerate(ss):
+        if s[0] == 'ite' and s[1] in ds:
+            rest = list(ss[i + 1:])
+            return out + [('ite', s[1], list(s[2]) + rest, list(s[3]) + rest)]
+        out.append(s)
+    return out
+
+
 def heapOkC(pows, sigOf, name, params, body, H, solver=None):
     """The check; with a `solver`, the pass finding the witnesses (into `H`). Returns the `Pass` (its `fails`), or
     raises `Fail` (check mode)."""
@@ -1543,7 +1652,7 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
     for p in prs:
         st.pushPR(p)
     if not G.term:
-        P.block(body, st)
+        P.block(dupB(H.dups, body) if H.dups else body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and G.term[0][1][0] in ('val', 'num') and (
             G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
         if G.retM or G.postV or G.retEq or G.postQ:

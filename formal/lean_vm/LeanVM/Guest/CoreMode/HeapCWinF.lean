@@ -75,7 +75,7 @@ theorem winsOkF_chain {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : H
 parameters naming no ghost, the frame run cells at return (`faOk`), and the entry state `S₀`. -/
 noncomputable def headOkF (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (S0 : CSt) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre && H.sig.term.isEmpty && f.params.all okV &&
-    faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
+    faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas && H.dups.isEmpty &&
     withCx pows sigOf f H fun X ↦ decide (initC X = some S0)
 
 /-- **The last part of a body's check**: the statements from `N` on name no ghost value, and the pass over them
@@ -91,7 +91,7 @@ theorem heapOkC_of_winsF {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H 
     (hw : winsOkF pows sigOf f H f.body ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
     (ht : lastOkF pows sigOf f H N Sn = true) : heapOkC pows sigOf f H = true := by
   simp only [headOkF, Bool.and_eq_true, decide_eq_true_eq, withCx_eq, List.isEmpty_iff] at hh
-  obtain ⟨⟨⟨⟨⟨hpar, hpov⟩, hterm⟩, hpok⟩, hfa⟩, hinit⟩ := hh
+  obtain ⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hterm⟩, hpok⟩, hfa⟩, hdups⟩, hinit⟩ := hh
   simp only [lastOkF, Bool.and_eq_true, withCx_eq, ngL_eq] at ht
   obtain ⟨hng2, hlast⟩ := ht
   obtain ⟨hc, hng, -⟩ := winsOkF_chain l 0 S0 hw
@@ -111,7 +111,7 @@ theorem heapOkC_of_winsF {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H 
       trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
       keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
-  simp only
+  simp only [bodyC, hdups, List.isEmpty_nil, Bool.cond_true]
   rw [hc]
   exact hlast
 

@@ -861,6 +861,121 @@ theorem ifRd_bad :
       hIfRd = false := by
   decide +kernel
 
+/-- `fillN p n` guarantees `p·g^[0, e(n))`. -/
+def sigsZ (g : String) : HSig :=
+  if g = "fillN" then { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] } else .empty
+
+/-- Guarantees `p·g^[0, e(n))`: `fillN p n` unless `n = 1`, where the run is empty. -/
+def zDup : Fn where
+  name := "zDup"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
+    .ite (.n 3) [] [.call "fillN" [.n 0, .n 1] []], .ret []]
+
+/-- `zDup`'s certificate: the `ret` checked in each branch, empty where `n + 1 = 0`, `fillN`'s run otherwise. -/
+def hZDup : HCert where
+  sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := []
+  res := []
+  calls := [[]]
+  rets := [[.empty], [.run 0 []]]
+  dups := [3]
+
+theorem zDup_ok : heapOkC Data.powTree sigsZ zDup hZDup = true := by decide +kernel
+
+/-- Without `dups`, one `ret` after the join: neither branch's witness holds there. -/
+theorem zDup_nodup : heapOkC Data.powTree sigsZ zDup { hZDup with dups := [], rets := [[.empty]] } = false := by
+  decide +kernel
+
+theorem zDup_nodup2 : heapOkC Data.powTree sigsZ zDup { hZDup with dups := [], rets := [[.run 0 []]] } = false := by
+  decide +kernel
+
+/-- The call in the zero branch: the other branch's run is not empty (no equation there). -/
+theorem zDup_bad : heapOkC Data.powTree sigsZ
+    { zDup with body := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
+      .ite (.n 3) [.call "fillN" [.n 0, .n 1] []] [], .ret []] } { hZDup with rets := [[.run 0 []], [.empty]] } = false := by
+  decide +kernel
+
+/-- The guard's sum not over the bounds: `n + p = 0` makes no run of `p·g^[0, e(n))` empty. -/
+theorem zDup_bad2 : heapOkC Data.powTree sigsZ
+    { zDup with body := [.atom (.add (.n 3) (.n 1) (.n 0)), .ite (.n 3) [] [.call "fillN" [.n 0, .n 1] []], .ret []] }
+    hZDup = false := by
+  decide +kernel
+
+/-- Reads `p·i`, `e(i) ≤ e(n)`: the run `p·g^[0, e(n))` and its next point `p·n`. -/
+def appRd : Fn where
+  name := "appRd"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.mul (.n 3) (.n 0) (.n 2)), .atom (.load (.n 4) (.n 3) 0), .ret []]
+
+/-- `appRd`'s certificate: the read by `app`, the point `p·n` a precondition, the residual `e(i) < e(n·g)`. -/
+def hAppRd : HCert where
+  sig := { pre := [⟨[(0, 1), (1, 1)], 0⟩], preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := [(4, [(3, 0, .app 0 (.pre 0) [0])])]
+  res := [.lt (.val 2) (.mono ⟨[(1, 1)], 1⟩)]
+  rets := [[]]
+
+theorem appRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) appRd hAppRd = true := by decide +kernel
+
+/-- Without the next point. -/
+theorem appRd_nopt : heapOkC Data.powTree (fun _ ↦ .empty) appRd
+    { hAppRd with sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] } } = false := by
+  decide +kernel
+
+/-- The index up to two past the run: `p·n·g` is not written. -/
+theorem appRd_far : heapOkC Data.powTree (fun _ ↦ .empty) appRd
+    { hAppRd with res := [.lt (.val 2) (.mono ⟨[(1, 1)], 2⟩)] } = false := by
+  decide +kernel
+
+/-- Guarantees `p·g^[0, e(m))` from the residues `p·g^r·g^(2·[0, e(n)))`, `e(m) ≤ 2·e(n)` by a fact. -/
+def mrgLe : Fn where
+  name := "mrgLe"
+  params := [.n 0, .n 1, .n 2]
+  body := [.ret []]
+
+def hMrgLe : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 2, .num 0, .val 1⟩, ⟨⟨[(0, 1)], 1⟩, 2, .num 0, .val 1⟩],
+           postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := [.lt (.val 2) (.mono ⟨[(1, 2)], 1⟩), .lt (.val 1) (.num 100)]
+  rets := [[.mrgE 2 ⟨[(1, 1)], 0⟩ [0, 1], .run 0 [], .run 1 []]]
+
+theorem mrgLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) mrgLe hMrgLe = true := by decide +kernel
+
+/-- `e(m) ≤ 2·e(n) + 1` is not enough. -/
+theorem mrgLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) mrgLe
+    { hMrgLe with res := [.lt (.val 2) (.mono ⟨[(1, 2)], 2⟩), .lt (.val 1) (.num 100)] } = false := by
+  decide +kernel
+
+/-- `fillE p n` guarantees the cell `p·n` (as a run of one cell). -/
+def sigsFE (g : String) : HSig :=
+  if g = "fillE" then { postR := [⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 1⟩] } else .empty
+
+/-- Stores at `p`, then `fillE p n` unless `n = 1`: the cell `p·n` is written either way. -/
+def keepF : Fn where
+  name := "keepF"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 0) 0), .atom (.const (.n 3) (word 1 0)),
+    .atom (.add (.n 4) (.n 3) (.n 1)), .callIf (.n 4) "fillE" [.n 0, .n 1], .ret []]
+
+/-- `keepF`'s certificate: `fillE`'s run kept, where it is not entered `p·g^[0, 1)` by the store. -/
+def hKeepF : HCert where
+  sig := { postR := [⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 1⟩] }
+  reads := []
+  res := []
+  calls := [[.keep 0 ⟨[(0, 1)], 0⟩ ⟨[], 0⟩ ⟨[], 1⟩, .pts, .ev 0]]
+  rets := [[.run 0 []]]
+
+theorem keepF_ok : heapOkC Data.powTree sigsFE keepF hKeepF = true := by decide +kernel
+
+/-- Not kept: nothing in scope at the `ret`. -/
+theorem keepF_nokeep : heapOkC Data.powTree sigsFE keepF { hKeepF with calls := [[]] } = false := by decide +kernel
+
+/-- Kept as another run: `p·g` is not `p·n` where `n = 1`. -/
+theorem keepF_bad : heapOkC Data.powTree sigsFE keepF
+    { hKeepF with calls := [[.keep 0 ⟨[(0, 1)], 1⟩ ⟨[], 0⟩ ⟨[], 1⟩, .pts, .ev 0]] } = false := by
+  decide +kernel
+
 /-- `rd3` needs `p·g^[0, 3)`. -/
 def sigsB (g : String) : HSig :=
   if g = "rd3" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 3⟩] } else .empty

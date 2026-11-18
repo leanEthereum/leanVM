@@ -240,6 +240,12 @@ class Solver:
             self.sites[(f, tuple(args))].append(gi)
         self.envrec = P.__dict__.get('envrec', {})
         self.stats = collections.Counter()
+        # returned words of calls, by value: the call's arguments (a returned cursor stays in a run an argument names)
+        self.retargs = {}
+        for s_ in C.stmts(I.CORE[k][1]):
+            if s_[0] == 'call':
+                for v in s_[3]:
+                    self.retargs[v] = set(s_[2])
 
     # -- residuals and facts
     def on(self, pool, st):
@@ -547,7 +553,55 @@ class Solver:
             return w
         # the point before a run (`prep`; that point possibly before another run)
         if depth < 2:
-            return self.prep(st, c, depth)
+            w = self.prep(st, c, depth)
+            if w is not None:
+                return w
+            w = self.app(st, c, depth)
+            if w is not None:
+                return w
+        return None
+
+    def cursor(self, st, c):
+        """`c = v·g^o`, `v` a word returned by a call one of whose arguments is the base of a long hint's run in scope
+        (`hintRun`, the proof stream): a cursor the callee advanced through that run, the residual `sub c R` stated
+        (under the site's path), its witness the run."""
+        if len(c[0]) != 1 or c[0][0][1] != 1:
+            return None
+        args = self.retargs.get(c[0][0][0])
+        if not args:
+            return None
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R[1] != 1 or R[2] != ((), 0) or R[3][0] or R[3][1] < C.HINT_RUN or len(R[0][0]) != 1 or \
+                    R[0][0][0][1] != 1 or R[0][1] or R[0][0][0][0] not in args:
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            Rr = (R[0], 1, ('num', 0), ('num', R[3][1]))
+            if C.runF(st.env, Rr) != R:
+                continue
+            res = ('sub', c, Rr)
+            self.stats['cursor'] += 1
+            return ('run', r, [self.use(('cursor', c, Rr, g), ('under', g, res) if g else res)])
+        return None
+
+    def app(self, st, c, depth=0):
+        """`app r q res`: `c` in run `r` extended by its point after it (`e(J) < e(hi·g)` a fact)."""
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            base, S, lo, hi = R
+            if lo != ((), 0):
+                continue
+            J = C.idxOf(base, c, S)
+            if c != C.cmul(base, C.cpow(J, S)):
+                continue
+            f = self.fact(st, J, C.cshift(hi, 1))
+            if f is None:
+                continue
+            q = self.pt(st, C.appQ(R), depth=depth + 1)
+            if q is None:
+                continue
+            self.stats['app'] += 1
+            return ('app', r, q, f)
         return None
 
     def pts_idx(self, st, c):
@@ -606,12 +660,15 @@ class Solver:
                 for r, R2 in st.rs.items():
                     if R2 == R:
                         return [('run', r, [self.use(i, wr)])]
-        if C.emptyR(Q):
+        if C.emptyE(st.eqs, Q):
             return [('empty',)]
         w = self.suffix(st, Q)
         if w is not None:
             return w
         w = self.inner(st, Q)
+        if w is not None:
+            return w
+        w = self.coarse(st, Q)
         if w is not None:
             return w
         if C.constR(Q) and Q[3][1] - Q[2][1] <= PTSMAX:
@@ -654,6 +711,27 @@ class Solver:
             res = ('subR', q, Rr)
             self.stats['inner'] += 1
             return [('run', r, [self.use(('inner', q, Rr, g), ('under', g, res) if g else res)])]
+        return None
+
+    def coarse(self, st, Q):
+        """`Q = ⟨B·g^r, S, 0, h⟩`, `r < S`, the residue `r` of a run `⟨B, 1, 0, h^S⟩` in scope (`r + S·j < S·e(h)`): the
+        residual `subR Q R` stated (under the site's path), its witness the run."""
+        base, S, lo, hi = Q
+        if S < 2 or lo != ((), 0) or not hi[0]:
+            return None
+        H = C.cpow(hi, S)
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R[1] != 1 or R[2] != ((), 0) or R[0][0] != base[0] or not 0 <= base[1] - R[0][1] < S or R[3] != H:
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            q = (base, S, ('num', 0), self.idx(st, hi))
+            Rr = (R[0], 1, ('num', 0), self.idx(st, R[3]))
+            if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
+                continue
+            res = ('subR', q, Rr)
+            self.stats['coarse'] += 1
+            return [('run', r, [self.use(('coarse', q, Rr, g), ('under', g, res) if g else res)])]
         return None
 
     def suffix(self, st, Q):
@@ -708,8 +786,16 @@ class Solver:
                 ks.append(R[3])
             elif R[0][0] == base[0] and R[1] % S0 == 0 and R[1] > S0 and R[0][1] == base[1]:
                 ks.append(C.cpow(R[3], R[1] // S0))
+            elif R[0][0] == base[0] and R[1] == S0 and S0 and R[0][1] > base[1] and (R[0][1] - base[1]) % S0 == 0 and \
+                    R[2] == ((), 0) and hi[0]:
+                # a run starting a constant index in: its points before it, split at `g^t`
+                ks.append(((), (R[0][1] - base[1]) // S0))
+            elif R[0][0] == base[0] and 0 <= base[1] - R[0][1] < S0 and R[1] == 1 and S0 > 1 and R[2] == ((), 0) and R[3][0] and R[3][1] % S0 == 0 and \
+                    all(e % S0 == 0 for _, e in R[3][0]):
+                # a stride-1 run whose bound is an `S0`-th power: its residue `0` (`coarse`) ends at the root
+                ks.append((tuple((b, e // S0) for b, e in R[3][0]), R[3][1] // S0))
         for k in dict.fromkeys(ks):
-            if not k[0] or k == hi:
+            if k == hi or not k[0] and not k[1]:
                 continue
             b2 = C.cmul(base, C.cpow(k, S0))
             hs = []
@@ -719,9 +805,12 @@ class Solver:
                 elif R[0][0] == b2[0] and R[1] % S0 == 0 and R[1] > S0 and R[0][1] == b2[1]:
                     hs.append(C.cpow(R[3], R[1] // S0))
             # or the quotient of the bound by `k` (the part from `k` held otherwise: points, a merge)
-            q = mdivC(hi, k)
-            if q is not None and q[0] is not None:
-                hs.append(q)
+            # the bound rewritten by a kept equation (`hi = M^t`, `M = N`: `N^t`), divided by `k`
+            for hb in [hi] + [C.cpow(N, C.powK(M, hi)) for a_, b_ in st.eqs for M, N in ((a_, b_), (b_, a_))
+                              if M[0] and C.cpow(M, C.powK(M, hi)) == hi]:
+                q = mdivC(hb, k)
+                if q is not None and q[0] is not None:
+                    hs.append(q)
             for h in dict.fromkeys(hs):
                 if not C.eqV(st.eqs, C.cmul(k, h), hi):
                     continue
@@ -767,10 +856,19 @@ class Solver:
                 # `mrgE`: the root a residue run's bound, its `S`-th power the upper bound by the kept equations
                 rts = [R[3] for R in st.rs.values() if R[0][0] == base[0] and R[1] == S0 * S and
                        C.eqV(st.eqs, C.cpow(R[3], S), hi)]
+                fl = None
+                if not rts:
+                    # or a fact `(hi, r^S·g)`: the residues reach past the upper bound
+                    for R in st.rs.values():
+                        if R[0][0] == base[0] and R[1] == S0 * S and R[3][0]:
+                            fl = self.fact(st, hi, C.cshift(C.cpow(R[3], S), 1))
+                            if fl is not None:
+                                rts = [R[3]]
+                                break
                 if not rts:
                     continue
                 rt = rts[0]
-                f = self.factE(st, rt)
+                f = sorted(set(self.factE(st, rt) + (fl or [])))
                 ws = [('mrgE', S, rt, f)]
                 self.stats['mrgE'] += 1
             else:
@@ -821,7 +919,7 @@ class Solver:
                 f = self.run_in(st, Q, p[0])
                 if f is not None:
                     return [('pfr', r, f)]
-        if C.emptyR(Q):
+        if C.emptyE(st.eqs, Q):
             return [('empty',)]
         if C.constR(Q) and Q[3][1] - Q[2][1] <= PTSMAX:
             ws = [('pts',)]
@@ -935,6 +1033,41 @@ class Solver:
         assert len(self.H.calls) == st.nc, (len(self.H.calls), st.nc)
         self.H.calls.append(ws if ws is not None else [('fail',)])
         return ws
+
+    def keeps(self, pas, st, st0, c, g, qs, ws):
+        """`keep j b lo hi` and its witnesses: a guarantee run of a `callIf`'s callee (`CTR_PRE`, an exit guarantee)
+        written where the call is not entered, rewritten by the guard's equation (`a = b`, `a` one base)."""
+        if I.callee(g) not in I.CTR_PRE:
+            return []
+        p = st.ad.get(c)
+        out = []
+        for a, b in (p, (p[1], p[0])):
+            if len(a[0]) != 1 or a[0][0][1] != 1 or a[1]:
+                continue
+            x = a[0][0][0]
+
+            def sub(m):
+                e = C.expOf(m[0], x)
+                rest = (tuple((k, f) for k, f in m[0] if k != x), m[1])
+                return C.cmul(rest, C.cpow(b, e))
+            for j, q in enumerate(qs):
+                if C.boundsOf(p, q):
+                    continue
+                bq, lo, hi = sub(q[0]), sub(q[2]), sub(q[3])
+                if not (C.eqVM(st0.eqs, q[0], bq) and C.eqVM(st0.eqs, q[2], lo) and C.eqVM(st0.eqs, q[3], hi)):
+                    continue
+                saved = self.X.path
+                self.X.path = [('zero', c)] + saved[1:]
+                try:
+                    w = self.run(st0, (bq, q[1], lo, hi))
+                finally:
+                    self.X.path = saved
+                if w is not None:
+                    out += [('keep', j, bq, lo, hi)] + w
+                    self.stats['keep'] += 1
+            if out:
+                break
+        return out
 
     def dispatch(self, pas, st, x, fs, args, ma, mx, rets=()):
         vps = [(j, self.P.vpoffs[v]) for j, v in enumerate(rets or ()) if v in getattr(self.P, 'vpoffs', {})]
@@ -1135,6 +1268,13 @@ class Solver:
                 b = C.instC(mp, r[0])
                 if b is not None:
                     w = self.pt(st, C.cmul(b, C.cpow(mp[0], r[1])))
+            if w is None and ex and C.noSlot0R(r):
+                # at the exit's slots by `runOk` (several witnesses)
+                q = C.instR(mx, r)
+                wl = self.run(st, q) if q is not None else None
+                if wl is not None:
+                    ws += wl
+                    continue
             if w is None:
                 self.miss.append(('tail', 'postR', r))
                 return self.ret_done(None)
@@ -1174,6 +1314,7 @@ def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
     H.fas = C.fa_pairs(body)
+    H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []
     X_ = C.X(dict(I.POWS), H, sigOf, params, S)
@@ -1199,7 +1340,7 @@ def wit_res(w, f):
         return (k, w[1], w[2], [f(i) for i in w[3]])
     if k == 'perm':
         return (k, f(w[1]), w[2])
-    if k == 'prep':
+    if k in ('prep', 'app'):
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
     return w
 
@@ -1246,7 +1387,7 @@ def run_pass(X_, params, body):
     for p in prs:
         st.pushPR(p)
     if not G.term:
-        P.block(body, st)
+        P.block(C.dupB(X_.H.dups, body) if X_.H.dups else body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and (G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
         if G.retM or G.postV or G.postQ:
             P.fail('loop-retM-postV')
@@ -1322,8 +1463,10 @@ def lwit(w):
         return f'.{k}'
     if k == 'perm':
         return f'.perm {w[1]} {lnums(w[2])}'
-    if k == 'prep':
-        return f'.prep {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
+    if k in ('prep', 'app'):
+        return f'.{k} {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
+    if k == 'keep':
+        return f'.keep {w[1]} {lcell(w[2])} {lcell(w[3])} {lcell(w[4])}'
     if k == 'vp':
         return f'.vp {w[1]} {lnums(w[2])}'
     if k == 'mrgE':
@@ -1443,6 +1586,8 @@ def lcert(H, sig_only=False):
         out += '  fas := [' + wrap(f'({a}, {b})' for a, b in H.fas) + ']\n'
     if H.ders:
         out += '  ders := [' + wrap(map(lcell, H.ders)) + ']\n'
+    if H.dups:
+        out += '  dups := [' + ', '.join(map(str, H.dups)) + ']\n'
     if H.hvs:
         out += '  hvs := ' + ax.lst('hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
     if H.gargs:

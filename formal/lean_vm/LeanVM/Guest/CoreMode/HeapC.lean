@@ -25,7 +25,7 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
 
-**Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them.
+**Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them. An `ite`'s zero branch keeps the equation `a = b` of its guard's sum `c = a + b` (`zeroEq`: characteristic 2), so a run whose bounds are one word by the kept equations has no cell (`emptyE`). The certificate may list `ite`s (`HCert.dups`, by guard) whose continuation the pass checks in each branch (`dupB`): the `ret` after an `ite` that only one branch's writes reach.
 
 **Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
 
@@ -746,6 +746,15 @@ def prepIdx (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
     Nat.blt (R.hi.off - (idxOf (prepQ R) c R.stride).off) capE && hasExp F R.hi &&
     ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))
 
+/-- The point after a run: `base·hi^S`. -/
+def appQ (R : PRun) : CCell := R.base.mul (R.hi.pow R.stride)
+
+/-- **A cell of a run extended by its point after it**: `c = base·J^S`, the run from `g^0`, `J` below the upper
+bound's next (`(J, hi·g)` a fact). -/
+def appIdx (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
+  R.lo.bases.isEmpty && Nat.beq R.lo.off 0 && c.beq (R.base.mul ((idxOf R.base c R.stride).pow R.stride)) &&
+    hasF F (idxOf R.base c R.stride) (R.hi.shift 1)
+
 /-- **A witness of the cell `c`.** -/
 noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
   | .ev n => match getF st.sc n with
@@ -769,11 +778,18 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
   | .prep r q res => match getF st.rs r with
     | some R => prepIdx (facts X st.env res) R c && ptOk X st (prepQ R) q
     | none => false
+  | .app r q res => match getF st.rs r with
+    | some R => appIdx (facts X st.env res) R c && ptOk X st (appQ R) q
+    | none => false
   | _ => false
 
 /-- A run with constant bounds, the upper at most the lower (below `2^62`): it has no cell. -/
 def emptyR (Q : PRun) : Bool :=
   Q.lo.bases.isEmpty && Q.hi.bases.isEmpty && Nat.ble Q.hi.off Q.lo.off && Nat.blt Q.lo.off capE
+
+/-- **A run with no cell**: constant bounds, the upper at most the lower (`emptyR`), or its bounds one word by the
+kept equations (`eqV`). -/
+def emptyE (E : List (CCell × CCell)) (Q : PRun) : Bool := emptyR Q || eqV E Q.hi Q.lo
 
 /-- Constant bounds, below `2^62`. -/
 def constR (Q : PRun) : Bool :=
@@ -784,7 +800,7 @@ noncomputable def rnOk (X : CX) (st : CSt) (Q : PRun) : Wit → Bool
   | .run r res => match getF st.rs r with
     | some R => runRun (facts X st.env res) st.eqs Q R || subRun X st.env res Q R
     | none => false
-  | .empty => emptyR Q
+  | .empty => emptyE st.eqs Q
   | _ => false
 
 /-- The offsets all among `o`. -/
@@ -825,7 +841,7 @@ noncomputable def ptrROk (X : CX) (st : CSt) (Q : PRun) (offs : List ℕ) : List
   | .pfr r res :: ws => match getF st.pr r with
     | some p => bif runRun (facts X st.env res) st.eqs Q p.1 && subL offs p.2 then some ws else none
     | none => none
-  | .empty :: ws => bif emptyR Q then some ws else none
+  | .empty :: ws => bif emptyE st.eqs Q then some ws else none
   | .pts :: ws => bif constR Q
       then ptrPts X st Q.base Q.stride offs Q.lo.off (Q.hi.off - Q.lo.off) ws else none
   | _ => none
@@ -869,7 +885,8 @@ noncomputable def mrgW (X : CX) (st : CSt) (Q : PRun) (S : ℕ) (lo hi : CCell) 
 /-- **A run needed, one level**: one part (`runOk1`); `cat k` and the parts below and from the constant index
 `k` (`k < 2^62`); or `mrg S res` and its `S` residues (`mrgW`; a constant lower bound, a multiple of
 `S`, an upper bound an `S`-th power whose root has an exponent), or `mrgE S r res`, the root `r` given (its
-`S`-th power the upper bound's word, `eqV`). The witnesses left. -/
+`S`-th power the upper bound's word, `eqV`, or at least the upper bound, a fact `(hi, r^S·g)`). The witnesses
+left. -/
 noncomputable def runOk0 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
   | .cat k :: ws => bif Nat.blt k capE then
       (match runOk1 X st ⟨Q.base, Q.stride, Q.lo, ⟨[], k⟩⟩ ws with
@@ -879,7 +896,8 @@ noncomputable def runOk0 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (L
         ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S) then
       mrgW X st Q S ⟨[], Q.lo.off / S⟩ (rootC Q.hi S) 0 S ws else none
   | .mrgE S r res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 &&
-        Nat.blt Q.lo.off capE && eqV st.eqs (r.pow S) Q.hi && hasExp (facts X st.env res) r then
+        Nat.blt Q.lo.off capE && (eqV st.eqs (r.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((r.pow S).shift 1)) &&
+        hasExp (facts X st.env res) r then
       mrgW X st Q S ⟨[], Q.lo.off / S⟩ r 0 S ws else none
   | ws => runOk1 X st Q ws
 
@@ -1222,17 +1240,54 @@ noncomputable def sumOf (st : CSt) (c : V) : Option (CCell × CCell) :=
   | some k => getF st.ad k
   | none => none
 
+/-- **Entering an `ite`'s zero branch**: the guard `c` the sum `a + b` (`sumOf`), the equation `a = b` kept
+(characteristic 2). -/
+noncomputable def zeroEq (st : CSt) (c : V) : CSt :=
+  match sumOf st c with
+  | some p => st.addEq p
+  | none => st
+
+/-- `x / m`, the exponents and offset subtracted (exact when `x = (x / m)·m`). -/
+def cdivC (x m : CCell) : CCell :=
+  ⟨x.bases.filterMap fun b ↦ bif Nat.beq (b.2 - expOf m.bases b.1) 0 then none else some (b.1, b.2 - expOf m.bases b.1),
+    x.off - m.off⟩
+
+/-- `x = A·M^k` and `y = A·N^k` for the equation `(M, N)`. -/
+def eqM (p : CCell × CCell) (x y : CCell) : Bool :=
+  x.beq ((cdivC x (p.1.pow (powK p.1 x))).mul (p.1.pow (powK p.1 x))) &&
+    y.beq ((cdivC x (p.1.pow (powK p.1 x))).mul (p.2.pow (powK p.1 x)))
+
+/-- **Two monomials with one word**, a common factor allowed (`eqM`). -/
+def eqVM (E : List (CCell × CCell)) (x y : CCell) : Bool :=
+  eqV E x y || E.any fun p ↦ eqM p x y || eqM (p.2, p.1) x y
+
+/-- **Guarantee runs kept after a `callIf`** (`keep j b lo hi` and its witnesses, each): run `j` of `qs`, its
+rewriting `⟨b, stride, lo, hi⟩` by the equations written (`runOk`, the state where the call is not entered).
+`n` bounds the steps. -/
+noncomputable def keepL (X : CX) (st : CSt) (qs : List PRun) : ℕ → List Wit → Option (List PRun)
+  | _, [] => some []
+  | n + 1, .keep j b lo hi :: ws => match nth qs j with
+    | some q => bif eqVM st.eqs q.base b && eqVM st.eqs q.lo lo && eqVM st.eqs q.hi hi then
+        (match runOk X st ⟨b, q.stride, lo, hi⟩ ws with
+        | some ws' => (keepL X st qs n ws').map (q :: ·)
+        | none => none) else none
+    | none => none
+  | _, _ => none
+termination_by structural n _ => n
+
 /-- **A conditional call** `callIf c g args`: its callee's preconditions; pushed, each of its guarantees'
 runs whose bounds are the operands of the guard's sum (not entered, the guard is `0`, the bounds one
-word, the run empty). -/
+word, the run empty), and those the certificate keeps (`keepL`: written where it is not entered). -/
 noncomputable def callIfC (X : CX) (st : CSt) (c : V) (g : String) (args : List V) : Option CSt :=
   match monos st.env args, getF X.C st.nc with
   | some ma, some ws => match reqG (X.ext (cnz c)) st ma g args ws with
-    | some [] => match sumOf st c, instAllR ma (X.sigOf g).postR, instPRL ma (X.sigOf g).postPR with
-      | some p, some qs, some prs =>
-        some (pushPRL (prs.filter fun q ↦ boundsOf p q.1) (pushRL (qs.filter (boundsOf p)) st.nextC))
-      | _, _, _ => some st.nextC
-    | _ => none
+    | some wk => match sumOf st c, instAllR ma (X.sigOf g).postR, instPRL ma (X.sigOf g).postPR with
+      | some p, some qs, some prs => match keepL (X.ext (czero c)) (zeroEq st c) qs wk.length wk with
+        | some ks =>
+          some (pushPRL (prs.filter fun q ↦ boundsOf p q.1) (pushRL (qs.filter (boundsOf p) ++ ks) st.nextC))
+        | none => none
+      | _, _, _ => bif wk.isEmpty then some st.nextC else none
+    | none => none
   | _, _ => none
 
 /-- Two pointer facts are equal. -/
@@ -1518,7 +1573,7 @@ noncomputable def chkC (X : CX) : List Stmt → CSt → Option CSt
   | .atom a :: ss, st => match atomC X st a with
     | some st' => st'.seq fun st' ↦ chkC X ss st'
     | none => none
-  | .ite c z n :: ss, st => match chkC (X.ext (czero c)) z st with
+  | .ite c z n :: ss, st => match chkC (X.ext (czero c)) z (zeroEq st c) with
     | some s1 => match chkC (X.ext (cnz c)) n (st.cnt s1) with
       | some s2 => (joinSt [(endsRet z, st, s1), (endsRet n, st.cnt s1, s2)] st s2).seq fun st' ↦ chkC X ss st'
       | none => none
@@ -1583,12 +1638,10 @@ noncomputable def tailP (X : CX) (st : CSt) (mp mx : List CCell) (ex : Bool) :
     then tailP X st mp mx ex cs ws else none
   | _ :: _, [] => none
 
-/-- The tail's `postR` runs, at the parameters `mp`, at the exit's slots `mx`, or accumulated. -/
-noncomputable def tailR (X : CX) (st : CSt) (mp mx : List CCell) (ex : Bool) (ei : CIdx) :
-    List CRun → List Wit → Option (List Wit)
-  | [], ws => some ws
-  | r :: rs, w :: ws =>
-    bif (match instR mp r with
+/-- A tail's `postR` run by one witness: at the parameters `mp`, at the exit's slots `mx`, or accumulated. -/
+noncomputable def tailR1 (X : CX) (st : CSt) (mp mx : List CCell) (ex : Bool) (ei : CIdx) (r : CRun) (w : Wit) :
+    Bool :=
+    (match instR mp r with
         | some q => rnOk X st q w
         | none => false) ||
       (ex && noSlot0R r && match instR mx r with
@@ -1598,7 +1651,19 @@ noncomputable def tailR (X : CX) (st : CSt) (mp mx : List CCell) (ex : Bool) (ei
         match instC mp r.base, nth mp 0 with
         | some b, some m0 => ptOk X st (b.mul (m0.pow r.stride)) w
         | _, _ => false)
-    then tailR X st mp mx ex ei rs ws else none
+
+/-- The tail's `postR` runs, one witness each (`tailR1`), else at the exit's slots by `runOk` (its witnesses). -/
+noncomputable def tailR (X : CX) (st : CSt) (mp mx : List CCell) (ex : Bool) (ei : CIdx) :
+    List CRun → List Wit → Option (List Wit)
+  | [], ws => some ws
+  | r :: rs, w :: ws =>
+    bif tailR1 X st mp mx ex ei r w then tailR X st mp mx ex ei rs ws
+    else bif ex && noSlot0R r then
+      (match instR mx r with
+      | some q => match runOk X st q (w :: ws) with
+        | some ws' => tailR X st mp mx ex ei rs ws'
+        | none => none
+      | none => none) else none
   | _ :: _, [] => none
 
 /-- The tail's `postP` facts, at the parameters `mp`, or at the exit's slots `mx`. -/
@@ -1742,6 +1807,21 @@ noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → 
   | [] => true
   | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l
 
+/-- `c`'s value number listed. -/
+def dupC (ds : List ℕ) (c : V) : Bool := match vnum c with
+  | some k => ds.any (Nat.beq k)
+  | none => false
+
+/-- **The continuations checked in each branch** (`HCert.dups`): a top-level `ite c z n` followed by `ss`, `c`
+listed, as `ite c (z ++ ss) (n ++ ss)` (one walk, `walk_dupB`). -/
+def dupB (ds : List ℕ) : List Stmt → List Stmt
+  | [] => []
+  | .ite c z n :: ss => bif dupC ds c then [.ite c (z ++ ss) (n ++ ss)] else .ite c z n :: dupB ds ss
+  | s :: ss => s :: dupB ds ss
+
+/-- The body the pass reads: `f.body`, its listed `ite`s' continuations in each branch (`dupB`). -/
+def bodyC (ds : List ℕ) (body : List Stmt) : List Stmt := bif ds.isEmpty then body else dupB ds body
+
 /-- **The heap check with calls and loops.** The parameters `V.n i`, the preconditions over them, no
 ghost value named, the entry state, then the pass over the body, or a loop helper's
 (`term = [(.val 0, end)]`, no returned word). -/
@@ -1753,7 +1833,8 @@ noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
       (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
         match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ with
         | some st0 => match H.sig.term with
-          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ f.body st0).isSome
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩
+              (bodyC H.dups f.body) st0).isSome
           | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && H.sig.postQ.isEmpty &&
             loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ f ei st0
           | _ => false

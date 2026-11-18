@@ -290,6 +290,23 @@ theorem eqV_ok {E : List (CCell × CCell)} (hE : ∀ p ∈ E, p.1.valW w = p.2.v
     · exact eqR_ok (hE p hp) h
     · exact eqR_ok (p := (p.2, p.1)) (hE p hp).symm h
 
+theorem eqM_ok {p : CCell × CCell} (hp : p.1.valW w = p.2.valW w) {x y : CCell} (h : eqM p x y = true) :
+    x.valW w = y.valW w := by
+  unfold eqM at h
+  simp only [Bool.and_eq_true] at h
+  rw [CCell.beq_eq h.1, CCell.beq_eq h.2, valW_mul, valW_mul, valW_pow, valW_pow, hp]
+
+/-- **Two monomials with one word**, a common factor allowed. -/
+theorem eqVM_ok {E : List (CCell × CCell)} (hE : ∀ p ∈ E, p.1.valW w = p.2.valW w) {x y : CCell}
+    (h : eqVM E x y = true) : x.valW w = y.valW w := by
+  unfold eqVM at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact eqV_ok hE h
+  · obtain ⟨p, hp, h⟩ := List.any_eq_true.mp h
+    rcases Bool.or_eq_true_iff.mp h with h | h
+    · exact eqM_ok (hE p hp) h
+    · exact eqM_ok (p := (p.2, p.1)) (hE p hp).symm h
+
 /-- **A run inside a run**: a run written, the facts true, `runRun` gives the run written. -/
 theorem runRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell × CCell)}
     (hE : ∀ p ∈ E, p.1.valW w = p.2.valW w) {Q R : PRun}
@@ -389,6 +406,42 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
       rwa [hl0] at this
     · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
+
+theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
+  pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
+
+/-- **A cell of a run extended by its point after it**: in the run, or that point. -/
+theorem app_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
+    (hR : RunF W w R.base R.stride R.lo R.hi) {c : CCell} (h : appIdx F R c = true)
+    (hq : W ((appQ R).addrW w)) : W (c.addrW w) := by
+  unfold appIdx at h
+  simp only [Bool.and_eq_true] at h
+  obtain ⟨⟨⟨hlb, hl0⟩, hc⟩, hf⟩ := h
+  set J := idxOf R.base c R.stride with hJ
+  have hl0 := Nat.eq_of_beq_eq_true hl0
+  obtain ⟨yj, yb, hyj, hyb, hlt⟩ := hasF_ok hF hf
+  obtain ⟨hyjc, hjv⟩ := rep_spec hyj
+  obtain ⟨hybc, hbv⟩ := rep_spec hyb
+  -- `hi = g^(yb - 1)`
+  have hhv : R.hi.valW w = ofK (addressOfIndex (yb - 1)) := by
+    rw [valW_shift] at hbv
+    refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hbv.trans ?_)
+    rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
+  have hcv : c.valW w = R.base.valW w * ofK (addressOfIndex (R.stride * yj)) := by
+    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+      mul_comm yj]
+  rcases Nat.lt_or_ge yj (yb - 1) with hin | hge
+  · refine hR _ ⟨0, yb - 1, yj, ?_, ?_, Nat.zero_le _, hin, ?_⟩
+    · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
+      rwa [hl0] at this
+    · rw [hhv, rep_of (by omega)]
+    · rw [CCell.addrW, hcv]
+  · have hj : yj = yb - 1 := by omega
+    rw [CCell.addrW, hcv, hj]
+    have : (appQ R).valW w = R.base.valW w * ofK (addressOfIndex (R.stride * (yb - 1))) := by
+      rw [appQ, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul, mul_comm (yb - 1)]
+    rw [← this]
+    exact hq
 
 end Runs
 
@@ -1073,6 +1126,16 @@ theorem emptyR_ok {w : ℕ → E} {Q : PRun} (h : emptyR Q = true) {x : K} :
   rw [rep_nil hh (by omega), Option.some.injEq] at h2
   omega
 
+/-- A run with no cell (`emptyE`), the kept equations holding. -/
+theorem emptyE_ok {w : ℕ → E} {L : List (CCell × CCell)} (hE : ∀ p ∈ L, p.1.valW w = p.2.valW w) {Q : PRun}
+    (h : emptyE L Q = true) {x : K} : ¬ RunSet w Q.base Q.stride Q.lo Q.hi x := by
+  unfold emptyE at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact emptyR_ok h
+  · rintro ⟨ylo, yhi, j, h1, h2, h3, h4, -⟩
+    rw [← eqV_ok hE h, h2, Option.some.injEq] at h1
+    omega
+
 theorem ptrSet_sub {a : K} {offs o : List ℕ} (h : subL offs o = true) {x : K} (hx : PtrSet rd a offs x) :
     PtrSet rd a o x := by
   obtain ⟨w, hw, o', ho', rfl⟩ := hx
@@ -1183,6 +1246,16 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       simp only [Bool.and_eq_true] at h
       rw [addr_eq]
       exact prep_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1 (by rw [← addr_eq]; exact ih h.2)
+  | app r q res ih =>
+    simp only [ptOk] at h
+    cases hr : getF st.rs r with
+    | none => rw [hr] at h; cases h
+    | some R =>
+      rw [hr] at h
+      simp only [Bool.and_eq_true] at h
+      rw [addr_eq]
+      exact app_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1 (by rw [← addr_eq]; exact ih h.2)
+  | keep => simp [ptOk] at h
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -1200,7 +1273,7 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       · exact subRun_ok hX hs.env (hs.rs r R hr) h
   | empty =>
     simp only [rnOk] at h
-    exact fun x hx ↦ absurd hx (emptyR_ok h)
+    exact fun x hx ↦ absurd hx (emptyE_ok hs.eqs h)
   | ev => simp [rnOk] at h
   | pre => simp [rnOk] at h
   | res => simp [rnOk] at h
@@ -1213,6 +1286,8 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | mrg => simp [rnOk] at h
   | perm => simp [rnOk] at h
   | prep => simp [rnOk] at h
+  | app => simp [rnOk] at h
+  | keep => simp [rnOk] at h
   | vp => simp [rnOk] at h
   | catM => simp [rnOk] at h
   | mrgE => simp [rnOk] at h
@@ -1330,9 +1405,9 @@ theorem ptrROk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : 
           exact fun a ha x hx ↦ hs.pr r p hr a (hQ a ha) x (ptrSet_sub hb.2 hx)
     case empty =>
       simp only [ptrROk] at h
-      cases hb : emptyR Q with
+      cases hb : emptyE st.eqs Q with
       | false => rw [hb] at h; simp at h
-      | true => exact fun a ha ↦ absurd ha (emptyR_ok hb)
+      | true => exact fun a ha ↦ absurd ha (emptyE_ok hs.eqs hb)
     case pts =>
       simp only [ptrROk] at h
       cases hb : constR Q with
@@ -1437,6 +1512,24 @@ theorem mrgW_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.a
 /-- **A merge**: a run of stride `S'` whose cells are those of its `S` residue runs of stride `S'·S`, its
 lower bound a constant multiple of `S`, its upper bound the `S`-th power of a root with an exponent (the
 upper bound's exponent is at most `S` times the root's). -/
+theorem mrg_le {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
+    {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr) (hle : ∀ y, rep (Q.hi.valW (vw σ)) = some y → y ≤ yr * S)
+    (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
+      (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).stride ⟨[], Q.lo.off / S⟩ R) :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  rintro x ⟨ylo, yhi, i, h1, h2, h3, h4, rfl⟩
+  rw [rep_nil hlb hlc, Option.some.injEq] at h1
+  subst h1
+  have hle := hle yhi h2
+  have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
+  have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
+  have hj0 : Q.lo.off / S ≤ i / S := Nat.div_le_div_right h3
+  refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
+    have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
+  simp only [mrgPart]
+  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+    Nat.mul_assoc, ← Nat.mul_add, hi]
+
 theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
     (hroot : Q.hi.valW (vw σ) = R.valW (vw σ) ^ S) {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr)
     (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
@@ -1511,16 +1604,28 @@ theorem runOk0_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c
         · obtain ⟨S, R, res, rfl⟩ := he
           simp only [runOk0] at h
           cases hb : (Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
-              eqV st.eqs (R.pow S) Q.hi && hasExp (facts X st.env res) R) with
+              (eqV st.eqs (R.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((R.pow S).shift 1)) &&
+              hasExp (facts X st.env res) R) with
           | false => rw [hb] at h; simp at h
           | true =>
             rw [hb, Bool.cond_true] at h
             simp only [Bool.and_eq_true] at hb
             obtain ⟨⟨⟨⟨⟨hS, hlb⟩, -⟩, hlc⟩, hroot⟩, hex⟩ := hb
             obtain ⟨yr, hyr⟩ := hasExp_ok (facts_ok hX hs.env res) hex
-            exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
-              (by rw [← eqV_ok hs.eqs hroot, valW_pow]) hyr
-              fun r hr ↦ mrgW_ok hX hpre hs h r (Nat.zero_le _) (by omega)
+            have hparts := fun r (hr : r < S) ↦ mrgW_ok hX hpre hs h r (Nat.zero_le _) (by omega)
+            rcases Bool.or_eq_true_iff.mp hroot with hroot | hroot
+            · exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
+                (by rw [← eqV_ok hs.eqs hroot, valW_pow]) hyr hparts
+            · refine mrg_le (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc) hyr (fun y hy ↦ ?_) hparts
+              obtain ⟨ya, yb, ha, hb2, hab⟩ := hasF_ok (facts_ok hX hs.env res) hroot
+              rw [hy, Option.some.injEq] at ha
+              subst ha
+              obtain ⟨-, hrv⟩ := rep_spec hyr
+              have h2 : ((R.pow S).shift 1).valW (vw σ) = ofK (addressOfIndex (yr * S + 1)) := by
+                rw [valW_shift, valW_pow, hrv, ← ofK_pow', ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex,
+                  ← pow_mul, ← pow_add]
+              have := rep_le hb2 h2
+              omega
         · have h' : runOk1 X st Q (w :: wl) = some wl' := by
             cases w <;> first | exact absurd ⟨_, rfl⟩ hw | exact absurd ⟨_, _, rfl⟩ hm | exact absurd ⟨_, _, _, rfl⟩ he | exact h
           exact runOk1_ok hX hpre hs h'
@@ -2065,9 +2170,6 @@ theorem atomC_other {st : CSt} {a : Atom} (hl : ∀ d p off, a ≠ .load d p off
     | _ => rfl
   | _ => first | rfl | exact absurd rfl (hl _ _ _) | exact absurd rfl (ha _ _ _) | exact absurd rfl (hm _ _ _)
 
-theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
-  pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
-
 /-- A read through a load event of its cell: the word stored there. -/
 theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd (c.addr σ) = some (σ d)) :
     ∀ w, StOk rd W σ (hvDef X st c d w)
@@ -2105,6 +2207,8 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .mrg _ _ => hs
   | .perm _ _ => hs
   | .prep _ _ _ => hs
+  | .app _ _ _ => hs
+  | .keep _ _ _ _ => hs
   | .vp _ _ => hs
   | .catM _ _ _ => hs
   | .mrgE _ _ _ => hs
@@ -2709,6 +2813,75 @@ theorem runSet_eq {w : ℕ → E} {b lo hi : CCell} {S : ℕ} (h : lo.valW w = h
   rw [h, h2, Option.some.injEq] at h1
   omega
 
+theorem cond_some {α : Type} {b : Bool} {x : Option α} {y : α} (h : (bif b then x else none) = some y) :
+    b = true ∧ x = some y := by
+  cases b <;> simp_all
+
+/-- **An `ite`'s zero branch**: the guard `0`, the equation of its sum kept. -/
+theorem zeroEq_ok {st : CSt} (hs : StOk rd W σ st) {c : V} (h0 : σ c = 0) : StOk rd W σ (zeroEq st c) := by
+  unfold zeroEq
+  cases hsum : sumOf st c with
+  | none => exact hs
+  | some p =>
+    refine addEq_ok hs (CoreMode.char2_eq ?_)
+    unfold sumOf at hsum
+    cases hk : vnum c with
+    | none => rw [hk] at hsum; cases hsum
+    | some k =>
+      rw [hk] at hsum
+      rw [← hs.ad k p hsum, ← vnum_eq hk]
+      exact h0
+
+theorem keepL_mem {X : CX} {st : CSt} {qs : List PRun} : ∀ {n : ℕ} {wl : List Wit} {ks : List PRun},
+    keepL X st qs n wl = some ks → ∀ q ∈ ks, q ∈ qs
+  | _, [], ks, h, q, hq => by simp only [keepL, Option.some.injEq] at h; subst h; simp at hq
+  | 0, _ :: _, ks, h, q, hq => by simp [keepL] at h
+  | n + 1, w :: wl, ks, h, q, hq => by
+    cases w with
+    | keep j b lo hi =>
+      simp only [keepL] at h
+      cases hn : nth qs j with
+      | none => simp [hn] at h
+      | some q0 =>
+        simp only [hn] at h
+        obtain ⟨-, h⟩ := cond_some h
+        split at h
+        · rename_i wl1 _
+          obtain ⟨ks1, hk1, rfl⟩ := Option.map_eq_some_iff.mp h
+          rcases List.mem_cons.mp hq with rfl | hq
+          · rw [nth_eq] at hn
+            exact List.mem_of_getElem? hn
+          · exact keepL_mem hk1 q hq
+        · cases h
+    | _ => simp [keepL] at h
+
+theorem keepL_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {qs : List PRun} : ∀ {n : ℕ} {wl : List Wit} {ks : List PRun},
+    keepL X st qs n wl = some ks → ∀ q ∈ ks, RunF W (vw σ) q.base q.stride q.lo q.hi
+  | _, [], ks, h, q, hq => by simp only [keepL, Option.some.injEq] at h; subst h; simp at hq
+  | 0, _ :: _, ks, h, q, hq => by simp [keepL] at h
+  | n + 1, w :: wl, ks, h, q, hq => by
+    cases w with
+    | keep j b lo hi =>
+      simp only [keepL] at h
+      cases hn : nth qs j with
+      | none => simp [hn] at h
+      | some q0 =>
+        simp only [hn] at h
+        obtain ⟨he, h⟩ := cond_some h
+        simp only [Bool.and_eq_true] at he
+        obtain ⟨⟨hb, hl⟩, hh⟩ := he
+        cases hr : runOk X st ⟨b, q0.stride, lo, hi⟩ wl with
+        | none => simp [hr] at h
+        | some wl1 =>
+          simp only [hr] at h
+          obtain ⟨ks1, hk1, rfl⟩ := Option.map_eq_some_iff.mp h
+          rcases List.mem_cons.mp hq with rfl | hq
+          · have h1 := runOk_ok (Q := ⟨b, q.stride, lo, hi⟩) hX hpre hs hr
+            exact (runF_congr (eqVM_ok hs.eqs hb).symm (eqVM_ok hs.eqs hl).symm (eqVM_ok hs.eqs hh).symm).mp h1
+          · exact keepL_ok hX hpre hs hk1 q hq
+    | _ => simp [keepL] at h
+
 /-- **A conditional call** `callIf c g args`: its callee's preconditions written; the state after it valid
 with its events' writes (`e`, entered or not). -/
 theorem callIfC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st st' : CSt} {c : V}
@@ -2729,57 +2902,74 @@ theorem callIfC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (
       | some wl' =>
         have hreq := fun h0 ↦ reqG_ok (hX.ext (cnz_ok h0)) hpre hs hma hla hq
         refine ⟨hreq, ?_⟩
-        cases wl' with
-        | cons _ _ => simp [hq] at h
-        | nil =>
-          simp only [hq] at h
-          -- the guard is the sum of a run's bounds whose bounds are its operands
-          have hcs : ∀ p, sumOf st c = some p → ∀ q : PRun, boundsOf p q = true →
-              σ c = q.lo.valW (vw σ) + q.hi.valW (vw σ) := fun p hsum q hq2 ↦ by
-            unfold sumOf at hsum
-            cases hk : vnum c with
-            | none => rw [hk] at hsum; cases hsum
-            | some k =>
-              rw [hk] at hsum
-              rw [vnum_eq hk, hs.ad k p hsum]
-              unfold boundsOf at hq2
-              simp only [Bool.or_eq_true, Bool.and_eq_true] at hq2
-              rcases hq2 with ⟨h1, h2⟩ | ⟨h1, h2⟩
-              · rw [CCell.beq_eq h1, CCell.beq_eq h2]
-              · rw [CCell.beq_eq h1, CCell.beq_eq h2, add_comm]
-          have hcall : σ c ≠ 0 → ∀ x, PostSet rd (sigOf g) (args.map σ) x →
-              EW sigOf rd σ [.inK c, if σ c = 0 then .skip g args else .call g args []] x := fun h0 x hx ↦ by
-            refine ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, ?_⟩
-            rw [ite_eq_right h0]
-            simp only [EvW, List.append_nil]
-            exact hx
-          cases hsum : sumOf st c with
-          | none => simp only [hsum, Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
-          | some p =>
-            cases hqs : instAllR ma (X.sigOf g).postR with
-            | none => simp only [hsum, hqs, Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
-            | some qs =>
-              cases hps : instPRL ma (X.sigOf g).postPR with
-              | none => simp only [hsum, hqs, hps, Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
-              | some prs =>
-              simp only [hsum, hqs, hps, Option.some.injEq] at h
-              subst h
-              refine pushPRL_ok (pushRL_ok hs.nextC (fun _ ↦ Or.inl) (fun q hq x hx ↦ ?_)) (fun _ h ↦ h)
-                fun q hq a ha x hx ↦ ?_
-              · obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
-                by_cases h0 : σ c = 0
-                · exact absurd hx (runSet_eq (CoreMode.char2_eq (hcs p hsum q hq2 ▸ h0)))
-                · obtain ⟨r0, hr0, hi⟩ := instAllR_ok hqs q hq1
+        simp only [hq] at h
+        -- the guard is the sum of a run's bounds whose bounds are its operands
+        have hcs : ∀ p, sumOf st c = some p → ∀ q : PRun, boundsOf p q = true →
+            σ c = q.lo.valW (vw σ) + q.hi.valW (vw σ) := fun p hsum q hq2 ↦ by
+          unfold sumOf at hsum
+          cases hk : vnum c with
+          | none => rw [hk] at hsum; cases hsum
+          | some k =>
+            rw [hk] at hsum
+            rw [vnum_eq hk, hs.ad k p hsum]
+            unfold boundsOf at hq2
+            simp only [Bool.or_eq_true, Bool.and_eq_true] at hq2
+            rcases hq2 with ⟨h1, h2⟩ | ⟨h1, h2⟩
+            · rw [CCell.beq_eq h1, CCell.beq_eq h2]
+            · rw [CCell.beq_eq h1, CCell.beq_eq h2, add_comm]
+        have hcall : σ c ≠ 0 → ∀ x, PostSet rd (sigOf g) (args.map σ) x →
+            EW sigOf rd σ [.inK c, if σ c = 0 then .skip g args else .call g args []] x := fun h0 x hx ↦ by
+          refine ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, ?_⟩
+          rw [ite_eq_right h0]
+          simp only [EvW, List.append_nil]
+          exact hx
+        cases hsum : sumOf st c with
+        | none =>
+          simp only [hsum] at h
+          obtain ⟨-, h⟩ := cond_some h
+          simp only [Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
+        | some p =>
+          cases hqs : instAllR ma (X.sigOf g).postR with
+          | none =>
+            simp only [hsum, hqs] at h
+            obtain ⟨-, h⟩ := cond_some h
+            simp only [Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
+          | some qs =>
+            cases hps : instPRL ma (X.sigOf g).postPR with
+            | none =>
+              simp only [hsum, hqs, hps] at h
+              obtain ⟨-, h⟩ := cond_some h
+              simp only [Option.some.injEq] at h; subst h; exact hs.nextC.mono fun _ ↦ Or.inl
+            | some prs =>
+            simp only [hsum, hqs, hps] at h
+            cases hk : keepL (X.ext (czero c)) (zeroEq st c) qs wl'.length wl' with
+            | none => simp [hk] at h
+            | some ks =>
+            simp only [hk, Option.some.injEq] at h
+            subst h
+            refine pushPRL_ok (pushRL_ok hs.nextC (fun _ ↦ Or.inl) (fun q hq x hx ↦ ?_)) (fun _ h ↦ h)
+              fun q hq a ha x hx ↦ ?_
+            · rcases List.mem_append.mp hq with hq | hq
+              swap
+              · by_cases h0 : σ c = 0
+                · exact Or.inl (keepL_ok (hX.ext (czero_ok h0)) hpre (zeroEq_ok hs h0) hk q hq x hx)
+                · obtain ⟨r0, hr0, hi⟩ := instAllR_ok hqs q (keepL_mem hk q hq)
                   rw [hX.sigOf] at hr0
                   exact Or.inr (hcall h0 x (Or.inl (Or.inr ⟨r0, hr0, (instR_set hma hi).mp hx⟩)))
-              · obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
-                by_cases h0 : σ c = 0
-                · exact absurd ha (runSet_eq (CoreMode.char2_eq (hcs p hsum q.1 hq2 ▸ h0)))
-                · obtain ⟨p0, hp0, hi, he⟩ := instPRL_ok hps q hq1
-                  rw [hX.sigOf] at hp0
-                  refine Or.inr (hcall h0 x (Or.inr (Or.inl (Or.inr ⟨p0, hp0, a, (instR_set hma hi).mp ha, ?_⟩))))
-                  rw [← he]
-                  exact hx
+              obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
+              by_cases h0 : σ c = 0
+              · exact absurd hx (runSet_eq (CoreMode.char2_eq (hcs p hsum q hq2 ▸ h0)))
+              · obtain ⟨r0, hr0, hi⟩ := instAllR_ok hqs q hq1
+                rw [hX.sigOf] at hr0
+                exact Or.inr (hcall h0 x (Or.inl (Or.inr ⟨r0, hr0, (instR_set hma hi).mp hx⟩)))
+            · obtain ⟨hq1, hq2⟩ := List.mem_filter.mp hq
+              by_cases h0 : σ c = 0
+              · exact absurd ha (runSet_eq (CoreMode.char2_eq (hcs p hsum q.1 hq2 ▸ h0)))
+              · obtain ⟨p0, hp0, hi, he⟩ := instPRL_ok hps q hq1
+                rw [hX.sigOf] at hp0
+                refine Or.inr (hcall h0 x (Or.inr (Or.inl (Or.inr ⟨p0, hp0, a, (instR_set hma hi).mp ha, ?_⟩))))
+                rw [← he]
+                exact hx
 
 theorem instArms_mem {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : List String}
     {ps : List (List CCell)} {rs : List (List PRun)}, instArms sigOf ms gs = some (ps, rs) →
@@ -3587,7 +3777,7 @@ theorem chkC_ok {X : CX} (hX : XOk sigOf H rd f σ X) : ∀ (ss : List Stmt) {st
           chkC_ok hX ss (fun c hc ↦ Or.inl (hpre c hc)) h hs1⟩
   | .ite c z n :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
-    cases h1 : chkC (X.ext (czero c)) z st with
+    cases h1 : chkC (X.ext (czero c)) z (zeroEq st c) with
     | none => rw [h1] at h; cases h
     | some s1 =>
       simp only [h1] at h
@@ -3602,7 +3792,7 @@ theorem chkC_ok {X : CX} (hX : XOk sigOf H rd f σ X) : ∀ (ss : List Stmt) {st
           refine outC_pre ?_ c
           by_cases hc : σ c = 0
           · rw [ite_eq_left hc]
-            exact (chkC_ok (hX.ext (czero_ok hc)) z hpre h1 hs).1
+            exact (chkC_ok (hX.ext (czero_ok hc)) z hpre h1 (zeroEq_ok hs hc)).1
           · rw [ite_eq_right hc]
             exact (chkC_ok (hX.ext (cnz_ok hc)) n hpre h2 (hs.cnt s1)).1
         · have hW : ∀ es', es = [Ev.inK c] ++ es' → ∀ x, (W x ∨ EW sigOf rd σ es' x) → W x ∨ EW sigOf rd σ es x :=
@@ -3616,7 +3806,8 @@ theorem chkC_ok {X : CX} (hX : XOk sigOf H rd f σ X) : ∀ (ss : List Stmt) {st
               simp only [Out.pre, Out.fall.injEq] at hw
               subst hw
               exact joinSt_ok (hs.mono fun _ ↦ Or.inl) List.mem_cons_self (endsRet_false hz)
-                (((chkC_ok (hX.ext (czero_ok hc)) z hpre h1 hs).2 es' hz (evsOk_append hh).2).mono (hW es' rfl))
+                (((chkC_ok (hX.ext (czero_ok hc)) z hpre h1 (zeroEq_ok hs hc)).2 es' hz (evsOk_append hh).2).mono
+                  (hW es' rfl))
             | ret => rw [hz] at hw; simp [Out.pre] at hw
             | stuck => rw [hz] at hw; simp [Out.pre] at hw
           · rw [ite_eq_right hc] at hw
@@ -3742,10 +3933,6 @@ section Tail
 
 variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} {σ : Val} {rd : Reader} {W : K → Prop}
 
-theorem cond_some {α : Type} {b : Bool} {x : Option α} {y : α} (h : (bif b then x else none) = some y) :
-    b = true ∧ x = some y := by
-  cases b <;> simp_all
-
 theorem CIdx.beq_eq : ∀ {a b : CIdx}, CIdx.beq a b = true → a = b
   | .num a, .num b, h => by rw [Nat.eq_of_beq_eq_true h]
   | .val a, .val b, h => by rw [Nat.eq_of_beq_eq_true h]
@@ -3831,30 +4018,48 @@ theorem tailR_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
   | r :: rs, [], _, h, _, _ => by simp [tailR] at h
   | r :: rs, w :: wl, wl', h, r0, hr0 => by
     simp only [tailR] at h
-    obtain ⟨hb, h⟩ := cond_some h
-    rcases List.mem_cons.mp hr0 with rfl | hr0
-    · rcases Bool.or_eq_true_iff.mp hb with h1 | h1
-      · rcases Bool.or_eq_true_iff.mp h1 with h1 | h1
-        · left
-          split at h1
-          · rename_i q hi
-            exact (instR_runF hmp hi).mp (rnOk_ok hX hs h1)
-          · cases h1
+    cases hb : tailR1 X st mp mx ex ei r w with
+    | false =>
+      rw [hb, Bool.cond_false] at h
+      obtain ⟨he, h⟩ := cond_some h
+      simp only [Bool.and_eq_true] at he
+      cases hq : instR mx r with
+      | none => rw [hq] at h; cases h
+      | some q =>
+        simp only [hq] at h
+        cases hw : runOk X st q (w :: wl) with
+        | none => simp [hw] at h
+        | some wl1 =>
+          simp only [hw] at h
+          rcases List.mem_cons.mp hr0 with rfl | hr0
+          · exact Or.inr (Or.inl ⟨he.1, he.2, (instR_runF hmx hq).mp (runOk_ok hX hpre hs hw)⟩)
+          · exact tailR_ok hX hpre hs hmp hmx h r0 hr0
+    | true =>
+      rw [hb, Bool.cond_true] at h
+      unfold tailR1 at hb
+      rcases List.mem_cons.mp hr0 with rfl | hr0
+      · rcases Bool.or_eq_true_iff.mp hb with h1 | h1
+        · rcases Bool.or_eq_true_iff.mp h1 with h1 | h1
+          · left
+            split at h1
+            · rename_i q hi
+              exact (instR_runF hmp hi).mp (rnOk_ok hX hs h1)
+            · cases h1
+          · simp only [Bool.and_eq_true] at h1
+            obtain ⟨⟨h1, h2⟩, h3⟩ := h1
+            refine Or.inr (Or.inl ⟨h1, h2, ?_⟩)
+            split at h3
+            · rename_i q hi
+              exact (instR_runF hmx hi).mp (rnOk_ok hX hs h3)
+            · cases h3
         · simp only [Bool.and_eq_true] at h1
-          obtain ⟨⟨h1, h2⟩, h3⟩ := h1
-          refine Or.inr (Or.inl ⟨h1, h2, ?_⟩)
-          split at h3
-          · rename_i q hi
-            exact (instR_runF hmx hi).mp (rnOk_ok hX hs h3)
-          · cases h3
-      · simp only [Bool.and_eq_true] at h1
-        obtain ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩ := h1
-        refine Or.inr (Or.inr ⟨CIdx.beq_eq e1, CIdx.beq_eq e2, e3, ?_⟩)
-        split at e4
-        · rename_i b m0 hb' hm
-          exact ⟨b, m0, hb', hm, ptOk_ok hX hpre hs e4⟩
-        · cases e4
-    · exact tailR_ok hX hpre hs hmp hmx h r0 hr0
+          obtain ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩ := h1
+          refine Or.inr (Or.inr ⟨CIdx.beq_eq e1, CIdx.beq_eq e2, e3, ?_⟩)
+          split at e4
+          · rename_i b m0 hb' hm
+            exact ⟨b, m0, hb', hm, ptOk_ok hX hpre hs e4⟩
+          · cases e4
+      · exact tailR_ok hX hpre hs hmp hmx h r0 hr0
 
 theorem tailPP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st)
     {mp mx : List CCell} {ws wx : List E} (hmp : MsOk (vw σ) mp (slotW ws)) (hmx : MsOk (vw σ) mx (slotW wx))
@@ -4348,6 +4553,55 @@ theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
 returns, its events holding and each entered call's callee guarantees' runs having their exponents,
 given its entry facts and its residuals, every event's needs are written before it and its
 guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
+theorem out_seq_assocC : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
+  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
+  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
+  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
+  | .ret es vs, k, l => by simp [Out.seq]
+  | .stuck, k, l => by simp [Out.seq]
+
+theorem walk_appendC (σ : Val) : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
+  | [], l' => by
+      rw [List.nil_append, walk]
+      cases walk σ l' <;> simp [Out.seq, Out.pre]
+  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_appendC σ l l', out_seq_assocC]
+
+theorem out_pre_seqC (es : List Ev) : ∀ (o k : Out), (o.pre es).seq k = (o.seq k).pre es
+  | .fall es', k => by cases k <;> simp [Out.seq, Out.pre, List.append_assoc]
+  | .ret es' vs, k => by simp [Out.seq, Out.pre]
+  | .stuck, k => by simp [Out.seq, Out.pre]
+
+theorem out_seq_nilC : ∀ (o : Out), o.seq (.fall []) = o
+  | .fall es => by simp [Out.seq, Out.pre]
+  | .ret _ _ => rfl
+  | .stuck => rfl
+
+/-- **The body the pass reads walks as the body**: an `ite`'s continuation in each branch is one walk. -/
+theorem walk_dupB (σ : Val) (ds : List ℕ) : ∀ ss : List Stmt, walk σ (dupB ds ss) = walk σ ss
+  | [] => rfl
+  | s :: ss => by
+    cases s with
+    | ite c z n =>
+      simp only [dupB]
+      cases dupC ds c with
+      | false => simp only [Bool.cond_false, walk, walk_dupB σ ds ss]
+      | true =>
+        simp only [Bool.cond_true, walk, walk1, walk_appendC, out_seq_nilC]
+        rw [out_pre_seqC]
+        split_ifs <;> rfl
+    | atom a => simp only [dupB, walk, walk_dupB σ ds ss]
+    | match_ x arms => simp only [dupB, walk, walk_dupB σ ds ss]
+    | call g args rets => simp only [dupB, walk, walk_dupB σ ds ss]
+    | callIf c g args => simp only [dupB, walk, walk_dupB σ ds ss]
+    | dispatch x fs args rets => simp only [dupB, walk, walk_dupB σ ds ss]
+    | ret vs => simp only [dupB, walk, walk_dupB σ ds ss]
+
+theorem walk_bodyC (σ : Val) (ds : List ℕ) (ss : List Stmt) : walk σ (bodyC ds ss) = walk σ ss := by
+  unfold bodyC
+  cases ds.isEmpty
+  · exact walk_dupB σ ds ss
+  · rfl
+
 theorem heapOkC_sound {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
     (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
@@ -4404,8 +4658,9 @@ theorem heapOkC_sound {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} 
       rwa [hX.sig, hX.params] at this
     split at hc
     · obtain ⟨st', hst⟩ := Option.isSome_iff_exists.mp hc
-      exact fin ((chkC_ok hX f.body hpreW hst hs0).1.2 es vs hw hevs).1
-        ((chkC_ok hX f.body hpreW hst hs0).1.2 es vs hw hevs).2
+      have hw' : walk σ (bodyC H.dups f.body) = .ret es vs := by rw [walk_bodyC]; exact hw
+      exact fin ((chkC_ok hX _ hpreW hst hs0).1.2 es vs hw' hevs).1
+        ((chkC_ok hX _ hpreW hst hs0).1.2 es vs hw' hevs).2
     · rename_i ei hterm
       simp only [Bool.and_eq_true] at hc
       obtain ⟨⟨⟨⟨hrm, hpv⟩, hre⟩, hpq⟩, hc⟩ := hc

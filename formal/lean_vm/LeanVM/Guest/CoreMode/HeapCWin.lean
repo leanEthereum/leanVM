@@ -240,7 +240,7 @@ theorem chkC_append (X : CX) : ∀ (ss₁ ss₂ : List Stmt) (st : CSt), endsRet
       cases atomC X st a <;> simp [CSt.seq_eq, ih]
     | ite c z n =>
       simp only [List.cons_append, chkC]
-      cases h1 : chkC (X.ext (czero c)) z st with
+      cases h1 : chkC (X.ext (czero c)) z (zeroEq st c) with
       | none => rfl
       | some s1 =>
         simp only
