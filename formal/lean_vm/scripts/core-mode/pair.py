@@ -338,7 +338,7 @@ def offs_defs(k, f):
 
 
 def args(k, f):
-    return f'alignCtx hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.code Data.adviceFn{f["j"]}'
+    return f'alignCtx hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
 
 
 def ns(k, body):
@@ -357,7 +357,7 @@ def data_mod(pack, f):
 def render_pack(pack, fs):
     mod = f'LeanVM.Guest.CoreMode.Gen.«{pack}».Pair'
     out = [HEADER.format(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more."),
-           imports(['LeanVM.Guest.CoreMode.PairDefs'] + [data_mod(pack, f) for f in fs]
+           imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»'] + [data_mod(pack, f) for f in fs]
                    + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
            'set_option Elab.async false\n']
     for f in fs:
@@ -387,7 +387,7 @@ def render_win(pack, f):
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
-        + imports(['LeanVM.Guest.CoreMode.PairDefs', data_mod(pack, f),
+        + imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 

@@ -7,10 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link11
 public import LeanVM.Guest.CoreMode.Gen.«P6».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P6».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P6».Pair
+public import LeanVM.Guest.CoreMode.GlueC.«P6»
 public import LeanVM.Guest.CoreMode.Pack.verify_merkle_cap__L8.Frame0
 public import LeanVM.Guest.CoreMode.Pows.«P6»
 public import LeanVM.Guest.CoreMode.Small
@@ -30,7 +30,7 @@ open LeanVM.Guest
 
 /-- `verify_merkle_cap__L8`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1182, Fn.«verify_merkle_cap__L8».pows, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Fn.«verify_merkle_cap__L8».advice, Fn.«verify_merkle_cap__L8».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -78,9 +78,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 1182) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code1182 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1182 ▸ End.fnOf_mem (by decide)))
+  hints := Mode.hintsEq_of_fn (j := Fn.«verify_merkle_cap__L8».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
+  fetch := Exec.guest_fetches Fn.«verify_merkle_cap__L8».code_mem
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_merkle_cap__L8».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«verify_merkle_cap__L8».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«verify_merkle_cap__L8».fpows_ok
 

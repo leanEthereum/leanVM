@@ -9,12 +9,13 @@ module
 public import LeanVM.Guest.Bridge.Prefix
 public import LeanVM.Guest.Bridge.Cells
 public import LeanVM.Guest.Bridge.PrefixOk.P10
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!
 # The hint bridge on `walk_path__L6_L7`
 
-`walk_path__L6_L7` (a specialization of `walk_path`, compiled function `1545`) pops its Merkle path's `24` children from `merkle_children` before it hashes them. Its ISA hints (`Data.adviceFn1545`): `witnessStack "merkle_children" 7 24` at offset `0` and a `cellAddress` (plumbing) at offset `7`; its first jump is at offset `11`.
+`walk_path__L6_L7` (a specialization of `walk_path`) pops its Merkle path's `24` children from `merkle_children` before it hashes them. Its ISA hints (`Fn.«walk_path__L6_L7».advice`): `witnessStack "merkle_children" 7 24` at offset `0` and a `cellAddress` (plumbing) at offset `7`; its first jump is at offset `11`.
 
 * `prefixOk_wp`: it is in the prefix class, under its certificate's cells (`loc`, its generated `bridgeLoc`), by the kernel (`Bridge/PrefixOk/P10.lean`).
 * `wp_isaFlow`, `wp_flow`, `wp_cells`: the per-pc pairing: its one ISA flow hint, at offset `0`, compiles its body's first atom, the witness of values `5` to `28`, which sit at cells `7` to `30`.
@@ -41,11 +42,11 @@ public section
 
 /-- **`walk_path__L6_L7` is in the prefix class.** -/
 theorem prefixOk_wp : prefixOk loc Fn.«walk_path__L6_L7».core.body Fn.«walk_path__L6_L7».code.code
-    Data.adviceFn1545 = true :=
+    Fn.«walk_path__L6_L7».advice = true :=
   Fn.«walk_path__L6_L7».bridgePrefixOk
 
 /-- Its ISA flow hints: the witness at offset `0`. -/
-theorem wp_isaFlow : isaFlow Data.adviceFn1545 = [(0, .witnessStack "merkle_children" 7 24)] := by
+theorem wp_isaFlow : isaFlow Fn.«walk_path__L6_L7».advice = [(0, .witnessStack "merkle_children" 7 24)] := by
   rfl
 
 /-- Its body's leading flow hints: the witness of its children. -/

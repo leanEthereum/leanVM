@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«P33»
 public import LeanVM.Guest.Pack.«P33».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
@@ -256,142 +256,141 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node (some Fn.«open_stacked__L8».modeSig) .nil .nil)) .nil)))) (.node none .nil (.node
     none .nil (.node none (.node none (.node none .nil (.node (some
     Fn.«bus_grind_check__L2».modeSig) .nil .nil)) .nil) .nil)))))) .nil))) .nil)))))), 524287,
-    Data.adviceFn19.2.2, .nil, (.node none .nil (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some 2) .nil
-    .nil)) .nil) .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some 0) .nil .nil)) .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node (some 1) .nil .nil))))) .nil))), .nil, (.node (some
-    frameCallee0) (.node (some frameCallee1) .nil .nil) (.node (some frameCallee2) .nil .nil)),
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none
-    (.node none (.node (some ()) .nil (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil)) (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))
-    (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) .nil) (.node (some ()) .nil .nil)) .nil))) (.node none (.node none (.node none (.node
+    advice.2.2, .nil, (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node (some 2) .nil .nil)) .nil)
+    .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node (some 0)
+    .nil .nil)) .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node (some 1) .nil .nil))))) .nil))), .nil, (.node (some frameCallee0) (.node (some
+    frameCallee1) .nil .nil) (.node (some frameCallee2) .nil .nil)), (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil)
+    (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none (.node none (.node (some ())
+    .nil (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node
+    (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node none (.node none
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node (some
+    ()) .nil .nil)) .nil))) (.node none (.node none (.node none (.node (some ()) .nil (.node none
+    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node none (.node (some ()) .nil .nil)
+    (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))))
+    (.node none (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node
+    none (.node (some ()) .nil .nil) .nil))) .nil) (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node none .nil
+    (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node none (.node
     (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none
     (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node none
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil)))))) (.node none (.node (some ()) (.node (some ()) (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node (some ())
-    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none (.node none (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node none .nil (.node (some
-    ()) .nil .nil))) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))))))) (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (some ()) (.node none .nil (.node (some ())
-    .nil .nil)) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil) (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)))) (.node none (.node none (.node
-    (some ()) (.node none .nil (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    .nil) (.node none .nil (.node (some ()) (.node (some ()) (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))))) (.node
-    none (.node none (.node none (.node (some ()) (.node none .nil (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil)
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))) (.node none .nil (.node none
-    .nil (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))))))
-    (.node (some ()) (.node none (.node none (.node (some ()) (.node none (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some
-    ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil))))) (.node none (.node (some ()) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) .nil) .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil))))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none
+    (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some ())
+    .nil .nil)) .nil)) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    ()) .nil .nil)) .nil) .nil)))) (.node none (.node none (.node (some ()) (.node none .nil (.node
+    (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil) (.node none .nil (.node
+    (some ()) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))) (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))))) (.node none (.node none (.node
+    none (.node (some ()) (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil) (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)))) (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node (some
+    ()) (.node (some ()) .nil .nil) (.node (some ()) (.node none (.node none .nil (.node (some ())
+    .nil .nil)) .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node (some ()) (.node
+    none .nil (.node (some ()) .nil .nil)) .nil) .nil)))))) (.node (some ()) (.node none (.node none
+    (.node (some ()) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some
+    ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)))
+    (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node none
     (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil)
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ())
+    .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node (some ())
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some
+    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))
+    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
+    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil)))))) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node
+    (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    none (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none
+    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
+    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
+    (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node (some ())
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node
+    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))))) (.node
+    none (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
+    .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
+    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil)
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ())
+    .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node
+    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node (some
+    ()) (.node (some ()) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
+    .nil)))) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil)
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ())
+    .nil .nil) .nil)))))) (.node (some ()) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node
+    (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some
+    ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node (some ())
+    .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
     .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
     none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none (.node
     (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
     none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node
-    none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node (some ()) (.node (some ())
-    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) (.node
-    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some
-    ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node
-    none (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node (some ()) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil))))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
+    none (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
     (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node
-    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil))))) (.node (some ()) (.node (some ()) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
-    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node
-    none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node (some ()) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node
-    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))
-    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
-    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node
-    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
-    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))))))),
-    .nil, .nil⟩
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))))))), .nil, .nil⟩
 
 /-- `verify_sub`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -417,7 +416,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `eq_prefix_run__L36`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 181958, 184,
-    Fn.«eq_prefix_run__L36».modeSig, .nil, 524287, Data.adviceFn78.2.2, .nil, .nil, .nil, .nil,
+    Fn.«eq_prefix_run__L36».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«eq_prefix_run__L36».pairO, Fn.«eq_prefix_run__L36».pairS, .nil⟩
 
 /-- `eq_prefix_run__L36`: its frame walk accepts its code. -/
@@ -444,7 +443,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `padding_weight__L20`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 191766, 180,
-    Fn.«padding_weight__L20».modeSig, .nil, 524287, Data.adviceFn120.2.2, .nil, .nil, .nil, .nil,
+    Fn.«padding_weight__L20».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«padding_weight__L20».pairO, Fn.«padding_weight__L20».pairS, .nil⟩
 
 /-- `padding_weight__L20`: its frame walk accepts its code. -/
@@ -471,7 +470,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `plus_one_run__L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 194189, 6,
-    Fn.«plus_one_run__L1».modeSig, .nil, 524287, Data.adviceFn132.2.2, .nil, .nil, .nil, .nil,
+    Fn.«plus_one_run__L1».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«plus_one_run__L1».pairO, Fn.«plus_one_run__L1».pairS, .nil⟩
 
 /-- `plus_one_run__L1`: its frame walk accepts its code. -/
@@ -498,7 +497,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `index_mle__L27`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 203461, 137,
-    Fn.«index_mle__L27».modeSig, .nil, 524287, Data.adviceFn226.2.2, .nil, .nil, .nil, .nil,
+    Fn.«index_mle__L27».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«index_mle__L27».pairO, Fn.«index_mle__L27».pairS, .nil⟩
 
 /-- `index_mle__L27`: its frame walk accepts its code. -/
@@ -526,8 +525,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_ring_switch_target`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(6, (.fpg 0))], fpOne := false, pows := fpows, scaled := [6] }, 209715, 366,
-    Fn.«ring_switch_target_loop0».modeSig, .nil, 524287, Data.adviceFn276.2.2, .nil, .nil, .nil,
-    .nil, Fn.«ring_switch_target_loop0».pairO, Fn.«ring_switch_target_loop0».pairS, .nil⟩
+    Fn.«ring_switch_target_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«ring_switch_target_loop0».pairO, Fn.«ring_switch_target_loop0».pairS, .nil⟩
 
 /-- `__loop0_ring_switch_target`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -553,7 +552,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `column_selector__L17`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 211126, 39,
-    Fn.«column_selector__L17».modeSig, .nil, 524287, Data.adviceFn295.2.2, .nil, .nil, .nil, .nil,
+    Fn.«column_selector__L17».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«column_selector__L17».pairO, Fn.«column_selector__L17».pairS, .nil⟩
 
 /-- `column_selector__L17`: its frame walk accepts its code. -/
@@ -580,8 +579,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `squeeze_point_from__L28`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 212333, 104,
-    Fn.«squeeze_point_from__L28».modeSig, .nil, 524287, Data.adviceFn320.2.2, .nil, .nil, .nil,
-    .nil, Fn.«squeeze_point_from__L28».pairO, Fn.«squeeze_point_from__L28».pairS, .nil⟩
+    Fn.«squeeze_point_from__L28».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«squeeze_point_from__L28».pairO, Fn.«squeeze_point_from__L28».pairS, .nil⟩
 
 /-- `squeeze_point_from__L28`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -608,7 +607,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `grind_check__L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 253579, 52,
-    Fn.«grind_check__L3».modeSig, .nil, 524287, Data.adviceFn432.2.2, .nil, .nil, .nil, .nil,
+    Fn.«grind_check__L3».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«grind_check__L3».pairO, Fn.«grind_check__L3».pairS, .nil⟩
 
 /-- `grind_check__L3`: its frame walk accepts its code. -/
@@ -636,7 +635,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `grind_check__L25`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 254435, 38,
-    Fn.«grind_check__L25».modeSig, .nil, 524287, Data.adviceFn445.2.2, .nil, .nil, .nil, .nil,
+    Fn.«grind_check__L25».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«grind_check__L25».pairO, Fn.«grind_check__L25».pairS, .nil⟩
 
 /-- `grind_check__L25`: its frame walk accepts its code. -/
@@ -672,9 +671,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
     (.node (some Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil)
-    .nil) .nil)) .nil) .nil)) .nil)))) .nil) .nil) .nil) .nil) .nil))), 524287,
-    Data.adviceFn476.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».pairO,
+    .nil) .nil)) .nil) .nil)) .nil)))) .nil) .nil) .nil) .nil) .nil))), 524287, advice.2.2, .nil,
+    .nil, .nil, .nil, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».pairO,
     Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0`: its frame walk accepts its code. -/
@@ -701,8 +699,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `opening_message__L20_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 259510, 111,
-    Fn.«opening_message__L20_L1».modeSig, .nil, 524287, Data.adviceFn568.2.2, .nil, .nil, .nil,
-    .nil, Fn.«opening_message__L20_L1».pairO, Fn.«opening_message__L20_L1».pairS, .nil⟩
+    Fn.«opening_message__L20_L1».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_message__L20_L1».pairO, Fn.«opening_message__L20_L1».pairS, .nil⟩
 
 /-- `opening_message__L20_L1`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -738,9 +736,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
     (.node (some Fn.«level_residual__L218_L16_L6_L3_loop0».modeSig) .nil .nil) .nil) .nil)) .nil)
-    .nil) .nil))))) .nil) .nil) .nil) .nil)))) .nil), 524287, Data.adviceFn575.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_residual__L218_L16_L6_L3».pairO,
-    Fn.«level_residual__L218_L16_L6_L3».pairS, .nil⟩
+    .nil) .nil))))) .nil) .nil) .nil) .nil)))) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_residual__L218_L16_L6_L3».pairO, Fn.«level_residual__L218_L16_L6_L3».pairS, .nil⟩
 
 /-- `level_residual__L218_L16_L6_L3`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -776,9 +773,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
     (.node none (.node none (.node (some Fn.«level_positions__L19_L19_L7_loop0».modeSig) .nil .nil)
-    .nil) .nil)) .nil)) .nil))) .nil))) .nil)) .nil) .nil)))), 524287, Data.adviceFn589.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_positions__L19_L19_L7».pairO,
-    Fn.«level_positions__L19_L19_L7».pairS, .nil⟩
+    .nil) .nil)) .nil)) .nil))) .nil))) .nil)) .nil) .nil)))), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_positions__L19_L19_L7».pairO, Fn.«level_positions__L19_L19_L7».pairS, .nil⟩
 
 /-- `level_positions__L19_L19_L7`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -814,7 +810,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
     none (.node (some Fn.«verify_merkle_cap__L2».modeSig) .nil .nil) .nil) .nil) .nil)) .nil) .nil)
-    .nil) .nil)))) .nil)) .nil))) .nil)), 524287, Data.adviceFn636.2.2, .nil, .nil, .nil, .nil,
+    .nil) .nil)))) .nil)) .nil))) .nil)), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».pairO,
     Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».pairS, .nil⟩
 
@@ -846,9 +842,9 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node (some Fn.«level_residual__L32_L15_L4_L2_loop0».modeSig) .nil
-    .nil) .nil)) .nil) .nil)) .nil) .nil)) .nil) .nil))) .nil)))))), 524287, Data.adviceFn707.2.2,
-    .nil, .nil, .nil, .nil, Fn.«level_residual__L32_L15_L4_L2».pairO,
-    Fn.«level_residual__L32_L15_L4_L2».pairS, .nil⟩
+    .nil) .nil)) .nil) .nil)) .nil) .nil)) .nil) .nil))) .nil)))))), 524287, advice.2.2, .nil, .nil,
+    .nil, .nil, Fn.«level_residual__L32_L15_L4_L2».pairO, Fn.«level_residual__L32_L15_L4_L2».pairS,
+    .nil⟩
 
 /-- `level_residual__L32_L15_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -884,8 +880,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none (.node none (.node (some
     Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil)))
-    .nil)) .nil)) .nil) .nil) .nil)) .nil)) .nil)) .nil)), 524287, Data.adviceFn719.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».pairO,
+    .nil)) .nil)) .nil) .nil) .nil)) .nil)) .nil)) .nil)), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».pairO,
     Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0`: its frame walk accepts its code. -/
@@ -921,8 +917,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
     (.node none (.node none (.node none (.node none .nil (.node none (.node (some
     Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil)) .nil) .nil)
-    .nil) .nil)) .nil) .nil)))) .nil) .nil))) .nil) .nil), 524287, Data.adviceFn720.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».pairO,
+    .nil) .nil)) .nil) .nil)))) .nil) .nil))) .nil) .nil), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».pairO,
     Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0`: its frame walk accepts its code. -/
@@ -958,9 +954,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
     none (.node (some Fn.«level_residual__L23_L13_L4_L2_loop1».modeSig) .nil .nil) .nil))) .nil)
-    .nil) .nil)) .nil)) .nil))) .nil)) .nil) .nil))), 524287, Data.adviceFn791.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_residual__L23_L13_L4_L2».pairO, Fn.«level_residual__L23_L13_L4_L2».pairS,
-    .nil⟩
+    .nil) .nil)) .nil)) .nil))) .nil)) .nil) .nil))), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_residual__L23_L13_L4_L2».pairO, Fn.«level_residual__L23_L13_L4_L2».pairS, .nil⟩
 
 /-- `level_residual__L23_L13_L4_L2`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -996,7 +991,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node (some Fn.«level_residual__L28_L14_L4_L2_loop1».modeSig) .nil .nil) .nil))) .nil)))
-    .nil))) .nil)))))))) .nil), 524287, Data.adviceFn834.2.2, .nil, .nil, .nil, .nil,
+    .nil))) .nil)))))))) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L28_L14_L4_L2».pairO, Fn.«level_residual__L28_L14_L4_L2».pairS, .nil⟩
 
 /-- `level_residual__L28_L14_L4_L2`: its frame walk accepts its code. -/
@@ -1023,8 +1018,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop1_level_residual__L55_L15_L6_L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 293336, 138,
-    Fn.«level_residual__L55_L15_L6_L3_loop1».modeSig, .nil, 524287, Data.adviceFn1037.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L55_L15_L6_L3_loop1».pairO,
+    Fn.«level_residual__L55_L15_L6_L3_loop1».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L55_L15_L6_L3_loop1».pairO,
     Fn.«level_residual__L55_L15_L6_L3_loop1».pairS, .nil⟩
 
 /-- `__loop1_level_residual__L55_L15_L6_L3`: its frame walk accepts its code. -/
@@ -1052,8 +1047,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_level_residual__L55_L13_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 311372, 570,
-    Fn.«level_residual__L55_L13_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1118.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L55_L13_L4_L2_loop0».pairO,
+    Fn.«level_residual__L55_L13_L4_L2_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L55_L13_L4_L2_loop0».pairO,
     Fn.«level_residual__L55_L13_L4_L2_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_residual__L55_L13_L4_L2`: its frame walk accepts its code. -/
@@ -1085,8 +1080,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».modeSig) .nil .nil)) .nil)) .nil)
-    .nil)) .nil) .nil) .nil) .nil) .nil)))) .nil) .nil) .nil) .nil), 524287, Data.adviceFn1147.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».pairO,
+    .nil)) .nil) .nil) .nil) .nil) .nil)))) .nil) .nil) .nil) .nil), 524287, advice.2.2, .nil, .nil,
+    .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».pairS, .nil⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1`: its frame walk accepts its code. -/
@@ -1118,8 +1113,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».modeSig) .nil .nil)) .nil))
-    .nil) .nil))))) .nil)) .nil) .nil) .nil) .nil)))), 524287, Data.adviceFn1194.2.2, .nil, .nil,
-    .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».pairO,
+    .nil) .nil))))) .nil)) .nil) .nil) .nil) .nil)))), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».pairS, .nil⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1`: its frame walk accepts its code. -/
@@ -1147,8 +1142,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_level_residual__L44_L19_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 385604, 774,
-    Fn.«level_residual__L44_L19_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1386.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L44_L19_L4_L2_loop0».pairO,
+    Fn.«level_residual__L44_L19_L4_L2_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L44_L19_L4_L2_loop0».pairO,
     Fn.«level_residual__L44_L19_L4_L2_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_residual__L44_L19_L4_L2`: its frame walk accepts its code. -/
@@ -1176,8 +1171,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_level_residual__L44_L20_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 400072, 808,
-    Fn.«level_residual__L44_L20_L4_L2_loop0».modeSig, .nil, 524287, Data.adviceFn1434.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L44_L20_L4_L2_loop0».pairO,
+    Fn.«level_residual__L44_L20_L4_L2_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L44_L20_L4_L2_loop0».pairO,
     Fn.«level_residual__L44_L20_L4_L2_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_residual__L44_L20_L4_L2`: its frame walk accepts its code. -/
@@ -1216,7 +1211,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
     Fn.«walk_path__L12_L3».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil)) .nil) .nil) .nil) .nil))
-    .nil) .nil)) .nil), 524287, Data.adviceFn1463.2.2, .nil, .nil, .nil, .nil,
+    .nil) .nil)) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».pairS, .nil⟩
 
@@ -1257,8 +1252,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil)))
-    .nil) .nil)) .nil))) .nil))) .nil) .nil)) .nil)), 524287, Data.adviceFn1530.2.2, .nil, .nil,
-    .nil, .nil, Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».pairO,
+    .nil) .nil)) .nil))) .nil))) .nil) .nil)) .nil)), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».pairO,
     Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».pairS, .nil⟩
 
 /-- `__loop0_opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`: its frame walk accepts its code.

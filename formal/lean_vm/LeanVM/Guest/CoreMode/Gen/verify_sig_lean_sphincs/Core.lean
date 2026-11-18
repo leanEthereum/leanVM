@@ -7,9 +7,9 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GlueC.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
 public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Small
@@ -29,7 +29,7 @@ open LeanVM.Guest
 
 /-- `verify_sig_lean_sphincs`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Fn.«verify_sig_lean_sphincs».pows, [], csigs, [], hcFlag, hcCallees, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Fn.«verify_sig_lean_sphincs».advice, Fn.«verify_sig_lean_sphincs».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -77,9 +77,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 21) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code21 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code21 ▸ End.fnOf_mem (by decide)))
+  hints := Mode.hintsEq_of_fn (j := Fn.«verify_sig_lean_sphincs».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
+  fetch := Exec.guest_fetches Fn.«verify_sig_lean_sphincs».code_mem
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_sig_lean_sphincs».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».fpows_ok
 

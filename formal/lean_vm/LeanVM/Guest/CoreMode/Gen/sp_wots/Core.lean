@@ -7,9 +7,9 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.sp_wots.sp_wots.Ok
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Ok
+public import LeanVM.Guest.CoreMode.GlueC.«sp_wots»
 public import LeanVM.Guest.CoreMode.Pack.sp_wots.FrameL0
 public import LeanVM.Guest.CoreMode.Pows.«sp_wots»
 public import LeanVM.Guest.CoreMode.Small
@@ -28,7 +28,7 @@ open LeanVM.Guest
 
 /-- `sp_wots`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn20, Fn.«sp_wots».pows, hpost, [], [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Fn.«sp_wots».advice, Fn.«sp_wots».pows, hpost, [], [], false, [], []⟩
 
 end
 
@@ -76,9 +76,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 20) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code20 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code20 ▸ End.fnOf_mem (by decide)))
+  hints := Mode.hintsEq_of_fn (j := Fn.«sp_wots».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
+  fetch := Exec.guest_fetches Fn.«sp_wots».code_mem
+  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«sp_wots».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«sp_wots».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«sp_wots».fpows_ok
 

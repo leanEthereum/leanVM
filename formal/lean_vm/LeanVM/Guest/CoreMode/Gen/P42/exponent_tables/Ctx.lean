@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ctx
 public import LeanVM.Guest.CoreMode.Gen.«P42».Data
+public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 namespace LeanVM.Guest.Fn.«exponent_tables»

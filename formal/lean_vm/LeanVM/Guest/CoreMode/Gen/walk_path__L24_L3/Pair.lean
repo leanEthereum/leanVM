@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.Align.«P58»
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L3».Data
+public import LeanVM.Guest.CoreMode.GlueA.«walk_path__L24_L3»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -32,7 +33,7 @@ end
 public section
 
 /-- `walk_path__L24_L3`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«walk_path__L24_L3».core.body Fn.«walk_path__L24_L3».code.code Data.adviceFn1531 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«walk_path__L24_L3».core.body Fn.«walk_path__L24_L3».code.code Fn.«walk_path__L24_L3».advice = true := by
   decide +kernel
 
 end

@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Pair
 public import LeanVM.Guest.Pack.«sp_wots».ModeSig
@@ -43,9 +43,9 @@ noncomputable def frameFun : CoreMode.FFun :=
     Fn.«verify_sig_lean_sphincs».modeSig, (.node none .nil (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none (.node none (.node none (.node none (.node none (.node (some Fn.«sp_wots».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) .nil)) .nil)), 524287,
-    Data.adviceFn21.2.2, .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO,
-    Fn.«verify_sig_lean_sphincs».pairS, .nil⟩
+    .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) .nil)) .nil)), 524287, advice.2.2,
+    .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO, Fn.«verify_sig_lean_sphincs».pairS,
+    .nil⟩
 
 /-- `verify_sig_lean_sphincs`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
@@ -35,8 +35,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop1_level_residual__L18_L12_L4_L2`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 407079, 113,
-    Fn.«level_residual__L18_L12_L4_L2_loop1».modeSig, .nil, 524287, Data.adviceFn1450.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L18_L12_L4_L2_loop1».pairO,
+    Fn.«level_residual__L18_L12_L4_L2_loop1».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L18_L12_L4_L2_loop1».pairO,
     Fn.«level_residual__L18_L12_L4_L2_loop1».pairS, .nil⟩
 
 /-- `__loop1_level_residual__L18_L12_L4_L2`: its frame walk accepts its code. -/
@@ -74,8 +74,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil)))
-    .nil)) .nil))) .nil)))) .nil) .nil) .nil) .nil)), 524287, Data.adviceFn1532.2.2, .nil, .nil,
-    .nil, .nil, Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».pairO,
+    .nil)) .nil))) .nil)))) .nil) .nil) .nil) .nil)), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».pairO,
     Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».pairS, .nil⟩
 
 /-- `__loop0_opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0`: its frame walk accepts its code.

@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P61».Data
 public import LeanVM.Guest.CoreMode.Gen.«P61».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P61».DataL
 public import LeanVM.Guest.CoreMode.Gen.«P61».DataLC
+public import LeanVM.Guest.CoreMode.GlueA.«P61»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -35,7 +36,7 @@ end
 public section
 
 /-- `child_claim_list_mono_last__L1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«child_claim_list_mono_last__L1».core.body Fn.«child_claim_list_mono_last__L1».code.code Data.adviceFn391 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«child_claim_list_mono_last__L1».core.body Fn.«child_claim_list_mono_last__L1».code.code Fn.«child_claim_list_mono_last__L1».advice = true := by
   decide +kernel
 
 end
@@ -61,7 +62,7 @@ end
 public section
 
 /-- `da_factors__L6_L7_L128`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«da_factors__L6_L7_L128».core.body Fn.«da_factors__L6_L7_L128».code.code Data.adviceFn415 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«da_factors__L6_L7_L128».core.body Fn.«da_factors__L6_L7_L128».code.code Fn.«da_factors__L6_L7_L128».advice = true := by
   decide +kernel
 
 end
@@ -87,7 +88,7 @@ end
 public section
 
 /-- `da_verify_blob_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«da_verify_blob_loop0».core.body Fn.«da_verify_blob_loop0».code.code Data.adviceFn411 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«da_verify_blob_loop0».core.body Fn.«da_verify_blob_loop0».code.code Fn.«da_verify_blob_loop0».advice = true := by
   decide +kernel
 
 end
@@ -113,7 +114,7 @@ end
 public section
 
 /-- `index_mle__L30`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«index_mle__L30».core.body Fn.«index_mle__L30».code.code Data.adviceFn229 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«index_mle__L30».core.body Fn.«index_mle__L30».code.code Fn.«index_mle__L30».advice = true := by
   decide +kernel
 
 end
@@ -139,7 +140,7 @@ end
 public section
 
 /-- `level_positions__L14_L26_L2`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L14_L26_L2».core.body Fn.«level_positions__L14_L26_L2».code.code Data.adviceFn798 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L14_L26_L2».core.body Fn.«level_positions__L14_L26_L2».code.code Fn.«level_positions__L14_L26_L2».advice = true := by
   decide +kernel
 
 end
@@ -165,7 +166,7 @@ end
 public section
 
 /-- `level_positions__L28_L15_L3`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L28_L15_L3».core.body Fn.«level_positions__L28_L15_L3».code.code Data.adviceFn453 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L28_L15_L3».core.body Fn.«level_positions__L28_L15_L3».code.code Fn.«level_positions__L28_L15_L3».advice = true := by
   decide +kernel
 
 end
@@ -191,7 +192,7 @@ end
 public section
 
 /-- `level_positions__L32_L17_L5_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L32_L17_L5_loop0».core.body Fn.«level_positions__L32_L17_L5_loop0».code.code Data.adviceFn1052 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L32_L17_L5_loop0».core.body Fn.«level_positions__L32_L17_L5_loop0».code.code Fn.«level_positions__L32_L17_L5_loop0».advice = true := by
   decide +kernel
 
 end
@@ -217,7 +218,7 @@ end
 public section
 
 /-- `level_positions__L4_L24_L6_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L4_L24_L6_loop0».core.body Fn.«level_positions__L4_L24_L6_loop0».code.code Data.adviceFn1372 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_positions__L4_L24_L6_loop0».core.body Fn.«level_positions__L4_L24_L6_loop0».code.code Fn.«level_positions__L4_L24_L6_loop0».advice = true := by
   decide +kernel
 
 end
@@ -243,7 +244,7 @@ end
 public section
 
 /-- `level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».core.body Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».code.code Data.adviceFn487 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».core.body Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».code.code Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».advice = true := by
   decide +kernel
 
 end
@@ -269,7 +270,7 @@ end
 public section
 
 /-- `level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn772 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».advice = true := by
   decide +kernel
 
 end
@@ -295,7 +296,7 @@ end
 public section
 
 /-- `level_residual__L109_L21_L6_L3_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L109_L21_L6_L3_loop0».core.body Fn.«level_residual__L109_L21_L6_L3_loop0».code.code Data.adviceFn1284 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L109_L21_L6_L3_loop0».core.body Fn.«level_residual__L109_L21_L6_L3_loop0».code.code Fn.«level_residual__L109_L21_L6_L3_loop0».advice = true := by
   decide +kernel
 
 end
@@ -321,7 +322,7 @@ end
 public section
 
 /-- `level_residual__L109_L22_L6_L3`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L109_L22_L6_L3».core.body Fn.«level_residual__L109_L22_L6_L3».code.code Data.adviceFn827 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L109_L22_L6_L3».core.body Fn.«level_residual__L109_L22_L6_L3».code.code Fn.«level_residual__L109_L22_L6_L3».advice = true := by
   decide +kernel
 
 end
@@ -347,7 +348,7 @@ end
 public section
 
 /-- `level_residual__L18_L12_L4_L2_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L18_L12_L4_L2_loop0».core.body Fn.«level_residual__L18_L12_L4_L2_loop0».code.code Data.adviceFn1449 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L18_L12_L4_L2_loop0».core.body Fn.«level_residual__L18_L12_L4_L2_loop0».code.code Fn.«level_residual__L18_L12_L4_L2_loop0».advice = true := by
   decide +kernel
 
 end
@@ -373,7 +374,7 @@ end
 public section
 
 /-- `level_residual__L218_L21_L6_L3_loop1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L218_L21_L6_L3_loop1».core.body Fn.«level_residual__L218_L21_L6_L3_loop1».code.code Data.adviceFn1283 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L218_L21_L6_L3_loop1».core.body Fn.«level_residual__L218_L21_L6_L3_loop1».code.code Fn.«level_residual__L218_L21_L6_L3_loop1».advice = true := by
   decide +kernel
 
 end
@@ -399,7 +400,7 @@ end
 public section
 
 /-- `level_residual__L219_L14_L6_L3_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L219_L14_L6_L3_loop0».core.body Fn.«level_residual__L219_L14_L6_L3_loop0».code.code Data.adviceFn989 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L219_L14_L6_L3_loop0».core.body Fn.«level_residual__L219_L14_L6_L3_loop0».code.code Fn.«level_residual__L219_L14_L6_L3_loop0».advice = true := by
   decide +kernel
 
 end
@@ -425,7 +426,7 @@ end
 public section
 
 /-- `level_residual__L21_L12_L4_L2_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L21_L12_L4_L2_loop0».core.body Fn.«level_residual__L21_L12_L4_L2_loop0».code.code Data.adviceFn1445 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L21_L12_L4_L2_loop0».core.body Fn.«level_residual__L21_L12_L4_L2_loop0».code.code Fn.«level_residual__L21_L12_L4_L2_loop0».advice = true := by
   decide +kernel
 
 end
@@ -451,7 +452,7 @@ end
 public section
 
 /-- `level_residual__L23_L9_L4_L2_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L23_L9_L4_L2_loop0».core.body Fn.«level_residual__L23_L9_L4_L2_loop0».code.code Data.adviceFn1130 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L23_L9_L4_L2_loop0».core.body Fn.«level_residual__L23_L9_L4_L2_loop0».code.code Fn.«level_residual__L23_L9_L4_L2_loop0».advice = true := by
   decide +kernel
 
 end
@@ -477,7 +478,7 @@ end
 public section
 
 /-- `level_residual__L32_L19_L4_L2`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L32_L19_L4_L2».core.body Fn.«level_residual__L32_L19_L4_L2».code.code Data.adviceFn880 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L32_L19_L4_L2».core.body Fn.«level_residual__L32_L19_L4_L2».code.code Fn.«level_residual__L32_L19_L4_L2».advice = true := by
   decide +kernel
 
 end
@@ -503,7 +504,7 @@ end
 public section
 
 /-- `level_residual__L37_L10_L4_L2`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L37_L10_L4_L2».core.body Fn.«level_residual__L37_L10_L4_L2».code.code Data.adviceFn495 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L37_L10_L4_L2».core.body Fn.«level_residual__L37_L10_L4_L2».code.code Fn.«level_residual__L37_L10_L4_L2».advice = true := by
   decide +kernel
 
 end
@@ -529,7 +530,7 @@ end
 public section
 
 /-- `level_residual__L44_L14_L4_L2_loop1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L44_L14_L4_L2_loop1».core.body Fn.«level_residual__L44_L14_L4_L2_loop1».code.code Data.adviceFn1160 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L44_L14_L4_L2_loop1».core.body Fn.«level_residual__L44_L14_L4_L2_loop1».code.code Fn.«level_residual__L44_L14_L4_L2_loop1».advice = true := by
   decide +kernel
 
 end
@@ -555,7 +556,7 @@ end
 public section
 
 /-- `level_residual__L55_L17_L4_L2_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L55_L17_L4_L2_loop0».core.body Fn.«level_residual__L55_L17_L4_L2_loop0».code.code Data.adviceFn1290 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L55_L17_L4_L2_loop0».core.body Fn.«level_residual__L55_L17_L4_L2_loop0».code.code Fn.«level_residual__L55_L17_L4_L2_loop0».advice = true := by
   decide +kernel
 
 end
@@ -581,7 +582,7 @@ end
 public section
 
 /-- `level_residual__L55_L24_L6_L3_loop1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L55_L24_L6_L3_loop1».core.body Fn.«level_residual__L55_L24_L6_L3_loop1».code.code Data.adviceFn1431 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L55_L24_L6_L3_loop1».core.body Fn.«level_residual__L55_L24_L6_L3_loop1».code.code Fn.«level_residual__L55_L24_L6_L3_loop1».advice = true := by
   decide +kernel
 
 end
@@ -607,7 +608,7 @@ end
 public section
 
 /-- `level_residual__L73_L19_L6_L3_loop1`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L73_L19_L6_L3_loop1».core.body Fn.«level_residual__L73_L19_L6_L3_loop1».code.code Data.adviceFn1200 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«level_residual__L73_L19_L6_L3_loop1».core.body Fn.«level_residual__L73_L19_L6_L3_loop1».code.code Fn.«level_residual__L73_L19_L6_L3_loop1».advice = true := by
   decide +kernel
 
 end
@@ -633,7 +634,7 @@ end
 public section
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».code.code Data.adviceFn1465 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».code.code Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».advice = true := by
   decide +kernel
 
 end
@@ -659,7 +660,7 @@ end
 public section
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».code.code Data.adviceFn1522 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».code.code Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».advice = true := by
   decide +kernel
 
 end
@@ -685,7 +686,7 @@ end
 public section
 
 /-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».core.body Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».code.code Data.adviceFn1461 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».core.body Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».code.code Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».advice = true := by
   decide +kernel
 
 end
@@ -711,7 +712,7 @@ end
 public section
 
 /-- `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».core.body Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».code.code Data.adviceFn1412 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».core.body Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».code.code Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».advice = true := by
   decide +kernel
 
 end
@@ -737,7 +738,7 @@ end
 public section
 
 /-- `padding_weight__L11`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«padding_weight__L11».core.body Fn.«padding_weight__L11».code.code Data.adviceFn111 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«padding_weight__L11».core.body Fn.«padding_weight__L11».code.code Fn.«padding_weight__L11».advice = true := by
   decide +kernel
 
 end
@@ -763,7 +764,7 @@ end
 public section
 
 /-- `padding_weight__L4`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«padding_weight__L4».core.body Fn.«padding_weight__L4».code.code Data.adviceFn104 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«padding_weight__L4».core.body Fn.«padding_weight__L4».code.code Fn.«padding_weight__L4».advice = true := by
   decide +kernel
 
 end
@@ -789,7 +790,7 @@ end
 public section
 
 /-- `squeeze_point_from__L19`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«squeeze_point_from__L19».core.body Fn.«squeeze_point_from__L19».code.code Data.adviceFn672 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«squeeze_point_from__L19».core.body Fn.«squeeze_point_from__L19».code.code Fn.«squeeze_point_from__L19».advice = true := by
   decide +kernel
 
 end
@@ -815,7 +816,7 @@ end
 public section
 
 /-- `verify_merkle_cap__L5`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_merkle_cap__L5».core.body Fn.«verify_merkle_cap__L5».code.code Data.adviceFn959 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_merkle_cap__L5».core.body Fn.«verify_merkle_cap__L5».code.code Fn.«verify_merkle_cap__L5».advice = true := by
   decide +kernel
 
 end

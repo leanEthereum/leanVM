@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -32,7 +33,7 @@ end
 public section
 
 /-- `verify_sig_lean_sphincs`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_sig_lean_sphincs».core.body Fn.«verify_sig_lean_sphincs».code.code Data.adviceFn21 = true := by
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_sig_lean_sphincs».core.body Fn.«verify_sig_lean_sphincs».code.code Fn.«verify_sig_lean_sphincs».advice = true := by
   decide +kernel
 
 end

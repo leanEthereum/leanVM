@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P6».Pair
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».ModeSig
@@ -269,7 +269,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `verify_merkle_cap__L8`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 327352, 2810,
-    Fn.«verify_merkle_cap__L8».modeSig, .nil, 524287, Data.adviceFn1182.2.2, .nil, .nil, .nil, .nil,
+    Fn.«verify_merkle_cap__L8».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«verify_merkle_cap__L8».pairO, Fn.«verify_merkle_cap__L8».pairS, .nil⟩
 
 /-- `verify_merkle_cap__L8`: its frame walk accepts its code. -/

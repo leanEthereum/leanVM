@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«P15»
 public import LeanVM.Guest.Pack.«open_stacked__L2».Bundle
 public import LeanVM.Guest.Pack.«P0».ModeSig
 public import LeanVM.Guest.Pack.«P1».ModeSig
@@ -288,11 +288,11 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     (some Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSig) .nil .nil)))))) .nil)) .nil)
-    .nil)) .nil)) .nil))))), 524287, Data.adviceFn341.2.2, .nil, (.node none (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some 2)
-    .nil .nil))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node (some 9) .nil .nil) .nil)) .nil)))))) (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some 7) .nil
+    .nil)) .nil)) .nil))))), 524287, advice.2.2, .nil, (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some 2) .nil
+    .nil))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some 9) .nil .nil) .nil)) .nil)))))) (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some 7) .nil
     .nil)))) .nil) (.node none (.node none (.node none (.node (some 1) .nil .nil) .nil) .nil) .nil))
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node (some 5) .nil
     .nil) .nil))) .nil))))) (.node none (.node none (.node none .nil (.node none (.node none .nil

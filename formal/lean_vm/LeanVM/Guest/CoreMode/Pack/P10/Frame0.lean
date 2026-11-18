@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
 public import LeanVM.Guest.Pack.«P10».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P10».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P10».Pair
@@ -59,7 +59,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `eq_prefix_run__L24`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 180140, 124,
-    Fn.«eq_prefix_run__L24».modeSig, .nil, 524287, Data.adviceFn66.2.2, .nil, .nil, .nil, .nil,
+    Fn.«eq_prefix_run__L24».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«eq_prefix_run__L24».pairO, Fn.«eq_prefix_run__L24».pairS, .nil⟩
 
 /-- `eq_prefix_run__L24`: its frame walk accepts its code. -/
@@ -86,7 +86,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector__L6`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 196135, 62,
-    Fn.«block_selector__L6».modeSig, .nil, 524287, Data.adviceFn171.2.2, .nil, .nil, .nil, .nil,
+    Fn.«block_selector__L6».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«block_selector__L6».pairO, Fn.«block_selector__L6».pairS, .nil⟩
 
 /-- `block_selector__L6`: its frame walk accepts its code. -/
@@ -113,7 +113,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector__L20`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 197913, 202,
-    Fn.«block_selector__L20».modeSig, .nil, 524287, Data.adviceFn185.2.2, .nil, .nil, .nil, .nil,
+    Fn.«block_selector__L20».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«block_selector__L20».pairO, Fn.«block_selector__L20».pairS, .nil⟩
 
 /-- `block_selector__L20`: its frame walk accepts its code. -/
@@ -140,7 +140,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `index_mle__L8`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 201808, 42,
-    Fn.«index_mle__L8».modeSig, .nil, 524287, Data.adviceFn207.2.2, .nil, .nil, .nil, .nil,
+    Fn.«index_mle__L8».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«index_mle__L8».pairO, Fn.«index_mle__L8».pairS, .nil⟩
 
 /-- `index_mle__L8`: its frame walk accepts its code. -/
@@ -167,11 +167,11 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector_tab__L11`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 204744, 34,
-    Fn.«block_selector_tab__L11».modeSig, .nil, 524287, Data.adviceFn244.2.2, .nil, .nil, .nil,
-    .nil, (.node (some ()) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) (.node none .nil (.node (some ())
-    .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil .nil)))), .nil, .nil⟩
+    Fn.«block_selector_tab__L11».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node
+    (some ()) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil .nil)))
+    (.node (some ()) .nil (.node (some ()) .nil .nil)))), .nil, .nil⟩
 
 /-- `block_selector_tab__L11`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -198,7 +198,7 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `grind_check__L15`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 211564, 45,
-    Fn.«grind_check__L15».modeSig, .nil, 524287, Data.adviceFn311.2.2, .nil, .nil, .nil, .nil,
+    Fn.«grind_check__L15».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«grind_check__L15».pairO, Fn.«grind_check__L15».pairS, .nil⟩
 
 /-- `grind_check__L15`: its frame walk accepts its code. -/
@@ -229,8 +229,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node (some Fn.«grind_check__L22».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil)) .nil))))
-    .nil) .nil)) .nil), 524287, Data.adviceFn329.2.2, .nil, .nil, .nil, .nil,
-    Fn.«bus_grind_check__L5».pairO, Fn.«bus_grind_check__L5».pairS, .nil⟩
+    .nil) .nil)) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«bus_grind_check__L5».pairO,
+    Fn.«bus_grind_check__L5».pairS, .nil⟩
 
 /-- `bus_grind_check__L5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -260,8 +260,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     (some Fn.«grind_check__L27».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil) .nil) .nil))) .nil)
-    .nil) .nil) .nil), 524287, Data.adviceFn334.2.2, .nil, .nil, .nil, .nil,
-    Fn.«bus_grind_check__L10».pairO, Fn.«bus_grind_check__L10».pairS, .nil⟩
+    .nil) .nil) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«bus_grind_check__L10».pairO,
+    Fn.«bus_grind_check__L10».pairS, .nil⟩
 
 /-- `bus_grind_check__L10`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -287,9 +287,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `child_claim_list_mono_last__L13`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 246904, 226,
-    Fn.«child_claim_list_mono_last__L13».modeSig, .nil, 524287, Data.adviceFn403.2.2, .nil, .nil,
-    .nil, .nil, Fn.«child_claim_list_mono_last__L13».pairO,
-    Fn.«child_claim_list_mono_last__L13».pairS, .nil⟩
+    Fn.«child_claim_list_mono_last__L13».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«child_claim_list_mono_last__L13».pairO, Fn.«child_claim_list_mono_last__L13».pairS, .nil⟩
 
 /-- `child_claim_list_mono_last__L13`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -324,8 +323,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
     none (.node none .nil (.node none (.node none (.node none (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil))
-    .nil) .nil) .nil) .nil)))))) .nil))) .nil) .nil), 524287, Data.adviceFn478.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».pairO,
+    .nil) .nil) .nil) .nil)))))) .nil))) .nil) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».pairO,
     Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0`: its frame walk accepts its code. -/
@@ -352,8 +351,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `opening_message__L12_L1`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 257756, 77,
-    Fn.«opening_message__L12_L1».modeSig, .nil, 524287, Data.adviceFn526.2.2, .nil, .nil, .nil,
-    .nil, Fn.«opening_message__L12_L1».pairO, Fn.«opening_message__L12_L1».pairS, .nil⟩
+    Fn.«opening_message__L12_L1».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_message__L12_L1».pairO, Fn.«opening_message__L12_L1».pairS, .nil⟩
 
 /-- `opening_message__L12_L1`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -389,7 +388,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
     .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
     Fn.«level_residual__L218_L17_L6_L3_loop0».modeSig) .nil .nil) .nil) .nil)) .nil))) .nil) .nil))
-    .nil) .nil)) .nil) .nil) .nil)) .nil)), 524287, Data.adviceFn618.2.2, .nil, .nil, .nil, .nil,
+    .nil) .nil)) .nil) .nil) .nil)) .nil)), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L218_L17_L6_L3».pairO, Fn.«level_residual__L218_L17_L6_L3».pairS, .nil⟩
 
 /-- `level_residual__L218_L17_L6_L3`: its frame walk accepts its code. -/
@@ -425,7 +424,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node (some
     Fn.«level_positions__L8_L21_L3_loop0».modeSig) .nil .nil) .nil)) .nil) .nil))) .nil))) .nil)))
-    .nil) .nil))))), 524287, Data.adviceFn722.2.2, .nil, .nil, .nil, .nil,
+    .nil) .nil))))), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_positions__L8_L21_L3».pairO, Fn.«level_positions__L8_L21_L3».pairS, .nil⟩
 
 /-- `level_positions__L8_L21_L3`: its frame walk accepts its code. -/
@@ -461,8 +460,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none (.node (some Fn.«decode_query_windows__L23_L5».modeSig) .nil
-    .nil) .nil) .nil))))))) .nil))) .nil)) .nil) .nil)))), 524287, Data.adviceFn764.2.2, .nil, .nil,
-    .nil, .nil, Fn.«level_positions__L8_L23_L5».pairO, Fn.«level_positions__L8_L23_L5».pairS, .nil⟩
+    .nil) .nil) .nil))))))) .nil))) .nil)) .nil) .nil)))), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_positions__L8_L23_L5».pairO, Fn.«level_positions__L8_L23_L5».pairS, .nil⟩
 
 /-- `level_positions__L8_L23_L5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -497,9 +496,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
     (.node (some Fn.«decode_query_windows__L17_L5».modeSig) .nil .nil) .nil) .nil) .nil) .nil)))
-    .nil)) .nil)) .nil) .nil)) .nil)) .nil))), 524287, Data.adviceFn1099.2.2, .nil, .nil, .nil,
-    .nil, Fn.«level_positions__L8_L17_L5_loop0».pairO, Fn.«level_positions__L8_L17_L5_loop0».pairS,
-    .nil⟩
+    .nil)) .nil)) .nil) .nil)) .nil)) .nil))), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_positions__L8_L17_L5_loop0».pairO, Fn.«level_positions__L8_L17_L5_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_positions__L8_L17_L5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -526,8 +524,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_level_residual__L55_L19_L6_L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 333833, 816,
-    Fn.«level_residual__L55_L19_L6_L3_loop0».modeSig, .nil, 524287, Data.adviceFn1201.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L55_L19_L6_L3_loop0».pairO,
+    Fn.«level_residual__L55_L19_L6_L3_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L55_L19_L6_L3_loop0».pairO,
     Fn.«level_residual__L55_L19_L6_L3_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_residual__L55_L19_L6_L3`: its frame walk accepts its code. -/
@@ -559,8 +557,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
     none (.node none .nil (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».modeSig) .nil .nil)) .nil))
-    .nil)) .nil))) .nil) .nil) .nil))) .nil) .nil)))), 524287, Data.adviceFn1238.2.2, .nil, .nil,
-    .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».pairO,
+    .nil)) .nil))) .nil) .nil) .nil))) .nil) .nil)))), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».pairS, .nil⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`: its frame walk accepts its code. -/
@@ -592,8 +590,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
     .nil (.node none .nil (.node none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».modeSig) .nil .nil)) .nil)))
-    .nil) .nil)) .nil)) .nil)))) .nil) .nil))) .nil), 524287, Data.adviceFn1326.2.2, .nil, .nil,
-    .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».pairO,
+    .nil) .nil)) .nil)) .nil)))) .nil) .nil))) .nil), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».pairO,
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».pairS, .nil⟩
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1`: its frame walk accepts its code. -/
@@ -621,8 +619,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `__loop0_level_residual__L73_L24_L6_L3`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 396747, 986,
-    Fn.«level_residual__L73_L24_L6_L3_loop0».modeSig, .nil, 524287, Data.adviceFn1428.2.2, .nil,
-    .nil, .nil, .nil, Fn.«level_residual__L73_L24_L6_L3_loop0».pairO,
+    Fn.«level_residual__L73_L24_L6_L3_loop0».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«level_residual__L73_L24_L6_L3_loop0».pairO,
     Fn.«level_residual__L73_L24_L6_L3_loop0».pairS, .nil⟩
 
 /-- `__loop0_level_residual__L73_L24_L6_L3`: its frame walk accepts its code. -/
@@ -656,9 +654,9 @@ def frameArm0 : List ℕ :=
 /-- `walk_path__L6_L7`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 454696, 599,
-    Fn.«walk_path__L6_L7».modeSig, .nil, 524287, Data.adviceFn1545.2.2, .nil, (.node none (.node
-    none (.node none .nil (.node (some 0) .nil .nil)) .nil) .nil), (.node (some frameArm0) .nil
-    .nil), .nil, Fn.«walk_path__L6_L7».pairO, Fn.«walk_path__L6_L7».pairS, .nil⟩
+    Fn.«walk_path__L6_L7».modeSig, .nil, 524287, advice.2.2, .nil, (.node none (.node none (.node
+    none .nil (.node (some 0) .nil .nil)) .nil) .nil), (.node (some frameArm0) .nil .nil), .nil,
+    Fn.«walk_path__L6_L7».pairO, Fn.«walk_path__L6_L7».pairS, .nil⟩
 
 /-- `walk_path__L6_L7`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
