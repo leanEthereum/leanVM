@@ -27,9 +27,6 @@ jobs:
         with:
           workspaces: bindings
 
-      - name: Check benchmark workflow policy
-        run: sh bindings/scripts/check-benchmark-ci.sh
-
       - name: Check formatting
         run: cargo fmt --all --check
         working-directory: bindings

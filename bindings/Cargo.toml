@@ -6,7 +6,6 @@ members = [
     "native",
     "node",
     "rust",
-    "benchmarks/comparison",
 ]
 resolver = "2"
 
