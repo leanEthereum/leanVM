@@ -69,6 +69,8 @@ structure CFun where
   post : List (CCell × Wit)
   /-- The callees' heap signatures, by name: their mode signatures', translated. -/
   cs : List (String × HSig)
+  /-- Each dispatch's callees, by its call site's callee frame cell. -/
+  dsp : List (ℕ × List String)
 
 /-- **The heap signatures the heap check reads**: its own at its own name, its callees' (`cs`). -/
 def CFun.sigOf (Cf : CFun) (f : String) : HSig :=
@@ -125,6 +127,10 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
       Rd img kfp 0 = some (ofK (g ^ s.r)) ∧ Rd img kfp 1 = some (ofK (g ^ fp)) ∧
       (∀ k (hk : k < c.args.length), Rd img kfp (2 + k) = some (σ c.args[k])) ∧
       ∀ k (hk : k < c.rets.length), Rd img kfp (2 + c.args.length + k) = some (σ c.rets[k])
+  /-- A dispatch's target cell: the callee's entry, by the entries its context names. -/
+  tgt : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ (i : ℕ) (c : Call) q (s : B2C.Site), (calls es)[i]? = some c →
+    c.taken = true → Cf.X.siteAt q c.args c.rets = some s → s.tgt ≠ 0 → ∀ t, Cf.X.entOk t c.f = true →
+    Rd img fp s.tgt = some (ofK (g ^ t))
   /-- What its jumps read. -/
   jc : JumpF img Cf.X Cf.fn.body fp σ
   holds : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ e ∈ es, e.Holds img.read σ
@@ -469,11 +475,18 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
       (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts 0
 
+/-- A `JUMP` through the target cell of the call site at its callee frame cell: through no `0`, no pc,
+no table target cell, from a cell not the own frame's. -/
+noncomputable def dspNo (X : AlignCtx) (od of : ℕ) : Bool :=
+  match getF X.sites of with
+  | some s => !Nat.beq s.tgt od || (!Nat.beq od 0 && (X.pcAt od).isNone && (getF X.arms od).isNone && !X.selfAt of)
+  | none => true
+
 /-- **A call's `JUMP`**, its target a callee's entry (`ents`): that entry outside the function, and the
 callee's mode signature there holding of its heap signature at the call's site, through a cell neither
-the own frame's nor a next frame's. -/
+the own frame's nor a next frame's; a dispatch's `JUMP` through its site's target cell (`dspNo`). -/
 noncomputable def jumpCallOk (Cf : CFun) : OffsetInstruction → Bool
-  | .jump _ od of => match Cf.X.pcAt od with
+  | .jump _ od of => dspNo Cf.X od of && match Cf.X.pcAt od with
     | some t => match getF Cf.X.ents t with
       | some f => !(decide (Cf.frame.entry ≤ t) && decide (t < Cf.frame.entry + Cf.frame.len)) &&
         decide (t < 2 ^ 30) && !Cf.X.selfAt of && !Cf.X.nextAt of && match Cf.frame.sigs.get t, getF Cf.X.sites of with
@@ -503,11 +516,14 @@ noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
-/-- **Each call of the body** (`call`, `callIf`) checked by `callChk`. -/
+/-- **Each call of the body** (`call`, `callIf`, each callee of a `dispatch`) checked by `callChk`; a
+dispatch's callees those `dsp` lists at each of its sites. -/
 noncomputable def callsB (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
     | .call g args _ => callChk Cf g args
     | .callIf _ g args => callChk Cf g args
+    | .dispatch _ fs args rets => fs.all (callChk Cf · args) &&
+        Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
     | _ => true
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
@@ -554,12 +570,11 @@ def straight (body : List Stmt) : Bool :=
 /-- A statement the core route takes: an atom, a branch, a `match`, a return, a call or a conditional
 call. -/
 def ctrlOk : Stmt → Bool
-  | .atom _ | .ite .. | .match_ .. | .ret _ | .call .. | .callIf .. => true
-  | _ => false
+  | .atom _ | .ite .. | .match_ .. | .ret _ | .call .. | .callIf .. | .dispatch .. => true
 
-/-- A call or a conditional call. -/
+/-- A call, a conditional call or a dispatch. -/
 def isCall : Stmt → Bool
-  | .call .. | .callIf .. => true
+  | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
 /-- A top-level statement: a return, a call, or one with no `ret` and no call in it (a conditional
@@ -567,6 +582,7 @@ call included). -/
 def topOk : Stmt → Bool
   | .ret _ => true
   | .call .. => true
+  | .dispatch .. => true
   | s => Core.Stmt.noRet s && !(Bridge.stmtsSub s).any isCall
 
 /-- **A body the core route takes**: its statements, nested ones included, atoms, branches, `match`es
@@ -587,15 +603,45 @@ noncomputable def armsCover (X : AlignCtx) (e : ℕ) (ml : List (ℕ × ℕ)) (a
     | some t => decide (e ≤ t) && decide (t < 2 ^ 30) && ts.contains (t - e)
     | none => false
 
+/-- **A dispatch's `JUMP`**: through a target cell, not `0` and no pc, of a call site at its callee
+frame cell. -/
+noncomputable def dspSite (X : AlignCtx) (od of : ℕ) : Bool :=
+  !Nat.beq od 0 && (X.pcAt od).isNone && match getF X.sites of with
+    | some s => Nat.beq s.tgt od
+    | none => false
+
+/-- A dispatch callee's entry `t`: a callee's (`ents`), outside the function, its mode signature there
+holding of its heap signature at the site. -/
+noncomputable def dspPc (Cf : CFun) (s : B2C.Site) (t : ℕ) : Bool :=
+  match getF Cf.X.ents t with
+  | some f => !(decide (Cf.frame.entry ≤ t) && decide (t < Cf.frame.entry + Cf.frame.len)) && decide (t < 2 ^ 30) &&
+      match Cf.frame.sigs.get t with
+      | some G => fitB G (Cf.sigOf f) s.args.length s.rets.length
+      | none => false
+  | none => false
+
+/-- **A dispatch's `JUMP` the frame walk reads callees for** (table `k`): no arms, its callees' entries
+`dspPc`, every callee `dsp` lists at its site among them, through a cell neither the own frame's nor a
+next frame's. -/
+noncomputable def dspJ (Cf : CFun) (k od of : ℕ) : Bool :=
+  (Cf.frame.arms.get k).isNone && !Cf.X.selfAt of && !Cf.X.nextAt of &&
+    match Cf.frame.calls.get k, getF Cf.X.sites of, Cf.dsp.lookup of with
+    | some pcs, some s, some fs => Nat.beq s.tgt od && decide (s.r < 2 ^ 30) && pcs.all (dspPc Cf s) &&
+        fs.all fun f ↦ pcs.any fun t ↦ Cf.X.entOk t f
+    | _, _, _ => false
+
 /-- From offset `i`: each `JUMP` the frame walk reads a table for (`tgt`) is a table jump through a
 target cell the alignment's context gives a table (`arms`), no pc and not `0`, the walk's table the
 offsets of the slots of every `match` on its selector, no callee's. -/
 noncomputable def tgtGo (Cf : CFun) (ml : List (ℕ × ℕ)) : ℕ → List OffsetInstruction → Bool
   | _, [] => true
   | i, ins :: code => (match Cf.frame.tgt.get i with
-      | none => true
+      | none => match ins with
+        | .jump _ od of => !dspSite Cf.X od of
+        | _ => true
       | some k => match ins with
-        | .jump _ od _ => !Nat.beq od 0 && (Cf.X.pcAt od).isNone && (Cf.frame.calls.get k).isNone &&
+        | .jump _ od of => bif dspSite Cf.X od of then dspJ Cf k od of else
+            !Nat.beq od 0 && (Cf.X.pcAt od).isNone && (Cf.frame.calls.get k).isNone &&
             match Check.getF Cf.X.arms od, Cf.frame.arms.get k with
             | some a, some ts => armsCover Cf.X Cf.frame.entry ml a ts
             | _, _ => false

@@ -241,7 +241,7 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc : ℕ}
     (hci : code[i]? = some (.jump oc 0 1)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc 0 1 = false)
-    (h0 : X.pcAt 0 = none) (hsf : X.selfAt 1 = false) (hctrl : ∀ s ∈ stmtsOf body, NoD s)
+    (h0 : X.pcAt 0 = none) (hsf : X.selfAt 1 = false)
     {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
     ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ es) x → WrittenC sigOf H rd σ ws0 pre x ∨
@@ -258,8 +258,7 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     simp only [PairCtx.ofH, hz, hf, Bool.cond_false] at hr
     rcases hcur : zs.cur with _ | ⟨s, ss⟩
     · simp [headStepH, hcur] at hr
-    · have hs : s ∈ stmtsOf body := zok_stmts hzs (by rw [Bridge.Zip.pos_head hcur]; exact List.mem_cons_self)
-      cases s with
+    · cases s with
       | atom a => simp [headStepH, hcur] at hr
       | ret vs' => exact ⟨vs', ss, rfl⟩
       | call f args rets =>
@@ -268,7 +267,9 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       | ite c z n => simp [headStepH, hcur, hsf] at hr
       | match_ x arms => simp [headStepH, hcur, hsf] at hr
       | callIf c f args => simp [headStepH, hcur, h0] at hr
-      | dispatch x fs args rets => exact absurd rfl (hctrl _ hs x fs args rets)
+      | dispatch x fs args rets =>
+        simp only [headStepH, hcur] at hr
+        split at hr <;> simp_all
   obtain ⟨vs', ss, hcur⟩ := hhead
   refine ⟨as, hpairs, ?_⟩
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hp
