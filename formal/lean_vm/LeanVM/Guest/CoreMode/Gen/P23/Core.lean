@@ -41,7 +41,7 @@ open LeanVM.Guest
 
 /-- `padding_weight__L6`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn106, Data.powTree, hpost, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn106, Data.powTree, hpost, [], []⟩
 
 end
 
@@ -110,7 +110,7 @@ open LeanVM.Guest
 
 /-- `padding_weight__L13`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn113, Data.powTree, hpost, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn113, Data.powTree, hpost, [], []⟩
 
 end
 
@@ -179,7 +179,7 @@ open LeanVM.Guest
 
 /-- `index_mle__L32`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn231, Data.powTree, hpost, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn231, Data.powTree, hpost, [], []⟩
 
 end
 
@@ -248,7 +248,7 @@ open LeanVM.Guest
 
 /-- `claim_list_digest_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn351, Data.powTree, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn351, Data.powTree, [], [], []⟩
 
 end
 
@@ -313,7 +313,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn594, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn594, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -382,7 +382,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn602, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn602, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -451,7 +451,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn603, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn603, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -520,7 +520,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L4_L19_L7`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn606, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn606, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -589,7 +589,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn679, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn679, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -658,7 +658,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn814, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn814, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -727,7 +727,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn816, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn816, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -796,7 +796,7 @@ open LeanVM.Guest
 
 /-- `da_levels__L128_L7_loop5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn945, Data.powTree, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn945, Data.powTree, [], [], []⟩
 
 end
 
@@ -861,7 +861,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L3_L14_L2_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn983, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn983, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -930,7 +930,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L15_L22_L4_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1179, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1179, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -999,7 +999,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1455, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1455, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -1068,7 +1068,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1464, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1464, Data.powTree, [], csigs, []⟩
 
 end
 
@@ -1137,7 +1137,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1474, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1474, Data.powTree, [], csigs, []⟩
 
 end
 

@@ -285,6 +285,26 @@ theorem ptrOf_uses {a : Atom} {p : V} (h : CoreMode.ptrOf a = some p) : p ∈ Me
     | _ => simp [CoreMode.hintHeap] at hd
   | _ => cases h
 
+/-- **A callee a context names by entry** is a compiled function entered there. -/
+theorem ctxOf_ent {j t : ℕ} {g : String} (h : (Bridge.ctxOf j).entOk t g = true) :
+    ∃ c, B2C.idxOf g = some c ∧ (Bridge.ctxOf c).entry = t := by
+  simp only [Bridge.ctxOf, Bridge.AlignCtx.ofData, Bridge.AlignCtx.entOk] at h
+  have hb : ∀ p ∈ (Bridge.entsOf j).map (fun e ↦ (e.2, e.1)), p.1 + 1 < 2 ^ Exec.indexDepth := by
+    intro p hp
+    simp only [Bridge.entsOf, List.map_map, List.mem_map, Function.comp_apply] at hp
+    obtain ⟨c, hc, rfl⟩ := hp
+    exact Bridge.entry_key (Bridge.calleesOf_mem hc).2
+  split at h
+  · rename_i g' hg
+    have hgg : g' = g := by simpa using h
+    subst hgg
+    have hm := Bridge.trieOf_mem hb hg
+    simp only [Bridge.entsOf, List.map_map, List.mem_map, Function.comp_apply, Prod.mk.injEq] at hm
+    obtain ⟨c, hc, rfl, rfl⟩ := hm
+    obtain ⟨h1, h2⟩ := Bridge.calleesOf_mem hc
+    exact ⟨c, B2C.idxOf_coreOf h1 h2, rfl⟩
+  · cases h
+
 /-- **The core route's frames are honest**, on the tracks' invariant. -/
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
@@ -333,7 +353,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
-    fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_, ?_,
+    fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
+    fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
     fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
@@ -424,6 +445,15 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     · have := hret k hk'
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk', Option.getD_some] at this
       simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- a dispatch's target cell: its callee's entry
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    obtain ⟨kfp, -, -, -, -, htgt⟩ := hJC.site _ _ hw i0 c q s0 hc htk (by rw [hXA]; exact hs0)
+    rw [← hXA, hAX _ _ hj] at hte
+    obtain ⟨c', hc', hce⟩ := ctxOf_ent hte
+    rw [hAX _ _ hc', hce] at htgt
+    rw [← hfpL]
+    simpa [CoreMode.Rd, Bridge.cellAt, addressOfIndex, pow_add] using htgt htg0
 
   · -- what its jumps read
     rw [← hx0, ← hc0]

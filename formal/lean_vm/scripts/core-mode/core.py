@@ -93,12 +93,17 @@ def checks(k, j, K, frame, heap):
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
 
 
+def dsp_arg(k):
+    """`CFun.dsp`: callc's `dsp` for a body with a dispatch, else none."""
+    return 'dsp' if any(s[0] == 'dispatch' for s in heap.CORE[k][1]) else '[]'
+
+
 def cfun_c(k, j, K, frame):
     """A body with calls: its heap check (`heapOkC` at its callees' heap signatures `csigs`), the kernel's checks."""
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, {dsp_arg(k)}⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
@@ -111,7 +116,7 @@ def cfun_l(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], []⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], [], []⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, by its loop rules. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
@@ -158,7 +163,7 @@ def cfun_lc(k, j, K, frame):
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
-            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs⟩\n\nend\n\npublic section\n\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs, []⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, by its loop rules, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
@@ -251,7 +256,7 @@ def main():
                 f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
                 f'/-- `{k}`: what the core route knows of it. -/\n'
                 f'noncomputable def cfun : CoreMode.CFun :=\n'
-                f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, hpost, []⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
+                f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, hpost, [], []⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
                 f'/-- `{k}`: its promised cells witnessed. -/\n'
                 f'theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by\n  decide +kernel\n\n'
                 + checks(k, j, K, frame_term(frames[k]), '.m1 heap_ok core_post (by decide +kernel) rfl'))
