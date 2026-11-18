@@ -1,11 +1,13 @@
-use super::cells::{count, pack_16_bytes};
+use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
 use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
-use super::hints::{FORGE, Forgery, Hints};
+use super::hints::{
+    DIGIT_GROUP, FORGE, Forgery, Hints, SP_FORS_LOW, SP_FORS_MID, SP_PATH_WINDOW, digit_hints, lean_sphincs_hints,
+};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode};
-use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
+use super::statement::{CLAIM_GROUP, claim_list_digest, list_split, statement_digest};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Program;
@@ -14,7 +16,7 @@ use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
 use lean_sphincs::LeanSphincsSignature;
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{execute, from_scalar, to_scalar};
+use lean_vm_core::cpu::{Fault, execute, from_scalar, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
@@ -179,19 +181,278 @@ fn aggregate_mixed_leaf() {
     );
 }
 
-/// A leanSPHINCS signature's digest and openings are bound in-circuit: a node whose
-/// hints put the digest's unused bytes off by one, order a FORS node and its sibling
-/// the other way, or give a layer another counter fails the guest's run.
+/// A leanSPHINCS signature's digest and openings are bound in-circuit. A node fails the
+/// guest's run when its hints put the digest's unused bytes or bits off by one, change
+/// a sibling on a FORS climb or on a layer's path (in a top window, and in a middle one,
+/// which only the node the window above starts from binds), a FORS secret, a chain's
+/// start or a node a window starts from (in a FORS tree or on a path), dispatch a FORS
+/// or a path window other than the digest's, name a leaf or a high window other than the
+/// path's windows spell (the leaf alone, or with its window moved to agree), or give a
+/// layer another counter.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
+    use lean_sphincs::internals::{FORS_HEIGHT, FORS_TREES, H};
     let signers = get_lean_sphincs_signers::<StableProver>(1);
-    let forgeries: [Forgery; 3] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_unused", 0)[0] *= count(1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0).swap(0, 1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_counter", 1)[0] *= count(1)),
+    let flip = |name: &'static str, entry: usize, at: usize| -> Forgery {
+        Box::new(move |hints: &mut Hints| hints.entry_mut(name, entry)[at] += F128::ONE)
+    };
+    let next = |name: &'static str, entry: usize, at: usize| -> Forgery {
+        Box::new(move |hints: &mut Hints| hints.entry_mut(name, entry)[at] *= count(1))
+    };
+    // The FORS trees' siblings come first, a tree's top window then its middle one, then
+    // the layers' paths, the top one's two lower windows last.
+    let fors_siblings = FORS_TREES * FORS_HEIGHT;
+    let forgeries: [Forgery; 21] = [
+        next("sp_unused", 0, 0),
+        next("sp_pad", 0, 0),
+        flip("sp_siblings", 0, 0),
+        flip("sp_siblings", FORS_HEIGHT - SP_FORS_LOW - SP_FORS_MID, 0),
+        flip("sp_siblings", FORS_HEIGHT - 1, 0),
+        flip("sp_siblings", fors_siblings, 0),
+        flip("sp_siblings", fors_siblings + H - 2 * SP_PATH_WINDOW, 0),
+        flip("sp_siblings", fors_siblings + H - 1, 0),
+        flip("sp_fors_secrets", 0, 0),
+        flip("chain_starts", 0, 0),
+        flip("sp_mids", 1, 0),
+        flip("sp_mids", 2 * FORS_TREES, 0),
+        next("sp_fors_windows", 0, 1),
+        next("sp_fors_windows", 0, 5 * (FORS_TREES / 2) - 1),
+        next("sp_path_windows", 1, 0),
+        next("sp_path_windows", 2, 2),
+        flip("sp_index", 0, 0),
+        flip("sp_index", 0, 1),
+        flip("sp_index", 0, 6),
+        Box::new(|hints: &mut Hints| {
+            // The bottom leaf's low bit flipped where it is a value and where it is dispatched on.
+            let leaf = &mut hints.entry_mut("sp_index", 0)[0];
+            let step = if leaf.c0 & 1 == 0 { count(1) } else { count(1).inv() };
+            *leaf += F128::ONE;
+            hints.entry_mut("sp_path_windows", 0)[0] *= step;
+        }),
+        next("sp_counter", 1, 0),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, &[], vec![], signers.clone(), &[]);
+    }
+}
+
+/// Writes over the honest hints of FORS tree `tree` those of its leaf `leaf` as the key
+/// `secret_key` opens it for instance `idx`: the tree's windows, the leaf's secret, the
+/// siblings on its climb and the two nodes its upper windows start from. `leaves` are
+/// the digest's.
+fn open_fors_leaf(
+    hints: &mut Hints,
+    secret_key: &lean_sphincs::SecretKey,
+    idx: u64,
+    leaves: &[usize; lean_sphincs::internals::FORS_TREES],
+    tree: usize,
+    leaf: usize,
+) {
+    use lean_sphincs::internals::{FORS_HEIGHT, FORS_PRF, FORS_TREE, OtsKey, pk_seed, prf, th, th_digests};
+    let public_key = lean_sphincs::key_gen(secret_key);
+    let seed = pk_seed(&public_key);
+    let at = |t: u32, z: usize, j: usize| {
+        let adrs = OtsKey::of_index(0, idx).adrs(t).with_tree_height(z as u32);
+        adrs.with_tree_index(((tree << (FORS_HEIGHT - z)) + j) as u32)
+    };
+    let secret = |s: usize| prf(seed, secret_key, &at(FORS_PRF, 0, s));
+    let mut levels = vec![
+        (0..1 << FORS_HEIGHT)
+            .map(|s| th(seed, &at(FORS_TREE, 0, s), &secret(s)))
+            .collect::<Vec<_>>(),
+    ];
+    for z in 0..FORS_HEIGHT {
+        let pairs = levels[z].as_chunks::<2>().0.iter().enumerate();
+        let above = pairs.map(|(j, pair)| th_digests(seed, &at(FORS_TREE, z + 1, j), pair));
+        levels.push(above.collect());
+    }
+    let (pair, odd, below) = (tree / 2, tree % 2, SP_FORS_LOW + SP_FORS_MID);
+    let low = |leaf: usize| leaf & ((1 << SP_FORS_LOW) - 1);
+    let mut two = [leaves[2 * pair], leaves[2 * pair + 1]];
+    two[odd] = leaf;
+    let windows = hints.entry_mut("sp_fors_windows", 0);
+    windows[5 * pair + 2 * odd] = count(leaf >> below);
+    windows[5 * pair + 2 * odd + 1] = count(leaf >> SP_FORS_LOW & ((1 << SP_FORS_MID) - 1));
+    windows[5 * pair + 4] = count(low(two[0]) | low(two[1]) << SP_FORS_LOW);
+    hints.entry_mut("sp_fors_secrets", tree)[0] = pack_16_bytes(&secret(leaf));
+    // A pair's siblings: each tree's top window then its middle one, then each one's low
+    // window (`lean_sphincs_hints`).
+    let upper = FORS_HEIGHT - SP_FORS_LOW;
+    for z in 0..FORS_HEIGHT {
+        let entry = if z >= below {
+            upper * odd + z - below
+        } else if z >= SP_FORS_LOW {
+            upper * odd + FORS_HEIGHT - below + z - SP_FORS_LOW
+        } else {
+            2 * upper + SP_FORS_LOW * odd + z
+        };
+        hints.entry_mut("sp_siblings", 2 * FORS_HEIGHT * pair + entry)[0] = pack_16_bytes(&levels[z][leaf >> z ^ 1]);
+    }
+    hints.entry_mut("sp_mids", 2 * tree)[0] = pack_16_bytes(&levels[below][leaf >> below]);
+    hints.entry_mut("sp_mids", 2 * tree + 1)[0] = pack_16_bytes(&levels[SP_FORS_LOW][leaf >> SP_FORS_LOW]);
+}
+
+/// The FORS leaves and the index a leanSPHINCS signature opens are the digest's. A node
+/// fails the guest's run when its hints open another leaf of a FORS tree as the signer
+/// would have opened it, every hash on its climb the tree's own, so that the digest
+/// alone tells the two apart: in each of a tree's three windows and in either cell of
+/// the digest, tree 12 lying across both. The same routine opening the digest's own
+/// leaves verifies. So does a node fail whose hints are, whole, those of the same key's
+/// signature of another message.
+#[test]
+fn lean_sphincs_openings_are_the_digests() {
+    use lean_sphincs::internals::{FORS_HEIGHT, digest_fields, h_msg, pk_root, pk_seed, sig_randomizer};
+    let secret_key = [0x5A; lean_sphincs::SECRET_KEY_LEN];
+    let pk = lean_sphincs::key_gen(&secret_key);
+    let message = [0xC5; lean_sphincs::MESSAGE_LEN];
+    let signer = (pk, message, lean_sphincs::sign(&secret_key, &message));
+    let digest = h_msg(sig_randomizer(&signer.2), pk_seed(&pk), pk_root(&pk), &message);
+    let (idx, leaves) = digest_fields(&digest);
+    let open = |openings: &'static [(usize, usize)]| -> Forgery {
+        Box::new(move |hints: &mut Hints| {
+            for &(tree, flip) in openings {
+                open_fors_leaf(hints, &secret_key, idx, &leaves, tree, leaves[tree] ^ flip);
+            }
+        })
+    };
+    FORGE.with(|forge| *forge.borrow_mut() = Some(open(&[(0, 0), (12, 0), (23, 0)])));
+    prove(&[], &[], std::slice::from_ref(&signer));
+
+    let other = [0x3C; lean_sphincs::MESSAGE_LEN];
+    let transplant = lean_sphincs_hints(&pk, &lean_sphincs::sign(&secret_key, &other), &other).expect("hints");
+    let forgeries: [Forgery; 5] = [
+        open(&[(0, 1)]),
+        open(&[(12, 1 << 1)]),
+        open(&[(12, 1 << SP_FORS_LOW)]),
+        open(&[(23, 1 << (FORS_HEIGHT - 1))]),
+        Box::new(move |hints: &mut Hints| {
+            let mut popped = std::collections::HashMap::new();
+            for (name, entry) in transplant {
+                let at: &mut usize = popped.entry(name).or_default();
+                *hints.entry_mut(name, *at) = entry;
+                *at += 1;
+            }
+        }),
+    ];
+    for forgery in forgeries {
+        assert_forgery_rejected(forgery, &[], vec![], vec![signer.clone()], &[]);
+    }
+}
+
+/// Writes over the honest hints of `signer`, whose key is `secret_key`, those of its
+/// bottom one-time key standing at the leaf `flip` away from its own in the bottom tree,
+/// the path's siblings kept, and of the middle key's signature of the root that reaches,
+/// as `secret_key` signs it: the path's windows, the node its high window starts from,
+/// then the counter, the codeword and each chain walked from its secret to its digit.
+fn move_bottom_leaf(hints: &mut Hints, secret_key: &lean_sphincs::SecretKey, signer: &LeanSphincsSigner, flip: u32) {
+    use lean_sphincs::internals::{
+        FORS_TREES, N, OtsKey, V, WOTS_HASH, WOTS_PRF, digest_fields, fors_recover, h_msg, pk_root, pk_seed, prf,
+        sig_fors, sig_layers, sig_path, sig_randomizer, th, tree_fold, wots_leaf,
+    };
+    let (pk, message, sig) = signer;
+    let seed = pk_seed(pk);
+    let (idx, leaves) = digest_fields(&h_msg(sig_randomizer(sig), seed, pk_root(pk), message));
+    let (bottom, middle) = (OtsKey::of_index(0, idx), OtsKey::of_index(1, idx));
+    let fors_key = fors_recover(seed, idx, &leaves, sig_fors(sig), |_| ());
+    let signed = &sig_layers(sig)[0];
+    let (_, one_time) = wots_leaf(seed, &bottom, &fors_key, signed.counter(), signed.wots()).expect("a codeword");
+    let moved = OtsKey {
+        leaf: bottom.leaf ^ flip,
+        ..bottom
+    };
+    let mut pairs = Vec::new();
+    let root = tree_fold(seed, &moved, one_time, sig_path(sig, 0), |pair| pairs.push(*pair));
+    let leaf = moved.leaf as usize;
+    let low = leaf & ((1 << SP_PATH_WINDOW) - 1);
+    *hints.entry_mut("sp_path_windows", 0) = vec![count(low), count(leaf >> SP_PATH_WINDOW)];
+    // The paths' nodes follow the FORS trees', two a tree.
+    let start = &pairs[SP_PATH_WINDOW][leaf >> SP_PATH_WINDOW & 1];
+    hints.entry_mut("sp_mids", 2 * FORS_TREES)[0] = pack_16_bytes(start);
+    // The least counter that gives a codeword, as the signer takes it.
+    let encode = |counter| Some((counter, wots_leaf(seed, &middle, &root, counter, &[[0; N]; V])?.0));
+    let (counter, codeword) = (0..).find_map(encode).expect("a codeword");
+    *hints.entry_mut("sp_counter", 1) = exponent_bytes(&counter.to_be_bytes());
+    for (group, entry) in digit_hints(&codeword, DIGIT_GROUP).enumerate() {
+        *hints.entry_mut("digits", V.div_ceil(DIGIT_GROUP) + group) = entry;
+    }
+    for (chain, &digit) in codeword.iter().enumerate() {
+        let at = |t: u32| middle.adrs(t).with_chain(chain as u32);
+        let secret = prf(seed, secret_key, &at(WOTS_PRF));
+        let value = (0..digit).fold(secret, |value, from| {
+            th(seed, &at(WOTS_HASH).with_hash(from.into()), &value)
+        });
+        hints.entry_mut("chain_starts", V + chain)[0] = pack_16_bytes(&value);
+    }
+}
+
+/// The leaf a leanSPHINCS path climbs from is the one its key's addresses take. A node
+/// fails the guest's run when its hints climb from another leaf of the bottom tree, in
+/// the path's low window or in its high one, the bottom key's one-time leaf standing
+/// there and the middle key signing the root that reaches, as the signer would have
+/// signed it: every hash is then the witness's own and the digest is the signature's, so
+/// that only what a dispatch stores into the hinted leaf tells the two apart. The same
+/// routine at the digest's leaf verifies.
+#[test]
+fn lean_sphincs_paths_climb_from_the_digests_leaf() {
+    let secret_key = [0x5A; lean_sphincs::SECRET_KEY_LEN];
+    let message = [0xC5; lean_sphincs::MESSAGE_LEN];
+    let signature = lean_sphincs::sign(&secret_key, &message);
+    let signer = (lean_sphincs::key_gen(&secret_key), message, signature);
+    let moved = |flip: u32| -> Forgery {
+        let signer = signer.clone();
+        Box::new(move |hints: &mut Hints| move_bottom_leaf(hints, &secret_key, &signer, flip))
+    };
+    FORGE.with(|forge| *forge.borrow_mut() = Some(moved(0)));
+    prove(&[], &[], std::slice::from_ref(&signer));
+    for flip in [1, 1 << SP_PATH_WINDOW] {
+        assert_forgery_rejected(moved(flip), &[], vec![], vec![signer.clone()], &[]);
+    }
+}
+
+/// A window a leanSPHINCS dispatch reads is range checked before it. The guest's run
+/// fails at a range check (a `DEREF` through no small g-power), not at a hash that an
+/// arm past the table goes on to, when its hints name the first value past the range
+/// for a FORS tree's top or middle window, a pair's low windows, a path's low, high or
+/// third window, or the digest's unused bits. So does one whose window is the
+/// generator's inverse or lies outside the subfield.
+#[test]
+fn lean_sphincs_windows_past_their_range_fail_a_range_check() {
+    use lean_sphincs::internals::{FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS};
+    // The honest leaf's hints and public input, the guest then run on forged copies.
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let copy = seen.clone();
+    FORGE.with(|forge| *forge.borrow_mut() = Some(Box::new(move |hints| *copy.borrow_mut() = hints.0.clone())));
+    let (claims, proof) = prove(&[], &[], &get_lean_sphincs_signers::<StableProver>(1));
+    let defer = DeferredBytecodeClaim::recompute(proof.bytecode_point);
+    let public_input = statement_digest(&claims, &defer);
+
+    let top_arms = 1 << (FORS_HEIGHT - SP_FORS_LOW - SP_FORS_MID);
+    let pair_arms = 1 << (2 * SP_FORS_LOW);
+    let high_arms = 1 << (LAYER_HEIGHTS[2] - 2 * SP_PATH_WINDOW);
+    let last = 5 * (FORS_TREES / 2) - 1;
+    let forgeries = [
+        ("sp_fors_windows", 0, 0, count(top_arms)),
+        ("sp_fors_windows", 0, 1, count(1 << SP_FORS_MID)),
+        ("sp_fors_windows", 0, 4, count(pair_arms)),
+        ("sp_fors_windows", 0, last - 2, count(top_arms)),
+        ("sp_fors_windows", 0, last, count(pair_arms)),
+        ("sp_path_windows", 0, 0, count(1 << SP_PATH_WINDOW)),
+        ("sp_path_windows", 1, 1, count(1 << SP_PATH_WINDOW)),
+        ("sp_path_windows", 2, 2, count(high_arms)),
+        ("sp_pad", 0, 0, count(256 / high_arms)),
+        ("sp_fors_windows", 0, 0, count(1).inv()),
+        ("sp_fors_windows", 0, 1, F128::new(0, 1)),
+    ];
+    for (name, entry, at, value) in forgeries {
+        let mut hints = Hints(seen.borrow().clone());
+        hints.entry_mut(name, entry)[at] = value;
+        let Err(error) = execute(unified_guest(), &hints.0, public_input) else {
+            panic!("{name}[{at}] past its range was accepted");
+        };
+        assert!(
+            matches!(error.fault, Fault::WildPointer { .. }),
+            "{name}[{at}] past its range fails elsewhere: {error}"
+        );
     }
 }
 

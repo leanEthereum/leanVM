@@ -7,7 +7,7 @@ use super::child::{
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
-use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
+use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW, SP_FORS_LOW, SP_FORS_MID, SP_PATH_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
@@ -316,6 +316,9 @@ fn constants(ph: &mut Placeholders) {
         ("SP_FORS_TREES", &sp::FORS_TREES),
         ("SP_FORS_HEIGHT", &sp::FORS_HEIGHT),
         ("SP_DIGEST_BYTES", &sp::DIGEST_BYTES),
+        ("SP_FORS_LOW", &SP_FORS_LOW),
+        ("SP_FORS_MID", &SP_FORS_MID),
+        ("SP_PATH_WINDOW", &SP_PATH_WINDOW),
     ];
     for &(name, value) in constants {
         ph.set(name, value);
