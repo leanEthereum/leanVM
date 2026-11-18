@@ -31,6 +31,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 6) (.num 16), .lt (.val 7) (.num 16), .lt (.val 8) (.num 16), .lt (.val 9) (.num 16),
     .lt (.val 10) (.num 16)]
   rets := [[]]
+  eqs := [72]
 
 end
 end LeanVM.Guest.Fn.«assert_small_g_power»
@@ -105,6 +106,7 @@ def hcert : CoreMode.HCert where
     (21, [(20, 112, .run 3 [1])])]
   res := [.lt (.val 3) (.num 16), .lt (.val 4) (.num 16)]
   rets := [[]]
+  eqs := [22]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L24»

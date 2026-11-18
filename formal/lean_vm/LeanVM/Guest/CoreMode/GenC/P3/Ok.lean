@@ -9,52 +9,18 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapC
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.CoreMode.GenC.«P0».Data
-public import LeanVM.Guest.CoreMode.GenC.«P10».Data
 public import LeanVM.Guest.CoreMode.GenC.«P11».Data
-public import LeanVM.Guest.CoreMode.GenC.«P12».Data
-public import LeanVM.Guest.CoreMode.GenC.«P16».Data
 public import LeanVM.Guest.CoreMode.GenC.«P17».Data
-public import LeanVM.Guest.CoreMode.GenC.«P19».Data
 public import LeanVM.Guest.CoreMode.GenC.«P1».Data
 public import LeanVM.Guest.CoreMode.GenC.«P20».Data
-public import LeanVM.Guest.CoreMode.GenC.«P21».Data
 public import LeanVM.Guest.CoreMode.GenC.«P23».Data
-public import LeanVM.Guest.CoreMode.GenC.«P24».Data
 public import LeanVM.Guest.CoreMode.GenC.«P25».Data
-public import LeanVM.Guest.CoreMode.GenC.«P26».Data
-public import LeanVM.Guest.CoreMode.GenC.«P27».Data
-public import LeanVM.Guest.CoreMode.GenC.«P28».Data
-public import LeanVM.Guest.CoreMode.GenC.«P2».Data
-public import LeanVM.Guest.CoreMode.GenC.«P31».Data
-public import LeanVM.Guest.CoreMode.GenC.«P32».Data
-public import LeanVM.Guest.CoreMode.GenC.«P33».Data
-public import LeanVM.Guest.CoreMode.GenC.«P36».Data
-public import LeanVM.Guest.CoreMode.GenC.«P37».Data
-public import LeanVM.Guest.CoreMode.GenC.«P38».Data
 public import LeanVM.Guest.CoreMode.GenC.«P39».Data
 public import LeanVM.Guest.CoreMode.GenC.«P3».Data
-public import LeanVM.Guest.CoreMode.GenC.«P40».Data
-public import LeanVM.Guest.CoreMode.GenC.«P41».Data
-public import LeanVM.Guest.CoreMode.GenC.«P42».Data
-public import LeanVM.Guest.CoreMode.GenC.«P43».Data
-public import LeanVM.Guest.CoreMode.GenC.«P44».Data
-public import LeanVM.Guest.CoreMode.GenC.«P45».Data
 public import LeanVM.Guest.CoreMode.GenC.«P46».Data
-public import LeanVM.Guest.CoreMode.GenC.«P48».Data
 public import LeanVM.Guest.CoreMode.GenC.«P4».Data
-public import LeanVM.Guest.CoreMode.GenC.«P50».Data
-public import LeanVM.Guest.CoreMode.GenC.«P55».Data
 public import LeanVM.Guest.CoreMode.GenC.«P56».Data
-public import LeanVM.Guest.CoreMode.GenC.«P57».Data
-public import LeanVM.Guest.CoreMode.GenC.«P59».Data
-public import LeanVM.Guest.CoreMode.GenC.«P5».Data
 public import LeanVM.Guest.CoreMode.GenC.«P61».Data
-public import LeanVM.Guest.CoreMode.GenC.«P62».Data
-public import LeanVM.Guest.CoreMode.GenC.«P63».Data
-public import LeanVM.Guest.CoreMode.GenC.«P7».Data
-public import LeanVM.Guest.CoreMode.GenC.«P8».Data
-public import LeanVM.Guest.CoreMode.GenC.«P9».Data
 public import LeanVM.Guest.Pack.«P3».Core
 public import LeanVM.Guest.CoreMode.GenC.«P3».Data
 
@@ -74,6 +40,19 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 
 end
 end LeanVM.Guest.Fn.«da_levels__L32_L5_loop3»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
+
+@[expose] public section
+
+/-- `decode_query_windows__L23_L5`: the heap check. -/
+theorem heap_okC : CoreMode.heapOkC Data.powTree
+    (fun _ ↦ .empty)
+    core hcert = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L16»
 
@@ -305,88 +284,6 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 
 end
 end LeanVM.Guest.Fn.«level_residual__L73_L23_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«open_stacked__L6»
-
-@[expose] public section
-
-/-- `open_stacked__L6`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
-    (fun g ↦ match g with
-    | "fold_final_msg__L4" => Fn.«fold_final_msg__L4».hcert.sig
-    | "grind_check__L15" => Fn.«grind_check__L15».hcert.sig
-    | "grind_check__L17" => Fn.«grind_check__L17».hcert.sig
-    | "level_positions__L10_L20_L2" => Fn.«level_positions__L10_L20_L2».hcert.sig
-    | "level_positions__L11_L24_L6" => Fn.«level_positions__L11_L24_L6».hcert.sig
-    | "level_positions__L15_L23_L5" => Fn.«level_positions__L15_L23_L5».hcert.sig
-    | "level_positions__L22_L22_L4" => Fn.«level_positions__L22_L22_L4».hcert.sig
-    | "level_positions__L37_L21_L3" => Fn.«level_positions__L37_L21_L3».hcert.sig
-    | "level_positions__L3_L17_L5" => Fn.«level_positions__L3_L17_L5».hcert.sig
-    | "level_positions__L3_L18_L6" => Fn.«level_positions__L3_L18_L6».hcert.sig
-    | "level_positions__L3_L19_L7" => Fn.«level_positions__L3_L19_L7».hcert.sig
-    | "level_positions__L3_L20_L2" => Fn.«level_positions__L3_L20_L2».hcert.sig
-    | "level_positions__L3_L21_L3" => Fn.«level_positions__L3_L21_L3».hcert.sig
-    | "level_positions__L4_L18_L6" => Fn.«level_positions__L4_L18_L6».hcert.sig
-    | "level_positions__L4_L19_L7" => Fn.«level_positions__L4_L19_L7».hcert.sig
-    | "level_positions__L4_L20_L2" => Fn.«level_positions__L4_L20_L2».hcert.sig
-    | "level_positions__L5_L20_L2" => Fn.«level_positions__L5_L20_L2».hcert.sig
-    | "level_positions__L5_L21_L3" => Fn.«level_positions__L5_L21_L3».hcert.sig
-    | "level_positions__L5_L22_L4" => Fn.«level_positions__L5_L22_L4».hcert.sig
-    | "level_positions__L6_L19_L7" => Fn.«level_positions__L6_L19_L7».hcert.sig
-    | "level_positions__L7_L23_L5" => Fn.«level_positions__L7_L23_L5».hcert.sig
-    | "level_positions__L8_L21_L3" => Fn.«level_positions__L8_L21_L3».hcert.sig
-    | "level_positions__L8_L22_L4" => Fn.«level_positions__L8_L22_L4».hcert.sig
-    | "level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0" => Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1" => Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».hcert.sig
-    | "level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1" => Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».hcert.sig
-    | "level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1" => Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».hcert.sig
-    | "level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1" => Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».hcert.sig
-    | "level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0" => Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0" => Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0" => Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0" => Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0" => Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0" => Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0" => Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0" => Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0" => Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0" => Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0" => Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0" => Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0" => Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0" => Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».hcert.sig
-    | "level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0" => Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».hcert.sig
-    | "level_residual__L109_L20_L6_L3" => Fn.«level_residual__L109_L20_L6_L3».hcert.sig
-    | "level_residual__L18_L8_L4_L2" => Fn.«level_residual__L18_L8_L4_L2».hcert.sig
-    | "level_residual__L19_L8_L4_L2" => Fn.«level_residual__L19_L8_L4_L2».hcert.sig
-    | "level_residual__L218_L20_L6_L3" => Fn.«level_residual__L218_L20_L6_L3».hcert.sig
-    | "level_residual__L21_L8_L4_L2" => Fn.«level_residual__L21_L8_L4_L2».hcert.sig
-    | "level_residual__L23_L12_L4_L2" => Fn.«level_residual__L23_L12_L4_L2».hcert.sig
-    | "level_residual__L23_L8_L4_L2" => Fn.«level_residual__L23_L8_L4_L2».hcert.sig
-    | "level_residual__L25_L12_L4_L2" => Fn.«level_residual__L25_L12_L4_L2».hcert.sig
-    | "level_residual__L28_L12_L4_L2" => Fn.«level_residual__L28_L12_L4_L2».hcert.sig
-    | "level_residual__L32_L12_L4_L2" => Fn.«level_residual__L32_L12_L4_L2».hcert.sig
-    | "level_residual__L32_L16_L4_L2" => Fn.«level_residual__L32_L16_L4_L2».hcert.sig
-    | "level_residual__L37_L16_L4_L2" => Fn.«level_residual__L37_L16_L4_L2».hcert.sig
-    | "level_residual__L44_L16_L4_L2" => Fn.«level_residual__L44_L16_L4_L2».hcert.sig
-    | "level_residual__L55_L16_L4_L2" => Fn.«level_residual__L55_L16_L4_L2».hcert.sig
-    | "level_residual__L55_L20_L6_L3" => Fn.«level_residual__L55_L20_L6_L3».hcert.sig
-    | "level_residual__L73_L20_L6_L3" => Fn.«level_residual__L73_L20_L6_L3».hcert.sig
-    | "opening_message__L20_L1" => Fn.«opening_message__L20_L1».hcert.sig
-    | "opening_message__L6_L1" => Fn.«opening_message__L6_L1».hcert.sig
-    | "opening_message__L8_L1" => Fn.«opening_message__L8_L1».hcert.sig
-    | "opening_round" => Fn.«opening_round».hcert.sig
-    | "opening_tail_round" => Fn.«opening_tail_round».hcert.sig
-    | "squeeze_point_from__L12" => Fn.«squeeze_point_from__L12».hcert.sig
-    | "squeeze_point_from__L16" => Fn.«squeeze_point_from__L16».hcert.sig
-    | "squeeze_point_from__L20" => Fn.«squeeze_point_from__L20».hcert.sig
-    | "squeeze_point_from__L8" => Fn.«squeeze_point_from__L8».hcert.sig
-    | _ => .empty)
-    core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«open_stacked__L6»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1»
 

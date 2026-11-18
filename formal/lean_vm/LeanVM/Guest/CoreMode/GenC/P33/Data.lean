@@ -29,6 +29,7 @@ def hcert : CoreMode.HCert where
   res := [.sub ⟨[(1, 1), (3, 1)], 288⟩ ⟨⟨[(1, 1)], 288⟩, 2, (.num 0), (.num 8)⟩, .lt (.val 3) (.num 16),
     .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16)]
   rets := [[]]
+  eqs := [44]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L17»

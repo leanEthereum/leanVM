@@ -10,9 +10,10 @@ values. What the check cannot witness is reported by cause; only functions the P
 
 Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
 `def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
-true` for each function whose certificate the Python check passes (but `KERNEL_SKIP`), `sigOf` its callees' signatures
-by their `Fn.name`. Residuals carry the branch conditions common to the paths the inference asked them on
-(`CRes.under`); a `mrg` whose root has no exponent gets one stated (`exp`).
+true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
+(the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
+carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
+exponent gets one stated (`exp`).
 
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/emitc.py [--with F,..] [--without F,..]
   [--out DIR] [--check] [--mods FILE] [--fn NAME,..] (those functions only, nothing written) [--report FILE.json]
@@ -25,17 +26,20 @@ argv = list(sys.argv)
 sys.argv = sys.argv[:1]
 import infer as I
 import heapc as C
+if __name__ == '__main__':
+    # `heapwin.py` imports this module by name: one instance (one `Pass` instrumentation)
+    sys.modules.setdefault('emitc', sys.modules[__name__])
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 NAME = {k: nm for nm, k in I.STABLE.items()}
 # the inference's features `heapOkC` has no counterpart of, off by default: offsets modulo `g`'s order (cells are
-# naturals there), range checks as free facts (there every fact is a residual), a dispatch's returned pointers and a
-# run with its point before it (`retP`: no witness form places `Q·h^S` in `⟨Q·g^S, S, 0, h⟩`)
-OFF = {'wrap', 'lts', 'retP'}
+# naturals there) and range checks as free facts (there every fact is a residual)
+OFF = {'wrap', 'lts'}
 PTSMAX = 4096
-# functions whose kernel check runs past the build's memory cap (`lake-build.py --cap 36`): their certificate is
-# emitted, their `heap_okC` not (one `decide` over the whole body; a windowed check is a request to the heap side)
-KERNEL_SKIP = {'main_loop2'}
+# functions checked in windows whatever their size (`heapwin.py`, `GenCW/<fn>/`); every other passing function whose
+# check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
+# one `decide`) is windowed too
+KERNEL_WIN = {'main_loop2'}
 
 
 # ---- the inference's values, recorded as it assigns them
@@ -123,6 +127,13 @@ def sig_of(G, m, drops):
         return (H.post.index(c), cell(p[1], m))
     H.postV = each('postV', G.postV, pv)
     H.ghosts = len(G.ghosts)
+    H.retEq = each('retEq', getattr(G, 'retEq', ()), lambda p: (cell(p[0]), cell(p[1])))
+    # a returned pointer's cells (`retP`): `post` cells over the returned slot
+    for j, offs in sorted(getattr(G, 'retP', {}).items()):
+        for o in sorted(offs):
+            c = (((m + j, 1),), o)
+            if c not in H.post:
+                H.post.append(c)
     return H
 
 
@@ -144,7 +155,38 @@ def res_of(r):
         if len(q) == 3:
             q = ((q[0], q[1]), 1, I.num(0), I.num(q[2] - q[1]))
         return ('subR', crun(q), crun(r[2]))
+    if k == 'subP':
+        return ('subP', cell(r[1]), tuple(cell(c) for c in r[2]))
     return None
+
+
+def ncell(env, c):
+    """A cell over value numbers with each base's monomial in `env` (its word is the same)."""
+    acc = ((), c[1])
+    for b, e in c[0]:
+        acc = C.cmul(acc, C.cpow(env.get(b, C.baseC(b)), e))
+    return acc
+
+
+def nidx(env, i):
+    return ('mono', ncell(env, i[1])) if i[0] == 'mono' else i
+
+
+def nrun(env, r):
+    return (ncell(env, r[0]), r[1], nidx(env, r[2]), nidx(env, r[3]))
+
+
+def nres(env, r):
+    k = r[0]
+    if k == 'lt':
+        return ('lt', nidx(env, r[1]), nidx(env, r[2]))
+    if k == 'sub':
+        return ('sub', ncell(env, r[1]), nrun(env, r[2]))
+    if k == 'subR':
+        return ('subR', nrun(env, r[1]), nrun(env, r[2]))
+    if k == 'subP':
+        return ('subP', ncell(env, r[1]), tuple(ncell(env, c) for c in r[2]))
+    return r
 
 
 def conds_of(paths):
@@ -174,9 +216,12 @@ class Solver:
                 continue
             if r is None:
                 continue
-            g = conds_of(P.rpath.get(i, ()))
-            wr = ('under', g, r) if g else r
-            (self.pool_lt if r[0] == 'lt' else self.pool_sub).append((i, r, wr))
+            # one copy per branch path it was asked on (`under` is a conjunction; a residual asked in two arms holds
+            # in each under its own arm, not necessarily in both)
+            gs = list(dict.fromkeys(conds_of([p]) for p in P.rpath.get(i, ()) or [()]))
+            for g in gs:
+                wr = ('under', g, r) if g else r
+                (self.pool_lt if r[0] == 'lt' else self.pool_sub).append((i if len(gs) == 1 else (i, g), r, wr))
         self.sites = collections.defaultdict(list)
         for f, args, gi, _ in P.sites:
             self.sites[(f, tuple(args))].append(gi)
@@ -184,9 +229,19 @@ class Solver:
         self.stats = collections.Counter()
 
     # -- residuals and facts
-    def on(self, pool):
-        """The residuals usable on the site's path."""
-        return [e for e in pool if C.unU(self.X.path, e[2]) is not None]
+    def on(self, pool, st):
+        """The residuals usable on the site's path, their monomials over the check's own (a value's monomial in the
+        check's environment for the value: one word, `idxF` takes `.mono` cells literally)."""
+        out = []
+        for i, r, wr in pool:
+            if C.unU(self.X.path, wr) is None:
+                continue
+            r2 = nres(st.env, r)
+            if r2 != r:
+                g = wr[1] if wr[0] == 'under' else ()
+                i, r, wr = (i, r2), r2, (('under', g, r2) if g else r2)
+            out.append((i, r, wr))
+        return out
 
     def use(self, i, r):
         j = self.lean_res.get(i)
@@ -201,9 +256,41 @@ class Solver:
         for p in X.facts(st.env, []):
             if p == (a, b):
                 return []
-        for i, r, wr in self.on(self.pool_lt):
+        for i, r, wr in self.on(self.pool_lt, st):
             if C.idxF(st.env, r[1]) == a and C.idxF(st.env, r[2]) == b:
                 return [self.use(i, wr)]
+        return None
+
+    def idx(self, st, m):
+        """A monomial as a residual's index (`.val` when the value's own base)."""
+        if not m[0]:
+            return ('num', m[1])
+        if m[1] == 0 and len(m[0]) == 1 and m[0][0][1] == 1 and C.mono(st.env, m[0][0][0]) == m:
+            return ('val', m[0][0][0])
+        return ('mono', m)
+
+    def derive(self, st, a, b, wr):
+        """The fact `(a, b)` stated as a residual of its own, implied by a fact `(a', b)`, `a' = a·g^s` (`s >= 0`), the
+        residual `wr` (under its conditions) or the own term or path (`None`)."""
+        # under the site's whole path: the source's conditions are on it, and an arm fact holds only there
+        g = tuple(dict.fromkeys(self.X.path))
+        r = ('lt', self.idx(st, a), self.idx(st, b))
+        self.stats['lt-derived'] += 1
+        return [self.use(('lt', a, b, g), ('under', g, r) if g else r)]
+
+    def factD(self, st, a, b):
+        """`fact`, else a fact `(a·g^s, b)` (or `(g^k', b)`, `k' >= a` for a constant `a`) giving `(a, b)` stated."""
+        f = self.fact(st, a, b)
+        if f is not None:
+            return f
+        if a[1] >= C.CAPE:
+            return None
+        cands = [(p, None) for p in self.X.facts(st.env, [])]
+        for i, r, wr in self.on(self.pool_lt, st):
+            cands.append(((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])), (i, wr)))
+        for (a2, b2), src in cands:
+            if b2 == b and a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
+                return self.derive(st, a, b, src[1] if src else None)
         return None
 
     def factC(self, st, k, b):
@@ -212,7 +299,7 @@ class Solver:
         for p in X.facts(st.env, []):
             if not p[0][0] and k <= p[0][1] < C.CAPE and p[1] == b:
                 return []
-        for i, r, wr in self.on(self.pool_lt):
+        for i, r, wr in self.on(self.pool_lt, st):
             a = C.idxF(st.env, r[1])
             if not a[0] and k <= a[1] < C.CAPE and C.idxF(st.env, r[2]) == b:
                 return [self.use(i, wr)]
@@ -223,7 +310,7 @@ class Solver:
         for p in self.X.facts(st.env, []):
             if p[0] == a and not p[1][0] and p[1][1] <= j:
                 return []
-        for i, r, wr in self.on(self.pool_lt):
+        for i, r, wr in self.on(self.pool_lt, st):
             b = C.idxF(st.env, r[2])
             if not b[0] and b[1] <= j and C.idxF(st.env, r[1]) == a:
                 return [self.use(i, wr)]
@@ -236,15 +323,17 @@ class Solver:
         for p in self.X.facts(st.env, []):
             if m in p:
                 return []
-        for i, r, wr in self.on(self.pool_lt):
+        for i, r, wr in self.on(self.pool_lt, st):
             if C.idxF(st.env, r[1]) == m or C.idxF(st.env, r[2]) == m:
                 return [self.use(i, wr)]
         # none: the inference's `merge` takes the root's exponent for granted; stated as a residual of its own
         # (`exp`: the word is `g^y`, `y < 2^62 - 1`)
+        # (under the site's path: off it the value need not be computed)
         r = ('lt', ('val', m[0][0][0]) if m[1] == 0 and len(m[0]) == 1 and m[0][0][1] == 1 else ('mono', m),
              ('num', C.CAPE - 1))
+        g = tuple(dict.fromkeys(self.X.path))
         self.stats['exp-res'] += 1
-        return [self.use(('exp', m), r)]
+        return [self.use(('exp', m, g), ('under', g, r) if g else r)]
 
     # -- a cell of a run (`ptRun`), the residuals it needs
     def in_run(self, st, R, c):
@@ -255,7 +344,7 @@ class Solver:
                 return f
         J = C.idxOf(base, c, S)
         if c == C.cmul(base, C.cpow(J, S)):
-            f = self.fact(st, J, hi)
+            f = self.factD(st, J, hi)
             if f is not None:
                 if lo == ((), 0) or lo == J:
                     return f
@@ -270,6 +359,17 @@ class Solver:
                 f = self.factC(st, k, hi)
                 if f is not None:
                     return f
+        k = C.backK(R, c)
+        if 0 < k and C.cshift(c, S * k) == C.cmul(base, C.cpow(hi, S)) and not lo[0] and lo[1] < C.CAPE:
+            f = self.factC(st, k - 1 + lo[1], hi)
+            if f is None:
+                f = self.factD(st, ((), k - 1 + lo[1]), hi)
+            if f is None and hi[0] and hi[1] > k - 1 + lo[1]:
+                # `hi = m·g^t`, `t > k - 1 + lo`: the bound holds once `hi`'s exponent exists (`exp`)
+                f = self.derive(st, ((), k - 1 + lo[1]), hi, None)
+            if f is not None:
+                self.stats['ptBack'] += 1
+                return f
         return None
 
     def run_in(self, st, Q, R):
@@ -277,17 +377,19 @@ class Solver:
         if Q[0] != R[0] or Q[1] != R[1]:
             return None
         res = []
-        if not (Q[2] == R[2] or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < C.CAPE)):
+        if not (C.eqV(st.eqs, Q[2], R[2]) or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < C.CAPE)):
             if Q[2] != C.cshift(R[2], 1):
                 return None
             f = self.fact(st, R[2], R[3])
             if f is None:
                 return None
             res += f
-        if not (Q[3] == R[3] or (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < C.CAPE)):
-            if Q[3][0] or Q[3][1] >= C.CAPE:
-                return None
-            f = self.factC(st, C.tsub(Q[3][1], 1), R[3])
+        if not (C.eqV(st.eqs, Q[3], R[3]) or (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < C.CAPE)):
+            f = self.fact(st, Q[3], R[3])
+            if f is None and Q[3][1] > 0:
+                f = self.fact(st, (Q[3][0], Q[3][1] - 1), R[3])
+            if f is None and not Q[3][0] and Q[3][1] < C.CAPE:
+                f = self.factC(st, C.tsub(Q[3][1], 1), R[3])
             if f is None:
                 return None
             res += f
@@ -332,8 +434,14 @@ class Solver:
                     f = self.in_run(st, p[0], a)
                     if f is not None:
                         return ('pfr', r, f)
-        # residuals placing the cell in a run in scope (`sub`, `subR`)
-        for i, res, wr in self.on(self.pool_sub):
+        # residuals placing the cell in a run in scope (`sub`, `subR`), among cells (`subP`)
+        for i, res, wr in self.on(self.pool_sub, st):
+            if res[0] == 'subP' and res[1] == c:
+                ns = [st.c2s.get(x, (None,))[-1] for x in res[2]]
+                if None not in ns:
+                    self.stats['perm'] += 1
+                    return ('perm', self.use(i, wr), ns)
+                continue
             if res[0] == 'sub' and res[1] == c:
                 R = C.runF(st.env, res[2])
                 for r, R2 in st.rs.items():
@@ -348,6 +456,57 @@ class Solver:
                 for r, R2 in st.rs.items():
                     if R2 == R:
                         return ('run', r, sorted(set(f + [self.use(i, wr)])))
+        # a bounded index into points (`perm` over a fact `e(J) < n`: the cell is one of `Q·g^0..n-1`)
+        w = self.pts_idx(st, c)
+        if w is not None:
+            return w
+        # the point before a run (`prep`; that point possibly before another run)
+        if depth < 2:
+            return self.prep(st, c, depth)
+        return None
+
+    def pts_idx(self, st, c):
+        """`c = Q·J`, a fact `e(J) < n` (`n <= 64`) and the points `Q·g^i`, `i < n`, written: a residual `subP` (the cell
+        is one of them, stated under the site's path), its witness `perm`."""
+        cands = list(self.X.facts(st.env, []))
+        for i, r, wr in self.on(self.pool_lt, st):
+            cands.append((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])))
+        for a, b in cands:
+            if b[0] or not a[0] or not 0 < b[1] <= 64:
+                continue
+            if any(C.expOf(c[0], k) < e for k, e in a[0]) or c[1] < a[1]:
+                continue
+            Q = (tuple((k, e - C.expOf(a[0], k)) for k, e in c[0] if e > C.expOf(a[0], k)), c[1] - a[1])
+            if not Q[0] or C.cmul(Q, a) != c:
+                continue
+            cells = [C.cshift(Q, t) for t in range(b[1])]
+            ns = [st.c2s.get(x, (None,))[-1] for x in cells]
+            if None in ns:
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            r = ('subP', c, tuple(cells))
+            self.stats['pts-idx'] += 1
+            return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
+        return None
+
+    def prep(self, st, c, depth=0):
+        """`prep r q res`: `c` in run `r` extended by its point before it."""
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            base, S, lo, hi = R
+            if lo != ((), 0) or S > base[1]:
+                continue
+            Q = C.prepQ(R)
+            J = C.idxOf(Q, c, S)
+            if c != C.cmul(Q, C.cpow(J, S)) or J[0] != hi[0] or J[1] > hi[1]:
+                continue
+            q = self.pt(st, Q, depth=depth + 1)
+            if q is None:
+                continue
+            f = self.factE(st, hi)
+            f2 = [] if J == hi else self.factE(st, J)
+            self.stats['prep'] += 1
+            return ('prep', r, q, sorted(set(f + f2)))
         return None
 
     def run1(self, st, Q):
@@ -356,7 +515,7 @@ class Solver:
             f = self.run_in(st, Q, st.rs[r])
             if f is not None:
                 return [('run', r, f)]
-        for i, res, wr in self.on(self.pool_sub):
+        for i, res, wr in self.on(self.pool_sub, st):
             if res[0] == 'subR' and C.runF(st.env, res[1]) == Q:
                 R = C.runF(st.env, res[2])
                 for r, R2 in st.rs.items():
@@ -565,26 +724,84 @@ class Solver:
         self.H.calls.append(ws if ws is not None else [('fail',)])
         return ws
 
-    def dispatch(self, pas, st, x, fs, args, ma, mx):
-        ws = []
+    def dispatch(self, pas, st, x, fs, args, ma, mx, rets=()):
+        vps = [(j, self.P.vpoffs[v]) for j, v in enumerate(rets or ()) if v in getattr(self.P, 'vpoffs', {})]
+        arms = []          # (skip witness) or (precondition witnesses, per vp the cells' witnesses or None)
         ok = True
         for j, g in enumerate(fs):
             f = self.factU(st, mx, j)
             if f is not None:
-                ws.append(('skip', f))
+                arms.append(('skip', f))
                 self.stats['skip'] += 1
                 continue
             self.ghosts(g, args)
             ga = C.gargsOf(self.H.gargs, g, args)
-            w = pas.under(('arm', x, j), lambda: self.reqs(C.condSt(mx, j, st.cd, st), ma + ga, self.X.sigOf(g),
-                                                           ('dispatch', g, j)))
+            sj = C.condSt(mx, j, st.cd, st)
+            w = pas.under(('arm', x, j), lambda: self.reqs(sj, ma + ga, self.X.sigOf(g), ('dispatch', g, j)))
             if w is None:
                 ok = False
                 continue
-            ws += w
+            arms.append((w, pas.under(('arm', x, j), lambda: self.vp_arm(sj, ma, g, rets, vps))))
+        keep = [t for t, vp in enumerate(vps) if all(a[0] == 'skip' or a[1][t] is not None for a in arms)]
+        ws = [('vp', vps[t][0], list(vps[t][1])) for t in keep]
+        for a in arms:
+            if a[0] == 'skip':
+                ws.append(a)
+            else:
+                ws += a[0]
+                for t in keep:
+                    ws += a[1][t]
+        self.stats['vp'] += len(keep)
         assert len(self.H.calls) == st.nc
         self.H.calls.append(ws if ok else [('fail',)])
         return ws if ok else None
+
+    def vp_arm(self, st, ma, g, rets, vps):
+        """Per returned pointer, its cells' witnesses in the arm's state with the callee's guarantees pushed."""
+        if not vps:
+            return []
+        G = self.X.sigOf(g)
+        mr = C.setRM(C.monos(st.env, rets), C.instRM(ma, G.retM))
+        S = st.copy()
+        if not C.pushPost(G, ma + mr, S):
+            return [None] * len(vps)
+        out = []
+        for j, offs in vps:
+            m = C.nth(mr, j)
+            w = [self.pt(S, C.cshift(m, o)) for o in offs] if m is not None else [None]
+            out.append(None if None in w else w)
+        return out
+
+    def bit(self, pas, st, c, key):
+        """A `log2Ceil` heap bit's witness (keyed as a read of the hint's destination)."""
+        if key in self.H.reads:
+            return self.H.reads[key]
+        w = self.pt(st, c)
+        if w is None:
+            self.miss.append(('bit', key, c))
+        self.H.reads[key] = w if w is not None else ('fail',)
+        return w
+
+    def eq(self, pas, st, a):
+        """The atom's equation listed (`HCert.eqs`) when it says something the monomials do not: a `mul` whose
+        product has a monomial and a factor none of its own, an `assertEq`/`copy` of two values with different
+        ones."""
+        k = a[0]
+        if k == 'mul':
+            d, x, y = a[1:]
+            self.div(pas, st, d, x, y)
+            if d in st.env and (x not in st.env or y not in st.env) and x not in self.X.dv and y not in self.X.dv:
+                self.add_eq(d)
+        elif k in ('assertEq', 'copy'):
+            x, y = a[1], a[2]
+            if x in st.env and y in st.env and st.env[x] != st.env[y]:
+                self.add_eq(x)
+
+    def add_eq(self, v):
+        if v not in self.X.eqk:
+            self.X.eqk.add(v)
+            self.H.eqs.append(v)
+            self.stats['eqs'] += 1
 
     def ret(self, pas, st, ms):
         G = self.X.sig
@@ -693,14 +910,47 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
+    H.fas = C.fa_pairs(body)
     S = Solver(k, P, H, sigs)
     S.miss = []
     X_ = C.X(dict(I.POWS), H, sigOf, params, S)
     S.X = X_
     # `heapc.heapOkC` builds its own `X`: run the pass on ours
     pas = run_pass(X_, params, body)
-    H.res = list(H.res)
+    compact(H)
     return H, S, pas
+
+
+def wit_res(w, f):
+    """The witness with its residual indices mapped by `f`."""
+    k = w[0]
+    if k in ('run', 'pfr'):
+        return (k, w[1], [f(i) for i in w[2]])
+    if k == 'skip':
+        return (k, [f(i) for i in w[1]])
+    if k == 'mrg':
+        return (k, w[1], [f(i) for i in w[2]])
+    if k == 'perm':
+        return (k, f(w[1]), w[2])
+    if k == 'prep':
+        return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
+    return w
+
+
+def compact(H):
+    """Only the residuals a witness lists, renumbered (the solver states some for candidates it does not take)."""
+    used = set()
+
+    def see(i):
+        used.add(i)
+        return i
+    for w in list(H.reads.values()) + [w for ws in H.calls + H.rets for w in ws]:
+        wit_res(w, see)
+    new = {i: n for n, i in enumerate(sorted(used))}
+    H.res = [H.res[i] for i in sorted(used)]
+    H.reads = {k: wit_res(w, new.__getitem__) for k, w in H.reads.items()}
+    H.calls = [[wit_res(w, new.__getitem__) for w in ws] for ws in H.calls]
+    H.rets = [[wit_res(w, new.__getitem__) for w in ws] for ws in H.rets]
 
 
 def run_pass(X_, params, body):
@@ -782,6 +1032,8 @@ def lres(r):
         return f'.lt {lidx(r[1])} {lidx(r[2])}'
     if r[0] == 'sub':
         return f'.sub {lcell(r[1])} {lrun(r[2])}'
+    if r[0] == 'subP':
+        return f'.subP {lcell(r[1])} [{", ".join(map(lcell, r[2]))}]'
     return f'.subR {lrun(r[1])} {lrun(r[2])}'
 
 
@@ -801,6 +1053,12 @@ def lwit(w):
         return f'.mrg {w[1]} {lnums(w[2])}'
     if k in ('pts', 'empty'):
         return f'.{k}'
+    if k == 'perm':
+        return f'.perm {w[1]} {lnums(w[2])}'
+    if k == 'prep':
+        return f'.prep {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
+    if k == 'vp':
+        return f'.vp {w[1]} {lnums(w[2])}'
     raise ValueError(w)
 
 
@@ -872,6 +1130,8 @@ def lsig(G, ax):
                                       '        '))
     if G.ghosts:
         fs.append(f'ghosts := {G.ghosts}')
+    if G.retEq:
+        fs.append('retEq := [' + ', '.join(f'({lcell(a)}, {lcell(b)})' for a, b in G.retEq) + ']')
     if not fs:
         return '{}'
     return '\n    { ' + ',\n      '.join(fs) + ' }'
@@ -901,6 +1161,10 @@ def lcert(H, sig_only=False):
                                      [lwits(ax, f'ret{i}_', ws) for i, ws in enumerate(H.rets)]) + '\n'
     if H.divs:
         out += f'  divs := {lnums(sorted(H.divs))}\n'
+    if H.eqs:
+        out += f'  eqs := {lnums(sorted(H.eqs))}\n'
+    if H.fas:
+        out += '  fas := [' + wrap(f'({a}, {b})' for a, b in H.fas) + ']\n'
     if H.hvs:
         out += '  hvs := ' + ax.lst('hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
     if H.gargs:
@@ -981,8 +1245,12 @@ def cause(k, fails, P):
 
 
 def emit(out, res, check_only, only=None):
-    sigs, certs, why, drops, stmt_names, stats = build(res, only)
+    built = build(res, only)
+    sigs, certs, why, drops, stmt_names, stats = built
     passing = {k for k in certs if k not in why}
+    import heapwin
+    sigOf = lambda g: sigs.get(I.callee(g), C.EMPTY)
+    wins = sorted(k for k in passing if k in KERNEL_WIN or heapwin.fn_cost(k, certs[k], sigOf) > heapwin.BUDGET)
     closed = set()
     for k in I.ORDER:
         if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
@@ -996,7 +1264,7 @@ def emit(out, res, check_only, only=None):
         d = os.path.join(out, pack)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in passing and k not in KERNEL_SKIP]
+        oks = [k for k in ks if k in passing and k not in wins]
         cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
@@ -1014,7 +1282,8 @@ def emit(out, res, check_only, only=None):
             names = sorted(stmt_names[k])
             arms = ''.join(f'\n    | "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE)
             sig = f'(fun g ↦ match g with{arms}\n    | _ => .empty)' if arms else '(fun _ ↦ .empty)'
-            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n/-- `{k}`: the heap check. -/\n'
+            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
+                   f'/-- `{k}`: the heap check. -/\n'
                    f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files = [('Data', data)] + ([('Ok', ok)] if oks else [])
@@ -1037,6 +1306,22 @@ def emit(out, res, check_only, only=None):
         want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
         for p in set(glob.glob(os.path.join(out, '*', '*.lean'))) - want:
             os.remove(p)
+    # the windowed kernel checks (`heapwin.py`, `GenCW/<fn>/`)
+    if wins and not only:
+        wout = os.path.join(os.path.dirname(out), 'GenCW')
+        wmods, wstale = heapwin.run(res, built, wins, wout, check=check_only)
+        mods += wmods
+        stale += wstale
+        want = {os.path.join(wout, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in wmods}
+        have = set(glob.glob(os.path.join(wout, '*', '*.lean')))
+        if check_only:
+            stale += sorted(have - want)
+        else:
+            for p in have - want:
+                os.remove(p)
+            for d in glob.glob(os.path.join(wout, '*')):
+                if os.path.isdir(d) and not os.listdir(d):
+                    os.rmdir(d)
     clean, inf_closed = I.closure(res)
     cw = collections.Counter(cause(k, why[k], res[k]) for k in why)
     print(f'certificates: {len(certs)}; the Python check passes {len(passing)} (closed, callees too: {len(closed)}); '

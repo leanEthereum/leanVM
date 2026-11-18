@@ -166,6 +166,7 @@ def hcert : CoreMode.HCert where
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4), (56, 4), (66, 4), (76, 4), (86, 4), (96, 4), (106, 4), (116, 4), (126, 4), (136, 4)], 52⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩,
     .subR ⟨⟨[(5, 1), (6, 4), (16, 4), (26, 4), (36, 4), (46, 4), (56, 4), (66, 4), (76, 4), (86, 4), (96, 4), (106, 4), (116, 4), (126, 4), (136, 4), (146, 4)], 56⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩]
   rets := [[]]
+  eqs := [157]
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
@@ -848,7 +849,7 @@ namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
 @[expose] public section
 
-/-- `log2_ceil_in_the_exponent__L16_L34`: its heap certificate (its signature only: not checked). -/
+/-- `log2_ceil_in_the_exponent__L16_L34`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(1, 1), (2, 1)], 0⟩],
@@ -859,8 +860,13 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(1, 1)], 130⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 146⟩, 1, (.num 0), (.num 16)⟩,
         ⟨⟨[(1, 1)], 162⟩, 1, (.num 0), (.num 16)⟩],
       ghosts := 2 }
-  reads := []
-  res := []
+  reads := [(4, [(3, 0, .ev 0), (3, 1, .ev 1), (3, 2, .ev 2), (3, 3, .ev 3), (3, 4, .ev 4), (3, 5, .ev 5), (3, 6, .ev 6), (3, 7, .ev 7), (3, 8, .ev 8), (3, 9, .ev 9), (3, 10, .ev 10), (3, 11, .ev 11), (3, 12, .ev 12), (3, 13, .ev 13), (3, 14, .ev 14), (3, 15, .ev 15), (3, 16, .ev 16), (3, 17, .ev 17), (3, 18, .ev 18), (3, 19, .ev 19), (3, 20, .ev 20), (3, 21, .ev 21), (3, 22, .ev 22), (3, 23, .ev 23), (3, 24, .ev 24), (3, 25, .ev 25), (3, 26, .ev 26), (3, 27, .ev 27), (3, 28, .ev 28), (3, 29, .ev 29), (3, 30, .ev 30), (3, 31, .ev 31), (3, 32, .ev 32), (3, 33, .ev 33)]),
+    (16, [(15, 0, .run 0 [0])]), (25, [(24, 0, .run 0 [1])])]
+  res := [.lt (.val 4) (.num 34), .under [.nonzero 19] (.lt (.mono ⟨[(11, 1), (22, 1)], 16⟩) (.num 34))]
+  calls := [[.run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 []],
+    [.run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 []]]
+  rets := [[.ev 34]]
+  eqs := [21]
 
 end
 end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
@@ -896,8 +902,8 @@ def hcert : CoreMode.HCert where
         ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }
-  reads := [(16, [(15, 0, .run 3 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+  reads := [(16, [(15, 0, .prep 4 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .ev 0, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[]]
 

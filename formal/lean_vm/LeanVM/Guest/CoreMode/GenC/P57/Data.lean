@@ -53,6 +53,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16), .lt (.val 7) (.num 16),
     .lt (.val 8) (.num 16), .lt (.val 9) (.num 16)]
   rets := [[]]
+  eqs := [77]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L6»
@@ -935,7 +936,7 @@ namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 
 @[expose] public section
 
-/-- `log2_ceil_in_the_exponent__L0_L34`: its heap certificate (its signature only: not checked). -/
+/-- `log2_ceil_in_the_exponent__L0_L34`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(1, 1), (2, 1)], 0⟩],
@@ -946,8 +947,13 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(1, 1)], 130⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 146⟩, 1, (.num 0), (.num 16)⟩,
         ⟨⟨[(1, 1)], 162⟩, 1, (.num 0), (.num 16)⟩],
       ghosts := 2 }
-  reads := []
-  res := []
+  reads := [(4, [(3, 0, .ev 0), (3, 1, .ev 1), (3, 2, .ev 2), (3, 3, .ev 3), (3, 4, .ev 4), (3, 5, .ev 5), (3, 6, .ev 6), (3, 7, .ev 7), (3, 8, .ev 8), (3, 9, .ev 9), (3, 10, .ev 10), (3, 11, .ev 11), (3, 12, .ev 12), (3, 13, .ev 13), (3, 14, .ev 14), (3, 15, .ev 15), (3, 16, .ev 16), (3, 17, .ev 17), (3, 18, .ev 18), (3, 19, .ev 19), (3, 20, .ev 20), (3, 21, .ev 21), (3, 22, .ev 22), (3, 23, .ev 23), (3, 24, .ev 24), (3, 25, .ev 25), (3, 26, .ev 26), (3, 27, .ev 27), (3, 28, .ev 28), (3, 29, .ev 29), (3, 30, .ev 30), (3, 31, .ev 31), (3, 32, .ev 32), (3, 33, .ev 33)]),
+    (16, [(15, 0, .run 0 [0])]), (25, [(24, 0, .run 0 [1])])]
+  res := [.lt (.val 4) (.num 34), .under [.nonzero 19] (.lt (.mono ⟨[(11, 1), (22, 1)], 0⟩) (.num 34))]
+  calls := [[.run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 []],
+    [.run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 []]]
+  rets := [[.ev 34]]
+  eqs := [21]
 
 end
 end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
@@ -1004,8 +1010,8 @@ def hcert : CoreMode.HCert where
   reads := [(11, [(5, 0, .pre 0)]), (12, [(6, 0, .pre 1)]), (247, [(3, 0, .pre 2)]), (248, [(3, 1, .pre 3)]),
     (315, [(3, 2, .pre 4)]), (316, [(3, 3, .pre 5)]), (351, [(3, 4, .pre 6)]), (352, [(3, 5, .pre 7)]),
     (371, [(3, 6, .pre 8)]), (372, [(3, 7, .pre 9)]), (383, [(3, 8, .pre 10)]), (384, [(3, 9, .pre 11)]),
-    (391, [(3, 10, .pre 12)]), (392, [(3, 11, .pre 13)]), (402, [(401, 0, .run 6 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+    (391, [(3, 10, .pre 12)]), (392, [(3, 11, .pre 13)]), (402, [(401, 0, .prep 7 (.ev 15) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pf 0, .pf 0, .pf 0, .pf 0, .pf 0],
     [.ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
         .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]

@@ -80,6 +80,7 @@ def hcert : CoreMode.HCert where
   res := [.sub ⟨[(1, 1), (3, 1)], 208⟩ ⟨⟨[(1, 1)], 208⟩, 4, (.num 0), (.num 4)⟩, .lt (.val 3) (.num 16),
     .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16), .lt (.val 7) (.num 16)]
   rets := [[]]
+  eqs := [55]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L14»
@@ -1023,12 +1024,11 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(7, 2)], 0⟩)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }
-  reads := [(16, [(15, 0, .run 6 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩,
-    .lt (.val 7) (.num 4611686018427387903)]
+  reads := [(16, [(15, 0, .prep 7 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .ev 0, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]
-  rets := [[.mrg 2 [1], .run 0 [], .run 2 [], .mrg 2 [1], .run 1 [], .run 3 []]]
+  rets := [[.mrg 2 [0], .run 0 [], .run 2 [], .mrg 2 [0], .run 1 [], .run 3 []]]
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0»
