@@ -8,12 +8,15 @@ it needs, `pts`, `cat`, `mrg`, `word`, `skip`), so serials, joins and selector g
 taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost words (`gargs`) follow the inference's
 values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
 
-Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert`; `Ok.lean`,
-`heap_okC : heapOkC Data.powTree sigOf core hcert = true` for each function whose certificate passes, `sigOf` its
-callees' signatures by their `Fn.name`.
+Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
+`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
+true` for each function whose certificate the Python check passes (but `KERNEL_SKIP`), `sigOf` its callees' signatures
+by their `Fn.name`. Residuals carry the branch conditions common to the paths the inference asked them on
+(`CRes.under`); a `mrg` whose root has no exponent gets one stated (`exp`).
 
-usage (from formal/lean_vm): python3 -I scripts/core-mode/emitc.py [--with F,..] [--without F,..] [--out DIR] [--check]
-  [--mods FILE] [--fn NAME] [--report FILE]
+usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/emitc.py [--with F,..] [--without F,..]
+  [--out DIR] [--check] [--mods FILE] [--fn NAME,..] (those functions only, nothing written) [--report FILE.json]
+  (each failing function's causes)
 """
 import sys, os, collections, glob, re, json
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -55,12 +58,7 @@ def _instrument():
         for v in rets or ():
             if v in st.env and v not in rec:
                 rec[v] = st.env[v]
-    pushR0 = I.Pass.pushR
-
-    def pushR(self, st, r):
-        self.__dict__.setdefault('runlog', []).append((self.nr, r))
-        pushR0(self, st, r)
-    I.Pass.atom, I.Pass.call, I.Pass.pushR = atom, call, pushR
+    I.Pass.atom, I.Pass.call = atom, call
 
 
 _instrument()
