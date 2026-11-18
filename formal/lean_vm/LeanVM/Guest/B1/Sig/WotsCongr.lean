@@ -69,12 +69,10 @@ theorem armT_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) 
 
 /-- An arm's next base: its walks' and its outputs', whatever its encoding. -/
 theorem armT_snd_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) (k b : Nat) (hn : first + n ≤ I) :
+    (prodIn encIn prodOut encOut : V) (k b : Nat) (_hn : first + n ≤ I) :
     (armT W slots first n fold prodIn encIn prodOut encOut k b).2 =
       (armT W' slots first n fold prodIn encIn prodOut encOut k b).2 := by
-  unfold armT
-  rw [h.size, walksT_weq h slots first k _ n 0 _ (by omega)]
-  split <;> rfl
+  rw [armT_snd, armT_snd, h.size]
 
 theorem armsT_weq (h : WEq W W' I) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (hn : first + n ≤ I) (hd : n ≤ 3) (he : W.enc = W'.enc := by rfl) :

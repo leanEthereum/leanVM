@@ -73,11 +73,8 @@ theorem armNextN_shift (sz n : ℕ) (fold : Bool) (k a : ℕ) :
     armNextN sz n fold k a = a + armNextN sz n fold k 0 := by
   unfold armNextN
   cases fold <;> by_cases hk : k = 0 <;>
-    simp only [hk, ↓reduceIte, Bool.false_eq_true, Nat.zero_add]
-  · rw [walkBaseN_shift _ _ _ _ a]; omega
-  · rw [walkBaseN_shift _ _ _ _ a]; omega
-  · rw [walkBaseN_shift _ _ _ _ (a + 1), walkBaseN_shift _ _ _ _ 1]; omega
-  · rw [walkBaseN_shift _ _ _ _ (a + 1), walkBaseN_shift _ _ _ _ 1]; omega
+    simp only [hk, ↓reduceIte, Bool.false_eq_true]
+  all_goals rw [walkBaseN_shift _ _ _ _ a]; omega
 
 theorem armBaseN_shift (sz n : ℕ) (fold : Bool) : ∀ (k j b : ℕ),
     armBaseN sz n fold k j b = b + armBaseN sz n fold k j 0
@@ -93,9 +90,9 @@ theorem startN_shift (sz n : ℕ) (fold : Bool) (sel k r : ℕ) :
   rw [armBaseN_shift sz n fold 0 k (sel + 6), armBaseN_shift sz n fold 0 k (0 + 6)]
   split
   · omega
-  · rw [walkBaseN_shift _ _ _ _ (if fold then _ else _),
-      walkBaseN_shift _ _ _ _ (if fold then 0 + 6 + _ + 1 else 0 + 6 + _)]
-    cases fold <;> simp <;> omega
+  · rw [walkBaseN_shift _ _ _ _ (sel + 6 + armBaseN sz n fold 0 k 0),
+      walkBaseN_shift _ _ _ _ (0 + 6 + armBaseN sz n fold 0 k 0)]
+    omega
 
 /-! ## Off tables -/
 

@@ -235,18 +235,28 @@ def fsPackA (x : V) (b t : ℕ) : List Atom := [.copy (.n b) x, .const (.n (b + 
 
 theorem fsPackT_eq_map (x : V) (b t : ℕ) : fsPackT x b t = (fsPackA x b t).map Stmt.atom := rfl
 
-/-- Every atom of `fs_pack(x)` from `b` (tag `1`) is in the list. -/
+/-- A copy of a value into itself, which every valuation satisfies: the copy of an `fs_pack` of a
+constant bound in place, its base the constant's cell. -/
+def isSelfCopy : Atom → Bool
+  | .copy d s => decide (d = s)
+  | _ => false
+
+/-- Every atom of `fs_pack(x)` from `b` (tag `1`) is in the list, or a copy into itself. -/
 def packIn (atoms : List Atom) (x : V) (b : ℕ) : Bool :=
-  (fsPackA x b dsObserve).all fun a => atoms.any (atomEqb a)
+  (fsPackA x b dsObserve).all fun a => isSelfCopy a || atoms.any (atomEqb a)
 
 theorem packIn_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V} {b : ℕ}
     (h : packIn atoms x b = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) : FsPackOk σ x b dsObserve := by
   have hall : ∀ a ∈ fsPackA x b dsObserve, a.Holds rd σ := by
     intro a ha
-    simp only [packIn, List.all_eq_true] at h
-    obtain ⟨a', ha', he⟩ := List.any_eq_true.mp (h a ha)
-    rw [atomEqb_sound he]
-    exact hat a' ha'
+    simp only [packIn, List.all_eq_true, Bool.or_eq_true] at h
+    rcases h a ha with hs | hs
+    · cases a <;> simp only [isSelfCopy, Bool.false_eq_true, decide_eq_true_eq] at hs
+      subst hs
+      simp only [Atom.Holds]
+    · obtain ⟨a', ha', he⟩ := List.any_eq_true.mp hs
+      rw [atomEqb_sound he]
+      exact hat a' ha'
   have hA : AllAtoms (fsPackT x b dsObserve) := by
     intro s hs
     rw [fsPackT_eq_map] at hs

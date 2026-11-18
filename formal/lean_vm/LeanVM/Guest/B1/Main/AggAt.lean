@@ -186,7 +186,7 @@ theorem aggP_straight : aggP.all Main.Stmt.straight = true := by decide +kernel
 def aggKind : Stmt → Bool
   | .atom _ => true
   | .call .. => true
-  | .callIf c _ _ => decide (c ∈ [V.n 35, .n 102, .n 191])
+  | .callIf c _ _ => decide (c ∈ [V.n 32, .n 99, .n 188])
   | _ => false
 
 set_option maxRecDepth 100000 in
@@ -194,33 +194,33 @@ theorem aggP_kinds : aggP.all aggKind = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_allocs : aggP.filterMap Main.Stmt.allocSz = [(.n 6, .inl 47), (.n 8, .inr (.n 0)),
-    (.n 9, .inr (.n 0)), (.n 33, .inr (.n 32)), (.n 98, .inr (.n 97)), (.n 107, .inl 23),
-    (.n 116, .inl 23), (.n 188, .inr (.n 187))] := by decide +kernel
+    (.n 9, .inr (.n 0)), (.n 30, .inr (.n 29)), (.n 95, .inr (.n 94)), (.n 104, .inl 23),
+    (.n 113, .inl 23), (.n 185, .inr (.n 184))] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_addrs : aggP.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_calls : aggP.filterMap Main.Stmt.callS =
-    [(some (.n 35), name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9,
+    [(some (.n 32), name% «aggregate_claims_loop0», [.n 33, .n 0, .n 30, .n 2, .n 8, .n 3, .n 9,
         .n 1], []),
-      (none, "grind_check__L2", [.n 82, .n 5], []),
-      (some (.n 102), name% «aggregate_claims_loop1», [.n 103, .n 0, .n 98, .n 8, .n 9, .n 94,
-          .n 81], []),
-      (none, "batch_sumcheck__L23", [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5],
-        [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115]),
-      (some (.n 191), name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98,
-          .n 188, .n 81], [])] := by
+      (none, "grind_check__L2", [.n 79, .n 5], []),
+      (some (.n 99), name% «aggregate_claims_loop1», [.n 100, .n 0, .n 95, .n 8, .n 9, .n 91,
+          .n 78], []),
+      (none, "batch_sumcheck__L23", [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5],
+        [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112]),
+      (some (.n 188), name% «aggregate_claims_loop2», [.n 189, .n 0, .n 8, .n 9, .n 113, .n 95,
+          .n 185, .n 78], [])] := by
   decide +kernel
 
 /-- The loads `aggregate_claims` may make: its first row and record, first weight, the claim at
 `defer_stmt`, its last row, record and weight, the point and `bc_point1`, the nonce. -/
 def aggLoadSet : List (V × ℕ) :=
-  (List.range 13).map (fun i => (.n 33, i)) ++ [(.n 98, 0), (.n 98, 1)] ++
-    [(.n 188, 0)] ++ (List.range 24).map (fun k => (.n 4, k)) ++
-    (List.range 13).map (fun k => (.n 42, k)) ++ [(.n 105, 1)] ++
-    [(.n 193, 0)] ++ (List.range 23).map (fun k => (.n 107, k)) ++
-    (List.range 23).map (fun k => (.n 116, k)) ++ [(.n 6, 0)]
+  (List.range 13).map (fun i => (.n 30, i)) ++ [(.n 95, 0), (.n 95, 1)] ++
+    [(.n 185, 0)] ++ (List.range 24).map (fun k => (.n 4, k)) ++
+    (List.range 13).map (fun k => (.n 39, k)) ++ [(.n 102, 1)] ++
+    [(.n 190, 0)] ++ (List.range 23).map (fun k => (.n 104, k)) ++
+    (List.range 23).map (fun k => (.n 113, k)) ++ [(.n 6, 0)]
 
 set_option maxRecDepth 100000 in
 theorem aggP_loads : (aggP.filterMap B1.Stmt.loadS).all (fun q => decide (q ∈ aggLoadSet)) = true := by
@@ -229,12 +229,12 @@ theorem aggP_loads : (aggP.filterMap B1.Stmt.loadS).all (fun q => decide (q ∈ 
 /-- The buffers' sizes' words. -/
 noncomputable def aggSizeOk : Bool :=
   let A := atomsIn aggP
-  A.any (isConstAt (.n 26) 2 0) && isMul A (.n 27) (.n 0) (.n 26) && isMul A (.n 28) (.n 27) (.n 27) &&
-  isMul A (.n 29) (.n 28) (.n 27) && isMul A (.n 30) (.n 29) (.n 29) &&
-  isMul A (.n 31) (.n 30) (.n 30) && isMul A (.n 32) (.n 31) (.n 27) &&
-  A.any (isConstAt (.n 95) 2 0) && isMul A (.n 96) (.n 0) (.n 95) &&
-  isMul A (.n 97) (.n 96) (.n 96) &&
-  A.any (isConstAt (.n 186) 2 0) && isMul A (.n 187) (.n 0) (.n 186)
+  A.any (isConstAt (.n 23) 2 0) && isMul A (.n 24) (.n 0) (.n 23) && isMul A (.n 25) (.n 24) (.n 24) &&
+  isMul A (.n 26) (.n 25) (.n 24) && isMul A (.n 27) (.n 26) (.n 26) &&
+  isMul A (.n 28) (.n 27) (.n 27) && isMul A (.n 29) (.n 28) (.n 24) &&
+  A.any (isConstAt (.n 92) 2 0) && isMul A (.n 93) (.n 0) (.n 92) &&
+  isMul A (.n 94) (.n 93) (.n 93) &&
+  A.any (isConstAt (.n 183) 2 0) && isMul A (.n 184) (.n 0) (.n 183)
 
 set_option maxRecDepth 100000 in
 theorem aggSize_ok : aggSizeOk = true := by decide +kernel
@@ -248,26 +248,26 @@ theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 
 /-- The buffers' sizes, as the valuation computes them. -/
 theorem agg_sizes {rd : Reader} {σ : Val} {m : ℕ} (hat : ∀ a ∈ atomsIn aggP, a.Holds rd σ)
     (e0 : σ (.n 0) = gen ^ m) :
-    σ (.n 32) = gen ^ (13 * (m + 1)) ∧ σ (.n 97) = gen ^ (2 * (m + 1)) ∧
-      σ (.n 187) = gen ^ (m + 1) := by
+    σ (.n 29) = gen ^ (13 * (m + 1)) ∧ σ (.n 94) = gen ^ (2 * (m + 1)) ∧
+      σ (.n 184) = gen ^ (m + 1) := by
   have hok := aggSize_ok
   simp only [aggSizeOk, Bool.and_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c26, m27⟩, m28⟩, m29⟩, m30⟩, m31⟩, m32⟩, c95⟩, m96⟩, m97⟩, c186⟩, m187⟩ := hok
-  have g26 : σ (.n 26) = gen := by rw [const_sound c26 hat, word_gen]
-  have g95 : σ (.n 95) = gen := by rw [const_sound c95 hat, word_gen]
-  have g186 : σ (.n 186) = gen := by rw [const_sound c186 hat, word_gen]
-  have s27 : σ (.n 27) = gen ^ (m + 1) := by rw [isMul_sound m27 hat, e0, g26, pow_succ]
-  have s28 : σ (.n 28) = gen ^ (2 * (m + 1)) := by
+  have g26 : σ (.n 23) = gen := by rw [const_sound c26 hat, word_gen]
+  have g95 : σ (.n 92) = gen := by rw [const_sound c95 hat, word_gen]
+  have g186 : σ (.n 183) = gen := by rw [const_sound c186 hat, word_gen]
+  have s27 : σ (.n 24) = gen ^ (m + 1) := by rw [isMul_sound m27 hat, e0, g26, pow_succ]
+  have s28 : σ (.n 25) = gen ^ (2 * (m + 1)) := by
     rw [isMul_sound m28 hat, s27, ← pow_add, show m + 1 + (m + 1) = 2 * (m + 1) by ring]
-  have s29 : σ (.n 29) = gen ^ (3 * (m + 1)) := by
+  have s29 : σ (.n 26) = gen ^ (3 * (m + 1)) := by
     rw [isMul_sound m29 hat, s28, s27, ← pow_add, show 2 * (m + 1) + (m + 1) = 3 * (m + 1) by ring]
-  have s30 : σ (.n 30) = gen ^ (6 * (m + 1)) := by
+  have s30 : σ (.n 27) = gen ^ (6 * (m + 1)) := by
     rw [isMul_sound m30 hat, s29, ← pow_add,
       show 3 * (m + 1) + 3 * (m + 1) = 6 * (m + 1) by ring]
-  have s31 : σ (.n 31) = gen ^ (12 * (m + 1)) := by
+  have s31 : σ (.n 28) = gen ^ (12 * (m + 1)) := by
     rw [isMul_sound m31 hat, s30, ← pow_add,
       show 6 * (m + 1) + 6 * (m + 1) = 12 * (m + 1) by ring]
-  have s96 : σ (.n 96) = gen ^ (m + 1) := by rw [isMul_sound m96 hat, e0, g95, pow_succ]
+  have s96 : σ (.n 93) = gen ^ (m + 1) := by rw [isMul_sound m96 hat, e0, g95, pow_succ]
   refine ⟨?_, ?_, ?_⟩
   · rw [isMul_sound m32 hat, s31, s27, ← pow_add,
       show 12 * (m + 1) + (m + 1) = 13 * (m + 1) by ring]
@@ -416,13 +416,13 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hT : ∀ {c : V}, σ c = 1 + gen ^ m → decide (σ c ≠ 0) = true :=
     fun h => by rw [h]; exact decide_eq_true hne
   have hcalls : calls es =
-      [⟨name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9, .n 1], [],
+      [⟨name% «aggregate_claims_loop0», [.n 33, .n 0, .n 30, .n 2, .n 8, .n 3, .n 9, .n 1], [],
           true⟩,
-        ⟨"grind_check__L2", [.n 82, .n 5], [], true⟩,
-        ⟨name% «aggregate_claims_loop1», [.n 103, .n 0, .n 98, .n 8, .n 9, .n 94, .n 81], [], true⟩,
-        ⟨"batch_sumcheck__L23", [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5],
-          [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115], true⟩,
-        ⟨name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98, .n 188, .n 81],
+        ⟨"grind_check__L2", [.n 79, .n 5], [], true⟩,
+        ⟨name% «aggregate_claims_loop1», [.n 100, .n 0, .n 95, .n 8, .n 9, .n 91, .n 78], [], true⟩,
+        ⟨"batch_sumcheck__L23", [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5],
+          [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112], true⟩,
+        ⟨name% «aggregate_claims_loop2», [.n 189, .n 0, .n 8, .n 9, .n 113, .n 95, .n 185, .n 78],
             [], true⟩] := by
     rw [hes, hpc, aggP_calls]
     simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g35, hT hV.g102, hT hV.g191]
@@ -454,18 +454,18 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
     · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩,
         rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 36), σ (.n 0), σ (.n 33), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)] = _
+      · show [σ (.n 33), σ (.n 0), σ (.n 30), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)] = _
         rw [hV.g36, hV.e0, hV.v33, hV.e2, hV.v8, hV.e3, hV.v9, hV.e1]
       · rw [(h1 rfl).1]; rfl
       · exact hV.grArgs
       · rw [(h2 rfl).1]; rfl
-      · show [σ (.n 103), σ (.n 0), σ (.n 98), σ (.n 8), σ (.n 9), σ (.n 94), σ (.n 81)] = _
+      · show [σ (.n 100), σ (.n 0), σ (.n 95), σ (.n 8), σ (.n 9), σ (.n 91), σ (.n 78)] = _
         rw [hV.g103, hV.e0, hV.v98, hV.v8, hV.v9, hV.v94, hV.v81]
       · rw [(h3 rfl).1]; rfl
       · exact hV.bsArgs
       · rw [(h4 rfl).1]; exact hV.bsRets
-      · show [σ (.n 192), σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 116), σ (.n 98), σ (.n 188),
-          σ (.n 81)] = _
+      · show [σ (.n 189), σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 113), σ (.n 95), σ (.n 185),
+          σ (.n 78)] = _
         rw [hV.g192, hV.e0, hV.v8, hV.v9, hV.v116, hV.v98, hV.v188, hV.v81]
       · rw [(h5 rfl).1]; rfl
     · intro q hq
@@ -494,20 +494,20 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 33)).limb 0 * addressOfIndex i = _
+      show (σ (.n 30)).limb 0 * addressOfIndex i = _
       rw [hV.v33]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 0, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 98)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n 95)).limb 0 * addressOfIndex 0 = _
       rw [hV.v98]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 98)).limb 0 * addressOfIndex 1 = _
+      show (σ (.n 95)).limb 0 * addressOfIndex 1 = _
       rw [hV.v98]; exact limb0_gen_pow_mul _ _
     · refine ⟨axW m b0 + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 188)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n 185)).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
         simp [aggOut, DeferredBytecodeClaim.cells, aggRun, bsRun_len, hrl]
@@ -517,27 +517,27 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
     · refine ⟨axAbs m b0 + 13 * m + k, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 42)).limb 0 * addressOfIndex k = _
+      show (σ (.n 39)).limb 0 * addressOfIndex k = _
       rw [hV.p42, show P.absorb = gen ^ axAbs m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 13]
     · refine ⟨axChain m b0 + 2 * m + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 105)).limb 0 * addressOfIndex 1 = _
+      show (σ (.n 102)).limb 0 * addressOfIndex 1 = _
       rw [hV.p105, show P.chain = gen ^ axChain m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 2]
     · refine ⟨axW m b0 + m + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 193)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n 190)).limb 0 * addressOfIndex 0 = _
       rw [hV.p193, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
     · refine ⟨axPt m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 107)).limb 0 * addressOfIndex k = _
+      show (σ (.n 104)).limb 0 * addressOfIndex k = _
       rw [hV.v107]; exact limb0_gen_pow_mul _ _
     · refine ⟨axPt1 m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt1 m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 116)).limb 0 * addressOfIndex k = _
+      show (σ (.n 113)).limb 0 * addressOfIndex k = _
       rw [hV.v116]; exact limb0_gen_pow_mul _ _
     · refine ⟨b0 + 0, ?_, Or.inl (hz (s := 47) (x := b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩

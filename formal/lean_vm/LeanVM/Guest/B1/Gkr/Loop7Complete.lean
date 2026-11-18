@@ -111,7 +111,7 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
     have := hpt2.2
     rwa [hysl, mul_assoc, ← pow_add] at this
   have hT : ∀ a k', a + k' ≤ 2 * k + sh →
-      TbGkrRoundsOut k' rd (σ (.n 48) * gen ^ a) (σ (.n 46) * gen ^ a) := by
+      TbGkrRoundsOut k' rd (σ (.n 47) * gen ^ a) (σ (.n 45) * gen ^ a) := by
     intro a k' hak
     rw [m48, e46]
     exact recs_rounds hR rfl hl h4 hflat hpt hch42 (by omega)
@@ -125,7 +125,7 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
     hG e11 (by rw [m48]; exact hcL) (by rw [m48]; exact huL)
   -- the children
   have hchl : (D.ch0 ++ (D.ch1 ++ D.ch2)).length = 12 := by simp [hl0, hl1, hl2]
-  have hrc : TbReadsAt rd (σ (.n 75)) (D.ch0 ++ (D.ch1 ++ D.ch2)) := by
+  have hrc : TbReadsAt rd (σ (.n 74)) (D.ch0 ++ (D.ch1 ++ D.ch2)) := by
     have := (tbReadsAt_append.mp hx).2
     rwa [flatten_length_four h4, hcsl, ← e75] at this
   obtain ⟨R4, EV, B1⟩ := lyc_children (C := coreProgram.Rel rd) (kret := fun rs => rs = []) hG
@@ -134,7 +134,7 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
   rw [hch0, hch1] at B1
   -- the check and the new coordinates
   have hcheck : run.2.1 =
-      polyEval [prodE (lyCh σ 0), prodE (lyCh σ 1), prodE (lyCh σ 2)] (σ (.n 42)) := by
+      polyEval [prodE (lyCh σ 0), prodE (lyCh σ 1), prodE (lyCh σ 2)] (σ (.n 29)) := by
     rw [hch0, hch1, hch2, e42]; exact hchk
   obtain ⟨R5, e180, e194, e189⟩ := lyc_check (C := coreProgram.Rel rd)
     (kret := fun rs => rs = []) hG (fun i hi => (EV i hi).2.1) (fun i hi => (EV i hi).2.2) B1
@@ -150,16 +150,16 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
     rw [hp0, absorbAll_short ⟨run.2.2.cap, []⟩ D.ch0 dsObserve (by simp [hl0]), List.nil_append,
       tb_absorbAll_full ⟨run.2.2.cap, D.ch0.map (·, dsObserve)⟩ (by simp [hl0]) D.ch1 hl1,
       tb_absorbAll_full _ (by simp [hl1]) D.ch2 hl2]
-  have hys : D.ys s st 2 = [σ (.n 180), σ (.n 194)] := by
+  have hys : D.ys s st 2 = [σ (.n 166), σ (.n 179)] := by
     rw [e180, e194]; show ((D.sb s st).squeezeN 2).1 = _; rw [hsb, tb_squeezeN_two]; rfl
-  have hs' : D.s' s st 2 = ⟨(List.range 5).map fun k ↦ σ (.n (189 + k)), []⟩ := by
+  have hs' : D.s' s st 2 = ⟨(List.range 5).map fun k ↦ σ (.n (187 + k)), []⟩ := by
     rw [e189]; show ((D.sb s st).squeezeN 2).2 = _; rw [hsb, tb_squeezeN_two]; rfl
   -- the next slot
   have ld : ∀ k w, LoadHolds rd layers (13 * (L + 2) + k) w →
       LoadHolds rd (σ (.n 17)) (26 + k) w := fun k w h => by
     rw [e17, e3, tb_loadHolds_mul_gen_pow, show 13 * L + (26 + k) = 13 * (L + 2) + k by ring]
     exact h
-  have s26 : ∀ k < 5, LoadHolds rd (σ (.n 17)) (26 + k) (σ (.n (189 + k))) := by
+  have s26 : ∀ k < 5, LoadHolds rd (σ (.n 17)) (26 + k) (σ (.n (187 + k))) := by
     intro k hk
     have := hcap' k hk
     rw [hs'] at this
@@ -168,18 +168,18 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
     exact ld k _ this
   have hxl : D.xs.length = 4 * L + 12 := by
     simp [GkStepD.xs, flatten_length_four h4, hcsl, hl0, hl1, hl2]
-  have s31 : LoadHolds rd (σ (.n 17)) 31 (σ (.n 75) * gen ^ 12) := by
+  have s31 : LoadHolds rd (σ (.n 17)) 31 (σ (.n 74) * gen ^ 12) := by
     have h := ld 5 _ hcur'
     rw [hxl] at h
     rw [e75, mul_assoc, ← pow_add]
     exact h
   have sv : ∀ t < 3, LoadHolds rd (σ (.n 17)) (32 + t)
-      (multilinearEval (lyCh σ t) [σ (.n 180), σ (.n 194)]) := by
+      (multilinearEval (lyCh σ t) [σ (.n 166), σ (.n 179)]) := by
     intro t ht
     have h := ld (6 + t) _ (by rw [← Nat.add_assoc]; exact hval' t ht)
     rw [show 26 + (6 + t) = 32 + t by ring] at h
     have hv : (D.st' s st 2).values.getD t 0 =
-        multilinearEval (lyCh σ t) [σ (.n 180), σ (.n 194)] := by
+        multilinearEval (lyCh σ t) [σ (.n 166), σ (.n 179)] := by
       show ([D.ch0, D.ch1, D.ch2].map (multilinearEval · (D.ys s st 2))).getD t 0 = _
       rw [hys]
       interval_cases t
@@ -187,19 +187,19 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
       · rw [hch1]; rfl
       · rw [hch2]; rfl
     rwa [hv] at h
-  have s35 : LoadHolds rd (σ (.n 17)) 35 (σ (.n 46) * gen ^ 40) := by
+  have s35 : LoadHolds rd (σ (.n 17)) 35 (σ (.n 45) * gen ^ 40) := by
     have h := ld 9 _ hrow'
     rw [e46]; exact h
-  have s36 : LoadHolds rd (σ (.n 17)) 36 (σ (.n 47) * σ (.n 11) * gen) := by
+  have s36 : LoadHolds rd (σ (.n 17)) 36 (σ (.n 46) * σ (.n 11) * gen) := by
     have h := ld 10 _ hpos'
     rwa [e47, e11, mul_assoc, ← pow_succ]
   obtain ⟨k4, k0⟩ := hkmn (k % 4) (Nat.mod_lt _ (by omega))
-  have k4' : LoadHolds rd (σ (.n 9) * σ (.n 54)) 4 (gen ^ ((k % 4 + 1) / 4)) := by
+  have k4' : LoadHolds rd (σ (.n 9) * σ (.n 53)) 4 (gen ^ ((k % 4 + 1) / 4)) := by
     rw [e9, e54, tb_loadHolds_mul_gen_pow, show k % 4 + 4 = 4 + k % 4 by omega]; exact k4
-  have k0' : LoadHolds rd (σ (.n 9) * σ (.n 54)) 0 (gen ^ ((k % 4 + 1) % 4)) := by
+  have k0' : LoadHolds rd (σ (.n 9) * σ (.n 53)) 0 (gen ^ ((k % 4 + 1) % 4)) := by
     rw [e9, e54, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact k0
   have hk1 : j + 2 - sh = k + 1 := by omega
-  have s37 : LoadHolds rd (σ (.n 17)) 37 (σ (.n 53) * gen ^ ((k % 4 + 1) / 4)) := by
+  have s37 : LoadHolds rd (σ (.n 17)) 37 (σ (.n 52) * gen ^ ((k % 4 + 1) / 4)) := by
     have h := ld 11 _ hhalf'
     rw [hk1] at h
     rwa [e53, ly_half_next k]
@@ -207,12 +207,12 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
     have h := ld 12 _ hpar'
     rw [hk1] at h
     rwa [ly_parity_next k]
-  have s40 : LoadHolds rd (σ (.n 46)) 40 (σ (.n 180)) := by
+  have s40 : LoadHolds rd (σ (.n 45)) 40 (σ (.n 166)) := by
     have h := hpt2.1 0 (by rw [hysl]; omega)
     simp only [hys, List.getElem_cons_zero] at h
     rw [tb_loadHolds_mul_gen_pow] at h
     rw [e46]; exact h
-  have s41 : LoadHolds rd (σ (.n 46)) 41 (σ (.n 194)) := by
+  have s41 : LoadHolds rd (σ (.n 45)) 41 (σ (.n 179)) := by
     have h := hpt2.1 1 (by rw [hysl]; omega)
     simp only [hys, List.getElem_cons_succ, List.getElem_cons_zero] at h
     rw [tb_loadHolds_mul_gen_pow] at h

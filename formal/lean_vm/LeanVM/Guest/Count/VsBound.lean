@@ -2,7 +2,7 @@
   LeanVM.Guest.Count.VsBound
 
   **`verify_sub`'s words per child at the deployed instance**, at the child's opening arm:
-  `176084 + osC (μ - 20)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the kernel
+  `171592 + osC (μ - 20)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the kernel
   (`open_stacked`'s per arm, `Count/VsOs*`).
 -/
 
@@ -25,7 +25,7 @@ theorem bg_eq : vsWords.Bg = 49 := by
 
 set_option maxRecDepth 100000 in
 /-- The frames `verify_sub`'s bound names. -/
-theorem vs_frames : B2C.fs "verify_sub" = 2022 ∧ B2C.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
+theorem vs_frames : B2C.fs "verify_sub" = 1860 ∧ B2C.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
     B2C.fs "assert_small_g_power" = 68 ∧ B2C.fs "ring_switch_target" = 268 ∧
     B2C.fs "certify_placement" = 356 ∧ B2C.fs "log2_ceil_in_the_exponent__L16_L34" = 36 := by
   rw [← fsFast_eq]; decide +kernel
@@ -33,8 +33,8 @@ theorem vs_frames : B2C.fs "verify_sub" = 2022 ∧ B2C.fs "log2_ceil_in_the_expo
 set_option maxRecDepth 100000 in
 /-- The statically bounded callees' words: the grind checks, the opening message, the squeeze
 dispatch's largest arm. -/
-theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1" = 58 ∧
-    wSB "grind_check__L13" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 532 := by
+theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1" = 53 ∧
+    wSB "grind_check__L13" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 415 := by
   rw [← wSBFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -45,13 +45,13 @@ theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = 61 := by
 
 set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s words for a child of stack log `μ`** at the deployed instance: its frame
-`2022` and buffers `8710`, `g_power_of_word` (`49`, twice), the two `log2_ceil` placements (`205`,
-`206`), `certify_placement` (`486`), the grind checks (`53`, twice), the squeeze dispatch (`532`),
-the opening message (`58`), the bus grind dispatch (`61`), `verify_bus_gkr` (`39767`),
-`verify_tables` (`37833`), `verify_keccak` (`56391`), `ring_switch_target` (`3544`) and the
-terminal (`29266`), `179285` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
+`1860` and buffers `8710`, `g_power_of_word` (`49`, twice), the two `log2_ceil` placements (`205`,
+`206`), `certify_placement` (`486`), the grind checks (`53`, twice), the squeeze dispatch (`415`),
+the opening message (`53`), the bus grind dispatch (`61`), `verify_bus_gkr` (`33270`),
+`verify_tables` (`37096`), `verify_keccak` (`56216`), `ring_switch_target` (`3544`) and the
+terminal (`29266`), `171592` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
 theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
-    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 179285 + osC (μ - 20) := by
+    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 171592 + osC (μ - 20) := by
   rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
     show vsWordsOs.Bnd = wSB from rfl, osBosAt_eq h1 h2,
     show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,

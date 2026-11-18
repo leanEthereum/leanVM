@@ -70,9 +70,9 @@ theorem verify_keccak_completeAtB_fs {κ : ℕ} (hκ : 11 ≤ κ) :
     (fun fp fps ↦ own_fit h _ _)
     (fun fp ↦ D.kids LeanVM.Guest.B2C.fs (fp + LeanVM.Guest.B2C.fs "verify_keccak") curE chiE olE
       zvE slE tbE)
-    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178) 52647
+    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) 52647
     (fun fp ↦ kids_completeB_fs h hκ _ curE chiE olE zvE slE tbE)
-    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE tbE 17 374 77 250 178).trans (kidsB_fs_le h).2)
+    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE tbE 17 374 77 201 145).trans (kidsB_fs_le h).2)
     (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
       vk_obl h curE chiE olE zvE slE tbE fp fps outs hlen hout rd hB hLin hto)) le_rfl ?_
   show _ ≤ LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 52647

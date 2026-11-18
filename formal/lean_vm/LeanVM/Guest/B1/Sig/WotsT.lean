@@ -27,7 +27,7 @@ values before the outputs, `size = 3`).
   check, what it sets before its dispatch (`pre`: `sp_wots`'s padding run), the `2^63` the compiler
   hoists above an all-`@inline` `match` (`closeLane`, unread: each arm sets its own) and the
   `match`; `groupT` has its digit word at its base and sets nothing before; `fold` marks the first
-  group, whose running encoding is a literal `0` set in each arm;
+  group, each of whose arms sets its product to its power and its encoding to its literal;
 * `groupsT`, `codewordT`: `G` groups of three and the last chain's, the digits stored where the
   digest's first cell is, and the target sum asserted;
 * `merkleT`: `merkle_path`, the children hinted, the child checked, each parent hashed.
@@ -77,14 +77,12 @@ def walksT (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : Nat) :
 /-- Arm `k` of a group from base `b`: the walks, then the product and the encoding folded in. -/
 def armT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
-  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
-    (if fold then b + 1 else b)
-  let enc0 := if fold then V.n b else encIn
-  let pre := if fold then [cst b (word 0 0)] else []
-  let prod := if fold then copyS prodOut (W.power (digitSum k n))
-    else mulS prodOut prodIn (W.power (digitSum k n))
-  if k = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
-  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (W.enc first n k)), addS encOut enc0 (.n ws.2)], ws.2 + 1)
+  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b
+  if fold then
+    (ws.1 ++ [copyS prodOut (W.power (digitSum k n)), .atom (.const encOut (lit (W.enc first n k)))], ws.2)
+  else if k = 0 then (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), copyS encOut encIn], ws.2)
+  else (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), cst ws.2 (lit (W.enc first n k)),
+    addS encOut encIn (.n ws.2)], ws.2 + 1)
 
 /-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/
 def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
@@ -97,7 +95,7 @@ def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool
       (a.1 :: rest.1, rest.2)
 
 /-- Where arm `0` of a group from base `b` starts its first walk. -/
-def groupStart (fold : Bool) (b : Nat) : Nat := b + 6 + (if fold then 1 else 0)
+def groupStart (_fold : Bool) (b : Nat) : Nat := b + 6
 /-- The fresh values of a chain in arm `0`. -/
 def chainStride (W : WotsT) : Nat := 1 + 3 * (W.size + 1)
 /-- The slot of chain `r`'s step `s` in a group from base `b`. -/

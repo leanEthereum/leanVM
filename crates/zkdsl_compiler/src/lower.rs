@@ -25,8 +25,7 @@ mod builtins;
 mod call;
 mod eval;
 mod mem;
-use call::ret_binding;
-use eval::{field_pow, small_gpow};
+use eval::{Known, field_pow, small_gpow};
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power
@@ -100,18 +99,6 @@ const FOLD_MAX: u128 = 1 << 16;
 enum PureOp {
     Xor,
     Mul,
-}
-
-/// How an inlined `@inline` tail-return value binds into the caller
-/// ([`FnLower::inline_stack_ret`]): a `StackBuf` hands over its cell run and a
-/// folded g-address hands over its symbolic pointer, both aliased at zero
-/// copies (so `cvb = obs(cvb, x)` and a fused `fs, x, cur = fs_next(fs, cur)`
-/// stay free); a scalar was already copied into its dst cell.
-#[derive(Clone, Copy)]
-enum RetBind {
-    Stack(Off, u32),
-    Gaddr(GAddr),
-    Scalar,
 }
 
 /// What a name is bound to. The kinds are mutually exclusive: a name has exactly
@@ -214,15 +201,6 @@ struct FnLower<'a> {
     /// aliases resolve to the same base cell through their gaddr, so a
     /// compile-time index checks against the ORIGINAL buffer's bound.
     heap_sizes: HashMap<Off, u128>,
-    /// While inlining an `@inline` call ([`Self::try_inline`]), the destination
-    /// cells its tail `return` binds into instead of emitting a return jump.
-    /// `None` outside an inlined body.
-    inline_ret: Option<Vec<Off>>,
-    /// Set by an inlined tail `return`, one [`RetBind`] per returned value,
-    /// telling the caller's `let`/tuple how to bind each (alias a `StackBuf` run
-    /// or a folded g-address, or take the scalar dst cell). `None` outside an
-    /// inlined return.
-    inline_stack_ret: Option<Vec<RetBind>>,
     /// Source line of the statement being lowered, for diagnostics and for the
     /// pc-to-line table. Zero for a synthesized statement with no source.
     cur_line: u32,
@@ -622,28 +600,7 @@ impl FnLower<'_> {
                             arms[j]
                         ));
                     };
-                    s.inline_stack_ret = None;
                     s.call_into(f, cargs, &rcells);
-                    // An @inline arm's aliased returns materialize into the
-                    // shared join cells (a real call wrote them directly).
-                    if let Some(binds) = s.inline_stack_ret.take() {
-                        for (b, &rc) in binds.iter().zip(&rcells) {
-                            match *b {
-                                RetBind::Gaddr(ga) => {
-                                    let c = s.materialize(ga);
-                                    s.copy(c, rc);
-                                }
-                                RetBind::Stack(base, size) => {
-                                    if size != 1 {
-                                        s.fail("a multi-cell StackBuf return cannot cross a match join")
-                                    }
-                                    // The run's first cell holds the arm's single returned value.
-                                    s.copy(base, rc);
-                                }
-                                RetBind::Scalar => {}
-                            }
-                        }
-                    }
                 }
             });
         });
@@ -1084,8 +1041,8 @@ impl FnLower<'_> {
                 dst
             }
             Expr::Call(f, args) => {
-                let d = self.call(f, args, 1)[0];
-                self.take_inline_ret_cell(d)
+                let b = self.call(f, args, 1)[0];
+                self.binding_cell(b)
             }
             Expr::HeapBuf(n) => {
                 let arr = self.fresh();
@@ -1203,17 +1160,53 @@ impl FnLower<'_> {
             }
             // A call writes its single return value straight into `dst` (an
             // aliased inline return materializes, then copies into `dst`).
-            Expr::Call(f, args) if self.defs.contains_key(f.as_str()) => {
-                self.inline_stack_ret = None;
-                self.call_into(f, args, &[dst]);
-                let v = self.take_inline_ret_cell(dst);
-                if v != dst {
-                    self.copy(v, dst);
-                }
-            }
+            Expr::Call(f, args) if self.defs.contains_key(f.as_str()) => self.call_into(f, args, &[dst]),
             _ => {
                 let v = self.expr(e);
                 self.copy(v, dst);
+            }
+        }
+    }
+
+    /// What `name = e` binds `name` to, `known` being `e`'s reading
+    /// ([`Self::eval`]): an alias or a constant takes no instruction, a user call
+    /// binds as its returns do, and anything else is the cell `e` lowers into.
+    fn let_binding(&mut self, e: &Expr, known: Known) -> Binding {
+        if let Some(b) = self.alias_of(e) {
+            b
+        } else if let Some(c) = known.field {
+            Binding::FConst(c)
+        } else if let Some(k) = known.int {
+            // Integer-only fold (`//`, `-`, `%` of constants): a compile-time value
+            // too, and as a scalar it is the field element with those 128 bits.
+            Binding::FConst(crate::field::word(k))
+        } else if let Expr::Call(f, args) = e
+            && self.defs.contains_key(f.as_str())
+        {
+            self.call(f, args, 1)[0]
+        } else {
+            Binding::Scalar(self.expr(e))
+        }
+    }
+
+    /// What `e` aliases with no instruction: a `StackBuf` name's run, or a
+    /// symbolic g-address (a constant g-power or a shifted pointer).
+    fn alias_of(&self, e: &Expr) -> Option<Binding> {
+        match self.stack_of(e) {
+            Some((base, size)) => Some(Binding::Stack(base, size)),
+            None => self.gaddr_of(e).map(Binding::Gaddr),
+        }
+    }
+
+    /// The one cell holding a single value bound as `b`.
+    fn binding_cell(&mut self, b: Binding) -> Off {
+        match b {
+            Binding::Scalar(o) => o,
+            Binding::Gaddr(ga) => self.materialize(ga),
+            Binding::FConst(c) => self.const_cell(c),
+            Binding::Stack(base, 1) => base,
+            Binding::Stack(..) => {
+                self.fail("a multi-cell StackBuf return needs a `let` binding, not a match join or an expression use")
             }
         }
     }
@@ -1248,51 +1241,16 @@ impl FnLower<'_> {
                     let ga = self.stack_addr(cargs);
                     self.rebind(name, Binding::Gaddr(ga));
                 }
-                // `x = other_stackbuf`: a compile-time alias of the same cell
-                // run (zero instructions), the chaining-state idiom `st = sn`
-                // of an MD loop.
-                Expr::Var(v) if self.scope.stack(v).is_some() => {
-                    let (base, size) = self.scope.stack(v).expect("guarded above");
-                    self.rebind(name, Binding::Stack(base, size));
-                }
                 _ => {
                     // NOTE: `name`'s old binding stays visible while the RHS is
-                    // lowered (the MD-chain idiom `cvb = obs(cvb, x)` reads it);
-                    // each terminal path below unbinds/rebinds afterwards.
+                    // lowered (the MD-chain idiom `cvb = obs(cvb, x)` reads it).
                     // A compile-time integer binding (a literal, or an expression
                     // that folds: `FOLDBASE[lvl] + j`, `n // 2`, `len(A) - 1`) is
                     // usable as a compile-time index / bound / exponent, and that
                     // role survives the value binding chosen below.
                     let known = self.eval(e);
-                    // A symbolic g-address (a constant g-power or a shifted
-                    // pointer) or a compile-time field constant stays virtual:
-                    // no instruction here, folded / materialized only on demand.
-                    if let Some(ga) = known.addr {
-                        self.rebind(name, Binding::Gaddr(ga));
-                    } else if let Some(c) = known.field {
-                        self.rebind(name, Binding::FConst(c));
-                    } else if let Some(k) = known.int {
-                        // Integer-only fold (`//`, `-`, `%` of constants): a
-                        // compile-time value too, and as a scalar it is the field
-                        // element with those 128 bits, materialized on demand.
-                        self.rebind(name, Binding::FConst(crate::field::word(k)));
-                    } else if let Expr::Call(cf, cargs) = e
-                        && self.defs.contains_key(cf.as_str())
-                    {
-                        // A bare `name = call(...)` of a user function: bind per
-                        // the inlined return's RetBind, aliasing its StackBuf run
-                        // or folded g-address at zero copies (the `cvb = obs(...)`
-                        // / advanced-cursor idiom), else (a plain scalar, or a
-                        // real call) bind the dst cell. Embedded calls do NOT
-                        // take this path: `expr` materializes theirs
-                        // ([`Self::take_inline_ret_cell`]).
-                        let o = self.call(cf, cargs, 1)[0];
-                        let b = ret_binding(self.inline_stack_ret.take().and_then(|b| b.into_iter().next()), o);
-                        self.rebind(name, b);
-                    } else {
-                        let o = self.expr(e);
-                        self.rebind(name, Binding::Scalar(o));
-                    }
+                    let b = self.let_binding(e, known);
+                    self.rebind(name, b);
                     // The integer reading of the SAME expression, if it has one,
                     // rides alongside whichever value binding was chosen above.
                     // It is attached after, because a rebind clears it, and the
@@ -1303,13 +1261,7 @@ impl FnLower<'_> {
                 }
             },
             StmtKind::LetTuple(names, f, args) => {
-                let dsts = self.call(f, args, names.len());
-                // Each returned value binds per its RetBind (alias a StackBuf run
-                // or folded g-address, else take the scalar dst cell); a real call
-                // leaves the field None, so every name binds its scalar dst.
-                let binds = self.inline_stack_ret.take();
-                for (i, (n, d)) in names.iter().zip(&dsts).enumerate() {
-                    let b = ret_binding(binds.as_ref().and_then(|b| b.get(i).copied()), *d);
+                for (n, b) in names.iter().zip(self.call(f, args, names.len())) {
                     self.rebind(n, b);
                 }
             }
@@ -1362,7 +1314,6 @@ impl FnLower<'_> {
                     // A call statement discards the callee's returns into cells nothing reads.
                     let n_ret = self.defs.get(f.as_str()).map_or(0, |d| d.return_shapes.len());
                     self.call(f, args, n_ret);
-                    self.inline_stack_ret = None;
                 }
             }
             StmtKind::Store(arr, idx, val) => {
@@ -1715,8 +1666,6 @@ pub(crate) fn lower_func(
         code: Vec::new(),
         cur_line: 0,
         heap_sizes: HashMap::new(),
-        inline_ret: None,
-        inline_stack_ret: None,
 
         pending: Vec::new(),
         chain_next: None,

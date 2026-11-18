@@ -34,9 +34,9 @@ def stepGroups (s : ℕ) : List (V × ℕ × ℕ) :=
 /-- The pointers the body loads through, with their offsets' ranges. -/
 def vkGroups : List (V × ℕ × ℕ) :=
   [(.n 5, 0, 1), (.n 7, 0, 4), (.n 8, 0, 25), (.n 9, 0, 4), (.n 9, 39, 43), (.n 10, 0, 64),
-    (.n 67, 0, 1), (.n 87, 0, 5), (.n 161, 0, 286), (.n 163, 0, 30), (.n 234, 0, 62),
-    (.n 342, 0, 2), (.n 921, 0, 6), (.n 929, 0, 1), (.n 934, 0, 1), (.n 1210, 0, 30),
-    (.n 1338, 0, 64), (.n 1330, 0, 6), (.n 1746, 0, 1), (.n 1980, 0, 6), (.n 3143, 0, 25)] ++
+    (.n 67, 0, 1), (.n 86, 0, 5), (.n 155, 0, 286), (.n 157, 0, 30), (.n 228, 0, 62),
+    (.n 336, 0, 2), (.n 915, 0, 6), (.n 923, 0, 1), (.n 928, 0, 1), (.n 1204, 0, 30),
+    (.n 1332, 0, 64), (.n 1324, 0, 6), (.n 1740, 0, 1), (.n 1974, 0, 6), (.n 3137, 0, 25)] ++
     (List.range 12).flatMap stepGroups
 
 /-- A load through one of `vkGroups`. -/
@@ -78,24 +78,24 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
   obtain ⟨-, p5, p6, p7, p8, p9, p10, h17, -, -, a58, -, -, -, e64, -, a90, -, -, -, a201, a203,
     a274, a382, -⟩ := head_first h hm hσd
   obtain ⟨-, -, e3691, -, -, eO, -⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 929) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 923) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, -, -, -, e4107, -, -, e4110, -⟩ := in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 1338) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (1338 : ℕ) = 1333 + 5 from rfl, e4110 5 (by norm_num), sRets,
+  have e4115 : σ (.n 1332) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1332 : ℕ) = 1327 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]), (S_ok h).2]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
   obtain ⟨e4978, e5212, e6363⟩ := fin_ptrs h hm hσd h17 a201
-  have e3711 : σ (.n 934) = ptr B * gen ^ (D.τ - 4) := by
-    have g : Good rd vkSt (D.w B curE) σ (.mul (.n 934) (.n 61) (.n 18)) := by
+  have e3711 : σ (.n 928) = ptr B * gen ^ (D.τ - 4) := by
+    have g : Good rd vkSt (D.w B curE) σ (.mul (.n 928) (.n 61) (.n 18)) := by
       subst hσd
-      exact val_good' h (s := .atom (.mul (.n 934) (.n 61) (.n 18)))
+      exact val_good' h (s := .atom (.mul (.n 928) (.n 61) (.n 18)))
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ (by simp [vkOutT]))))
     rw [mulG (by norm_num) (by norm_num) g, a58, h17]
-  have a3987 : σ (.n 1210) = ptr (B + D.τ + 382) := by
-    subst hσd; exact val_alloc h (.n 1210, .inl 30) (by simp [vkAllocs])
+  have a3987 : σ (.n 1204) = ptr (B + D.τ + 382) := by
+    subst hσd; exact val_alloc h (.n 1204, .inl 30) (by simp [vkAllocs])
   -- the entries
   have mLin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
       (zvE + qkeccakVarsCap, D.point), (slE, D.slices), (tbE, winTabWords)] →

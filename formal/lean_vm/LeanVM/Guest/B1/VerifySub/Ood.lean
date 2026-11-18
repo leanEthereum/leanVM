@@ -91,8 +91,8 @@ abbrev vsRootFs (σ : Val) : Fs :=
     [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
 
 
-theorem vsRun305 : (vsRun 305 5).map σ =
-    [σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)] := rfl
+theorem vsRun304 : (vsRun 304 5).map σ =
+    [σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)] := rfl
 
 theorem spfName_eq {m : ℕ} (h1 : 20 ≤ m) (h2 : m ≤ 30) (h : m - 20 < vsSqpNames.length) :
     vsSqpNames[m - 20] = spfName m := by
@@ -114,27 +114,27 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
       RunsTo (readOod m) ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
           [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
         [σ (.n 283), v] (fun x ↦ eqEval z x, v)
-        ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], [(v, dsObserve)]⟩ ∧
-      z.length = m ∧ ReadsAt L.read (σ (.n 304)) z ∧ ReadsAt L.read (σ (.n 310)) [v] ∧
-      LoadHolds L.read (σ (.n 25)) 10 (σ (.n 283)) ∧ σ (.n 312) = σ (.n 25) * gen ^ 11 ∧
-      LoadHolds L.read (σ (.n 312)) 0 v ∧ LoadHolds L.read (σ (.n 312)) 1 nn ∧
-      [σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318), σ (.n 319),
-          σ (.n 320)] =
-        [cellsOfState ((⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)],
+        ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩ ∧
+      z.length = m ∧ ReadsAt L.read (σ (.n 303)) z ∧ ReadsAt L.read (σ (.n 309)) [v] ∧
+      LoadHolds L.read (σ (.n 25)) 10 (σ (.n 283)) ∧ σ (.n 311) = σ (.n 25) * gen ^ 11 ∧
+      LoadHolds L.read (σ (.n 311)) 0 v ∧ LoadHolds L.read (σ (.n 311)) 1 nn ∧
+      [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318),
+          σ (.n 319)] =
+        [cellsOfState ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
             [(v, dsObserve)]⟩ : Fs).nonceState nn) false 0,
-          cellsOfState ((⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)],
+          cellsOfState ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
             [(v, dsObserve)]⟩ : Fs).nonceState nn) false 1] ++
-          capOf ((⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)],
-            [(v, dsObserve)]⟩ : Fs).nonceState nn) ++ [σ (.n 312) * gen ^ 2] ∧ next := by
+          capOf ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
+            [(v, dsObserve)]⟩ : Fs).nonceState nn) ++ [σ (.n 311) * gen ^ 2] ∧ next := by
   rw [vsOodT] at h
   simp only [holdsList_append] at h
   obtain ⟨⟨l283, hn⟩, h⟩ := (holds_fsNonceT _ _ _ _ _).1 h
   obtain ⟨⟨h286, h287⟩, h⟩ := (holds_zero2T _ _ _).1 h
   obtain ⟨hk, h⟩ := holds_atom1.1 h
   obtain ⟨h302, h⟩ := vsTabsT_holds h
-  simp only [Stmt.HoldsList, Stmt.Holds, grindCallT, vsCopy, vsAlloc, vsConst, vsMul, vsCall,
+  simp only [Stmt.HoldsList, Stmt.Holds, grindCallT, vsAlloc, vsConst, vsMul, vsCall,
     Atom.Holds, List.map_cons, List.map_nil, range8] at h
-  obtain ⟨hg, c303, -, ⟨j, hj, hj278, hsp⟩, -, e311, m312, hom, hn'⟩ := h
+  obtain ⟨hg, -, ⟨j, hj, hj278, hsp⟩, -, e311, m312, hom, hn'⟩ := h
   -- the nonce's permutation
   have hc := vs_oodPerm w268 w271 hn h286 h287 hk
   obtain ⟨S, hS⟩ : ∃ S, (vsRootFs σ).nonceState (σ (.n 283)) = S := ⟨_, rfl⟩
@@ -158,7 +158,7 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
     exact hpow
   have hG := runsToG_grind (bits := Whir.oodGrindingBits) (by decide) (vsRootFs σ) (σ (.n 283)) hok
   rw [hS] at hG
-  have h303 : σ (.n 303) = challengeOf S := by rw [c303, e288, Keccak.challengeOf_cells]
+  have h303 : σ (.n 288) = challengeOf S := by rw [e288, Keccak.challengeOf_cells]
   -- the point
   have hj7 : j < 11 := by simpa [vsSqpNames] using hj
   have hjm : j = m - 20 := by
@@ -166,14 +166,14 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
     exact (gen_pow_inj (by omega) (by omega)
       (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK]; exact hj278)).symm
   subst hjm
-  rw [spfName_eq hm20 hm30 hj, vsRun305] at hsp
+  rw [spfName_eq hm20 hm30 hj, vsRun304] at hsp
   obtain ⟨hz, hret⟩ := (squeeze_point_from_holds m (spf_mem hm20 hm30) L.read _ _).1 (hC _ _ _ hsp)
   obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at hz hret
   rw [h303, hcapS] at hz
   rw [hcapS] at hret
   have hT : ((⟨capOf S, []⟩ : Fs).squeezeN k).2 =
-      ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], []⟩ := by
+      ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], []⟩ := by
     have hp := vs_squeezeN_pend k ⟨capOf S, []⟩ rfl
     revert hp hret
     generalize ((⟨capOf S, []⟩ : Fs).squeezeN k).2 = T
@@ -188,7 +188,7 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   obtain ⟨v, rfl⟩ : ∃ v, xs = [v] := by
     match xs, hxl with
     | [v], _ => exact ⟨v, rfl⟩
-  have e312 : σ (.n 312) = σ (.n 25) * gen ^ 11 := by rw [m312, e311, word_g11]
+  have e312 : σ (.n 311) = σ (.n 25) * gen ^ 11 := by rw [m312, e311, word_g11]
   refine ⟨challengeOf S :: ((⟨capOf S, []⟩ : Fs).squeezeN k).1, v, nn, ?_,
     by simp [vs_squeezeN_length], hz, hxo, l283, e312, hxc 0 (by simp), hnn rfl, ?_, hn'⟩
   · -- the run

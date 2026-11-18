@@ -112,7 +112,7 @@ theorem gkr_rounds_relIn {n : ℕ} (hn : n ∈ grCounts) {rd : Reader} {R : ℕ 
 /-! ## `verify_bus_gkr_loop0_loop0` -/
 
 /-- `verify_bus_gkr_loop0_loop0`'s statements before its `ret`. -/
-def l29PreK : List Stmt := l29A ++ [.callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343,
+def l29PreK : List Stmt := l29A ++ [.callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335,
     .n 1, .n 2, .n 3, .n 4]]
 
 theorem l29Body_pre_eq : l29Body = l29PreK ++ [.ret []] := by
@@ -128,7 +128,7 @@ theorem l29_loads : l29PreK.all (loadsViaB [(8, 5181), (9, 50), (15, 32)]) = tru
   decide +kernel
 
 theorem l29_calls : l29PreK.filterMap Main.Stmt.callS =
-    [(some (.n 341), name% «verify_bus_gkr_loop0_loop0», [.n 343, .n 1, .n 2, .n 3, .n 4],
+    [(some (.n 333), name% «verify_bus_gkr_loop0_loop0», [.n 335, .n 1, .n 2, .n 3, .n 4],
         [])] := by decide +kernel
 
 /-- **`verify_bus_gkr_loop0_loop0` loads from `R`**, every iteration `k < K`. -/
@@ -161,18 +161,18 @@ theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     have m9 := hS _ (mem_of_slice (i := 4) (s := .atom (.mul (.n 9) (.n 3) (.n 7))) (by decide +kernel))
     have l15 := hS _ (mem_of_slice (i := 10) (s := .atom (.load (.n 15) (.n 8) 4310))
       (by decide +kernel))
-    have c339 := hS _ (mem_of_slice (i := 253) (s := .atom (.const (.n 339) (word 2 0)))
+    have c339 := hS _ (mem_of_slice (i := 245) (s := .atom (.const (.n 331) (word 2 0)))
       (by decide +kernel))
-    have m340 := hS _ (mem_of_slice (i := 254) (s := .atom (.mul (.n 340) (.n 0) (.n 339)))
+    have m340 := hS _ (mem_of_slice (i := 246) (s := .atom (.mul (.n 332) (.n 0) (.n 331)))
       (by decide +kernel))
-    have a341 := hS _ (mem_of_slice (i := 255) (s := .atom (.add (.n 341) (.n 340) (.n 1)))
+    have a341 := hS _ (mem_of_slice (i := 247) (s := .atom (.add (.n 333) (.n 332) (.n 1)))
       (by decide +kernel))
-    have c342 := hS _ (mem_of_slice (i := 256) (s := .atom (.const (.n 342) (word 2 0)))
+    have c342 := hS _ (mem_of_slice (i := 248) (s := .atom (.const (.n 334) (word 2 0)))
       (by decide +kernel))
-    have m343 := hS _ (mem_of_slice (i := 257) (s := .atom (.mul (.n 343) (.n 0) (.n 342)))
+    have m343 := hS _ (mem_of_slice (i := 249) (s := .atom (.mul (.n 335) (.n 0) (.n 334)))
       (by decide +kernel))
-    have hci := hS _ (mem_of_slice (i := 258)
-      (s := .callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3,
+    have hci := hS _ (mem_of_slice (i := 250)
+      (s := .callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3,
           .n 4]) (by decide +kernel))
     simp only [Fwd.SHolds, Atom.Holds] at m5 m6 m7 m8 m9 l15 c339 m340 a341 c342 m343 hci
     rw [tb_word_gen] at c339 c342
@@ -189,8 +189,8 @@ theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
       subst hc
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e343 : σ (.n 343) = gen ^ (k + 1) := by rw [m343, c342, p0, pow_succ]
-      have e341 : σ (.n 341) = gen ^ (k + 1) + gen ^ K := by rw [a341, m340, c339, p0, p1, pow_succ]
+      have e343 : σ (.n 335) = gen ^ (k + 1) := by rw [m343, c342, p0, pow_succ]
+      have e341 : σ (.n 333) = gen ^ (k + 1) + gen ^ K := by rw [a341, m340, c339, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'
         · exact h'

@@ -39,21 +39,21 @@ theorem word_g101 : word 3710851743744 0 = gen ^ 101 := by
 
 /-- **The three calls**. -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
-    σ (.n 561) = σ (.n 4) * gen ^ winTabAt ∧
-    C "verify_bus_gkr" [σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 320),
-      σ (.n 253), σ (.n 254), σ (.n 561)]
-      [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 568)] ∧
+    σ (.n 544) = σ (.n 4) * gen ^ winTabAt ∧
+    C "verify_bus_gkr" [σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542), σ (.n 319),
+      σ (.n 253), σ (.n 254), σ (.n 544)]
+      [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549), σ (.n 550), σ (.n 551)] ∧
+    σ (.n 555) = σ (.n 4) * gen ^ winTabAt ∧
+    C "verify_tables" [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549), σ (.n 550),
+      σ (.n 0), σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 334),
+      σ (.n 530), σ (.n 6), σ (.n 552), σ (.n 551), σ (.n 555), σ (.n 553)]
+      [σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560), σ (.n 561), σ (.n 562),
+        σ (.n 563), σ (.n 564), σ (.n 565)] ∧
+    LoadHolds rd (σ (.n 71)) 6 (σ (.n 566)) ∧ σ (.n 570) = σ (.n 565) * gen ^ 101 ∧
     σ (.n 572) = σ (.n 4) * gen ^ winTabAt ∧
-    C "verify_tables" [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567),
-      σ (.n 0), σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335),
-      σ (.n 559), σ (.n 6), σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)]
-      [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 579),
-        σ (.n 580), σ (.n 581), σ (.n 582)] ∧
-    LoadHolds rd (σ (.n 71)) 6 (σ (.n 583)) ∧ σ (.n 587) = σ (.n 582) * gen ^ 101 ∧
-    σ (.n 589) = σ (.n 4) * gen ^ winTabAt ∧
-    C "verify_keccak" [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578),
-      σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)]
-      [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593), σ (.n 594), σ (.n 595), σ (.n 596)] ∧
+    C "verify_keccak" [σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560), σ (.n 561),
+      σ (.n 566), σ (.n 552), σ (.n 570), σ (.n 567), σ (.n 568), σ (.n 572)]
+      [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 579)] ∧
     next := by
   simp only [vsCallsT, vsTabsT, holdsList_append, Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc,
     vsLd, vsConst, vsMul, Atom.Holds, List.map_cons, List.map_nil,
@@ -77,22 +77,22 @@ theorem vsOpenNames_eq : vsOpenNames = Whir.openNames := by
 theorem vsTailT_holds {m : ℕ} (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
     (h278 : σ (.n 278) = gen ^ (m - Whir.minOpenLog))
     {rets : List E} (h : Stmt.HoldsList C rd σ vsTailT False (fun rs ↦ rs = rets)) :
-    rets = [] ∧ σ (.n 1919) = σ (.n 595) * gen ∧
-    σ (.n 1921) = σ (.n 4) * gen ^ winTabAt ∧ C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ) ∧
-    C "check_opening_terminal" [σ (.n 4), σ (.n 254), σ (.n 569), σ (.n 581), σ (.n 253),
-      σ (.n 579), σ (.n 72), σ (.n 583), σ (.n 83), σ (.n 1375), σ (.n 275), σ (.n 584),
-      σ (.n 848), σ (.n 1923), σ (.n 1924), σ (.n 1925), σ (.n 1926), σ (.n 1922), σ (.n 304),
+    rets = [] ∧ σ (.n 1885) = σ (.n 578) * gen ∧
+    σ (.n 1887) = σ (.n 4) * gen ^ winTabAt ∧ C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ) ∧
+    C "check_opening_terminal" [σ (.n 4), σ (.n 254), σ (.n 552), σ (.n 564), σ (.n 253),
+      σ (.n 562), σ (.n 72), σ (.n 566), σ (.n 83), σ (.n 1329), σ (.n 275), σ (.n 567),
+      σ (.n 815), σ (.n 1889), σ (.n 1890), σ (.n 1891), σ (.n 1892), σ (.n 1888), σ (.n 303),
       σ (.n 276)] [] ∧
     (∀ k < 19, ∃ w, LoadHolds rd (σ (.n 254)) k w ∧ LoadHolds rd (σ (.n 5)) k w) ∧
-    (∀ k < 4, ∃ w, LoadHolds rd (σ (.n 570)) k w ∧ LoadHolds rd (σ (.n 5)) (19 + k) w) ∧
-    LoadHolds rd (σ (.n 5)) 23 (σ (.n 580)) := by
+    (∀ k < 4, ∃ w, LoadHolds rd (σ (.n 553)) k w ∧ LoadHolds rd (σ (.n 5)) (19 + k) w) ∧
+    LoadHolds rd (σ (.n 5)) 23 (σ (.n 563)) := by
   rw [vsTailT, List.flatMap_def, List.flatMap_def] at h
   simp only [holdsList_append] at h
   rw [Tables.tb_holdsList_range_flatten 19 _ (fun _ ↦ rfl), Tables.tb_holdsList_range_flatten 4 _ (fun _ ↦ rfl)]
     at h
   simp only [vsTabsT, Stmt.HoldsList, Stmt.Holds, vsMul, vsConst, vsLd, Atom.Holds, List.map_nil] at h
   obtain ⟨e1918, m1919, c1920, m1921, ⟨j, hj, hj278, hc⟩, cT, hz, hb, l580, hr⟩ := h
-  have h1921 : σ (.n 1921) = σ (.n 4) * gen ^ winTabAt := by rw [m1921, c1920, vsWinWord_eq]
+  have h1921 : σ (.n 1887) = σ (.n 4) * gen ^ winTabAt := by rw [m1921, c1920, vsWinWord_eq]
   -- the size's arm
   have hlen : vsOpenNames.length = Whir.openArms := by rw [vsOpenNames_eq]; simp [Whir.openNames]
   have hA : Whir.openArms = 11 := rfl

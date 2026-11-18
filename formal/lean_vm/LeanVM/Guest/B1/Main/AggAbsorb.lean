@@ -112,10 +112,12 @@ theorem rowRel_full {p : E} {ws : List E} (hws : ws.length = 4)
 /-! ## The words of a chain -/
 
 /-- The `fs_pack`s of a list of atoms: each packed value and its base, a copy into `b` followed by
-the tag's constant at `b + 1`. -/
+the tag's constant at `b + 1`, or a constant bound in place at `b` followed by the tag's. -/
 def packsOf (atoms : List Atom) : List (V × ℕ) :=
   (atoms.zip atoms.tail).filterMap fun p => match p with
     | (.copy (.n b) x, .const (.n b') _) => if b' = b + 1 then some (x, b) else none
+    | (.const (.n b) _, .const (.n b') t) =>
+      if b' = b + 1 && eEqb t (word 0 dsObserve) then some (.n b, b) else none
     | _ => none
 
 theorem DupSpec.wvals_eq (s : DupSpec) (σ : Val) :

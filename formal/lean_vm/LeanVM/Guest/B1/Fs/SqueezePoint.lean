@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.Common.Find
 # `squeeze_point_from`
 
 A run of `m` plain squeezes from a carried capacity (`sqBlk`: the permutation of the zero rate and
-the previous capacity, its challenge copied out and stored at the point), after the capacity
+the previous capacity, its challenge, the first output cell, stored at the point), after the capacity
 copied in and the pad run, and before the last capacity copied out twice:
 `squeeze_point_from__L{n}` (`spfBody n`): `point[0] = first`, the capacity into `7 .. 11`, the
-pad run `12 .. 16`, `n - 1` squeezes from `17` (block `x` writes from `17 + 14 x`, its challenge
-at `17 + 14 x + 13`), stored at `point[x + 1]`.
+pad run `12 .. 16`, `n - 1` squeezes from `17` (block `x` writes from `17 + 13 x`, its challenge
+the first), stored at `point[x + 1]`.
 
 `sq_sound`, `sq_complete`: the run is `Fs.squeezeN` (`sqSt`, the sponge after `x` squeezes).
 -/
@@ -74,22 +74,20 @@ def run5 (c : ℕ) : List V := [.n c, .n (c + 1), .n (c + 2), .n (c + 3), .n (c 
 def run13 (b : ℕ) : List V := (List.range 13).map fun i ↦ .n (b + i)
 
 /-- Where squeeze `x` reads its capacity: the copied one first, then the previous outputs'. -/
-def sqCap (cap0 b x : ℕ) : ℕ := if x = 0 then cap0 else b + 14 * (x - 1) + 8
+def sqCap (cap0 b x : ℕ) : ℕ := if x = 0 then cap0 else b + 13 * (x - 1) + 8
 
 /-- Squeeze `x`: the permutation of the zero rate (the pad run's zeros from `z`) and the previous
-capacity, its challenge copied and stored at `pt[off + x]`. -/
+capacity, its challenge (the first output cell) stored at `pt[off + x]`. -/
 def sqBlk (z b cap0 : ℕ) (pt : V) (off x : ℕ) : List Stmt :=
   [keccakA ([.n z, .n z, .n z, .n z, .n z, .n (z + 1), .n (z + 2), .n (z + 3)] ++
-      run5 (sqCap cap0 b x)) (run13 (b + 14 * x)),
-    .atom (.copy (.n (b + 14 * x + 13)) (.n (b + 14 * x))),
-    .atom (.load (.n (b + 14 * x + 13)) pt (off + x))]
+      run5 (sqCap cap0 b x)) (run13 (b + 13 * x)),
+    .atom (.load (.n (b + 13 * x)) pt (off + x))]
 
 /-- What squeeze `x` asks of a valuation. -/
 def SqOk (rd : Reader) (σ : Val) (z b cap0 : ℕ) (pt : V) (off x : ℕ) : Prop :=
   (Atom.keccak ([.n z, .n z, .n z, .n z, .n z, .n (z + 1), .n (z + 2), .n (z + 3)] ++
-      run5 (sqCap cap0 b x)) (run13 (b + 14 * x)) false false).Holds rd σ ∧
-    σ (.n (b + 14 * x + 13)) = σ (.n (b + 14 * x)) ∧
-    LoadHolds rd (σ pt) (off + x) (σ (.n (b + 14 * x + 13)))
+      run5 (sqCap cap0 b x)) (run13 (b + 13 * x)) false false).Holds rd σ ∧
+    LoadHolds rd (σ pt) (off + x) (σ (.n (b + 13 * x)))
 
 theorem holds_sqBlk (z b cap0 : ℕ) (pt : V) (off x : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (sqBlk z b cap0 pt off x) True kret ↔ SqOk rd σ z b cap0 pt off x := by
@@ -120,13 +118,13 @@ theorem sq_ins {z c : ℕ} (hz : ZeroRun σ z) :
 
 /-- The capacity a squeeze after the first reads: the previous outputs' cells `8 .. 12`. -/
 theorem run5_cells {b x : ℕ} {S : KeccakState}
-    (h : ∀ c : Fin 13, σ (.n (b + 14 * x + c.val)) = cellsOfState S false c) :
-    (run5 (b + 14 * x + 8)).map σ = capOf S := by
-  have e : ∀ i (hi : i < 5), σ (.n (b + 14 * x + 8 + i)) = cellsOfState S false ⟨8 + i, by omega⟩ :=
-    fun i hi ↦ by rw [show b + 14 * x + 8 + i = b + 14 * x + (⟨8 + i, by omega⟩ : Fin 13).val by
+    (h : ∀ c : Fin 13, σ (.n (b + 13 * x + c.val)) = cellsOfState S false c) :
+    (run5 (b + 13 * x + 8)).map σ = capOf S := by
+  have e : ∀ i (hi : i < 5), σ (.n (b + 13 * x + 8 + i)) = cellsOfState S false ⟨8 + i, by omega⟩ :=
+    fun i hi ↦ by rw [show b + 13 * x + 8 + i = b + 13 * x + (⟨8 + i, by omega⟩ : Fin 13).val by
       simp; ring]; exact h _
   simp only [run5, List.map_cons, List.map_nil, capOf]
-  rw [show σ (.n (b + 14 * x + 8)) = _ from e 0 (by omega), e 1 (by omega), e 2 (by omega),
+  rw [show σ (.n (b + 13 * x + 8)) = _ from e 0 (by omega), e 1 (by omega), e 2 (by omega),
     e 3 (by omega), e 4 (by omega)]
   rfl
 
@@ -134,17 +132,17 @@ theorem run5_cells {b x : ℕ} {S : KeccakState}
 squeeze `x` writes the cells of `(sqSt s x).perm` and stores its challenge. -/
 theorem sq_sound {z b cap0 : ℕ} {pt : V} {off m : ℕ} {s : Fs} (hs : s.pend = [])
     (hz : ZeroRun σ z) (hcap : (run5 cap0).map σ = s.cap) (h : ∀ x < m, SqOk rd σ z b cap0 pt off x) :
-    ∀ x < m, (∀ c : Fin 13, σ (.n (b + 14 * x + c.val)) = cellsOfState (sqSt s x).perm false c) ∧
+    ∀ x < m, (∀ c : Fin 13, σ (.n (b + 13 * x + c.val)) = cellsOfState (sqSt s x).perm false c) ∧
       LoadHolds rd (σ pt) (off + x) (challengeOf (sqSt s x).perm) := by
   have step : ∀ x < m, (run5 (sqCap cap0 b x)).map σ = (sqSt s x).cap →
-      (∀ c : Fin 13, σ (.n (b + 14 * x + c.val)) = cellsOfState (sqSt s x).perm false c) ∧
+      (∀ c : Fin 13, σ (.n (b + 13 * x + c.val)) = cellsOfState (sqSt s x).perm false c) ∧
         LoadHolds rd (σ pt) (off + x) (challengeOf (sqSt s x).perm) := by
     intro x hx hc
-    obtain ⟨hk, hcp, hl⟩ := h x hx
+    obtain ⟨hk, hl⟩ := h x hx
     have hout := keccak_run13 hk
     rw [sq_ins hz, hc, ← sqSt_perm hs] at hout
     refine ⟨hout, ?_⟩
-    rw [hcp, show b + 14 * x = b + 14 * x + (0 : Fin 13).val by simp, hout 0,
+    rw [show b + 13 * x = b + 13 * x + (0 : Fin 13).val by simp, hout 0,
       ← Keccak.challengeOf_cells] at hl
     exact hl
   intro x
@@ -161,8 +159,7 @@ theorem sq_sound {z b cap0 : ℕ} {pt : V} {off m : ℕ} {s : Fs} (hs : s.pend =
 challenges stored make every squeeze hold. -/
 theorem sq_complete {z b cap0 : ℕ} {pt : V} {off m : ℕ} {s : Fs} (hs : s.pend = [])
     (hz : ZeroRun σ z) (hcap : (run5 cap0).map σ = s.cap)
-    (hv : ∀ x < m, ∀ c : Fin 13, σ (.n (b + 14 * x + c.val)) = cellsOfState (sqSt s x).perm false c)
-    (hch : ∀ x < m, σ (.n (b + 14 * x + 13)) = challengeOf (sqSt s x).perm)
+    (hv : ∀ x < m, ∀ c : Fin 13, σ (.n (b + 13 * x + c.val)) = cellsOfState (sqSt s x).perm false c)
     (hpt : ∀ x < m, LoadHolds rd (σ pt) (off + x) (challengeOf (sqSt s x).perm)) :
     ∀ x < m, SqOk rd σ z b cap0 pt off x := by
   intro x hx
@@ -172,13 +169,13 @@ theorem sq_complete {z b cap0 : ℕ} {pt : V} {off m : ℕ} {s : Fs} (hs : s.pen
     | succ x =>
       rw [sqSt_cap_succ, ← run5_cells (hv x (by omega))]
       simp only [sqCap, Nat.add_sub_cancel, show x + 1 ≠ 0 by omega, ↓reduceIte]
-  refine ⟨keccak13_mk (by simp [run5]) (by simp [run13]) fun c ↦ ?_, ?_, ?_⟩
+  refine ⟨keccak13_mk (by simp [run5]) (by simp [run13]) fun c ↦ ?_, ?_⟩
   · rw [cells13_run13, hv x hx c]
     show _ = cellsOfState (permOf _) false c
     rw [sq_ins hz, hc, ← sqSt_perm hs]
-  · rw [hch x hx, show b + 14 * x = b + 14 * x + (0 : Fin 13).val by simp, hv x hx 0,
-      Keccak.challengeOf_cells]
-  · rw [hch x hx]; exact hpt x hx
+  · rw [show b + 13 * x = b + 13 * x + (0 : Fin 13).val by simp, hv x hx 0,
+      ← Keccak.challengeOf_cells]
+    exact hpt x hx
 
 theorem holds_sqChain (z b cap0 : ℕ) (pt : V) (off m : ℕ) (next : Prop) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ ((List.range m).map (sqBlk z b cap0 pt off)).flatten next kret ↔
@@ -201,18 +198,18 @@ theorem fin13_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : fin13 x = c := Fi
 /-- The last capacity copied out twice: cells `8 .. 12` of the last squeeze's state, read from the
 chain's last block or either copy. -/
 theorem sp_copies {b m : ℕ} {S : KeccakState}
-    (hB : ∀ c : Fin 13, σ (.n (b + 14 * m + c.val)) = cellsOfState S false c)
-    (c1 : ∀ i < 5, σ (.n (b + 14 * (m + 1) + i)) = σ (.n (b + 14 * m + 8 + i)))
-    (c2 : ∀ i < 5, σ (.n (b + 5 + 14 * (m + 1) + i)) = σ (.n (b + 14 * (m + 1) + i))) :
-    [σ (.n (b + 5 + 14 * (m + 1))), σ (.n (b + 5 + 14 * (m + 1) + 1)),
-      σ (.n (b + 5 + 14 * (m + 1) + 2)), σ (.n (b + 5 + 14 * (m + 1) + 3)),
-      σ (.n (b + 5 + 14 * (m + 1) + 4))] = capOf S := by
-  have e : ∀ i (hi : i < 5), σ (.n (b + 5 + 14 * (m + 1) + i)) =
+    (hB : ∀ c : Fin 13, σ (.n (b + 13 * m + c.val)) = cellsOfState S false c)
+    (c1 : ∀ i < 5, σ (.n (b + 13 * (m + 1) + i)) = σ (.n (b + 13 * m + 8 + i)))
+    (c2 : ∀ i < 5, σ (.n (b + 5 + 13 * (m + 1) + i)) = σ (.n (b + 13 * (m + 1) + i))) :
+    [σ (.n (b + 5 + 13 * (m + 1))), σ (.n (b + 5 + 13 * (m + 1) + 1)),
+      σ (.n (b + 5 + 13 * (m + 1) + 2)), σ (.n (b + 5 + 13 * (m + 1) + 3)),
+      σ (.n (b + 5 + 13 * (m + 1) + 4))] = capOf S := by
+  have e : ∀ i (hi : i < 5), σ (.n (b + 5 + 13 * (m + 1) + i)) =
       cellsOfState S false ⟨8 + i, by omega⟩ := fun i hi ↦ by
-    rw [c2 i hi, c1 i hi, show b + 14 * m + 8 + i = b + 14 * m + (⟨8 + i, by omega⟩ : Fin 13).val by
+    rw [c2 i hi, c1 i hi, show b + 13 * m + 8 + i = b + 13 * m + (⟨8 + i, by omega⟩ : Fin 13).val by
       simp; ring]
     exact hB _
-  rw [show σ (.n (b + 5 + 14 * (m + 1))) = _ from (by simpa using e 0 (by omega)), e 1 (by omega),
+  rw [show σ (.n (b + 5 + 13 * (m + 1))) = _ from (by simpa using e 0 (by omega)), e 1 (by omega),
     e 2 (by omega), e 3 (by omega), e 4 (by omega)]
   rfl
 
@@ -223,18 +220,18 @@ def spfBody (n : ℕ) : List Stmt :=
   [.atom (.load (.n 5) (.n 6) 0), .atom (.copy (.n 7) (.n 0)), .atom (.copy (.n 8) (.n 1)),
     .atom (.copy (.n 9) (.n 2)), .atom (.copy (.n 10) (.n 3)), .atom (.copy (.n 11) (.n 4))] ++
   padRunT 12 ++ ((List.range n).map (sqBlk 13 17 7 (.n 6) 1)).flatten ++
-  [.atom (.copy (.n (17 + 14 * n)) (.n (17 + 14 * (n - 1) + 8))),
-    .atom (.copy (.n (18 + 14 * n)) (.n (17 + 14 * (n - 1) + 9))),
-    .atom (.copy (.n (19 + 14 * n)) (.n (17 + 14 * (n - 1) + 10))),
-    .atom (.copy (.n (20 + 14 * n)) (.n (17 + 14 * (n - 1) + 11))),
-    .atom (.copy (.n (21 + 14 * n)) (.n (17 + 14 * (n - 1) + 12))),
-    .atom (.copy (.n (22 + 14 * n)) (.n (17 + 14 * n))),
-    .atom (.copy (.n (23 + 14 * n)) (.n (18 + 14 * n))),
-    .atom (.copy (.n (24 + 14 * n)) (.n (19 + 14 * n))),
-    .atom (.copy (.n (25 + 14 * n)) (.n (20 + 14 * n))),
-    .atom (.copy (.n (26 + 14 * n)) (.n (21 + 14 * n))),
-    .ret [.n (22 + 14 * n), .n (23 + 14 * n), .n (24 + 14 * n), .n (25 + 14 * n),
-      .n (26 + 14 * n)]]
+  [.atom (.copy (.n (17 + 13 * n)) (.n (17 + 13 * (n - 1) + 8))),
+    .atom (.copy (.n (18 + 13 * n)) (.n (17 + 13 * (n - 1) + 9))),
+    .atom (.copy (.n (19 + 13 * n)) (.n (17 + 13 * (n - 1) + 10))),
+    .atom (.copy (.n (20 + 13 * n)) (.n (17 + 13 * (n - 1) + 11))),
+    .atom (.copy (.n (21 + 13 * n)) (.n (17 + 13 * (n - 1) + 12))),
+    .atom (.copy (.n (22 + 13 * n)) (.n (17 + 13 * n))),
+    .atom (.copy (.n (23 + 13 * n)) (.n (18 + 13 * n))),
+    .atom (.copy (.n (24 + 13 * n)) (.n (19 + 13 * n))),
+    .atom (.copy (.n (25 + 13 * n)) (.n (20 + 13 * n))),
+    .atom (.copy (.n (26 + 13 * n)) (.n (21 + 13 * n))),
+    .ret [.n (22 + 13 * n), .n (23 + 13 * n), .n (24 + 13 * n), .n (25 + 13 * n),
+      .n (26 + 13 * n)]]
 
 /-- The honest values of `squeeze_point_from__L{n + 1}` on its arguments `as`, `s` its sponge. -/
 def spfVals (as : List E) (s : Fs) (n k : ℕ) : E :=
@@ -242,11 +239,9 @@ def spfVals (as : List E) (s : Fs) (n k : ℕ) : E :=
   else if k < 12 then as.getD (k - 7) 0
   else if k = 12 then word 1 0
   else if k < 17 then 0
-  else if (k - 17) / 14 < n then
-    (if (k - 17) % 14 < 13 then cellsOfState (sqSt s ((k - 17) / 14)).perm false (fin13 ((k - 17) % 14))
-    else challengeOf (sqSt s ((k - 17) / 14)).perm)
-  else if k < 22 + 14 * n then cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (17 + 14 * n))))
-  else cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (22 + 14 * n))))
+  else if (k - 17) / 13 < n then cellsOfState (sqSt s ((k - 17) / 13)).perm false (fin13 ((k - 17) % 13))
+  else if k < 22 + 13 * n then cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (17 + 13 * n))))
+  else cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (22 + 13 * n))))
 
 theorem spf_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     (hfind : coreProgram.find? name = some f)
@@ -285,31 +280,31 @@ theorem spf_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     · simp only [show m + 1 - 1 = m by omega] at c0 c1 c2 c3 c4
       interval_cases i
       · exact c0
-      · exact (show σ (.n (17 + 14 * (m + 1) + 1)) = σ (.n (18 + 14 * (m + 1))) by
-          rw [show 17 + 14 * (m + 1) + 1 = 18 + 14 * (m + 1) by ring]).trans c1
-      · exact (show σ (.n (17 + 14 * (m + 1) + 2)) = σ (.n (19 + 14 * (m + 1))) by
-          rw [show 17 + 14 * (m + 1) + 2 = 19 + 14 * (m + 1) by ring]).trans
-            (c2.trans (by rw [show 17 + 14 * m + 10 = 17 + 14 * m + 8 + 2 by ring]))
-      · exact (show σ (.n (17 + 14 * (m + 1) + 3)) = σ (.n (20 + 14 * (m + 1))) by
-          rw [show 17 + 14 * (m + 1) + 3 = 20 + 14 * (m + 1) by ring]).trans
-            (c3.trans (by rw [show 17 + 14 * m + 11 = 17 + 14 * m + 8 + 3 by ring]))
-      · exact (show σ (.n (17 + 14 * (m + 1) + 4)) = σ (.n (21 + 14 * (m + 1))) by
-          rw [show 17 + 14 * (m + 1) + 4 = 21 + 14 * (m + 1) by ring]).trans
-            (c4.trans (by rw [show 17 + 14 * m + 12 = 17 + 14 * m + 8 + 4 by ring]))
+      · exact (show σ (.n (17 + 13 * (m + 1) + 1)) = σ (.n (18 + 13 * (m + 1))) by
+          rw [show 17 + 13 * (m + 1) + 1 = 18 + 13 * (m + 1) by ring]).trans c1
+      · exact (show σ (.n (17 + 13 * (m + 1) + 2)) = σ (.n (19 + 13 * (m + 1))) by
+          rw [show 17 + 13 * (m + 1) + 2 = 19 + 13 * (m + 1) by ring]).trans
+            (c2.trans (by rw [show 17 + 13 * m + 10 = 17 + 13 * m + 8 + 2 by ring]))
+      · exact (show σ (.n (17 + 13 * (m + 1) + 3)) = σ (.n (20 + 13 * (m + 1))) by
+          rw [show 17 + 13 * (m + 1) + 3 = 20 + 13 * (m + 1) by ring]).trans
+            (c3.trans (by rw [show 17 + 13 * m + 11 = 17 + 13 * m + 8 + 3 by ring]))
+      · exact (show σ (.n (17 + 13 * (m + 1) + 4)) = σ (.n (21 + 13 * (m + 1))) by
+          rw [show 17 + 13 * (m + 1) + 4 = 21 + 13 * (m + 1) by ring]).trans
+            (c4.trans (by rw [show 17 + 13 * m + 12 = 17 + 13 * m + 8 + 4 by ring]))
     · interval_cases i
-      · exact d0.trans (by rw [show 17 + 14 * (m + 1) + 0 = 17 + 14 * (m + 1) by ring])
-      · exact (show σ (.n (17 + 5 + 14 * (m + 1) + 1)) = σ (.n (23 + 14 * (m + 1))) by
-          rw [show 17 + 5 + 14 * (m + 1) + 1 = 23 + 14 * (m + 1) by ring]).trans
-            (d1.trans (by rw [show 18 + 14 * (m + 1) = 17 + 14 * (m + 1) + 1 by ring]))
-      · exact (show σ (.n (17 + 5 + 14 * (m + 1) + 2)) = σ (.n (24 + 14 * (m + 1))) by
-          rw [show 17 + 5 + 14 * (m + 1) + 2 = 24 + 14 * (m + 1) by ring]).trans
-            (d2.trans (by rw [show 19 + 14 * (m + 1) = 17 + 14 * (m + 1) + 2 by ring]))
-      · exact (show σ (.n (17 + 5 + 14 * (m + 1) + 3)) = σ (.n (25 + 14 * (m + 1))) by
-          rw [show 17 + 5 + 14 * (m + 1) + 3 = 25 + 14 * (m + 1) by ring]).trans
-            (d3.trans (by rw [show 20 + 14 * (m + 1) = 17 + 14 * (m + 1) + 3 by ring]))
-      · exact (show σ (.n (17 + 5 + 14 * (m + 1) + 4)) = σ (.n (26 + 14 * (m + 1))) by
-          rw [show 17 + 5 + 14 * (m + 1) + 4 = 26 + 14 * (m + 1) by ring]).trans
-            (d4.trans (by rw [show 21 + 14 * (m + 1) = 17 + 14 * (m + 1) + 4 by ring]))
+      · exact d0.trans (by rw [show 17 + 13 * (m + 1) + 0 = 17 + 13 * (m + 1) by ring])
+      · exact (show σ (.n (17 + 5 + 13 * (m + 1) + 1)) = σ (.n (23 + 13 * (m + 1))) by
+          rw [show 17 + 5 + 13 * (m + 1) + 1 = 23 + 13 * (m + 1) by ring]).trans
+            (d1.trans (by rw [show 18 + 13 * (m + 1) = 17 + 13 * (m + 1) + 1 by ring]))
+      · exact (show σ (.n (17 + 5 + 13 * (m + 1) + 2)) = σ (.n (24 + 13 * (m + 1))) by
+          rw [show 17 + 5 + 13 * (m + 1) + 2 = 24 + 13 * (m + 1) by ring]).trans
+            (d2.trans (by rw [show 19 + 13 * (m + 1) = 17 + 13 * (m + 1) + 2 by ring]))
+      · exact (show σ (.n (17 + 5 + 13 * (m + 1) + 3)) = σ (.n (25 + 13 * (m + 1))) by
+          rw [show 17 + 5 + 13 * (m + 1) + 3 = 25 + 13 * (m + 1) by ring]).trans
+            (d3.trans (by rw [show 20 + 13 * (m + 1) = 17 + 13 * (m + 1) + 3 by ring]))
+      · exact (show σ (.n (17 + 5 + 13 * (m + 1) + 4)) = σ (.n (26 + 13 * (m + 1))) by
+          rw [show 17 + 5 + 13 * (m + 1) + 4 = 26 + 13 * (m + 1) by ring]).trans
+            (d4.trans (by rw [show 21 + 13 * (m + 1) = 17 + 13 * (m + 1) + 4 by ring]))
 
 
 theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
@@ -331,18 +326,13 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
   have hz : ZeroRun σ 13 := by refine ⟨?_, ?_, ?_, ?_⟩ <;> simp [ev, spfVals]
   have hcap : (run5 7).map σ = s.cap := by simp [run5, ev, spfVals, as, hsd]
   have hv : ∀ x < n, ∀ c : Fin 13,
-      σ (.n (17 + 14 * x + c.val)) = cellsOfState (sqSt s x).perm false c := by
+      σ (.n (17 + 13 * x + c.val)) = cellsOfState (sqSt s x).perm false c := by
     intro x hx c
     have := c.isLt
-    rw [ev, spfVals, show (17 + 14 * x + c.val - 17) / 14 = x by omega,
-      show (17 + 14 * x + c.val - 17) % 14 = c.val by omega]
+    rw [ev, spfVals, show (17 + 13 * x + c.val - 17) / 13 = x by omega,
+      show (17 + 13 * x + c.val - 17) % 13 = c.val by omega]
     repeat sp_if
     congr 1; apply fin13_eq; omega
-  have hch : ∀ x < n, σ (.n (17 + 14 * x + 13)) = challengeOf (sqSt s x).perm := by
-    intro x hx
-    rw [ev, spfVals, show (17 + 14 * x + 13 - 17) / 14 = x by omega,
-      show (17 + 14 * x + 13 - 17) % 14 = 13 by omega]
-    repeat sp_if
   have hp : ∀ x < n, LoadHolds rd point (1 + x) (challengeOf (sqSt s x).perm) := by
     intro x hx
     have := hpt (x + 1) (by simp; omega)
@@ -354,54 +344,54 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
   simp only [holdsList_append, holds_padRunT, holds_sqChain, Stmt.HoldsList, Stmt.Holds,
     Atom.Holds, List.map_cons, List.map_nil]
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  have cA : ∀ i < 5, σ (.n (17 + 14 * (m + 1) + i)) =
+  have cA : ∀ i < 5, σ (.n (17 + 13 * (m + 1) + i)) =
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
     intro i hi
     rw [ev, spfVals]
     repeat sp_if
-    rw [show m + 1 - 1 = m by omega, show 17 + 14 * (m + 1) + i - (17 + 14 * (m + 1)) = i by omega]
-  have cB : ∀ i < 5, σ (.n (22 + 14 * (m + 1) + i)) =
+    rw [show m + 1 - 1 = m by omega, show 17 + 13 * (m + 1) + i - (17 + 13 * (m + 1)) = i by omega]
+  have cB : ∀ i < 5, σ (.n (22 + 13 * (m + 1) + i)) =
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
     intro i hi
     rw [ev, spfVals]
     repeat sp_if
-    rw [show m + 1 - 1 = m by omega, show 22 + 14 * (m + 1) + i - (22 + 14 * (m + 1)) = i by omega]
-  have cC : ∀ i < 5, σ (.n (17 + 14 * m + 8 + i)) =
+    rw [show m + 1 - 1 = m by omega, show 22 + 13 * (m + 1) + i - (22 + 13 * (m + 1)) = i by omega]
+  have cC : ∀ i < 5, σ (.n (17 + 13 * m + 8 + i)) =
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
     intro i hi
-    rw [show 17 + 14 * m + 8 + i = 17 + 14 * m + (fin13 (8 + i)).val by simp [fin13]; omega]
+    rw [show 17 + 13 * m + 8 + i = 17 + 13 * m + (fin13 (8 + i)).val by simp [fin13]; omega]
     exact hv m (by omega) _
   refine ⟨σ, by simp [ev, spfVals, as], ?_, ?_, ?_, ?_, ?_, ?_, ⟨?_, hz⟩,
-    ⟨sq_complete (s := s) rfl hz hcap hv hch (fun x hx ↦ by rw [e6]; exact hp x hx), ?_⟩⟩
+    ⟨sq_complete (s := s) rfl hz hcap hv (fun x hx ↦ by rw [e6]; exact hp x hx), ?_⟩⟩
   · show LoadHolds rd (σ (.n 6)) 0 (σ (.n 5))
     rw [e6, show σ (.n 5) = first by simp [ev, spfVals, as]]; exact hfirst
   all_goals try (simp [ev, spfVals, as]; done)
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [show m + 1 - 1 = m by omega, show 17 + 14 * (m + 1) = 17 + 14 * (m + 1) + 0 by ring,
-      cA 0 (by omega), show 17 + 14 * m + 8 = 17 + 14 * m + 8 + 0 by ring, cC 0 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 18 + 14 * (m + 1) = 17 + 14 * (m + 1) + 1 by ring,
-      cA 1 (by omega), show 17 + 14 * m + 9 = 17 + 14 * m + 8 + 1 by ring, cC 1 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 19 + 14 * (m + 1) = 17 + 14 * (m + 1) + 2 by ring,
-      cA 2 (by omega), show 17 + 14 * m + 10 = 17 + 14 * m + 8 + 2 by ring, cC 2 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 20 + 14 * (m + 1) = 17 + 14 * (m + 1) + 3 by ring,
-      cA 3 (by omega), show 17 + 14 * m + 11 = 17 + 14 * m + 8 + 3 by ring, cC 3 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 21 + 14 * (m + 1) = 17 + 14 * (m + 1) + 4 by ring,
-      cA 4 (by omega), show 17 + 14 * m + 12 = 17 + 14 * m + 8 + 4 by ring, cC 4 (by omega)]
-  · rw [show 22 + 14 * (m + 1) = 22 + 14 * (m + 1) + 0 by ring, cB 0 (by omega),
-      show 17 + 14 * (m + 1) = 17 + 14 * (m + 1) + 0 by ring, cA 0 (by omega)]
-  · rw [show 23 + 14 * (m + 1) = 22 + 14 * (m + 1) + 1 by ring, cB 1 (by omega),
-      show 18 + 14 * (m + 1) = 17 + 14 * (m + 1) + 1 by ring, cA 1 (by omega)]
-  · rw [show 24 + 14 * (m + 1) = 22 + 14 * (m + 1) + 2 by ring, cB 2 (by omega),
-      show 19 + 14 * (m + 1) = 17 + 14 * (m + 1) + 2 by ring, cA 2 (by omega)]
-  · rw [show 25 + 14 * (m + 1) = 22 + 14 * (m + 1) + 3 by ring, cB 3 (by omega),
-      show 20 + 14 * (m + 1) = 17 + 14 * (m + 1) + 3 by ring, cA 3 (by omega)]
-  · rw [show 26 + 14 * (m + 1) = 22 + 14 * (m + 1) + 4 by ring, cB 4 (by omega),
-      show 21 + 14 * (m + 1) = 17 + 14 * (m + 1) + 4 by ring, cA 4 (by omega)]
-  · rw [hret, sqSt_cap_succ, show 22 + 14 * (m + 1) = 22 + 14 * (m + 1) + 0 by ring,
-      show 23 + 14 * (m + 1) = 22 + 14 * (m + 1) + 1 by ring,
-      show 24 + 14 * (m + 1) = 22 + 14 * (m + 1) + 2 by ring,
-      show 25 + 14 * (m + 1) = 22 + 14 * (m + 1) + 3 by ring,
-      show 26 + 14 * (m + 1) = 22 + 14 * (m + 1) + 4 by ring, cB 0 (by omega), cB 1 (by omega),
+  · rw [show m + 1 - 1 = m by omega, show 17 + 13 * (m + 1) = 17 + 13 * (m + 1) + 0 by ring,
+      cA 0 (by omega), show 17 + 13 * m + 8 = 17 + 13 * m + 8 + 0 by ring, cC 0 (by omega)]
+  · rw [show m + 1 - 1 = m by omega, show 18 + 13 * (m + 1) = 17 + 13 * (m + 1) + 1 by ring,
+      cA 1 (by omega), show 17 + 13 * m + 9 = 17 + 13 * m + 8 + 1 by ring, cC 1 (by omega)]
+  · rw [show m + 1 - 1 = m by omega, show 19 + 13 * (m + 1) = 17 + 13 * (m + 1) + 2 by ring,
+      cA 2 (by omega), show 17 + 13 * m + 10 = 17 + 13 * m + 8 + 2 by ring, cC 2 (by omega)]
+  · rw [show m + 1 - 1 = m by omega, show 20 + 13 * (m + 1) = 17 + 13 * (m + 1) + 3 by ring,
+      cA 3 (by omega), show 17 + 13 * m + 11 = 17 + 13 * m + 8 + 3 by ring, cC 3 (by omega)]
+  · rw [show m + 1 - 1 = m by omega, show 21 + 13 * (m + 1) = 17 + 13 * (m + 1) + 4 by ring,
+      cA 4 (by omega), show 17 + 13 * m + 12 = 17 + 13 * m + 8 + 4 by ring, cC 4 (by omega)]
+  · rw [show 22 + 13 * (m + 1) = 22 + 13 * (m + 1) + 0 by ring, cB 0 (by omega),
+      show 17 + 13 * (m + 1) = 17 + 13 * (m + 1) + 0 by ring, cA 0 (by omega)]
+  · rw [show 23 + 13 * (m + 1) = 22 + 13 * (m + 1) + 1 by ring, cB 1 (by omega),
+      show 18 + 13 * (m + 1) = 17 + 13 * (m + 1) + 1 by ring, cA 1 (by omega)]
+  · rw [show 24 + 13 * (m + 1) = 22 + 13 * (m + 1) + 2 by ring, cB 2 (by omega),
+      show 19 + 13 * (m + 1) = 17 + 13 * (m + 1) + 2 by ring, cA 2 (by omega)]
+  · rw [show 25 + 13 * (m + 1) = 22 + 13 * (m + 1) + 3 by ring, cB 3 (by omega),
+      show 20 + 13 * (m + 1) = 17 + 13 * (m + 1) + 3 by ring, cA 3 (by omega)]
+  · rw [show 26 + 13 * (m + 1) = 22 + 13 * (m + 1) + 4 by ring, cB 4 (by omega),
+      show 21 + 13 * (m + 1) = 17 + 13 * (m + 1) + 4 by ring, cA 4 (by omega)]
+  · rw [hret, sqSt_cap_succ, show 22 + 13 * (m + 1) = 22 + 13 * (m + 1) + 0 by ring,
+      show 23 + 13 * (m + 1) = 22 + 13 * (m + 1) + 1 by ring,
+      show 24 + 13 * (m + 1) = 22 + 13 * (m + 1) + 2 by ring,
+      show 25 + 13 * (m + 1) = 22 + 13 * (m + 1) + 3 by ring,
+      show 26 + 13 * (m + 1) = 22 + 13 * (m + 1) + 4 by ring, cB 0 (by omega), cB 1 (by omega),
       cB 2 (by omega), cB 3 (by omega), cB 4 (by omega)]
     rfl
 

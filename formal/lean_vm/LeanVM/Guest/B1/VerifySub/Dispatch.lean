@@ -34,15 +34,15 @@ theorem vs_dispatch (hos : Whir.open_stacked_sound_w_Spec Whir.open_stacked_osW)
     (hU : UnfoldsV L.read C V) (hC : CallRel.Le C (coreProgram.Rel L.read)) {m lir : ℕ}
     (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) {root : Digest}
     (h66 : σ (.n 66) = Whir.rateSel lir)
-    (hroot : (σ (.n 268), σ (.n 271)) = digestHalves root) (hwin : WinTabs L.read (σ (.n 1921)))
+    (hroot : (σ (.n 268), σ (.n 271)) = digestHalves root) (hwin : WinTabs L.read (σ (.n 1887)))
     (hc : C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ)) :
     Whir.OpenOutW L.read m lir root
-      [σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374)] (σ (.n 1917))
-      (σ (.n 1919)) (vsOsRets σ) (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).1
+      [σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341)] (σ (.n 1883))
+      (σ (.n 1885)) (vsOsRets σ) (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).1
       (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).2 := by
   obtain ⟨fn, hfind, hpar, hbody⟩ := hU _ _ _ hc
-  refine hos hκ hκw L C V hU hC m lir hm20 hm30 hl1 hl4 root _ (σ (.n 1917)) (σ (.n 268))
-    (σ (.n 271)) (σ (.n 1919)) (σ (.n 1921)) _ fn _ rfl hroot hwin hfind ?_ hbody
+  refine hos hκ hκw L C V hU hC m lir hm20 hm30 hl1 hl4 root _ (σ (.n 1883)) (σ (.n 268))
+    (σ (.n 271)) (σ (.n 1885)) (σ (.n 1887)) _ fn _ rfl hroot hwin hfind ?_ hbody
   rw [show Whir.openNames.getD (m - Whir.minOpenLog) "" = Whir.openName m from rfl, hpar, vsOsArgs,
     h66]
   rfl

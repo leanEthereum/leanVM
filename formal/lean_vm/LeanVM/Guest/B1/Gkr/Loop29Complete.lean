@@ -47,9 +47,9 @@ def l29Pre : List Stmt :=
 
 /-- The guard and the next call's argument. -/
 def l29Post : List Stmt :=
-  [.atom (.const (.n 339) (word 2 0)), .atom (.mul (.n 340) (.n 0) (.n 339)),
-    .atom (.add (.n 341) (.n 340) (.n 1)), .atom (.const (.n 342) (word 2 0)),
-    .atom (.mul (.n 343) (.n 0) (.n 342))]
+  [.atom (.const (.n 331) (word 2 0)), .atom (.mul (.n 332) (.n 0) (.n 331)),
+    .atom (.add (.n 333) (.n 332) (.n 1)), .atom (.const (.n 334) (word 2 0)),
+    .atom (.mul (.n 335) (.n 0) (.n 334))]
 
 /-- `gkBody 8` but its returned `0`: the eight rounds between records. -/
 def gk8Pre : List Stmt := ((gkBody 8).dropLast).dropLast
@@ -59,25 +59,25 @@ def l29A : List Stmt := l29Pre ++ Stmt.renameList sh6 gk8Pre ++ l29Post
 
 set_option maxRecDepth 100000 in
 theorem l29Body_eq' : tbStmtsEqb l29Body
-    (l29A ++ [.callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4],
+    (l29A ++ [.callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3, .n 4],
         .ret []]) = true := by
   decide +kernel
 
 theorem l29Body_eq : l29Body =
-    l29A ++ [.callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4],
+    l29A ++ [.callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3, .n 4],
         .ret []] :=
   tbStmtsEqb_sound l29Body_eq'
 
-/-- Every statement of `gk8Pre` is an atom over values `.n k`, `k ≤ 331`. -/
+/-- Every statement of `gk8Pre` is an atom over values `.n k`, `k ≤ 323`. -/
 def gk4Ok : Stmt → Bool
-  | .atom a => a.vals.all fun v => decide (v = .n v.idx) && decide (v.idx ≤ 331)
+  | .atom a => a.vals.all fun v => decide (v = .n v.idx) && decide (v.idx ≤ 323)
   | _ => false
 
 set_option maxRecDepth 100000 in
 theorem gk4_ok : gk8Pre.all gk4Ok = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem gkBody4_eq : gkBody 8 = gk8Pre ++ [.atom (.const (.n 332) (word 0 0)), .ret [.n 332]] :=
+theorem gkBody4_eq : gkBody 8 = gk8Pre ++ [.atom (.const (.n 324) (word 0 0)), .ret [.n 324]] :=
   tbStmtsEqb_sound (by decide +kernel)
 
 theorem atom_congr' {rd : Reader} {σ σ' : Val} {a : Atom} (h : ∀ v ∈ a.vals, σ v = σ' v) :
@@ -125,8 +125,8 @@ def l29Val (x N head ptrow tabs : E) (σgk : Val) (v : V) : E :=
   if v.idx < 10 then [x, N, head, ptrow, tabs, x * x, x * x * (x * x),
     x * x * (x * x) * (x * x * (x * x)), head * (x * x * (x * x) * (x * x * (x * x))),
     ptrow * (x * x * (x * x) * (x * x * (x * x)))].getD v.idx 0
-  else if v.idx ≤ 338 then σgk (.n (v.idx - 7))
-  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 339) 0
+  else if v.idx ≤ 330 then σgk (.n (v.idx - 7))
+  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 331) 0
 
 theorem gkBody4_atoms {C : CallRel} {rd : Reader} {σ : Val}
     (h : Stmt.HoldsList C rd σ (gkBody 8) False (fun rs => rs = [0])) :
@@ -173,7 +173,7 @@ theorem l29_iter {rd : Reader} (x N head ptrow tabs : E)
       by_cases e2 : v.idx = 2
       · simp [sh6, l29Val, e2, h2]
       have i1 : ¬ v.idx + 7 < 10 := by omega
-      have i2 : v.idx + 7 ≤ 338 := by omega
+      have i2 : v.idx + 7 ≤ 330 := by omega
       simp only [sh6, l29Val, e0, e1, e2, i1, i2, ↓reduceIte, Nat.add_sub_cancel]
     | _ =>
       have hok := List.all_eq_true.mp gk4_ok _ ht

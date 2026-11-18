@@ -49,9 +49,10 @@ def sForsKid (c z : Nat) : Nat := sForsBase c + 9 + ((List.range z).map (forsLev
 
 /-- **The hinted pair of layer `l`'s path level `j`**, after the counter (37 values), `enc_at` (2),
 the encoding (8) and the leaf: a level takes 13 values, the top layer's level `0` 16 (its parent's
-index two bytes), the root's level 10. -/
+index two bytes), the root's level 10; the top layer's `A0` takes one more before its encoding,
+its call and each level's hash. -/
 def sPathKid (l j : Nat) : Nat :=
-  sLayerBase l + 48 + 13 * j + (if l = 2 ∧ 0 < j then 3 else 0)
+  sLayerBase l + 48 + 13 * j + (if l = 2 then 2 + j + (if 0 < j then 3 else 0) else 0)
 
 /-! ## Reading the values -/
 

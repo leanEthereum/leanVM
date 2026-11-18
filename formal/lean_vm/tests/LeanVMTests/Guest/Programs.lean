@@ -208,6 +208,38 @@ def prog_identities : TestProgram where
   publicInput := [(0, 0), (0, 0)]
   streams := []
 
+/-- `inline.py`. -/
+def prog_inline : TestProgram where
+  name := "inline"
+  program := ⟨[
+    { name := "advance", params := [⟨"cur", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.mul (.var "cur") .gen) (.var "k"))])] }, 
+    { name := "word", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"j", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 18 (.let_ "w" (.var "a")),
+        .mk 19 (.ite true (.var "j") (.lit 2) [
+          .mk 20 (.let_ "w" (.var "b"))] [] true),
+        .mk 21 (.ret [(.var "w")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 25 (.letHintWitness "x" "x"),
+        .mk 26 (.assertLt (.var "x") (.const 3)),
+        .mk 27 (.let_ "y" (.call "advance" [(.var "x"), (.lit 1)])),
+        .mk 28 (.let_ "s" (.stackBuf 1)),
+        .mk 29 (.store (.var "s") (.lit 0) (.call "word" [(.var "y"), (.lit 5), (.lit 0)])),
+        .mk 30 (.match_ [(.var "r")] (.var "x") [(.call "word" [(.index (.var "s") (.lit 0)), (.lit 10), (.lit 0)]), (.call "word" [(.index (.var "s") (.lit 0)), (.lit 10), (.lit 1)]), (.call "word" [(.index (.var "s") (.lit 0)), (.lit 10), (.lit 2)])]),
+        .mk 31 (.let_ "p" (.gpow 0)),
+        .mk 32 (.store (.var "p") (.lit 1) (.index (.var "s") (.lit 0))),
+        .mk 33 (.store (.var "p") .gen (.var "r")),
+        .mk 34 (.ret [])] }],
+    []⟩
+  publicInput := [(8, 0), (10, 0)]
+  streams := [("x", [[(4, 0)]])]
+
 /-- `match.py`. -/
 def prog_match : TestProgram where
   name := "match"
@@ -414,6 +446,6 @@ def prog_wots_walk : TestProgram where
   streams := []
 
 /-- Every test program. -/
-def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
+def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_inline, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
 
 end LeanVMTests.Guest.Programs

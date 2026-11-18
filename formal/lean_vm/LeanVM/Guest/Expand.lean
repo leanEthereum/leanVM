@@ -112,13 +112,6 @@ structure Mat where
   dist : Nat
   deriving Inhabited
 
-/-- How an inlined return binds in the caller (`RetBind`). -/
-inductive RetBind where
-  | stack (cells : List V)
-  | gaddr (g : GAddr)
-  | scalar
-  deriving Inhabited
-
 /-- A run of consecutive cells (`CellRun`). -/
 inductive CellRun where
   | stack (cells : List V)
@@ -146,8 +139,6 @@ structure St where
   out : Array Core.Stmt
   /-- A hint emitted since the last instruction. -/
   pending : Bool
-  inlineRet : Option (List V)
-  inlineStackRet : Option (List RetBind)
   inlineCalls : List String
   /-- The run `[0x01, 0, 0, 0, 0]` set for the `keccak`s of this scope (`Scope::keccak_pad`). -/
   keccakPad : Option (List V) := none
@@ -602,12 +593,22 @@ def retTargets (targets : List Expr) : M (List V × List (String × V)) := do
 def bindTargets (binds : List (String × V)) : M Unit :=
   binds.forM fun (n, c) => rebind n (.scalar c)
 
-/-- `ret_binding`. -/
-def retBinding (b : Option RetBind) (dst : V) : Binding :=
+/-- What `e` aliases with no instruction (`alias_of`): a `StackBuf` name's run, or a symbolic
+g-address (a constant g-power or a shifted pointer). -/
+def aliasOf (e : Expr) : M (Option Binding) := do
+  match ← stackOf e with
+  | some cells => return some (.stack cells)
+  | none => return (← gaddrOf e).map .gaddr
+
+/-- The one cell holding a single value bound as `b` (`binding_cell`). -/
+def bindingCell (b : Binding) : M V :=
   match b with
-  | some (.stack cells) => .stack cells
-  | some (.gaddr ga) => .gaddr ga
-  | _ => .scalar dst
+  | .scalar o => return o
+  | .gaddr ga => materialize ga
+  | .fconst c => constCell c
+  | .stack [c] => return c
+  | .stack _ =>
+      fail "a multi-cell StackBuf return needs a `let` binding, not a match join or an expression use"
 
 /-- The definition of a callee: an original, else a queued one (`callee_def`). -/
 def calleeDef (c : String) : M (Option Func) := do
@@ -685,17 +686,11 @@ def isKw : Expr → Bool
   | .call f _ => f.startsWith "__kw_"
   | _ => false
 
-/-- An expression-position use of an inlined return (`take_inline_ret_cell`). -/
-def takeInlineRetCell (dst : V) : M V := do
-  let b := (← get).inlineStackRet.bind (·.head?)
-  modify fun st => { st with inlineStackRet := none }
-  match b with
-  | some (.gaddr ga) => materialize ga
-  | some (.stack cells) =>
-      match cells with
-      | [c] => return c
-      | _ => fail "a multi-cell StackBuf return needs a `let` binding"
-  | _ => return dst
+/-- Rejects a call binding other than `callee`'s number of returns (`check_returns`). -/
+def checkReturns (callee : String) (n : Nat) : M Unit := do
+  if let some d ← origDef callee then
+    if d.returnShapes.length != n then
+      fail s!"`{callee}` returns {d.returnShapes.length} values, call binds {n}"
 
 /-! ## Keccak (`lower/builtins.rs`)
 
@@ -963,9 +958,8 @@ def expr : Nat → Expr → M V
         emitHint (.log2Ceil bits nbits floor dst)
         return dst
     | .call f args => do
-        let ds ← call n f args 1
-        let some d := ds.head? | fail "internal: no return cell"
-        takeInlineRetCell d
+        let some b := (← call n f args 1).head? | fail "internal: no return binding"
+        bindingCell b
     | .heapBuf sz => do
         let arr ← fresh
         modify fun st => { st with heapSizes := (arr, sz) :: st.heapSizes }
@@ -1033,10 +1027,9 @@ def exprInto : Nat → Expr → V → M Unit
         let lb ← expr n b
         emitAtom (.mul dst la lb)
     | .call f args => do
-        modify fun st => { st with inlineStackRet := none }
-        callInto n f args [dst]
-        let v ← takeInlineRetCell dst
-        if v != dst then copy v dst
+        if (← origDef f).isSome then return ← callInto n f args [dst]
+        let v ← expr n e
+        copy v dst
     | _ => do
         let v ← expr n e
         copy v dst
@@ -1137,40 +1130,31 @@ def bitsDest : Nat → Expr → Nat → M Dest
         checkHeapBound e 0 nbits
         return .heap (← expr n e) 0 nbits
 
-/-- A call, its return cells allocated here (`call`). -/
-def call : Nat → String → List Expr → Nat → M (List V)
+/-- A call, one binding per returned value (`call`): a real call's return cells are allocated
+here, a `StackBuf` return a fresh run; an inlined call binds as `tryInline` decides. -/
+def call : Nat → String → List Expr → Nat → M (List Binding)
   | 0, _, _, _ => fail "expansion fuel exhausted"
   | n + 1, callee, args, nRet => do
     if callee == "keccak" || callee == "keccak_cells" then
       fail s!"{callee} is a statement: it writes the state or the digest into its `out` run"
-    modify fun st => { st with inlineStackRet := none }
+    checkReturns callee nRet
+    if let some binds ← tryInline n callee args none then return binds
     let d ← origDef callee
-    if d.any (·.inline) then
-      let dsts ← (List.range nRet).mapM fun _ => fresh
-      callInto n callee args dsts
-      return dsts
-    if let some d := d then
-      if d.returnShapes.length != nRet then
-        fail s!"`{callee}` returns {d.returnShapes.length} values, call binds {nRet}"
-    let mut logical := #[]
     let mut physical := #[]
     let mut binds := #[]
     for i in List.range nRet do
       match (d.bind (·.returnShapes[i]?)).getD .scalar with
       | .scalar => do
           let dst ← fresh
-          logical := logical.push dst
           physical := physical.push dst
-          binds := binds.push RetBind.scalar
+          binds := binds.push (Binding.scalar dst)
       | .stackBuf size => do
           if size = 0 then fail "a returned StackBuf must not be empty"
           let run ← freshRun size
-          logical := logical.push run[0]!
           physical := physical ++ run.toArray
-          binds := binds.push (RetBind.stack run)
+          binds := binds.push (Binding.stack run)
     lowerCall n callee args none physical.toList
-    modify fun st => { st with inlineStackRet := some binds.toList }
-    return logical.toList
+    return binds.toList
 
 /-- Evaluate a call into `dsts` (`call_into`). -/
 def callInto : Nat → String → List Expr → List V → M Unit
@@ -1178,10 +1162,9 @@ def callInto : Nat → String → List Expr → List V → M Unit
   | n + 1, callee, args, dsts => do
     if callee == "keccak" || callee == "keccak_cells" then
       fail s!"{callee} is a statement, not a value-returning call"
-    if !(← tryInline n callee args dsts) then
+    checkReturns callee dsts.length
+    if (← tryInline n callee args (some dsts)).isNone then
       if let some d ← origDef callee then
-        if d.returnShapes.length != dsts.length then
-          fail s!"`{callee}` returns {d.returnShapes.length} values, call binds {dsts.length}"
         if d.returnShapes.any (· != .scalar) then
           fail "a normal function's multi-cell StackBuf return needs a `let` binding"
       lowerCall n callee args none dsts
@@ -1209,61 +1192,82 @@ def lowerCall : Nat → String → List Expr → Option V → List V → M Unit
     | some x => emit (.callIf x callee cells.toList)
     | none => emit (.call callee cells.toList dsts)
 
-/-- Expand an `@inline` call in this frame (`try_inline`); `false` for another callee. -/
-def tryInline : Nat → String → List Expr → List V → M Bool
+/-- Expand an `@inline` call in this frame (`try_inline`), one binding per returned value: with
+`into`, each value lands in its cell and binds as it; without, each binds as a `let` would,
+taking a cell only if it needs one. `none` for another callee. -/
+def tryInline : Nat → String → List Expr → Option (List V) → M (Option (List Binding))
   | 0, _, _, _ => fail "expansion fuel exhausted"
-  | n + 1, callee, args, dsts => do
-    let some def_ := (← origDef callee).filter (·.inline) | return false
+  | n + 1, callee, args, into => do
+    let some def_ := (← origDef callee).filter (·.inline) | return none
     let substs ← match ← constSubsts def_ args with
       | .ok s => pure s
       | .error _ => fail s!"`@inline {callee}`: bad arity or unresolved Const argument"
-    let body := substBody def_.body substs
-    if def_.returnShapes.length != dsts.length then
-      fail s!"`@inline {callee}` returns {def_.returnShapes.length} values, call binds {dsts.length}"
-    if !bodyInlinable body then
-      fail s!"`@inline {callee}` requires one tail `return`, with no nested returns or mul_range loops"
+    let some (body, ret) := splitTailReturn (substBody def_.body substs)
+      | fail s!"`@inline {callee}` requires one tail `return`, with no nested returns or mul_range loops"
     if (← get).inlineCalls.contains callee then
       fail s!"recursive @inline expansion is not supported: {callee}"
     let mut binds := #[]
     for (p, a) in def_.params.zip args do
       if p.kind == .const then continue
-      match ← stackOf a with
-      | some cells => binds := binds.push (p.name, Binding.stack cells)
+      match ← aliasOf a with
+      | some b => binds := binds.push (p.name, b)
       | none =>
-          match ← gaddrOf a with
-          | some ga => binds := binds.push (p.name, Binding.gaddr ga)
+          match ← tryFieldConst a with
+          | some c => binds := binds.push (p.name, Binding.fconst c)
           | none => binds := binds.push (p.name, Binding.scalar (← expr n a))
     let saved := (← get).names
     modify fun st => { st with names := [] }
     for (p, b) in binds do
       checkNotReserved p
       modify fun st => { st with names := (p, ⟨b, none⟩) :: st.names.filter (·.1 != p) }
-    let savedRet := (← get).inlineRet
-    modify fun st => { st with inlineRet := some dsts, inlineCalls := callee :: st.inlineCalls }
+    modify fun st => { st with inlineCalls := callee :: st.inlineCalls }
     let site ← fresh
-    withSeg (.i callee site.tag) (stmts n body)
-    modify fun st => { st with inlineRet := savedRet, names := saved,
-                               inlineCalls := st.inlineCalls.drop 1 }
-    return true
+    let bound ← withSeg (.i callee site.tag) do
+      stmts n body
+      -- The tail return, at its statement's position, binds the values in the caller and falls
+      -- through.
+      withSeg (.s body.length) do
+        match into with
+        | none => ret.mapM fun e => do letBinding n e (← eval evalFuel e)
+        | some dsts => do
+            returnInto n ret dsts
+            return dsts.map .scalar
+    modify fun st => { st with names := saved, inlineCalls := st.inlineCalls.drop 1 }
+    return some bound
+
+/-- An inlined `return` into the cells `dsts` (`return_into`): a computed value is lowered into
+its cell, a run or pointer is copied in after the rest. -/
+def returnInto : Nat → List Expr → List V → M Unit
+  | 0, _, _ => fail "expansion fuel exhausted"
+  | n + 1, es, dsts => do
+    let mut aliased := #[]
+    for (e, d) in es.zip dsts do
+      match ← aliasOf e with
+      | some b => aliased := aliased.push (b, d)
+      | none => exprInto n e d
+    for (b, d) in aliased do
+      let c ← bindingCell b
+      if c != d then copy c d
+
+/-- What `name = e` binds `name` to, `known` being `e`'s reading (`let_binding`): an alias or a
+constant takes no instruction, a user call binds as its returns do, and anything else is the cell
+`e` lowers into. -/
+def letBinding : Nat → Expr → Known → M Binding
+  | 0, _, _ => fail "expansion fuel exhausted"
+  | n + 1, e, known => do
+    if let some b ← aliasOf e then return b
+    if let some c := known.field then return .fconst c
+    if let some k := known.int then return .fconst (litField k)
+    if let .call f args := e then
+      if (← origDef f).isSome then
+        let some b := (← call n f args 1).head? | fail "internal: no return binding"
+        return b
+    return .scalar (← expr n e)
 
 /-- `return` (`lower_return`). -/
 def lowerReturn : Nat → List Expr → M Unit
   | 0, _ => fail "expansion fuel exhausted"
   | n + 1, es => do
-    if let some dsts := (← get).inlineRet then
-      modify fun st => { st with inlineRet := none }
-      let mut binds := #[]
-      for (e, d) in es.zip dsts do
-        match ← stackOf e with
-        | some cells => binds := binds.push (RetBind.stack cells)
-        | none =>
-            match ← gaddrOf e with
-            | some ga => binds := binds.push (RetBind.gaddr ga)
-            | none => do
-                exprInto n e d
-                binds := binds.push RetBind.scalar
-      modify fun st => { st with inlineStackRet := some binds.toList }
-      return
     let c ← ctx
     if c.isMain then return
     if es.length != c.returnShapes.length then
@@ -1413,20 +1417,7 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
           | [rc] => exprInto n arm rc
           | _ => do
               let .call f cargs := arm | fail "a multi-target match arm must be a function call"
-              modify fun st => { st with inlineStackRet := none }
               callInto n f cargs rcells
-              let bs := (← get).inlineStackRet
-              modify fun st => { st with inlineStackRet := none }
-              if let some bs := bs then
-                for (b, rc) in bs.zip rcells do
-                  match b with
-                  | .gaddr ga => do
-                      let c ← materialize ga
-                      copy c rc
-                  | .stack cells => do
-                      let [c] := cells | fail "a multi-cell StackBuf return cannot cross a match join"
-                      copy c rc
-                  | .scalar => pure ()
           if (← get).pending then anchor
       modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
       blocks := blocks.push blk
@@ -1781,16 +1772,15 @@ def stmtKind : Nat → Nat → StmtKind → M Unit
               exprInto n el c
             rebind name (.stack cells)
         | .call "addr" cargs => rebind name (.gaddr (← stackAddr cargs))
-        | .var v =>
-            if let some cells ← stackOfName v then rebind name (.stack cells)
-            else letValue n name e
-        | _ => letValue n name e
+        | _ => do
+            -- `name`'s old binding stays visible while the right side is lowered; its integer
+            -- reading rides alongside the value binding, attached after the rebind clears it.
+            let known ← eval evalFuel e
+            rebind name (← letBinding n e known)
+            if let some k := known.int then setInt name k
     | .letTuple names f args => do
-        let dsts ← call n f args names.length
-        let binds := (← get).inlineStackRet
-        modify fun st => { st with inlineStackRet := none }
-        for (i, nm, d) in (List.range names.length).zip (names.zip dsts) do
-          rebind nm (retBinding (binds.bind (·[i]?)) d)
+        for (nm, b) in names.zip (← call n f args names.length) do
+          rebind nm b
     | .assertEq a b => do
         let la ← expr n a
         let lb ← expr n b
@@ -1809,7 +1799,9 @@ def stmtKind : Nat → Nat → StmtKind → M Unit
     | .match_ targets x arms => lowerMatch n targets x arms
     | .call f args => do
         if !(← lowerBuiltin n f args) then
-          discard <| call n f args 0
+          -- The callee's returns go into cells nothing reads.
+          let nRet := ((← origDef f).map (·.returnShapes.length)).getD 0
+          discard <| call n f args nRet
     | .store arr idx val => do
         match ← frameCell arr idx with
         | some c => exprInto n val c
@@ -1849,27 +1841,6 @@ def stmtKind : Nat → Nat → StmtKind → M Unit
           blocks := blocks.push blk
         appendBlocks (blocks.toList.map fun ((), pd, b) => (pd, b))
 
-/-- The value binding of `name = e` (the general arm of `Let`). -/
-def letValue : Nat → String → Expr → M Unit
-  | 0, _, _ => fail "expansion fuel exhausted"
-  | n + 1, name, e => do
-    let known ← eval evalFuel e
-    if let some ga := known.addr then rebind name (.gaddr ga)
-    else if let some c := known.field then rebind name (.fconst c)
-    else if let some k := known.int then rebind name (.fconst (litField k))
-    else
-      match e with
-      | .call cf cargs =>
-          if (← origDef cf).isSome then
-            let ds ← call n cf cargs 1
-            let b := (← get).inlineStackRet.bind (·.head?)
-            modify fun st => { st with inlineStackRet := none }
-            rebind name (retBinding b ds.head!)
-          else
-            rebind name (.scalar (← expr n e))
-      | _ => rebind name (.scalar (← expr n e))
-    if let some k := known.int then setInt name k
-
 /-- A block, statement `i` at position `Seg.s i`. -/
 def stmts : Nat → List Source.Stmt → M Unit
   | 0, _ => fail "expansion fuel exhausted"
@@ -1901,7 +1872,7 @@ def initState (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat) : S
   { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name, isMain := f.name == "main",
              returnShapes := f.returnShapes },
     names := (paramBindings f).1, heapSizes := [], path := [], tag := 0, out := #[],
-    pending := false, inlineRet := none, inlineStackRet := none, inlineCalls := [],
+    pending := false, inlineCalls := [],
     keccakPad := none, queue,
     loopCtr := loopBase }
 

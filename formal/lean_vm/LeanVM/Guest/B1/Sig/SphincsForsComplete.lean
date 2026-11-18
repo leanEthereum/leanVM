@@ -139,9 +139,10 @@ theorem sForsLevels_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c
         (fun h1 => (hvn (z + 1 + 8) (by omega)).mono' (by omega))
       have hnext := sForsAt_next a1 val c z x (by omega)
       rw [← hA] at hseqA hadrA hnext
-      have hlev := pairNode_complete (C := C) (rd := rd) "sp_fors_nodes" σ hpx hpp ha0
-        (hbn z (by omega)) hcur hseqA hadrA (bt := s.testBit z) (sib := sib z) (hbit z (by omega))
       have hle := hseqA.le
+      have hlev := pairNode_complete (C := C) (rd := rd) "sp_fors_nodes" σ hpx hpp
+        (ha0.mono' (by omega)) (hbn z (by omega)) hcur hseqA hadrA (bt := s.testBit z) (sib := sib z)
+        (hbit z (by omega))
       have hx18 : x + forsLevelWidth c z = A.2.1 + 5 := by
         have : 9 ≤ forsLevelWidth c z := by unfold forsLevelWidth forsLevelW; omega
         omega

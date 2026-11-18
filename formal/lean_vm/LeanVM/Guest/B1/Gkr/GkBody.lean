@@ -70,20 +70,20 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
   have e0 : σ (.n 0) = rec := by simp [ev, gkVals]
   have e1 : σ (.n 1) = pt := by simp [ev, gkVals]
   have e8 : σ (.n 8) = cur := by simp [ev, gkVals]
-  have vw : ∀ q t r, q < n → t < 4 → r < 3 → σ (.n (10 + 40 * q + 3 * t + r)) =
+  have vw : ∀ q t r, q < n → t < 4 → r < 3 → σ (.n (10 + 39 * q + 3 * t + r)) =
       if r = 2 then word 0 dsObserve else (Cf q).getD t 0 :=
     fun q t r hq ht hr ↦ gkVals_word _ _ _ _ _ _ _ hq ht hr
-  have vc : ∀ q, q < n → ∀ c : Fin 13, σ (.n (22 + 40 * q + c.val)) = cellsOfState (P q) false c :=
+  have vc : ∀ q, q < n → ∀ c : Fin 13, σ (.n (22 + 39 * q + c.val)) = cellsOfState (P q) false c :=
     fun q hq c ↦ gkVals_cells _ _ _ _ _ _ _ hq c
-  have va : ∀ q u, q < n → u < 13 → σ (.n (37 + 40 * q + u)) =
+  have va : ∀ q u, q < n → u < 13 → σ (.n (36 + 39 * q + u)) =
       (gkArith (cl q) (ef q) (Cf q) (challengeOf (P q))).getD u 0 :=
     fun q u hq hu ↦ gkVals_arith _ _ _ _ _ _ _ hq hu
-  have hcl : ∀ q, q ≤ n → σ (.n (9 + 40 * q)) = cl q := by
+  have hcl : ∀ q, q ≤ n → σ (.n (9 + 39 * q)) = cl q := by
     intro q hq
     cases q with
     | zero => simp [ev, gkVals, cl, St, gkSt]
     | succ q =>
-      rw [idx _ (37 + 40 * q + 12) (by ring), va q 12 (by omega) (by omega)]
+      rw [idx _ (36 + 39 * q + 12) (by ring), va q 12 (by omega) (by omega)]
       show _ = polyEval ((cl q + ef q * sumE (Cf q)) :: Cf q) (challengeOf (P q))
       rw [show Cf q = [(Cf q).getD 0 0, (Cf q).getD 1 0, (Cf q).getD 2 0, (Cf q).getD 3 0] from rfl,
         ← gk_eval]
@@ -97,8 +97,8 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
     | succ q =>
       have c : ∀ i (hi : i < 5), σ (.n (gkCapPrev (q + 1) + i)) =
           cellsOfState (P q) false ⟨8 + i, by omega⟩ :=
-        fun i hi ↦ (idx _ (22 + 40 * q + (⟨8 + i, by omega⟩ : Fin 13).val)
-          (show 30 + 40 * q + i = 22 + 40 * q + (8 + i) by ring)).trans (vc q (by omega) _)
+        fun i hi ↦ (idx _ (22 + 39 * q + (⟨8 + i, by omega⟩ : Fin 13).val)
+          (show 30 + 39 * q + i = 22 + 39 * q + (8 + i) by ring)).trans (vc q (by omega) _)
       rw [show σ (.n (gkCapPrev (q + 1))) = _ from c 0 (by omega), c 1 (by omega), c 2 (by omega),
         c 3 (by omega), c 4 (by omega)]
       rfl
@@ -127,39 +127,38 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
     exact hcap 4 (by simp)
   · show LoadHolds rd (σ (.n 0)) 4310 (σ (.n 8)); rw [e0, e8]; exact hcur
   · show LoadHolds rd (σ (.n 0)) 5172 (σ (.n 9))
-    rw [e0, idx 9 (9 + 40 * 0) (by ring), hcl 0 (by omega)]; exact hclaim
-  · have w : ∀ t, t < 4 → σ (.n (10 + 40 * q + 3 * t)) = (Cf q).getD t 0 := fun t ht ↦ by
-      rw [idx _ (10 + 40 * q + 3 * t + 0) (by ring), vw q t 0 hq ht (by omega)]; rfl
-    have w0 : σ (.n (10 + 40 * q)) = (Cf q).getD 0 0 := (idx _ _ (by ring)).trans (w 0 (by omega))
-    have w1 : σ (.n (13 + 40 * q)) = (Cf q).getD 1 0 := (idx _ _ (by ring)).trans (w 1 (by omega))
-    have w2 : σ (.n (16 + 40 * q)) = (Cf q).getD 2 0 := (idx _ _ (by ring)).trans (w 2 (by omega))
-    have w3 : σ (.n (19 + 40 * q)) = (Cf q).getD 3 0 := (idx _ _ (by ring)).trans (w 3 (by omega))
-    have wc : ∀ t, t < 4 → σ (.n (10 + 40 * q + 3 * t + 1)) = (Cf q).getD t 0 := fun t ht ↦ by
+    rw [e0, idx 9 (9 + 39 * 0) (by ring), hcl 0 (by omega)]; exact hclaim
+  · have w : ∀ t, t < 4 → σ (.n (10 + 39 * q + 3 * t)) = (Cf q).getD t 0 := fun t ht ↦ by
+      rw [idx _ (10 + 39 * q + 3 * t + 0) (by ring), vw q t 0 hq ht (by omega)]; rfl
+    have w0 : σ (.n (10 + 39 * q)) = (Cf q).getD 0 0 := (idx _ _ (by ring)).trans (w 0 (by omega))
+    have w1 : σ (.n (13 + 39 * q)) = (Cf q).getD 1 0 := (idx _ _ (by ring)).trans (w 1 (by omega))
+    have w2 : σ (.n (16 + 39 * q)) = (Cf q).getD 2 0 := (idx _ _ (by ring)).trans (w 2 (by omega))
+    have w3 : σ (.n (19 + 39 * q)) = (Cf q).getD 3 0 := (idx _ _ (by ring)).trans (w 3 (by omega))
+    have wc : ∀ t, t < 4 → σ (.n (10 + 39 * q + 3 * t + 1)) = (Cf q).getD t 0 := fun t ht ↦ by
       rw [vw q t 1 hq ht (by omega)]; rfl
-    have wt : ∀ t, t < 4 → σ (.n (10 + 40 * q + 3 * t + 1 + 1)) = word 0 dsObserve := fun t ht ↦ by
-      rw [idx _ (10 + 40 * q + 3 * t + 2) (by ring), vw q t 2 hq ht (by omega)]; rfl
-    have b0 : σ (.n (22 + 40 * q)) = cellsOfState (P q) false 0 := vc q hq 0
-    have hr : σ (.n (35 + 40 * q)) = challengeOf (P q) := gkVals_chal _ _ _ _ _ _ _ hq
-    have he : σ (.n (36 + 40 * q)) = ef q := gkVals_e _ _ _ _ _ _ _ hq
-    have a : ∀ u, u < 13 → σ (.n (37 + 40 * q + u)) =
+    have wt : ∀ t, t < 4 → σ (.n (10 + 39 * q + 3 * t + 1 + 1)) = word 0 dsObserve := fun t ht ↦ by
+      rw [idx _ (10 + 39 * q + 3 * t + 2) (by ring), vw q t 2 hq ht (by omega)]; rfl
+    have hr : σ (.n (22 + 39 * q)) = challengeOf (P q) := gkVals_chal _ _ _ _ _ _ _ hq
+    have he : σ (.n (35 + 39 * q)) = ef q := gkVals_e _ _ _ _ _ _ _ hq
+    have a : ∀ u, u < 13 → σ (.n (36 + 39 * q + u)) =
         (gkArith (cl q) (ef q) (Cf q) (challengeOf (P q))).getD u 0 := fun u hu ↦ va q u hq hu
-    have a0 := (idx (37 + 40 * q) (37 + 40 * q + 0) (by ring)).trans (a 0 (by omega))
-    have a1 := (idx (38 + 40 * q) (37 + 40 * q + 1) (by ring)).trans (a 1 (by omega))
-    have a2 := (idx (39 + 40 * q) (37 + 40 * q + 2) (by ring)).trans (a 2 (by omega))
-    have a3 := (idx (40 + 40 * q) (37 + 40 * q + 3) (by ring)).trans (a 3 (by omega))
-    have a4 := (idx (41 + 40 * q) (37 + 40 * q + 4) (by ring)).trans (a 4 (by omega))
-    have a5 := (idx (42 + 40 * q) (37 + 40 * q + 5) (by ring)).trans (a 5 (by omega))
-    have a6 := (idx (43 + 40 * q) (37 + 40 * q + 6) (by ring)).trans (a 6 (by omega))
-    have a7 := (idx (44 + 40 * q) (37 + 40 * q + 7) (by ring)).trans (a 7 (by omega))
-    have a8 := (idx (45 + 40 * q) (37 + 40 * q + 8) (by ring)).trans (a 8 (by omega))
-    have a9 := (idx (46 + 40 * q) (37 + 40 * q + 9) (by ring)).trans (a 9 (by omega))
-    have a10 := (idx (47 + 40 * q) (37 + 40 * q + 10) (by ring)).trans (a 10 (by omega))
-    have a11 := (idx (48 + 40 * q) (37 + 40 * q + 11) (by ring)).trans (a 11 (by omega))
-    have a12 := (idx (49 + 40 * q) (37 + 40 * q + 12) (by ring)).trans (a 12 (by omega))
+    have a0 := (idx (36 + 39 * q) (36 + 39 * q + 0) (by ring)).trans (a 0 (by omega))
+    have a1 := (idx (37 + 39 * q) (36 + 39 * q + 1) (by ring)).trans (a 1 (by omega))
+    have a2 := (idx (38 + 39 * q) (36 + 39 * q + 2) (by ring)).trans (a 2 (by omega))
+    have a3 := (idx (39 + 39 * q) (36 + 39 * q + 3) (by ring)).trans (a 3 (by omega))
+    have a4 := (idx (40 + 39 * q) (36 + 39 * q + 4) (by ring)).trans (a 4 (by omega))
+    have a5 := (idx (41 + 39 * q) (36 + 39 * q + 5) (by ring)).trans (a 5 (by omega))
+    have a6 := (idx (42 + 39 * q) (36 + 39 * q + 6) (by ring)).trans (a 6 (by omega))
+    have a7 := (idx (43 + 39 * q) (36 + 39 * q + 7) (by ring)).trans (a 7 (by omega))
+    have a8 := (idx (44 + 39 * q) (36 + 39 * q + 8) (by ring)).trans (a 8 (by omega))
+    have a9 := (idx (45 + 39 * q) (36 + 39 * q + 9) (by ring)).trans (a 9 (by omega))
+    have a10 := (idx (46 + 39 * q) (36 + 39 * q + 10) (by ring)).trans (a 10 (by omega))
+    have a11 := (idx (47 + 39 * q) (36 + 39 * q + 11) (by ring)).trans (a 11 (by omega))
+    have a12 := (idx (48 + 39 * q) (36 + 39 * q + 12) (by ring)).trans (a 12 (by omega))
     simp only [gkArith, List.getD_cons_succ,
       List.getD_cons_zero] at a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
-    have hin : ([.n (11 + 40 * q), .n (12 + 40 * q), .n (14 + 40 * q), .n (15 + 40 * q),
-        .n (17 + 40 * q), .n (18 + 40 * q), .n (20 + 40 * q), .n (21 + 40 * q),
+    have hin : ([.n (11 + 39 * q), .n (12 + 39 * q), .n (14 + 39 * q), .n (15 + 39 * q),
+        .n (17 + 39 * q), .n (18 + 39 * q), .n (20 + 39 * q), .n (21 + 39 * q),
         .n (gkCapPrev q), .n (gkCapPrev q + 1), .n (gkCapPrev q + 2), .n (gkCapPrev q + 3),
         .n (gkCapPrev q + 4)] : List V).map σ =
         [(Cf q).getD 0 0, word 0 dsObserve, (Cf q).getD 1 0, word 0 dsObserve,
@@ -167,16 +166,15 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
           (St q).2.cap := by
       rw [← capq q hq]
       simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
-      rw [idx (11 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 0 + 1 by ring), wc 0 (by omega),
-        idx (12 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 0 + 1 + 1 by ring), wt 0 (by omega),
-        idx (14 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 1 + 1 by ring), wc 1 (by omega),
-        idx (15 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 1 + 1 + 1 by ring), wt 1 (by omega),
-        idx (17 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 2 + 1 by ring), wc 2 (by omega),
-        idx (18 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 2 + 1 + 1 by ring), wt 2 (by omega),
-        idx (20 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 3 + 1 by ring), wc 3 (by omega),
-        idx (21 + 40 * q) _ (show _ = 10 + 40 * q + 3 * 3 + 1 + 1 by ring), wt 3 (by omega)]
-    refine ⟨fun t ht ↦ ⟨?_, ⟨by rw [wc t ht, w t ht], wt t ht⟩⟩, keccakA_of (rd := rd) rfl rfl ?_,
-      by rw [ChallengeOk, hr, b0, Keccak.challengeOf_cells], ?_⟩
+      rw [idx (11 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 0 + 1 by ring), wc 0 (by omega),
+        idx (12 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 0 + 1 + 1 by ring), wt 0 (by omega),
+        idx (14 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 1 + 1 by ring), wc 1 (by omega),
+        idx (15 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 1 + 1 + 1 by ring), wt 1 (by omega),
+        idx (17 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 2 + 1 by ring), wc 2 (by omega),
+        idx (18 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 2 + 1 + 1 by ring), wt 2 (by omega),
+        idx (20 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 3 + 1 by ring), wc 3 (by omega),
+        idx (21 + 39 * q) _ (show _ = 10 + 39 * q + 3 * 3 + 1 + 1 by ring), wt 3 (by omega)]
+    refine ⟨fun t ht ↦ ⟨?_, ⟨by rw [wc t ht, w t ht], wt t ht⟩⟩, keccakA_of (rd := rd) rfl rfl ?_, ?_⟩
     · rw [e8, w t ht]; exact hm q hq t ht
     · funext c
       rw [cells13_gkRun13, vc q hq c]
@@ -209,35 +207,35 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
       · rw [a10, w0, a9]
       · rw [a11, hr, a10]
       · rw [a12, a4, a11]
-  · show LoadHolds rd (σ (.n 0)) (m' + 1) (σ (.n (30 + 40 * (m' + 1 - 1))))
-    rw [e0, idx _ (22 + 40 * m' + (8 : Fin 13).val) (by simp; omega), vc m' (by omega)]
+  · show LoadHolds rd (σ (.n 0)) (m' + 1) (σ (.n (30 + 39 * (m' + 1 - 1))))
+    rw [e0, idx _ (22 + 39 * m' + (8 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 0 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 862) (σ (.n (31 + 40 * (m' + 1 - 1))))
-    rw [e0, idx _ (22 + 40 * m' + (9 : Fin 13).val) (by simp; omega), vc m' (by omega)]
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 862) (σ (.n (31 + 39 * (m' + 1 - 1))))
+    rw [e0, idx _ (22 + 39 * m' + (9 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 1 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 1724) (σ (.n (32 + 40 * (m' + 1 - 1))))
-    rw [e0, idx _ (22 + 40 * m' + (10 : Fin 13).val) (by simp; omega), vc m' (by omega)]
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 1724) (σ (.n (32 + 39 * (m' + 1 - 1))))
+    rw [e0, idx _ (22 + 39 * m' + (10 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 2 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 2586) (σ (.n (33 + 40 * (m' + 1 - 1))))
-    rw [e0, idx _ (22 + 40 * m' + (11 : Fin 13).val) (by simp; omega), vc m' (by omega)]
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 2586) (σ (.n (33 + 39 * (m' + 1 - 1))))
+    rw [e0, idx _ (22 + 39 * m' + (11 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 3 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 3448) (σ (.n (34 + 40 * (m' + 1 - 1))))
-    rw [e0, idx _ (22 + 40 * m' + (12 : Fin 13).val) (by simp; omega), vc m' (by omega)]
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 3448) (σ (.n (34 + 39 * (m' + 1 - 1))))
+    rw [e0, idx _ (22 + 39 * m' + (12 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 4 (by simp [gkSt, Fs.squeeze, capOf])
-  · show σ (.n (10 + 40 * (m' + 1))) = word (2 ^ (4 * (m' + 1))) 0
+  · show σ (.n (10 + 39 * (m' + 1))) = word (2 ^ (4 * (m' + 1))) 0
     exact gkVals_tail0 _ _ _ _ _ _ _
-  · show σ (.n (11 + 40 * (m' + 1))) = σ (.n 8) * σ (.n (10 + 40 * (m' + 1)))
+  · show σ (.n (11 + 39 * (m' + 1))) = σ (.n 8) * σ (.n (10 + 39 * (m' + 1)))
     rw [ev, gkVals_tail1, e8, ev, gkVals_tail0]
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 4310) (σ (.n (11 + 40 * (m' + 1))))
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 4310) (σ (.n (11 + 39 * (m' + 1))))
     rw [e0, ev, gkVals_tail1, word_two_pow (by omega)]
     exact hres3
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (49 + 40 * (m' + 1 - 1))))
-    rw [e0, show m' + 1 - 1 = m' by omega, idx _ (9 + 40 * (m' + 1)) (by ring),
+  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (48 + 39 * (m' + 1 - 1))))
+    rw [e0, show m' + 1 - 1 = m' by omega, idx _ (9 + 39 * (m' + 1)) (by ring),
       hcl (m' + 1) (by omega)]
     exact hres4
-  · show σ (.n (12 + 40 * (m' + 1))) = word 0 0
+  · show σ (.n (12 + 39 * (m' + 1))) = word 0 0
     rw [ev, gkVals_tail2, word_zero]
-  · show [σ (.n (12 + 40 * (m' + 1)))] = rets
+  · show [σ (.n (12 + 39 * (m' + 1)))] = rets
     rw [hr0, ev, gkVals_tail2]
 
 end

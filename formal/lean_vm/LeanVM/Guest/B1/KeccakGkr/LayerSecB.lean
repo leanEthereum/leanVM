@@ -69,50 +69,50 @@ theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.lengt
 theorem gen48 : word 281474976710656 0 = gen ^ 48 := by
   rw [show (281474976710656 : ℕ) = 2 ^ 48 from rfl]; exact word_two_pow (by decide)
 
-/-- **The pack rounds' setup**: the first record at `rounds` (value `o + 720`), the
+/-- **The pack rounds' setup**: the first record at `rounds` (value `o + 719`), the
 eight-round loop's call, and the remainder loop's on `rounds·step_g`, `prev_point·step_g⁸`,
 `point·step_g⁸`, both passed `tabs`. -/
 theorem packSetupT_holds {o first : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (packSetupT o first) next kret) :
-    LoadHolds rd (σ (.n 11)) 2 (σ (.n (o + 718))) ∧
-      RoundRec rd (σ (.n (o + 720))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
-        (σ (.n (o + 717))) ∧
+    LoadHolds rd (σ (.n 11)) 2 (σ (.n (o + 717))) ∧
+      RoundRec rd (σ (.n (o + 719))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
+        (σ (.n (o + 716))) ∧
       IsInK (1 + σ (.n 9)) ∧
       (1 + σ (.n 9) ≠ 0 → C (packLoopName first)
-        [1, σ (.n 9), σ (.n (o + 720)), σ (.n (o + 718)), σ (.n (o + 719)), σ (.n 14)] []) ∧
-      σ (.n (o + 726)) = σ (.n (o + 720)) * σ (.n 9) ∧ IsInK (1 + σ (.n 10)) ∧
+        [1, σ (.n 9), σ (.n (o + 719)), σ (.n (o + 717)), σ (.n (o + 718)), σ (.n 14)] []) ∧
+      σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n 9) ∧ IsInK (1 + σ (.n 10)) ∧
       (1 + σ (.n 10) ≠ 0 →
-        C (remLoopName first) [1, σ (.n 10), σ (.n (o + 720)) * σ (.n 9),
-          σ (.n (o + 718)) * σ (.n 9) ^ 8, σ (.n 14), σ (.n (o + 719)) * σ (.n 9) ^ 8] []) ∧
+        C (remLoopName first) [1, σ (.n 10), σ (.n (o + 719)) * σ (.n 9),
+          σ (.n (o + 717)) * σ (.n 9) ^ 8, σ (.n 14), σ (.n (o + 718)) * σ (.n 9) ^ 8] []) ∧
       next := by
   simp only [packSetupT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
   obtain ⟨lpp, -, -, c0, c1, c2, c3, c4, e21, e22, lcur, lclaim, e24, e25, e26,
     hik, hcall, e27, e28, e29, e30, e31, e32, e33, e34, e35, e36, e37, e38, hik', hcall', hn⟩ := h
-  have e25' : σ (.n (o + 724)) = 1 + σ (.n 9) := by rw [e25, e24, word_one]
-  have e37' : σ (.n (o + 736)) = 1 + σ (.n 10) := by rw [e37, e36, word_one]
-  have hrec : RoundRec rd (σ (.n (o + 720))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
-      (σ (.n (o + 717))) := by
+  have e25' : σ (.n (o + 723)) = 1 + σ (.n 9) := by rw [e25, e24, word_one]
+  have e37' : σ (.n (o + 735)) = 1 + σ (.n 10) := by rw [e37, e36, word_one]
+  have hrec : RoundRec rd (σ (.n (o + 719))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
+      (σ (.n (o + 716))) := by
     refine ⟨?_, ?_, ?_⟩
     · simp only [cap5, List.map_cons, List.map_nil]
       exact capAt_five c0 c1 c2 c3 c4
     · rw [e22, e21, gen48] at lcur
       exact lcur
     · exact lclaim
-  have h8 : σ (.n (o + 729)) = σ (.n 9) ^ 8 := by rw [e30, e29, e28]; ring
-  have h8' : σ (.n (o + 733)) = σ (.n 9) ^ 8 := by rw [e34, e33, e32]; ring
+  have h8 : σ (.n (o + 728)) = σ (.n 9) ^ 8 := by rw [e30, e29, e28]; ring
+  have h8' : σ (.n (o + 732)) = σ (.n 9) ^ 8 := by rw [e34, e33, e32]; ring
   refine ⟨lpp, hrec, e25' ▸ hik, fun hne ↦ ?_, e27, e37' ▸ hik', fun hne ↦ ?_, hn⟩
   · have := hcall (by rw [e25']; exact hne)
     rwa [e26, word_one] at this
   · have := hcall' (by rw [e37']; exact hne)
     rwa [e38, word_one, e27, e31, h8, e35, h8'] at this
 
-/-- **The last record**: `rounds·step_g·rem_g` (value `o + 738`) and its capacity,
+/-- **The last record**: `rounds·step_g·rem_g` (value `o + 737`) and its capacity,
 cursor and claim. -/
 theorem lastT_holds {o : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (lastT o) next kret) :
-    σ (.n (o + 738)) = σ (.n (o + 726)) * σ (.n 10) ∧
-      RoundRec rd (σ (.n (o + 738))) 0 ((cap5 (o + 739)).map σ) (σ (.n (o + 744)))
-        (σ (.n (o + 745))) ∧ next := by
+    σ (.n (o + 737)) = σ (.n (o + 725)) * σ (.n 10) ∧
+      RoundRec rd (σ (.n (o + 737))) 0 ((cap5 (o + 738)).map σ) (σ (.n (o + 743)))
+        (σ (.n (o + 744))) ∧ next := by
   rw [lastT, holdsList_append, holdsList_append, holdsList_map_atoms] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e, ⟨hc, -, hn⟩⟩ := h

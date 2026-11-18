@@ -32,13 +32,13 @@ theorem opening_round_soundP (P : Program) [Finds P "opening_round" Fn.«opening
     opening_round_body, opening_round_params] at h
   obtain ⟨σ, hp, h⟩ := h
   simp only [roundBody, holdsList_append, holds_fsNonceT, holds_fsNextT, holds_padRunT,
-    holds_challengeT, Stmt.HoldsList, Stmt.Holds, holds_const, holds_add, holds_mul,
+    Stmt.HoldsList, Stmt.Holds, holds_const, holds_add, holds_mul,
     holds_copy, holds_load, List.map_cons, List.map_nil, List.range_succ, List.range_zero,
     List.nil_append, List.cons_append, osLd, osMul, osAdd, osCp, osCst, and_assoc,
     Nat.reduceAdd] at h
   obtain ⟨c10, c11, c12, c13, c14, lu0, pu0, lw, pw, lc0, pc0, lc1, pc1, k1, ln2, pn2,
-    pad, k2, g2, ch1, k3, ch2, sg, sa, sb, e76, e77, e78, e79, e80, e81, e82, e83, e84, e85,
-    c86, c87, c88, c89, c90, e91, e92, e93, e94, hret⟩ := h
+    pad, k2, g2, k3, sg, sa, sb, e74, e75, e76, e77, e78, e79, e80, e81, e82, e83,
+    c84, c85, c86, c87, c88, e89, e90, e91, e92, hret⟩ := h
   subst hp hret
   simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons, List.map_nil,
     List.cons_append, List.getD_cons_succ, List.getD_cons_zero] at ht ⊢
@@ -86,7 +86,7 @@ theorem opening_round_soundP (P : Program) [Finds P "opening_round" Fn.«opening
   have K3 := keccakA_fs (s := ⟨capOf S3, []⟩) k3 (by simp) (by
     simp [permIns, osRun, pendCells, z1, z2, z3, z4, cap3, List.range_succ])
   set S4 := (⟨capOf S3, []⟩ : Fs).perm with hS4
-  have hβ : σ (.n 75) = challengeOf S4 := challengeT_value ch2 (outCell K3 0)
+  have hβ : σ (.n 61) = challengeOf S4 := challengeT_value (s0 := .n 61) (b := 61) rfl (outCell K3 0)
   have hG2 : rdG2 fs [σ (.n 15), σ (.n 18), σ (.n 21), σ (.n 24)] (σ (.n 40)) =
       (σ (.n 48), ⟨capOf S3, []⟩) := by
     rw [rdG2, Prod.ext_iff]; exact ⟨hα, hs3⟩
@@ -102,11 +102,11 @@ theorem opening_round_soundP (P : Program) [Finds P "opening_round" Fn.«opening
   · simp only [← hfs]
     simp only [hG2, Fs.squeeze, ← hS4]
     refine ⟨gok2, ?_, ?_, ?_, ?_⟩
-    · rw [← ch1]; exact sg
-    · rw [← ch1]; exact sa
+    · exact sg
+    · exact sa
     · rw [← hβ]; exact sb
-    · rw [e93, e92, e91, show (32 : ℕ) = 2 ^ 5 by rfl, word_two_pow (by decide), c86, c87,
-        c88, c89, c90, e94, e85, e84, e83, e82, e81, e80, e79, e78, e77, e76, ← ch1, ← hβ]
+    · rw [e91, e90, e89, show (32 : ℕ) = 2 ^ 5 by rfl, word_two_pow (by decide), c84, c85,
+        c86, c87, c88, e92, e83, e82, e81, e80, e79, e78, e77, e76, e75, e74, ← hβ]
       simp only [capOf, ← outCell K3 8, ← outCell K3 9, ← outCell K3 10, ← outCell K3 11,
         ← outCell K3 12, roundClaim]
       rfl

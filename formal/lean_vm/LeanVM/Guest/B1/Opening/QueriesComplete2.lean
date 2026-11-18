@@ -63,8 +63,17 @@ theorem ch_lt_e : d.ch < d.e := by
     · exact Nat.le_trans (Nat.le_add_right _ (2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)))
         (by rw [← Nat.add_assoc, ← Nat.add_assoc]; exact le_nvLevelsT _ _ _ _)
     · exact le_rfl
-  show d.ch < oqRes d.s d.b d.emit + 1
-  omega
+  have hr2 : d.s.final = 1 → oqVal d.s d.ch < oqRes d.s d.b d.emit := by
+    intro h1
+    unfold oqRes
+    simp only [h1, ↓reduceIte]
+    exact Nat.lt_of_lt_of_le (Nat.lt_add_of_pos_right (by omega : 0 < 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)))
+      (by rw [← Nat.add_assoc, ← Nat.add_assoc]; exact le_nvLevelsT _ _ _ _)
+  show d.ch < oqEnd d.s d.b d.emit
+  unfold oqEnd
+  split
+  · have := hr2 ‹_›; omega
+  · omega
 
 /-- The leaf hash's values lie in the query. -/
 theorem leaf_lt_e {i : ℕ} (hi : i < d.s.chainLen) : d.b ≤ d.kL + i ∧ d.kL + i < d.e := by

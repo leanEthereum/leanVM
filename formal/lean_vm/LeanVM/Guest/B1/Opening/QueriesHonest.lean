@@ -245,12 +245,11 @@ def nvVals (W : ℕ → E) : ℕ → ℕ → List E → List E
   | 0, _, _ => []
   | c + 1, i, l => nvLevelVals (W i) l ++ nvVals W c (i + 1) (nvPair (W i) l)
 
-/-- The final check's values after the fold's: the point, the chain, `novel_eval`'s levels, the
-result `0`. -/
+/-- The final check's values after the fold's: the point, the chain, `novel_eval`'s levels. -/
 def finVals : List E :=
   if d.s.final = 1 then
     [d.x] ++ d.chainVals ++ d.nv0Vals ++
-      nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) ++ [word 0 0]
+      nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs))
   else []
 
 /-! ### The query -/
@@ -451,7 +450,8 @@ theorem e_eq (hf1 : 1 ≤ d.s.folds)
   have hc := d.ch_off
   have hf := d.foldVals_length
   rw [e, oqEnd, oqRes]
-  change (if d.s.final = 1 then (oqNovel d.s (.n 0) d.v).2.2 else d.v) + 1 = _
+  change (if d.s.final = 1 then (if d.s.final = 1 then (oqNovel d.s (.n 0) d.v).2.2 else d.v) else
+    (if d.s.final = 1 then (oqNovel d.s (.n 0) d.v).2.2 else d.v) + 1) = _
   by_cases h1 : d.s.final = 1
   · simp only [h1, ↓reduceIte]
     rw [d.oqNovel_next (hn h1).1 (hn h1).2]

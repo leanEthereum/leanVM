@@ -17,7 +17,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- The guest's numbers of the steps without an address constant (`spZero`, renumbered). -/
 def spZeroR : List Nat :=
-  [29, 146, 241, 324, 391, 486, 569, 640, 695, 778, 849, 908, 951, 1018, 1073, 1116]
+  [28, 138, 225, 300, 359, 446, 521, 584, 631, 706, 769, 820, 855, 914, 961, 996]
 
 /-- The template's number of the guest's value `j`: two more for each step without an address
 constant below it. -/

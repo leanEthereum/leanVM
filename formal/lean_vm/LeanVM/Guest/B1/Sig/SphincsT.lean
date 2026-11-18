@@ -80,15 +80,20 @@ def sOffOf (l : Nat) : Nat := sLeafOff l
 def sHeightOf (l : Nat) : Nat := sLeafLen l
 
 /-- Layer `l`'s base, its counter's first mark. -/
-def sLayerBase (l : Nat) : Nat := if l = 0 then 5249 else if l = 1 then 5407 else 5562
+def sLayerBase (l : Nat) : Nat := if l = 0 then 5249 else if l = 1 then 5407 else 5561
 
-/-- Layer `l`'s `a0`, its key pair's `A1` (`sp_wots`'s `a1`), its counter, its encoding digest's
-first cell and its leaf (`sp_wots`'s return). -/
-def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 5404 else .n 5561
+/-- Layer `l`'s `A0` as `sHtLayer` takes it: a value for the bottom and middle layers, the constant
+`a0_t = 2 · SP_LAYER_MUL` for the top one, set before each use (`a0Pre`). -/
+def sAcOf (l : Nat) : Option E := if l = 2 then some (lit (2 ^ 25)) else none
+
+/-- Layer `l`'s `a0` (the top layer's: the cell its call of `sp_wots` reads), its key pair's `A1`
+(`sp_wots`'s `a1`), its counter, its encoding digest's first cell and its leaf (`sp_wots`'s
+return). -/
+def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 5404 else .n 5609
 def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n 5406 else .n 5560
 def sCtrOf (l : Nat) : V := .n (sLayerBase l + 36)
-def sEncOf (l : Nat) : V := .n (sLayerBase l + 46)
-def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47)
+def sEncOf (l : Nat) : V := .n (sLayerBase l + 46 + a0W (sAcOf l))
+def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47 + 2 * a0W (sAcOf l))
 
 /-- The one-time key's leaf, by a call of `sp_wots(pp, a0, a1, encoding)`, at `b`: the call
 `SphincsForsT.sHtLayer` writes. -/
@@ -99,7 +104,7 @@ counter's four bytes hinted at `sLayerBase l …` and read, then the layer. The 
 base and the root. -/
 def sLayerAt (l : Nat) (a0 a1 signed : V) : List Stmt × Nat × V :=
   let c := sFromMarks (sLayerBase l) 4 (sLayerBase l + 4)
-  let L := sHtLayer sPad sPP a0 a1 signed c.2.2 sLeafBit sLVal (sOffOf l) (sHeightOf l) c.2.1
+  let L := sHtLayer sPad sPP a0 (sAcOf l) a1 signed c.2.2 sLeafBit sLVal (sOffOf l) (sHeightOf l) c.2.1
   ([hintW "sp_counter" (runV (sLayerBase l) 4)] ++ c.1 ++ L.1, L.2.1, L.2.2)
 
 /-- The bottom layer: `a0_b`, `key_b`, signing the FORS key. -/
@@ -116,12 +121,10 @@ def sMidAddrs : List Stmt :=
 /-- The middle layer, signing the bottom root. -/
 def sLayerM : List Stmt × Nat × V := sLayerAt 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
 
-/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48`, from `n5556`, then `a0_t = 2 ·
-SP_LAYER_MUL`: a constant, bound to a value as `sp_layer`'s argument. -/
+/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48`, from `n5556` (`a0_t` is a constant, `sAcOf`). -/
 def sTopAddrs : List Stmt :=
   [cst 5556 (lit (2 ^ 56)), mulS (.n 5557) sTreeMid (.n 5556), cst 5558 (lit (2 ^ 48)),
-    mulS (.n 5559) (sLVal 24) (.n 5558), addS (sA1Of 2) (.n 5557) (.n 5559),
-    cst 5561 (lit (2 ^ 25))]
+    mulS (.n 5559) (sLVal 24) (.n 5558), addS (sA1Of 2) (.n 5557) (.n 5559)]
 
 /-- The top layer, signing the middle root. -/
 def sLayerT : List Stmt × Nat × V := sLayerAt 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2

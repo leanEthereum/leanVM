@@ -57,31 +57,31 @@ theorem lflipBlk_noRet (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) (s : Stm
 
 /-- **The tail**. -/
 theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
-    (hloc : ReadsAt rd (σ (.n (o + 746))) locPt)
+    (hloc : ReadsAt rd (σ (.n (o + 745))) locPt)
     (hf : ∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i)
-    (p1 : FsPackOk σ (.n (o + 1110)) (o + 1110 + 1) dsObserve)
-    (p2 : FsPackOk σ (.n (o + 1113)) (o + 1113 + 1) dsObserve)
-    (p3 : FsPackOk σ (.n (o + 1116)) (o + 1116 + 1) dsObserve)
+    (p1 : FsPackOk σ (.n (o + 1098)) (o + 1098 + 1) dsObserve)
+    (p2 : FsPackOk σ (.n (o + 1101)) (o + 1101 + 1) dsObserve)
+    (p3 : FsPackOk σ (.n (o + 1104)) (o + 1104 + 1) dsObserve)
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (tailT o W wv) next kret) :
-      σ (.n wv) * (σ (.n (o + 625)) * σ (.n (o + 1110)) +
-        (σ (.n (o + 625)) + σ (.n (o + 1113))) * σ (.n (o + 1116))) = σ (.n (o + 1109)) ∧
-      ((⟨(cap5 (o + 1096)).map σ, []⟩ : Fs).absorbAll
-        [σ (.n (o + 1110)), σ (.n (o + 1113)), σ (.n (o + 1116))] dsObserve).squeeze =
-        (σ (.n (W + 21)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n 12)) 0 (σ (.n (o + 1110)) + σ (.n (W + 21)) *
-        (σ (.n (o + 1113)) + σ (.n (W + 21)) * σ (.n (o + 1116)))) ∧
-      LoadHolds rd (σ (.n 12)) 2 (σ (.n (o + 719))) ∧
-      LoadHolds rd (σ (.n 12)) 4 (σ (.n (o + 746))) ∧
-      LoadHolds rd (σ (.n 12)) 3 (σ (.n (W + 26))) ∧
-      ReadsAt rd (σ (.n (W + 26))) (lanesOut locPt (σ (.n (W + 21)))) ∧
+      σ (.n wv) * (σ (.n (o + 624)) * σ (.n (o + 1098)) +
+        (σ (.n (o + 624)) + σ (.n (o + 1101))) * σ (.n (o + 1104))) = σ (.n (o + 1097)) ∧
+      ((⟨(cap5 (o + 1085)).map σ, []⟩ : Fs).absorbAll
+        [σ (.n (o + 1098)), σ (.n (o + 1101)), σ (.n (o + 1104))] dsObserve).squeeze =
+        (σ (.n (W + 8)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
+      LoadHolds rd (σ (.n 12)) 0 (σ (.n (o + 1098)) + σ (.n (W + 8)) *
+        (σ (.n (o + 1101)) + σ (.n (W + 8)) * σ (.n (o + 1104)))) ∧
+      LoadHolds rd (σ (.n 12)) 2 (σ (.n (o + 718))) ∧
+      LoadHolds rd (σ (.n 12)) 4 (σ (.n (o + 745))) ∧
+      LoadHolds rd (σ (.n 12)) 3 (σ (.n (W + 25))) ∧
+      ReadsAt rd (σ (.n (W + 25))) (lanesOut locPt (σ (.n (W + 8)))) ∧
       LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV W + 3))) ∧
       ReadsAt rd (σ (.n (topV W + 3)))
-        (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 21)))) (eqKernel (locPt.take 6)))) ∧
-      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 744)) * gen ^ 36]) := by
-  simp only [tailT, holdsList_append, List.append_assoc, holds_challengeT] at h
+        (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 8)))) (eqKernel (locPt.take 6)))) ∧
+      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 743)) * gen ^ 36]) := by
+  simp only [tailT, holdsList_append, List.append_assoc] at h
   simp only [Stmt.HoldsList, Stmt.Holds, keccakA] at h
-  obtain ⟨e0, e2, e3, e4, e5, e6, heq, z0, z1, hk, hch, h⟩ := h
+  obtain ⟨e0, e2, e3, e4, e5, e6, heq, z0, z1, hk, h⟩ := h
   obtain ⟨o1, o2, o3, o4, lo0, lo2, lo4, -, h⟩ := h
   simp only [Atom.Holds] at e0 e2 e3 e4 e5 e6 heq z0 z1 o1 o2 o3 o4 lo0 lo2 lo4
   obtain ⟨hl, h⟩ := lanesOutT_holds h
@@ -96,9 +96,9 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
   rw [holdsList_map_atoms] at h
   obtain ⟨hcp, c0', c1', c2', hret⟩ := h
   simp only [Atom.Holds] at hcp c0' c1' c2'
-  have hsq := sq3_atoms (a := o + 1110) (o := W + 8) (cap := (cap5 (o + 1096)).map σ) p1
+  have hsq := sq3_atoms (a := o + 1098) (o := W + 8) (cap := (cap5 (o + 1085)).map σ) p1
     (by simpa [Nat.add_assoc] using p2) (by simpa [Nat.add_assoc] using p3)
-    (by simpa [cap5, Nat.add_assoc] using hk) (by simpa [Nat.add_assoc] using hch)
+    (by simpa [cap5, Nat.add_assoc] using hk)
     (by rw [z0, word_zero]) (by rw [z1, word_zero]) rfl
   simp only [Nat.add_assoc, Nat.reduceAdd] at hsq
   have hrs5 : rs = locPt.take 5 := by
@@ -111,7 +111,7 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
   have htop : σ (.n (topV W)) = locPt.getD 5 0 := by
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact loadHolds_unique ltop (hloc 5 (by omega))
-  have hlanes : ReadsAt rd (σ (.n (W + 26))) (lanesOut locPt (σ (.n (W + 21)))) := by
+  have hlanes : ReadsAt rd (σ (.n (W + 25))) (lanesOut locPt (σ (.n (W + 8)))) := by
     intro k hk
     simp only [lanesOut, List.length_map, List.length_range] at hk
     have := (hl k hk).2

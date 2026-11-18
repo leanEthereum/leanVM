@@ -47,14 +47,13 @@ def roundBody : List Stmt :=
   fsNonceT (.n 5) 4 40 ++ padRunT 43 ++
   [keccakA (permIns 1 [.n 41, .n 42] 44 (osRun 35 5)) (osRun 48 13),
     .call "grind_check__L7" [.n 49, .n 7] []] ++
-  challengeT (.n 48) 61 ++
-  [keccakA (permIns 0 [] 44 (osRun 56 5)) (osRun 62 13)] ++ challengeT (.n 62) 75 ++
-  [osLd 61 8 0, osLd 61 9 0, osLd 75 9 1,
-    osMul 76 75 21, osAdd 77 15 76, osAdd 78 15 6, osMul 79 61 18, osAdd 80 78 79,
-    osAdd 81 21 24, osMul 82 75 81, osAdd 83 80 82, osMul 84 61 83, osAdd 85 77 84] ++
-  ((List.range 5).map fun i ↦ osCp (86 + i) (70 + i)) ++
-  [osCst 91 (word 32 0), osMul 92 5 91, osCp 93 92, osCp 94 85,
-    .ret [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94]]
+  [keccakA (permIns 0 [] 44 (osRun 56 5)) (osRun 61 13)] ++
+  [osLd 48 8 0, osLd 48 9 0, osLd 61 9 1,
+    osMul 74 61 21, osAdd 75 15 74, osAdd 76 15 6, osMul 77 48 18, osAdd 78 76 77,
+    osAdd 79 21 24, osMul 80 61 79, osAdd 81 78 80, osMul 82 48 81, osAdd 83 75 82] ++
+  ((List.range 5).map fun i ↦ osCp (84 + i) (69 + i)) ++
+  [osCst 89 (word 32 0), osMul 90 5 89, osCp 91 90, osCp 92 83,
+    .ret [.n 84, .n 85, .n 86, .n 87, .n 88, .n 91, .n 92]]
 
 /-! ## The meaning -/
 

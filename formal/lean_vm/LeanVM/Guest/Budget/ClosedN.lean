@@ -45,12 +45,12 @@ elsewhere, where no child of a node within `Limits`, its caps agreeing and no ze
 (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [388016, 387619, 390584, 394633, 405250, 410562, 419149, 425180, 432727, 436026, 439001].getD (μ - 20) 0
+    [378419, 378010, 380918, 384907, 395327, 400596, 409139, 415070, 422460, 425700, 428628].getD (μ - 20) 0
   else 0
 
 /-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
 theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
-    [208731, 208334, 211299, 215348, 225965, 231277, 239864, 245895, 253442, 256741, 259716].getD m 0 := by
+    [206827, 206418, 209326, 213315, 223735, 229004, 237547, 243478, 250868, 254108, 257036].getD m 0 := by
   interval_cases m
   · exact Count.osC_0
   · exact Count.osC_1

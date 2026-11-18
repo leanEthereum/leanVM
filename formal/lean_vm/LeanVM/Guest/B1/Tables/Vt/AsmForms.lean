@@ -106,8 +106,8 @@ theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.le
 
 /-- The guest's form values: table `t`'s push, pull and count forms. -/
 def vtFV : List (List ℕ) :=
-  [[2894, 2915, 2924], [3183, 3204, 3213], [3368, 3381, 3386], [3654, 3675, 3684],
-    [3979, 4004, 4013], [5769, 5882, 5937]]
+  [[2892, 2913, 2922], [3181, 3202, 3211], [3366, 3379, 3384], [3652, 3673, 3682],
+    [3977, 4002, 4011], [5767, 5880, 5935]]
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -124,7 +124,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     (hW : TbReadsAt Lm.read (σ (.n 13)) weights) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
         [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1.getD t []).map
+        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨-, -, -, -, -, -, -, -, hP, -, hC, -⟩ :=
@@ -135,7 +135,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
       rwa [← List.getD_eq_getElem _ 0] at this
   obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n 14)) point
     [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-    (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+    (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]

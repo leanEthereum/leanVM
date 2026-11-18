@@ -39,8 +39,8 @@ def sCore (layer b : Nat) : List Stmt :=
     ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
       (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))
 
-theorem xSeg_split : xSeg = sPrologue ++ (sDigest0 88 ++ (sCore 0 88 ++ (sDigest1 62605 (.n 50364) ++
-    (sCore 1 62605 ++ [loadS (.n 120763) sSigner 0, .atom (.assertEq (.n 112857) (.n 120763))])))) := by
+theorem xSeg_split : xSeg = sPrologue ++ (sDigest0 88 ++ (sCore 0 88 ++ (sDigest1 62094 (.n 49853) ++
+    (sCore 1 62094 ++ [loadS (.n 119741) sSigner 0, .atom (.assertEq (.n 111835) (.n 119741))])))) := by
   have h0 := sLayer0_snd
   have h1 := sLayer1_snd
   simp only [xSeg]
@@ -121,11 +121,11 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   obtain ⟨hnb0, -, hc0⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 0) (b := 88) (by norm_num)
     (by decide) hm σ2 hpad2 hpow2 hL hhis2 hwin2 ⟨67, by decide, rfl⟩ ⟨103, by decide, rfl⟩ hN0 hs0
     (xVals part0) (xSibs part0)
-  have e0 : (sWin1 0 88).2.1 = 62605 := congrArg (·.1) sWin1_0
-  have e0' : (sWin1 0 88).2.2 = 50364 := congrArg (·.2) sWin1_0
+  have e0 : (sWin1 0 88).2.1 = 62094 := congrArg (·.1) sWin1_0
+  have e0' : (sWin1 0 88).2.2 = 49853 := congrArg (·.2) sWin1_0
   rw [show sCore 0 88 = _ from rfl]
   rw [e0] at hnb0 hc0
-  refine Completes.append (m := 62605) (by norm_num) (by norm_num) hnb0 hc0.withHolds
+  refine Completes.append (m := 62094) (by norm_num) (by norm_num) hnb0 hc0.withHolds
     (fun σ3 he3 ⟨hk3, hh3⟩ => ?_)
   have t3 : ∀ k < 104, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
   have hpad3 : PadOK σ3 sLxPad := hpad2.congr (b := 104) (by simp [sLxPad]) he3.agree
@@ -155,15 +155,15 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
     (by show σ3 (.n 103) = _; rw [t3 103 (by norm_num), t3 91 (by norm_num), t3 92 (by norm_num),
       t3 90 (by norm_num), h103, show sRho 0 88 = V.n 88 from rfl, t3 88 (by norm_num), hP3, hP2]; rfl)
   rw [hP3, hxpp, hpart0, e0'] at r0'
-  have hr0 : xv (σ3 (.n 50364)) = r0 := Option.some.inj (r0'.symm.trans (by rw [← hli]; exact h0))
+  have hr0 : xv (σ3 (.n 49853)) = r0 := Option.some.inj (r0'.symm.trans (by rw [← hli]; exact h0))
   -- the top layer's digest
-  have hroot3 : NBv 62605 (.n 50364) := ⟨50364, by norm_num, rfl⟩
-  refine Completes.append (m := 62605 + 5 + 2) (by norm_num) (by norm_num) (sDigest1_nb (by norm_num) hroot3)
+  have hroot3 : NBv 62094 (.n 49853) := ⟨49853, by norm_num, rfl⟩
+  refine Completes.append (m := 62094 + 5 + 2) (by norm_num) (by norm_num) (sDigest1_nb (by norm_num) hroot3)
     (sDigest1_complete (C := C) (rd := rd) σ3 (rho := cellOf128 part1.randomizer) (by norm_num) hroot3
       hpad3).withHolds
     (fun σ4 he4 ⟨h4r, hh4⟩ => ?_)
-  have t4 : ∀ k < 62605, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
-  have hpad4 : PadOK σ4 sLxPad := hpad3.congr (b := 62605) (by simp [sLxPad]) he4.agree
+  have t4 : ∀ k < 62094, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
+  have hpad4 : PadOK σ4 sLxPad := hpad3.congr (b := 62094) (by simp [sLxPad]) he4.agree
   obtain ⟨e41, e44, e46⟩ := sDigest1_sound hpad4 (atomsHold_of_holdsList (sDigest1_atoms _ _) hh4)
   have hs4 : σ4 sSigner = σ sSigner := by
     rw [show sSigner = V.n 65 from rfl, t4 65 (by norm_num), t3 65 (by norm_num), t2 65 (by norm_num)]
@@ -179,13 +179,13 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   have htag4 : ∀ i < 58, σ4 (sTag i) = eOfNat i := fun i hi => by
     rw [sTag_eq σ4 i]
     exact lx_tag hpad4.2.1 (fun s hs => hpow4 s (by omega)) htags4 i hi
-  have hR4 : σ4 (.n 50364) = σ3 (.n 50364) := t4 50364 (by norm_num)
-  have hidx1 : σ4 (.n (62605 + 1)) = eOfNat (xIdxNat 1 L) := by
+  have hR4 : σ4 (.n 49853) = σ3 (.n 49853) := t4 49853 (by norm_num)
+  have hidx1 : σ4 (.n (62094 + 1)) = eOfNat (xIdxNat 1 L) := by
     rw [e41, hhis4 2 (by norm_num), xIdxNat_one hL]
   -- the top digest decodes
-  have hM1 : HashSig.littleEndianBytes 16 r0 = [σ4 (.n 50364)].flatMap cellBytes := by
+  have hM1 : HashSig.littleEndianBytes 16 r0 = [σ4 (.n 49853)].flatMap cellBytes := by
     rw [← hr0, ← hR4, bytesLE_xv]; simp
-  have ha1 : cellBytes (σ4 (.n (62605 + 4))) = LeanXmss.tweakBytes
+  have ha1 : cellBytes (σ4 (.n (62094 + 4))) = LeanXmss.tweakBytes
       (.message ⟨1, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨1, by decide⟩)) := by
     rw [e44, hidx1]
     exact xMsgAdr_bytes hL (by norm_num)
@@ -193,26 +193,26 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   have hmd1 := messageDigest_cells xq_keccak (pp := cellOf128 pk.parameter) (rho := cellOf128 part1.randomizer)
     ha1 hM1
   rw [hxpp, show xv (cellOf128 part1.randomizer) = part1.randomizer from cellVal_cellOf128 _] at hmd1
-  have hdec1' : LeanXmss.Codeword.decode (xv (hcell (cellOf128 pk.parameter :: σ4 (.n (62605 + 4)) ::
-      [σ4 (.n 50364)] ++ [cellOf128 part1.randomizer])).1) = some enc1 := by
+  have hdec1' : LeanXmss.Codeword.decode (xv (hcell (cellOf128 pk.parameter :: σ4 (.n (62094 + 4)) ::
+      [σ4 (.n 49853)] ++ [cellOf128 part1.randomizer])).1) = some enc1 := by
     rw [← hmd1]; exact hdec1
-  have hD1 : σ4 (.n (62605 + 6)) = (hcell (cellOf128 pk.parameter :: σ4 (.n (62605 + 4)) ::
-      [σ4 (.n 50364)] ++ [cellOf128 part1.randomizer])).1 := by
+  have hD1 : σ4 (.n (62094 + 6)) = (hcell (cellOf128 pk.parameter :: σ4 (.n (62094 + 4)) ::
+      [σ4 (.n 49853)] ++ [cellOf128 part1.randomizer])).1 := by
     rw [e46, hP4, h4r]; rfl
   rw [← hD1] at hdec1'
   obtain ⟨hN1, hs1'⟩ := digest_digits hdec1'
   -- the top layer
-  obtain ⟨hnb1, -, hc1⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 1) (b := 62605) (by norm_num)
-    (by decide) hm σ4 hpad4 hpow4 hL hhis4 hwin4 ⟨62606, by decide, rfl⟩ ⟨62611, by decide, rfl⟩
+  obtain ⟨hnb1, -, hc1⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 1) (b := 62094) (by norm_num)
+    (by decide) hm σ4 hpad4 hpow4 hL hhis4 hwin4 ⟨62095, by decide, rfl⟩ ⟨62100, by decide, rfl⟩
     hN1 hs1' (xVals part1) (xSibs part1)
-  have e1 : (sWin1 1 62605).2.1 = 120763 := congrArg (·.1) sWin1_1
-  have e1' : (sWin1 1 62605).2.2 = 112857 := congrArg (·.2) sWin1_1
-  rw [show sCore 1 62605 = _ from rfl]
+  have e1 : (sWin1 1 62094).2.1 = 119741 := congrArg (·.1) sWin1_1
+  have e1' : (sWin1 1 62094).2.2 = 111835 := congrArg (·.2) sWin1_1
+  rw [show sCore 1 62094 = _ from rfl]
   rw [e1] at hnb1 hc1
-  refine Completes.append (m := 120763) (by norm_num) (by norm_num) hnb1 hc1.withHolds
+  refine Completes.append (m := 119741) (by norm_num) (by norm_num) hnb1 hc1.withHolds
     (fun σ5 he5 ⟨hk5, hh5⟩ => ?_)
-  have t5 : ∀ k < 62612, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
-  have hpad5 : PadOK σ5 sLxPad := hpad4.congr (b := 62612) (by simp [sLxPad]) he5.agree
+  have t5 : ∀ k < 62101, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
+  have hpad5 : PadOK σ5 sLxPad := hpad4.congr (b := 62101) (by simp [sLxPad]) he5.agree
   have hP5 : σ5 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t5 66 (by norm_num)]; exact hP4
   have hhis5 : ∀ v < 4, σ5 (sHis v) = eOfNat (L >>> (8 * v)) := fun v hv => by
     rw [show sHis v = V.n (67 + v) from rfl, t5 _ (by omega)]; exact hhis4 v hv
@@ -226,23 +226,23 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
     exact lx_tag hpad5.2.1 (fun s hs => hpow5 s (by omega)) htags5 i hi
   have hkw5 : ∀ w < 4, sKw σ5 w = lxWin L w := fun w hw =>
     logG_eq (lxWin_lt L w) (by norm_num) (hwin5 w hw)
-  have hpart1 : sPart 1 62605 σ5 = part1 :=
-    sPart_eq (by rw [show sRho 1 62605 = V.n (62605 + 2) from rfl, t5 _ (by norm_num)]; exact h4r)
+  have hpart1 : sPart 1 62094 σ5 = part1 :=
+    sPart_eq (by rw [show sRho 1 62094 = V.n (62094 + 2) from rfl, t5 _ (by norm_num)]; exact h4r)
       (hk5 σ5 (fun _ _ => rfl)).1 (hk5 σ5 (fun _ _ => rfl)).2
-  have r1' := (sLayerCore_sound (layer := 1) (b := 62605) (rest := []) hpad5 hpow5 (by norm_num)
+  have r1' := (sLayerCore_sound (layer := 1) (b := 62094) (rest := []) hpad5 hpow5 (by norm_num)
     (by rw [List.append_nil]; exact hh5)).2.2.2 L hL
-    (by show σ5 (.n (62605 + 1)) = _; rw [t5 _ (by norm_num)]; exact hidx1) hhis5 hkw5 htag5
-    (msgCells := [σ5 (.n 50364)]) (M := HashSig.littleEndianBytes 16 r0)
-    (by rw [hM1, t5 50364 (by norm_num)]) (aMsg := σ5 (.n (62605 + 4)))
+    (by show σ5 (.n (62094 + 1)) = _; rw [t5 _ (by norm_num)]; exact hidx1) hhis5 hkw5 htag5
+    (msgCells := [σ5 (.n 49853)]) (M := HashSig.littleEndianBytes 16 r0)
+    (by rw [hM1, t5 49853 (by norm_num)]) (aMsg := σ5 (.n (62094 + 4)))
     (by rw [t5 _ (by norm_num)]; exact ha1)
-    (by show σ5 (.n (62605 + 6)) = _; rw [t5 _ (by norm_num), t5 50364 (by norm_num),
-      t5 (62605 + 4) (by norm_num), hD1, show sRho 1 62605 = V.n (62605 + 2) from rfl,
-      t5 (62605 + 2) (by norm_num), hP5, h4r])
+    (by show σ5 (.n (62094 + 6)) = _; rw [t5 _ (by norm_num), t5 49853 (by norm_num),
+      t5 (62094 + 4) (by norm_num), hD1, show sRho 1 62094 = V.n (62094 + 2) from rfl,
+      t5 (62094 + 2) (by norm_num), hP5, h4r])
   rw [hP5, hxpp, hpart1, e1'] at r1'
-  have hr1 : xv (σ5 (.n 112857)) = pk.root := Option.some.inj (r1'.symm.trans (by rw [← hli]; exact h1))
-  have hR5 : σ5 (.n 112857) = cellOf128 pk.root :=
+  have hr1 : xv (σ5 (.n 111835)) = pk.root := Option.some.inj (r1'.symm.trans (by rw [← hli]; exact h1))
+  have hR5 : σ5 (.n 111835) = cellOf128 pk.root :=
     cellVal_inj (by
-      show xv (σ5 (.n 112857)) = _
+      show xv (σ5 (.n 111835)) = _
       rw [hr1]; exact (cellVal_cellOf128 _).symm)
   -- the key's root
   refine Completes.load ⟨65, by norm_num, rfl⟩ (w := cellOf128 pk.root)
@@ -251,7 +251,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   refine completes_atoms rfl (Ext.refl _ _ _) trivial (fun a ha => ?_)
   simp only [List.mem_singleton, Stmt.atom.injEq] at ha
   subst ha
-  show σ6 (.n 112857) + σ6 (.n 120763) = 0
+  show σ6 (.n 111835) + σ6 (.n 119741) = 0
   rw [he6.apply (Or.inl (by norm_num)), hR5, e6]
   exact e_add_self _
 

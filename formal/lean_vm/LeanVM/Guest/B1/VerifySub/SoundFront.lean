@@ -92,21 +92,21 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
     ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
       [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
     [σ (.n 283), v] (fun x ↦ eqEval z x, v)
-    ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], [(v, dsObserve)]⟩
+    ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩
   hzL : z.length = (Tables.layoutOf bytecode logMem rowsN).stackLog
-  hz : ReadsAt rd (σ (.n 304)) z
-  hv : ReadsAt rd (σ (.n 310)) [v]
+  hz : ReadsAt rd (σ (.n 303)) z
+  hv : ReadsAt rd (σ (.n 309)) [v]
   hn283 : LoadHolds rd (σ (.n 25)) 10 (σ (.n 283))
-  h312 : σ (.n 312) = σ (.n 25) * gen ^ 11
-  hv312 : LoadHolds rd (σ (.n 312)) 0 v
-  hnn : LoadHolds rd (σ (.n 312)) 1 nn
-  h320 : σ (.n 320) = σ (.n 312) * gen ^ 2
+  h312 : σ (.n 311) = σ (.n 25) * gen ^ 11
+  hv312 : LoadHolds rd (σ (.n 311)) 0 v
+  hnn : LoadHolds rd (σ (.n 311)) 1 nn
+  h320 : σ (.n 319) = σ (.n 311) * gen ^ 2
   -- the bus's challenges
   weights : List E
   hwL : weights.length = 16
   hB : RunsTo (busChallenges (busDepth (Tables.layoutOf bytecode logMem rowsN)))
-    ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], [(v, dsObserve)]⟩ [nn]
-    (weights, σ (.n 559)) ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩
+    ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩ [nn]
+    (weights, σ (.n 530)) ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩
   hdep20 : 20 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
   hdep34 : busDepth (Tables.layoutOf bytecode logMem rowsN) < 34
   hdep19 : 19 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
@@ -114,40 +114,40 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   -- the bus's GKR
   xsG : List E
   r : E × List E × List E
-  hxsG : ReadsAt rd (σ (.n 320)) xsG
+  hxsG : ReadsAt rd (σ (.n 319)) xsG
   hG : RunsTo (Tables.gkrPhase (busDepth (Tables.layoutOf bytecode logMem rowsN)))
-    ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩ xsG r
-    ⟨[σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566)], []⟩
+    ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ xsG r
+    ⟨[σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549)], []⟩
   hrL : r.2.1.length = busDepth (Tables.layoutOf bytecode logMem rowsN)
   hzeta : ReadsAt rd (σ (.n 254)) r.2.1
-  h567 : σ (.n 567) = σ (.n 320) * gen ^ xsG.length
+  h567 : σ (.n 550) = σ (.n 319) * gen ^ xsG.length
   -- the tables
   xsT : List E
   bus : BusResult
   claims : List ColumnClaim
   slots : List E
   hslL : slots.length = busBits
-  hsl : ReadsAt rd (σ (.n 570)) slots
+  hsl : ReadsAt rd (σ (.n 553)) slots
   hbp : bus.bytecodePoint = r.2.1.take 19 ++ slots
-  hxsT : ReadsAt rd (σ (.n 567)) xsT
-  hT : RunsTo (Tables.tablesSeg (claimedBytecodeValue ⟨bus.bytecodePoint, σ (.n 580)⟩)
-      (Tables.layoutOf bytecode logMem rowsN) pi weights (σ (.n 559)) r.2.1 r.2.2)
-    ⟨[σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566)], []⟩ xsT (bus, claims)
-    ⟨[σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577)], []⟩
+  hxsT : ReadsAt rd (σ (.n 550)) xsT
+  hT : RunsTo (Tables.tablesSeg (claimedBytecodeValue ⟨bus.bytecodePoint, σ (.n 563)⟩)
+      (Tables.layoutOf bytecode logMem rowsN) pi weights (σ (.n 530)) r.2.1 r.2.2)
+    ⟨[σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549)], []⟩ xsT (bus, claims)
+    ⟨[σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560)], []⟩
   hcl : claims.length = 159
   hpool : ReadsAt rd (σ (.n 6)) ((claims.take 4).map (·.value))
-  hcew : ReadsAt rd (σ (.n 582)) (((claims.drop 4).take 153).map (·.value))
+  hcew : ReadsAt rd (σ (.n 565)) (((claims.drop 4).take 153).map (·.value))
   hpiv : ReadsAt rd (σ (.n 6) * gen ^ 157) ((claims.drop 157).map (·.value))
   hctx : Tables.TCtx rd (Tables.layoutOf bytecode logMem rowsN) bus claims
-    [σ (.n 254), σ (.n 569), σ (.n 581), σ (.n 253), σ (.n 579)]
-  h578 : σ (.n 578) = σ (.n 567) * gen ^ xsT.length
+    [σ (.n 254), σ (.n 552), σ (.n 564), σ (.n 253), σ (.n 562)]
+  h578 : σ (.n 561) = σ (.n 550) * gen ^ xsT.length
   -- `verify_keccak`'s call
-  h583 : σ (.n 583) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0
-  h587 : σ (.n 587) = σ (.n 582) * gen ^ 101
-  h589 : σ (.n 589) = σ (.n 4) * gen ^ winTabAt
-  hkc : C "verify_keccak" [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578),
-    σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)]
-    [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593), σ (.n 594), σ (.n 595), σ (.n 596)]
+  h583 : σ (.n 566) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0
+  h587 : σ (.n 570) = σ (.n 565) * gen ^ 101
+  h589 : σ (.n 572) = σ (.n 4) * gen ^ winTabAt
+  hkc : C "verify_keccak" [σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560), σ (.n 561),
+    σ (.n 566), σ (.n 552), σ (.n 570), σ (.n 567), σ (.n 568), σ (.n 572)]
+    [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 579)]
 
 /-! ## Facts the assembly ties the sections with -/
 
@@ -211,13 +211,13 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
   -- the out-of-domain sample
   obtain ⟨z, v, nn, hO, hzL, hz, hv, hn283, h312, hv312, hnn, hom, hb⟩ :=
     vsOodT_holds hκ hκw L hC hwin hM22 hM30 h278 w268 w271 hb
-  have hS := (List.append_inj' (show [σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317),
-    σ (.n 318), σ (.n 319)] ++ [σ (.n 320)] = _ from hom) rfl)
+  have hS := (List.append_inj' (show [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316),
+    σ (.n 317), σ (.n 318)] ++ [σ (.n 319)] = _ from hom) rfl)
   -- the bus's challenges
   rw [← holdsList_append] at hb
   obtain ⟨hμ16, weights, hwL, hw335, hBus, hb⟩ :=
     vsBusFpw_holds hκ hκw L hC hwin h8 h9 h10 h11 hμ34 h253
-      (s := ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], [(v, dsObserve)]⟩)
+      (s := ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩)
       hS.1 hb
   -- the calls
   obtain ⟨h561, hgkr, h572, htab, h583l, h587, h589, hkc, hb⟩ := vsCallsT_holds hb
@@ -229,14 +229,14 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       (hC _ _ _ hgkr)
   have hμd : μ = depth := gen_pow_inj (by omega) (by omega) (h253.symm.trans hgm)
   subst hμd
-  obtain ⟨hcapG, hcurG⟩ := List.append_inj' (show [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565),
-    σ (.n 566)] ++ [σ (.n 567), σ (.n 568)] = _ from hretG) rfl
+  obtain ⟨hcapG, hcurG⟩ := List.append_inj' (show [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548),
+    σ (.n 549)] ++ [σ (.n 550), σ (.n 551)] = _ from hretG) rfl
   simp only [List.cons.injEq, and_true] at hcurG
   -- the tables
   have hTP : Tables.TablesPre pi logMem weights r.2.1 r.2.2 L.read
-      [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0), σ (.n 1),
-        σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559), σ (.n 6),
-        σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)] :=
+      [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549), σ (.n 550), σ (.n 0), σ (.n 1),
+        σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 334), σ (.n 530), σ (.n 6),
+        σ (.n 552), σ (.n 551), σ (.n 555), σ (.n 553)] :=
     ⟨hpi, hzeta, by rw [h253, hrL], by omega, hm1, hm30.trans (by norm_num), ⟨ds, hdsL, hdims⟩,
       expTablesAt_of hexp hwin, h572, hwL, hw335, hvL, by rw [hcurG.2]; exact hleaves⟩
   obtain ⟨xsT, capT, rowsN, bus, claims, hrowsL, hrows, hdims', hh31, hxsT, ⟨slots, hslL, hsl, hbp⟩,
@@ -276,7 +276,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
     rw [vsWords, ← hr, ← h27, ← h61]
     rfl
   -- `verify_keccak`'s table height
-  have h583 : σ (.n 583) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0 := by
+  have h583 : σ (.n 566) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0 := by
     refine loadHolds_unique h583l ?_
     have h6 := hdims' 6 (by simp [hHL])
     rw [List.getD_eq_getElem _ _ (show 5 < (Tables.tableHeightsOf rowsN).length by omega)]

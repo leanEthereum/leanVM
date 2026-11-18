@@ -59,67 +59,66 @@ def vbR3 : List Stmt :=
     .atom (.const (.n 45) (word 0 0)),
     keccakA ([.n 29, .n 30, .n 34, .n 35, .n 42, .n 43, .n 44, .n 45] ++
       (List.range 5).map fun k ↦ .n (23 + k)) (lyOuts 46)] ++
-  challengeT (.n 46) 59 ++
-  [.atom (.mul (.n 60) (.n 59) (.n 36)), .atom (.add (.n 61) (.n 32) (.n 60)),
-    .atom (.mul (.n 62) (.n 59) (.n 61)), .atom (.add (.n 63) (.n 31) (.n 62)),
-    .atom (.hint (.alloc (.n 64) 8))]
+  [.atom (.mul (.n 59) (.n 46) (.n 36)), .atom (.add (.n 60) (.n 32) (.n 59)),
+    .atom (.mul (.n 61) (.n 46) (.n 60)), .atom (.add (.n 62) (.n 31) (.n 61)),
+    .atom (.hint (.alloc (.n 63) 8))]
 
 /-- The table `k_mod_next` at `g^r` and `g^(4 + r)`. -/
 def vbKmn (r : ℕ) : List Stmt :=
-  [.atom (.const (.n (65 + 2 * r)) (word (2 ^ ((r + 1) % 4)) 0)),
-    .atom (.load (.n (65 + 2 * r)) (.n 64) r),
-    .atom (.const (.n (66 + 2 * r)) (word (2 ^ ((r + 1) / 4)) 0)),
-    .atom (.load (.n (66 + 2 * r)) (.n 64) (4 + r))]
+  [.atom (.const (.n (64 + 2 * r)) (word (2 ^ ((r + 1) % 4)) 0)),
+    .atom (.load (.n (64 + 2 * r)) (.n 63) r),
+    .atom (.const (.n (65 + 2 * r)) (word (2 ^ ((r + 1) / 4)) 0)),
+    .atom (.load (.n (65 + 2 * r)) (.n 63) (4 + r))]
 
 /-- The table `k_mod_next`, the tables' allocations. -/
 def vbR4 : List Stmt :=
   ((List.range 4).map vbKmn).flatten ++
-    [.atom (.hint (.alloc (.n 73) 33)), .atom (.hint (.alloc (.n 74) 33))]
+    [.atom (.hint (.alloc (.n 72) 33)), .atom (.hint (.alloc (.n 73) 33))]
 
 /-- The tables `loop_bounds[d] = g^((d - 1)/2)`, `depth_odd[d] = g^(d % 2)`. -/
 def vbTab (d : ℕ) : List Stmt :=
-  [.atom (.const (.n (75 + 2 * d)) (word (2 ^ ((d - 1) / 2)) 0)),
-    .atom (.load (.n (75 + 2 * d)) (.n 73) d),
-    .atom (.const (.n (76 + 2 * d)) (word (2 ^ (d % 2)) 0)),
-    .atom (.load (.n (76 + 2 * d)) (.n 74) d)]
+  [.atom (.const (.n (74 + 2 * d)) (word (2 ^ ((d - 1) / 2)) 0)),
+    .atom (.load (.n (74 + 2 * d)) (.n 72) d),
+    .atom (.const (.n (75 + 2 * d)) (word (2 ^ (d % 2)) 0)),
+    .atom (.load (.n (75 + 2 * d)) (.n 73) d)]
 
 /-- The tables. -/
 def vbR5 : List Stmt := ((List.range 33).map vbTab).flatten
 
 /-- The depth's parity. -/
 def vbR6 : List Stmt :=
-  [.atom (.mul (.n 141) (.n 74) (.n 6)), .atom (.load (.n 142) (.n 141) 0),
-    .atom (.const (.n 143) (word 1 0)), .atom (.add (.n 144) (.n 142) (.n 143))]
+  [.atom (.mul (.n 140) (.n 73) (.n 6)), .atom (.load (.n 141) (.n 140) 0),
+    .atom (.const (.n 142) (word 1 0)), .atom (.add (.n 143) (.n 141) (.n 142))]
 
 /-- The root-most layer. -/
-noncomputable def vbR7 : List Stmt := [.ite (.n 144) rtFour rtTwo]
+noncomputable def vbR7 : List Stmt := [.ite (.n 143) rtFour rtTwo]
 
 /-- The layer loop. -/
 def vbR8 : List Stmt :=
-  [.atom (.const (.n 374) (word 4 0)), .atom (.mul (.n 374) (.n 375) (.n 142)),
-    .atom (.const (.n 376) (word 1 0)), .atom (.mul (.n 377) (.n 73) (.n 6)),
-    .atom (.load (.n 378) (.n 377) 0), .atom (.add (.n 379) (.n 376) (.n 378)),
-    .atom (.const (.n 380) (word 1 0)), .atom (.mul (.n 381) (.n 73) (.n 6)),
-    .atom (.load (.n 382) (.n 381) 0),
-    .callIf (.n 379) name% «verify_bus_gkr_loop0» [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17,
-        .n 63, .n 142, .n 6,
-      .n 64]]
+  [.atom (.const (.n 370) (word 4 0)), .atom (.mul (.n 370) (.n 371) (.n 141)),
+    .atom (.const (.n 372) (word 1 0)), .atom (.mul (.n 373) (.n 72) (.n 6)),
+    .atom (.load (.n 374) (.n 373) 0), .atom (.add (.n 375) (.n 372) (.n 374)),
+    .atom (.const (.n 376) (word 1 0)), .atom (.mul (.n 377) (.n 72) (.n 6)),
+    .atom (.load (.n 378) (.n 377) 0),
+    .callIf (.n 375) name% «verify_bus_gkr_loop0» [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17,
+        .n 62, .n 141, .n 6,
+      .n 63]]
 
 /-- The last slot, the point's copy, the values' buffer, the returns. -/
 def vbR9 : List Stmt :=
-  [.atom (.mul (.n 383) (.n 6) (.n 6)), .atom (.mul (.n 384) (.n 383) (.n 6)),
-    .atom (.mul (.n 385) (.n 384) (.n 384)), .atom (.mul (.n 386) (.n 385) (.n 385)),
-    .atom (.mul (.n 387) (.n 386) (.n 6)), .atom (.mul (.n 388) (.n 16) (.n 387)),
-    .atom (.load (.n 389) (.n 388) 5), .atom (.load (.n 390) (.n 388) 9),
-    .atom (.const (.n 391) (word 1 0)), .atom (.add (.n 392) (.n 391) (.n 6)),
-    .atom (.const (.n 393) (word 1 0)),
-    .callIf (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390],
-    .atom (.hint (.alloc (.n 394) 3)),
-    .atom (.load (.n 395) (.n 388) 6), .atom (.load (.n 395) (.n 394) 0),
-    .atom (.load (.n 396) (.n 388) 7), .atom (.load (.n 396) (.n 394) 1),
-    .atom (.load (.n 397) (.n 388) 8), .atom (.load (.n 397) (.n 394) 2)] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (398 + k)) (.n 388) k)) ++
-  [.atom (.copy (.n 403) (.n 389)), .atom (.copy (.n 404) (.n 394))]
+  [.atom (.mul (.n 379) (.n 6) (.n 6)), .atom (.mul (.n 380) (.n 379) (.n 6)),
+    .atom (.mul (.n 381) (.n 380) (.n 380)), .atom (.mul (.n 382) (.n 381) (.n 381)),
+    .atom (.mul (.n 383) (.n 382) (.n 6)), .atom (.mul (.n 384) (.n 16) (.n 383)),
+    .atom (.load (.n 385) (.n 384) 5), .atom (.load (.n 386) (.n 384) 9),
+    .atom (.const (.n 387) (word 1 0)), .atom (.add (.n 388) (.n 387) (.n 6)),
+    .atom (.const (.n 389) (word 1 0)),
+    .callIf (.n 388) name% «verify_bus_gkr_loop1» [.n 389, .n 6, .n 7, .n 386],
+    .atom (.hint (.alloc (.n 390) 3)),
+    .atom (.load (.n 391) (.n 384) 6), .atom (.load (.n 391) (.n 390) 0),
+    .atom (.load (.n 392) (.n 384) 7), .atom (.load (.n 392) (.n 390) 1),
+    .atom (.load (.n 393) (.n 384) 8), .atom (.load (.n 393) (.n 390) 2)] ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n (394 + k)) (.n 384) k)) ++
+  [.atom (.copy (.n 399) (.n 385)), .atom (.copy (.n 400) (.n 390))]
 
 set_option maxRecDepth 10000 in
 theorem vbgPre_eq' :
@@ -142,7 +141,7 @@ theorem tb_list3_eq {l : List E} (h : l.length = 3) : ∃ a0 a1 a2, l = [a0, a1,
 `loop_bounds`, `depth_odd`, the values' buffer. -/
 def vbgW (layers rounds rows kmn bnd odd vals : E) : ℕ → E := fun i ↦
   if i = 16 then layers else if i = 17 then rounds else if i = 18 then rows else
-    if i = 64 then kmn else if i = 73 then bnd else if i = 74 then odd else vals
+    if i = 63 then kmn else if i = 72 then bnd else if i = 73 then odd else vals
 
 /-- The root's sponge: the carried capacity, the two roots waiting. -/
 def rootS (cap0 : List E) (x0 x1 : E) : Fs := ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩
@@ -336,51 +335,49 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     (g 35 (.keccak ([.n 29, .n 30, .n 34, .n 35, .n 42, .n 43, .n 44, .n 45] ++
       (List.range 5).map fun k ↦ .n (23 + k)) (lyOuts 46) false false) (by decide +kernel) rfl)
   rw [hins] at hP hcap
-  have hco := challengeT_good (vb_goodB hG 36 (challengeT (.n 46) 59) (by decide +kernel)
-    (by decide +kernel) (by decide +kernel))
-  have e59 : σ (.n 59) = (rootS [a0, a1, a2, a3, a4] x0 x1).squeeze.1 :=
-    challengeT_value hco (hP 0 (by omega))
-  have m60 := good_mul (g 37 (.mul (.n 60) (.n 59) (.n 36)) (by decide +kernel) rfl) (by omega)
+  have e59 : σ (.n 46) = (rootS [a0, a1, a2, a3, a4] x0 x1).squeeze.1 :=
+    challengeT_value (s0 := .n 46) (b := 46) rfl (hP 0 (by omega))
+  have m60 := good_mul (g 36 (.mul (.n 59) (.n 46) (.n 36)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  have a61 : σ (.n 61) = σ (.n 32) + σ (.n 60) :=
-    g 38 (.add (.n 61) (.n 32) (.n 60)) (by decide +kernel) rfl
-  have m62 := good_mul (g 39 (.mul (.n 62) (.n 59) (.n 61)) (by decide +kernel) rfl) (by omega)
+  have a61 : σ (.n 60) = σ (.n 32) + σ (.n 59) :=
+    g 37 (.add (.n 60) (.n 32) (.n 59)) (by decide +kernel) rfl
+  have m62 := good_mul (g 38 (.mul (.n 61) (.n 46) (.n 60)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  have a63 : σ (.n 63) = σ (.n 31) + σ (.n 62) :=
-    g 40 (.add (.n 63) (.n 31) (.n 62)) (by decide +kernel) rfl
-  have e63 : σ (.n 63) = polyEval (rootSt x0 x1).values (rootS [a0, a1, a2, a3, a4] x0 x1).squeeze.1 := by
+  have a63 : σ (.n 62) = σ (.n 31) + σ (.n 61) :=
+    g 39 (.add (.n 62) (.n 31) (.n 61)) (by decide +kernel) rfl
+  have e63 : σ (.n 62) = polyEval (rootSt x0 x1).values (rootS [a0, a1, a2, a3, a4] x0 x1).squeeze.1 := by
     rw [a63, m62, a61, m60, q31, q32, q36, e28, e33, ← e59]
     simp only [rootSt, polyEval, List.foldr]
     ring
   have hcapP : (lyCap 46).map σ = capOf (rootS [a0, a1, a2, a3, a4] x0 x1).perm := hcap
-  have e64 : σ (.n 64) = kmn := by
-    have h : σ (.n 64) = W 64 := g 41 (.hint (.alloc (.n 64) 8)) (by decide +kernel) rfl
+  have e64 : σ (.n 63) = kmn := by
+    have h : σ (.n 63) = W 63 := g 40 (.hint (.alloc (.n 63) 8)) (by decide +kernel) rfl
     rw [h]; simp [hW, vbgW]
-  have e73 : σ (.n 73) = bnd := by
+  have e73 : σ (.n 72) = bnd := by
+    have h : σ (.n 72) = W 72 := g 57 (.hint (.alloc (.n 72) 33)) (by decide +kernel) rfl
+    rw [h]; simp [hW, vbgW]
+  have e74 : σ (.n 73) = odd := by
     have h : σ (.n 73) = W 73 := g 58 (.hint (.alloc (.n 73) 33)) (by decide +kernel) rfl
     rw [h]; simp [hW, vbgW]
-  have e74 : σ (.n 74) = odd := by
-    have h : σ (.n 74) = W 74 := g 59 (.hint (.alloc (.n 74) 33)) (by decide +kernel) rfl
-    rw [h]; simp [hW, vbgW]
   -- the tables
-  have gK := vb_goodB hG 42 ((List.range 4).map vbKmn).flatten (by decide +kernel)
+  have gK := vb_goodB hG 41 ((List.range 4).map vbKmn).flatten (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
   have KM : ∀ r < 4, ∀ s ∈ vbKmn r, SHolds (coreProgram.Rel rd) rd σ s := by
     intro r hr
     have mem : ∀ t ∈ vbKmn r, t ∈ ((List.range 4).map vbKmn).flatten := fun t ht =>
       List.mem_flatten.mpr ⟨vbKmn r, List.mem_map.mpr ⟨r, List.mem_range.mpr hr, rfl⟩, ht⟩
-    have c0 : σ (.n (65 + 2 * r)) = word (2 ^ ((r + 1) % 4)) 0 :=
-      gK (.atom (.const (.n (65 + 2 * r)) (word (2 ^ ((r + 1) % 4)) 0))) (mem _ (by simp [vbKmn]))
-    have c1 : σ (.n (66 + 2 * r)) = word (2 ^ ((r + 1) / 4)) 0 :=
-      gK (.atom (.const (.n (66 + 2 * r)) (word (2 ^ ((r + 1) / 4)) 0))) (mem _ (by simp [vbKmn]))
+    have c0 : σ (.n (64 + 2 * r)) = word (2 ^ ((r + 1) % 4)) 0 :=
+      gK (.atom (.const (.n (64 + 2 * r)) (word (2 ^ ((r + 1) % 4)) 0))) (mem _ (by simp [vbKmn]))
+    have c1 : σ (.n (65 + 2 * r)) = word (2 ^ ((r + 1) / 4)) 0 :=
+      gK (.atom (.const (.n (65 + 2 * r)) (word (2 ^ ((r + 1) / 4)) 0))) (mem _ (by simp [vbKmn]))
     obtain ⟨k4, k0⟩ := hkmn r hr
     simp only [vbKmn, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
       and_true]
-    exact ⟨c0, show LoadHolds rd (σ (.n 64)) r (σ (.n (65 + 2 * r))) by
+    exact ⟨c0, show LoadHolds rd (σ (.n 63)) r (σ (.n (64 + 2 * r))) by
         rw [e64, c0, tb_word_two_pow (by omega)]; exact k0, c1,
-      show LoadHolds rd (σ (.n 64)) (4 + r) (σ (.n (66 + 2 * r))) by
+      show LoadHolds rd (σ (.n 63)) (4 + r) (σ (.n (65 + 2 * r))) by
         rw [e64, c1, tb_word_two_pow (by omega)]; exact k4⟩
-  have gT := vb_goodB hG 60 vbR5 (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  have gT := vb_goodB hG 59 vbR5 (by decide +kernel) (by decide +kernel) (by decide +kernel)
   have hbk : ∀ k < 33, LoadHolds rd bnd k (gen ^ ((k - 1) / 2)) := fun k hk => by
     have := hbnd k (by simpa using hk)
     simpa using this
@@ -391,25 +388,25 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     intro k hk
     have mem : ∀ t ∈ vbTab k, t ∈ vbR5 := fun t ht =>
       List.mem_flatten.mpr ⟨vbTab k, List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩, ht⟩
-    have c0 : σ (.n (75 + 2 * k)) = word (2 ^ ((k - 1) / 2)) 0 :=
-      gT (.atom (.const (.n (75 + 2 * k)) (word (2 ^ ((k - 1) / 2)) 0))) (mem _ (by simp [vbTab]))
-    have c1 : σ (.n (76 + 2 * k)) = word (2 ^ (k % 2)) 0 :=
-      gT (.atom (.const (.n (76 + 2 * k)) (word (2 ^ (k % 2)) 0))) (mem _ (by simp [vbTab]))
+    have c0 : σ (.n (74 + 2 * k)) = word (2 ^ ((k - 1) / 2)) 0 :=
+      gT (.atom (.const (.n (74 + 2 * k)) (word (2 ^ ((k - 1) / 2)) 0))) (mem _ (by simp [vbTab]))
+    have c1 : σ (.n (75 + 2 * k)) = word (2 ^ (k % 2)) 0 :=
+      gT (.atom (.const (.n (75 + 2 * k)) (word (2 ^ (k % 2)) 0))) (mem _ (by simp [vbTab]))
     simp only [vbTab, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
       and_true]
-    exact ⟨c0, show LoadHolds rd (σ (.n 73)) k (σ (.n (75 + 2 * k))) by
+    exact ⟨c0, show LoadHolds rd (σ (.n 72)) k (σ (.n (74 + 2 * k))) by
         rw [e73, c0, tb_word_two_pow (by omega)]; exact hbk k hk, c1,
-      show LoadHolds rd (σ (.n 74)) k (σ (.n (76 + 2 * k))) by
+      show LoadHolds rd (σ (.n 73)) k (σ (.n (75 + 2 * k))) by
         rw [e74, c1, tb_word_two_pow (by omega)]; exact hok k hk⟩
   -- the depth's parity
-  have m141 := good_mul (g 192 (.mul (.n 141) (.n 74) (.n 6)) (by decide +kernel) rfl) (by omega)
+  have m141 := good_mul (g 191 (.mul (.n 140) (.n 73) (.n 6)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  obtain ⟨e142, l142⟩ := good_read (g 193 (.load (.n 142) (.n 141) 0) (by decide +kernel) rfl)
-    (by decide +kernel) (show LoadHolds rd (σ (.n 141)) 0 (gen ^ sh) by
+  obtain ⟨e142, l142⟩ := good_read (g 192 (.load (.n 141) (.n 140) 0) (by decide +kernel) rfl)
+    (by decide +kernel) (show LoadHolds rd (σ (.n 140)) 0 (gen ^ sh) by
       rw [m141, e74, e6, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hok depth (by omega))
-  have c143 : σ (.n 143) = word 1 0 := g 194 (.const (.n 143) (word 1 0)) (by decide +kernel) rfl
-  have a144 : σ (.n 144) = σ (.n 142) + σ (.n 143) :=
-    g 195 (.add (.n 144) (.n 142) (.n 143)) (by decide +kernel) rfl
+  have c143 : σ (.n 142) = word 1 0 := g 193 (.const (.n 142) (word 1 0)) (by decide +kernel) rfl
+  have a144 : σ (.n 143) = σ (.n 141) + σ (.n 142) :=
+    g 194 (.add (.n 143) (.n 141) (.n 142)) (by decide +kernel) rfl
   -- the root-most layer
   have R7 : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbR7 True
       (fun rs => rs = sF.cap ++ [curF, vals]) := by
@@ -435,82 +432,82 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       exact rtc_two hG rfl e59 e63 hcapP z42 z43 z44 z45 hD (by rw [e5]; exact hxD)
         (by rw [e16, e5, e18]; exact hS')
   -- the layer loop
-  have c374 : σ (.n 374) = word 4 0 := g 197 (.const (.n 374) (word 4 0)) (by decide +kernel) rfl
-  have d375 : σ (.n 375) = σ (.n 374) * (σ (.n 142))⁻¹ := by
-    have h := g 198 (.mul (.n 374) (.n 375) (.n 142)) (by decide +kernel) rfl
-    have hn : ¬ ((V.n 375).idx < (V.n 374).idx ∧ (V.n 142).idx < (V.n 374).idx) := by
-      show ¬ (375 < 374 ∧ 142 < 374); omega
+  have c374 : σ (.n 370) = word 4 0 := g 196 (.const (.n 370) (word 4 0)) (by decide +kernel) rfl
+  have d375 : σ (.n 371) = σ (.n 370) * (σ (.n 141))⁻¹ := by
+    have h := g 197 (.mul (.n 370) (.n 371) (.n 141)) (by decide +kernel) rfl
+    have hn : ¬ ((V.n 371).idx < (V.n 370).idx ∧ (V.n 141).idx < (V.n 370).idx) := by
+      show ¬ (371 < 370 ∧ 141 < 370); omega
     simpa only [Good, hn, ↓reduceIte] using h
-  have e375 : σ (.n 375) = gen ^ (2 - sh) := by
+  have e375 : σ (.n 371) = gen ^ (2 - sh) := by
     rw [d375, c374, tb_word_four, e142]
     have hs : sh ≤ 2 := by omega
     rw [show (gen : E) ^ 2 = gen ^ (2 - sh) * gen ^ sh by rw [← pow_add, Nat.sub_add_cancel hs],
       mul_assoc, mul_inv_cancel₀ (gen_pow_ne_zero _), mul_one]
-  have c376 : σ (.n 376) = word 1 0 := g 199 (.const (.n 376) (word 1 0)) (by decide +kernel) rfl
-  have m377 := good_mul (g 200 (.mul (.n 377) (.n 73) (.n 6)) (by decide +kernel) rfl) (by omega)
+  have c376 : σ (.n 372) = word 1 0 := g 198 (.const (.n 372) (word 1 0)) (by decide +kernel) rfl
+  have m377 := good_mul (g 199 (.mul (.n 373) (.n 72) (.n 6)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  have hbb : ∀ p, p = σ (.n 73) * σ (.n 6) → LoadHolds rd p 0 (gen ^ m) := fun p hp => by
+  have hbb : ∀ p, p = σ (.n 72) * σ (.n 6) → LoadHolds rd p 0 (gen ^ m) := fun p hp => by
     rw [hp, e73, e6, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hbk depth (by omega)
-  obtain ⟨e378, l378⟩ := good_read (g 201 (.load (.n 378) (.n 377) 0) (by decide +kernel) rfl)
+  obtain ⟨e378, l378⟩ := good_read (g 200 (.load (.n 374) (.n 373) 0) (by decide +kernel) rfl)
     (by decide +kernel) (hbb _ m377)
-  have a379 : σ (.n 379) = σ (.n 376) + σ (.n 378) :=
-    g 202 (.add (.n 379) (.n 376) (.n 378)) (by decide +kernel) rfl
-  have c380 : σ (.n 380) = word 1 0 := g 203 (.const (.n 380) (word 1 0)) (by decide +kernel) rfl
-  have m381 := good_mul (g 204 (.mul (.n 381) (.n 73) (.n 6)) (by decide +kernel) rfl) (by omega)
+  have a379 : σ (.n 375) = σ (.n 372) + σ (.n 374) :=
+    g 201 (.add (.n 375) (.n 372) (.n 374)) (by decide +kernel) rfl
+  have c380 : σ (.n 376) = word 1 0 := g 202 (.const (.n 376) (word 1 0)) (by decide +kernel) rfl
+  have m381 := good_mul (g 203 (.mul (.n 377) (.n 72) (.n 6)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  obtain ⟨e382, l382⟩ := good_read (g 205 (.load (.n 382) (.n 381) 0) (by decide +kernel) rfl)
+  obtain ⟨e382, l382⟩ := good_read (g 204 (.load (.n 378) (.n 377) 0) (by decide +kernel) rfl)
     (by decide +kernel) (hbb _ m381)
   -- the last slot, the point's copy, the values' buffer
   obtain ⟨hclF, hcapF, -, hcurF, hvlF, hvalF, hrowF, hplF, hptF, -, -, -⟩ := hlast
-  have m383 := good_mul (g 207 (.mul (.n 383) (.n 6) (.n 6)) (by decide +kernel) rfl) (by omega)
+  have m383 := good_mul (g 206 (.mul (.n 379) (.n 6) (.n 6)) (by decide +kernel) rfl) (by omega)
     (by omega)
-  have m384 := good_mul (g 208 (.mul (.n 384) (.n 383) (.n 6)) (by decide +kernel) rfl)
+  have m384 := good_mul (g 207 (.mul (.n 380) (.n 379) (.n 6)) (by decide +kernel) rfl)
     (by omega) (by omega)
-  have m385 := good_mul (g 209 (.mul (.n 385) (.n 384) (.n 384)) (by decide +kernel) rfl)
+  have m385 := good_mul (g 208 (.mul (.n 381) (.n 380) (.n 380)) (by decide +kernel) rfl)
     (by omega) (by omega)
-  have m386 := good_mul (g 210 (.mul (.n 386) (.n 385) (.n 385)) (by decide +kernel) rfl)
+  have m386 := good_mul (g 209 (.mul (.n 382) (.n 381) (.n 381)) (by decide +kernel) rfl)
     (by omega) (by omega)
-  have m387 := good_mul (g 211 (.mul (.n 387) (.n 386) (.n 6)) (by decide +kernel) rfl)
+  have m387 := good_mul (g 210 (.mul (.n 383) (.n 382) (.n 6)) (by decide +kernel) rfl)
     (by omega) (by omega)
-  have m388 := good_mul (g 212 (.mul (.n 388) (.n 16) (.n 387)) (by decide +kernel) rfl)
+  have m388 := good_mul (g 211 (.mul (.n 384) (.n 16) (.n 383)) (by decide +kernel) rfl)
     (by omega) (by omega)
-  have e388 : σ (.n 388) = layers * gen ^ (13 * depth) := by
+  have e388 : σ (.n 384) = layers * gen ^ (13 * depth) := by
     rw [m388, m387, m386, m385, m384, m383, e6, e16, ← pow_add, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add]
     ring_nf
-  have ld : ∀ k v, LoadHolds rd layers (13 * depth + k) v → LoadHolds rd (σ (.n 388)) k v :=
+  have ld : ∀ k v, LoadHolds rd layers (13 * depth + k) v → LoadHolds rd (σ (.n 384)) k v :=
     fun k v h => by rw [e388, tb_loadHolds_mul_gen_pow]; exact h
-  obtain ⟨e389, l389⟩ := good_read (g 213 (.load (.n 389) (.n 388) 5) (by decide +kernel) rfl)
+  obtain ⟨e389, l389⟩ := good_read (g 212 (.load (.n 385) (.n 384) 5) (by decide +kernel) rfl)
     (by decide +kernel) (ld 5 _ hcurF)
-  obtain ⟨e390, l390⟩ := good_read (g 214 (.load (.n 390) (.n 388) 9) (by decide +kernel) rfl)
+  obtain ⟨e390, l390⟩ := good_read (g 213 (.load (.n 386) (.n 384) 9) (by decide +kernel) rfl)
     (by decide +kernel) (ld 9 _ hrowF)
-  have c391 : σ (.n 391) = word 1 0 := g 215 (.const (.n 391) (word 1 0)) (by decide +kernel) rfl
-  have a392 : σ (.n 392) = σ (.n 391) + σ (.n 6) :=
-    g 216 (.add (.n 392) (.n 391) (.n 6)) (by decide +kernel) rfl
-  have c393 : σ (.n 393) = word 1 0 := g 217 (.const (.n 393) (word 1 0)) (by decide +kernel) rfl
-  have e394 : σ (.n 394) = vals := by
-    have h : σ (.n 394) = W 394 := g 219 (.hint (.alloc (.n 394) 3)) (by decide +kernel) rfl
+  have c391 : σ (.n 387) = word 1 0 := g 214 (.const (.n 387) (word 1 0)) (by decide +kernel) rfl
+  have a392 : σ (.n 388) = σ (.n 387) + σ (.n 6) :=
+    g 215 (.add (.n 388) (.n 387) (.n 6)) (by decide +kernel) rfl
+  have c393 : σ (.n 389) = word 1 0 := g 216 (.const (.n 389) (word 1 0)) (by decide +kernel) rfl
+  have e394 : σ (.n 390) = vals := by
+    have h : σ (.n 390) = W 390 := g 218 (.hint (.alloc (.n 390) 3)) (by decide +kernel) rfl
     rw [h]; simp [hW, vbgW]
   obtain ⟨v0, v1, v2, hv3⟩ := tb_list3_eq hvlF
   have hvk : ∀ k < 3, LoadHolds rd vals k (stF.values.getD k 0) := fun k hk => by
     have := hv k (by rw [hvlF]; exact hk)
     rwa [← List.getD_eq_getElem _ 0] at this
-  obtain ⟨e395, l395⟩ := good_read (g 220 (.load (.n 395) (.n 388) 6) (by decide +kernel) rfl)
+  obtain ⟨e395, l395⟩ := good_read (g 219 (.load (.n 391) (.n 384) 6) (by decide +kernel) rfl)
     (by decide +kernel) (ld 6 _ (hvalF 0 (by omega)))
-  obtain ⟨e396, l396⟩ := good_read (g 222 (.load (.n 396) (.n 388) 7) (by decide +kernel) rfl)
+  obtain ⟨e396, l396⟩ := good_read (g 221 (.load (.n 392) (.n 384) 7) (by decide +kernel) rfl)
     (by decide +kernel) (ld 7 _ (hvalF 1 (by omega)))
-  obtain ⟨e397, l397⟩ := good_read (g 224 (.load (.n 397) (.n 388) 8) (by decide +kernel) rfl)
+  obtain ⟨e397, l397⟩ := good_read (g 223 (.load (.n 393) (.n 384) 8) (by decide +kernel) rfl)
     (by decide +kernel) (ld 8 _ (hvalF 2 (by omega)))
-  have gC := vb_goodB hG 226 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (398 + k)) (.n 388) k)) (by decide +kernel) (by decide +kernel)
+  have gC := vb_goodB hG 225 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (394 + k)) (.n 384) k)) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
-  have kC : ∀ k < 5, some (398 + k, 388, k) ∉ vbgS.map loadKey := by decide +kernel
-  have rC : ∀ k < 5, σ (.n (398 + k)) = sF.cap.getD k 0 ∧
-      LoadHolds rd (σ (.n 388)) k (σ (.n (398 + k))) := fun k hk =>
+  have kC : ∀ k < 5, some (394 + k, 384, k) ∉ vbgS.map loadKey := by decide +kernel
+  have rC : ∀ k < 5, σ (.n (394 + k)) = sF.cap.getD k 0 ∧
+      LoadHolds rd (σ (.n 384)) k (σ (.n (394 + k))) := fun k hk =>
     good_readS (gC _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (kC k hk)
       (ld k _ (hcapF k hk))
-  have q403 : σ (.n 403) = σ (.n 389) := g 231 (.copy (.n 403) (.n 389)) (by decide +kernel) rfl
-  have q404 : σ (.n 404) = σ (.n 394) := g 232 (.copy (.n 404) (.n 394)) (by decide +kernel) rfl
+  have q403 : σ (.n 399) = σ (.n 385) := g 230 (.copy (.n 399) (.n 385)) (by decide +kernel) rfl
+  have q404 : σ (.n 400) = σ (.n 390) := g 231 (.copy (.n 400) (.n 390)) (by decide +kernel) rfl
   -- the regions
   have R1 : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbR1 True
       (fun rs => rs = sF.cap ++ [curF, vals]) := by
@@ -529,11 +526,11 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       (fun rs => rs = sF.cap ++ [curF, vals]) := by
     refine holdsList_straightN _ (by decide +kernel) ?_ trivial
     simp only [vbR3, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
-      IsEmpty.forall_iff, implies_true, and_true, and_assoc, keccakA, challengeT]
+      IsEmpty.forall_iff, implies_true, and_true, and_assoc, keccakA]
     exact ⟨c37, a38, trivial,
       show σ (.n 40) = σ (.n 38) * σ (.n 39) ∧ σ (.n 40) = 1 from
         ⟨m40, by rw [m40, i39, mul_inv_cancel₀ (by rw [e38]; exact hcnt)]⟩,
-      c41, c42, c43, c44, c45, k35, hco, m60, a61, m62, a63, trivial⟩
+      c41, c42, c43, c44, c45, k35, m60, a61, m62, a63, trivial⟩
   have R4 : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbR4 True
       (fun rs => rs = sF.cap ++ [curF, vals]) := by
     refine holdsList_straightN _ (by decide +kernel) ?_ trivial
@@ -554,7 +551,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     refine holdsList_straightN _ (by decide +kernel) ?_ trivial
     simp only [vbR8, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
       and_true]
-    refine ⟨c374, show σ (.n 374) = σ (.n 375) * σ (.n 142) by
+    refine ⟨c374, show σ (.n 370) = σ (.n 371) * σ (.n 141) by
         rw [d375, mul_assoc, inv_mul_cancel₀ (by rw [e142]; exact gen_pow_ne_zero _), mul_one],
       c376, m377, l378, a379, c380, m381, l382, ⟨?_, fun hne => ?_⟩⟩
     · rw [a379, c376, e378, tb_word_one]
@@ -564,9 +561,9 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
         · rw [a379, c376, e378, tb_word_one, h0, pow_zero, e_add_self] at hne
           exact absurd rfl hne
         · exact h0
-      show coreProgram.Rel rd name% «verify_bus_gkr_loop0» (List.map σ [.n 380, .n 382, .n 375,
+      show coreProgram.Rel rd name% «verify_bus_gkr_loop0» (List.map σ [.n 376, .n 378, .n 371,
           .n 16, .n 8, .n 17,
-        .n 63, .n 142, .n 6, .n 64]) []
+        .n 62, .n 141, .n 6, .n 63]) []
       simp only [List.map_cons, List.map_nil]
       rw [c380, tb_word_one, e382, e375, e16, e8, e17, e142, e6, e64]
       exact ly_complete hm0 (by omega) (by omega) hkmn hit
@@ -579,16 +576,16 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       trivial, l395, ?_, l396, ?_, l397, ?_, fun k hk => (rC k hk).2, q403, q404⟩
     · rw [a392, c391, tb_word_one, e6]
       exact tb_isInK_add tb_isInK_one (tb_gen_pow_isInK _)
-    · show coreProgram.Rel rd name% «verify_bus_gkr_loop1» (List.map σ [.n 393, .n 6, .n 7,
-        .n 390]) []
+    · show coreProgram.Rel rd name% «verify_bus_gkr_loop1» (List.map σ [.n 389, .n 6, .n 7,
+        .n 386]) []
       simp only [List.map_cons, List.map_nil]
       rw [c393, tb_word_one, e6, e7, e390]
       exact l8_complete (by omega) (by omega) hplF hptF hz
-    · show LoadHolds rd (σ (.n 394)) 0 (σ (.n 395))
+    · show LoadHolds rd (σ (.n 390)) 0 (σ (.n 391))
       rw [e394, e395]; exact hvk 0 (by omega)
-    · show LoadHolds rd (σ (.n 394)) 1 (σ (.n 396))
+    · show LoadHolds rd (σ (.n 390)) 1 (σ (.n 392))
       rw [e394, e396]; exact hvk 1 (by omega)
-    · show LoadHolds rd (σ (.n 394)) 2 (σ (.n 397))
+    · show LoadHolds rd (σ (.n 390)) 2 (σ (.n 393))
       rw [e394, e397]; exact hvk 2 (by omega)
   obtain ⟨f0, f1, f2, f3, f4, hf5⟩ := tb_list5_eq hclF
   refine ⟨?_, ?_⟩
@@ -607,7 +604,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       ⟨?_, R4⟩
     refine (tb_holdsList_append_noRet (A := vbR1 ++ vbR2) (by decide +kernel)).mpr ⟨?_, R3⟩
     exact (tb_holdsList_append_noRet (A := vbR1) (by decide +kernel)).mpr ⟨R1, R2⟩
-  · have hc : ∀ k < 5, σ (.n (398 + k)) = sF.cap.getD k 0 := fun k hk => (rC k hk).1
+  · have hc : ∀ k < 5, σ (.n (394 + k)) = sF.cap.getD k 0 := fun k hk => (rC k hk).1
     rw [hf5] at hc
     have h0 := hc 0 (by omega)
     have h1 := hc 1 (by omega)
@@ -615,7 +612,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     have h3 := hc 3 (by omega)
     have h4 := hc 4 (by omega)
     simp only [List.getD_cons_zero, List.getD_cons_succ] at h0 h1 h2 h3 h4
-    show [σ (.n 398), σ (.n 399), σ (.n 400), σ (.n 401), σ (.n 402), σ (.n 403), σ (.n 404)] =
+    show [σ (.n 394), σ (.n 395), σ (.n 396), σ (.n 397), σ (.n 398), σ (.n 399), σ (.n 400)] =
       sF.cap ++ [curF, vals]
     rw [hf5, h0, h1, h2, h3, h4, q403, q404, e389, e394]
     rfl

@@ -180,7 +180,7 @@ def PackRemRegions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
 /-- The remainder loop's loads. -/
 def packRemLoadOk (q : V × ℕ) : Bool :=
   (decide (q.1 = .n 6) && roundRecOffs.contains q.2) || (decide (q.1 = .n 7) && decide (q.2 = 0)) ||
-    (decide (q.1 = .n 14) && decide (q.2 < 2)) || (decide (q.1 = .n 40) && decide (q.2 = 0))
+    (decide (q.1 = .n 14) && decide (q.2 < 2)) || (decide (q.1 = .n 39) && decide (q.2 = 0))
 
 theorem packRem_loads : (packRemPre.filterMap Stmt.loadS).all packRemLoadOk = true := by
   decide +kernel

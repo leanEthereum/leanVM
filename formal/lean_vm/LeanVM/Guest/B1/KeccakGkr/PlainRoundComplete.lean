@@ -36,13 +36,12 @@ structure PlainCore (rd : Reader) (σ : Val) (ins : List V) (a o : ℕ) : Prop w
   pk0 : FsPackOk σ (.n a) (a + 1) dsObserve
   pk2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve
   kc : (Atom.keccak ins ((List.range 13).map fun k ↦ .n (o + k)) false false).Holds rd σ
-  ch : ChallengeOk σ (.n o) (o + 13)
 
 /-- A round with nothing waiting: the challenge and the capacity cells after it. -/
 theorem plain_core_sq0 {zs capV : List V} {a o : ℕ} {cap : List E}
     (h : PlainCore rd σ ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV) a o)
     (hz : zs.map σ = [0, 0, 0, 0]) (hc : capV.map σ = cap) :
-    σ (.n (o + 13)) = (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
+    σ (.n o) = (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
         (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap := by
   have s0 := fsNext_scalar h.pk0
@@ -54,7 +53,7 @@ theorem plain_core_sq0 {zs capV : List V} {a o : ℕ} {cap : List E}
     rw [rateOf_two, ← s0, ← s2, List.map_append, List.map_append, hz, hc]
     rfl
   have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩) h.kc hin
-    (by simpa [range13_map] using h.ch)
+    (b := o) rfl
   simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
   rw [plainSq, habs]
   exact ⟨this.1, this.2⟩
@@ -65,7 +64,7 @@ theorem plain_core_sq1 {p0 p1 : V} {zs capV : List V} {a o : ℕ} {cap : List E}
       a o)
     (hp : (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
     (hz : zs.map σ = [0, 0]) (hc : capV.map σ = cap) :
-    σ (.n (o + 13)) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
+    σ (.n o) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
         (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap := by
   have s0 := fsNext_scalar h.pk0
@@ -78,7 +77,7 @@ theorem plain_core_sq1 {p0 p1 : V} {zs capV : List V} {a o : ℕ} {cap : List E}
     rw [rateOf_three, ← hp, ← s0, ← s2, List.map_append, List.map_append, hz, hc]
     rfl
   have := squeeze_atom (s := ⟨cap, [(w, dsObserve), (σ (.n a), dsObserve),
-    (σ (.n (a + 3)), dsObserve)]⟩) h.kc hin (by simpa [range13_map] using h.ch)
+    (σ (.n (a + 3)), dsObserve)]⟩) h.kc hin (b := o) rfl
   simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
   rw [plainSq, habs]
   exact ⟨this.1, this.2⟩
@@ -102,34 +101,30 @@ theorem mul_good {d x y : ℕ} (hx : x < d) (hy : y < d)
 theorem plainRound_complete {cur pt vIn : V} {ins : List V} {mid : List Stmt} {i a o : ℕ}
     (hg : ∀ s ∈ plainRoundT cur pt vIn ins mid i a o, GoodS rd S w σ s)
     (hn0 : Atom.load (.n a) cur (2 * i) ∉ S) (hn2 : Atom.load (.n (a + 3)) cur (2 * i + 1) ∉ S)
-    (hmid : ∀ s ∈ mid, ∃ d c, s = .atom (.const d c)) (hord : a + 3 < o + 15)
+    (hmid : ∀ s ∈ mid, ∃ d c, s = .atom (.const d c)) (hord : a + 3 < o + 14)
     {c0 c2 : E} (h0 : LoadHolds rd (σ cur) (2 * i) c0) (h2 : LoadHolds rd (σ cur) (2 * i + 1) c2) :
     σ (.n a) = c0 ∧ σ (.n (a + 3)) = c2 ∧ PlainCore rd σ ins a o ∧
-      σ (.n (o + 18)) = σ (.n a) + σ (.n (o + 13)) *
-        ((σ vIn + σ (.n (a + 3))) + σ (.n (o + 13)) * σ (.n (a + 3))) ∧
-      ∀ {next : Prop} {kret : List E → Prop}, LoadHolds rd (σ pt) i (σ (.n (o + 13))) → next →
+      σ (.n (o + 17)) = σ (.n a) + σ (.n o) *
+        ((σ vIn + σ (.n (a + 3))) + σ (.n o) * σ (.n (a + 3))) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, LoadHolds rd (σ pt) i (σ (.n o)) → next →
         Stmt.HoldsList C rd σ (plainRoundT cur pt vIn ins mid i a o) next kret := by
   have mem : ∀ s, s ∈ plainRoundT cur pt vIn ins mid i a o → GoodS rd S w σ s := hg
   unfold plainRoundT at mem
   have g0 : ∀ s ∈ fsNextT cur (2 * i) a, GoodS rd S w σ s := fun s hs ↦ mem s
     (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-      (List.mem_append_left _ (List.mem_append_left _ hs)))))
+      (List.mem_append_left _ hs))))
   have g2 : ∀ s ∈ fsNextT cur (2 * i + 1) (a + 3), GoodS rd S w σ s := fun s hs ↦ mem s
     (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-      (List.mem_append_left _ (List.mem_append_right _ hs)))))
-  have gm : ∀ s ∈ mid, GoodS rd S w σ s := fun s hs ↦ mem s
-    (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_right _ hs))))
+  have gm : ∀ s ∈ mid, GoodS rd S w σ s := fun s hs ↦ mem s
+    (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))
   have gk : GoodS rd S w σ (keccakA ins ((List.range 13).map fun k ↦ .n (o + k))) := mem _
-    (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
-      (List.mem_singleton_self _))))
-  have gc : ∀ s ∈ challengeT (.n o) (o + 13), GoodS rd S w σ s := fun s hs ↦ mem s
-    (List.mem_append_left _ (List.mem_append_right _ hs))
-  have gt : ∀ s ∈ [Stmt.atom (.add (.n (o + 14)) vIn (.n (a + 3))),
-      .atom (.load (.n (o + 13)) pt i), .atom (.mul (.n (o + 15)) (.n (o + 13)) (.n (a + 3))),
-      .atom (.add (.n (o + 16)) (.n (o + 14)) (.n (o + 15))),
-      .atom (.mul (.n (o + 17)) (.n (o + 13)) (.n (o + 16))),
-      .atom (.add (.n (o + 18)) (.n a) (.n (o + 17)))], GoodS rd S w σ s := fun s hs ↦ mem s
+    (List.mem_append_left _ (List.mem_append_right _ (List.mem_singleton_self _)))
+  have gt : ∀ s ∈ [Stmt.atom (.add (.n (o + 13)) vIn (.n (a + 3))),
+      .atom (.load (.n o) pt i), .atom (.mul (.n (o + 14)) (.n o) (.n (a + 3))),
+      .atom (.add (.n (o + 15)) (.n (o + 13)) (.n (o + 14))),
+      .atom (.mul (.n (o + 16)) (.n o) (.n (o + 15))),
+      .atom (.add (.n (o + 17)) (.n a) (.n (o + 16)))], GoodS rd S w σ s := fun s hs ↦ mem s
     (List.mem_append_right _ hs)
   simp only [List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
     and_true] at gt
@@ -140,16 +135,15 @@ theorem plainRound_complete {cur pt vIn : V} {ins : List V} {mid : List Stmt} {i
   have pk2 := fsPack_vals_of_good (fun s hs ↦ g2 s (List.mem_cons_of_mem _ hs))
   have kc := keccakA_complete (show Good rd S w σ (.keccak ins ((List.range 13).map fun k ↦
     .n (o + k)) false false) from gk)
-  obtain ⟨ch, fc⟩ := challenge_complete (C := C) gc
   simp only [GoodS, Good] at g14 g16 g18
   have e15 := mul_good (by omega) hord g15
   have e17 := mul_good (by omega) (by omega) g17
-  refine ⟨e0, e2, ⟨pk0, pk2, kc, ch⟩, by rw [g18, e17, g16, e15, g14], ?_⟩
+  refine ⟨e0, e2, ⟨pk0, pk2, kc⟩, by rw [g18, e17, g16, e15, g14], ?_⟩
   intro next kret hst hn
   simp only [plainRoundT, holdsList_append]
   refine f0 (f2 (consts_complete mid hmid gm ?_))
   simp only [keccakA, Stmt.HoldsList, Stmt.Holds]
-  refine ⟨kc, fc ?_⟩
+  refine ⟨kc, ?_⟩
   simp only [Atom.Holds]
   exact ⟨g14, hst, e15, g16, e17, g18, hn⟩
 

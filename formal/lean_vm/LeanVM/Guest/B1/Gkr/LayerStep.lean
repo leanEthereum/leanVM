@@ -32,49 +32,49 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- **The next slot's stores** and the next iteration's call. -/
 theorem ly_stores (h : Stmt.HoldsList C rd σ lyPre True kret) :
-    (∀ k < 5, LoadHolds rd (σ (.n 17)) (26 + k) (σ (.n (189 + k)))) ∧
-      LoadHolds rd (σ (.n 17)) 31 (σ (.n 75) * gen ^ 12) ∧
-      LoadHolds rd (σ (.n 46)) 40 (σ (.n 180)) ∧ LoadHolds rd (σ (.n 46)) 41 (σ (.n 194)) ∧
-      LoadHolds rd (σ (.n 17)) 35 (σ (.n 46) * gen ^ 40) ∧
-      LoadHolds rd (σ (.n 17)) 36 (σ (.n 47) * σ (.n 11) * gen) ∧
-      (∀ hv pv : E, LoadHolds rd (σ (.n 9) * σ (.n 54)) 4 hv →
-        LoadHolds rd (σ (.n 9) * σ (.n 54)) 0 pv →
-        LoadHolds rd (σ (.n 17)) 37 (σ (.n 53) * hv) ∧ LoadHolds rd (σ (.n 17)) 38 pv) ∧
+    (∀ k < 5, LoadHolds rd (σ (.n 17)) (26 + k) (σ (.n (187 + k)))) ∧
+      LoadHolds rd (σ (.n 17)) 31 (σ (.n 74) * gen ^ 12) ∧
+      LoadHolds rd (σ (.n 45)) 40 (σ (.n 166)) ∧ LoadHolds rd (σ (.n 45)) 41 (σ (.n 179)) ∧
+      LoadHolds rd (σ (.n 17)) 35 (σ (.n 45) * gen ^ 40) ∧
+      LoadHolds rd (σ (.n 17)) 36 (σ (.n 46) * σ (.n 11) * gen) ∧
+      (∀ hv pv : E, LoadHolds rd (σ (.n 9) * σ (.n 53)) 4 hv →
+        LoadHolds rd (σ (.n 9) * σ (.n 53)) 0 pv →
+        LoadHolds rd (σ (.n 17)) 37 (σ (.n 52) * hv) ∧ LoadHolds rd (σ (.n 17)) 38 pv) ∧
       (σ (.n 0) * gen + σ (.n 1) ≠ 0 →
         C name% «verify_bus_gkr_loop0» [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
             σ (.n 5), σ (.n 6),
           σ (.n 7), σ (.n 8), σ (.n 9)] []) := by
   have hnr := lyPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have l180 := a 132 (.load (.n 180) (.n 46) 40) (by decide +kernel)
-  have l194 := a 133 (.load (.n 194) (.n 46) 41) (by decide +kernel)
-  have hcs := tb_holds_slice hnr h 134 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (189 + k)) (.n 17) (26 + k))) (by decide +kernel)
+  have l180 := a 129 (.load (.n 166) (.n 45) 40) (by decide +kernel)
+  have l194 := a 130 (.load (.n 179) (.n 45) 41) (by decide +kernel)
+  have hcs := tb_holds_slice hnr h 131 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (187 + k)) (.n 17) (26 + k))) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hcs
-  have c195 := a 139 (.const (.n 195) (word 4096 0)) (by decide +kernel)
-  have m196 := a 140 (.mul (.n 196) (.n 75) (.n 195)) (by decide +kernel)
-  have l196 := a 141 (.load (.n 196) (.n 17) 31) (by decide +kernel)
-  have c224 := a 172 (.const (.n 224) (word 1099511627776 0)) (by decide +kernel)
-  have m225 := a 173 (.mul (.n 225) (.n 46) (.n 224)) (by decide +kernel)
-  have l225 := a 174 (.load (.n 225) (.n 17) 35) (by decide +kernel)
-  have m226 := a 175 (.mul (.n 226) (.n 47) (.n 11)) (by decide +kernel)
-  have c227 := a 176 (.const (.n 227) (word 2 0)) (by decide +kernel)
-  have m228 := a 177 (.mul (.n 228) (.n 226) (.n 227)) (by decide +kernel)
-  have l228 := a 178 (.load (.n 228) (.n 17) 36) (by decide +kernel)
-  have m229 := a 179 (.mul (.n 229) (.n 9) (.n 54)) (by decide +kernel)
-  have l230 := a 180 (.load (.n 230) (.n 229) 4) (by decide +kernel)
-  have m231 := a 181 (.mul (.n 231) (.n 53) (.n 230)) (by decide +kernel)
-  have l231 := a 182 (.load (.n 231) (.n 17) 37) (by decide +kernel)
-  have m232 := a 183 (.mul (.n 232) (.n 9) (.n 54)) (by decide +kernel)
-  have l233 := a 184 (.load (.n 233) (.n 232) 0) (by decide +kernel)
-  have l233' := a 185 (.load (.n 233) (.n 17) 38) (by decide +kernel)
-  have c234 := a 186 (.const (.n 234) (word 2 0)) (by decide +kernel)
-  have m235 := a 187 (.mul (.n 235) (.n 0) (.n 234)) (by decide +kernel)
-  have a236 := a 188 (.add (.n 236) (.n 235) (.n 1)) (by decide +kernel)
-  have c237 := a 189 (.const (.n 237) (word 2 0)) (by decide +kernel)
-  have m238 := a 190 (.mul (.n 238) (.n 0) (.n 237)) (by decide +kernel)
-  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 191 (.n 236) name% «verify_bus_gkr_loop0»
-    [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] (by decide +kernel)
+  have c195 := a 136 (.const (.n 192) (word 4096 0)) (by decide +kernel)
+  have m196 := a 137 (.mul (.n 193) (.n 74) (.n 192)) (by decide +kernel)
+  have l196 := a 138 (.load (.n 193) (.n 17) 31) (by decide +kernel)
+  have c224 := a 169 (.const (.n 221) (word 1099511627776 0)) (by decide +kernel)
+  have m225 := a 170 (.mul (.n 222) (.n 45) (.n 221)) (by decide +kernel)
+  have l225 := a 171 (.load (.n 222) (.n 17) 35) (by decide +kernel)
+  have m226 := a 172 (.mul (.n 223) (.n 46) (.n 11)) (by decide +kernel)
+  have c227 := a 173 (.const (.n 224) (word 2 0)) (by decide +kernel)
+  have m228 := a 174 (.mul (.n 225) (.n 223) (.n 224)) (by decide +kernel)
+  have l228 := a 175 (.load (.n 225) (.n 17) 36) (by decide +kernel)
+  have m229 := a 176 (.mul (.n 226) (.n 9) (.n 53)) (by decide +kernel)
+  have l230 := a 177 (.load (.n 227) (.n 226) 4) (by decide +kernel)
+  have m231 := a 178 (.mul (.n 228) (.n 52) (.n 227)) (by decide +kernel)
+  have l231 := a 179 (.load (.n 228) (.n 17) 37) (by decide +kernel)
+  have m232 := a 180 (.mul (.n 229) (.n 9) (.n 53)) (by decide +kernel)
+  have l233 := a 181 (.load (.n 230) (.n 229) 0) (by decide +kernel)
+  have l233' := a 182 (.load (.n 230) (.n 17) 38) (by decide +kernel)
+  have c234 := a 183 (.const (.n 231) (word 2 0)) (by decide +kernel)
+  have m235 := a 184 (.mul (.n 232) (.n 0) (.n 231)) (by decide +kernel)
+  have a236 := a 185 (.add (.n 233) (.n 232) (.n 1)) (by decide +kernel)
+  have c237 := a 186 (.const (.n 234) (word 2 0)) (by decide +kernel)
+  have m238 := a 187 (.mul (.n 235) (.n 0) (.n 234)) (by decide +kernel)
+  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 188 (.n 233) name% «verify_bus_gkr_loop0»
+    [.n 235, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] (by decide +kernel)
   simp only [Atom.Holds] at l180 l194 hcs c195 m196 l196 c224 m225 l225 m226 c227 m228 l228
   simp only [Atom.Holds] at m229 l230 m231 l231 m232 l233 l233' c234 m235 a236 c237 m238
   rw [tb_word_gen] at c227 c234 c237
@@ -148,17 +148,17 @@ theorem ly_step (hGR : tb_gkr_rounds_Spec) {N sg layers tabs rounds claim og gmu
   have hnr := lyPre_noRet
   have a := fun n a heq => tb_holds_atom (C := coreProgram.relN rd d) (rd := rd) (σ := σ)
     (kret := fun rs => rs = []) hnr h n a heq
-  have m69 := a 53 (.mul (.n 69) (.n 48) (.n 11)) (by decide +kernel)
-  have l75 := a 59 (.load (.n 75) (.n 69) 4310) (by decide +kernel)
-  have l150 := a 110 (.load (.n 150) (.n 69) 5172) (by decide +kernel)
-  have hlc := tb_holds_slice hnr h 54 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (70 + k)) (.n 69) (862 * k))) (by decide +kernel)
+  have m69 := a 52 (.mul (.n 68) (.n 47) (.n 11)) (by decide +kernel)
+  have l75 := a 58 (.load (.n 74) (.n 68) 4310) (by decide +kernel)
+  have l150 := a 109 (.load (.n 149) (.n 68) 5172) (by decide +kernel)
+  have hlc := tb_holds_slice hnr h 53 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (69 + k)) (.n 68) (862 * k))) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hlc
   simp only [Atom.Holds] at m69 l75 l150 hlc
   rw [m69, e11, tb_loadHolds_mul_gen_pow] at l75 l150
   set run := gkrRun cs st.point (polyEval st.values s.squeeze.1) ⟨s.squeeze.2.cap, []⟩ with hrun
   rw [m69, e11] at hlc
-  have hcapEq : ((List.range 5).map fun k ↦ σ (.n (70 + k))) = run.2.2.cap := by
+  have hcapEq : ((List.range 5).map fun k ↦ σ (.n (69 + k))) = run.2.2.cap := by
     apply List.ext_getElem (by simp [hcapT.1])
     intro k h1 h2
     have hk5 : k < 5 := by simpa using h1
@@ -168,48 +168,48 @@ theorem ly_step (hGR : tb_gkr_rounds_Spec) {N sg layers tabs rounds claim og gmu
     have h'' := hcapT.2 k h2
     rw [show L + k * gkCap = L + 862 * k by unfold gkCap; ring] at h''
     exact tb_loadHolds_unique h' h''
-  have e75 : σ (.n 75) = cur' * gen ^ (4 * L) := tb_loadHolds_unique l75 hcurT
-  have e150 : σ (.n 150) = run.2.1 := tb_loadHolds_unique l150 hclT
+  have e75 : σ (.n 74) = cur' * gen ^ (4 * L) := tb_loadHolds_unique l75 hcurT
+  have e150 : σ (.n 149) = run.2.1 := tb_loadHolds_unique l150 hclT
   obtain ⟨treads, tcheck, tsq1, tsq2, tvals⟩ := ly_tail h
   have hsc := gkr_sumcheck_run cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2
     (hlen.trans helen.symm) h4
   have hsc' : RunsTo (sumcheck (polyEval st.values s.squeeze.1) (2 ^ 2 + 1)
-      (st.point.map some)) s.squeeze.2 cs.flatten (run.1, σ (.n 150))
-      ⟨(List.range 5).map fun k ↦ σ (.n (70 + k)), []⟩ :=
+      (st.point.map some)) s.squeeze.2 cs.flatten (run.1, σ (.n 149))
+      ⟨(List.range 5).map fun k ↦ σ (.n (69 + k)), []⟩ :=
     hsc.of_eq rfl rfl (by rw [e150]; rfl) (by rw [hcapEq]; exact tb_gkrRun_eta _ _ _ _ rfl)
-  have hcheck : σ (.n 150) = polyEval [prodE (lyCh σ 0), prodE (lyCh σ 1), prodE (lyCh σ 2)]
+  have hcheck : σ (.n 149) = polyEval [prodE (lyCh σ 0), prodE (lyCh σ 1), prodE (lyCh σ 2)]
       s.squeeze.1 := by rw [← e42]; exact tcheck
   have hstep := gkrStep_run (step := 2) le_rfl false hsc' (lyCh_length σ 0) (lyCh_length σ 1)
     (lyCh_length σ 2) hcheck
   have hstep' : RunsTo (gkrStep 2 false st) s (cs.flatten ++ (lyCh σ 0 ++ (lyCh σ 1 ++ lyCh σ 2)))
-      ⟨[lyCh σ 0, lyCh σ 1, lyCh σ 2].map (fun c ↦ multilinearEval c [σ (.n 180), σ (.n 194)]),
-        [σ (.n 180), σ (.n 194)] ++ run.1⟩ ⟨(List.range 5).map fun k ↦ σ (.n (189 + k)), []⟩ := by
+      ⟨[lyCh σ 0, lyCh σ 1, lyCh σ 2].map (fun c ↦ multilinearEval c [σ (.n 166), σ (.n 179)]),
+        [σ (.n 166), σ (.n 179)] ++ run.1⟩ ⟨(List.range 5).map fun k ↦ σ (.n (187 + k)), []⟩ := by
     have hh := hstep
-    rw [show ((((⟨(List.range 5).map fun k ↦ σ (.n (70 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
+    rw [show ((((⟨(List.range 5).map fun k ↦ σ (.n (69 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
       dsObserve).absorbAll (lyCh σ 1) dsObserve).absorbAll (lyCh σ 2) dsObserve) = lySponge σ
       from rfl, tsq1, tsq2] at hh
     exact hh
   have ld : ∀ k w, LoadHolds rd (σ (.n 17)) k w → LoadHolds rd (σ (.n 3)) (13 * L + k) w :=
     fun k w hw => by rw [e17, tb_loadHolds_mul_gen_pow] at hw; exact hw
   rw [e46] at s40 s41 s35
-  refine ⟨_, _, _, σ (.n 47) * σ (.n 11) * gen, hstep', ?_, ?_⟩
+  refine ⟨_, _, _, σ (.n 46) * σ (.n 11) * gen, hstep', ?_, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen, ← e75]
     exact ⟨hrd, treads⟩
   refine ⟨by simp, ?_, rfl, ?_, by simp, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro k hk
     rw [show 13 * (L + 2) + k = 13 * L + (26 + k) by ring]
-    have hg : ((List.range 5).map fun k ↦ σ (.n (189 + k))).getD k 0 = σ (.n (189 + k)) := by
+    have hg : ((List.range 5).map fun k ↦ σ (.n (187 + k))).getD k 0 = σ (.n (187 + k)) := by
       simp [List.getD_eq_getElem?_getD, hk]
     rw [hg]
     exact ld _ _ (s26 k hk)
   · simp only [List.length_append, flatten_length_four h4, hlen, lyCh_length]
     rw [show 13 * (L + 2) + 5 = 13 * L + 31 by ring,
-      show cur' * gen ^ (4 * L + (4 + (4 + 4))) = σ (.n 75) * gen ^ 12 by rw [e75]; ring]
+      show cur' * gen ^ (4 * L + (4 + (4 + 4))) = σ (.n 74) * gen ^ 12 by rw [e75]; ring]
     exact ld _ _ s31
   · intro t ht
     have hv : ([lyCh σ 0, lyCh σ 1, lyCh σ 2].map fun c ↦
-        multilinearEval c [σ (.n 180), σ (.n 194)]).getD t 0 =
-        multilinearEval (lyCh σ t) [σ (.n 180), σ (.n 194)] := by
+        multilinearEval c [σ (.n 166), σ (.n 179)]).getD t 0 =
+        multilinearEval (lyCh σ t) [σ (.n 166), σ (.n 179)] := by
       interval_cases t <;> rfl
     rw [hv, ← (tvals t ht).1, show 13 * (L + 2) + 6 + t = 13 * L + (32 + t) by ring]
     exact ld _ _ (tvals t ht).2
@@ -225,7 +225,7 @@ theorem ly_step (hGR : tb_gkr_rounds_Spec) {N sg layers tabs rounds claim og gmu
       interval_cases k
       · exact s40
       · exact s41
-    · rw [show row * gen ^ 40 * gen ^ [σ (.n 180), σ (.n 194)].length = row * gen ^ 42 by
+    · rw [show row * gen ^ 40 * gen ^ [σ (.n 166), σ (.n 179)].length = row * gen ^ 42 by
         simp only [List.length_cons, List.length_nil]; ring]
       exact hre
   · rw [show 13 * (L + 2) + 10 = 13 * L + 36 by ring]

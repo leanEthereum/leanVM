@@ -127,7 +127,7 @@ theorem osMat_ok {σ : Val} {b off k : ℕ} (hoff : off < u128Bound)
 abbrev sqPerm (cap : List E) : KeccakState := (⟨cap, []⟩ : Fs).perm
 
 /-- The iteration's values from `6`: the row's power and pointer, the capacity cells, the
-padding, the permutation's cells and the challenge's copy. -/
+padding, the permutation's cells (the challenge its cell `0`). -/
 def sqHead (X sqz : E) (cap : List E) : List E :=
   [X * X, X * X * (X * X), X * X * (X * X) * X, sqz * (X * X * (X * X) * X),
     cap.getD 0 0, cap.getD 1 0, cap.getD 2 0, cap.getD 3 0, cap.getD 4 0,
@@ -138,15 +138,15 @@ def sqHead (X sqz : E) (cap : List E) : List E :=
     cellsOfState (sqPerm cap) false 6, cellsOfState (sqPerm cap) false 7,
     cellsOfState (sqPerm cap) false 8, cellsOfState (sqPerm cap) false 9,
     cellsOfState (sqPerm cap) false 10, cellsOfState (sqPerm cap) false 11,
-    cellsOfState (sqPerm cap) false 12, cellsOfState (sqPerm cap) false 0]
+    cellsOfState (sqPerm cap) false 12]
 
 /-- Where the iteration's segments start: after the powers, after the positions' pointer, after
 the window pointers' pointer. -/
-def sqK1 (lv : OsLv) : ℕ := 34 + powLen (osPowDigits (128 / lv.depth))
+def sqK1 (lv : OsLv) : ℕ := 33 + powLen (osPowDigits (128 / lv.depth))
 def sqM1 (lv : OsLv) : ℕ := sqK1 lv + matLen lv.posOff
 def sqM2 (lv : OsLv) : ℕ := sqM1 lv + 1 + matLen lv.posOff
 
-theorem sqK1_eq (lv : OsLv) : 34 + osPowLen (128 / lv.depth) = sqK1 lv := rfl
+theorem sqK1_eq (lv : OsLv) : 33 + osPowLen (128 / lv.depth) = sqK1 lv := rfl
 
 theorem sqLoopE_eq (lv : OsLv) : sqLoopE lv = sqM2 lv + 1 := by
   simp only [sqLoopE, osMat_end, sqM2, sqM1, sqK1_eq]
@@ -154,8 +154,8 @@ theorem sqLoopE_eq (lv : OsLv) : sqLoopE lv = sqM2 lv + 1 := by
 /-- **The iteration's values**, segment by segment. -/
 def sqTab (lv : OsLv) (X N sqz qpos qbp tabs : E) (cap : List E) (i : ℕ) : E :=
   if i < 6 then [X, N, sqz, qpos, qbp, tabs].getD i 0
-  else if i < 34 then (sqHead X sqz cap).getD (i - 6) 0
-  else if i < sqK1 lv then powVals X (osPowDigits (128 / lv.depth)) X 34 i
+  else if i < 33 then (sqHead X sqz cap).getD (i - 6) 0
+  else if i < sqK1 lv then powVals X (osPowDigits (128 / lv.depth)) X 33 i
   else if i < sqM1 lv then matTab qpos lv.posOff (sqK1 lv) i
   else if i = sqM1 lv then qpos * gen ^ lv.posOff * powRes X (osPowDigits (128 / lv.depth)) X
   else if i < sqM2 lv then matTab qbp lv.posOff (sqM1 lv + 1) i
@@ -175,8 +175,8 @@ def SqIterC' (lv : OsLv) : Prop :=
     ∃ σ : Val, (osParams 6).map σ = [X, N, sqz, qpos, qbp, tabs] ∧
       AllOk (fun _ _ _ ↦ True) rd σ (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ∧
       σ (.n 9) = sqz * X ^ 5 ∧
-      ([.n 33, .n (osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))).2.2,
-          .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2,
+      ([.n 20, .n (osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2,
+          .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2,
           .n 5] : List V).map σ =
         [(⟨cap, []⟩ : Fs).squeeze.1, qpos * gen ^ lv.posOff * X ^ (128 / lv.depth),
           qbp * gen ^ lv.posOff * X ^ (128 / lv.depth), tabs] ∧
@@ -184,7 +184,7 @@ def SqIterC' (lv : OsLv) : Prop :=
       (.n (sqLoopE lv + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ =
         [X * gen, N, sqz, qpos, qbp, tabs]
 
-theorem sqK1_ge (lv : OsLv) : 34 ≤ sqK1 lv := by unfold sqK1; omega
+theorem sqK1_ge (lv : OsLv) : 33 ≤ sqK1 lv := by unfold sqK1; omega
 
 theorem matLen_le (off : ℕ) : matLen off ≤ 2 := by unfold matLen; split_ifs <;> omega
 
@@ -201,7 +201,7 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
   have hm := matLen_le lv.posOff
   have e1 : sqM1 lv = sqK1 lv + matLen lv.posOff := rfl
   have e2 : sqM2 lv = sqM1 lv + 1 + matLen lv.posOff := rfl
-  have hK1 : sqK1 lv = 34 + powLen (osPowDigits (128 / lv.depth)) := rfl
+  have hK1 : sqK1 lv = 33 + powLen (osPowDigits (128 / lv.depth)) := rfl
   -- reading the segments
   have vp : ∀ i < 6, σ (.n i) = [X, N, sqz, qpos, qbp, tabs].getD i 0 := fun i hi ↦ by
     simp [σ, sqVal, sqTab, hi]
@@ -211,31 +211,31 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
   have h3 : σ (.n 3) = qpos := by simpa using vp 3 (by omega)
   have h4 : σ (.n 4) = qbp := by simpa using vp 4 (by omega)
   have h5 : σ (.n 5) = tabs := by simpa using vp 5 (by omega)
-  have vh : ∀ i, 6 ≤ i → i < 34 → σ (.n i) =
+  have vh : ∀ i, 6 ≤ i → i < 33 → σ (.n i) =
       (sqHead X sqz [c0, c1, c2, c3, c4]).getD (i - 6) 0 := fun i h1 h2 ↦ by
     simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, h2]
-  have vw : ∀ i, 34 ≤ i → i < sqK1 lv → σ (.n i) = powVals X (osPowDigits (128 / lv.depth)) X 34 i :=
+  have vw : ∀ i, 33 ≤ i → i < sqK1 lv → σ (.n i) = powVals X (osPowDigits (128 / lv.depth)) X 33 i :=
     fun i h1 h2 ↦ by
-      simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 34 by omega, h2]
+      simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 33 by omega, h2]
   have v1 : ∀ i, sqK1 lv ≤ i → i < sqM1 lv → σ (.n i) = matTab qpos lv.posOff (sqK1 lv) i :=
     fun i h1 h2 ↦ by
-      simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 34 by omega,
+      simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 33 by omega,
         show ¬ i < sqK1 lv by omega, h2]
   have vm1 : σ (.n (sqM1 lv)) = qpos * gen ^ lv.posOff * powRes X (osPowDigits (128 / lv.depth)) X := by
-    simp [σ, sqVal, sqTab, show ¬ sqM1 lv < 6 by omega, show ¬ sqM1 lv < 34 by omega,
+    simp [σ, sqVal, sqTab, show ¬ sqM1 lv < 6 by omega, show ¬ sqM1 lv < 33 by omega,
       show ¬ sqM1 lv < sqK1 lv by omega]
   have v2 : ∀ i, sqM1 lv + 1 ≤ i → i < sqM2 lv →
       σ (.n i) = matTab qbp lv.posOff (sqM1 lv + 1) i := fun i h1 h2 ↦ by
-    simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 34 by omega,
+    simp [σ, sqVal, sqTab, show ¬ i < 6 by omega, show ¬ i < 33 by omega,
       show ¬ i < sqK1 lv by omega, show ¬ i < sqM1 lv by omega, show i ≠ sqM1 lv by omega, h2]
   have vm2 : σ (.n (sqM2 lv)) = qbp * gen ^ lv.posOff * powRes X (osPowDigits (128 / lv.depth)) X := by
-    simp [σ, sqVal, sqTab, show ¬ sqM2 lv < 6 by omega, show ¬ sqM2 lv < 34 by omega,
+    simp [σ, sqVal, sqTab, show ¬ sqM2 lv < 6 by omega, show ¬ sqM2 lv < 33 by omega,
       show ¬ sqM2 lv < sqK1 lv by omega, show ¬ sqM2 lv < sqM1 lv by omega,
       show sqM2 lv ≠ sqM1 lv by omega]
   have vt : ∀ j, σ (.n (sqM2 lv + 1 + j)) = [gw 1, X * gw 1, X * gw 1 + N, gw 1, X * gw 1].getD j 0 :=
     fun j ↦ by
       simp [σ, sqVal, sqTab, show ¬ sqM2 lv + 1 + j < 6 by omega,
-        show ¬ sqM2 lv + 1 + j < 34 by omega, show ¬ sqM2 lv + 1 + j < sqK1 lv by omega,
+        show ¬ sqM2 lv + 1 + j < 33 by omega, show ¬ sqM2 lv + 1 + j < sqK1 lv by omega,
         show ¬ sqM2 lv + 1 + j < sqM1 lv by omega, show sqM2 lv + 1 + j ≠ sqM1 lv by omega,
         show ¬ sqM2 lv + 1 + j < sqM2 lv by omega, show sqM2 lv + 1 + j ≠ sqM2 lv by omega]
   have t0 : σ (.n (sqM2 lv + 1)) = gw 1 := by simpa using vt 0
@@ -251,7 +251,7 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
       rw [vh _ (by omega) (by omega)]
       fin_cases c <;> simp [sqHead]
   -- the powers
-  have hpow := powSteps_ok (C := fun _ _ _ ↦ True) (rd := rd) 0 (osPowDigits (128 / lv.depth)) 0 34
+  have hpow := powSteps_ok (C := fun _ _ _ ↦ True) (rd := rd) 0 (osPowDigits (128 / lv.depth)) 0 33
     X σ (by omega) (by omega) h0 (fun i h1 h2 ↦ by rw [h0]; exact vw i h1 (by omega))
   rw [h0] at hpow
   have hprv : powRes X (osPowDigits (128 / lv.depth)) X = X ^ (128 / lv.depth) := by
@@ -264,7 +264,7 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
   have hq2 := osMat_ok (C := fun _ _ _ ↦ True) (rd := rd) (σ := σ) (b := 4) (off := lv.posOff)
     (k := sqM1 lv + 1) hpo fun i h1' h2' ↦ by
       rw [v2 i h1' (by omega), h4]
-  have hp1e : (osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))).2.2 = sqM1 lv := by
+  have hp1e : (osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2 = sqM1 lv := by
     rw [osMat_end, sqK1_eq, e1]
   have hp2e : (osMat 4 lv.posOff (sqM1 lv + 1)).2.2 = sqM2 lv := by
     rw [osMat_end, e2]
@@ -298,9 +298,8 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
         · rw [vh _ (by omega) (by omega)]; simpa [sqHead] using hrow 2 (by omega)
         · rw [vh _ (by omega) (by omega)]; simpa [sqHead] using hrow 3 (by omega)
         · rw [vh _ (by omega) (by omega)]; simpa [sqHead] using hrow 4 (by omega)
-      · simp only [osCst, osKeccak, osCp, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const,
-          holds_copy]
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [osCst, osKeccak, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const]
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [vh _ (by omega) (by omega)]; simp [sqHead]
         · rw [vh _ (by omega) (by omega)]; simp [sqHead]
         · rw [vh _ (by omega) (by omega)]; simp [sqHead]
@@ -322,10 +321,6 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
           simp only [cells13, osRun, List.map_map, Function.comp_def]
           rw [List.getD_eq_getElem _ _ (by simp)]
           simpa using this
-        · have hc := hcell 0
-          rw [vh 33 (by omega) (by omega)]
-          simp only [Fin.val_zero, Nat.add_zero] at hc
-          rw [hc]; simp [sqHead]
       · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
           List.cons_append, osLd, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, h9]
         exact ⟨hn 0 (by omega), hn 1 (by omega), hn 2 (by omega), hn 3 (by omega), hn 4 (by omega)⟩
@@ -348,9 +343,8 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
     refine ⟨?_, by rw [vm1, hprv], by rw [vm2, hprv], h5⟩
     have hc := hcell 0
     simp only [Fin.val_zero, Nat.add_zero] at hc
-    rw [vh 33 (by omega) (by omega), Fs.squeeze, Keccak.challengeOf_cells, ← hc,
-      vh 20 (by omega) (by omega)]
-    simp [sqHead]
+    rw [Fs.squeeze, Keccak.challengeOf_cells]
+    exact hc
   · rw [sqLoopE_eq, t2, hg1]
   · rw [sqLoopE_eq]
     simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,

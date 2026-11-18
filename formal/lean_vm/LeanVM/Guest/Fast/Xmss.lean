@@ -17,7 +17,7 @@ an iteration's frame `σ`, at the cells the template gives:
 
 * the leaf index from the four windows' dispatches: window `w`'s word `σ (.n (71 + w)) = g^k`,
   `k < 256` its `8` bits (`lxIndex`);
-* per layer (bottom at base `88`, top at base `62605`): the randomizer `ρ`; chain `4p + r`'s
+* per layer (bottom at base `88`, top at base `62094`): the randomizer `ρ`; chain `4p + r`'s
   start in the arm `k` group `p`'s dispatch takes (its digit word `σ (.n (dg + p)) = g^k`), at the
   group's base (`lxGroupBase`) plus its offset off the literal tables (`lxFold`, `lxRest`,
   `lxTail`, `Fast/XmssTables.lean`); level `l`'s sibling in the arm window `2·layer + l / 8` takes
@@ -51,18 +51,18 @@ structure XmssTabs where
 /-- **leanXMSS's tables**, built from the literals. -/
 def xmssTabs : XmssTabs := ⟨gLanes, tabA lxFold, tabA lxRest, tabA lxTail⟩
 
-/-- Layer `layer`'s first value (`sLayer`'s base): `88`, then `62605`. -/
-def lxLayerBase (layer : ℕ) : ℕ := if layer = 0 then 88 else 62605
+/-- Layer `layer`'s first value (`sLayer`'s base): `88`, then `62094`. -/
+def lxLayerBase (layer : ℕ) : ℕ := if layer = 0 then 88 else 62094
 
 /-- Layer `layer`'s randomizer cell (`sRho`). -/
-def lxRhoCell (layer : ℕ) : ℕ := if layer = 0 then 88 else 62607
+def lxRhoCell (layer : ℕ) : ℕ := if layer = 0 then 88 else 62096
 
 /-- Layer `layer`'s first digit word (`sCw`'s `dg`). -/
-def lxDigitBase (layer : ℕ) : ℕ := if layer = 0 then 110 else 62618
+def lxDigitBase (layer : ℕ) : ℕ := if layer = 0 then 110 else 62107
 
-/-- Group `p`'s base, the groups' first at `vb0`: group `0` takes `2829` values, the others
+/-- Group `p`'s base, the groups' first at `vb0`: group `0` takes `2318` values, the others
 `2573`. -/
-def lxGroupBase (vb0 p : ℕ) : ℕ := if p = 0 then vb0 else vb0 + 2829 + 2573 * (p - 1)
+def lxGroupBase (vb0 p : ℕ) : ℕ := if p = 0 then vb0 else vb0 + 2318 + 2573 * (p - 1)
 
 /-- Group `p`'s table of chain starts. -/
 def lxGroupTab (T : XmssTabs) (p : ℕ) : Array (Array ℕ) :=
@@ -78,7 +78,7 @@ def lxChainCell (T : XmssTabs) (ks : List ℕ) (vb0 i : ℕ) : ℕ :=
 
 /-- Window `w`'s base (`lxWindowT`'s). -/
 def lxWinBase (w : ℕ) : ℕ :=
-  if w = 0 then 38021 else if w = 1 then 50313 else if w = 2 then 100529 else 112821
+  if w = 0 then 37510 else if w = 1 then 49802 else if w = 2 then 99507 else 111799
 
 /-- Arm `k`'s base in window `w`: arm `0` from the window's base plus `5`, its size `47` (`32` in
 the top window), the others `48` (`31`). -/
@@ -139,9 +139,7 @@ theorem walkBase_add (stride k : ℕ) :
 
 theorem lxArmNext_add (s n : ℕ) (fold : Bool) (k b c : ℕ) :
     lxArmNext s n fold k (b + c) = lxArmNext s n fold k b + c := by
-  have e : (if fold = true then b + c + 1 else b + c) = (if fold = true then b + 1 else b) + c := by
-    split <;> omega
-  simp only [lxArmNext, e, walkBase_add]
+  simp only [lxArmNext, walkBase_add]
   split_ifs <;> omega
 
 theorem lxArmOff_add (s n : ℕ) (fold : Bool) :
@@ -158,7 +156,7 @@ theorem armM_next (W : WotsT) (slots : ℕ → ℕ → ℕ) (first n : ℕ) (fol
       lxArmNext W.size n fold k b := by
   unfold armM lxArmNext
   dsimp only
-  split_ifs <;> simp [walksT_snd]
+  cases fold <;> split_ifs <;> simp_all [walksT_snd]
 
 theorem armBaseM_eq (W : WotsT) (slots : ℕ → ℕ → ℕ) (first n : ℕ) (fold : Bool)
     (prodIn encIn prodOut encOut : V) :
@@ -178,7 +176,7 @@ theorem armsM_snd (W : WotsT) (slots : ℕ → ℕ → ℕ) (first n : ℕ) (fol
       simp only [armsM, armBaseM]
       exact armsM_snd W slots first n fold prodIn encIn prodOut encOut m (k + 1) _
 
-/-- **The groups' bases**: group `0` takes `2829` values, the others `2573`. -/
+/-- **The groups' bases**: group `0` takes `2318` values, the others `2573`. -/
 theorem sSt_vb {W : WotsT} (hW : W.size = 1) (vb0 : ℕ) :
     ∀ p ≤ 14, (sSt W vb0 p).2.2 = lxGroupBase vb0 p
   | 0, _ => by simp [sSt, lxGroupBase]
@@ -239,8 +237,7 @@ theorem armStart_cell {W : WotsT} (hW : W.size = 1) (vb0 p r k : ℕ) (hp : p �
   generalize lxArmOff 1 (lxN p) (p == 0) 0 k 6 = A
   generalize lxGroupBase vb0 p = G
   generalize (p == 0) = fold
-  split_ifs <;> congr 1 <;> (try rw [show A + G + 1 = (A + 1) + G by omega]) <;>
-    (try rw [walkBase_add]) <;> omega
+  split_ifs <;> congr 1 <;> (try rw [walkBase_add]) <;> omega
 
 /-- **Chain `i`'s start cell** is its group's base plus the table's offset. -/
 theorem sStart_eq {W : WotsT} (hW : W.size = 1) (σ : Val) (dg vb0 i : ℕ) (hi : i < 58) :

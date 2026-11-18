@@ -24,7 +24,7 @@ the linear coefficient, so it returns the capacity, the cursor two words on,
 (`tailRound_run`).
 
 Its body: the capacity copied into `8 .. 12`, two `fs_next` (`13`, `16`), the pad run `19 .. 23`,
-the permutation into `24 .. 36`, the challenge (`37`), the outputs.
+the permutation into `24 .. 36` (the challenge its first cell), the outputs.
 -/
 
 namespace LeanVM.Guest.B1
@@ -79,15 +79,14 @@ theorem opening_tail_round_body : (Fn.«opening_tail_round».core).body =
     fsNextT (.n 5) 0 13 ++ fsNextT (.n 5) 1 16 ++ padRunT 19 ++
     [keccakA [.n 14, .n 15, .n 17, .n 18, .n 20, .n 21, .n 22, .n 23, .n 8, .n 9, .n 10, .n 11, .n 12]
         [.n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36]] ++
-    challengeT (.n 24) 37 ++
-    [.atom (.copy (.n 38) (.n 32)), .atom (.copy (.n 39) (.n 33)), .atom (.copy (.n 40) (.n 34)),
-      .atom (.copy (.n 41) (.n 35)), .atom (.copy (.n 42) (.n 36)),
-      .atom (.const (.n 43) (word 4 0)), .atom (.mul (.n 44) (.n 5) (.n 43)),
-      .atom (.copy (.n 45) (.n 44)), .atom (.const (.n 46) (word 1 0)),
-      .atom (.add (.n 47) (.n 46) (.n 37)), .atom (.mul (.n 48) (.n 47) (.n 16)),
-      .atom (.add (.n 49) (.n 6) (.n 48)), .atom (.mul (.n 50) (.n 37) (.n 49)),
-      .atom (.add (.n 51) (.n 13) (.n 50)), .atom (.copy (.n 52) (.n 37)),
-      .ret [.n 38, .n 39, .n 40, .n 41, .n 42, .n 45, .n 51, .n 52]] :=
+    [.atom (.copy (.n 37) (.n 32)), .atom (.copy (.n 38) (.n 33)), .atom (.copy (.n 39) (.n 34)),
+      .atom (.copy (.n 40) (.n 35)), .atom (.copy (.n 41) (.n 36)),
+      .atom (.const (.n 42) (word 4 0)), .atom (.mul (.n 43) (.n 5) (.n 42)),
+      .atom (.copy (.n 44) (.n 43)), .atom (.const (.n 45) (word 1 0)),
+      .atom (.add (.n 46) (.n 45) (.n 24)), .atom (.mul (.n 47) (.n 46) (.n 16)),
+      .atom (.add (.n 48) (.n 6) (.n 47)), .atom (.mul (.n 49) (.n 24) (.n 48)),
+      .atom (.add (.n 50) (.n 13) (.n 49)), .atom (.copy (.n 51) (.n 24)),
+      .ret [.n 37, .n 38, .n 39, .n 40, .n 41, .n 44, .n 50, .n 51]] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
@@ -115,22 +114,21 @@ def tlVals (as : List E) (c0 c2 : E) (S : KeccakState) (k : ℕ) : E :=
   else if k = 19 then word 1 0
   else if k < 24 then 0
   else if k < 37 then cellsOfState S false ⟨(k - 24) % 13, Nat.mod_lt _ (by omega)⟩
-  else if k = 37 then r
-  else if k < 43 then cellsOfState S false ⟨(k - 30) % 13, Nat.mod_lt _ (by omega)⟩
+  else if k < 42 then cellsOfState S false ⟨(k - 29) % 13, Nat.mod_lt _ (by omega)⟩
   else [word 4 0, cur * word 4 0, cur * word 4 0, word 1 0, word 1 0 + r,
     (word 1 0 + r) * c2, claim + (word 1 0 + r) * c2, r * (claim + (word 1 0 + r) * c2),
-    c0 + r * (claim + (word 1 0 + r) * c2), r].getD (k - 43) 0
+    c0 + r * (claim + (word 1 0 + r) * c2), r].getD (k - 42) 0
 
 /-- **`opening_tail_round` is its meaning**, in every program that finds it. -/
 theorem opening_tail_round_holdsP (P : Program)
     [Finds P "opening_tail_round" Fn.«opening_tail_round».core] : opening_tail_round_SpecP P := by
   intro rd args rets
   rw [rel_iff_sem (Finds.find (P := P) (name := "opening_tail_round") (fn := Fn.«opening_tail_round».core)), opening_tail_round_body, opening_tail_round_params]
-  simp only [holdsList_append, holds_fsNextT, holds_padRunT, holds_challengeT, keccakA,
+  simp only [holdsList_append, holds_fsNextT, holds_padRunT, keccakA,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, h8, h9, h10, h11, h12, ⟨hl0, hp0⟩, ⟨hl1, hp1⟩, ⟨-, z20, z21, z22, z23⟩,
-      hKH, hch, h38, h39, h40, h41, h42, h43, h44, h45, h46, h47, h48, h49, h50, h51, h52, hret⟩
+      hKH, h37, h38, h39, h40, h41, h42, h43, h44, h45, h46, h47, h48, h49, h50, h51, hret⟩
     subst hp
     have hKA : (Atom.keccak [.n 14, .n 15, .n 17, .n 18, .n 20, .n 21, .n 22, .n 23, .n 8, .n 9,
         .n 10, .n 11, .n 12] [.n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33,
@@ -161,14 +159,14 @@ theorem opening_tail_round_holdsP (P : Program)
     have o10 : σ (.n 34) = cellsOfState _ false 10 := outs_eq hout 10 (by simp)
     have o11 : σ (.n 35) = cellsOfState _ false 11 := outs_eq hout 11 (by simp)
     have o12 : σ (.n 36) = cellsOfState _ false 12 := outs_eq hout 12 (by simp)
-    have hy := challengeT_value hch o0
+    have hy := challengeT_value (s0 := .n 24) (b := 24) rfl o0
     refine ⟨σ (.n 13), σ (.n 16), fun k hk => ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
       interval_cases k
       · exact hl0
       · exact hl1
-    · rw [tail_sponge, ← hret, h38, h39, h40, h41, h42, o8, o9, o10, o11, o12, h45, h44, h43,
-        word_four, h51, h50, h49, h48, h47, h46, h52, word_one, hy]
+    · rw [tail_sponge, ← hret, h37, h38, h39, h40, h41, o8, o9, o10, o11, o12, h44, h43, h42,
+        word_four, h50, h49, h48, h47, h46, h45, h51, word_one, hy]
       rfl
   · intro hm
     obtain ⟨f0, f1, f2, f3, f4, cur, claim, tabs, rfl⟩ : ∃ f0 f1 f2 f3 f4 cur claim tabs,
@@ -192,17 +190,15 @@ theorem opening_tail_round_holdsP (P : Program)
       simp [ev, tlVals, as]
     refine ⟨σ, by simp [ev, tlVals, as], ?_, ?_, ?_, ?_, ?_, ⟨?_, ?_, ?_⟩, ⟨?_, ?_, ?_⟩,
       ⟨?_, ?_, ?_, ?_, ?_⟩, keccakA_of (rd := rd) rfl rfl ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    all_goals try (simp [ev, tlVals, as]; done)
+      ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    all_goals try (simp [ev, tlVals, as, Keccak.challengeOf_cells]; done)
     · simpa [ev, tlVals, as] using hrd 0 (by simp)
     · simpa [ev, tlVals, as] using hrd 1 (by simp)
     · rw [hS]
       funext c
       fin_cases c <;> simp [cells13, ev, tlVals]
-    · show tlVals as c0 c2 S 37 = tlVals as c0 c2 S 24
-      simp [tlVals, Keccak.challengeOf_cells]
     · rw [hret, ← word_four]
-      simp [ev, tlVals, as, capOf, word_one]
+      simp [ev, tlVals, as, capOf, word_one, Keccak.challengeOf_cells]
 
 end
 end LeanVM.Guest.B1

@@ -430,7 +430,7 @@ def osPositions (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × Os
    { wp.2.2 with k := j + 5, fs := [j, j + 1, j + 2, j + 3, j + 4] })
 
 /-- A non-final level's batching challenge: the sponge's capacity copied (`fs_cap`), the query
-message's last squeeze (`squeeze`, the padding's cells), `λ` (`challenge_from_state`'s copy) and
+message's last squeeze (`squeeze`, the padding's cells), `λ` (the permutation's cell `0`) and
 `1/λ`. -/
 def osLam (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
@@ -439,9 +439,9 @@ def osLam (s : OsSt) : List Stmt × OsSt :=
   let j := pd.2.2
   ((s.fs.zipIdx.map fun (f, i) ↦ osCp (k + i) f) ++ pd.1 ++
     [osKeccak ([p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4] ++ [k, k + 1, k + 2, k + 3, k + 4]) j,
-      osCp (j + 13) j, osCst (j + 14) (word 1 0), osMul (j + 14) (j + 15) (j + 13)],
-   { s with k := j + 16, fs := [j + 8, j + 9, j + 10, j + 11, j + 12], pad := some p,
-            lam := j + 13, lamInv := j + 15 })
+      osCst (j + 13) (word 1 0), osMul (j + 13) (j + 14) j],
+   { s with k := j + 15, fs := [j + 8, j + 9, j + 10, j + 11, j + 12], pad := some p,
+            lam := j, lamInv := j + 14 })
 
 /-- A high-part coefficient scaled: loaded from `src·g^i`, times its normalizer
 `sc` (no product when it is `1`), stored at `dst·g^o`. -/
@@ -759,18 +759,18 @@ iteration) is the shape of `level_residual`'s batches' loop. -/
 the row `sqz·x^5`, its capacity loaded, one squeeze, the next capacity stored, the decoded
 positions and windows at `g^posOff·x^(128/depth)`, then the loop's tail. -/
 def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits (128 / lv.depth)) 0 34
-  let p1 := osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))
+  let pw := osPowSteps 0 (osPowDigits (128 / lv.depth)) 0 33
+  let p1 := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
   let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
   let e := p2.2.2 + 1
   [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ++
     ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ++
     [osCst 15 (word 1 0), osCst 16 (word 0 0), osCst 17 (word 0 0), osCst 18 (word 0 0),
-      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20, osCp 33 20] ++
+      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ++
     ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
     pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 33, .n p1.2.2, .n p2.2.2, .n 5] []] ++
+      [.n 20, .n p1.2.2, .n p2.2.2, .n 5] []] ++
     osLoopTail name 6 e
 
 /-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values

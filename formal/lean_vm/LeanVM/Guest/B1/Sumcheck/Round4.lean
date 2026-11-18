@@ -38,16 +38,15 @@ theorem sumcheck_round4_body : Fn.body fn% «sumcheck_round4» =
     fsNextT (.n 1) 0 9 ++ fsNextT (.n 1) 1 12 ++ fsNextT (.n 1) 2 15 ++ zero2T 18 ++
     [keccakA [.n 10, .n 11, .n 13, .n 14, .n 16, .n 17, .n 18, .n 19, .n 4, .n 5, .n 6, .n 7, .n 8]
         [.n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32]] ++
-    challengeT (.n 20) 33 ++
     [.atom (.load (.n 28) (.n 0) 7), .atom (.load (.n 29) (.n 0) 8), .atom (.load (.n 30) (.n 0) 9),
       .atom (.load (.n 31) (.n 0) 10), .atom (.load (.n 32) (.n 0) 11),
-      .atom (.const (.n 34) (word 1 0)), .atom (.add (.n 35) (.n 34) (.n 33)),
-      .atom (.const (.n 36) (word 8 0)), .atom (.mul (.n 37) (.n 1) (.n 36)),
-      .atom (.copy (.n 38) (.n 37)), .atom (.mul (.n 39) (.n 35) (.n 15)),
-      .atom (.add (.n 40) (.n 12) (.n 39)), .atom (.mul (.n 41) (.n 35) (.n 40)),
-      .atom (.add (.n 42) (.n 2) (.n 41)), .atom (.mul (.n 43) (.n 33) (.n 42)),
-      .atom (.add (.n 44) (.n 9) (.n 43)), .atom (.copy (.n 45) (.n 33)),
-      .ret [.n 38, .n 44, .n 45]] := stmtsEqb_sound (by decide +kernel)
+      .atom (.const (.n 33) (word 1 0)), .atom (.add (.n 34) (.n 33) (.n 20)),
+      .atom (.const (.n 35) (word 8 0)), .atom (.mul (.n 36) (.n 1) (.n 35)),
+      .atom (.copy (.n 37) (.n 36)), .atom (.mul (.n 38) (.n 34) (.n 15)),
+      .atom (.add (.n 39) (.n 12) (.n 38)), .atom (.mul (.n 40) (.n 34) (.n 39)),
+      .atom (.add (.n 41) (.n 2) (.n 40)), .atom (.mul (.n 42) (.n 20) (.n 41)),
+      .atom (.add (.n 43) (.n 9) (.n 42)), .atom (.copy (.n 44) (.n 20)),
+      .ret [.n 37, .n 43, .n 44]] := stmtsEqb_sound (by decide +kernel)
 
 theorem word_eight : word 8 0 = gen ^ 3 := word_two_pow (a := 3) (by decide)
 
@@ -84,7 +83,7 @@ def r4Vals (rec cur claim tabs : E) (cap : List E) (c0 c2 c3 : E) (S : KeccakSta
     word 0 dsObserve].getD (k - 9) 0
   else if k < 20 then 0
   else if k < 33 then cellsOfState S false ⟨(k - 20) % 13, Nat.mod_lt _ (by omega)⟩
-  else [y, word 1 0, 1 + y, word 8 0, cur * word 8 0, cur * word 8 0, (1 + y) * c3,
+  else [word 1 0, 1 + y, word 8 0, cur * word 8 0, cur * word 8 0, (1 + y) * c3,
     c2 + (1 + y) * c3, (1 + y) * (c2 + (1 + y) * c3), claim + (1 + y) * (c2 + (1 + y) * c3),
     y * (claim + (1 + y) * (c2 + (1 + y) * c3)),
     c0 + y * (claim + (1 + y) * (c2 + (1 + y) * c3)), y].getD (k - 33) 0
@@ -93,12 +92,12 @@ def r4Vals (rec cur claim tabs : E) (cap : List E) (c0 c2 c3 : E) (S : KeccakSta
 theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
   intro rd args rets
   rw [rel_iff_sem find_sumcheck_round4, sumcheck_round4_body, sumcheck_round4_params]
-  simp only [holdsList_append, holds_fsNextT, holds_zero2T, holds_challengeT, keccakA,
+  simp only [holdsList_append, holds_fsNextT, holds_zero2T, keccakA,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, l4, l5, l6, l7, l8, ⟨hl0, hp0⟩, ⟨hl1, hp1⟩, ⟨hl2, hp2⟩, ⟨h18, h19⟩,
-      hKH, hch, l28, l29, l30, l31, l32, h34, h35, h36, h37, h38, h39, h40, h41, h42, h43,
-      h44, h45, hret⟩
+      hKH, l28, l29, l30, l31, l32, h33, h34, h35, h36, h37, h38, h39, h40, h41, h42,
+      h43, h44, hret⟩
     subst hp
     have hKA : (Atom.keccak [.n 10, .n 11, .n 13, .n 14, .n 16, .n 17, .n 18, .n 19, .n 4, .n 5,
         .n 6, .n 7, .n 8] [.n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29,
@@ -123,7 +122,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
     have o10 : σ (.n 30) = cellsOfState _ false 10 := outs_eq hout 10 (by simp)
     have o11 : σ (.n 31) = cellsOfState _ false 11 := outs_eq hout 11 (by simp)
     have o12 : σ (.n 32) = cellsOfState _ false 12 := outs_eq hout 12 (by simp)
-    have hy := challengeT_value hch o0
+    have hy := challengeT_value (s0 := .n 20) (b := 20) rfl o0
     refine ⟨[σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8)], σ (.n 9), σ (.n 12), σ (.n 15),
       ⟨rfl, ?_⟩, ?_, ?_, ?_⟩
     · intro j hj
@@ -155,8 +154,8 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
         rw [← o11]; exact l31
       · show LoadHolds rd (σ (.n 0)) 11 (cellsOfState _ false 12)
         rw [← o12]; exact l32
-    · rw [round4_sponge, ← hret, h38, h37, h36, word_eight, h44, h43, h42, h41, h40, h39, h35,
-        h34, h45, word_one, ← round4_eval, hy]
+    · rw [round4_sponge, ← hret, h37, h36, h35, word_eight, h43, h42, h41, h40, h39, h38, h34,
+        h33, h44, word_one, ← round4_eval, hy]
       rfl
   · intro hm
     obtain ⟨rec, cur, claim, tabs, rfl⟩ : ∃ rec cur claim tabs, args = [rec, cur, claim, tabs] := by
@@ -187,7 +186,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
       rwa [loadHolds_mul_gen_pow, Nat.zero_add, Nat.mul_one] at this
     refine ⟨σ, by simp [ev, r4Vals], ?_, ?_, ?_, ?_, ?_, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩,
       keccakA_of (rd := rd) rfl rfl ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, ?_, ?_⟩
+      ?_, ?_, ?_, ?_⟩
     · exact ld 0 (by omega)
     · exact ld 1 (by omega)
     · exact ld 2 (by omega)
@@ -204,17 +203,14 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
     · rw [hS]
       funext c
       fin_cases c <;> simp [cells13, ev, r4Vals]
-    · show r4Vals rec cur claim tabs [a4, a5, a6, a7, a8] c0 c2 c3 S 33 =
-        r4Vals rec cur claim tabs [a4, a5, a6, a7, a8] c0 c2 c3 S 20
-      simp [r4Vals, Keccak.challengeOf_cells]
     · simpa [ev, r4Vals, capOf] using st 0 (by omega)
     · simpa [ev, r4Vals, capOf] using st 1 (by omega)
     · simpa [ev, r4Vals, capOf] using st 2 (by omega)
     · simpa [ev, r4Vals, capOf] using st 3 (by omega)
     · simpa [ev, r4Vals, capOf] using st 4 (by omega)
-    all_goals try (simp [ev, r4Vals, word_one]; done)
+    all_goals try (simp [ev, r4Vals, word_one, Keccak.challengeOf_cells]; done)
     rw [hret, ← word_eight, ← round4_eval]
-    simp [ev, r4Vals]
+    simp [ev, r4Vals, Keccak.challengeOf_cells]
 
 end
 end LeanVM.Guest.B1

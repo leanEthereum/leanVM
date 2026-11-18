@@ -43,7 +43,7 @@ theorem sCtrBlock_out (l : Nat) :
 
 /-- Layer `l` after its counter. -/
 def sHtBlock (l : Nat) : List Stmt × Nat × V :=
-  sHtLayer sPad sPP (sA0Of l) (sA1Of l) (sSignedOf l) (sCtrOf l) sLeafBit sLVal (sOffOf l)
+  sHtLayer sPad sPP (sA0Of l) (sAcOf l) (sA1Of l) (sSignedOf l) (sCtrOf l) sLeafBit sLVal (sOffOf l)
     (sHeightOf l) (sLayerBase l + 37)
 
 theorem sLayerBlk_split (l : Nat) :
@@ -59,7 +59,7 @@ structure LayerShape (l : Nat) : Prop where
   ht_le : sLayerBase l + 37 ≤ (sHtBlock l).2.1
   ht_ptrs : loadPtrs (sHtBlock l).1 = []
   ctr_ptrs : ∀ q ∈ loadPtrs (sCtrBlock l).1, q ∈ (List.range 4).map (fbPtr (sLayerBase l + 4))
-  a0 : NBv (sLayerBase l) (sA0Of l)
+  a0 : sAcOf l = none → NBv (sLayerBase l) (sA0Of l)
   a1 : NBv (sLayerBase l) (sA1Of l)
   signed : NBv (sLayerBase l) (sSignedOf l)
   pad : sPad + 5 ≤ sLayerBase l
@@ -68,17 +68,17 @@ structure LayerShape (l : Nat) : Prop where
 
 theorem layerShape_zero : LayerShape 0 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨1379, by decide, rfl⟩, ⟨1381, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, fun _ => ⟨1379, by decide, rfl⟩, ⟨1381, by decide, rfl⟩,
     ⟨5248, by decide, rfl⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_one : LayerShape 1 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨5404, by decide, rfl⟩, ⟨5406, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, fun _ => ⟨5404, by decide, rfl⟩, ⟨5406, by decide, rfl⟩,
     ⟨(sLayerB.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape_two : LayerShape 2 :=
   ⟨numBelow_of_all (by decide +kernel), numBelow_of_all (by decide +kernel), by decide +kernel,
-    by decide +kernel, by decide +kernel, ⟨5561, by decide, rfl⟩, ⟨5560, by decide, rfl⟩,
+    by decide +kernel, by decide +kernel, fun h => absurd h (by simp [sAcOf]), ⟨5560, by decide, rfl⟩,
     ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
 theorem layerShape {l : Nat} (hl : l < 3) : LayerShape l := by
@@ -94,14 +94,14 @@ bits and shifts, any siblings: the layer's root is `pFold` of `pNodeE` from
 theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
     {sib : Nat → E} (σ : Val) (h1 : σ (.n 1) = bb) (hp : PadOK σ sPad)
-    (hcall : C "sp_wots" [σ sPP, σ (sA0Of l), σ (sA1Of l),
-      encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
-        (eOfNat (beWordAt 0 N))] [lv])
+    (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
+      encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+        (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])
     (he : e < 2 ^ sHeightOf l)
     (hbit : ∀ z < sHeightOf l, σ (sLeafBit (sOffOf l + z)) = if e.testBit z then 1 else 0)
     (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) :
     Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
-      σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (σ (sA0Of l)) e sib) (sHeightOf l) lv ∧
+      σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) (sHeightOf l) lv ∧
         TablePtrs bb σ' (sLayerBlk l).1) := by
   have S := layerShape hl
   rw [sLayerBlk_split]
@@ -127,12 +127,12 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
     rw [he2.apply (Or.inl (by omega)), t1 k hk]
   have tv : ∀ v : V, NBv (sLayerBase l) v → σ2 v = σ v := fun v ⟨k, hk, ek⟩ => by rw [ek]; exact t2 k hk
   have hpp' : σ2 sPP = σ sPP := tv sPP ⟨2, by have := S.digest; omega, rfl⟩
-  have ha0 := tv _ S.a0
+  have ha0 : a0Val σ2 (sA0Of l) (sAcOf l) = a0Val σ (sA0Of l) (sAcOf l) := a0Val_agree S.a0 tv
   have ha1 := tv _ S.a1
   have hsg := tv _ S.signed
   rw [(sCtrBlock_out l).1] at hctr
   have hL := hB.layer C rd σ2 l (sA0Of l) (sA1Of l) (sSignedOf l) (sCtrOf l) (sLayerBase l + 37) lv e sib
-    hl (by have := S.digest; omega) (S.a0.mono' (by omega)) (S.a1.mono' (by omega))
+    hl (by have := S.digest; omega) (fun h => (S.a0 h).mono' (by omega)) (S.a1.mono' (by omega))
     (S.signed.mono' (by omega)) ⟨sLayerBase l + 36, by omega, rfl⟩
     (hp.congr (b := sLayerBase l) S.pad fun j hj => (t2 j hj).symm) ⟨N, hN, hctr⟩
     (by rw [hpp', ha0, ha1, hsg, hctr]; exact hcall) he

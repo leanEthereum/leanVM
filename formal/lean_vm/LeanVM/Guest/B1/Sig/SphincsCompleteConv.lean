@@ -120,7 +120,8 @@ theorem htLayerCompletes : HtLayerCompletes := by
   intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hctr hcall he hbit hval
   obtain ⟨N, hN, hc⟩ := hctr
   have hN' : beWordAt 0 N < 2 ^ 32 := beWordAt_zero_lt N
-  have h := sHtLayer_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (key := a1)
+  have h := sHtLayer_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (ac := sAcOf l)
+    (key := a1)
     (signed := signed) (ctr := ctr) (bit := sLeafBit) (val := sLVal) (off := sOffOf l)
     (height := sHeightOf l) (b := b) (N := beWordAt 0 N)
     (sib := sib) (by unfold sHeightOf sLeafLen; split <;> omega) he σ (by unfold sPad; omega)
