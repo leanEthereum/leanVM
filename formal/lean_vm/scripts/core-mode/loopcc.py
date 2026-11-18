@@ -19,8 +19,9 @@ CORE, STABLE = I.CORE, I.STABLE
 No = callc.No
 
 
-def candidates():
-    """Loop helpers: atoms and calls (at least one), the tail `callIf` to itself with a word per parameter, `ret []`."""
+def candidates(S=None):
+    """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
+    call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`)."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]
@@ -30,7 +31,9 @@ def candidates():
         if I.callee(t[2]) != k or len(t[3]) != len(params):
             continue
         kinds = {s[0] for s in body[:-2]}
-        if 'call' in kinds and kinds <= {'a', 'call'}:
+        G = (S or {}).get(k)
+        own_ptr = G is not None and bool(G['preP'] or G['postLP'])
+        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr):
             out.append(k)
     return out
 
@@ -46,17 +49,22 @@ def infer_one(k, S):
         raise No('no self cell')
     if 0 not in G['entry'] or 1 not in G['entry']:
         raise No('header')
-    if any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch', 'frameAddr') for s in body):
+    # `CoreMode.LoopOkC.rdFree`: a range check or `touch` reads memory only with no pointer fact on the path
+    # (`noPtrL`, checked below); no `frameAddr`
+    mem_read = any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch') for s in body)
+    if any(s[0] == 'a' and s[1][0] == 'frameAddr' for s in body) or (mem_read and (G['preP'] or G['postLP'])):
         raise No('memory read')
+    # `CoreMode.tailPass`: the parameters' cells the tail call passes on unchanged
+    ps = [2 + b for b, a in enumerate(body[-2][3]) if a == params[b]]
     G2 = dict(G)
     G2['preP'], G2['postLP'] = [], []
-    own = loopc.own_sig(G2, np)
+    own = loopc.own_sig(G2, np, ps)
     # `sigOkLP`: the loop's pointer runs, its preconditions' and its loop's, translated, offsets as they are
-    for f, src in (('prePR', G['preP']), ('postPR', G['postLP'])):
+    for f, src, kps in (('prePR', G['preP'], ps), ('postPR', G['postLP'], loopc.exp_cells(G))):
         for r, offs in src:
             if list(offs) != sorted(set(offs)):
                 raise No('offsets')
-            getattr(own, f).append((loopc.run(G, np, r), tuple(offs)))
+            getattr(own, f).append((loopc.run(G, np, r, kps), tuple(offs)))
     if any(p[0] not in own.preR for p in own.prePR) or any(p[0] not in own.postR for p in own.postPR):
         raise No('own pointer run cells')
     if I.loop_params(k)[0] != 0:
@@ -71,15 +79,13 @@ def infer_one(k, S):
             raise No('callee without mode signature')
         if I.callee(f) == k:
             raise No('recursive')
-        # `CoreMode.fitBL`: no self cell, loop runs or pointer-based products
-        if Gf['self'] != ('id', 'none') or Gf['postL'] or Gf['postLP']:
-            raise No('callee self')
+        # `CoreMode.fitBL`: `callc.py`'s `fitB`; no pointer cell guaranteed (`calleePtrOk`)
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
-        if h.preP or h.postP:
+        if h.postP:
             raise No('callee pointer base')
         callc.exp_bounds(h, s[2], body, np, callc.exp_cells(G))
-        # `CoreMode.fitBL`: a callee's pointer run's run is a run it guarantees written
-        for r, _ in Gf['postP']:
+        # `CoreMode.fitBL`: a callee's pointer run's run (its loop's too) is a run it guarantees written
+        for r, _ in Gf['postP'] + Gf['postLP']:
             try:
                 q = callc.runX(r, len(s[2]) + len(s[3]))
             except No:
@@ -88,6 +94,8 @@ def infer_one(k, S):
                 h.postR.append(q)
         if h.postP or any(p[0] not in h.postR for p in h.postPR):
             raise No('callee pointer run cells')
+        if mem_read and h.postPR:
+            raise No('memory read')
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h
@@ -125,7 +133,7 @@ def results(verbose=False):
     I.F.update({'ptr', 'pfr'})
     S = route.sigs()
     out, why = {}, collections.Counter()
-    cs = candidates()
+    cs = candidates(S)
     for k in cs:
         try:
             out[k] = infer_one(k, S)

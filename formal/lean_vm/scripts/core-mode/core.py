@@ -168,7 +168,7 @@ def cfun_lc(k, j, K, frame):
             f'/-- `{k}`: the heap check, by its loop rules, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
             f'/-- `{k}`: its signature translated. -/\n'
-            f'theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length = true := by\n'
+            f'theorem loop_sig : CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true := by\n'
             f'  decide +kernel\n\n'
             f'/-- `{k}`: its code, its calls\' jumps and its last two instructions. -/\n'
             f'theorem loop_code : CoreMode.loopCodeC cfun code.chunks.flatten = true := by\n  decide +kernel\n\n'
