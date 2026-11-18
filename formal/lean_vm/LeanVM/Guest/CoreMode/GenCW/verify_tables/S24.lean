@@ -504,7 +504,8 @@ noncomputable def st24 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr1781 tr1798
     .nil,
     946, 18, 83, 0,
     st24_cd,
-    st24_eqs⟩
+    st24_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

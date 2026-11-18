@@ -618,7 +618,8 @@ noncomputable def st34 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     1216, 18, 113, 0,
     st34_cd,
-    st34_eqs⟩
+    st34_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

@@ -556,7 +556,8 @@ noncomputable def st4 : CSt := ⟨tr341,
     .nil,
     371, 18, 20, 0,
     st4_cd,
-    st4_eqs⟩
+    st4_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

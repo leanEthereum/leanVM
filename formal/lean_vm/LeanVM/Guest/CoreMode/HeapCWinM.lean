@@ -36,7 +36,7 @@ def cntOf (s : CSt) : Cnt := (s.n, s.nr, s.nc, s.nt)
 
 /-- `st` with the serials `c`. -/
 def CSt.withN (st : CSt) (c : Cnt) : CSt :=
-  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, c.1, c.2.1, c.2.2.1, c.2.2.2, st.cd, st.eqs⟩
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, c.1, c.2.1, c.2.2.1, c.2.2.2, st.cd, st.eqs, st.dq⟩
 
 theorem cnt_withN (st s : CSt) : st.cnt s = st.withN (cntOf s) := rfl
 
@@ -66,7 +66,7 @@ noncomputable def joinSum (bs : List BlkSum) (st : CSt) (c : Cnt) : CSt :=
   ⟨st.env, insL (joinE CCell.beq (bs.map fun b ↦ (b.ret, b.sc))) st.sc,
     insL (joinE PRun.beq (bs.map fun b ↦ (b.ret, b.rs))) st.rs, st.ad, st.sv, st.src,
     insL (joinE pfBeq (bs.map fun b ↦ (b.ret, b.pf))) st.pf,
-    insL (joinE prBeq (bs.map fun b ↦ (b.ret, b.pr))) st.pr, c.1, c.2.1, c.2.2.1, c.2.2.2, st.cd, st.eqs⟩
+    insL (joinE prBeq (bs.map fun b ↦ (b.ret, b.pr))) st.pr, c.1, c.2.1, c.2.2.1, c.2.2.2, st.cd, st.eqs, st.dq⟩
 
 theorem joinSt_sum (bs : List (Bool × CSt × CSt)) (st s : CSt) :
     joinSt bs st s = joinSum (bs.map blkSum) st (cntOf s) := by

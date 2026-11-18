@@ -498,7 +498,8 @@ noncomputable def st31 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     1135, 18, 104, 0,
     st31_cd,
-    st31_eqs⟩
+    st31_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

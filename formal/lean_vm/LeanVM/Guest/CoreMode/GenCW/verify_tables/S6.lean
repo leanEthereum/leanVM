@@ -518,7 +518,8 @@ noncomputable def st6 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr474 (.node (
     .nil,
     443, 18, 28, 0,
     st6_cd,
-    st6_eqs⟩
+    st6_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

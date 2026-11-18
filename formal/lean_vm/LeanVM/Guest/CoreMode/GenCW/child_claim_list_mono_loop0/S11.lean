@@ -2302,7 +2302,8 @@ noncomputable def st11 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     710, 1, 0, 0,
     st11_cd,
-    st11_eqs⟩
+    st11_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW

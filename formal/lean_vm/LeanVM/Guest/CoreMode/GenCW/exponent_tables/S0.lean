@@ -34,7 +34,8 @@ noncomputable def st0 : CSt := ⟨.nil,
     .nil,
     0, 0, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«exponent_tables».HeapW

@@ -59,7 +59,8 @@ noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr1),
     .nil,
     0, 5, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

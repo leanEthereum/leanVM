@@ -1763,7 +1763,8 @@ noncomputable def st1 : CSt := ⟨(.node none (.node (some ⟨[], 1⟩) (.node (
     .nil,
     1225, 0, 0, 0,
     st1_cd,
-    st1_eqs⟩
+    st1_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«exponent_tables».HeapW

@@ -514,7 +514,8 @@ noncomputable def st27 : CSt := ⟨tr2018,
     .nil,
     1027, 18, 92, 0,
     st27_cd,
-    st27_eqs⟩
+    st27_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

@@ -333,7 +333,8 @@ class Lits:
               self.ltrie(st.pr, lambda p: f"({lprun(p[0])}, {lnums(p[1])})", '(PRun × List ℕ)', defs),
               f'{st.n}, {st.nr}, {st.nc}, {st.nt}',
               self.llist('cd', cd, 'CdE', f'{name}_cd', defs, False),
-              self.llist('eqs', eqs, '(CCell × CCell)', f'{name}_eqs', defs, True)]
+              self.llist('eqs', eqs, '(CCell × CCell)', f'{name}_eqs', defs, True),
+              '[' + ', '.join(f'({lcell(c)}, {lprun(q)})' for c, q in st.dq) + ']']
         return defs, '⟨' + ',\n    '.join(fs) + '⟩'
 
 

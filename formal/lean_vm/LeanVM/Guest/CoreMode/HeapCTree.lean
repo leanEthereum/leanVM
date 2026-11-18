@@ -398,10 +398,11 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
     refine ⟨fun hlen x hx ↦ ?_, hrm, hrv, hre⟩
     have hW' : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (instV rd (cert f) σ gw) (fn.params.map σ) es x ∨
         FAW (instV rd (cert f) σ gw) es x := by
-      rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx
+      rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx | hx
       · exact hpost.1.1 c hc
       · exact hpost.1.2 r hr x hx
-      · exact hpost.2 x hx
+      · exact hpost.2.1 x hx
+      · exact hpost.2.2 x hx
     rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩
     rotate_left
     · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩)

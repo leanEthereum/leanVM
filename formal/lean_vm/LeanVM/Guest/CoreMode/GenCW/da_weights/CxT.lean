@@ -1594,7 +1594,34 @@ noncomputable def cxTv0 : (List CoreMode.Wit) :=
     16607, .ev 16608, .ev 16609, .ev 16610, .ev 16611, .ev 16612, .ev 16613, .ev 16614, .ev 16615, .ev 16616, .ev
     16617, .ev 16618, .ev 16619, .ev 16620, .ev 16621, .ev 16622, .ev 16623, .ev 16624, .ev 16625, .ev 16626, .ev
     16627, .ev 16628, .ev 16629, .ev 16630, .ev 16631, .ev 16632, .ev 16633, .ev 16634, .ev 16635, .ev 16636, .ev
-    16637, .ev 16638]
+    16637, .ev 16638, .word 129, .run 0 [], .word 259, .run 1 [], .word 389, .run 2 [], .word 519, .run 3 [], .word
+    649, .run 4 [], .word 779, .run 5 [], .word 909, .run 6 [], .word 1039, .run 7 [], .word 1169, .run 8 [], .word
+    1299, .run 9 [], .word 1429, .run 10 [], .word 1559, .run 11 [], .word 1689, .run 12 [], .word 1819, .run 13 [],
+    .word 1949, .run 14 [], .word 2079, .run 15 [], .word 2209, .run 16 [], .word 2339, .run 17 [], .word 2469, .run
+    18 [], .word 2599, .run 19 [], .word 2729, .run 20 [], .word 2859, .run 21 [], .word 2989, .run 22 [], .word 3119,
+    .run 23 [], .word 3249, .run 24 [], .word 3379, .run 25 [], .word 3509, .run 26 [], .word 3639, .run 27 [], .word
+    3769, .run 28 [], .word 3899, .run 29 [], .word 4029, .run 30 [], .word 4159, .run 31 [], .word 4289, .run 32 [],
+    .word 4419, .run 33 [], .word 4549, .run 34 [], .word 4679, .run 35 [], .word 4809, .run 36 [], .word 4939, .run
+    37 [], .word 5069, .run 38 [], .word 5199, .run 39 [], .word 5329, .run 40 [], .word 5459, .run 41 [], .word 5589,
+    .run 42 [], .word 5719, .run 43 [], .word 5849, .run 44 [], .word 5979, .run 45 [], .word 6109, .run 46 [], .word
+    6239, .run 47 [], .word 6369, .run 48 [], .word 6499, .run 49 [], .word 6629, .run 50 [], .word 6759, .run 51 [],
+    .word 6889, .run 52 [], .word 7019, .run 53 [], .word 7149, .run 54 [], .word 7279, .run 55 [], .word 7409, .run
+    56 [], .word 7539, .run 57 [], .word 7669, .run 58 [], .word 7799, .run 59 [], .word 7929, .run 60 [], .word 8059,
+    .run 61 [], .word 8189, .run 62 [], .word 8319, .run 63 [], .word 8449, .run 64 [], .word 8579, .run 65 [], .word
+    8709, .run 66 [], .word 8839, .run 67 [], .word 8969, .run 68 [], .word 9099, .run 69 [], .word 9229, .run 70 [],
+    .word 9359, .run 71 [], .word 9489, .run 72 [], .word 9619, .run 73 [], .word 9749, .run 74 [], .word 9879, .run
+    75 [], .word 10009, .run 76 [], .word 10139, .run 77 [], .word 10269, .run 78 [], .word 10399, .run 79 [], .word
+    10529, .run 80 [], .word 10659, .run 81 [], .word 10789, .run 82 [], .word 10919, .run 83 [], .word 11049, .run 84
+    [], .word 11179, .run 85 [], .word 11309, .run 86 [], .word 11439, .run 87 [], .word 11569, .run 88 [], .word
+    11699, .run 89 [], .word 11829, .run 90 [], .word 11959, .run 91 [], .word 12089, .run 92 [], .word 12219, .run 93
+    [], .word 12349, .run 94 [], .word 12479, .run 95 [], .word 12609, .run 96 [], .word 12739, .run 97 [], .word
+    12869, .run 98 [], .word 12999, .run 99 [], .word 13129, .run 100 [], .word 13259, .run 101 [], .word 13389, .run
+    102 [], .word 13519, .run 103 [], .word 13649, .run 104 [], .word 13779, .run 105 [], .word 13909, .run 106 [],
+    .word 14039, .run 107 [], .word 14169, .run 108 [], .word 14299, .run 109 [], .word 14429, .run 110 [], .word
+    14559, .run 111 [], .word 14689, .run 112 [], .word 14819, .run 113 [], .word 14949, .run 114 [], .word 15079,
+    .run 115 [], .word 15209, .run 116 [], .word 15339, .run 117 [], .word 15469, .run 118 [], .word 15599, .run 119
+    [], .word 15729, .run 120 [], .word 15859, .run 121 [], .word 15989, .run 122 [], .word 16119, .run 123 [], .word
+    16249, .run 124 [], .word 16379, .run 125 [], .word 16509, .run 126 [], .word 16639, .run 127 []]
 
 /-- `cxOf`'s trie `T`. -/
 noncomputable def cxT : Trie (List CoreMode.Wit) :=

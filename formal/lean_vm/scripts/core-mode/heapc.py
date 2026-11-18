@@ -1014,7 +1014,7 @@ class Pass:
         for n, c, m in postVE(G, ms, n0):
             st.sv[n] = (c, m)
         st.eqs = tuple(instEq(ms, G.retEq)) + st.eqs
-        st.dq = st.dq + tuple(instQ(ms, G.postQ))
+        st.dq = tuple(instQ(ms, G.postQ)) + st.dq
 
     def call_ws(self, st, site, check, g, args, ma):
         X = self.X

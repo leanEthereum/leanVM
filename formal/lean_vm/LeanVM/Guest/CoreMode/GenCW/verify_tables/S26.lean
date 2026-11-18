@@ -541,7 +541,8 @@ noncomputable def st26 : CSt := ⟨tr1946,
     .nil,
     1000, 18, 89, 0,
     st26_cd,
-    st26_eqs⟩
+    st26_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

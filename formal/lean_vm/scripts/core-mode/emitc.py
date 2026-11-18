@@ -93,6 +93,18 @@ def cidx(c, m=None):
     return ('mono', c)
 
 
+def mdivC(a, b):
+    """The monomial `a / b` when `b` divides `a` (exponents and offset), else `None`."""
+    da = dict(a[0])
+    for x, e in b[0]:
+        if da.get(x, 0) < e:
+            return None
+        da[x] -= e
+    if a[1] < b[1]:
+        return None
+    return (tuple(sorted((x, e) for x, e in da.items() if e)), a[1] - b[1])
+
+
 def crun(r, m=None):
     Q, S, lo, hi = r
     return (cell(Q, m), S, cidx(lo, m), cidx(hi, m))
@@ -706,6 +718,10 @@ class Solver:
                     hs.append(R[3])
                 elif R[0][0] == b2[0] and R[1] % S0 == 0 and R[1] > S0 and R[0][1] == b2[1]:
                     hs.append(C.cpow(R[3], R[1] // S0))
+            # or the quotient of the bound by `k` (the part from `k` held otherwise: points, a merge)
+            q = mdivC(hi, k)
+            if q is not None and q[0] is not None:
+                hs.append(q)
             for h in dict.fromkeys(hs):
                 if not C.eqV(st.eqs, C.cmul(k, h), hi):
                     continue

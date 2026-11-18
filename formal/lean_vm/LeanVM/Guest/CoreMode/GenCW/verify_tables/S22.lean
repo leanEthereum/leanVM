@@ -513,7 +513,8 @@ noncomputable def st22 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr1633 tr1652
     .nil,
     892, 18, 77, 0,
     st22_cd,
-    st22_eqs⟩
+    st22_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

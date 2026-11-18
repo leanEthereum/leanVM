@@ -521,7 +521,8 @@ noncomputable def st32 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     1162, 18, 107, 0,
     st32_cd,
-    st32_eqs⟩
+    st32_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

@@ -79,7 +79,7 @@ FEATURES = {
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
-F = set(FEATURES) - {'postQ'}
+F = set(FEATURES)
 WRAP = [True]
 
 

@@ -2295,7 +2295,8 @@ noncomputable def st3 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr1036 tr1053)
     .nil,
     418, 1, 0, 0,
     st3_cd,
-    st3_eqs⟩
+    st3_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW

@@ -463,7 +463,8 @@ noncomputable def st16 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some 
     .nil,
     722, 18, 59, 0,
     st16_cd,
-    st16_eqs⟩
+    st16_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

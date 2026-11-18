@@ -38,7 +38,8 @@ noncomputable def st36 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr98 tr103),
     .nil,
     4, 1, 0, 0,
     st36_cd,
-    st36_eqs⟩
+    st36_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

@@ -1049,7 +1049,8 @@ noncomputable def st20 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr1435 tr1460
     .nil,
     838, 18, 71, 0,
     st20_cd,
-    st20_eqs⟩
+    st20_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

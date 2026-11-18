@@ -2745,7 +2745,8 @@ noncomputable def st2 : CSt := ⟨tr285,
     .nil,
     695, 13, 65, 0,
     st2_cd,
-    st2_eqs⟩
+    st2_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L10».HeapW

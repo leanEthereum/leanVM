@@ -565,7 +565,8 @@ noncomputable def st30 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr2256 (.node
     .nil,
     1108, 18, 101, 0,
     st30_cd,
-    st30_eqs⟩
+    st30_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

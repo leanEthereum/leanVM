@@ -317,9 +317,9 @@ its keys, so this is the pass's trie of those entries), the serials, the guarant
 equations. What the generated windows state their cut points' states with. -/
 noncomputable def mkCSt (env sc : List (ℕ × CCell)) (rs : List (ℕ × PRun)) (ad sv : List (ℕ × (CCell × CCell)))
     (src : List (ℕ × CCell)) (pf : List (ℕ × (CCell × List ℕ))) (pr : List (ℕ × (PRun × List ℕ))) (n nr nc nt : ℕ)
-    (cd : List CdE) (eqs : List (CCell × CCell)) : CSt :=
+    (cd : List CdE) (eqs : List (CCell × CCell)) (dq : List (CCell × PRun) := []) : CSt :=
   ⟨insL env .nil, insL sc .nil, insL rs .nil, insL ad .nil, insL sv .nil, insL src .nil, insL pf .nil, insL pr .nil,
-    n, nr, nc, nt, cd, eqs⟩
+    n, nr, nc, nt, cd, eqs, dq⟩
 
 /-! ## The context stated
 
@@ -351,7 +351,7 @@ noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) &&
     decide (H.sig.term = [(.val 0, ei)]) &&
-    H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty &&
+    H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && H.sig.postQ.isEmpty &&
     f.params.all okV && noGhostL (f.body.drop (f.body.length - 2)) &&
     faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
     (match endOf ei with
@@ -377,7 +377,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
     (ht : tailOk pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
   simp only [headOk, Bool.and_eq_true, decide_eq_true_eq, withCx_eq] at hh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpq⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
   obtain ⟨hc, hnr, hng, -⟩ := winsOk_chain l 0 S0 hw
   rw [hl] at hc hnr hng
   simp only [List.drop_zero, Nat.sub_zero] at hc hnr hng
@@ -399,7 +399,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
       keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
   simp only [Bool.and_eq_true]
-  refine ⟨⟨⟨hrm, hpv⟩, hre⟩, ?_⟩
+  refine ⟨⟨⟨⟨hrm, hpv⟩, hre⟩, hpq⟩, ?_⟩
   -- the tail's shape
   revert hlt
   split

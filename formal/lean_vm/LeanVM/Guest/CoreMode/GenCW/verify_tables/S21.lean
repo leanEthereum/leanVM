@@ -505,7 +505,8 @@ noncomputable def st21 : CSt := ⟨tr1578,
     .nil,
     865, 18, 74, 0,
     st21_cd,
-    st21_eqs⟩
+    st21_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_tables».HeapW

@@ -50,7 +50,8 @@ noncomputable def st0 : CSt := ⟨tr0,
     .nil,
     0, 9, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L3».HeapW

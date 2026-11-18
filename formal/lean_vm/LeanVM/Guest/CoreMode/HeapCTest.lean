@@ -48,6 +48,8 @@ rejected.
 * `catk`: a run split at a symbolic index (`catM`); `useME`: a merge whose root is given by an equation
   (`mrgE`); `useAb`: a block every arm of a `dispatch` writes up to its index (`ab`); `pubRd`: constant
   preconditions (the public input); `fillP`, `useFillP`: a loop's accumulated pointer run, consumed.
+* `mkq`, `useq`, `catq`: a run at the word a callee stores at a cell (`postQ`), read by the caller after it loads
+  the cell; the run's second part split again (nested `catM`).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -1531,6 +1533,87 @@ def hUseFillP : HCert where
   rets := [[]]
 
 theorem useFillP_ok : heapOkC Data.powTree sigsP2 useFillP hUseFillP = true := by decide +kernel
+
+/-- Allocates two cells, writes them, stores the buffer's pointer at `o[0]`. -/
+def mkq : Fn where
+  name := "mkq"
+  params := [.n 0]
+  body := [.atom (.hint (.alloc (.n 1) 2)), .atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 1) 0),
+    .atom (.load (.n 2) (.n 1) 1), .atom (.load (.n 1) (.n 0) 0), .ret []]
+
+/-- `mkq`'s certificate: `o[0]` written, and the run of two cells at the word there (`postQ`), by the store of
+`o[0]` (`word`) and the run's points. -/
+def hMkq : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postQ := [(⟨[(0, 1)], 0⟩, ⟨⟨[], 0⟩, 1, .num 0, .num 2⟩)] }
+  reads := []
+  res := []
+  rets := [[.ev 2, .word 2, .pts, .ev 0, .ev 1]]
+
+theorem mkq_ok : heapOkC Data.powTree (fun _ ↦ .empty) mkq hMkq = true := by decide +kernel
+
+/-- A run of three cells at the word: its third cell is not written. -/
+def hMkq3 : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postQ := [(⟨[(0, 1)], 0⟩, ⟨⟨[], 0⟩, 1, .num 0, .num 3⟩)] }
+  reads := []
+  res := []
+  rets := [[.ev 2, .word 2, .pts, .ev 0, .ev 1, .ev 1]]
+
+theorem mkq_bad : heapOkC Data.powTree (fun _ ↦ .empty) mkq hMkq3 = false := by decide +kernel
+
+/-- The run's word stored elsewhere (`word 0`: the store of `b[0]`, not of `o[0]`). -/
+theorem mkq_bad2 : heapOkC Data.powTree (fun _ ↦ .empty) mkq
+    { hMkq with rets := [[.ev 2, .word 0, .pts, .ev 0, .ev 1]] } = false := by decide +kernel
+
+/-- Calls `mkq`, loads `o[0]`, reads the second cell past it. -/
+def useq : Fn where
+  name := "useq"
+  params := [.n 0]
+  body := [.call "mkq" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 1), .ret []]
+
+/-- `useq`'s certificate: the call's `post` cell (point serial `0`); the load of `o[0]` puts the run at its word
+into scope (run serial `0`). -/
+def hUseq : HCert where
+  sig := {}
+  reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 1, .run 0 [])])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+theorem useq_ok : heapOkC Data.powTree (fun g ↦ if g = "mkq" then hMkq.sig else .empty) useq hUseq = true := by
+  decide +kernel
+
+/-- Without the load of `o[0]`, no run at its word is in scope. -/
+theorem useq_bad : heapOkC Data.powTree (fun g ↦ if g = "mkq" then hMkq.sig else .empty)
+    { useq with body := [.call "mkq" [.n 0] [], .atom (.load (.n 2) (.n 1) 1), .ret []] }
+    { hUseq with reads := [(2, [(1, 1, .run 0 [])])] } = false := by
+  decide +kernel
+
+/-- Needs `p[0..k·g^4)` of `needQ` from its own `p[0..k)`, `p[k..k+2)`, `p[k+2..k+4)`: a `catM` at `k` whose part from
+`k` is a `catM` at `g^2` (nested). -/
+def catq : Fn where
+  name := "catq"
+  params := [.n 0, .n 1]
+  body := [.call "needQ" [.n 0, .n 1] [], .ret []]
+
+/-- `needQ (q, b)` needs `q[0..b·g^4)`. -/
+def sigsCq : String → HSig := fun g ↦
+  if g = "needQ" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 1)], 4⟩⟩] } else .empty
+
+/-- `catq`'s certificate: `catM k g^4`, its part from `k` `catM g^2 g^2`, each part a run in scope. -/
+def hCatq : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩, ⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 2⟩,
+    ⟨⟨[(0, 1), (1, 1)], 2⟩, 1, .num 0, .num 2⟩] }
+  reads := []
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[], 4⟩ [0], .run 0 [], .catM ⟨[], 2⟩ ⟨[], 2⟩ [], .run 1 [], .run 2 []]]
+  rets := [[]]
+
+theorem catq_ok : heapOkC Data.powTree sigsCq catq hCatq = true := by decide +kernel
+
+/-- Two levels only: the last part split a third time. -/
+theorem catq_bad : heapOkC Data.powTree sigsCq catq
+    { hCatq with calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[], 4⟩ [0], .run 0 [], .catM ⟨[], 2⟩ ⟨[], 2⟩ [], .run 1 [],
+      .catM ⟨[], 1⟩ ⟨[], 1⟩ [], .pts, .pts]] } = false := by decide +kernel
 
 end
 

@@ -2025,7 +2025,8 @@ noncomputable def st1 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr72 tr145),
     .nil,
     10, 1, 0, 0,
     st1_cd,
-    st1_eqs⟩
+    st1_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«verify_sig_lean_sphincs».HeapW

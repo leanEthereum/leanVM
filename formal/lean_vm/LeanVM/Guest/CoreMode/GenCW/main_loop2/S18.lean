@@ -65,7 +65,8 @@ noncomputable def st18 : CSt := ⟨tr61,
     .nil,
     4, 1, 0, 0,
     st18_cd,
-    st18_eqs⟩
+    st18_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

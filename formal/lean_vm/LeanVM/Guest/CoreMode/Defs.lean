@@ -175,6 +175,9 @@ structure HSig where
   ghosts : ℕ := 0
   /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
   retEq : List (CCell × CCell) := []
+  /-- Runs at words at return: `(c, r)`, with `w` the word at the cell `c`, the cells `w·b·g^(S·j)`, `lo ≤ j < hi`
+  (`r = ⟨b, S, lo, hi⟩`) written; `c`, `b`, `lo`, `hi` over slots. -/
+  postQ : List (CCell × CRun) := []
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
