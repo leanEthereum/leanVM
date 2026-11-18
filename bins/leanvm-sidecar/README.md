@@ -14,7 +14,6 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 | `--prover` | required | `stable` or `experimental`: both give the same proofs, experimental faster |
 | `--socket` | required | the socket to listen on |
 | `--threads` | 0 | the prover's thread count, 0 for one per core |
-| `--tracing` | off | print each proof's timing tree (`RUST_LOG` sets the level) |
 
 - The sidecar starts the prover's thread pool, compiles the aggregation program and warms up before it listens, so the socket appears once it is ready. It says so on standard error, then logs one line per `aggregate` request there.
 - The warm-up, two discarded proofs, makes the first proofs as fast as the next ones: without it they pay for touching the memory the prover then keeps. A proof larger than any before it still pays for its extra memory.

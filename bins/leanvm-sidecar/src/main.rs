@@ -33,17 +33,10 @@ struct Cli {
     /// Thread count (0: one per core).
     #[arg(long, default_value_t = 0)]
     threads: usize,
-
-    /// Print each proof's timing tree. Use RUST_LOG to adjust verbosity.
-    #[arg(long)]
-    tracing: bool,
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    if cli.tracing {
-        bench_harness::init_tracing();
-    }
     let config = sidecar::Config {
         socket: cli.socket,
         threads: cli.threads,

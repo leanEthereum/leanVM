@@ -82,7 +82,7 @@ To confirm an arm is reached rather than silently skipped, put a `compile_error!
 
 Heavy benches are `benches/` targets, run with `cargo bench -p <package> --bench <name>`: `experimental_keccak_gkr`'s `hash_batch` and `experimental_pcs`'s `throughput` (and their `stable_*` copies), and `keccak256`'s `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
 
-Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the benchmark CLI and the sidecar, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
+Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the benchmark CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
 
 ## Benchmarking
 
