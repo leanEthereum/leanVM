@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.CoreSound
 /-!
 # The caller's linked cells, sound
 
-`glF_inst`: at an honest instance of core data whose links are of a family (`CoreMode.glOk`), its
+`glF_inst`: at an honest instance of core data whose links are of `glOk`'s ghost-free family, its
 frame's header names its caller's frame, whose linked cells hold the slots' words: for a callee of
 `anyLink` (its checks `LinkOk`), cell `2` its entries parameter and cell `5` its bound parameter times `g`
 (`linkQ_all`).
@@ -23,19 +23,26 @@ frame's header names its caller's frame, whose linked cells hold the slots' word
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.CoreMode (CFun glOk slotW slotW_lt slotW_params')
+open LeanVM.Guest.CoreMode (CFun slotW slotW_lt slotW_params')
 
 public section
+
+/-- **Header cell `1` names the caller's frame** `a`, in the reference. -/
+theorem rd_hdr {r : Ref} {I : Inst} {a : ℕ} (hdr1 : r.img.read (addressOfIndex (I.fp + 1)) = some I.hdr.2)
+    (ha : I.hdr.2 = ofK (addressOfIndex a)) : CoreMode.Rd r.img I.fp 1 = some (ofK (Parameters.g ^ a)) := by
+  rw [ha] at hdr1
+  simpa [CoreMode.Rd, addressOfIndex, pow_add] using hdr1
 
 /-- **The caller's linked cells at an honest instance** (`GlF`), for core data whose links are of a family. -/
 theorem glF_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
     (hf : coreProgram.find? f = some Cf.fn) (hpN : Cf.fn.params = (List.range Cf.fn.params.length).map V.n)
-    (hL : LinkOk Res.anyLink) (h : glOk Cf = true) (hdr1 : r.img.read (addressOfIndex (I.fp + 1)) = some I.hdr.2)
-    (ws0 : List E) :
+    (hL : LinkOk Res.anyLink)
+    (h : (Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 &&
+      decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)])) = true)
+    (hdr1 : r.img.read (addressOfIndex (I.fp + 1)) = some I.hdr.2) (ws0 : List E) :
     CoreMode.GlF r.img Cf.gl I.fp (Cf.fn.params.map σ ++ ws0) := by
   intro d b k hmem
-  unfold glOk at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   · rw [List.isEmpty_iff] at h
     rw [h] at hmem
@@ -54,9 +61,7 @@ theorem glF_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
     simp [hk]
   obtain ⟨a, ha, h5, hm2, hm5⟩ := linkQ_all hL hr I hI f σ bufs kids ht F hF hn Cf.fn hf _ _
     (hget _ h1) (hget _ h2)
-  have hRd : CoreMode.Rd r.img I.fp 1 = some (ofK (Parameters.g ^ a)) := by
-    rw [ha] at hdr1
-    simpa [CoreMode.Rd, addressOfIndex, pow_add] using hdr1
+  have hRd := rd_hdr hdr1 ha
   have hsl : ∀ k < Cf.fn.params.length, slotW (Cf.fn.params.map σ ++ ws0) k = σ (V.n k) := fun k hk ↦ by
     rw [slotW_lt (by simpa using hk), slotW_params' hpN hk]
   rw [hgl] at hmem

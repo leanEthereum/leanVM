@@ -61,8 +61,8 @@ def cell(m, nslots, ent=None, G=None, ret_ok=None, gl=None):
         raise No('frame address')
     out = []
     for b, e in bs:
-        if gl and b[0] == 'hp' and b[1] == 1 and b[2] in gl and gl[b[2]][1] == 0 and gl[b[2]][0] < nslots:
-            out.append((gl[b[2]][0], e))
+        if gl and b[0] == 'hp' and b[1] == 1 and b[2] in gl and gl[b[2]][1] == 0:
+            out.append((gslot(gl[b[2]][0], nslots), e))
             continue
         if b[0] != 'fr':
             raise No('pointer base')
@@ -90,9 +90,7 @@ def bound(b, n, ent, gl=None):
     (`CoreMode.idxL`), the exponent of the caller's cell `d` linked to slot `b` times `g^k`."""
     if gl and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and b[1][2] in gl:
         sl, k = gl[b[1][2]]
-        if sl >= n:
-            raise No('run bound slot')
-        return I.mk(((sl, 1),), k)
+        return I.mk(((gslot(sl, n), 1),), k)
     if b[0] == 'num':
         if not b[1] < 2 ** 62:
             raise No('run bound')
@@ -112,6 +110,11 @@ def runX(r, n, ent=None, gl=None):
     return (I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl))
 
 
+def gslot(b, n):
+    """A linked slot as the inference's value: a parameter `b < n`, or ghost `b - n` (`GB + j`)."""
+    return b if b < n else I.GB + (b - n)
+
+
 _LINKS = {}
 
 
@@ -124,7 +127,17 @@ def gl_of(k):
         for f, e, b in re.findall(r'\(name% «([^»]+)», (\d+), (\d+)\)', t):
             _LINKS[f] = {2: (int(e), 0), 5: (int(b), 1)}
         _LINKS.setdefault(None, None)
+    if ml_k(k) is not None:
+        # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
+        return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
     return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
+
+
+def ml_k(k):
+    """`CoreMode.mlK`: `k` for `child_claim_list_mono_last__L{k}`, `1 ≤ k < 17`."""
+    import re
+    m = re.fullmatch(r'child_claim_list_mono_last__L(\d+)', k)
+    return int(m.group(1)) if m and 1 <= int(m.group(1)) < 17 else None
 
 
 def gl_lean(k):
@@ -227,6 +240,8 @@ def own_sig(G, np, nr, gl=None):
                 raise
             return runX(r, np, gl=gl)
     h.preR = [own_pre_run(r) for r in G['preR']]
+    # the ghost slots the links name (`CFun.gl` past the parameters)
+    h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np]
     h.prePR = [prun(p, np) for p in G['preP']]
     ret_ok = lambda o: (o - 2 < np and o in G['entry']) or (np <= o - 2 < np + nr and o in G['ret'])
     h.post = [cell(m, np + nr, ret_ok) for m in G['post'] if not hp_of(m)]

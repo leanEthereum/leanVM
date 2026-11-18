@@ -186,87 +186,6 @@ end
 
 end LeanVM.Guest.Fn.«keccak_layer__L0»
 
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `child_claim_list_mono_last__L10`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `child_claim_list_mono_last__L10`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨246313, 182, Fn.«child_claim_list_mono_last__L10».modeSig, (.node none .nil (.node (some
-    [(.witnessStack "child_claim_gap" 82 1)]) (.node none (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_gap" 100 1)]) .nil .nil) .nil) (.node none (.node none (.node
-    (some [(.witnessStack "child_claim_gap" 124 1)]) .nil .nil) .nil) .nil)) (.node (some
-    [(.witnessStack "child_claim_gap" 88 1)]) (.node none .nil (.node (some [(.witnessStack
-    "child_claim_gap" 112 1)]) .nil .nil)) (.node none .nil (.node none (.node (some
-    [(.witnessStack "child_claim_gap" 136 1)]) .nil .nil) .nil)))) (.node none (.node none (.node
-    none .nil (.node none (.node (some [(.witnessStack "child_claim_gap" 130 1)]) .nil .nil) .nil))
-    (.node none (.node (some [(.witnessStack "child_claim_gap" 106 1)]) .nil .nil) .nil)) (.node
-    none (.node (some [(.witnessStack "child_claim_gap" 94 1)]) .nil .nil) (.node none .nil (.node
-    (some [(.witnessStack "child_claim_gap" 118 1)]) .nil .nil)))))), (.node none .nil (.node none
-    (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 82), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4),
-    1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2),
-    1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5)
-    0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) (.node none .nil
-    (.node (some [(.sub ⟨⟨0, 16, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4),
-    ((.fr 106), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
-    0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩,
-    ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
-    0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil)) (.node none .nil (.node none (.node (some [(.sub
-    ⟨⟨0, 32, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr
-    112), 4), ((.fr 118), 4), ((.fr 124), 4), ((.fr 130), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num
-    4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2),
-    1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5)
-    0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil)))
-    (.node none (.node none (.node none (.node (some [(.sub ⟨⟨0, 24, [((.fr 82), 4), ((.fr 88), 4),
-    ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4), ((.fr 118), 4), ((.hp 2 14),
-    1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩,
-    ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
-    0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])])
-    .nil .nil) .nil) .nil) (.node (some [(.sub ⟨⟨0, 8, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94),
-    4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex
-    (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0,
-    [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
-    (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))) (.node none (.node none (.node (some [(.sub ⟨⟨0, 4,
-    [((.fr 82), 4), ((.fr 88), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1
-    2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1
-    5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1
-    2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) (.node none .nil (.node (some [(.sub ⟨⟨0, 36,
-    [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4),
-    ((.fr 118), 4), ((.fr 124), 4), ((.fr 130), 4), ((.fr 136), 4), ((.hp 2 14), 1)]⟩, (.num 0),
-    (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp
-    1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp
-    1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))
-    .nil) (.node none .nil (.node (some [(.sub ⟨⟨0, 20, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94),
-    4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1,
-    0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩,
-    (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4,
-    2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))) (.node none
-    (.node none (.node (some [(.sub ⟨⟨0, 12, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr
-    100), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
-    (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0,
-    0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
-    (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil) (.node none (.node none (.node (some [(.sub ⟨⟨0,
-    28, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112),
-    4), ((.fr 118), 4), ((.fr 124), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0,
-    [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
-    (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0,
-    0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil) .nil))))), .nil,
-    false, .nil⟩
-
-/-- `child_claim_list_mono_last__L10`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L25_L7»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -314,3 +233,52 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L25_L7»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L28_L4»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L28_L4`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L28_L4`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨393329, 239, Fn.«decode_query_windows__L28_L4».modeSig, (.node (some [(.cellAddress 42 43)])
+    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    [(.windowsExp 2 (.stack 6) 22 108 1 1)]) .nil .nil)) .nil) (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 10 52 1 1)]) .nil .nil) .nil)) .nil) (.node none (.node none (.node
+    none .nil (.node (some [(.windowsExp 2 (.stack 6) 12 56 6 1)]) .nil .nil)) (.node none (.node
+    none .nil (.node (some [(.windowsExp 2 (.stack 246) 0 112 7 1)]) .nil .nil)) .nil)) .nil))
+    (.node none (.node none (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 8 40 6
+    1)]) (.node (some [(.windowsExp 2 (.stack 6) 15 74 6 1)]) .nil .nil) .nil) .nil) (.node none
+    (.node none (.node (some [(.windowsExp 2 (.stack 6) 17 81 3 1)]) .nil .nil) .nil) (.node none
+    (.node (some [(.windowsExp 2 (.stack 6) 20 96 6 1)]) .nil .nil) .nil))) (.node none (.node
+    (some [(.windowsExp 2 (.stack 6) 5 25 3 1)]) (.node none (.node (some [(.windowsExp 2 (.stack
+    6) 16 80 1 1)]) .nil .nil) .nil) .nil) (.node none .nil (.node (some [(.windowsExp 2 (.stack 6)
+    14 68 6 1)]) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 18 84 6 1)]) .nil .nil) .nil)) (.node (some [(.windowsExp 2 (.stack
+    6) 6 28 6 1)]) .nil .nil)) .nil))) (.node (some [(.windowsExp 2 (.stack 6) 0 0 6 1)]) (.node
+    none (.node (some [(.windowsExp 2 (.stack 6) 1 6 6 1)]) (.node (some [(.windowsExp 2 (.stack 6)
+    2 12 6 1)]) (.node (some [(.windowsExp 2 (.stack 6) 4 24 1 1)]) .nil .nil) .nil) (.node (some
+    [(.windowsExp 2 (.stack 6) 3 18 6 1)]) (.node none (.node (some [(.windowsExp 2 (.stack 6) 9 46
+    6 1)]) .nil .nil) (.node (some [(.windowsExp 2 (.stack 142) 2 62 2 1), (.windowsExp 2 (.stack
+    142) 3 64 4 1)]) .nil .nil)) (.node none .nil (.node none (.node (some [(.windowsExp 2 (.stack
+    6) 21 102 6 1)]) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some [(.windowsExp 2 (.stack 246) 2 126 2 1)]) .nil .nil))) .nil) (.node none .nil
+    (.node none (.node none .nil (.node (some [(.windowsExp 2 (.stack 246) 1 119 7 1)]) .nil .nil))
+    .nil)))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 19 90 6 1)]) .nil .nil) .nil)) (.node (some [(.windowsExp 2 (.stack
+    6) 7 34 6 1)]) .nil .nil))) (.node none (.node none (.node none (.node none .nil (.node (some
+    [(.windowsExp 2 (.stack 6) 23 109 3 1)]) .nil .nil)) .nil) (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 11 53 3 1)]) .nil .nil) .nil)) .nil)))), .nil, .nil, false, .nil⟩
+
+/-- `decode_query_windows__L28_L4`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L28_L4»

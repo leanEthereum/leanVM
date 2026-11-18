@@ -58,6 +58,25 @@ end
 
 end LeanVM.Guest.Fn.«padding_weight__L17»
 
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `child_claim_list_mono_last__L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `child_claim_list_mono_last__L7`: its entry, length and signature; on the core route, nothing
+    for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨245856, 138, Fn.«child_claim_list_mono_last__L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L7»
+
 namespace LeanVM.Guest.Fn.«level_positions__L11_L18_L6»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -200,8 +200,8 @@ theorem slotEqL_of {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree
     have := hws (o - 2) hn
     rwa [show 2 + (o - 2) = o by omega] at this
   · rw [hb1] at h
-    simp only [baseS, Bool.and_eq_true, decide_eq_true_eq, Option.any_eq_true] at h
-    obtain ⟨rfl, ⟨bb, k⟩, hl, -⟩ := h
+    simp only [baseS, Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at h
+    obtain ⟨rfl, ⟨bb, k⟩, hl⟩ := h
     obtain ⟨a, ha1, had, hM⟩ := hgl d bb k (lookup_memL hl)
     refine ⟨slotW ws bb * ofK (g ^ k), by simp [BaseL, hl], fun u hu ↦ ?_⟩
     obtain ⟨p, x, hp, hx, hu⟩ := hu

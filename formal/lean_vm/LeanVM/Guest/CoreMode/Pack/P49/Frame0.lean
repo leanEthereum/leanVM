@@ -29,6 +29,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.Pack.«P21».ModeSig
 public import LeanVM.Guest.Pack.«P24».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
@@ -126,20 +127,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 245626, 108,
     Fn.«child_claim_list_mono_last__L5».modeSig, .nil, 524287, Data.adviceFn395.2.2, .nil, .nil,
-    .nil, .nil, (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node (some
-    ()) (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))
-    (.node (some ()) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil
-    .nil) (.node (some ()) .nil (.node (some ()) .nil .nil))))) (.node none (.node none (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none (.node (some
-    ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ())
-    .nil .nil)))) (.node none (.node (some ()) (.node (some ()) (.node none (.node (some ()) .nil
-    .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
-    .nil)))))), .nil, .nil⟩
+    .nil, .nil, Fn.«child_claim_list_mono_last__L5».pairO,
+    Fn.«child_claim_list_mono_last__L5».pairS, .nil⟩
 
 /-- `child_claim_list_mono_last__L5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

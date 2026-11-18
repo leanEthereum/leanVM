@@ -31,7 +31,8 @@ it promises its callers (`post`, with their witnesses).
 reference image `img`: its path returns with its events holding, each `load`'s pointer at its cell
 (`X.locAt`), each parameter at its cell `2 + k`, each returned value at its cell, its heap
 certificate's residuals true at it where its entry runs' exponent cells are powers (`res`, from the honest
-tree), the caller's cells its signature names holding the slots' words they are linked to (`gl`, `GlF`).
+tree), the caller's cells its signature names holding the slots' words they are linked to (`gl`, `GlF`); `HonB`
+is all of it but those two, the facts its ghost words (`V.n (GB + j)`, never named by its body) do not change.
 
 `CoreAt img Cf code i s`: frame `s.fp` at offset `i`: the frame walk's state there holds (`AtF`), the
 entry cells are written, and for every honest valuation of the frame, its path splits at the
@@ -147,8 +148,9 @@ def GlF (img : MemoryImage κ) (gl : List (ℕ × ℕ × ℕ)) (fp : ℕ) (ws : 
   ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧
     refMem img (a + d) = slotW ws b * ofK (g ^ k)
 
-/-- **An honest valuation** of `Cf.fn` in frame `fp` of the reference image. -/
-structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop where
+/-- **An honest valuation's path, cells and jumps** of `Cf.fn` in frame `fp` of the reference image (`HonF` but its
+residuals and linked cells: what does not depend on its ghost words). -/
+structure HonB (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop where
   path : ∃ es vs rd, walk σ Cf.fn.body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ
   ptr : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ a p, Ev.atom a ∈ es → ptrOf a = some p →
     Rd img fp (Cf.X.locAt p.idx) = some (σ p)
@@ -179,6 +181,9 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
     Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
+
+/-- **An honest valuation** of `Cf.fn` in frame `fp` of the reference image. -/
+structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop extends HonB img Cf fp σ where
   /-- Its heap certificate's residuals, at it, given the frame's entry runs' exponent cells powers of `g`
   (`ExpW`, which `CoreAt` carries). -/
   res : ExpW img Cf.xc fp → ResF Cf.H σ
@@ -397,10 +402,10 @@ def rngLIs (gl : List (ℕ × ℕ × ℕ)) (r : Mode.Rng) (q : CRun) : Bool :=
   | some q' => decide (q' = q)
   | none => false
 
-/-- **A base the frame knows at entry**: a slot's frame cell `2 + b`, `b < n`, or a caller's cell linked to one. -/
+/-- **A base the frame knows at entry**: a parameter's frame cell `2 + b`, `b < n`, or a linked caller's cell. -/
 def baseS (gl : List (ℕ × ℕ × ℕ)) (n : ℕ) : Mode.Base → Bool
   | .fr o => decide (2 ≤ o) && decide (o - 2 < n) && decide (o < 2 ^ 28)
-  | .hp q d => decide (q = 1) && (gl.lookup d).any fun p ↦ decide (p.1 < n)
+  | .hp q d => decide (q = 1) && (gl.lookup d).isSome
 
 /-- **A pointer run, translated**, is the heap pointer run `p`: the same run, the same offsets. -/
 def prunIs (r : Mode.Rng × List ℕ) (p : CRun × List ℕ) : Bool :=
@@ -485,8 +490,8 @@ def rngIs (r : Mode.Rng) (q : CRun) : Bool :=
   | none => false
 
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
-pointer fact or order, no ghost slot; its heap preconditions each a cell or run of the signature's (over parameters;
-a run also over the caller's cells linked to parameters, `rngLIs`);
+pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
+signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
 words a top-level `load` reads, among milestone 1's promised cells. -/
@@ -509,7 +514,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
       (monoR G np nr (rngM r) && expI G (np + nr) r.lo && expI G (np + nr) r.hi &&
-        Cf.H.sig.postR.any (rngXIs r ·))) && Nat.beq Cf.H.sig.ghosts 0
+        Cf.H.sig.postR.any (rngXIs r ·))) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
