@@ -10,10 +10,9 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::time::Duration;
 
-/// Room for a hello or a verdict, far more than either takes.
-const SHORT_ROOM: u64 = 1 << 16;
-/// Room for a proof in a response, far more than one takes.
-const PROOF_ROOM: u64 = 1 << 28;
+/// The longest response read beyond the request's length, which bounds the claims it carries: room for a hello, a
+/// verdict or a proof, far more than any takes.
+const ROOM: u64 = 16 << 20;
 
 /// A connection to a sidecar, for one request at a time. Proofs are their bytes, as the library's
 /// `AggregateProof::to_bytes` writes them and `from_bytes` reads them.
@@ -32,7 +31,7 @@ impl Client {
     /// verifier.
     pub fn connect(socket: impl AsRef<Path>) -> Result<Self, SidecarError> {
         let mut stream = UnixStream::connect(socket)?;
-        let body = match wire::read_frame(&mut stream, SHORT_ROOM)? {
+        let body = match wire::read_frame(&mut stream, ROOM)? {
             Incoming::Body(body) => body,
             Incoming::End => return Err(SidecarError::Protocol("closed before its hello".into())),
             // Not a hello, as `hello_version` then says.
@@ -90,20 +89,19 @@ impl Client {
         log_inv_rate: usize,
     ) -> Result<(AggregateClaims, Vec<u8>), SidecarError> {
         let request = wire::encode_request(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate);
-        // The claims a response carries are no longer than the request.
-        let body = self.call(&request, request.len() as u64 + PROOF_ROOM)?;
+        let body = self.call(&request)?;
         answer(wire::decode_response(&body))
     }
 
     /// The library's `AggregateProof::verify`, run by the sidecar: whether `proof` proves `claims`. Bytes that do not
     /// decode prove nothing.
     pub fn verify(&mut self, claims: &AggregateClaims, proof: &[u8]) -> Result<bool, SidecarError> {
-        let body = self.call(&wire::encode_verify(claims, proof), SHORT_ROOM)?;
+        let body = self.call(&wire::encode_verify(claims, proof))?;
         answer(wire::decode_verdict(&body))
     }
 
-    /// Sends a request frame and reads the response's body, at most `max_response` bytes.
-    fn call(&mut self, request: &[u8], max_response: u64) -> Result<Vec<u8>, SidecarError> {
+    /// Sends a request frame and reads the response's body.
+    fn call(&mut self, request: &[u8]) -> Result<Vec<u8>, SidecarError> {
         let len = request.len() as u64 - 8;
         if len > self.max_request {
             return Err(SidecarError::Rejected(
@@ -115,7 +113,7 @@ impl Client {
             ));
         }
         self.stream.write_all(request)?;
-        match wire::read_frame(&mut self.stream, max_response)? {
+        match wire::read_frame(&mut self.stream, request.len() as u64 + ROOM)? {
             Incoming::Body(body) => Ok(body),
             Incoming::End => Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof).into()),
             Incoming::TooLarge(len) => Err(SidecarError::Protocol(format!(
