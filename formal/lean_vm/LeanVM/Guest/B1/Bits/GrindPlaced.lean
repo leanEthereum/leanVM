@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Core.Memory.Size
 
 /-!
 # `grind_check`, placed
@@ -30,7 +30,7 @@ gives), `grind_check_completeD`.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Main (MemL RegionL)
 

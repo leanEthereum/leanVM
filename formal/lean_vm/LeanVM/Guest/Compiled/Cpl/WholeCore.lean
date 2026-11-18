@@ -19,7 +19,7 @@ arms separately. Its hypotheses are the run of the guest's core IR only.
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

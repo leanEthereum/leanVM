@@ -34,7 +34,7 @@ witness's (`decWitNC` at the frames stage's closures, at most `Wn`) a parameter:
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters LeanVM.Semantics
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.Fast LeanVM.Extraction.Fast LeanVM.Guest.Located
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.Fast LeanVM.Extraction.Fast LeanVM.Guest.Located
 
 public section
 

@@ -78,7 +78,7 @@ end LeanVM.Node
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1 LeanVM.Guest.B1.Digest
 open LeanVM.Guest.Binding
 open scoped ENNReal

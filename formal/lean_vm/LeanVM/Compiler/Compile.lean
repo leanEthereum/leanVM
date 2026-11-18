@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Expand
+public import LeanVM.Core.Expand
 public import LeanVM.Compiler.Consts
 public import LeanVM.Compiler.Assemble
 
@@ -28,7 +28,7 @@ back end, `compileTraced`. `lowerProgram` checks the loop helpers' constant para
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest
+open LeanVM.Core
 
 @[expose] public section
 

@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 
 /-!
 # A read that is not a store
@@ -23,7 +23,7 @@ high priority from it, so that every `decide` of `a ∉ SL` uses it unchanged (`
 
 namespace LeanVM.Guest.B1.Fwd
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

@@ -21,7 +21,7 @@ bounds), `ly7Total` (`verify_bus_gkr_loop0`'s chain), `vbgSizes` (the buffers) a
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

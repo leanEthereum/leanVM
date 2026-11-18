@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Compiler.Complete.FrameBlock
 public import LeanVM.Compiler.Complete.FrameHW
-public import LeanVM.Guest.Memory.Retemp
+public import LeanVM.Core.Memory.Retemp
 
 /-!
 # A straight-line instruction's relation gives its words
@@ -26,7 +26,7 @@ temporary's word, which the patched cell holds (`tinj`: the cell is that tempora
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

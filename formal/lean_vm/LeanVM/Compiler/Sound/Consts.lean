@@ -33,7 +33,7 @@ public import LeanVM.Compiler.Sound.Main
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

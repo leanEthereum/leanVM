@@ -23,7 +23,7 @@ the memory's.
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 
@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 
 -- `Fwd`'s `Side`/`Good` decide membership with the core `DecidableEq Atom`; `Sig.Decide`'s (reaching
 -- here through `Sig.Interface`) would elaborate the `if`s below differently
-attribute [local instance high] LeanVM.Guest.Core.instDecidableEqAtom
+attribute [local instance high] LeanVM.Core.instDecidableEqAtom
 
 variable {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 

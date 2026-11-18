@@ -21,7 +21,7 @@ guest's `vtPadSum` (`vt_padSum_push`, `vt_padSum_pull`, `vt_padSum_count`).
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (refSide refSide_eq refSideC FormC termsEval blockVal padSum
   evaluate_eq_sum termsEval_cons termsEval_nil)

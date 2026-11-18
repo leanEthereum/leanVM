@@ -24,7 +24,7 @@ selectors are `blockSel` (the soundness's `vt_sels`, from the honest valuation).
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 open Finset (range)

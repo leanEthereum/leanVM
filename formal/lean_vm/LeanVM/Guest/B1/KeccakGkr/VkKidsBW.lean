@@ -27,8 +27,8 @@ within `D.kidsB Deployed.fs 17 374 77 201 145` (`kids_completeB_fs`), whose sum 
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Count
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Count
 open LeanVM.Protocol LeanVM.Protocol.KeccakGkr
 
 @[expose] public section

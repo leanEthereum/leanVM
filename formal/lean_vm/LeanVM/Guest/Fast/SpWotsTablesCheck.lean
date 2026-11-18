@@ -21,7 +21,7 @@ The whole module checks in about `10` seconds. It imports the templates and the 
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
+open LeanVM.Core LeanVM.Guest.B1.Sig
 
 public section
 

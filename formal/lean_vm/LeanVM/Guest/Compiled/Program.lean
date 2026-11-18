@@ -21,7 +21,7 @@ so that the kernel's checks of the guest's compilation (`Guest/Piece/`) import n
 
 namespace LeanVM.Guest.Compiled
 
-open LeanVM.Compiler LeanVM.Guest LeanVM.Guest.Core GuestData
+open LeanVM.Compiler LeanVM.Guest LeanVM.Core GuestData
 
 @[expose] public section
 

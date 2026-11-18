@@ -21,7 +21,7 @@ left out, and `armsP` lists each such stage's arms' counts with its core selecto
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Core LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 

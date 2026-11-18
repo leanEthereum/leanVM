@@ -23,7 +23,7 @@ kernel), so each is placed anywhere from its relation (`completeAt_of_rel_pureD`
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Guest.Memory
 
 @[expose] public section
 

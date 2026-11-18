@@ -16,7 +16,7 @@ staged (`decWitNStaged_eq`) and the cursor's length (`cursorLength_tables`).
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Cost LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Located
+open LeanVM.Cost LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Located
 open LeanVM.Guest.B1 LeanVM.Guest.Fast LeanVM.Extraction.Fast LeanVM.Node
 
 attribute [local instance] lexOrd

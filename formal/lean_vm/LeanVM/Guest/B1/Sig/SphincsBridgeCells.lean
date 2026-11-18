@@ -33,7 +33,7 @@ The statement's hashes of digests that are cells' values are the first cells of 
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Core.Value.Keccak
 open HashSig HashSig.OverPermutation
 
 @[expose] public section

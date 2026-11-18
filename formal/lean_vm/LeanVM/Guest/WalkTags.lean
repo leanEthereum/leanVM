@@ -39,7 +39,7 @@ A function's precondition names tuples of its frame cells in relations by tag:
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 

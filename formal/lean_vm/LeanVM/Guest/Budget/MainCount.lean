@@ -35,7 +35,7 @@ the weight is at most `mainCount`.
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Main (MainIn MVals MainBounds mCalls mTs mEvs MainPreds MainBs mOrc)
 

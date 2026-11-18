@@ -21,7 +21,7 @@ the first `n - h` challenges (`cprod`) times the prefix weight `Π_{v<h} (r_v + 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (weightFactor getD_tableWeights)
 open Finset

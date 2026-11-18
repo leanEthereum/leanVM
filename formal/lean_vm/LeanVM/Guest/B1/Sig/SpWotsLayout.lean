@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.SpWotsT
 public import LeanVM.Guest.B1.Sig.WotsGroup
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 
 /-!
 # `sp_wots`'s layout
@@ -31,7 +31,7 @@ arms laid out from `spL fold B`: so its arms are the shared arms (`armT spW`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

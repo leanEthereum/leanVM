@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Compiler.Complete.ProgCompose
 public import LeanVM.Compiler.Complete.FrameBody
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Core.Memory.SizeTotal
 
 /-!
 # The program's facts
@@ -26,7 +26,7 @@ public import LeanVM.Guest.Memory.SizeTotal
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

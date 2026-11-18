@@ -25,7 +25,7 @@ the path's facts only (`opOK_of`).
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -34,7 +34,7 @@ variable {κ₀ : ℕ} {W : World κ₀} {tf : TracedFn} {pf : Placed} {fp : ℕ
 
 /-- **A `SET` constant's word is its word.** -/
 theorem instOf_kconst (x y : ℕ) :
-    (instOf W tf pf fp hdr σ es).kw (.const x y) = Guest.word x y := rfl
+    (instOf W tf pf fp hdr σ es).kw (.const x y) = Core.word x y := rfl
 
 /-- **An instruction of the placement naming a temporary's cell is a `DEREF` into it at offset
 `0`, through a cell through which no `DEREF` stores the frame pointer.** -/

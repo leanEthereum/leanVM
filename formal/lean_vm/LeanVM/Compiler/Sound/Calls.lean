@@ -31,7 +31,7 @@ the return registers give the callee's relation and the continuation.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -105,8 +105,8 @@ theorem holds_mulNext {pc a one c : ℕ} (h : Holds Γ.L pc fp (Γ.R (.mulNextFr
 
 /-- A `SET` into the next frame: the cell there holds the word of the limbs. -/
 theorem holds_setNext {pc c c0 c1 : ℕ} (h : Holds Γ.L pc fp (Γ.R (.setNextFrame c c0 c1))) :
-    Γ.L.read (fp * addressOfIndex Γ.frame * addressOfIndex c) = some (Guest.word c0 c1) := by
-  have h' : Γ.L.read (fp * addressOfIndex (Γ.frame + c)) = some (Guest.word c0 c1) := h
+    Γ.L.read (fp * addressOfIndex Γ.frame * addressOfIndex c) = some (Core.word c0 c1) := by
+  have h' : Γ.L.read (fp * addressOfIndex (Γ.frame + c)) = some (Core.word c0 c1) := h
   rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
   exact h'
 
@@ -120,7 +120,7 @@ theorem mem_of_lookup {l : List (ℕ × ℕ × ℕ)} {k : ℕ} {b : ℕ × ℕ} 
 frame's argument cell does, where the limbs a `SET` writes are that cell's word. -/
 theorem holds_nextArg {pc a k one : ℕ} {consts : List (ℕ × ℕ × ℕ)}
     (h : Holds Γ.L pc fp (Γ.R (nextArg one consts (a, k)))) (hone : wd Γ.L fp one = 1)
-    (hc : ∀ x ∈ consts, x.1 = k → wd Γ.L fp a = Guest.word x.2.1 x.2.2) :
+    (hc : ∀ x ∈ consts, x.1 = k → wd Γ.L fp a = Core.word x.2.1 x.2.2) :
     wd Γ.L (fp * addressOfIndex Γ.frame) (argBase + k) = wd Γ.L fp a := by
   unfold nextArg at h
   dsimp only at h
@@ -292,7 +292,7 @@ theorem loopNext_node (env : PlaceEnv Γ fp ctx C U slots B) {hints : List LHint
     {kj : E → E → Prop} {kretP : Prop} {khalt : E → E → Prop}
     (hcal : isCallee ctx.sigs args.length 0 callee = true) (hone : wd Γ.L fp one = 1)
     (hnfp : wd Γ.L fp nfp = ofK (fp * addressOfIndex Γ.frame))
-    (hcs : (∀ x ∈ consts, ∀ hk : x.1 < args.length, wd Γ.L fp args[x.1] = Guest.word x.2.1 x.2.2)
+    (hcs : (∀ x ∈ consts, ∀ hk : x.1 < args.length, wd Γ.L fp args[x.1] = Core.word x.2.1 x.2.2)
       ∨ ∀ g a, ¬ U g a)
     (hsem : PStmt.Sem Γ fp (.loopNext hints callee nfp entry oc one args consts) pos N kj kretP
       khalt) :

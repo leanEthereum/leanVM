@@ -24,7 +24,7 @@ child's deferred claim is the bus point's first `19` coordinates and the slot po
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Node
 

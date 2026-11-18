@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Compiler.Emit
-public import LeanVM.Guest.Word
+public import LeanVM.Core.Word
 public import LeanVM.Compiler.Pow
 
 /-!
@@ -24,12 +24,12 @@ of `g^pc`, a loop frame's copy an offset past the frame, a table read a `DEREF` 
 base; and each hint its runtime form, the callee's frame size known.
 
 Invariant (stated, not proved here): a function's entry is the sum of the lengths before it
-(`Layout.Consecutive`), which is what `LeanVM.Guest.consecutive` asks of `Statement/Data/`.
+(`Layout.Consecutive`), which is what `LeanVM.Core.consecutive` asks of `Statement/Data/`.
 -/
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest LeanVM.Parameters LeanVM.Semantics
+open LeanVM.Guest LeanVM.Core LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 

@@ -31,7 +31,7 @@ hypothesis.
 
 namespace LeanVM.Guest.Compiled.Obl
 
-open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

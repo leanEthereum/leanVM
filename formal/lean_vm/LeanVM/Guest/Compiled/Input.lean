@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.Data.Source
 public import LeanVM.Compiler.Compile
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 
 /-!
 # The guest's traced input, computed
@@ -24,7 +24,7 @@ its constant parameters (`withConstTable`).
 
 namespace LeanVM.Guest.Compiled.GuestInput
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler
+open LeanVM.Core LeanVM.Compiler
 
 public section
 

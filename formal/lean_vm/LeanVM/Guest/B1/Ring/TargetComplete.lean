@@ -27,9 +27,9 @@ evaluation (`rstσ`); its value at the `ret` is `ringTarget` by the soundness th
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

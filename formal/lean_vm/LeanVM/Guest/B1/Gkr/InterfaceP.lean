@@ -29,7 +29,7 @@ only calls it at `depth = μ ≥ 16`, so the statement asks `g_bus_mu ≠ 1`.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

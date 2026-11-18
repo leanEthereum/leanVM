@@ -31,9 +31,9 @@ At a phase accepted at the positions `ps`: `capCellH`, `capFlH`, `capH_meaning`,
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Value.Keccak
+open LeanVM.Core.Value.Keccak
 
 @[expose] public section
 

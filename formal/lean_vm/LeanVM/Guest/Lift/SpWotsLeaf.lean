@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
 namespace LeanVM.Guest.Lift
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Guest.Memory
 
 @[expose] public section
 

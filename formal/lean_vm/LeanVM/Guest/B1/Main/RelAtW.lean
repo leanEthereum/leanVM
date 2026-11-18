@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Memory.Regions
+public import LeanVM.Core.Memory.Regions
 
 /-!
 # The placed relation, its root's valuation exposed
@@ -19,7 +19,9 @@ public import LeanVM.Guest.Memory.Regions
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Core.Memory
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -28,7 +30,7 @@ variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ)
 /-- **`RelAtIn` by a tree rooted at a valuation satisfying `Q`.** -/
 def RelAtInW (rd : Reader) (R D : ℕ → Prop) (fp n : ℕ) (f : String) (args rets : List E)
     (Q : Val → Prop) : Prop :=
-  ∃ t : Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
+  ∃ t : Memory.Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
     t.total fs = n ∧ t.LoadsIn P fs cert R fp ∧ ∀ i, D i → t.Data P fs cert fp i) ∧
     ∃ σ bufs kids, t = .node f σ bufs kids ∧ Q σ
 

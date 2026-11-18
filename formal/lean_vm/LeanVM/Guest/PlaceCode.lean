@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 
 /-!
 # Place codes
@@ -22,7 +22,7 @@ read with `rd`; `placeVal rd fp row v` the word of value `v` of a function whose
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

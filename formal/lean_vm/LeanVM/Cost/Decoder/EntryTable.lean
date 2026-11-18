@@ -34,7 +34,7 @@ sorted array's frame map the specification's (`frameAtA_entryArrayT`, `frameAtA_
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Located
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Guest.Located
 open LeanVM.Guest.Fast LeanVM.Extraction.Fast
 
 attribute [local instance] lexOrd

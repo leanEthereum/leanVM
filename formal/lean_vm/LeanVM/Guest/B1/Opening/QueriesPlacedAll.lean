@@ -21,7 +21,7 @@ trivial: no frame runs): its base's theorem (`oqCompleteDB0`, `oqCompleteDB1`) a
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

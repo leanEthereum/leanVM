@@ -11,7 +11,7 @@ module
 
 public import LeanVM.Protocol.Compile.Prover
 public import Statement.LeanDa
-public import LeanVM.Guest.Refines
+public import LeanVM.Protocol.Refines
 
 /-!
 # The ideal failure probability and the honest transcript
@@ -101,7 +101,7 @@ the sponge `sp` outputs `(xs, os)` and its transcript passes every check of `p'`
 `p`, the compiled verifier of `p'` from sponge `sp` with the roots of `h`'s trees accepts on any
 stream and openings that start with `xs` and `os`, leaving exactly what follows them. -/
 theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool}
-    (hR : Guest.Limits.Refines p' p) :
+    (hR : LeanVM.Protocol.Refines p' p) :
     ∀ (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening)) (restS : List E)
       (restO : List (List Opening)),
       traceOk H F S fuel p' sp h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
@@ -214,7 +214,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
 /-- **The compiled verifier of a refining program accepts the honest proof** wherever the honest
 transcript passes its checks. -/
 theorem runProof_prove_trace (S : Strategy) (fuel : ℕ) {P' P : VerifierProgram Bool}
-    (hR : Guest.Limits.Refines P' P) (seed : KeccakState) {π : Proof}
+    (hR : LeanVM.Protocol.Refines P' P) (seed : KeccakState) {π : Proof}
     (ht : traceOk H F S fuel P' ⟨seed, [], none⟩ [])
     (hπ : prove H F P S seed fuel = some π) :
     runProofWithHash (m := Id) H F P' seed π = true := by

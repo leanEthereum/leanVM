@@ -43,7 +43,7 @@ public input cells hold the digest `D`, a run of `main`'s body over `C` gives th
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Guest.B1.Digest
 

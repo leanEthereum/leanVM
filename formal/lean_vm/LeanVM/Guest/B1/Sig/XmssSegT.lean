@@ -35,7 +35,7 @@ chain indices (`lx_tags`, `.n 5` to `.n 55`); its body checks the raw index and 
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

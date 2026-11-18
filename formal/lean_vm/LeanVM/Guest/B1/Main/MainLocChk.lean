@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Main.MainCChk
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

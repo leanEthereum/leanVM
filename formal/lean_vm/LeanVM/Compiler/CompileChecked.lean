@@ -32,7 +32,7 @@ offsets the prover chooses). Both stay hypotheses of a program's end theorem.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

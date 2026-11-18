@@ -17,7 +17,7 @@ the cells taken after it. `WInv.past`: past an event that makes no value (a bran
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

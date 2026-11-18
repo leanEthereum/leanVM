@@ -23,7 +23,7 @@ by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is `expandLeaf 
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier (eOfNat)
 open LeanVM.Guest.B1.Digest
 

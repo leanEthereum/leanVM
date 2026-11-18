@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Compiler.Place
-public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Core.Memory.Fresh
 
 /-!
 # Scoped traces
@@ -38,7 +38,7 @@ values in scope instead of cells.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

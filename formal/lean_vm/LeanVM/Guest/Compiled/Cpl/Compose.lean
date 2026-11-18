@@ -9,10 +9,10 @@
 module
 
 public import LeanVM.Guest.Deployed
-public import LeanVM.Guest.RunCount
+public import LeanVM.Core.RunCount
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.Memory.GuestMainFree
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Core.Memory.SizeTotal
 
 /-!
 # B2's composition at an instance
@@ -28,7 +28,7 @@ counts `Deployed.cnt`.
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Guest.Deployed
 open LeanVM.Guest.End (mainEntry JumpTables)
 

@@ -22,7 +22,7 @@ writes, by compiled function index `j` (`j = i + 1` for entry `i` of the input, 
 fails when it differs.
 -/
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Guest.Compiled.GuestInput
+open LeanVM.Guest LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Guest.Compiled.GuestInput
 
 namespace GuestTables
 

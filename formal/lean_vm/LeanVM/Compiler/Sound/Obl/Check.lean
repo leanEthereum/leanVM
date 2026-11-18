@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Core
-public import LeanVM.Guest.Word
+public import LeanVM.Core
+public import LeanVM.Core.Word
 
 /-!
 # Selectors and preconditions found in the function
@@ -33,7 +33,7 @@ entries hold of its arguments in the same way. `Obl.CheckSound` proves the analy
 
 namespace LeanVM.Compiler.Obl
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

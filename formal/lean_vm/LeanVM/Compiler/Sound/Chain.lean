@@ -34,7 +34,7 @@ with their `TailOK`. It is proved by recursion on the block (`open_step`, `enter
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

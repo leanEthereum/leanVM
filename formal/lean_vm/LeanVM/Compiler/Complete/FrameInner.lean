@@ -27,7 +27,7 @@ walk's (`inBlockOff_ok`). `scopeBlock_fa`: no frame address in a block is of a v
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

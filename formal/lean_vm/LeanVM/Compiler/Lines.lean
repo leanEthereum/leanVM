@@ -36,7 +36,7 @@ of the two programs, so a change to `Place` that the walk does not follow fails 
 
 namespace LeanVM.Compiler.Lines
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler
+open LeanVM.Core LeanVM.Compiler
 
 @[expose] public section
 

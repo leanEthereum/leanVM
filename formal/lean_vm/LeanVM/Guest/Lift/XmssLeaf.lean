@@ -21,7 +21,7 @@ check (`Sig.XmssSegData` names these statements `xSeg`; `Lift.Sig` concludes on 
 
 namespace LeanVM.Guest.Lift
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Guest.Memory
 
 @[expose] public section
 

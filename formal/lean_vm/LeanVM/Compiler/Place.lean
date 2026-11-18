@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Compiler.Ir
 public import LeanVM.Compiler.Trace
-public import LeanVM.Guest.Word
+public import LeanVM.Core.Word
 public import LeanVM.Compiler.Map
 public import LeanVM.Compiler.Pow
 
@@ -56,7 +56,7 @@ statement names a value the trace gave no cell (`cellAt`).
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Core LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 

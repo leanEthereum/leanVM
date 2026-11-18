@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.Shapes
-public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Core.Lemmas
 public import LeanVM.Guest.Value.Keccak
 
 /-!
@@ -26,8 +26,8 @@ applies `keccak_final_digest`.
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Guest LeanVM.Guest.Core
-open LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Core
+open LeanVM.Core.Value.Keccak
 
 @[expose] public section
 

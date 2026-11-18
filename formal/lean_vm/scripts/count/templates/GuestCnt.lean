@@ -16,7 +16,7 @@ public import LeanVM.Guest.Deployed
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics Core Memory
+open LeanVM.Parameters LeanVM.Semantics Core Memory Core.Memory
 
 @[expose] public section
 

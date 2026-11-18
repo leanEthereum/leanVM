@@ -7,7 +7,7 @@
 module
 
 public import Statement.Data.Bytecode
-public import LeanVM.Guest.Code
+public import LeanVM.Core.Code
 
 /-!
 # The function table, chunked
@@ -18,6 +18,8 @@ of the guest).
 -/
 
 namespace LeanVM.Guest
+
+open LeanVM.Core
 
 open LeanVM.Parameters LeanVM.Semantics
 

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import Statement.Field
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
@@ -33,7 +33,7 @@ do not import them.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 

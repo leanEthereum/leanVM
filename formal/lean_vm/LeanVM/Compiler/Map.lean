@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 
 /-!
 # Maps the kernel evaluates
@@ -33,8 +33,8 @@ back end's proofs use.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest
-open LeanVM.Guest.Core (V)
+open LeanVM.Core
+open LeanVM.Core (V)
 
 @[expose] public section
 

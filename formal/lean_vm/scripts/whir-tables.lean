@@ -12,7 +12,7 @@ import LeanVM.Guest.Fast.WhirTemplate
 import LeanVM.Guest.B1.Opening.QueriesT
 import LeanVM.Guest.Memory.GuestCallees
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
+open LeanVM.Guest LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
   LeanVM.Guest.Fast
 
 def out : System.FilePath := "LeanVM/Guest/Fast/WhirTables.lean"

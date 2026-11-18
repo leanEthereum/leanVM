@@ -11,8 +11,8 @@ public import LeanVM.Compiler.Sound.Spec
 public import LeanVM.Compiler.Complete.Scoped
 public import LeanVM.Compiler.Complete.Cells
 public import LeanVM.Compiler.Complete.Count
-public import LeanVM.Guest.RunCount
-public import LeanVM.Guest.Memory.Placed
+public import LeanVM.Core.RunCount
+public import LeanVM.Core.Memory.Placed
 
 /-!
 # What the back end's completeness says
@@ -52,7 +52,7 @@ directory. Nothing here is proved.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

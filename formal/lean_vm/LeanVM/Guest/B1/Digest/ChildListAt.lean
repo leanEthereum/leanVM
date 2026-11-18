@@ -28,9 +28,9 @@ honest shape `anyHonest n` (`anyQ`, `anyCalls`, `anyBufs`), within `anyB fs n` w
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB KidsDTB kidsFromInT_of_kidsDTB
   kidsBoundL Returns Kid DisjL Within disj_append regionsOk_of within_append LowDef)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)

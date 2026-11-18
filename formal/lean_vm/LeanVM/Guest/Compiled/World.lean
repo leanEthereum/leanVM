@@ -34,7 +34,7 @@ function, holds at frame `1` under the valuation by places, its calls located.
 
 namespace LeanVM.Guest.Compiled
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestData
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core GuestData
 
 @[expose] public section
 

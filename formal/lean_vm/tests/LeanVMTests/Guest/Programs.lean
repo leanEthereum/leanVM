@@ -5,11 +5,11 @@
   edit. The compiler's test programs, `crates/zkdsl/tests/programs/*.py`.
 -/
 
-import LeanVM.Guest.Source
+import LeanVM.Core.Source
 
 namespace LeanVMTests.Guest.Programs
 
-open LeanVM.Guest.Source
+open LeanVM.Core.Source
 
 /-- A test program: its AST, the public input it publishes and its witness streams, each word as its limbs. -/
 structure TestProgram where

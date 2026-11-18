@@ -18,7 +18,7 @@ Apart from `Fast/Decode.lean` (the deployed decoder through it), so that the com
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1 LeanVM.Node
 open LeanVM.Guest.Located LeanVM.Extraction.Fast LeanVM.Cost.Decoder
 
 attribute [local instance] lexOrd

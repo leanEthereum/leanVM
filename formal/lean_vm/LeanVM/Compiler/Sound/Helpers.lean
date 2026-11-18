@@ -25,7 +25,7 @@ only, keeps the pools true (`PoolOK`), and returns a cell whose word is the one 
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -38,7 +38,7 @@ section Pool
 variable {L : MemoryImage κ} {sc : Scope}
 
 theorem PoolOK.insertConst (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
-    (ho : wd L fp o = Guest.word k.1 k.2) :
+    (ho : wd L fp o = Core.word k.1 k.2) :
     PoolOK L fp { sc with consts := sc.consts.insert k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insert] at hk
@@ -50,7 +50,7 @@ theorem PoolOK.insertConst (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
   · exact h.consts k' o' hk
 
 theorem PoolOK.insertConstIfNew (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
-    (ho : wd L fp o = Guest.word k.1 k.2) :
+    (ho : wd L fp o = Core.word k.1 k.2) :
     PoolOK L fp { sc with consts := sc.consts.insertIfNew k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insertIfNew] at hk
@@ -179,7 +179,7 @@ theorem valP_of_cell {L : MemoryImage κ} {v : V} {n : Cell} (h : F[v]? = some (
 
 /-- A pooled constant's cell holds the constant. -/
 theorem constCell_spec (k : ℕ × ℕ) :
-    Spec Γ fp F ctx (constCell k) (fun o => wd Γ.L fp o = Guest.word k.1 k.2) := by
+    Spec Γ fp F ctx (constCell k) (fun o => wd Γ.L fp o = Core.word k.1 k.2) := by
   intro st
   unfold constCell
   refine SpecAt.get_bind ?_
@@ -318,7 +318,7 @@ theorem materialize_spec (c : Cell) (exp : ℕ) :
       obtain ⟨e, he, hsrc⟩ := matStart_spec hpair
       refine SpecAt.call (constCell_spec _) fun k _ => ?_
       refine SpecAt.call (mulCell_spec src k) fun o _ => ?_
-      have key : PoolOK Γ.L fp st.scope → wd Γ.L fp k = Guest.word (gpowLimbs dist).1
+      have key : PoolOK Γ.L fp st.scope → wd Γ.L fp k = Core.word (gpowLimbs dist).1
           (gpowLimbs dist).2 → wd Γ.L fp o = wd Γ.L fp src * wd Γ.L fp k →
           wd Γ.L fp o = wd Γ.L fp c * ofK (addressOfIndex exp) := by
         intro hp hk ho

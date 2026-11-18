@@ -20,7 +20,7 @@ kernel (`guestConds`, from `CplEval.cplOkAll`); no new evaluation.
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

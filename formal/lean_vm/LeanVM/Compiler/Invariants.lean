@@ -24,7 +24,7 @@ states for every program what the check finds of one.
   frame size, a loop frame's copy below the next frame's.
 * **Jump tables** (`tablesFilled`): every slot is filled once, by an arm or by a callee's entry.
 * **Assembly** (`laidOut`, `Layout.Consecutive`): the functions lie one after another from pc
-  `0`, as `LeanVM.Guest.consecutive` asks of `Statement/Data/`, and the code fits the padded size
+  `0`, as `LeanVM.Core.consecutive` asks of `Statement/Data/`, and the code fits the padded size
   with the halting slot left.
 -/
 

@@ -1,5 +1,5 @@
 import LeanVM.Guest.Compiled.Input
-import LeanVM.Guest.Interp
+import LeanVM.Core.Interp
 
 /-!
 # `guest-ptrcheck`: pointer discipline and load shapes of the guest
@@ -27,7 +27,7 @@ prover chooses, which no check bounds.
 or a runtime offset.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled
   LeanVM.Guest.Compiled.GuestInput
 
 namespace PtrCheck

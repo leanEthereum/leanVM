@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Logic
+public import LeanVM.Core.Logic
 public import LeanVM.Guest.NameIndex
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.Compiled.World
@@ -31,7 +31,7 @@ placement's (`Compiler/Piece.lean`).
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled
 
 @[expose] public section
 

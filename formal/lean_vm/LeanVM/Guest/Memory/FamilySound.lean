@@ -9,11 +9,13 @@ module
 
 public import LeanVM.Guest.Memory.Family
 public import LeanVM.Guest.Memory.CalleeIdx
-public import LeanVM.Guest.Memory.StaticVecSound
+public import LeanVM.Core.Memory.StaticVecSound
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core.Memory
+
+open LeanVM.Core LeanVM.Guest
 
 @[expose] public section
 

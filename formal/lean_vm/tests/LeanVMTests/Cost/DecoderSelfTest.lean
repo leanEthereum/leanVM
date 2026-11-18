@@ -13,7 +13,7 @@ the frame pointer (every word `1`, at the frame `1`) and fails otherwise (the wo
 
 namespace LeanVMTests.Cost.DecoderSelfTest
 
-open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Located
+open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Core LeanVM.Guest.Located
 
 /-- A compiled function's value on `vs`, in the program of the bodies `deps`. -/
 def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option MachineValue :=

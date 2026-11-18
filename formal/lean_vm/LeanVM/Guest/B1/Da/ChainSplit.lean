@@ -18,7 +18,7 @@ kernel's evaluation is large. `ChainSpec.partOk s atoms lo hi` checks blocks `lo
 
 namespace LeanVM.Guest.B1.Digest.ChainSpec
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

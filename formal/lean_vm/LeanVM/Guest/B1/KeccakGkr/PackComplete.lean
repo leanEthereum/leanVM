@@ -23,7 +23,7 @@ the eight-round loop at `x` (`Pack8Hon`: `Pack8Step`), the honest valuation (`Fw
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Fwd
 

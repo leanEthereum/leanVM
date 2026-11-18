@@ -23,7 +23,7 @@ callee at its honest arguments, on every memory defined below `2^κ` holding the
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Protocol.Verifier (gen)

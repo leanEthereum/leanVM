@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Fwd.NotStored
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
+open LeanVM.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 

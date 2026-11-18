@@ -103,8 +103,8 @@ def write_callees(LD, fns):
     body = header('LeanVM.Guest.Memory.GuestCallees',
                   'The functions of the guest\'s core IR by index: their names (`nameT`) and their\n'
                   '  callees\' indices (`calleeT`), for the certificate families (`Memory/Family`).',
-                  'public import LeanVM.Guest.Memory.Static\n')
-    body += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\n@[expose] public section\n\n'
+                  'public import LeanVM.Core.Memory.Static\n')
+    body += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Core.Memory\n\n@[expose] public section\n\n'
     body += tree_defs('nameT', 'String', names, lambda s: '"%s"' % s, 'The functions\' names, by index.') + '\n'
     body += tree_defs('calleeT', 'List ℕ', cl, lambda l: '[' + ', '.join(map(str, l)) + ']',
                       'The functions\' callees\' indices, by index.') + '\n'
@@ -117,7 +117,7 @@ def write_callees(LD, fns):
     ok = header('LeanVM.Guest.Memory.GuestCalleesOk',
                 'The names of `Memory/GuestCallees` are the functions\', and its callees\' indices in range.',
                 'public import LeanVM.Guest.Memory.Family\n')
-    ok += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\npublic section\n'
+    ok += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory LeanVM.Core.Memory\n\npublic section\n'
     for a, n in rs:
         ok += '\ntheorem nameT_ok_%d : RangeOk %s %d %d := by\n  unfold RangeOk; decide +kernel\n' % (a, chk, a, n)
     ok += ('\n/-- **The names are the functions\'.** -/\ntheorem nameT_ok : RangeOk %s 0 coreProgram.length := by\n'
@@ -174,7 +174,7 @@ def write_cuts(D, mod, pre, chk, j, cut, RB, MB):
         names.append(nm)
         t = header('%s.%s' % (mod, nm), 'Ranges of the walk of function %d\'s check (`StaticCut`).' % j,
                    'public import %s.Data\npublic import LeanVM.Guest.Memory.StaticCut\n' % mod)
-        t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
+        t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Core LeanVM.Core.Memory\n\npublic section\n'
         for a, n, _ in m:
             _, _, r0, acc, r1 = next(r for r in rs if r[0] == a)
             t += ('\nset_option maxRecDepth 100000 in\ntheorem %sCut_%d_%d :\n    runS %s %s ((%s.drop %d).take %d) %s =\n'
@@ -194,7 +194,7 @@ def write_cuts(D, mod, pre, chk, j, cut, RB, MB):
         nxt = a
     t = header('%s.Fn%d' % (mod, j), 'Function %d passes `%s`, by ranges of its walk.' % (j, chk),
                ''.join('public import %s.%s\n' % (mod, nm) for nm in names))
-    t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
+    t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Core LeanVM.Core.Memory\n\npublic section\n'
     t += ('\nset_option maxRecDepth 100000 in\ntheorem %sRange_%d : RangeOk (%s) %d 1 := by\n%s\n'
           '  exact RangeOk.one (fn := Data.core%d) rfl (%s (by decide +kernel) h0 (by decide +kernel))\n'
           % (pre, j, chk, j, '\n'.join(steps), j, cut.of_run))
@@ -219,7 +219,7 @@ def write_family(LD, fns, fam, pre, data, chk, cost, RB, MB, doc, cut=None):
     for k, m in enumerate(mods):
         t = header('%s.Part%02d' % (mod, k), 'Ranges of the core IR passing `%s`.' % chk,
                    'public import %s.Data\npublic import LeanVM.Guest.Memory.Family\n' % mod)
-        t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
+        t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Core\n\npublic section\n'
         for a, n, _ in m:
             t += ('\nset_option maxRecDepth 100000 in\ntheorem %sRange_%d : RangeOk (%s) %d %d := by\n'
                   '  unfold RangeOk; decide +kernel\n' % (pre, a, chk, a, n))
@@ -228,7 +228,7 @@ def write_family(LD, fns, fam, pre, data, chk, cost, RB, MB, doc, cut=None):
     rs = sorted([(a, n) for m in mods for a, n, _ in m] + [(j, 1) for j in big])
     t = header('%s.All' % mod, doc, ''.join('public import %s.Part%02d\n' % (mod, k) for k in range(len(mods))) +
                ''.join('public import %s.Fn%d\n' % (mod, j) for j in big))
-    t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
+    t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Core\n\npublic section\n'
     t += ('\n/-- **Every function passes.** -/\ntheorem %s_all : RangeOk (%s) 0 coreProgram.length := by\n'
           '  rw [coreProgram_length]\n  have h := %s\n  exact h\n\nend\nend LeanVM.Guest.Memory\n'
           % (pre, chk, chain(rs, lambda a: '%sRange_%d' % (pre, a))))

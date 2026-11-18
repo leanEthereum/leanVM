@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Compiler.Complete.Spec
-public import LeanVM.Guest.Memory
+public import LeanVM.Core.Memory
 
 /-!
 # Whole-program completeness
@@ -45,7 +45,7 @@ runs from `main`'s entry at frame `g^0` to the final registers within the budget
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -54,7 +54,7 @@ end LeanVM.Compiler.Complete
 
 namespace LeanVM.Compiler.World
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Compiler.Complete
 
 @[expose] public section
@@ -80,7 +80,7 @@ end LeanVM.Compiler.World
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -125,7 +125,7 @@ end LeanVM.Compiler.Complete
 
 namespace LeanVM.Compiler.World
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Compiler.Complete
 
 @[expose] public section
@@ -211,7 +211,7 @@ end LeanVM.Compiler.World
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

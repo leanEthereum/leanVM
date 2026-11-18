@@ -22,7 +22,7 @@ and, frames below `2^32`, the helpers within the words bounds of their trees (`h
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

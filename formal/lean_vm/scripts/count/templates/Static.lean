@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.GuestCnt
 public import LeanVM.Guest.Memory.GuestWords
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 
 /-!
 # `main`'s static callees' counts and words
@@ -31,7 +31,7 @@ static bound (their loops end at hinted values), nor `aggregate_claims` a words 
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 
 @[expose] public section
 

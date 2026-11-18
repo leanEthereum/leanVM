@@ -34,7 +34,7 @@ takes its honest rounds from the specification's run (`vt_bc_honest`, `vt_spec`)
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (termsPure blockSel)
 open LeanVM.Guest.B1.Fwd
@@ -166,7 +166,7 @@ theorem ownW_length (H : VtHonest) (B : VtBases) : (H.ownW B).length = 111 := by
   simp [VtHonest.ownW]
 
 theorem ownB_length (H : VtHonest) (B : VtBases) : (H.ownB B).length = 111 := by
-  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]
+  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Core.Memory.length_bases]
 
 /-- The own buffers' honest words fill their allocations. -/
 theorem ownW_lengths (H : VtHonest) (B : VtBases) : (H.ownW B).map List.length = H.sizes := by
@@ -250,7 +250,7 @@ theorem loadsInBuf_mono {σ : Val} {b1 b2 : List (E × ℕ)} {blk : List Stmt}
   exact ⟨q', hq', j, by rw [e1]; exact hp, by omega⟩
 
 theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) :
-    ∀ x ∈ vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz, vtσ rd w args x.1 = w x.1.idx := by
+    ∀ x ∈ vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz, vtσ rd w args x.1 = w x.1.idx := by
   intro x hx
   obtain ⟨s, hs, hsx⟩ := List.mem_filterMap.mp hx
   have hg := vt_goodS (rd := rd) (w := w) hl hs
@@ -260,18 +260,18 @@ theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
     | hint hk =>
       cases hk with
       | alloc d n =>
-        simp only [LeanVM.Guest.Memory.Stmt.allocSz, Option.some.injEq] at hsx
+        simp only [LeanVM.Core.Memory.Stmt.allocSz, Option.some.injEq] at hsx
         subst hsx; exact hg
       | allocDyn d n =>
-        simp only [LeanVM.Guest.Memory.Stmt.allocSz, Option.some.injEq] at hsx
+        simp only [LeanVM.Core.Memory.Stmt.allocSz, Option.some.injEq] at hsx
         subst hsx; exact hg
-      | _ => simp [LeanVM.Guest.Memory.Stmt.allocSz] at hsx
-    | _ => simp [LeanVM.Guest.Memory.Stmt.allocSz] at hsx
-  | _ => simp [LeanVM.Guest.Memory.Stmt.allocSz] at hsx
+      | _ => simp [LeanVM.Core.Memory.Stmt.allocSz] at hsx
+    | _ => simp [LeanVM.Core.Memory.Stmt.allocSz] at hsx
+  | _ => simp [LeanVM.Core.Memory.Stmt.allocSz] at hsx
 
 theorem vt_alloc_var {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {v : ℕ}
     (hv : v ∈ vtAllocVars) : vtσ rd w args (.n v) = w v := by
-  have : V.n v ∈ (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.1) := by
+  have : V.n v ∈ (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.1) := by
     rw [vt_allocs]; exact List.mem_map.mpr ⟨v, hv, rfl⟩
   obtain ⟨x, hx, e⟩ := List.mem_map.mp this
   have := vt_alloc_vals (rd := rd) (w := w) hl x hx
@@ -283,8 +283,8 @@ theorem word_g34 : word 17179869184 0 = gen ^ 34 := by
   show ofK (K.ofBits 17179869184) = ofK (Parameters.addressOfIndex 34)
   rw [show K.ofBits 17179869184 = Parameters.addressOfIndex 34 by decide +kernel]
 
-theorem logG_gen_pow {e : ℕ} (he : e < 2 ^ 64 - 1) : LeanVM.Guest.Memory.logG (gen ^ e) = e := by
-  rw [gen_pow_eq_ofK]; exact LeanVM.Guest.Memory.logG_spec he
+theorem logG_gen_pow {e : ℕ} (he : e < 2 ^ 64 - 1) : LeanVM.Core.Memory.logG (gen ^ e) = e := by
+  rw [gen_pow_eq_ofK]; exact LeanVM.Core.Memory.logG_spec he
 
 theorem vt_evsT_flat_length {H : VtHonest} (h : H.Ok) (hr : H.rows.length = 6) :
     H.evsT.flatten.length = 153 := by
@@ -316,7 +316,7 @@ theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take 765
   exact hs
 
 set_option maxRecDepth 100000 in
-theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
+theorem vt_allocSz : (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
     [.inl 24, .inl 24, .inl 24, .inl 24, .inl 34, .inr (.n 9), .inl 1728, .inl 864, .inl 153,
       .inr (.n 783), .inr (.n 799), .inr (.n 827)] ++ List.replicate 96 (.inl 9) ++
       [.inr (.n 2624), .inr (.n 2627), .inr (.n 2648)] := by decide +kernel
@@ -392,9 +392,9 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     (hm : MemLay rd (H.linL B ++ H.ownL B)) :
     ((∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd w (H.args B)) s) ∧
       LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) vtPre ∧
-      (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
-        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Guest.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
-      ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
+      (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map
+        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Core.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
+      ((vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
         (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd w (H.args B)) = H.retsH B) ∧ VtKbSh H (vtσ rd w (H.args B)) := by
   obtain ⟨hlm, hlmμ, h19, hμ33, hr, hτ31, hτμ, hwl, hll, hf, hfitP, hfitC, hbc⟩ := hs
@@ -661,15 +661,15 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   refine ⟨⟨forall_vtPre sV bV zV fV tV, ?_, ?_, ?_, ?_⟩, skb, sSh⟩
   rotate_left
   · -- the sizes
-    have hm1 : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
-        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Guest.Memory.logG ((vtσ rd w (H.args B)) s)) =
-        ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2)).map
-          (fun y ↦ y.elim id fun s ↦ LeanVM.Guest.Memory.logG ((vtσ rd w (H.args B)) s)) := by
+    have hm1 : (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map
+        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Core.Memory.logG ((vtσ rd w (H.args B)) s)) =
+        ((vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.2)).map
+          (fun y ↦ y.elim id fun s ↦ LeanVM.Core.Memory.logG ((vtσ rd w (H.args B)) s)) := by
       rw [List.map_map]; rfl
     rw [hm1, vt_allocSz]
     obtain ⟨c1', c2', c3'⟩ := vt_bits_consts
     have hb : ∀ (v n : ℕ), tbStmtsEqb [.atom (.const (.n v) (word 17179869184 0))]
-        ((vtPre.drop n).take 1) = true → LeanVM.Guest.Memory.logG ((vtσ rd w (H.args B)) (.n v)) = 34 := by
+        ((vtPre.drop n).take 1) = true → LeanVM.Core.Memory.logG ((vtσ rd w (H.args B)) (.n v)) = 34 := by
       intro v n hc
       have g := (vt_goodL (rd := rd) (w := w) hl _ _ hc).1
       simp only [GoodS, fixNe, Good] at g
@@ -682,7 +682,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       logG_gen_pow (e := 7 * (H.n + 1)) (by omega), logG_gen_pow (e := H.n + 1) (by omega)]
     rfl
   · -- the allocations' pointers
-    rw [show (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst =
+    rw [show (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map Prod.fst =
       vtAllocVars.map V.n from vt_allocs, List.map_map]
     apply List.ext_getElem (by simp [vtAllocVars_length, ownB_length])
     intro j h1 h2
@@ -806,9 +806,9 @@ theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
     (hm : MemLay rd (H.linL B ++ H.ownL B)) :
     (∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd w (H.args B)) s) ∧
       LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) vtPre ∧
-      (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
-        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Guest.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
-      ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
+      (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map
+        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Core.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
+      ((vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
         (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd w (H.args B)) = H.retsH B :=
   (vt_rel_completeF h hs B hw hlow hm).1
@@ -818,9 +818,9 @@ theorem vt_rel_complete_vtW {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBa
     {rd : Reader} (hlow : LowDefB 14 rd) (hm : MemLay rd (H.linL B ++ H.ownL B)) :
     (∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd (vtW H B) (H.args B)) s) ∧
       LoadsInBuf (vtσ rd (vtW H B) (H.args B)) (H.bufs B) vtPre ∧
-      (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦
-        LeanVM.Guest.Memory.logG (vtσ rd (vtW H B) (H.args B) s)) = H.sizes ∧
-      ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map
+      (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦
+        LeanVM.Core.Memory.logG (vtσ rd (vtW H B) (H.args B) s)) = H.sizes ∧
+      ((vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map Prod.fst).map
         (vtσ rd (vtW H B) (H.args B)) = (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd (vtW H B) (H.args B)) = H.retsH B :=
   vt_rel_complete h hs B (vtW_ok H B) hlow hm

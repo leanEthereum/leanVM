@@ -688,7 +688,7 @@ refining program `p'` with no collision is at most `p'`'s ideal failure probabil
 theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram Bool)
     (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, Ptop.after h = some (.grind b k) → S.Follows h → b ≤ bits)
-    {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    {p' p : VerifierProgram Bool} (hR : LeanVM.Protocol.Refines p' p) :
     ∀ (h : List Ev) (sp : Sponge) (cs : List Tree) (ℓ : Log) (n : ℕ)
       (K : Option (List E × List (List Opening)) → OracleComp KeccakCalls β),
       Ptop.after h = some p → S.Follows h → ProverSp sp → Fresh ℓ sp.state → TreesOf cs h →
@@ -951,7 +951,7 @@ end Main
 /-- Where the honest transcript passes the checks of a refining program, the prover makes its
 proof. -/
 theorem proveFrom_ne_none_of_trace (H : Bytes → Digest) (F : KeccakState → KeccakState)
-    (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool} (hR : LeanVM.Protocol.Refines p' p) :
     ∀ (sp : Sponge) (h : List Ev), traceOk H F S fuel p' sp h → proveFrom H F S fuel p sp h ≠ none := by
   induction hR with
   | fail p => intro sp h ht; exact absurd ht id
@@ -998,7 +998,7 @@ rejects the honest prover's proof of `P` with probability at most `P'`'s ideal f
 probability against `S` (every challenge uniform and independent), plus `(1 - 2^-bits)^fuel`
 per quarter of cost, plus a capacity collision among the `Q` queries of the prover and the
 verifier, `Q · Q · 2^-256`. -/
-theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : Guest.Limits.Refines P' P)
+theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : LeanVM.Protocol.Refines P' P)
     (S : Strategy) (σ : Seed) {bits fuel height n : ℕ} (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
     (hP : P.CostLE height n) (hP' : P'.CostLE height n) :

@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.Compiled.Cpl.At
 public import LeanVM.Compiler.Sound.Cut
-public import LeanVM.Guest.KernelLit
+public import LeanVM.Compiler.KernelLit
 
 /-!
 # The test by parts
@@ -36,7 +36,7 @@ the temporaries (`Stmt.tmpsList`), their cells and the cells' counts written out
 
 namespace LeanVM.Guest.Compiled.CplEval
 
-open LeanVM.Compiler LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Compiled.Cpl GuestPiece
+open LeanVM.Compiler LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.Compiled.Cpl GuestPiece
   Complete
 
 @[expose] public section

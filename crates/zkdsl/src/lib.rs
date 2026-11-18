@@ -2,7 +2,7 @@
 //! the [`Ast`] it gives, and a bytecode disassembler ([`disassemble`]).
 //!
 //! The compiler is the Lean back end (`formal/lean_vm/LeanVM/Compiler`), which compiles this parser's AST (exported by
-//! `formal/lean_vm/scripts/guest-export`) through Lean's front end (`LeanVM/Guest/Expand.lean`).
+//! `formal/lean_vm/scripts/guest-export`) through Lean's front end (`LeanVM/Core/Expand.lean`).
 
 use std::collections::HashMap;
 use std::fmt::Write;

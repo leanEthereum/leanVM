@@ -23,7 +23,7 @@ the final placement has its instructions (`poolKeepStmt : PoolKeepStmt`).
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

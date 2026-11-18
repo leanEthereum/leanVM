@@ -62,7 +62,7 @@ of `Completeness`.
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open scoped ENNReal
 

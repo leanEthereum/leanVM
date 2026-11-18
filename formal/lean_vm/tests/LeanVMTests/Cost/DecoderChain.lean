@@ -12,7 +12,7 @@ runs, compiled (`lake exe test-runs`).
 
 namespace LeanVMTests.Cost.DecoderChain
 
-open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.B1.Main LeanVM.Protocol.Verifier
 
 /-- A compiled function's value on `vs`, in the program of the bodies `deps`. -/

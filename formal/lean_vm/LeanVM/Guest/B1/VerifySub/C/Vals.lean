@@ -34,7 +34,7 @@ arguments and the words read. In the carried sponge's terms (`Fs`):
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 

@@ -14,7 +14,7 @@ public import LeanVM.Guest.Compiled.Places
 public import LeanVM.Compiler.Complete.ProgPlace
 public import LeanVM.Guest.PlaceCode
 public import LeanVM.Guest.Deployed
-public meta import LeanVM.Guest.KernelLit
+public meta import LeanVM.Compiler.KernelLit
 
 /-!
 # The back end's tables, from the per-function test
@@ -33,7 +33,7 @@ the guest's world `W0`:
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core GuestPiece
 
 /-- The guest's jump tables have `Deployed.Data.jtSlots` slots. -/
 kernel_rfl slotsG_size_deployed : slotsG.size = Deployed.Data.jtSlots

@@ -22,7 +22,7 @@ callee frame holding the header and arguments and, after an entered call, the re
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -1309,7 +1309,7 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
       obtain ⟨y, hy, hyx⟩ := mem_nextConsts (mem_of_lookup hl)
       simp only [Prod.mk.injEq] at hyx
       obtain ⟨rfl, hcc⟩ := hyx
-      have hw : Guest.word c0 c1 = y.2 := by
+      have hw : Core.word c0 c1 = y.2 := by
         rw [show c0 = (limbsOf y.2).1 from congrArg Prod.fst hcc,
           show c1 = (limbsOf y.2).2 from congrArg Prod.snd hcc, word_limbsOf]
       have h1 := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.1 y.1 (hlen₃ ▸ hk)

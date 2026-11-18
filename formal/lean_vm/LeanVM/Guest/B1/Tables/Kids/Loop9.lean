@@ -28,7 +28,7 @@ nibbles and its partial nibble `sel_partial_nibble__L{r}` at `q`; the runs `eqt`
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section

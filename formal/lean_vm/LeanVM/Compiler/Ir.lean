@@ -13,7 +13,7 @@ public import Statement.LeanIsa
 /-!
 # The back end's intermediate forms
 
-The back end takes the core IR (`LeanVM.Guest.Core`, as `Expand.expandProgram` gives it) to
+The back end takes the core IR (`LeanVM.Core`, as `Expand.expandProgram` gives it) to
 leanISA bytecode in three passes, each a function between two of these forms:
 
 1. `Place` gives every core value a frame cell and every control statement the cells it jumps

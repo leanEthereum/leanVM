@@ -23,7 +23,7 @@ nothing and calls only its own members (kernel evaluation).
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

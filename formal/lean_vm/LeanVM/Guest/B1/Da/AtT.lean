@@ -23,7 +23,7 @@ under no predicate has the honest shape with trivial predicates. `relAtInT_dmono
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Guest.Budget (NodeHonest)
 open LeanVM.Guest.B1 (CompleteAtDT)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)

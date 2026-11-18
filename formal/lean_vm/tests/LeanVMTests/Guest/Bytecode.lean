@@ -14,7 +14,7 @@ offset form of `KECCAK`'s cells.
 
 namespace LeanVMTests.Guest.Bytecode
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 example : Data.functions.length = fn_count% := by decide +kernel
 

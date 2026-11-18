@@ -24,7 +24,7 @@ from `chain[0] = chain[1] = 0`, `chain[2j], chain[2j + 1]` are the chains over t
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section

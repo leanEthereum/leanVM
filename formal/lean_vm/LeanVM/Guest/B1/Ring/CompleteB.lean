@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Ring.WeightComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Core.Memory.SizeTotal
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -24,9 +24,9 @@ constant `g^8`), `rs_eq_run` on `count` coordinates (its last argument `g^count`
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

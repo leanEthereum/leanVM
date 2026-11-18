@@ -35,7 +35,7 @@ positions and their words. The back end's is `constsOf (loopTable p)`, what each
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

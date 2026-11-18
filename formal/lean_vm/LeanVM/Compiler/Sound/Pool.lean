@@ -10,7 +10,7 @@ module
 public import LeanVM.Compiler.Sound.Sem
 public import LeanVM.Compiler.Sound.Asm
 public import LeanVM.Compiler.Place
-public import LeanVM.Guest.CoreLoc
+public import LeanVM.Core.Loc
 
 /-!
 # Frame words, places and pools
@@ -26,7 +26,7 @@ public import LeanVM.Guest.CoreLoc
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -58,20 +58,20 @@ theorem wd_of_read {o : ℕ} {w : E} (h : L.read (fp * addressOfIndex o) = some 
 
 /-! ## Words -/
 
-theorem word_one : Guest.word 1 0 = 1 := by
-  rw [Guest.word, show K.ofBits 1 = 1 from rfl, show K.ofBits 0 = 0 from rfl, ← ofK_eq_ofLimbs]
+theorem word_one : Core.word 1 0 = 1 := by
+  rw [Core.word, show K.ofBits 1 = 1 from rfl, show K.ofBits 0 = 0 from rfl, ← ofK_eq_ofLimbs]
   exact map_one (algebraMap K E)
 
-theorem word_zero : Guest.word 0 0 = 0 := by
-  rw [Guest.word, show K.ofBits 0 = 0 from rfl]
+theorem word_zero : Core.word 0 0 = 0 := by
+  rw [Core.word, show K.ofBits 0 = 0 from rfl]
   exact (ofLimbs_eq_zero_iff _).mpr rfl
 
-theorem word_limbsOf (c : E) : Guest.word (limbsOf c).1 (limbsOf c).2 = c := by
-  rw [Guest.word, limbsOf, ofBits_toNat, ofBits_toNat, ofLimbs_limb]
+theorem word_limbsOf (c : E) : Core.word (limbsOf c).1 (limbsOf c).2 = c := by
+  rw [Core.word, limbsOf, ofBits_toNat, ofBits_toNat, ofLimbs_limb]
 
 theorem word_gpow {e : ℕ} (he : e < 2 ^ 128) :
-    Guest.word (gpowLimbs e).1 (gpowLimbs e).2 = ofK (addressOfIndex e) := by
-  rw [Guest.word, gpowLimbs, gpowBits_eq, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
+    Core.word (gpowLimbs e).1 (gpowLimbs e).2 = ofK (addressOfIndex e) := by
+  rw [Core.word, gpowLimbs, gpowBits_eq, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
   rfl
 
 theorem ofK_one : ofK (1 : K) = 1 := map_one (algebraMap K E)
@@ -98,7 +98,7 @@ theorem ofK_gpow_add (a b : ℕ) :
 variable {Γ : Site κ} {pc : ℕ}
 
 theorem holds_set_const {o c0 c1 : ℕ}
-    (h : Holds Γ.L pc fp (Γ.R (.set o (.const c0 c1)))) : wd Γ.L fp o = Guest.word c0 c1 :=
+    (h : Holds Γ.L pc fp (Γ.R (.set o (.const c0 c1)))) : wd Γ.L fp o = Core.word c0 c1 :=
   wd_of_read h
 
 theorem holds_xor {a b c : ℕ} (h : Holds Γ.L pc fp (Γ.R (.xor a b c))) :
@@ -132,7 +132,7 @@ theorem holds_deref_fp {p off o : ℕ} (h : Holds Γ.L pc fp (Γ.R (.deref p off
 /-- **What the pools of a scope claim** (P3): every entry's cell holds the pooled relation on
 its key's cells. `main`'s frame is at `1`, where its pooled `1` is its own pointer. -/
 structure PoolOK (L : MemoryImage κ) (fp : K) (sc : Scope) : Prop where
-  consts : ∀ k o, sc.consts.get? k = some o → wd L fp o = Guest.word k.1 k.2
+  consts : ∀ k o, sc.consts.get? k = some o → wd L fp o = Core.word k.1 k.2
   xors : ∀ k o, sc.xors.get? k = some o → wd L fp o = wd L fp k.1 + wd L fp k.2
   muls : ∀ k o, sc.muls.get? k = some o → wd L fp o = wd L fp k.1 * wd L fp k.2
   loads : ∀ k o, sc.loads.get? k = some o →

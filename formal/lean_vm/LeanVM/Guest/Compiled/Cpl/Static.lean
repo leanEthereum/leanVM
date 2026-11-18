@@ -12,8 +12,8 @@ public import LeanVM.Compiler.Piece
 public import LeanVM.Compiler.Sound.Compiles
 public import LeanVM.Compiler.Complete.Spec
 public import LeanVM.Guest.Memory.LiftPure
-public import LeanVM.Guest.Memory.Fresh
-public import LeanVM.Guest.Memory.Alloc
+public import LeanVM.Core.Memory.Fresh
+public import LeanVM.Core.Memory.Alloc
 
 /-!
 # A placed function's static facts
@@ -35,7 +35,7 @@ before the tests (`withLocs`), and the set of the temporaries' cells once before
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

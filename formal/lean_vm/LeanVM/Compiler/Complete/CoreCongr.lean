@@ -6,8 +6,8 @@
 
 module
 
-public import LeanVM.Guest.Memory.Regions
-public import LeanVM.Guest.Memory.SizeTransfer
+public import LeanVM.Core.Memory.Regions
+public import LeanVM.Core.Memory.SizeTransfer
 
 /-!
 # Two layouts agreeing on the program
@@ -20,7 +20,7 @@ a region (`loadsIn_iff`) are the same at the two layouts.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Parameters LeanVM.Semantics LeanVM.Core.Memory
 
 @[expose] public section
 

@@ -20,7 +20,7 @@ atoms and one heap hint, no load. `mfLoop_pure`: the two place nothing and call 
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

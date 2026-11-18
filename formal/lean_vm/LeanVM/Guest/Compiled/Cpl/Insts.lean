@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Deployed
-public import LeanVM.Guest.Memory.Retemp
-public import LeanVM.Guest.Memory.Discharge
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Core.Memory.Retemp
+public import LeanVM.Core.Memory.Discharge
+public import LeanVM.Core.Memory.SizeTotal
 
 /-!
 # The instances at any headers
@@ -25,7 +25,7 @@ whose candidates all carry one word holds it.
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Deployed
 
 @[expose] public section

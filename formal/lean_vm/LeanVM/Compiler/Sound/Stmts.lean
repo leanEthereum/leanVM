@@ -23,7 +23,7 @@ has checked that it is `return` alone in a function that returns no cells.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -207,7 +207,7 @@ words of its argument cells, where its constant parameters hold their words. -/
 theorem nextConsts_words {consts : List (ℕ × E)} {las : List Cell}
     (h : ∀ x ∈ consts, wd Γ.L fp (2 + x.1) = x.2) :
     ∀ x ∈ nextConsts consts las, ∀ hk : x.1 < las.length,
-      wd Γ.L fp las[x.1] = Guest.word x.2.1 x.2.2 := by
+      wd Γ.L fp las[x.1] = Core.word x.2.1 x.2.2 := by
   intro x hx hk
   obtain ⟨y, hy, hxy⟩ := List.mem_filterMap.mp hx
   by_cases hc : (las[y.1]? == some (2 + y.1)) = true

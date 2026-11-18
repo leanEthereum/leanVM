@@ -34,7 +34,7 @@ announced stack log is in `[20, 30]` and its rate in `[1, 4]`.
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest (DeployedLimits ChildrenOk)
 open LeanVM.Guest.B1 (CompleteAtDTB Returns)

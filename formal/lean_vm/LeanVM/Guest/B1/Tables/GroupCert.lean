@@ -23,7 +23,7 @@ ranked before it and its entries following at their size's stride, every entry's
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Core.Value LeanVM.Protocol.Verifier
 open Finset
 
 @[expose] public section

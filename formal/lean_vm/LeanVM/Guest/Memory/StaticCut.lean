@@ -28,7 +28,9 @@ Python (`checker.run_range`) for the literals.
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core.Memory
+
+open LeanVM.Core
 
 @[expose] public section
 
@@ -124,7 +126,7 @@ theorem runB_end {l : List Stmt} {a : ℕ} {ρ : σ} (ha : l.length ≤ a) :
 
 /-! ### Without `ret` -/
 
-/-- `Stmt.noRet`, by the recursor (`noRetR_eq`). -/
+/-- `Memory.Stmt.noRet`, by the recursor (`noRetR_eq`). -/
 noncomputable def noRetR (s : Stmt) : Bool :=
   Stmt.rec (motive_1 := fun _ => Bool) (motive_2 := fun _ => Bool) (motive_3 := fun _ => Bool)
     (fun _ => true) (fun _ _ _ bz bn => bz && bn) (fun _ _ ba => ba) (fun _ _ _ => true)
@@ -138,24 +140,24 @@ noncomputable def noRetLR (ss : List Stmt) : Bool :=
     (fun _ _ _ => true) (fun _ _ _ _ => true) (fun _ => false) true (fun _ _ b bs => b && bs) true
     (fun _ _ b bs => b && bs) ss
 
-/-- `Stmt.noRetArms`, by the recursor. -/
+/-- `Memory.Stmt.noRetArms`, by the recursor. -/
 noncomputable def noRetAR (as : List (List Stmt)) : Bool :=
   Stmt.rec_2 (motive_1 := fun _ => Bool) (motive_2 := fun _ => Bool) (motive_3 := fun _ => Bool)
     (fun _ => true) (fun _ _ _ bz bn => bz && bn) (fun _ _ ba => ba) (fun _ _ _ => true)
     (fun _ _ _ => true) (fun _ _ _ _ => true) (fun _ => false) true (fun _ _ b bs => b && bs) true
     (fun _ _ b bs => b && bs) as
 
-theorem noRetR_eq (s : Stmt) : noRetR s = Stmt.noRet s :=
-  Stmt.rec (motive_1 := fun s => noRetR s = Stmt.noRet s)
+theorem noRetR_eq (s : Stmt) : noRetR s = Memory.Stmt.noRet s :=
+  Stmt.rec (motive_1 := fun s => noRetR s = Memory.Stmt.noRet s)
     (motive_2 := fun ss => noRetLR ss = Stmt.noRetListS ss)
-    (motive_3 := fun as => noRetAR as = Stmt.noRetArms as)
+    (motive_3 := fun as => noRetAR as = Memory.Stmt.noRetArms as)
     (fun _ => rfl)
     (fun _ z n hz hn => by
       show (noRetLR z && noRetLR n) = _
-      rw [hz, hn, Stmt.noRet])
+      rw [hz, hn, Memory.Stmt.noRet])
     (fun _ arms ha => by
       show noRetAR arms = _
-      rw [ha, Stmt.noRet])
+      rw [ha, Memory.Stmt.noRet])
     (fun _ _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ _ _ => rfl) (fun _ => rfl) rfl
     (fun s ss hs hss => by
       show (noRetR s && noRetLR ss) = _
@@ -163,7 +165,7 @@ theorem noRetR_eq (s : Stmt) : noRetR s = Stmt.noRet s :=
     rfl
     (fun a as ha has => by
       show (noRetLR a && noRetAR as) = _
-      rw [ha, has, Stmt.noRetArms])
+      rw [ha, has, Memory.Stmt.noRetArms])
     s
 
 /-- The step on a statement without `ret`, failing on any other. -/
@@ -173,7 +175,7 @@ noncomputable def guardRet (step : Stmt → σ → Option (A × Option σ)) (s :
 
 /-- A step stopping only at a `ret`. -/
 def StopsAtRet (step : Stmt → σ → Option (A × Option σ)) : Prop :=
-  ∀ s ρ r, step s ρ = some (r, none) → Stmt.noRet s = false
+  ∀ s ρ r, step s ρ = some (r, none) → Memory.Stmt.noRet s = false
 
 /-- **A guarded walk** is the walk of a block without `ret`. -/
 theorem runB_guard (hstop : StopsAtRet step) : ∀ {l : List Stmt} {ρ : σ} {R : A},
@@ -182,7 +184,7 @@ theorem runB_guard (hstop : StopsAtRet step) : ∀ {l : List Stmt} {ρ : σ} {R 
   | [], _, _, h => ⟨rfl, h⟩
   | s :: ss, ρ, R, h => by
       simp only [runB, guardRet, noRetR_eq] at h
-      by_cases hn : Stmt.noRet s = true
+      by_cases hn : Memory.Stmt.noRet s = true
       · simp only [hn, ↓reduceIte] at h
         rcases hs : step s ρ with _ | ⟨r, _ | ρ'⟩ <;> rw [hs] at h
         · cases h
@@ -204,16 +206,16 @@ end Run
 instance search does not reach unaided. -/
 instance : DecidableEq (Env × BEnv) := inferInstance
 
-theorem Acc.add_assoc (a b c : Acc) : (a.add b).add c = a.add (b.add c) := by
+theorem _root_.LeanVM.Core.Memory.Acc.add_assoc (a b c : Memory.Acc) : (a.add b).add c = a.add (b.add c) := by
   simp [Acc.add, Aff.add, Nat.add_assoc]
 
-theorem Vec.add_assoc : ∀ a b c : Vec, (a.add b).add c = a.add (b.add c)
+theorem _root_.LeanVM.Core.Memory.Vec.add_assoc : ∀ a b c : Vec, (a.add b).add c = a.add (b.add c)
   | [], _, _ => rfl
   | _ :: _, [], _ => rfl
   | _ :: _, _ :: _, [] => rfl
-  | x :: a, y :: b, z :: c => by simp [Vec.add, Nat.add_assoc, Vec.add_assoc a b c]
+  | x :: a, y :: b, z :: c => by simp [Vec.add, Nat.add_assoc, LeanVM.Core.Memory.Vec.add_assoc a b c]
 
-theorem AccV.add_assoc (a b c : AccV) : (a.add b).add c = a.add (b.add c) := by
+theorem _root_.LeanVM.Core.Memory.AccV.add_assoc (a b c : AccV) : (a.add b).add c = a.add (b.add c) := by
   simp [AccV.add, AffV.add, Vec.add_assoc]
 
 section Scalar
@@ -318,36 +320,36 @@ theorem loopShape_of {fn : Fn} {endc : Option ℕ} (ht : (loopTail fn endc).isSo
   simp [loopShape, h, hn]
 
 /-- What a scalar certificate's check walks: the body, a loop helper's without its tail. -/
-def Cert.walk : Cert → Fn → List Stmt
+def _root_.LeanVM.Core.Memory.Cert.walk : Cert → Fn → List Stmt
   | .loop .., fn => loopBody fn
   | _, fn => fn.body
 
 /-- A scalar certificate's constants. -/
-def Cert.ks : Cert → List (V × ℕ)
+def _root_.LeanVM.Core.Memory.Cert.ks : Cert → List (V × ℕ)
   | .none => []
   | .stat _ _ ks => ks
   | .loop _ _ _ ks => ks
 
 /-- A scalar certificate's check of its walk's result `r` at the frame weight `w`. -/
-def Cert.final (w : ℕ) (r : Acc) : Cert → Bool
+def _root_.LeanVM.Core.Memory.Cert.final (w : ℕ) (r : Memory.Acc) : Cert → Bool
   | .none => true
   | .stat pre b _ => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
   | .loop _ pre b _ => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
       b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
 
 /-- A loop helper's tail. -/
-def Cert.tail (fn : Fn) : Cert → Bool
+def _root_.LeanVM.Core.Memory.Cert.tail (fn : Fn) : Cert → Bool
   | .loop endc .. => (loopTail fn endc).isSome
   | _ => true
 
 /-- A scalar certificate's step: a loop helper's guarded (`guardRet`). -/
-noncomputable def Cert.guard {σ A : Type} (step : Stmt → σ → Option (A × Option σ)) : Cert → Stmt → σ → Option (A × Option σ)
+noncomputable def _root_.LeanVM.Core.Memory.Cert.guard {σ A : Type} (step : Stmt → σ → Option (A × Option σ)) : Cert → Stmt → σ → Option (A × Option σ)
   | .loop .. => guardRet step
   | _ => step
 
 /-- **A function's scalar check from its walk.** -/
 theorem chkFn_of_run {look : String → Cert} {wl : String → Option ℕ} {α : Bool} {own : Cert} {w : ℕ}
-    {fn : Fn} {r : Acc} (ht : own.tail fn = true)
+    {fn : Fn} {r : Memory.Acc} (ht : own.tail fn = true)
     (hb : runB Acc.add Acc.zero (own.guard (stmtR look wl α own.ks fn.params fn.name)) (own.walk fn)
       ([], []) = some r)
     (hc : own.final w r = true) : chkFn look wl α own w fn = true := by
@@ -365,30 +367,30 @@ theorem chkFn_of_run {look : String → Cert} {wl : String → Option ℕ} {α :
       rw [loopShape_of ht hn]; simp only; rw [hb]; exact hc
 
 /-- What a vector certificate's check walks. -/
-def CertV.walk : CertV → Fn → List Stmt
+def _root_.LeanVM.Core.Memory.CertV.walk : CertV → Fn → List Stmt
   | .loop .., fn => loopBody fn
   | _, fn => fn.body
 
 /-- A vector certificate's constants. -/
-def CertV.ks : CertV → List (V × ℕ)
+def _root_.LeanVM.Core.Memory.CertV.ks : CertV → List (V × ℕ)
   | .none => []
   | .stat _ _ ks => ks
   | .loop _ _ _ ks => ks
 
 /-- A vector certificate's check of its walk's result `r` at the frame weights `w`. -/
-def CertV.final (w : Vec) (r : AccV) : CertV → Bool
+def _root_.LeanVM.Core.Memory.CertV.final (w : Vec) (r : AccV) : CertV → Bool
   | .none => true
   | .stat pre b _ => AffV.leB ⟨w.add r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
   | .loop _ pre b _ => AffV.leB ⟨w.add r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
       b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
 
 /-- A vector certificate's loop helper's tail. -/
-def CertV.tail (fn : Fn) : CertV → Bool
+def _root_.LeanVM.Core.Memory.CertV.tail (fn : Fn) : CertV → Bool
   | .loop endc .. => (loopTail fn endc).isSome
   | _ => true
 
 /-- A vector certificate's step: a loop helper's guarded (`guardRet`). -/
-noncomputable def CertV.guard {σ A : Type} (step : Stmt → σ → Option (A × Option σ)) : CertV → Stmt → σ → Option (A × Option σ)
+noncomputable def _root_.LeanVM.Core.Memory.CertV.guard {σ A : Type} (step : Stmt → σ → Option (A × Option σ)) : CertV → Stmt → σ → Option (A × Option σ)
   | .loop .. => guardRet step
   | _ => step
 
@@ -415,7 +417,7 @@ theorem chkFnV_of_run {look : String → CertV} {own : CertV} {w : Vec} {fn : Fn
 
 /-- The step of function `j`'s check in a scalar family (`chkS`). -/
 noncomputable def stepS (α : Bool) (cert : ℕ → Cert) (om : ℕ → ℕ) (j : ℕ) (fn : Fn) :
-    Stmt → Env × BEnv → Option (Acc × Option (Env × BEnv)) :=
+    Stmt → Env × BEnv → Option (Memory.Acc × Option (Env × BEnv)) :=
   (cert j).guard (stmtR (lookS cert j) (omLookS om j) α (cert j).ks fn.params fn.name)
 
 /-- The step of function `j`'s check in a vector family (`chkV`). -/
@@ -423,7 +425,7 @@ noncomputable def stepV (cert : ℕ → CertV) (j : ℕ) (fn : Fn) :
     Stmt → Env × BEnv → Option (AccV × Option (Env × BEnv)) :=
   (cert j).guard (stmtRV (lookV cert j) (cert j).ks fn.params fn.name)
 
-theorem chkS_of_run {α : Bool} {cert : ℕ → Cert} {om : ℕ → ℕ} {j : ℕ} {fn : Fn} {r : Acc}
+theorem chkS_of_run {α : Bool} {cert : ℕ → Cert} {om : ℕ → ℕ} {j : ℕ} {fn : Fn} {r : Memory.Acc}
     (ht : (cert j).tail fn = true)
     (hb : runB Acc.add Acc.zero (stepS α cert om j fn) ((cert j).walk fn) ([], []) = some r)
     (hc : (cert j).final (om j) r = true) : chkS α cert om j fn = true :=

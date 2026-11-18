@@ -8,7 +8,7 @@
 module
 
 public import Statement.LeanVmVerifier
-public import LeanVM.Guest.Value.Tower
+public import LeanVM.Core.Value.Tower
 
 /-!
 # A query's fold, algebraically

@@ -27,7 +27,7 @@ namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
 open LeanVM.Extraction.Fast LeanVM.Guest.Fast LeanVM.Cost.Decoder
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 
 public section
 

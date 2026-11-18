@@ -10,12 +10,12 @@ public import LeanVM.Guest.Pack.sp_wots.Core
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 import LeanVM.Guest.B1.Sig.Decide
 public import LeanVM.Guest.B1.Common.Basic
-import LeanVM.Guest.Value.Tower
-import LeanVM.Guest.Value.FieldBits
+import LeanVM.Core.Value.Tower
+import LeanVM.Core.Value.FieldBits
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

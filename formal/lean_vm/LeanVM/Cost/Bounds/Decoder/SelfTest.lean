@@ -27,7 +27,7 @@ at most `R`:
 
 namespace LeanVM.Cost.Bounds
 
-open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Located
+open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Core LeanVM.Guest.Located
 
 public section
 

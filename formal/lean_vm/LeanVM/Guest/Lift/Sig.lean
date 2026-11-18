@@ -33,7 +33,7 @@ a memory defined below `2^8`, it holds by a tree loading from them (`verify_sig_
 
 namespace LeanVM.Guest.Lift
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.B1 (LowDef Within CompleteAtD Returns disj_nil relAtIn_dmono)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 

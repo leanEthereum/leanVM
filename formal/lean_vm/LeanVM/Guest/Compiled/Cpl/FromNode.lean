@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Compiled.Cpl.Complete
 public import LeanVM.Guest.Compiled.Cpl.WholeCore
 public import LeanVM.Compiler.Complete.CoreCongr
-public meta import LeanVM.Guest.KernelLit
+public meta import LeanVM.Compiler.KernelLit
 
 /-!
 # From the node relation to the compiled guest's run
@@ -27,7 +27,7 @@ a tree B1 builds is valid, placed and loads in its data at the back end's layout
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Node GuestPiece
 open LeanVM.Guest.End (bytecode MainComplete hdrOf work)
 open LeanVM.Guest.B1 (LowDef)

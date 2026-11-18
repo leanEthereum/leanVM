@@ -7,8 +7,8 @@
 module
 
 public import LeanVM.Compiler.Sound.Consts
-public import LeanVM.Guest.Memory
-public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Core.Memory
+public import LeanVM.Core.Memory.Fresh
 
 /-!
 # The constant parameters on an honest run
@@ -28,7 +28,7 @@ The twin, for the obligations, is `Sound/Consts.lean`.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

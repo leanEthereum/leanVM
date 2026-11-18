@@ -22,7 +22,7 @@ returns with it.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd
 
 @[expose] public section

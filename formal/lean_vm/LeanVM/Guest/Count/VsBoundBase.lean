@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Names
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
+open LeanVM.Core LeanVM.Guest.B1.Whir
 
 @[expose] public section
 

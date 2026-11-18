@@ -13,7 +13,7 @@ instruction and hint for hint, was the Rust test `crates/zkdsl_compiler/tests/su
 guest is `lake exe guest-backend check`.
 -/
 
-open LeanVM.Guest LeanVM.Compiler LeanVM.Semantics
+open LeanVM.Guest LeanVM.Core LeanVM.Compiler LeanVM.Semantics
 
 namespace LeanVMTests.Compiler.Programs
 

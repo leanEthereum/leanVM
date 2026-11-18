@@ -12,7 +12,7 @@ import LeanVM.Guest.EndRpm
   of it exists for almost every public input.
 -/
 
-open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/

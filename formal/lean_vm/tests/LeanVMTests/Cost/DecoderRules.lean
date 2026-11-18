@@ -91,7 +91,7 @@ def mkSphincsSig (n : ℕ) (r p : BitVec 128) : Sphincs.Signature :=
     LeanVM.Cost.depFin3 (slayerOf n r 0) (slayerOf n r 1) (slayerOf n r 2)⟩
 cost_compile mkSphincsSig := mkSphincsSig
 
-def vIdx (v : LeanVM.Guest.Core.V) : ℕ := v.idx + v.path.length
+def vIdx (v : LeanVM.Core.V) : ℕ := v.idx + v.path.length
 cost_compile vIdx := vIdx
 
 /-- A compiled function's value on `vs`, in the program of the bodies its spec needs. -/
@@ -161,7 +161,7 @@ def ssig : Sphincs.Signature :=
 #guard runOn mkSphincsSig.costDeps mkSphincsSig.costIdx
   [encodeValue (99 : ℕ), encodeValue r, encodeValue p] == some (encodeValue ssig)
 
-def v : LeanVM.Guest.Core.V := ⟨[.s 1, .i "main" 2, .t], 0, 7⟩
+def v : LeanVM.Core.V := ⟨[.s 1, .i "main" 2, .t], 0, 7⟩
 #guard runOn vIdx.costDeps vIdx.costIdx [encodeValue v] == some (encodeValue (10 : ℕ))
 
 /-- info: 'LeanVMTests.Cost.DecoderRules.mkWitness.costSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/

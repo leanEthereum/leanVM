@@ -23,7 +23,7 @@ local until a shared module has it.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Core.Value
 
 @[expose] public section
 

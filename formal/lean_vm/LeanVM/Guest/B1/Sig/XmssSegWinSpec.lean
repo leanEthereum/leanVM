@@ -23,7 +23,7 @@ siblings the arms of `L`'s windows hint are `sibs` (`lxSibOf`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier
 
 @[expose] public section

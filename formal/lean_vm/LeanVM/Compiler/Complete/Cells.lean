@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Compiler.Place
 public import LeanVM.Compiler.Sound.Ops
-public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Core.Memory.Fresh
 
 /-!
 # Cells
@@ -30,7 +30,7 @@ through a cell that is no temporary's and through which no `DEREF` stores the fr
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

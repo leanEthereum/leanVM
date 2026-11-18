@@ -19,7 +19,9 @@ public import LeanVM.Guest.Budget.Kids
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Core.Memory
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Guest.Budget (NodeHonest)
 
 @[expose] public section
@@ -27,7 +29,7 @@ open LeanVM.Guest.Budget (NodeHonest)
 variable {P : Core.Program} {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader}
 
 theorem RelAtInT.mono {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    {T T' : Tree → Prop} (h : RelAtInT P fs cert rd R D fp n f args rets T) (hT : ∀ t, T t → T' t) :
+    {T T' : Memory.Tree → Prop} (h : RelAtInT P fs cert rd R D fp n f args rets T) (hT : ∀ t, T t → T' t) :
     RelAtInT P fs cert rd R D fp n f args rets T' :=
   let ⟨t, ht, hT'⟩ := h
   ⟨t, ht, hT t hT'⟩
@@ -35,7 +37,7 @@ theorem RelAtInT.mono {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets 
 /-- **The tree a composition builds has its honest shape.** -/
 theorem relAtInT_nodeHonest {σ : Val} {R D : ℕ → Prop} {fp n : ℕ} {f : String}
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {Q : Val → Prop}
-    {cs : Val → List Call} {bs : Val → List ℕ} {Ts : List (Tree → Prop)}
+    {cs : Val → List Call} {bs : Val → List ℕ} {Ts : List (Memory.Tree → Prop)}
     (h : RelAtInT P fs cert rd R D fp n f args rets
       (fun t => ∃ ks, t = .node f σ (allocs σ es) ks ∧ KidsT (calls es) Ts ks))
     (hf : P.find? f = some fn) (hw : walk σ fn.body = .ret es vs) (hQ : Q σ)

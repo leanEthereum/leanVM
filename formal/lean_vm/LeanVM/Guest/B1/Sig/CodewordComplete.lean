@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section

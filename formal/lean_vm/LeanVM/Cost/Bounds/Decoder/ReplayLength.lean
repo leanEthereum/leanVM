@@ -51,7 +51,7 @@ theorem replayStatesOf_length {input : PublicInput} {t : Execution LeanVM.Guest.
   have hκ : κ < 64 := by unfold maxLogMem at h32; omega
   have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨addressOfIndex 0, 1⟩ =
       some (Registers.final LeanVM.Guest.guestProgram) :=
-    LeanVM.Guest.safe_of_validExecution hv
+    LeanVM.Core.safe_of_validExecution hv
   show (replayStatesOf (powTable κ) (powTable LeanVM.Guest.guestProgram.logSize) LeanVM.Guest.guestProgram
     (memoryVector L)).length ≤ T + 1
   rw [replayStatesOf_eq, memoryVector_get, statesTable_eq hκ]
@@ -65,7 +65,7 @@ theorem steps_lt_of_valid {input : PublicInput} {t : Execution LeanVM.Guest.gues
   obtain ⟨κ, L, T⟩ := t
   have hT : LeanVM.Semantics.run LeanVM.Guest.guestProgram L T ⟨addressOfIndex 0, 1⟩ =
       some (Registers.final LeanVM.Guest.guestProgram) :=
-    LeanVM.Guest.safe_of_validExecution hv
+    LeanVM.Core.safe_of_validExecution hv
   exact LeanVM.Guest.Located.steps_lt_replayFuel hT
 
 end

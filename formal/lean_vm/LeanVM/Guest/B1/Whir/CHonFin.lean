@@ -24,7 +24,7 @@ lane at the tail challenges, and dispatches into `level_residual` at its honest 
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

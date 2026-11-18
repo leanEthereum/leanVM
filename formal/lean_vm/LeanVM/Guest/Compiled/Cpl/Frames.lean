@@ -30,7 +30,7 @@ and the per-function test's counts. The jump tables are written when `main`'s ta
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory GuestPiece
 open LeanVM.Guest.Deployed
 
 @[expose] public section

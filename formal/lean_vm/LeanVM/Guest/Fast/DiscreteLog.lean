@@ -34,7 +34,7 @@ these are plain equations, not `@[csimp]` lemmas.
 namespace LeanVM.Guest.Fast
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
-open LeanVM.Guest.Value LeanVM.Guest.B1 LeanVM.Guest.Located
+open LeanVM.Core.Value LeanVM.Guest.B1 LeanVM.Guest.Located
 
 @[expose] public section
 

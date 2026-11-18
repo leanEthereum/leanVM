@@ -31,7 +31,7 @@ guest's `guestU L.read` (`Obl/GuestU.lean`) and its loop helpers' constant param
 
 namespace LeanVM.Guest.Compiled
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestData LeanVM.Compiler.Obl LeanVM.Guest.Compiled.Obl
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core GuestData LeanVM.Compiler.Obl LeanVM.Guest.Compiled.Obl
 
 @[expose] public section
 

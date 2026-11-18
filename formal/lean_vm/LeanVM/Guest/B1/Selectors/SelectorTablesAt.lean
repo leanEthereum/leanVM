@@ -22,7 +22,7 @@ on the honest valuation `stVal` (`st_sholds`), every load in the point's runs or
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 

@@ -30,7 +30,7 @@ its words (`L5Vals`).
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd

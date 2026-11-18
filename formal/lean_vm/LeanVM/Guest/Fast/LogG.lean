@@ -14,6 +14,8 @@ literal table `gLanes` instead and compares `x`'s low lane with them, its other 
 
 namespace LeanVM.Guest.Fast
 
+open LeanVM.Core
+
 open LeanVM.Parameters LeanVM.Guest.B1.Sig
 
 @[expose] public section

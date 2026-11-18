@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Place.OsBos
 public import LeanVM.Guest.B1.Whir.CompleteIface
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Core.Memory.Size
 
 /-!
 # `open_stacked`, placed: the statements
@@ -34,7 +34,7 @@ at `tabs`, the arm of `μ` called on the rate's selector is complete placed retu
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier hiding Layout

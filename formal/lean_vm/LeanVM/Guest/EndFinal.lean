@@ -61,7 +61,7 @@ They rest on B2, the back end's correctness at the guest (`End.mainBodyL_of`, `E
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Digest LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open scoped ENNReal
 

@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Core
-public import LeanVM.Guest.Source
+public import LeanVM.Core
+public import LeanVM.Core.Source
 
 /-!
 # The allocation trace
@@ -43,8 +43,8 @@ cell. So the statement to prove of placement quantifies over every trace.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest
-open LeanVM.Guest.Core (V)
+open LeanVM.Core
+open LeanVM.Core (V)
 
 @[expose] public section
 
@@ -106,7 +106,7 @@ structure TracedFn where
   consts : List (Nat × LeanVM.Parameters.E) := []
   deriving Inhabited
 
-open LeanVM.Guest.Source in
+open LeanVM.Core.Source in
 /-- A loop helper's entry of `loop_bounds` (`lower_for`), from the helper the expansion queued:
 its body is the loop's, then `next = counter · g`, the closing `callIfNe next exit` and a
 `return`. Its frames are reserved in one run when the loop's body has no `return` and does not

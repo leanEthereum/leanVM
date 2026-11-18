@@ -31,7 +31,7 @@ of the state as they were and returns its placed statements: `inBlock_spec` give
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

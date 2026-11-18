@@ -19,7 +19,7 @@ those rows (`lxFold_eq`, `lxRest_eq`, `lxTail_eq`), the groups' sizes `2318` and
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Sig
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Sig
 
 @[expose] public section
 

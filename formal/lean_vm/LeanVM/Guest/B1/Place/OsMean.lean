@@ -33,7 +33,7 @@ holding `Lk` (and one such memory existing) makes each taken call with a name co
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Whir (AllOk StmtOk)

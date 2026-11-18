@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Guest.Fast.Numbers
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 
 /-!
 # The readers' common pieces
@@ -18,7 +18,7 @@ rows, read by `offAtA` in constant time (`offAtA_tabA`: it is `offAt`), and `l.t
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Core
 
 @[expose] public section
 

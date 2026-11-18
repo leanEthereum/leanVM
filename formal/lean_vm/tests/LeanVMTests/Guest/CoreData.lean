@@ -10,7 +10,7 @@ the data against the expansion (`lake exe test-runs`).
 
 namespace LeanVMTests.Guest.CoreData
 
-open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
+open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Core
 
 /-! ## Access
 

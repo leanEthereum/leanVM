@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Deployed.Data
-public import LeanVM.Guest.Memory
-public import LeanVM.Guest.Memory.Size
-public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Core.Memory
+public import LeanVM.Core.Memory.Size
+public import LeanVM.Core.Memory.Fresh
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.Data.NameStrings
@@ -39,7 +39,7 @@ the temporaries' values.
 
 namespace LeanVM.Guest.Deployed
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

@@ -26,7 +26,7 @@ table block at its table's height) and `vtSizesC` (count). `vt_sels`: every push
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (blockSel blockOffset eqAbove_aligned)
 

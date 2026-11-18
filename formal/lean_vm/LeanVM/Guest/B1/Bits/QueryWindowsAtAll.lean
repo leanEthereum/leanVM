@@ -20,7 +20,7 @@ checks), each deployed `(name, depth, cap depth)` is `QwDecodeAtD`: its template
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

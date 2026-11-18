@@ -26,7 +26,7 @@ given that the back end compiles the guest to the statement's bytecode (`guest_c
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section

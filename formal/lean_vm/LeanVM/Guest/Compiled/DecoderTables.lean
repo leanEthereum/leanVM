@@ -24,7 +24,7 @@ core program and the back end's input (`GuestData.guestInfo`) side by side (`reg
 
 namespace LeanVM.Guest
 
-open LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Cost.Decoder
+open LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Cost.Decoder
 
 @[expose] public section
 

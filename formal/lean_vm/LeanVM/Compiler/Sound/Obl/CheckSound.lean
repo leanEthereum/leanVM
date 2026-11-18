@@ -9,8 +9,8 @@ module
 
 public import LeanVM.Compiler.Sound.Obl.Check
 public import LeanVM.Compiler.Sound.Spec
-public import LeanVM.Guest.CoreLemmas
-public import LeanVM.Guest.CoreLoc
+public import LeanVM.Core.Lemmas
+public import LeanVM.Core.Loc
 public import LeanVM.Parameters.Generator
 
 /-!
@@ -29,7 +29,7 @@ public import LeanVM.Parameters.Generator
 
 namespace LeanVM.Compiler.Obl
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

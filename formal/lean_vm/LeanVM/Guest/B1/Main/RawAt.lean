@@ -43,7 +43,7 @@ call the next iteration (`l2_relIn_of_body`).
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (LowDef CompleteAtD Returns)

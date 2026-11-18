@@ -28,8 +28,8 @@ decodes cover the walk (`lpCovers`). `osSiteOk` decides a pair of sites, `os_obl
 
 namespace LeanVM.Guest.Compiled.Obl
 
-open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.B1.Whir LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Guest.B1.Whir LeanVM.Core.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 

@@ -35,7 +35,7 @@ The positions are the template's (`sBody`, `SphincsT`, `SphincsForsT`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

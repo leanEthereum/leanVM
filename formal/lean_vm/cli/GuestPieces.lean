@@ -38,7 +38,7 @@ compiler's test program `match_arms`, its traced functions written out, and its 
 by `compiles_of_pieces` there.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled
   LeanVM.Guest.Compiled.GuestInput
 
 namespace GuestPieces
@@ -244,9 +244,9 @@ def tablesFile (loops : Loops) (sigs : SMap (Nat × Nat)) : String :=
   header "LeanVM.Guest.Compiled.Piece.Tables"
     "The guest's loop and signature tables, and the kernel's checks that they are the program's." ++
   "\nmodule\n\npublic import LeanVM.Guest.Compiled.Program\npublic import LeanVM.Compiler.Piece\n" ++
-  "public meta import LeanVM.Guest.KernelLit\npublic meta import LeanVM.Compiler.DataLit\n\n" ++
+  "public meta import LeanVM.Compiler.KernelLit\npublic meta import LeanVM.Compiler.DataLit\n\n" ++
   "set_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
-  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Core\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   s!"/-- The guest's loop helpers. -/\ndata_lit loopsG : Loops :=\n  {pKMap String.quote pLoopInfo loops}\n\n" ++
   s!"/-- The guest's functions' argument and return cells. -/\ndata_lit sigsG : SMap (Nat × Nat) :=\n  {pKMap String.quote pPair sigs}\n\n" ++
   "kernel_rfl loopsG_eq : loopTable guestTraced = loopsG\n\n" ++
@@ -257,7 +257,7 @@ def layoutFile (l : Layout) (slots : Array KVal) : String :=
   header "LeanVM.Guest.Compiled.Piece.Layout"
     "The guest's layout and jump table slots, the kernel's checks of them, and its placed locations." ++
   "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Outs\npublic import LeanVM.Guest.Compiled.Piece.Tables\n" ++
-  "public meta import LeanVM.Guest.KernelLit\npublic meta import LeanVM.Compiler.DataLit\n\n" ++
+  "public meta import LeanVM.Compiler.KernelLit\npublic meta import LeanVM.Compiler.DataLit\n\n" ++
   "set_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
   "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   s!"/-- The layout of the guest's functions, `__jump_tables` first. -/\ndata_lit layG : Layout :=\n  {pLayout l}\n\n" ++
@@ -301,7 +301,7 @@ def constsFile (k a b : Nat) : String :=
     s!"The kernel's check of the constant parameters at the calls of functions {a} to {b - 1}." ++
   "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Tables\npublic import LeanVM.Compiler.Sound.Compiles\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler LeanVM.Guest\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler LeanVM.Guest LeanVM.Core\n\n@[expose] public section\n\n" ++
   s!"/-- The calls of functions {a} to {b - 1} pass the words of the constant parameters they name. -/\n" ++
   s!"theorem consts_{a}_{b} : constsIn (constsOf loopsG) coreProgram {a} {b} = true := by\n  decide +kernel\n\n" ++
   "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
@@ -412,7 +412,7 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   "public import LeanVM.Guest.Compiled.Piece.Checks\npublic import LeanVM.Guest.Compiled.Piece.Names\n" ++ imports ++
   s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Piece/`, the checks of `Piece/Checks.lean` and the constant parameters' check of `Piece/Consts*.lean` (`guest_consts`); {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Compiled\n\nopen LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled\n\nopen LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core GuestPiece\n\n@[expose] public section\n\n" ++
   bigDef ++ cutPieces ++ piecesAll ++
   "/-- The labelled code of the guest's functions, as the back end lowers them. -/\n" ++
   "noncomputable def guestFns : List Lowered := fnsOf (lowerProgram guestTraced)\n\n" ++
@@ -579,10 +579,10 @@ def testFile (name : String) : IO String := do
   let nameId := name.replace "_" ""
   return header s!"LeanVMTests.Compiler.Pieces"
       s!"The compiler's test program `{name}` compiled by the back end, from its kernel-checked pieces." ++
-    "\nimport LeanVM.Compiler.Sound.Compiles\nimport LeanVM.Guest.KernelLit\n\n" ++
+    "\nimport LeanVM.Compiler.Sound.Compiles\nimport LeanVM.Compiler.KernelLit\n\n" ++
     s!"/-!\n# A program compiled from its pieces\n\n`{name}.py`'s traced functions, their values renamed as `guest-traced` renames the guest's, written out, and what placement and emission give of each; its\ncompilation by the back end (`lowerProgram`, `assemble`) is `{nameId}_compiles`, by\n`compiles_of_pieces` from the kernel's checks of its pieces: the composition the guest's\n`Guest/Compiled/Compiled.lean` makes, on a program small enough to check in one module.\n-/\n\n" ++
     "set_option maxRecDepth 100000\n\n" ++
-    "namespace LeanVMTests.Compiler.Pieces\n\nopen LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler\n\n" ++
+    "namespace LeanVMTests.Compiler.Pieces\n\nopen LeanVM.Guest LeanVM.Core LeanVM.Compiler\n\n" ++
     s!"/-- `{name}.py`, traced. -/\ndef prog : List TracedFn := {pList (P.map pTraced)}\n\n" ++
     s!"/-- What placement and emission give of its functions. -/\ndef outs : List FnOut := {pList (outs.map pFnOut)}\n\n" ++
     s!"/-- Its compiled functions. -/\ndef cfs : List CompiledFunction := {pList (cfs.map pCompiled)}\n\n" ++
@@ -911,7 +911,7 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat)
 def cutHeader (mod what : String) (imports : String) : String :=
   header mod what ++ "\nmodule\n\n" ++ imports ++
     "\nset_option Elab.async false\nset_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
-    "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Guest.Core LeanVM.Compiler\n\n@[expose] public section\n\n"
+    "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Core LeanVM.Compiler\n\n@[expose] public section\n\n"
 
 /-- The chunk checks of a cut function are grouped in modules of this many. -/
 def chunkGroup : Nat := 4

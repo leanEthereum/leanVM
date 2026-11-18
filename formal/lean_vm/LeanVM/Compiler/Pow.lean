@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Word
+public import LeanVM.Core.Word
 
 /-!
 # Powers of `g` the kernel evaluates
@@ -22,7 +22,7 @@ on words in `ℕ` by `BF64.mulShift`'s loop (`mulN`, `ofBits_mulN`), as `Guest.P
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Guest
+open LeanVM.Parameters LeanVM.Core
 
 @[expose] public section
 

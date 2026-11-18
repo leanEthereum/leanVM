@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Compiler.Assemble
-public import LeanVM.Guest.Code
+public import LeanVM.Core.Code
 
 /-!
 # The assembled program holds each function's resolved code
@@ -29,7 +29,7 @@ For functions with distinct names:
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 
@@ -325,7 +325,7 @@ theorem assembleAt_size (l : Layout) (size : ℕ) (fns : List Lowered) :
 /-! ## Chunks -/
 
 theorem chunked_go : ∀ (fuel : ℕ) (c : List OffsetInstruction), c.length / chunkSize < fuel →
-    Guest.chunked chunkSize (Compiler.chunked.go fuel c) c.length = true ∧
+    Core.chunked chunkSize (Compiler.chunked.go fuel c) c.length = true ∧
       (Compiler.chunked.go fuel c).flatten = c
   | 0, c, h => absurd h (Nat.not_lt_zero _)
   | fuel + 1, c, h => by
@@ -334,13 +334,13 @@ theorem chunked_go : ∀ (fuel : ℕ) (c : List OffsetInstruction), c.length / c
       · next he =>
         have : c = [] := by simpa using he
         subst this
-        simp [Guest.chunked]
+        simp [Core.chunked]
       · next he =>
         by_cases hle : c.length ≤ chunkSize
         · have hgo : Compiler.chunked.go fuel [] = [] := by
             cases fuel <;> simp [Compiler.chunked.go]
           rw [List.drop_eq_nil_of_le hle, hgo, List.take_of_length_le hle]
-          simp [Guest.chunked, hle]
+          simp [Core.chunked, hle]
         · have hC : 0 < chunkSize := by decide
           obtain ⟨h1, h2⟩ := chunked_go fuel (c.drop chunkSize) (by
             rw [List.length_drop]
@@ -348,13 +348,13 @@ theorem chunked_go : ∀ (fuel : ℕ) (c : List OffsetInstruction), c.length / c
             omega)
           rw [List.length_drop] at h1
           refine ⟨?_, by rw [List.flatten_cons, h2, List.take_append_drop]⟩
-          rw [Guest.chunked]
+          rw [Core.chunked]
           simp [hle, h1]
           omega
 
 /-- The chunks of code are well formed and hold the code. -/
 theorem chunked_ok (c : List OffsetInstruction) :
-    Guest.chunked chunkSize (Compiler.chunked c) c.length = true ∧ (Compiler.chunked c).flatten = c :=
+    Core.chunked chunkSize (Compiler.chunked c) c.length = true ∧ (Compiler.chunked c).flatten = c :=
   chunked_go _ c (Nat.lt_succ_self _)
 
 /-! ## The functions of the assembled program -/
@@ -398,11 +398,11 @@ theorem assembleAt_fetch {l : Layout} {size : ℕ} {fns pre post : List Lowered}
     rw [Array.toList_extract, hacode, hsplit, resolvedFrom_append, resolvedFrom, Nat.zero_add, hgetD,
       List.extract_eq_take_drop, List.drop_left' (resolvedFrom_length l pre 0),
       Nat.add_sub_cancel_left, List.take_left' (resolvedFn_length l _ f)]
-  have hfetch := Guest.assemble_fetch (hl := hl) hcons hfit hmem (i := i) hi
+  have hfetch := Core.assemble_fetch (hl := hl) hcons hfit hmem (i := i) hi
   have hwc : (a.fnOf (f.name, totalSize pre, f.code.size)).WellChunked := by
     have := (chunked_ok (resolvedFn l (totalSize pre) f)).1
     rw [resolvedFn_length] at this
-    show Guest.chunked chunkSize
+    show Core.chunked chunkSize
       (chunked (a.code.extract (totalSize pre) (totalSize pre + f.code.size)).toList) f.code.size = true
     rw [hcode]
     exact this

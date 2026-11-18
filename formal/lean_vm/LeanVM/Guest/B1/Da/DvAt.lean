@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Da.ColAt
 public import LeanVM.Guest.B1.Da.ColLoopAt
 public import LeanVM.Guest.B1.Da.AtTB
 public import LeanVM.Guest.B1.Da.DvBound
-public import LeanVM.Guest.Value.KeccakDuplex
+public import LeanVM.Core.Value.KeccakDuplex
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
@@ -37,7 +37,7 @@ returning the root's cells and the challenge.
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (gen eOfNat)
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest

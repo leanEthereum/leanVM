@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Sig.SpWotsArms
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Core LeanVM.Parameters LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 

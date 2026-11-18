@@ -37,7 +37,7 @@ The hints are free: the assembly picks them as `Guest/Hints.lean`'s `sphincsHint
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
 

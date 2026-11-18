@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Merkle.Cap
-public import LeanVM.Guest.CoreFind
+public import LeanVM.Core.Find
 public import LeanVM.Guest.Pack.P4.Core
 public import LeanVM.Guest.Pack.P6.Core
 public import LeanVM.Guest.Pack.P11.Core
@@ -26,7 +26,7 @@ the meaning, in every program that finds the functions (`Finds`; `CapAll.lean` a
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

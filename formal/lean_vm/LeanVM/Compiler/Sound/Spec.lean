@@ -52,7 +52,7 @@ and the preconditions `U` the callers are asked for.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

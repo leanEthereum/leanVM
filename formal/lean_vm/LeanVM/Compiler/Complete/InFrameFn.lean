@@ -20,7 +20,7 @@ instructions name, which the contract does not state but the frame side uses.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

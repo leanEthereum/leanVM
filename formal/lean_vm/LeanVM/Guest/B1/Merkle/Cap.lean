@@ -30,9 +30,9 @@ every depth, and `verify_merkle_cap_holds` the seven deployed depths.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Value.Keccak
+open LeanVM.Core.Value.Keccak
 
 @[expose] public section
 

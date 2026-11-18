@@ -26,7 +26,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 

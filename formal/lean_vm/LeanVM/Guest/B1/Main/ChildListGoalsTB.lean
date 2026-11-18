@@ -19,8 +19,8 @@ calls within `Bxs c`, `Bss c` words. `ChildListGoalsTB.toT` forgets the bounds.
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
-open LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
+open LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1 (CompleteAtDTB Returns)

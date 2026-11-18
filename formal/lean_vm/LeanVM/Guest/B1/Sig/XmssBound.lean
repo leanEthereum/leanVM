@@ -17,7 +17,7 @@ against is `g^255`, so a range check against it has witnesses at `k` and `255 - 
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 
