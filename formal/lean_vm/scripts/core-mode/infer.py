@@ -260,6 +260,7 @@ class Sig:
 
 SIGS = {}
 PFR = ('__pfr__',)   # the key of a selector arm's pointer runs among its kept heap words (`cond`)
+PF = ('__pf__',)     # and of its pointer facts
 GB = 1 << 20   # ghost slot j is the value `GB + j`
 
 
@@ -307,11 +308,14 @@ def meet(sts, sel=None):
             runs = [(r, w) for r, w in t.runs if (r, w) not in s.runs]
             hv = {c: w for c, w in t.hv.items() if c not in s.hv}
             pfr = [x for x in t.pfr if x not in s.pfr]
-            if pts or runs or hv or pfr:
+            pf = {c: f for c, f in t.pf.items() if c not in s.pf}
+            if pts or runs or hv or pfr or pf:
                 old = s.cond.get((x, js[j]), ({}, [], {}))
                 hv2 = {**old[2], **hv}
                 if pfr:
                     hv2[PFR] = old[2].get(PFR, []) + pfr
+                if pf:
+                    hv2[PF] = {**old[2].get(PF, {}), **pf}
                 s.cond[(x, js[j])] = ({**old[0], **pts}, old[1] + runs, hv2)
     return s
 
@@ -1019,8 +1023,9 @@ class Pass:
                         for pts, runs, hv in self.conds_of(st, s[1], j):
                             t.pts.update({c: w for c, w in pts.items() if c not in t.pts})
                             t.runs += runs
-                            t.hv.update({c: w for c, w in hv.items() if c not in t.hv and c != PFR})
+                            t.hv.update({c: w for c, w in hv.items() if c not in t.hv and c not in (PFR, PF)})
                             t.pfr += hv.get(PFR, [])
+                            t.pf.update({c: f for c, f in hv.get(PF, {}).items() if c not in t.pf})
                         self.subst = self.assume(st, s[1], j)
                     outs.append(self.block(t, arm))
                     self.subst = old
@@ -1486,6 +1491,7 @@ def used_res(P):
 
 
 GENERIC = {'hint': 'a hint\'s range (windowsExp, digitsExp, log2Ceil): one lemma per hint kind',
+           'ptrsub': 'a run of pointer cells inside the same table\'s runs of another stride (index arithmetic)',
            'selector': 'a match or dispatch selector below its arms (the statement\'s semantics)',
            'rangeCheck': 'a range check (the atom\'s semantics)',
            'merge': 'S residues of stride S are a contiguous run', 'concat': 'two adjacent runs are one',

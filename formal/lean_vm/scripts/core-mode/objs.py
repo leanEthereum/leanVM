@@ -42,10 +42,27 @@ def ptrlike(P, b):
     return any(c[0] == ((b, 1),) for c in G.pre) or any(r[0][0] == ((b, 1),) for r in G.preR)
 
 
+def idxlike(P, b):
+    """A value used as an index: in an exponent fact (a range check, a selector, a hint's range) or raised to a power
+    in some monomial; then not an object when another base can be."""
+    st = P.cur
+    key = (id(st), len(st.env), len(st.lts))
+    if getattr(P, 'idxkey', None) != key:
+        s = set()
+        for a, c in st.lts:
+            s.update(x for x, _ in a[0])
+            s.update(x for x, _ in c[0])
+        for m in st.env.values():
+            s.update(x for x, e in m[0] if e > 1)
+        P.idxkey, P.idxset = key, s
+    return b in P.idxset
+
+
 def order(P, bs):
-    rank = {'ghost': 0, 'load': 1, 'ret': 2, 'alloc': 3, 'ptr': 4, 'param': 5}
-    return sorted(bs, key=lambda b: rank['ghost' if b >= GB else ('ptr' if ptrlike(P, b) else 'param') if b < P.m
-                                         else P.defkind.get(b)])
+    rank = {'ghost': 0, 'ptr': 1, 'load': 2, 'ret': 3, 'alloc': 4, 'param': 5}
+    return sorted(bs, key=lambda b: (b < GB and getattr(P, 'cur', None) is not None and idxlike(P, b),
+                                     rank['ghost' if b >= GB else ('ptr' if ptrlike(P, b) else 'param') if b < P.m
+                                          else P.defkind.get(b)]))
 
 
 def gcd_rest(c, rb):
@@ -63,6 +80,7 @@ def cell_root(P, c):
 
 
 def on_store(P, st, c, d):
+    P.cur = st
     """A store: the object of the word, by the cell's object and its offset modulo the record stride."""
     rb = cell_root(P, c)
     if rb is None:
@@ -236,6 +254,7 @@ def addres(P, key, r):
 
 
 def read(P, st, c, site, conds):
+    P.cur = st
     if 'obj' not in F:
         return None
     for o in objs_of_mono(P, st, c):
@@ -258,6 +277,7 @@ def read(P, st, c, site, conds):
 
 
 def run(P, st, r, site, conds):
+    P.cur = st
     for o in objs_of_mono(P, st, r[0]):
         rr = run_for(P, st, o, conds)
         if rr is None:
@@ -272,6 +292,7 @@ def run(P, st, r, site, conds):
 
 
 def inst(P, st, G, args, conds, tail=False):
+    P.cur = st
     """The callee's ghosts at a call: each anchor resolved to the caller's object, its run's base and bound."""
     gi = [None] * len(G.ghosts)
     for j, anc in enumerate(G.ghosts):

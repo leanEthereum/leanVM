@@ -37,6 +37,11 @@ CONFIGS = {
     'lean+callIfR+rules+idx': {'callIfR', 'rules', 'idx'},
     'requested': {'callIfR', 'retM', 'hv', 'join', 'cond', 'idx', 'div', 'rules'},
     'full': set(I.FEATURES),
+    # milestone 4's families (`objs.py`, `ptrrun.py`) over what milestones 2-3 had
+    'm3': set(I.FEATURES) - {'obj', 'narrow', 'pfr', 'armx'},
+    'm3+obj': set(I.FEATURES) - {'narrow', 'pfr', 'armx'},
+    'm3+obj+narrow': set(I.FEATURES) - {'pfr', 'armx'},
+    'm3+obj+narrow+pfr': set(I.FEATURES) - {'armx'},
 }
 
 
@@ -56,6 +61,11 @@ def main():
             unc = sum(len(res[k].unc) + I.misses(res[k]) for k in ks)
             print(f'  {s:4s} {len(ks):5d} fns: {sum(k in clean for k in ks):5d} witnessed, {sum(k in closed for k in ks):5d} closed,'
                   f' {sum(nres[k] for k in ks):5d} residuals in {sum(1 for k in ks if nres[k]):4d} fns, {unc:6d} uncovered')
+        fams = collections.Counter()
+        for k, P in res.items():
+            for i in I.used_res(P):
+                fams[I.res_family(P, P.res[i])] += 1
+        print('  residuals by family:', dict(sorted(fams.items(), key=lambda x: -x[1])))
 
 
 if __name__ == '__main__':

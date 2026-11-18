@@ -54,9 +54,12 @@ def cover(P, st, t, offs, conds):
             return ('pfr', w, u)
     if n is not None and n <= 64 and not lo[0]:
         ws = []
+        pf = dict(st.pf)
+        for cd in conds or ():
+            pf.update({c: f for c, f in cd[2].get(I.PF, {}).items() if c not in pf})
         for i in range(n):
             c = shift(Q, S * (lo[1] + i))
-            f = st.pf.get(c)
+            f = pf.get(c)
             if f is not None and set(offs) <= f[0]:
                 ws.append(('pf', f[1]))
                 continue
@@ -74,13 +77,27 @@ def cover(P, st, t, offs, conds):
             P.sig.prePR.append(e)
         P.stats['wpr-pre'] += 1
         return ('pfr', ('prePR', P.sig.prePR.index(e)), [])
-    # a run of a different stride or offset over the same table: index arithmetic (residual)
-    for r, o, w in reversed(scope(st, conds)):
-        if r[0][0] == Q[0] and set(offs) <= o:
-            k = P.addres(('subPR', t, r, 'ptrsub'))
-            P.stats['wpr-sub'] += 1
-            return ('pfr', w, [k])
-    return None
+    # runs of other strides and points over the same table that hold every cell of `t`: with constant bounds a
+    # decidable inclusion (`ptrsub`), else an instance residual (`ptrsubv`)
+    haves = [(r, w) for r, o, w in scope(st, conds) if r[0][0] == Q[0] and set(offs) <= o]
+    pf = dict(st.pf)
+    for cd in conds or ():
+        pf.update({c: f for c, f in cd[2].get(I.PF, {}).items() if c not in pf})
+    pts = [(c, f[1]) for c, f in pf.items() if c[0] == Q[0] and set(offs) <= f[0]]
+    if not haves and not pts:
+        return None
+    const = not lo[0] and not hi[0] and all(not r[2][0] and not r[3][0] for r, _ in haves)
+    if const:
+        offs_have = {c[1] for c, _ in pts}
+        for r, _ in haves:
+            offs_have |= {r[0][1] + r[1] * j for j in range(r[2][1], r[3][1])}
+        if not all(Q[1] + S * j in offs_have for j in range(lo[1], hi[1])):
+            return None
+        k = P.addres(('subPR', t, tuple(r for r, _ in haves) + tuple(c for c, _ in pts), 'ptrsub'))
+    else:
+        k = P.addres(('subPR', t, tuple(r for r, _ in haves), 'ptrsubv'))
+    P.stats['wpr-sub'] += 1
+    return ('pfr', haves[0][1] if haves else pts[0][1], [k])
 
 
 def loop_finish(P, G, tails, end):
