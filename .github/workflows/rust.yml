@@ -39,6 +39,19 @@ jobs:
         run: cargo test --release -p keccak256
         env:
           RUSTFLAGS: -C target-cpu=x86-64
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: bins/leanvm-sidecar/clients/go/go.mod
+      # Against the sidecar `cargo testall` built.
+      - name: Test (the sidecar's Go client)
+        working-directory: bins/leanvm-sidecar/clients/go
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          socket=$RUNNER_TEMP/sidecar.sock
+          ../../../../target/release/leanvm-sidecar --socket "$socket" &
+          until [ -S "$socket" ]; do kill -0 $! && sleep 1; done
+          LEANVM_SIDECAR_SOCKET=$socket go test -count=1 ./...
 
   # The NEON kernels, as bench.yml's arm64 testbed builds them: the x86 job's haswell reaches none of them.
   test-arm64:

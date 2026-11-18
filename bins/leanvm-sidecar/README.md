@@ -35,7 +35,7 @@ assert!(sidecar.verify(&claims, &proof)?);
 
 A call waits as long as the sidecar takes, unless `set_timeout` bounds it; after a timeout, drop the client.
 
-From another language, implement the protocol below.
+From Go, `clients/go` (package `leanvmsidecar`) offers the same, `Dial`, then `Aggregate` and `Verify`, with claims, proofs, signatures and blobs in the byte forms below. From another language, implement the protocol below.
 
 ## Protocol, version 1
 
