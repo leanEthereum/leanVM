@@ -96,6 +96,28 @@ end
 
 end LeanVM.Guest.Fn.«block_selector__L15»
 
+namespace LeanVM.Guest.Fn.«aggregate_claims_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop33`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«aggregate_claims_loop1».modeSig) .nil .nil)))) .nil)) .nil))
+    .nil) .nil)) .nil))))) .nil)), 524287⟩
+
+/-- `__loop33`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨251068, 36, Fn.«aggregate_claims_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«aggregate_claims_loop1»
+
 namespace LeanVM.Guest.Fn.«level_positions__L14_L16_L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec

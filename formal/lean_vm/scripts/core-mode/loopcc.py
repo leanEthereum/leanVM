@@ -19,8 +19,9 @@ CORE, STABLE = I.CORE, I.STABLE
 No = callc.No
 
 
-def candidates():
-    """Loop helpers: atoms and calls (at least one), the tail `callIf` to itself with a word per parameter, `ret []`."""
+def candidates(S=None):
+    """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
+    call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`)."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]
@@ -30,7 +31,9 @@ def candidates():
         if I.callee(t[2]) != k or len(t[3]) != len(params):
             continue
         kinds = {s[0] for s in body[:-2]}
-        if 'call' in kinds and kinds <= {'a', 'call'}:
+        G = (S or {}).get(k)
+        own_ptr = G is not None and bool(G['preP'] or G['postLP'])
+        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr):
             out.append(k)
     return out
 
@@ -125,7 +128,7 @@ def results(verbose=False):
     I.F.update({'ptr', 'pfr'})
     S = route.sigs()
     out, why = {}, collections.Counter()
-    cs = candidates()
+    cs = candidates(S)
     for k in cs:
         try:
             out[k] = infer_one(k, S)

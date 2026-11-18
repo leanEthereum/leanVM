@@ -28,21 +28,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_any_loop0»
 
-namespace LeanVM.Guest.Fn.«aggregate_claims_loop2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop34`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 427) (d := Data.adviceFn427) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«aggregate_claims_loop2»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

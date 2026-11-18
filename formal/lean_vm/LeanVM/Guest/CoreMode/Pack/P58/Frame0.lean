@@ -29,6 +29,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P58».Pair
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L3».Pair
 public import LeanVM.Guest.Pack.«P0».ModeSig
 public import LeanVM.Guest.Pack.«P11».ModeSig
@@ -134,10 +135,12 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `__loop33`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := Data.powTree, scaled := [9] }, 251068, 36,
-    Fn.«aggregate_claims_loop1».modeSig, .nil, 524287, Data.adviceFn425.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) (.node (some
-    ()) .nil .nil) .nil))), .nil, .nil⟩
+    Fn.«aggregate_claims_loop1».modeSig, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«aggregate_claims_loop1».modeSig) .nil .nil)))) .nil)) .nil))
+    .nil) .nil)) .nil))))) .nil)), 524287, Data.adviceFn425.2.2, .nil, .nil, .nil, .nil,
+    Fn.«aggregate_claims_loop1».pairO, Fn.«aggregate_claims_loop1».pairS, .nil⟩
 
 /-- `__loop33`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
