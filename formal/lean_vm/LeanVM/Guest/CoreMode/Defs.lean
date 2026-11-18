@@ -133,6 +133,9 @@ structure HSig where
   postP : List (CCell × List ℕ) := []
   prePR : List (CRun × List ℕ) := []
   postPR : List (CRun × List ℕ) := []
+  /-- Ghost slots: slot `m + j` (`m` the parameter count, `j < ghosts`) of `preR`, `preP`, `prePR` is a
+  word the caller names at each call (`HCert.gargs`), no parameter; in the own pass, value `GB + j`. -/
+  ghosts : ℕ := 0
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
@@ -154,6 +157,9 @@ structure HCert where
   divs : List ℕ := []
   /-- Reads taking the word stored at their cell (`hvs`, by value number). -/
   hvs : List ℕ := []
+  /-- Callees' ghost words, by call: `(g, args, ms)`, a call of `g` on the values `V.n a`, `a ∈ args`,
+  names its callee's ghost `j` by the monomial `ms[j]` over this function's values. -/
+  gargs : List (String × List ℕ × List CCell) := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

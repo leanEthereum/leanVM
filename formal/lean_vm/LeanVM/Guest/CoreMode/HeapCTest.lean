@@ -34,6 +34,9 @@ rejected.
 * `off2`, `useOff2`, `useOff2D`: a returned word `p·g^2` (`retM`), read through by the caller, after a
   call and after a `dispatch`; `hvf`: a word stored, read back and read through (`hv`); `divf`: a
   quotient by `g` (`divs`).
+* `rdg`, `useG`: reads through a cursor into a caller's object, the object a precondition over two ghost
+  slots, named by the caller (`ghosts`, `gargs`); `rdl`, the same in a loop, its tail call naming its own
+  ghosts.
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -484,6 +487,100 @@ def hCallRdp : HCert where
 
 theorem callRdp_ok :
     heapOkC Data.powTree (fun g ↦ if g = "rdp" then hRdp.sig else .empty) callRdp hCallRdp = true := by
+  decide +kernel
+
+/-! ## Ghost words -/
+
+/-- Reads `c[0]` and `c[1]`, `c` a cursor into a caller's object. -/
+def rdg : Fn where
+  name := "rdg"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 0) 1), .ret []]
+
+/-- `rdg`'s certificate: two ghosts (slots `1`, `2`; values `GB`, `GB + 1`), the object's base and bound,
+its run `G₀·g^[0, e(G₁))` a precondition (`preR`); the reads in it by the residual "`c·g^[0, 2)` is in
+the object" (`subR`). -/
+def hRdg : HCert where
+  sig := { preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 2⟩], ghosts := 2 }
+  reads := [(1, [(0, 0, .run 0 [0])]), (2, [(0, 1, .run 0 [0])])]
+  res := [.subR ⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, .num 0, .val 1048577⟩]
+  rets := [[]]
+
+theorem rdg_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdg hRdg = true := by decide +kernel
+
+/-- One ghost only: the run's bound (slot `2`) names no word. -/
+theorem rdg_one : heapOkC Data.powTree (fun _ ↦ .empty) rdg { hRdg with sig := { hRdg.sig with ghosts := 1 } } = false := by
+  decide +kernel
+
+/-- A body naming a ghost's value is refused. -/
+theorem rdg_named :
+    heapOkC Data.powTree (fun _ ↦ .empty) { rdg with body := [.atom (.load (.n 1) (.n 0) 0),
+      .atom (.load (.n 1048576) (.n 0) 1), .ret []] } hRdg = false := by
+  decide +kernel
+
+/-- Calls `rdg` on the cursor `c` into its stream `s`, of bound `L`. -/
+def useG : Fn where
+  name := "useG"
+  params := [.n 0, .n 1, .n 2]
+  body := [.call "rdg" [.n 1] [], .ret []]
+
+/-- `useG`'s certificate: its stream `s·g^[0, e(L))` a precondition, named as `rdg`'s ghosts (`gargs`):
+`rdg`'s `preR` is then that very run. -/
+def hUseG : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := []
+  calls := [[.run 0 []]]
+  rets := [[]]
+  gargs := [("rdg", [1], [⟨[(0, 1)], 0⟩, ⟨[(2, 1)], 0⟩])]
+
+theorem useG_ok : heapOkC Data.powTree (fun g ↦ if g = "rdg" then hRdg.sig else .empty) useG hUseG = true := by
+  decide +kernel
+
+/-- Ghost words not named: `rdg`'s two ghosts get none. -/
+theorem useG_none :
+    heapOkC Data.powTree (fun g ↦ if g = "rdg" then hRdg.sig else .empty) useG { hUseG with gargs := [] } = false := by
+  decide +kernel
+
+/-- Ghost words named for another call (other arguments): none for this one. -/
+theorem useG_key :
+    heapOkC Data.powTree (fun g ↦ if g = "rdg" then hRdg.sig else .empty) useG
+      { hUseG with gargs := [("rdg", [0], [⟨[(0, 1)], 0⟩, ⟨[(2, 1)], 0⟩])] } = false := by
+  decide +kernel
+
+/-- Another object (`c`'s own run): not a run in scope. -/
+theorem useG_bad :
+    heapOkC Data.powTree (fun g ↦ if g = "rdg" then hRdg.sig else .empty) useG
+      { hUseG with gargs := [("rdg", [1], [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩])] } = false := by
+  decide +kernel
+
+/-- Reads `c·i` for the counter `i` from its start to `n`, `c` a cursor into a caller's object. -/
+def rdl : Fn where
+  name := "rdl"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.mul (.n 3) (.n 2) (.n 0)), .atom (.load (.n 4) (.n 3) 0),
+    .atom (.const (.n 5) (word 2 0)), .atom (.mul (.n 6) (.n 0) (.n 5)), .atom (.add (.n 7) (.n 6) (.n 1)),
+    .atom (.const (.n 8) (word 2 0)), .atom (.mul (.n 9) (.n 0) (.n 8)), .callIf (.n 7) "rdl" [.n 9, .n 1, .n 2],
+    .ret []]
+
+/-- `rdl`'s certificate: ghosts `G₀`, `G₁` (slots `3`, `4`), the object's run a precondition; the read at
+the counter in it by the residual "`c·g^[e(i), e(n))` is in the object"; the tail call names its own
+ghosts again. -/
+def hRdl : HCert where
+  sig := { preR := [⟨⟨[(3, 1)], 0⟩, 1, .num 0, .val 4⟩], «term» := [(.val 0, .val 1)], ghosts := 2 }
+  reads := [(4, [(3, 0, .run 0 [0])])]
+  res := [.subR ⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, .num 0, .val 1048577⟩]
+  calls := [[.run 0 []]]
+  rets := [[]]
+  gargs := [("rdl", [9, 1, 2], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+
+theorem rdl_ok : heapOkC Data.powTree (fun g ↦ if g = "rdl" then hRdl.sig else .empty) rdl hRdl = true := by
+  decide +kernel
+
+/-- The tail call's ghosts swapped: its precondition is another run. -/
+theorem rdl_bad :
+    heapOkC Data.powTree (fun g ↦ if g = "rdl" then hRdl.sig else .empty) rdl
+      { hRdl with gargs := [("rdl", [9, 1, 2], [⟨[(1048577, 1)], 0⟩, ⟨[(1048576, 1)], 0⟩])] } = false := by
   decide +kernel
 
 end

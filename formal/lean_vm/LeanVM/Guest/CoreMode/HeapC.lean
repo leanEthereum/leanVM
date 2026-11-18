@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Heap
 public import LeanVM.Guest.Memory.Static
+public import LeanVM.Guest.Memory.Fresh
 
 /-!
 # The heap check with calls and loops
@@ -23,6 +24,8 @@ public import LeanVM.Guest.Memory.Static
 **The pass** (`chkC`). Milestone 1's state, plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
 
 **Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`).
+
+**Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
 
@@ -121,24 +124,58 @@ def PreSet (rd : Reader) (G : HSig) (ws : List E) (x : K) : Prop :=
 def PostSet (rd : Reader) (G : HSig) (ws : List E) (x : K) : Prop :=
   SigSet G.post G.postR ws x ∨ PtrSigSet rd G.postP G.postPR ws x
 
+/-! ## Ghost words -/
+
+/-- The first value number of the ghosts: ghost `j` of a function is the value `V.n (GB + j)`. -/
+def GB : ℕ := 1048576
+
+/-- A call's values are the values `V.n a`, `a ∈ ks`. -/
+def keyOk : List V → List ℕ → Bool
+  | [], [] => true
+  | v :: vs, k :: ks => (match vnum v with
+    | some k' => Nat.beq k' k
+    | none => false) && keyOk vs ks
+  | _, _ => false
+
+/-- **A call's ghost monomials**: those the certificate names for a call of `g` on `args`, over the
+caller's values. -/
+def gargsOf (ga : List (String × List ℕ × List CCell)) (g : String) (args : List V) : List CCell :=
+  match ga.find? fun p ↦ decide (p.1 = g) && keyOk args p.2.1 with
+  | some p => p.2.2
+  | none => []
+
+/-- **A call's ghost words**, at the caller's valuation. -/
+def gargsW (H : HCert) (σ : Val) (g : String) (args : List V) : List E :=
+  (gargsOf H.gargs g args).map fun c ↦ c.valW (vw σ)
+
+/-- **A function's own ghost words**: its values `V.n (GB + j)`. -/
+def ownG (G : HSig) (σ : Val) : List E := (List.range G.ghosts).map fun j ↦ vw σ (GB + j)
+
 /-- **The addresses an event writes**: an atom's, an entered call's callee guarantees at its words. -/
 def EvW (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → K → Prop
   | .atom a, x => Writes σ a x
   | .call f args rets, x => PostSet rd (sigOf f) ((args ++ rets).map σ) x
   | _, _ => False
 
-/-- **Written after the events `es`**: the own preconditions at the parameters' words `ws0`, or an
-event's write. -/
+/-- **Written after the events `es`**: the own preconditions at the parameters' words `ws0` and the
+own ghost words, or an event's write. -/
 def WrittenC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev) (x : K) :
     Prop :=
-  PreSet rd H.sig ws0 x ∨ ∃ e ∈ es, EvW sigOf rd σ e x
+  PreSet rd H.sig (ws0 ++ ownG H.sig σ) x ∨ ∃ e ∈ es, EvW sigOf rd σ e x
+
+/-- **A callee's preconditions written in `W`**, at a call of `g` on `args`: its argument words and
+the ghost words the caller names (as many as it has ghosts). -/
+def CallPre (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (W : K → Prop) (g : String)
+    (args : List V) : Prop :=
+  (gargsOf H.gargs g args).length = (sigOf g).ghosts ∧
+    SigOk W (sigOf g).pre (sigOf g).preR (args.map σ ++ gargsW H σ g args) ∧
+    PtrOk W rd (sigOf g).preP (sigOf g).prePR (args.map σ ++ gargsW H σ g args)
 
 /-- What an event needs written in `W`: an atom its reads, an entered call its callee's
 preconditions at its argument words. -/
 def ReqOk (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (W : K → Prop) : Ev → Prop
   | .atom a => ∀ x, Reads H σ a x → W x
-  | .call f args _ => SigOk W (sigOf f).pre (sigOf f).preR (args.map σ) ∧
-      PtrOk W rd (sigOf f).preP (sigOf f).prePR (args.map σ)
+  | .call f args _ => CallPre sigOf H rd σ W f args
   | _ => True
 
 /-- **Every event's needs are written before it.** -/
@@ -380,6 +417,7 @@ structure CX where
   res : Trie CRes
   dv : Trie Unit
   hv : Trie Unit
+  ga : List (String × List ℕ × List CCell)
   sigOf : String → HSig
   sig : HSig
   params : List V
@@ -566,6 +604,13 @@ noncomputable def reqS (X : CX) (st : CSt) (ms : List CCell) (G : HSig) (ws : Li
     | none => none
   | none => none
 
+/-- **A callee's preconditions at a call** of `g` on `args` (monomials `ma`): the ghost monomials the
+certificate names, as many as `g` has ghosts, after the arguments. The witnesses left. -/
+noncomputable def reqG (X : CX) (st : CSt) (ma : List CCell) (g : String) (args : List V) (ws : List Wit) :
+    Option (List Wit) :=
+  bif Nat.beq (gargsOf X.ga g args).length (X.sigOf g).ghosts then
+    reqS X st (ma ++ gargsOf X.ga g args) (X.sigOf g) ws else none
+
 /-- A fact `(a, g^h)` with `h ≤ j`, `h < 2^62`: the exponent of `a` below `j`. -/
 def hasFU (F : List (CCell × CCell)) (a : CCell) (j : ℕ) : Bool :=
   F.any fun p ↦ p.1.beq a && p.2.bases.isEmpty && Nat.ble p.2.off j && Nat.blt p.2.off capE
@@ -578,13 +623,13 @@ noncomputable def armSkip (X : CX) (st : CSt) (mx : CCell) (j : ℕ) : List Wit 
 
 /-- Each arm's preconditions at the slots `ms`, arm indices from `j`, an arm left out by `armSkip`:
 the witnesses left and the arms kept. -/
-noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (mx : CCell) :
+noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (args : List V) (mx : CCell) :
     ℕ → List String → List Wit → Option (List Wit × List String)
   | _, [], ws => some (ws, [])
   | j, g :: gs, ws => match armSkip X st mx j ws with
-    | some ws' => reqArmsX X st ms mx (j + 1) gs ws'
-    | none => match reqS X st ms (X.sigOf g) ws with
-      | some ws' => (reqArmsX X st ms mx (j + 1) gs ws').map fun p ↦ (p.1, g :: p.2)
+    | some ws' => reqArmsX X st ms args mx (j + 1) gs ws'
+    | none => match reqG X st ms g args ws with
+      | some ws' => (reqArmsX X st ms args mx (j + 1) gs ws').map fun p ↦ (p.1, g :: p.2)
       | none => none
 
 /-- Signature cells at the slots `ms`. -/
@@ -673,7 +718,7 @@ noncomputable def pushPost (G : HSig) (ms : List CCell) (st : CSt) : Option CSt 
 then its guarantees at its words pushed. -/
 noncomputable def callC (X : CX) (st : CSt) (g : String) (args rets : List V) : Option CSt :=
   match monos st.env args, getF X.C st.nc with
-  | some ma, some ws => match reqS X st ma (X.sigOf g) ws with
+  | some ma, some ws => match reqG X st ma g args ws with
     | some [] => (retDefs rets (instRM ma (X.sigOf g).retM) st.nextC).seq fun st1 ↦
         match monos st1.env rets with
         | some mr => pushPost (X.sigOf g) (ma ++ mr) st1
@@ -696,7 +741,7 @@ runs whose bounds are the operands of the guard's sum (not entered, the guard is
 word, the run empty). -/
 noncomputable def callIfC (X : CX) (st : CSt) (c : V) (g : String) (args : List V) : Option CSt :=
   match monos st.env args, getF X.C st.nc with
-  | some ma, some ws => match reqS X st ma (X.sigOf g) ws with
+  | some ma, some ws => match reqG X st ma g args ws with
     | some [] => match sumOf st c, instAllR ma (X.sigOf g).postR, instPRL ma (X.sigOf g).postPR with
       | some p, some qs, some prs =>
         some (pushPRL (prs.filter fun q ↦ boundsOf p q.1) (pushRL (qs.filter (boundsOf p)) st.nextC))
@@ -712,7 +757,7 @@ def meetM (ls : List (List (ℕ × CCell))) (p : ℕ × CCell) : Bool :=
 returned words' monomials every arm kept gives, then what every arm kept guarantees pushed. -/
 noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args rets : List V) : Option CSt :=
   match monos st.env args, monoOf st.env x, getF X.C st.nc with
-  | some ma, some mx, some ws => match reqArmsX X st ma mx 0 fs ws with
+  | some ma, some mx, some ws => match reqArmsX X st ma args mx 0 fs ws with
     | some ([], []) => some st.nextC
     | some ([], g :: gs) => (retDefs rets ((instRM ma (X.sigOf g).retM).filter
           (meetM (gs.map fun g' ↦ instRM ma (X.sigOf g').retM))) st.nextC).seq fun st1 ↦
@@ -969,11 +1014,15 @@ noncomputable def paramEnv : ℕ → Trie CCell
   | 0 => .nil
   | m + 1 => (paramEnv m).seq fun t ↦ (setF (baseC m) Exec.indexDepth t m).seq id
 
-/-- The entry state: each parameter its own base; the own `preP` at the parameters, point serials
-from `0`; the own `preR`, then `prePR`, at the parameters, run serials from `0`. -/
+/-- The own ghosts' monomials: the values `V.n (GB + j)`. -/
+def ghostMs (n : ℕ) : List CCell := (List.range n).map fun j ↦ baseC (GB + j)
+
+/-- The entry state: each parameter its own base; the own `preP` at the parameters and ghosts, point
+serials from `0`; the own `preR`, then `prePR`, at the parameters and ghosts, run serials from `0`. -/
 noncomputable def initC (X : CX) : Option CSt :=
   (paramEnv X.params.length).seq fun env ↦ match monos env X.params with
-  | some mp => match instPP mp X.sig.preP, instAllR mp X.sig.preR, instPRL mp X.sig.prePR with
+  | some mp => match instPP (mp ++ ghostMs X.sig.ghosts) X.sig.preP, instAllR (mp ++ ghostMs X.sig.ghosts) X.sig.preR,
+      instPRL (mp ++ ghostMs X.sig.ghosts) X.sig.prePR with
     | some pps, some rs, some prs =>
       some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0⟩)))
     | _, _, _ => none
@@ -984,18 +1033,22 @@ noncomputable def keysT : List ℕ → Trie Unit → Trie Unit
   | [], t => t
   | k :: l, t => (setF () Exec.indexDepth t k).seq fun t ↦ keysT l t
 
-/-- **The heap check with calls and loops.** The parameters `V.n i`, the preconditions over them,
-the entry state, then the pass over the body, or a loop helper's (`term = [(.val 0, end)]`, no
-returned word). -/
+/-- No value the function names is a ghost's (its index below `GB`): the function's run does not
+depend on its ghost words. -/
+def noGhost (f : Fn) : Bool := (Stmt.usesList f.body ++ Stmt.tmpsList f.body ++ f.params).all fun v ↦ Nat.blt v.idx GB
+
+/-- **The heap check with calls and loops.** The parameters `V.n i`, the preconditions over them, no
+ghost value named, the entry state, then the pass over the body, or a loop helper's
+(`term = [(.val 0, end)]`, no returned word). -/
 noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
-    H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) &&
+    H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) && noGhost f &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
       (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦
-        match initC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ with
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ with
         | some st0 => match H.sig.term with
-          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ f.body st0).isSome
-          | [(.val 0, ei)] => H.sig.retM.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ f ei st0
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ f.body st0).isSome
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params⟩ f ei st0
           | _ => false
         | none => false
 
