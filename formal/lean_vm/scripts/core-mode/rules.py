@@ -49,6 +49,17 @@ def tab_idx(P, st, c, site):
         return None
     N, used = b
     r = (shift(Q, o), S, num(0), N)
+    from infer import NARROW, F
+    nw = NARROW.get((P.key, r)) if 'narrow' in F else None
+    if nw is not None:
+        # the callers write the table only at a stride: the read one of those cells, a residual (`objs.narrow_site`)
+        a, S2 = nw
+        r2 = (shift(Q, o + a), S2, num(0), num((N[1] - a + S2 - 1) // S2))
+        if r2 not in P.sig.preR:
+            P.sig.preR.append(r2)
+        k = P.addres(('sub', c, r2, 'narrow'))
+        APPLIED['narrow'] = APPLIED.get('narrow', 0) + 1
+        return ('run', ('preR', P.sig.preR.index(r2)), used + [k])
     if r not in P.sig.preR:
         P.sig.preR.append(r)
     APPLIED['tabIdx'] = APPLIED.get('tabIdx', 0) + 1

@@ -34,6 +34,9 @@ import sys, os, collections, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.setrecursionlimit(100000)
 import coreir
+if __name__ == '__main__':
+    # `rules.py` and `objs.py` import this module by name: one instance, one `SIGS`
+    sys.modules.setdefault('infer', sys.modules[__name__])
 
 D = coreir.load()
 CORE, STABLE, POWS = D['core'], D['stable'], dict(D['pows'])
@@ -57,6 +60,10 @@ FEATURES = {
     'fa': 'a frame run\'s cells written when their values are defined (`frameAddr`)',
     'lts': 'range checks and selectors give exponent facts without a residual',
     'rules': 'residual rules (`rules.py`: `tabIdx`, `linSub`, ...)',
+    'obj': 'objects: a read through a pointer (a stream cursor, a word loaded from a record, a returned word) inside '
+           'the run of the object it points into, a residual `subR`; ghost slots name a caller\'s object (`objs.py`)',
+    'narrow': 'a table precondition its callers write only at a stride: narrowed to that stride, the read a residual '
+              '`sub` (`objs.py`)',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -208,7 +215,7 @@ def shape(k):
 # ---- signatures: monomials over parameter numbers `0..m-1` and returned words `m + j`
 
 class Sig:
-    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP')
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn')
 
     def __init__(self, m):
         self.m = m
@@ -221,17 +228,24 @@ class Sig:
         self.preP = []       # (cell, offsets): the cell's word is a pointer, these cells past it written
         self.postP = []
         self.retM = {}       # returned word j -> its monomial over the parameters
+        self.ghosts = []     # ghost slot j (value `GB + j`): its anchor (`objs.py`), an inference device only
+        self.postIn = []     # (cell pattern run, anchor): the cells' words point into the anchor's object
+        self.retIn = {}      # returned word j -> the anchor of the object it points into
+        self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.ctr = None      # a loop's counter and bound parameters
         self.bnd = None
 
     def key(self):
-        return tuple(tuple(getattr(self, f)) for f in self.FIELDS) + (tuple(sorted(self.retM.items())),)
+        return tuple(tuple(getattr(self, f)) for f in self.FIELDS) + (tuple(sorted(self.retM.items())),
+                                                                      tuple(sorted(self.retIn.items())),
+                                                                      tuple(sorted(self.narrow.items())))
 
     def clone(self):
         G = Sig(self.m)
         for f in self.FIELDS:
             setattr(G, f, list(getattr(self, f)))
         G.retM, G.ctr, G.bnd = dict(self.retM), self.ctr, self.bnd
+        G.retIn, G.narrow = dict(self.retIn), dict(self.narrow)
         return G
 
     def size(self):
@@ -239,6 +253,7 @@ class Sig:
 
 
 SIGS = {}
+GB = 1 << 20   # ghost slot j is the value `GB + j`
 
 
 # ---- the pass
@@ -313,6 +328,11 @@ class Pass:
         self.ltkey = {}
         self.eqs = []
         self.defs = {}
+        self.ginst = None                # the ghost instantiation of the call being met
+        self.retsite = {}                # returned value -> (callee, args, j, ginst)
+        self.contents = []               # (cell pattern run, object): words stored by callees
+        self.objres = {}                 # residual merging (`objs.py`)
+        self.stores = []                 # (cell root, offset, stride, object of the stored word) (`objs.py`)
         for s in stmts(self.body):
             if s[0] == 'a' and s[1][0] in ('add', 'mul', 'const', 'copy'):
                 self.defs.setdefault(s[1][1], s[1])
@@ -537,6 +557,11 @@ class Pass:
             w = rules.read(self, st, c, site)
             if w is not None:
                 return w
+        if 'obj' in F or 'narrow' in F:
+            import objs
+            w = objs.read(self, st, c, site, conds)
+            if w is not None:
+                return w
         return None
 
     def add_preP(self, cell, o):
@@ -649,6 +674,9 @@ class Pass:
                 self.stats['store'] += 1
                 if 'hv' in F:
                     st.hv.setdefault(c, self.mono(st, d))
+                if 'obj' in F:
+                    import objs
+                    objs.on_store(self, st, c, d)
             else:
                 w = self.read(st, c, ('load', d, p, off))
                 old = self.reads.get((d, p, off))
@@ -721,7 +749,11 @@ class Pass:
         """A callee's monomial, over its parameters (`b < m`) and returned words (`m + j`), in this function."""
         out = ((), c[1])
         for b, e in c[0]:
-            if b < len(args):
+            if b >= GB:
+                mb = self.ginst[b - GB] if self.ginst is not None and b - GB < len(self.ginst) else None
+                if mb is None:
+                    return None
+            elif b < len(args):
                 mb = self.mono(st, args[b])
             elif rets is not None and b - len(args) < len(rets):
                 mb = self.mono(st, rets[b - len(args)])
@@ -792,7 +824,12 @@ class Pass:
             return ('run', rw, res)
         if 'rules' in F:
             import rules
-            return rules.run(self, st, r, site, conds)
+            w = rules.run(self, st, r, site, conds)
+            if w is not None:
+                return w
+        if 'obj' in F:
+            import objs
+            return objs.run(self, st, r, site, conds)
         return None
 
     def lean_lower(self, st, lo, R, u):
@@ -843,6 +880,11 @@ class Pass:
         G = SIGS.get(f)
         ws = []
         site = ('call', f)
+        self.ginst = None
+        if G is not None and G.ghosts and 'obj' in F:
+            import objs
+            self.ginst = objs.inst(self, st, G, args, conds)
+        ginst = self.ginst
         if G is not None:
             for c in G.pre:
                 t = self.tr(st, c, args, None)
@@ -851,6 +893,9 @@ class Pass:
             for r in G.preR:
                 t = self.trR(st, r, args, None)
                 w = self.cover_run(st, t, site, conds) if t is not None else None
+                if w is None and t is not None and 'narrow' in F:
+                    import objs
+                    objs.narrow_site(self, st, f, r, t, conds)
                 ws.append(('preR', w if w is not None else self.unc_read(st, t[0] if t else None, site, 'run:')))
             for c, offs in G.preP:
                 t = self.tr(st, c, args, None)
@@ -872,6 +917,9 @@ class Pass:
                         st.env[rets[j]] = t
         for v in rets or ():
             self.define(st, v, None, 'ret')
+        if 'obj' in F:
+            import objs
+            objs.after_call(self, st, f, G, args, rets, ginst)
         if not conditional:
             for c in G.post:
                 t = self.tr(st, c, args, rets)
@@ -971,6 +1019,10 @@ class Pass:
         one; the own precondition; the own run by the shifted-lower rule). Misses are the next round's runs."""
         G, ws = self.sig, []
         self.at_tail = True
+        self.ginst = None
+        if G.ghosts and 'obj' in F:
+            import objs
+            self.ginst = objs.inst(self, st, G, args, None, tail=True)
         for c in G.pre:
             t = self.tr(st, c, args, None)
             if t in G.pre:
@@ -1236,6 +1288,10 @@ def infer(key, rules=True):
         else:
             retsig(P, G)
         k = G.key()
+        if 'obj' in F:
+            import objs
+            objs.summary(P, G)
+        k = G.key()
         if k == prev:
             break
         prev = k
@@ -1297,13 +1353,25 @@ def loop_finish(P, G):
 
 # ---- reporting
 
+NARROW = {}        # (function, table run) -> (offset, stride) its callers write it at (`objs.narrow_site`)
+NARROW_SITES = {}
+
+
 def run_all(rules=True):
-    SIGS.clear()
-    WRAP[0] = 'wrap' in F
-    out = {}
     t = time.time()
-    for k in ORDER:
-        out[k] = infer(k, rules)
+    NARROW.clear()
+    for rnd in range(3 if 'narrow' in F else 1):
+        SIGS.clear()
+        NARROW_SITES.clear()
+        WRAP[0] = 'wrap' in F
+        out = {}
+        for k in ORDER:
+            out[k] = infer(k, rules)
+        if 'narrow' not in F:
+            break
+        import objs
+        if not objs.narrow_update():
+            break
     return out, time.time() - t
 
 
