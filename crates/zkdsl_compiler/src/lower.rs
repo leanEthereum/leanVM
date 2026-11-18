@@ -226,6 +226,7 @@ struct FnLower<'a> {
     loop_ctr: &'a mut usize,
     /// Function name for diagnostics and generated-loop handling.
     fn_name: &'a str,
+    params: &'a [Param],
     /// The program's function definitions by name, for `Const`-parameter
     /// specialization at call sites ([`Self::specialize`]).
     defs: &'a HashMap<&'a str, &'a Func>,
@@ -756,7 +757,23 @@ impl FnLower<'_> {
                     }
                 }
             }
-            for st in if (ai == bi) == eq { then } else { els } {
+            let taken = if (ai == bi) == eq { then } else { els };
+            // `free_vars_stmt` knows only a `const(...)` or two-literal `if` folds: for any other it captured the
+            // names this arm rebinds, and the loop's self-call would pass the new value on.
+            if self.fn_name.starts_with("__loop") && !force_const && !matches!((lhs, rhs), (Expr::Lit(_), Expr::Lit(_)))
+            {
+                let mut bound = std::collections::HashSet::new();
+                taken
+                    .iter()
+                    .for_each(|s| free_vars_stmt(s, &mut Vec::new(), &mut bound));
+                if let Some(p) = self.params.iter().find(|p| bound.contains(p.name.as_str())) {
+                    self.fail(format!(
+                        "a folded `if` assigns to `{}`, from outside the `for` loop: the loop cannot carry it",
+                        p.name
+                    ))
+                }
+            }
+            for st in taken {
                 self.stmt(st);
             }
             return;
@@ -1662,6 +1679,7 @@ pub(crate) fn lower_func(
         return_shapes: &f.return_shapes,
         is_main: f.name == "main",
         fn_name: &f.name,
+        params: &f.params,
         tail_call: false,
         code: Vec::new(),
         cur_line: 0,
