@@ -1309,6 +1309,39 @@ theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       · exact ptOk_ok hX hpre hs hp
       · exact ptsW_ok hX hpre hs h o0 ho0
 
+theorem lt_offHi {offs : List ℕ} : ∀ {o : ℕ}, o ∈ offs → o < offHi offs := by
+  induction offs with
+  | nil => intro o ho; cases ho
+  | cons a l ih =>
+    intro o ho
+    have h := @ih o
+    simp only [offHi, List.foldr_cons] at h ⊢
+    rcases List.mem_cons.mp ho with rfl | ho
+    · omega
+    · have := h ho; omega
+
+/-- The cells past a word, each witnessed or inside one run witnessed: written. -/
+theorem ptsWR_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
+    (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st) {m : CCell} {offs : List ℕ}
+    {wl wl' : List Wit} (h : ptsWR X st m offs wl = some wl') : ∀ o ∈ offs, W ((m.shift o).addr σ) := by
+  rcases wl with _ | ⟨w0, _ | ⟨w, wl⟩⟩
+  · exact ptsW_ok hX hpre hs (by simpa only [ptsWR] using h)
+  · exact ptsW_ok hX hpre hs (by simpa only [ptsWR] using h)
+  · simp only [ptsWR] at h
+    cases hb : (w0.isPts && !offs.isEmpty) with
+    | false => rw [hb, Bool.cond_false] at h; exact ptsW_ok hX hpre hs h
+    | true =>
+      rw [hb, Bool.cond_true] at h
+      cases hr : (Nat.blt (offHi offs) capE && rnOk X st ⟨m, 1, ⟨[], 0⟩, ⟨[], offHi offs⟩⟩ w) with
+      | false => rw [hr] at h; simp at h
+      | true =>
+        simp only [Bool.and_eq_true, Nat.blt_eq] at hr
+        have hR := rnOk_ok hX hs hr.2
+        intro o ho
+        have hlt := lt_offHi ho
+        have hx := hR _ (runSet_of (S := 1) (rep_const (by rw [capE_eq]; norm_num)) (rep_const hr.1) (Nat.zero_le o) hlt)
+        rw [addr_eq, CCell.addrW, valW_shift]; simpa only [Nat.one_mul] using hx
+
 /-- **A pointer fact's witness**: the cells past the word at the cell written. -/
 theorem ptrOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
     (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st) {c : CCell} {offs : List ℕ}
@@ -1357,7 +1390,7 @@ theorem ptrOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : X
           rw [hb, Bool.cond_true] at h
           have hrd := hs.sv m p hm
           rw [CCell.beq_eq hb] at hrd
-          have hcells := ptsW_ok hX hpre hs h
+          have hcells := ptsWR_ok hX hpre hs h
           rintro x ⟨w, hw, o, ho, rfl⟩
           rw [hrd, Option.some.injEq] at hw
           subst hw

@@ -50,6 +50,7 @@ def _em():
     saved = list(sys.argv)
     import emitc
     sys.argv[:] = saved
+    emitc.WORD_RUN = True
     return emitc
 
 
@@ -586,6 +587,31 @@ def ldata(k, r):
             f'counts. -/\ndef hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
 
 
+GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
+
+
+def windows(R, po):
+    """The heap checks estimated past `heapwin.BUDGET` (the heartbeats, or the memory a module may take), in windows
+    (`heapwin.one`): `GenW/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` as
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
+    import heapwin
+    epo = heapwin.E.pack_of()
+    files, dirs = {}, set()
+    for k in sorted(R):
+        H = R[k]['cert']
+        sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
+        sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
+        if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
+            continue
+        gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
+                   data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
+                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+        for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
+            files[os.path.join(GENW, k, name + '.lean')] = text
+        dirs.add(os.path.join(GENW, k))
+    return files, dirs
+
+
 def emit(R, check):
     import heap
     po = heap.pack_of()
@@ -605,6 +631,15 @@ def emit(R, check):
     files[os.path.join(GEN, 'HcSig.lean')] = hcsig_file(R)
     import glob
     stale = []
+    wfiles, wdirs = windows(R, po)
+    files.update(wfiles)
+    for path in sorted(set(glob.glob(os.path.join(GENW, '*', '*.lean'))) - set(wfiles)):
+        stale.append(path)
+        if not check:
+            os.remove(path)
+    for d in sorted(set(glob.glob(os.path.join(GENW, '*'))) - wdirs):
+        if not check:
+            os.rmdir(d)
     for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataC.lean'))) - set(files)):
         stale.append(path)
         if not check:

@@ -40,6 +40,9 @@ PTSMAX = 4096
 # check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
 # one `decide`) is windowed too
 KERNEL_WIN = {'main_loop2'}
+# a pointer fact at a word whose cells one run in scope holds: that run's witness after `pts` (`ptsWR`), not a point
+# witness per offset; the core route's certificates (`callc.py`) only
+WORD_RUN = False
 
 
 # ---- the inference's values, recorded as it assigns them
@@ -919,6 +922,13 @@ class Solver:
         for n in sorted(st.sv):
             q = st.sv[n]
             if q[0] == c:
+                if WORD_RUN and offs and max(offs) + 1 < C.CAPE:
+                    # the cells past the word inside one run in scope (`ptsWR`)
+                    Q = (q[1], 1, ((), 0), ((), max(offs) + 1))
+                    for r in sorted(st.rs, reverse=True):
+                        f = self.run_in(st, Q, st.rs[r])
+                        if f is not None:
+                            return [('word', n), ('pts',), ('run', r, f)]
                 ws = [('word', n)]
                 for o in offs:
                     w = self.pt(st, C.cshift(q[1], o))

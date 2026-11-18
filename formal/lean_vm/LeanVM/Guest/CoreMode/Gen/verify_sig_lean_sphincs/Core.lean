@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GenW.verify_sig_lean_sphincs.Ok
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
@@ -37,8 +38,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
-  decide +kernel
+theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
 
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
 theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by

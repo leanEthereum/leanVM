@@ -620,8 +620,16 @@ def ptrOk(X, st, c, offs, ws, i):
         return i + 1 if p is not None and ptRun(X.facts(st.env, w[2]), p[0], c) and subL(offs, p[1]) else None
     if w[0] == 'word':
         p = st.sv.get(w[1])
-        return ptsW(X, st, p[1], offs, ws, i + 1) if p is not None and p[0] == c else None
+        return ptsWR(X, st, p[1], offs, ws, i + 1) if p is not None and p[0] == c else None
     return None
+
+
+def ptsWR(X, st, m, offs, ws, i):
+    """`ptsWR`: after the marker `pts`, the cells past the word inside one run witness (`rnOk`), else `ptsW`."""
+    if i + 1 < len(ws) and ws[i] == ('pts',) and offs:
+        hi = max(offs) + 1
+        return i + 2 if hi < CAPE and rnOk(X, st, (m, 1, ((), 0), ((), hi)), ws[i + 1]) else None
+    return ptsW(X, st, m, offs, ws, i)
 
 
 def ptrPts(X, st, b, S, offs, j, n, ws, i):

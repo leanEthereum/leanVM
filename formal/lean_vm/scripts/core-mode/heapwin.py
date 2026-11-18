@@ -24,6 +24,10 @@ unchanged parts shared with the previous state). The windows cover a loop helper
   `Fn.«fn».heap_okC : heapOkC Data.powTree sigOf core hcert = true` (the statement `emitc.py` writes for the other
   functions), by `heapOkC_of_wins` (`heapOkC_of_winsF`).
 
+The core route's certificates (`callc.py`, `Gen/<pack>/DataC.lean`) are windowed the same way (`one`, with `gen`):
+`GenW/<fn>/`, at the callees' signatures `csigs` as `CFun.sigOf` reads them, the windows' namespace `HeapWG`, the
+check `Fn.«fn».heap_okW`, long witness lists of the context's literals in declarations of their own.
+
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/heapwin.py [--fn NAME,..]
   [--budget N] [--out DIR] [--check] [--mods FILE]. `emitc.py` runs it for the functions it windows (`run`), so its
   `--check` and `--mods` cover these modules too.
@@ -390,8 +394,9 @@ def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW'):
     return out
 
 
-def lcx(H):
-    """The context's tries (`cxOf`) as literals: `[(field, its expression, type, defs, literal)]`."""
+def lcx(H, chunk=False):
+    """The context's tries (`cxOf`) as literals: `[(field, its expression, type, defs, literal)]`; `chunk`: a long
+    witness list in parts of declarations of their own."""
     reads = collections.defaultdict(list)
     for (d, p, off), w in sorted(H.reads.items()):
         reads[d].append(f'({p}, {off}, {E.lwit(w)})')
@@ -407,6 +412,15 @@ def lcx(H):
     out = []
     for f, lhs, typ, d, val in fields:
         defs = []
+        if chunk and f in ('C', 'T'):
+            def val(ws, f=f, defs=defs, n=[0]):
+                if sum(len(E.lwit(w)) + 2 for w in ws) <= E.LIM:
+                    return wl(ws)
+                n[0] += 1
+                ax = E.Aux()
+                t = ax.lst(f'cx{f}w{n[0]}_', 'CoreMode.Wit', list(map(E.lwit, ws)))
+                defs.extend(ax.defs)
+                return t
         lit = Lits(f'cx{f}').ltrie({k: v for k, v in d.items() if k < KEYMAX}, val, typ, defs)
         out.append((f, lhs, typ, defs, lit))
     return out
@@ -443,7 +457,7 @@ def emit(k, H, sts, cs, names, po, splits={}, gen=None):
     mods.append(('St', st))
     imps = (f'public import LeanVM.Guest.Data.Pows\npublic import LeanVM.Guest.Pack.«{pack}».{core_mod}\n')
     # one module per trie (`Cx<field>`), each stated once; `Cx` the context
-    fl = lcx(H)
+    fl = lcx(H, chunk=bool(gen))
     opn = (f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\nopen LeanVM.Guest.Exec (Trie)\n\n'
            f'@[expose] public section\n')
     for f, lhs, typ, defs, lit in fl:

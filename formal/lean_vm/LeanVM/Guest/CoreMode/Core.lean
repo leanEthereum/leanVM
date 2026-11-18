@@ -846,6 +846,20 @@ noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
     !Cf.frame.F.fpOne && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
+/-- `shapeOk` but for its two longest passes (`bodyCore`, `tgtOk`), which a long body checks apart. -/
+noncomputable def shapeRest (Cf : CFun) : Bool :=
+  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
+    sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
+    !Cf.frame.F.fpOne && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
+    decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
+
+theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf.fn.body = true)
+    (ht : tgtOk Cf code = true) (hr : shapeRest Cf = true) : shapeOk Cf code = true := by
+  simp only [shapeRest, Bool.and_eq_true] at hr
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := hr
+  simp only [shapeOk, Bool.and_eq_true]
+  exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩
+
 /-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
 def noFA (body : List Stmt) : Bool :=
   (stmtsOf body).all fun s ↦ match s with

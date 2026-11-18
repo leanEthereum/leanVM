@@ -77,6 +77,21 @@ noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
     (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty &&
     (selGo j [] fn.body || loopBC fn)
 
+/-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
+checks apart. -/
+noncomputable def honRest (j : ℕ) (fn : Fn) : Bool :=
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && paramsN fn.params 0 &&
+    ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
+    Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty
+
+theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true)
+    (h2 : (Bridge.stmtsOf fn.body).all (ptrCellB j) = true) (h3 : (Bridge.stmtsOf fn.body).all (retCellB j) = true)
+    (h4 : (selGo j [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
+  simp only [honRest, Bool.and_eq_true] at h5
+  obtain ⟨⟨⟨⟨r1, r2⟩, r3⟩, r4⟩, r5⟩ := h5
+  simp only [honB, Bool.and_eq_true]
+  exact ⟨⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, r5⟩, h4⟩
+
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
   ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧

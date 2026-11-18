@@ -886,6 +886,22 @@ noncomputable def ptsW (X : CX) (st : CSt) (m : CCell) : List ℕ → List Wit �
   | o :: os, w :: ws => bif ptOk X st (m.shift o) w then ptsW X st m os ws else none
   | _ :: _, [] => none
 
+/-- Whether a witness is the marker `pts`. -/
+def Wit.isPts : Wit → Bool
+  | .pts => true
+  | _ => false
+
+/-- The highest of the offsets, plus one. -/
+def offHi (offs : List ℕ) : ℕ := offs.foldr max 0 + 1
+
+/-- **The cells `m·g^o`, `o ∈ offs`**: each with a witness (`ptsW`), or, after the marker `pts`, all inside the run
+`m·[0, offHi offs)` of one run witness (`rnOk`). The witnesses left. -/
+noncomputable def ptsWR (X : CX) (st : CSt) (m : CCell) (offs : List ℕ) : List Wit → Option (List Wit)
+  | w0 :: w :: ws => bif w0.isPts && !offs.isEmpty then
+      (bif Nat.blt (offHi offs) capE && rnOk X st ⟨m, 1, ⟨[], 0⟩, ⟨[], offHi offs⟩⟩ w then some ws else none)
+    else ptsW X st m offs (w0 :: w :: ws)
+  | ws => ptsW X st m offs ws
+
 /-- **A pointer fact needed**, the word at the cell `c` pointing to written cells at `offs`: a
 pointer fact in scope at `c` with them, a pointer run holding `c` with them, or `c`'s word named by a
 load event and the cells past it witnessed. The witnesses left. -/
@@ -897,7 +913,7 @@ noncomputable def ptrOk (X : CX) (st : CSt) (c : CCell) (offs : List ℕ) : List
     | some p => bif ptRun (facts X st.env res) p.1 c && subL offs p.2 then some ws else none
     | none => none
   | .word m :: ws => match getF st.sv m with
-    | some p => bif p.1.beq c then ptsW X st p.2 offs ws else none
+    | some p => bif p.1.beq c then ptsWR X st p.2 offs ws else none
     | none => none
   | _ => none
 

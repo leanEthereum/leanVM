@@ -26,6 +26,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P28».DataL
 public import LeanVM.Guest.CoreMode.Gen.«P28».DataLC
 public import LeanVM.Guest.CoreMode.Gen.«P28».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
+public import LeanVM.Guest.CoreMode.GenW.da_weights.Ok
 public import LeanVM.Guest.CoreMode.Pack.«P28».Frame0
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
@@ -53,8 +54,7 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `da_weights`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
-  decide +kernel
+theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
 
 /-- `da_weights`: its signature translated. -/
 theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
