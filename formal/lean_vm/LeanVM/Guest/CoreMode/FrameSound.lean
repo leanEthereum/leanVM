@@ -36,7 +36,7 @@ variable {κ : ℕ} {img : MemoryImage κ}
 
 /-- **What a function's frame walk assumes at entry**: its entry cells and self frame pointer
 cell written, the latter holding the frame's address in the reference. -/
-structure EntryF (img : MemoryImage κ) (G : Mode.Sig) (s : St) : Prop where
+structure EntryFr (img : MemoryImage κ) (G : Mode.Sig) (s : St) : Prop where
   w : ∀ o ∈ G.entry, s.mem.written (s.fp + o) = true
   self : ∀ o, G.self = some o → s.mem.written (s.fp + o) = true ∧
     Rd img s.fp o = some (ofK (g ^ s.fp))
@@ -71,7 +71,7 @@ theorem envOk_mem {Fn : FFun} (h : envOk Fn = true) {n : ℕ} {v : Exec.Sym} (hm
   rcases e with _ | e <;> simp_all
 
 /-- **The entry state holds** where the entry facts do. -/
-theorem entryF_holds {Fn : FFun} (henv : envOk Fn = true) {s : St} (h : EntryF img Fn.sig s) :
+theorem entryF_holds {Fn : FFun} (henv : envOk Fn = true) {s : St} (h : EntryFr img Fn.sig s) :
     FHolds img s (entryF Fn) := by
   refine ⟨⟨stHolds_init fun n v hv ↦ ?_, fun _ h ↦ by simp [entryF] at h, fun _ _ _ h ↦ by simp [entryF] at h,
     fun _ _ h ↦ by simp [entryF] at h, fun _ _ h ↦ by simp [entryF] at h⟩,
@@ -358,12 +358,12 @@ inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruct
   | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code rj s1 s'
   /-- A loop's tail call into frame `fp + e`: its entry facts, its header this frame's, nothing
   returned in its frame. -/
-  | tail (e : ℕ) : ¬ rj → s'.pc = Fn.entry → s'.fp = s1.fp + e → EntryF img Fn.sig s' →
+  | tail (e : ℕ) : ¬ rj → s'.pc = Fn.entry → s'.fp = s1.fp + e → EntryFr img Fn.sig s' →
       Rd img s'.fp 0 = Rd img s1.fp 0 → Rd img s'.fp 1 = Rd img s1.fp 1 → Fn.sig.ret = [] →
       JumpOut img Fn code rj s1 s'
   /-- A call into callee `G` at offset `t`'s return point: its entry facts, its frame's header this
   frame's return point, and the walk at `t` once the callee has written its return cells. -/
-  | call (G : Mode.Sig) (t : ℕ) : ¬ rj → Fn.sigs.get s'.pc = some G → EntryF img G s' →
+  | call (G : Mode.Sig) (t : ℕ) : ¬ rj → Fn.sigs.get s'.pc = some G → EntryFr img G s' →
       retRegs img (g ^ s'.fp) = some ⟨g ^ (Fn.entry + t), g ^ s1.fp⟩ →
       (∀ s'', Fine (refMem img) s'' → s''.fp = s1.fp → s''.pc = Fn.entry + t → s1.mem ≤ s''.mem →
         (∀ o ∈ G.ret, s''.mem.written (s'.fp + o) = true) → AtF img Fn code t s'') →
@@ -501,7 +501,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
       unfold hqLim at ho
       rw [← names_gpow hfpp hx' (by omega)]
       exact hw
-    have hentry : EntryF img G' s' := by
+    have hentry : EntryFr img G' s' := by
       refine ⟨fun o ho ↦ written_mono hle (hq o (hok.1 o ho)), fun o hso ↦ ?_⟩
       have hs2 := hok.2
       rw [hso] at hs2
@@ -765,7 +765,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
 
 /-- **The entry**: the entry facts give the walk's state at offset `0`. -/
 theorem atF_entry {Fn : FFun} {code : List OffsetInstruction} (henv : envOk Fn = true) {s : St}
-    (h : EntryF img Fn.sig s) : AtF img Fn code 0 s :=
+    (h : EntryFr img Fn.sig s) : AtF img Fn code 0 s :=
   atF_zero (entryF_holds henv h)
 
 end
