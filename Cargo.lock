@@ -32,6 +32,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator"
+version = "0.1.0"
+dependencies = [
+ "tikv-jemallocator",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,9 +101,9 @@ dependencies = [
 name = "bench_harness"
 version = "0.1.0"
 dependencies = [
+ "allocator",
  "isa",
  "libc",
- "tikv-jemallocator",
  "tracing-forest",
  "tracing-subscriber",
 ]
@@ -422,7 +429,7 @@ name = "leanvm-sidecar"
 version = "0.1.0"
 dependencies = [
  "aggregation",
- "bench_harness",
+ "allocator",
  "clap",
  "experimental_lean_vm_core",
  "lean_vm",

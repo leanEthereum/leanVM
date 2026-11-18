@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/verifier",
+    "crates/allocator",
     "crates/bench_harness",
     "crates/keccak256",
     "crates/fiat_shamir_prover",
@@ -30,6 +31,7 @@ needless_range_loop = "allow"
 too_many_arguments = "allow"
 
 [workspace.dependencies]
+allocator = { path = "crates/allocator" }
 bench_harness = { path = "crates/bench_harness" }
 verifier = { path = "crates/verifier" }
 keccak256 = { path = "crates/keccak256" }

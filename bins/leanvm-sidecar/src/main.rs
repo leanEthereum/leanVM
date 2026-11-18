@@ -2,7 +2,7 @@
 //! specifies the protocol.
 
 #[global_allocator]
-static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 use clap::Parser;
 use experimental_lean_vm_core::ExperimentalProver;

@@ -34,7 +34,8 @@ Both prove the same protocol and give the same proof bytes, pinned by `bench/tes
 | `zkdsl_compiler`  | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
-| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
+| `allocator`       | the jemalloc global allocator and its configuration (below), for the benchmark CLI, the benches and the sidecar; never linked by a library |
+| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output; it re-exports `allocator::Jemalloc`); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
 | `claims`          | `AggregateClaims` and `OutputClaims`, and the claims' byte form: what both the library and the sidecar's client name |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
@@ -69,11 +70,11 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench_harness`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `allocator`, `bench_harness`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude bench_harness --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude bench_harness --exclude allocator --target x86_64-unknown-linux-gnu
 ```
 
 `RUSTFLAGS` replaces `.cargo/config.toml`'s `target-cpu=native`; a target-specific `CARGO_TARGET_*_RUSTFLAGS` would be merged with it and hand the Apple CPU to the x86 target.
@@ -99,7 +100,7 @@ CI compares every PR with its base, never with a history: `bench.yml` runs both 
 
 ## The allocator
 
-The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the benchmark CLI, the sidecar and the benches install jemalloc with `dirty_decay_ms:-1` (`bench_harness::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
+The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the benchmark CLI, the sidecar and the benches install jemalloc with `dirty_decay_ms:-1` (`allocator::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
 
 ## The thread pool (`parallel`)
 

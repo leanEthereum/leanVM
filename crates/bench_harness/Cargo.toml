@@ -8,8 +8,8 @@ publish = false
 workspace = true
 
 [dependencies]
+allocator.workspace = true
 isa.workspace = true
 libc.workspace = true
-tikv-jemallocator.workspace = true
 tracing-forest.workspace = true
 tracing-subscriber.workspace = true
