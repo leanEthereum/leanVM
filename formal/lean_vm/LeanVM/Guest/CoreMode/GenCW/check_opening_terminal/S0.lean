@@ -30,35 +30,19 @@ noncomputable def tr1 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(12, 1)], 0⟩) .nil .nil)) (.node (some ⟨[(6, 1)], 0⟩) (.node (some ⟨[(10, 1)], 0⟩)
     (.node (some ⟨[(18, 1)], 0⟩) .nil .nil) .nil) (.node (some ⟨[(14, 1)], 0⟩) .nil .nil)))
 
-noncomputable def v2 : PRun :=
-  ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩
+noncomputable def tr2 : Trie PRun :=
+  (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩)
+    (.node (some ⟨⟨[(0, 1)], 66⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(11, 1)], 39⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩)
+    .nil .nil) .nil) (.node (some ⟨⟨[(0, 1)], 130⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) .nil .nil)) (.node (some ⟨⟨[(0, 1)], 34⟩,
+    1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(0, 1)], 98⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[],
+    0⟩, ⟨[(19, 1)], 0⟩⟩) .nil .nil) .nil) (.node (some ⟨⟨[(11, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩) .nil .nil)))
 
-noncomputable def v3 : PRun :=
-  ⟨⟨[(1048578, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048579, 1)], 0⟩⟩
-
-noncomputable def v4 : PRun :=
-  ⟨⟨[(1048580, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048581, 1)], 0⟩⟩
-
-noncomputable def v5 : PRun :=
-  ⟨⟨[(1048582, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048583, 1)], 0⟩⟩
-
-noncomputable def tr6 : Trie PRun :=
-  (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩) (.node (some ⟨⟨[(0, 1)], 34⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node
-    (some ⟨⟨[(11, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩) .nil .nil) .nil) (.node (some ⟨⟨[(0, 1)], 98⟩, 1, ⟨[], 0⟩, ⟨[],
-    16⟩⟩) (.node (some ⟨⟨[(11, 1)], 39⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩) .nil .nil) .nil))
-
-noncomputable def tr7 : Trie PRun :=
-  (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 1⟩, ⟨[(6, 1)], 0⟩⟩) (.node (some ⟨⟨[(0, 1)], 50⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node
-    (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩) .nil .nil) .nil) (.node (some ⟨⟨[(0, 1)], 114⟩, 1, ⟨[], 0⟩,
-    ⟨[], 16⟩⟩) (.node (some ⟨⟨[(18, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(19, 1)], 0⟩⟩) .nil .nil) .nil))
-
-noncomputable def tr8 : Trie PRun :=
-  (.node (some ⟨⟨[(1, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩) tr6
-    (.node (some v2) (.node (some ⟨⟨[(0, 1)], 66⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some v4) .nil .nil) .nil) (.node
-    (some ⟨⟨[(0, 1)], 130⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(19, 1)], 0⟩⟩) .nil
-    .nil) .nil))) (.node (some ⟨⟨[(2, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩) tr7 (.node (some v3) (.node (some ⟨⟨[(0,
-    1)], 82⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some v5) .nil .nil) .nil) (.node (some ⟨⟨[(0, 1)], 146⟩, 1, ⟨[], 0⟩, ⟨[],
-    16⟩⟩) .nil .nil))))
+noncomputable def tr3 : Trie PRun :=
+  (.node (some ⟨⟨[(2, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 1⟩, ⟨[(6, 1)], 0⟩⟩)
+    (.node (some ⟨⟨[(0, 1)], 82⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(18, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(19, 1)], 0⟩⟩)
+    .nil .nil) .nil) (.node (some ⟨⟨[(0, 1)], 146⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) .nil .nil)) (.node (some ⟨⟨[(0, 1)], 50⟩,
+    1, ⟨[], 0⟩, ⟨[], 16⟩⟩) (.node (some ⟨⟨[(0, 1)], 114⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) .nil .nil) (.node (some ⟨⟨[(14, 1)],
+    0⟩, 1, ⟨[], 0⟩, ⟨[(7, 1)], 6⟩⟩) .nil .nil)))
 
 noncomputable def st0_cd : List CdE := []
 
@@ -67,13 +51,13 @@ noncomputable def st0_eqs : List (CCell × CCell) := []
 /-- The state before statement 0. -/
 noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr1),
     .nil,
-    tr8,
+    (.node (some ⟨⟨[(1, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩) tr2 tr3),
     .nil,
     .nil,
     .nil,
     .nil,
     .nil,
-    0, 22, 0, 0,
+    0, 18, 0, 0,
     st0_cd,
     st0_eqs,
     []⟩

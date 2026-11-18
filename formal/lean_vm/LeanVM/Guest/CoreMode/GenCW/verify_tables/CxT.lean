@@ -21,7 +21,7 @@ open LeanVM.Guest.Exec (Trie)
 @[expose] public section
 
 noncomputable def cxTv0 : (List CoreMode.Wit) :=
-  [.ev 806, .ev 807, .ev 805, .ev 810, .ev 1858, .ev 1859, .ev 1224, .ev 1241, .ev 1242, .ev 1243, .run 30 []]
+  [.ev 806, .ev 807, .ev 805, .ev 810, .ev 1858, .ev 1859, .ev 1224, .ev 1241, .ev 1242, .ev 1243, .run 28 []]
 
 /-- `cxOf`'s trie `T`. -/
 noncomputable def cxT : Trie (List CoreMode.Wit) :=

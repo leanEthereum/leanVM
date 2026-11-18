@@ -19,17 +19,17 @@ open LeanVM.Guest.Exec (Trie)
 
 @[expose] public section
 
-noncomputable def tr49 : Trie CCell :=
+noncomputable def tr44 : Trie CCell :=
   (.node (some ⟨[(17, 1)], 0⟩) (.node (some ⟨[(6, 1), (26, 1)], 0⟩) (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil
     .nil) .nil) (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil)) (.node (some ⟨[], 34⟩) (.node (some
     ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil) (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil)))
 
-noncomputable def tr50 : Trie CCell :=
-  (.node (some ⟨[(9, 1)], 0⟩) tr49 (.node (some ⟨[(7, 1), (14, 1)], 0⟩) (.node none (.node (some ⟨[], 34⟩) (.node (some
+noncomputable def tr45 : Trie CCell :=
+  (.node (some ⟨[(9, 1)], 0⟩) tr44 (.node (some ⟨[(7, 1), (14, 1)], 0⟩) (.node none (.node (some ⟨[], 34⟩) (.node (some
     ⟨[], 34⟩) .nil .nil) .nil) (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil)) (.node (some ⟨[], 19⟩)
     (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil) (.node (some ⟨[], 34⟩) .nil .nil))))
 
-noncomputable def tr51 : Trie CCell :=
+noncomputable def tr46 : Trie CCell :=
   (.node (some ⟨[(13, 1)], 0⟩) (.node (some ⟨[], 0⟩) (.node none (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil
     .nil) .nil) (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil)) (.node (some ⟨[], 34⟩) (.node (some
     ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil) (.node (some ⟨[], 34⟩) .nil .nil))) (.node none (.node (some
@@ -37,28 +37,28 @@ noncomputable def tr51 : Trie CCell :=
     34⟩) .nil .nil) .nil)) (.node none (.node (some ⟨[], 34⟩) (.node (some ⟨[], 34⟩) .nil .nil) .nil) (.node (some
     ⟨[], 34⟩) .nil .nil))))
 
-noncomputable def tr52 : Trie CCell :=
+noncomputable def tr47 : Trie CCell :=
   (.node (some ⟨[(18, 1)], 0⟩) (.node none (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil)
     (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil)) (.node (some ⟨[(0, 1)], 34⟩) (.node
     (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0, 1)], 34⟩) (.node (some
     ⟨[(0, 1)], 34⟩) .nil .nil) .nil)))
 
-noncomputable def tr53 : Trie CCell :=
+noncomputable def tr48 : Trie CCell :=
   (.node none (.node none (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0,
     1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil)) (.node (some ⟨[(35, 1)], 19⟩) (.node (some ⟨[(0, 1)],
     34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil)))
 
-noncomputable def tr54 : Trie CCell :=
+noncomputable def tr49 : Trie CCell :=
   (.node none (.node none (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0,
     1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil)) (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩)
     (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil)))
 
-noncomputable def tr55 : Trie CCell :=
+noncomputable def tr50 : Trie CCell :=
   (.node (some ⟨[], 1⟩) (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil
     .nil) .nil) (.node (some ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil)) (.node none (.node (some
     ⟨[(0, 1)], 34⟩) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil) .nil) (.node (some ⟨[(0, 1)], 34⟩) .nil .nil)))
 
-noncomputable def tr56 : Trie CCell :=
+noncomputable def tr51 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 8⟩) (.node (some ⟨[(43, 1)], 51⟩) (.node (some ⟨[(43, 1)], 117⟩) (.node (some ⟨[(43, 1)],
     249⟩) (.node (some ⟨[(10, 1)], 1⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 381⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 183⟩) (.node (some ⟨[(43, 1)], 315⟩) .nil .nil) (.node (some ⟨[(43, 1)], 447⟩) .nil .nil))) (.node (some
@@ -66,7 +66,7 @@ noncomputable def tr56 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 430⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 226⟩) (.node (some ⟨[(43, 1)],
     362⟩) .nil .nil) (.node (some ⟨[(43, 1)], 497⟩) .nil .nil))))
 
-noncomputable def tr57 : Trie CCell :=
+noncomputable def tr52 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 38⟩) (.node (some ⟨[(43, 1)], 59⟩) (.node (some ⟨[(43, 1)], 125⟩) (.node (some ⟨[(43, 1)],
     264⟩) (.node (some ⟨[(10, 1)], 9⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 412⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 191⟩) (.node (some ⟨[(43, 1)], 340⟩) .nil .nil) (.node (some ⟨[(43, 1)], 482⟩) .nil .nil))) (.node (some
@@ -74,7 +74,7 @@ noncomputable def tr57 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 439⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 241⟩) (.node (some ⟨[(43, 1)],
     373⟩) .nil .nil) (.node (some ⟨[(43, 1)], 505⟩) .nil .nil))))
 
-noncomputable def tr58 : Trie CCell :=
+noncomputable def tr53 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 28⟩) (.node (some ⟨[(43, 1)], 55⟩) (.node (some ⟨[(43, 1)], 121⟩) (.node (some ⟨[(43, 1)],
     253⟩) (.node (some ⟨[(10, 1)], 5⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 392⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 187⟩) (.node (some ⟨[(43, 1)], 319⟩) .nil .nil) (.node (some ⟨[(43, 1)], 468⟩) .nil .nil))) (.node (some
@@ -82,7 +82,7 @@ noncomputable def tr58 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 435⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 234⟩) (.node (some ⟨[(43, 1)],
     369⟩) .nil .nil) (.node (some ⟨[(43, 1)], 501⟩) .nil .nil))))
 
-noncomputable def tr59 : Trie CCell :=
+noncomputable def tr54 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 46⟩) (.node (some ⟨[(43, 1)], 63⟩) (.node (some ⟨[(43, 1)], 136⟩) (.node (some ⟨[(43, 1)],
     284⟩) (.node (some ⟨[(10, 1)], 13⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 422⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 212⟩) (.node (some ⟨[(43, 1)], 354⟩) .nil .nil) (.node (some ⟨[(43, 1)], 490⟩) .nil .nil))) (.node
@@ -90,7 +90,7 @@ noncomputable def tr59 : Trie CCell :=
     29⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 443⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 245⟩) (.node (some
     ⟨[(43, 1)], 377⟩) .nil .nil) (.node (some ⟨[(43, 1)], 509⟩) .nil .nil))))
 
-noncomputable def tr60 : Trie CCell :=
+noncomputable def tr55 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 20⟩) (.node (some ⟨[(43, 1)], 53⟩) (.node (some ⟨[(43, 1)], 119⟩) (.node (some ⟨[(43, 1)],
     251⟩) (.node (some ⟨[(10, 1)], 3⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 383⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 185⟩) (.node (some ⟨[(43, 1)], 317⟩) .nil .nil) (.node (some ⟨[(43, 1)], 456⟩) .nil .nil))) (.node (some
@@ -98,7 +98,7 @@ noncomputable def tr60 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 433⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 230⟩) (.node (some ⟨[(43, 1)],
     366⟩) .nil .nil) (.node (some ⟨[(43, 1)], 499⟩) .nil .nil))))
 
-noncomputable def tr61 : Trie CCell :=
+noncomputable def tr56 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 42⟩) (.node (some ⟨[(43, 1)], 61⟩) (.node (some ⟨[(43, 1)], 127⟩) (.node (some ⟨[(43, 1)],
     276⟩) (.node (some ⟨[(10, 1)], 11⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 418⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 200⟩) (.node (some ⟨[(43, 1)], 348⟩) .nil .nil) (.node (some ⟨[(43, 1)], 486⟩) .nil .nil))) (.node
@@ -106,7 +106,7 @@ noncomputable def tr61 : Trie CCell :=
     27⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 441⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 243⟩) (.node (some
     ⟨[(43, 1)], 375⟩) .nil .nil) (.node (some ⟨[(43, 1)], 507⟩) .nil .nil))))
 
-noncomputable def tr62 : Trie CCell :=
+noncomputable def tr57 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 34⟩) (.node (some ⟨[(43, 1)], 57⟩) (.node (some ⟨[(43, 1)], 123⟩) (.node (some ⟨[(43, 1)],
     255⟩) (.node (some ⟨[(10, 1)], 7⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 404⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 189⟩) (.node (some ⟨[(43, 1)], 328⟩) .nil .nil) (.node (some ⟨[(43, 1)], 476⟩) .nil .nil))) (.node (some
@@ -114,7 +114,7 @@ noncomputable def tr62 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 437⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 238⟩) (.node (some ⟨[(43, 1)],
     371⟩) .nil .nil) (.node (some ⟨[(43, 1)], 503⟩) .nil .nil))))
 
-noncomputable def tr63 : Trie CCell :=
+noncomputable def tr58 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 49⟩) (.node (some ⟨[(43, 1)], 72⟩) (.node (some ⟨[(43, 1)], 148⟩) (.node (some ⟨[(43, 1)],
     290⟩) (.node (some ⟨[(10, 1)], 15⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 426⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 220⟩) (.node (some ⟨[(43, 1)], 358⟩) .nil .nil) (.node (some ⟨[(43, 1)], 494⟩) .nil .nil))) (.node
@@ -122,7 +122,7 @@ noncomputable def tr63 : Trie CCell :=
     31⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 445⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 247⟩) (.node (some
     ⟨[(43, 1)], 379⟩) .nil .nil) (.node (some ⟨[(43, 1)], 511⟩) .nil .nil))))
 
-noncomputable def tr64 : Trie CCell :=
+noncomputable def tr59 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 16⟩) (.node (some ⟨[(43, 1)], 52⟩) (.node (some ⟨[(43, 1)], 118⟩) (.node (some ⟨[(43, 1)],
     250⟩) (.node (some ⟨[(10, 1)], 2⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 382⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 184⟩) (.node (some ⟨[(43, 1)], 316⟩) .nil .nil) (.node (some ⟨[(43, 1)], 448⟩) .nil .nil))) (.node (some
@@ -130,7 +130,7 @@ noncomputable def tr64 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 432⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 228⟩) (.node (some ⟨[(43, 1)],
     364⟩) .nil .nil) (.node (some ⟨[(43, 1)], 498⟩) .nil .nil))))
 
-noncomputable def tr65 : Trie CCell :=
+noncomputable def tr60 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 40⟩) (.node (some ⟨[(43, 1)], 60⟩) (.node (some ⟨[(43, 1)], 126⟩) (.node (some ⟨[(43, 1)],
     272⟩) (.node (some ⟨[(10, 1)], 10⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 416⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 192⟩) (.node (some ⟨[(43, 1)], 344⟩) .nil .nil) (.node (some ⟨[(43, 1)], 484⟩) .nil .nil))) (.node
@@ -138,7 +138,7 @@ noncomputable def tr65 : Trie CCell :=
     26⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 440⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 242⟩) (.node (some
     ⟨[(43, 1)], 374⟩) .nil .nil) (.node (some ⟨[(43, 1)], 506⟩) .nil .nil))))
 
-noncomputable def tr66 : Trie CCell :=
+noncomputable def tr61 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 32⟩) (.node (some ⟨[(43, 1)], 56⟩) (.node (some ⟨[(43, 1)], 122⟩) (.node (some ⟨[(43, 1)],
     254⟩) (.node (some ⟨[(10, 1)], 6⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 400⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 188⟩) (.node (some ⟨[(43, 1)], 320⟩) .nil .nil) (.node (some ⟨[(43, 1)], 472⟩) .nil .nil))) (.node (some
@@ -146,7 +146,7 @@ noncomputable def tr66 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 436⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 236⟩) (.node (some ⟨[(43, 1)],
     370⟩) .nil .nil) (.node (some ⟨[(43, 1)], 502⟩) .nil .nil))))
 
-noncomputable def tr67 : Trie CCell :=
+noncomputable def tr62 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 48⟩) (.node (some ⟨[(43, 1)], 64⟩) (.node (some ⟨[(43, 1)], 144⟩) (.node (some ⟨[(43, 1)],
     288⟩) (.node (some ⟨[(10, 1)], 14⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 424⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 216⟩) (.node (some ⟨[(43, 1)], 356⟩) .nil .nil) (.node (some ⟨[(43, 1)], 492⟩) .nil .nil))) (.node
@@ -154,7 +154,7 @@ noncomputable def tr67 : Trie CCell :=
     30⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 444⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 246⟩) (.node (some
     ⟨[(43, 1)], 378⟩) .nil .nil) (.node (some ⟨[(43, 1)], 510⟩) .nil .nil))))
 
-noncomputable def tr68 : Trie CCell :=
+noncomputable def tr63 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 24⟩) (.node (some ⟨[(43, 1)], 54⟩) (.node (some ⟨[(43, 1)], 120⟩) (.node (some ⟨[(43, 1)],
     252⟩) (.node (some ⟨[(10, 1)], 4⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 384⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 186⟩) (.node (some ⟨[(43, 1)], 318⟩) .nil .nil) (.node (some ⟨[(43, 1)], 464⟩) .nil .nil))) (.node (some
@@ -162,7 +162,7 @@ noncomputable def tr68 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 434⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 232⟩) (.node (some ⟨[(43, 1)],
     368⟩) .nil .nil) (.node (some ⟨[(43, 1)], 500⟩) .nil .nil))))
 
-noncomputable def tr69 : Trie CCell :=
+noncomputable def tr64 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 44⟩) (.node (some ⟨[(43, 1)], 62⟩) (.node (some ⟨[(43, 1)], 128⟩) (.node (some ⟨[(43, 1)],
     280⟩) (.node (some ⟨[(10, 1)], 12⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 420⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 208⟩) (.node (some ⟨[(43, 1)], 352⟩) .nil .nil) (.node (some ⟨[(43, 1)], 488⟩) .nil .nil))) (.node
@@ -170,7 +170,7 @@ noncomputable def tr69 : Trie CCell :=
     28⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 442⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 244⟩) (.node (some
     ⟨[(43, 1)], 376⟩) .nil .nil) (.node (some ⟨[(43, 1)], 508⟩) .nil .nil))))
 
-noncomputable def tr70 : Trie CCell :=
+noncomputable def tr65 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 36⟩) (.node (some ⟨[(43, 1)], 58⟩) (.node (some ⟨[(43, 1)], 124⟩) (.node (some ⟨[(43, 1)],
     256⟩) (.node (some ⟨[(10, 1)], 8⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 408⟩) .nil .nil)) (.node (some ⟨[(43,
     1)], 190⟩) (.node (some ⟨[(43, 1)], 336⟩) .nil .nil) (.node (some ⟨[(43, 1)], 480⟩) .nil .nil))) (.node (some
@@ -178,7 +178,7 @@ noncomputable def tr70 : Trie CCell :=
     .nil) .nil) (.node (some ⟨[(43, 1)], 438⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 240⟩) (.node (some ⟨[(43, 1)],
     372⟩) .nil .nil) (.node (some ⟨[(43, 1)], 504⟩) .nil .nil))))
 
-noncomputable def tr71 : Trie CCell :=
+noncomputable def tr66 : Trie CCell :=
   (.node (some ⟨[(43, 1)], 50⟩) (.node (some ⟨[(43, 1)], 80⟩) (.node (some ⟨[(43, 1)], 152⟩) (.node (some ⟨[(43, 1)],
     292⟩) (.node (some ⟨[(10, 1)], 16⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 428⟩) .nil .nil)) (.node (some
     ⟨[(43, 1)], 224⟩) (.node (some ⟨[(43, 1)], 360⟩) .nil .nil) (.node (some ⟨[(43, 1)], 496⟩) .nil .nil))) (.node
@@ -186,100 +186,100 @@ noncomputable def tr71 : Trie CCell :=
     32⟩) .nil .nil) .nil) (.node (some ⟨[(43, 1)], 446⟩) .nil .nil)) (.node (some ⟨[(43, 1)], 248⟩) (.node (some
     ⟨[(43, 1)], 380⟩) .nil .nil) (.node (some ⟨[(10, 1)], 0⟩) .nil .nil))))
 
-noncomputable def tr72 : Trie CCell :=
+noncomputable def tr67 : Trie CCell :=
   (.node (some ⟨[(20, 1)], 0⟩) (.node (some ⟨[(22, 1)], 0⟩) (.node (some ⟨[(14, 1)], 0⟩) (.node (some ⟨[(8, 1)], 1⟩)
-    tr56 tr57) (.node (some ⟨[(8, 1)], 5⟩) tr58 tr59)) (.node (some ⟨[(6, 1), (26, 1)], 0⟩) (.node (some ⟨[(8, 1)],
-    3⟩) tr60 tr61) (.node (some ⟨[(8, 1)], 7⟩) tr62 tr63))) (.node (some ⟨[(26, 1)], 0⟩) (.node (some ⟨[(26, 1)], 1⟩)
-    (.node (some ⟨[(8, 1)], 2⟩) tr64 tr65) (.node (some ⟨[(8, 1)], 6⟩) tr66 tr67)) (.node (some ⟨[(8, 1)], 0⟩) (.node
-    (some ⟨[(8, 1)], 4⟩) tr68 tr69) (.node (some ⟨[(43, 1)], 0⟩) tr70 tr71))))
+    tr51 tr52) (.node (some ⟨[(8, 1)], 5⟩) tr53 tr54)) (.node (some ⟨[(6, 1), (26, 1)], 0⟩) (.node (some ⟨[(8, 1)],
+    3⟩) tr55 tr56) (.node (some ⟨[(8, 1)], 7⟩) tr57 tr58))) (.node (some ⟨[(26, 1)], 0⟩) (.node (some ⟨[(26, 1)], 1⟩)
+    (.node (some ⟨[(8, 1)], 2⟩) tr59 tr60) (.node (some ⟨[(8, 1)], 6⟩) tr61 tr62)) (.node (some ⟨[(8, 1)], 0⟩) (.node
+    (some ⟨[(8, 1)], 4⟩) tr63 tr64) (.node (some ⟨[(43, 1)], 0⟩) tr65 tr66))))
 
-noncomputable def tr73 : Trie (CCell × CCell) :=
+noncomputable def tr68 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 1⟩, ⟨[(36, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 1⟩, ⟨[(48, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 17⟩, ⟨[(116, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 9⟩, ⟨[(84, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 25⟩, ⟨[(148, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr74 : Trie (CCell × CCell) :=
+noncomputable def tr69 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 5⟩, ⟨[(40, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 5⟩, ⟨[(68, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 21⟩, ⟨[(132, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 13⟩, ⟨[(100, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 29⟩, ⟨[(164, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr75 : Trie (CCell × CCell) :=
+noncomputable def tr70 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 3⟩, ⟨[(38, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 3⟩, ⟨[(56, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 19⟩, ⟨[(124, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 11⟩, ⟨[(92, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 27⟩, ⟨[(156, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr76 : Trie (CCell × CCell) :=
+noncomputable def tr71 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 7⟩, ⟨[(42, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 7⟩, ⟨[(76, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 23⟩, ⟨[(140, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 15⟩, ⟨[(108, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 31⟩, ⟨[(172, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr77 : Trie (CCell × CCell) :=
+noncomputable def tr72 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 2⟩, ⟨[(37, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 2⟩, ⟨[(52, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 18⟩, ⟨[(120, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 10⟩, ⟨[(88, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 26⟩, ⟨[(152, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr78 : Trie (CCell × CCell) :=
+noncomputable def tr73 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 6⟩, ⟨[(41, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 6⟩, ⟨[(72, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 22⟩, ⟨[(136, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 14⟩, ⟨[(104, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 30⟩, ⟨[(168, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr79 : Trie (CCell × CCell) :=
+noncomputable def tr74 : Trie (CCell × CCell) :=
   (.node (some (⟨[(8, 1)], 4⟩, ⟨[(39, 1)], 0⟩)) (.node none (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 4⟩, ⟨[(62, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10,
     1)], 20⟩, ⟨[(128, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 12⟩, ⟨[(96, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 28⟩, ⟨[(160, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)))
 
-noncomputable def tr80 : Trie (CCell × CCell) :=
+noncomputable def tr75 : Trie (CCell × CCell) :=
   (.node none (.node none (.node none (.node none (.node (some (⟨[(10, 1)], 16⟩, ⟨[(112, 1)], 0⟩)) .nil .nil) .nil)
     .nil) .nil) (.node none (.node none (.node none (.node (some (⟨[(10, 1)], 32⟩, ⟨[(176, 1)], 0⟩)) .nil .nil) .nil)
     .nil) (.node none .nil (.node (some (⟨[(10, 1)], 0⟩, ⟨[(44, 1)], 0⟩)) .nil .nil))))
 
-noncomputable def tr81 : Trie (CCell × CCell) :=
-  (.node (some (⟨[(8, 1)], 0⟩, ⟨[(35, 1)], 0⟩)) tr79 (.node none (.node none (.node none (.node none (.node none (.node
+noncomputable def tr76 : Trie (CCell × CCell) :=
+  (.node (some (⟨[(8, 1)], 0⟩, ⟨[(35, 1)], 0⟩)) tr74 (.node none (.node none (.node none (.node none (.node none (.node
     (some (⟨[(10, 1)], 8⟩, ⟨[(80, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node
-    (some (⟨[(10, 1)], 24⟩, ⟨[(144, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) tr80))
+    (some (⟨[(10, 1)], 24⟩, ⟨[(144, 1)], 0⟩)) .nil .nil) .nil) .nil) .nil)) tr75))
 
-noncomputable def tr82 : Trie (CCell × CCell) :=
+noncomputable def tr77 : Trie (CCell × CCell) :=
   (.node (some (⟨[(20, 1)], 0⟩, ⟨[], 0⟩)) (.node (some (⟨[(22, 1)], 0⟩, ⟨[], 0⟩)) (.node (some (⟨[(14, 1)], 0⟩, ⟨[(28,
-    1)], 0⟩)) tr73 tr74) (.node (some (⟨[(6, 1), (26, 1)], 0⟩, ⟨[(34, 1)], 0⟩)) tr75 tr76)) (.node (some (⟨[(26, 1)],
-    0⟩, ⟨[], 0⟩)) (.node (some (⟨[(26, 1)], 1⟩, ⟨[(29, 1)], 0⟩)) tr77 tr78) tr81))
+    1)], 0⟩)) tr68 tr69) (.node (some (⟨[(6, 1), (26, 1)], 0⟩, ⟨[(34, 1)], 0⟩)) tr70 tr71)) (.node (some (⟨[(26, 1)],
+    0⟩, ⟨[], 0⟩)) (.node (some (⟨[(26, 1)], 1⟩, ⟨[(29, 1)], 0⟩)) tr72 tr73) tr76))
 
-noncomputable def tr83 : Trie CCell :=
+noncomputable def tr78 : Trie CCell :=
   (.node none (.node none (.node none (.node (some ⟨[(10, 1)], 20⟩) .nil .nil) .nil) (.node (some ⟨[(10, 1)], 12⟩)
     (.node (some ⟨[(10, 1)], 28⟩) .nil .nil) .nil)) (.node (some ⟨[(10, 1)], 1⟩) (.node (some ⟨[(10, 1)], 8⟩) (.node
     (some ⟨[(10, 1)], 24⟩) .nil .nil) .nil) (.node (some ⟨[(10, 1)], 16⟩) (.node (some ⟨[(10, 1)], 32⟩) .nil .nil)
     .nil)))
 
-noncomputable def tr84 : Trie CCell :=
+noncomputable def tr79 : Trie CCell :=
   (.node none (.node (some ⟨[(8, 1)], 5⟩) (.node (some ⟨[(10, 1)], 6⟩) (.node (some ⟨[(10, 1)], 22⟩) .nil .nil) .nil)
     (.node (some ⟨[(10, 1)], 14⟩) (.node (some ⟨[(10, 1)], 30⟩) .nil .nil) .nil)) (.node (some ⟨[(10, 1)], 3⟩) (.node
     (some ⟨[(10, 1)], 10⟩) (.node (some ⟨[(10, 1)], 26⟩) .nil .nil) .nil) (.node (some ⟨[(10, 1)], 18⟩) .nil .nil)))
 
-noncomputable def tr85 : Trie CCell :=
+noncomputable def tr80 : Trie CCell :=
   (.node none (.node (some ⟨[(8, 1)], 1⟩) (.node (some ⟨[(10, 1)], 5⟩) (.node (some ⟨[(10, 1)], 21⟩) .nil .nil) .nil)
     (.node (some ⟨[(10, 1)], 13⟩) (.node (some ⟨[(10, 1)], 29⟩) .nil .nil) .nil)) (.node (some ⟨[(10, 1)], 2⟩) (.node
     (some ⟨[(10, 1)], 9⟩) (.node (some ⟨[(10, 1)], 25⟩) .nil .nil) .nil) (.node (some ⟨[(10, 1)], 17⟩) .nil .nil)))
 
-noncomputable def tr86 : Trie CCell :=
+noncomputable def tr81 : Trie CCell :=
   (.node (some ⟨[(14, 1)], 0⟩) (.node (some ⟨[(10, 1)], 0⟩) (.node (some ⟨[(10, 1)], 7⟩) (.node (some ⟨[(10, 1)], 23⟩)
     .nil .nil) .nil) (.node (some ⟨[(10, 1)], 15⟩) (.node (some ⟨[(10, 1)], 31⟩) .nil .nil) .nil)) (.node none (.node
     (some ⟨[(10, 1)], 11⟩) (.node (some ⟨[(10, 1)], 27⟩) .nil .nil) .nil) (.node (some ⟨[(10, 1)], 19⟩) .nil .nil)))
 
-noncomputable def tr87 : Trie CCell :=
-  (.node none (.node none (.node none tr83 tr84) (.node none tr85 tr86)) (.node none (.node none (.node none (.node
+noncomputable def tr82 : Trie CCell :=
+  (.node none (.node none (.node none tr78 tr79) (.node none tr80 tr81)) (.node none (.node none (.node none (.node
     (some ⟨[(6, 1), (26, 1)], 0⟩) .nil .nil) .nil) (.node none (.node (some ⟨[(8, 1)], 7⟩) .nil .nil) .nil)) (.node
     none (.node none (.node (some ⟨[(8, 1)], 3⟩) .nil .nil) .nil) (.node none .nil (.node (some ⟨[(10, 1)], 4⟩) .nil
     .nil)))))
@@ -384,20 +384,20 @@ noncomputable def st2_cd : List CdE := st1_cd ++ [⟨⟨[(37, 1)], 0⟩, [⟨[],
 noncomputable def st2_eqs : List (CCell × CCell) := [] ++ st1_eqs
 
 /-- The state before statement 164. -/
-noncomputable def st2 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some ⟨[(1, 1)], 0⟩) tr9 (.node (some ⟨[(5, 1)],
-    0⟩) tr50 tr51)) (.node (some ⟨[(2, 1)], 0⟩) tr12 (.node (some ⟨[(6, 1)], 0⟩) (.node (some ⟨[(10, 1)], 0⟩) tr52
-    tr53) (.node (some ⟨[(14, 1)], 0⟩) tr54 tr55)))),
-    tr72,
+noncomputable def st2 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some ⟨[(1, 1)], 0⟩) tr4 (.node (some ⟨[(5, 1)],
+    0⟩) tr45 tr46)) (.node (some ⟨[(2, 1)], 0⟩) tr7 (.node (some ⟨[(6, 1)], 0⟩) (.node (some ⟨[(10, 1)], 0⟩) tr47
+    tr48) (.node (some ⟨[(14, 1)], 0⟩) tr49 tr50)))),
+    tr67,
     (.node (some ⟨⟨[(1, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩) (.node (some ⟨⟨[(14, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(4, 1)], 0⟩⟩)
-        tr32 tr33) (.node (some ⟨⟨[(2, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩) tr34 tr35)),
+        tr27 tr28) (.node (some ⟨⟨[(2, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(5, 1)], 0⟩⟩) tr29 tr30)),
     (.node none (.node none (.node none (.node none (.node none (.node (some (⟨[], 1⟩, ⟨[(6, 1)], 0⟩)) .nil .nil)
         .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some (⟨[(3, 1)], 0⟩, ⟨[(28, 1)], 0⟩)) .nil
         .nil)))) .nil),
-    tr82,
-    (.node none tr45 tr87),
+    tr77,
+    (.node none tr40 tr82),
     .nil,
     .nil,
-    287, 34, 36, 0,
+    287, 30, 36, 0,
     st2_cd,
     st2_eqs,
     []⟩

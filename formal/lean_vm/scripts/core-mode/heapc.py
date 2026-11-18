@@ -6,7 +6,7 @@ Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(val
 a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
-`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`,
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('evs', n, k, res)`, `('back', r, ns, res)`, `('prep', r, q, res)`,
 `('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
 `ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
@@ -309,6 +309,23 @@ def ptBack(F, R, c):
         hasFC(F, k - 1 + lo[1], hi)
 
 
+def backC(F, R, c, ns):
+    base, S, lo, hi = R
+    k = backK(R, c)
+    return 0 < k and cshift(c, S * k) == cmul(base, cpow(hi, S)) and not lo[0] and lo[1] < CAPE and \
+        hasExp(F, hi) and len(ns) == lo[1] + k
+
+
+def backCells(R, k, n):
+    """`backW`'s cells, for the exponents `y < n` of the upper bound: `base·g^(S·y - S·k)` (`None` below `g^0`)."""
+    base, S = R[0], R[1]
+    return [(base[0], base[1] + S * y - S * k) if S * k <= base[1] + S * y else None for y in range(n)]
+
+
+def backW(st, R, k, ns):
+    return all(x is not None and st.sc.get(n) == x for x, n in zip(backCells(R, k, len(ns)), ns))
+
+
 def ptRun(F, R, c):
     base, S, lo, hi = R
     return (c == cmul(base, cpow(lo, S)) and hasF(F, lo, hi)) or ptIdx(F, R, c, idxOf(base, c, S)) or \
@@ -370,7 +387,7 @@ def loOk(F, E, Q, R):
 def hiOk(F, E, Q, R):
     return eqV(E, Q[3], R[3]) or hasF(F, Q[3], R[3]) or (0 < Q[3][1] and hasF(F, (Q[3][0], Q[3][1] - 1), R[3])) or \
         (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < CAPE) or \
-        (not Q[3][0] and Q[3][1] < CAPE and hasFC(F, tsub(Q[3][1], 1), R[3]))
+        (not Q[3][0] and Q[3][1] < CAPE and hasFC(F, tsub(Q[3][1], 1), R[3])) or hasF(F, Q[3], cshift(R[3], 1))
 
 
 def runRun(F, E, Q, R):
@@ -399,6 +416,10 @@ def mrgPart(Q, S, r, lo, hi):
 
 def hasExp(F, m):
     return (not m[0] and m[1] < CAPE) or any(p[0] == m or p[1] == m for p in F)
+
+
+def evsR(Q, k):
+    return (Q, 1, ((), 0), ((), k))
 
 
 def prepQ(R):
@@ -582,6 +603,16 @@ def ptOk(X, st, c, w):
     if k == 'prep':
         R = st.rs.get(w[1])
         return R is not None and prepIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, prepQ(R), w[2])
+    if k == 'back':
+        R = st.rs.get(w[1])
+        return R is not None and backC(X.facts(st.env, w[3]), R, c, w[2]) and backW(st, R, backK(R, c), w[2])
+    if k == 'evs':
+        Q, n, kk = st.sc.get(w[1]), w[1], w[2]
+        if Q is None or kk >= CAPE or any(st.sc.get(n + t) != cshift(Q, t) for t in range(kk)):
+            return False
+        R = evsR(Q, kk)
+        F = X.facts(st.env, w[3])
+        return ptRun(F, R, c) or X.subPt(F, st.env, w[3], R, c)
     if k == 'app':
         R = st.rs.get(w[1])
         return R is not None and appIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, appQ(R), w[2])

@@ -155,6 +155,13 @@ inductive Wit where
   where the call is not entered, the run `⟨b, stride, lo, hi⟩`, its bounds and base those of run `j` by the
   guard's equation, is written. -/
   | keep (j : ℕ) (b lo hi : CCell)
+  /-- A cell of the run `⟨Q, 1, g^0, g^k⟩`, `Q` the cell of the write event `n` and the run's cells those of the
+  write events `n` to `n + k - 1`: by the facts of these residuals, or a residual placing it there. -/
+  | evs (n k : ℕ) (res : List ℕ)
+  /-- A cell `k ≥ 1` indices below the upper bound of run `r` (`c·g^(S·k) = base·hi^S`), its lower bound a
+  constant `lo`, the upper bound's exponent `y` by a fact of these residuals: in the run when `y ≥ lo + k`, else the
+  write event `ns[y]`. -/
+  | back (r : ℕ) (ns : List ℕ) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written

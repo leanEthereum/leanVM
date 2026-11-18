@@ -35,13 +35,7 @@ noncomputable def v2 : PRun :=
   ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩
 
 noncomputable def v3 : PRun :=
-  ⟨⟨[(1048578, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048579, 1)], 0⟩⟩
-
-noncomputable def v4 : PRun :=
   ⟨⟨[(1048580, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048581, 1)], 0⟩⟩
-
-noncomputable def v5 : PRun :=
-  ⟨⟨[(1048582, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048583, 1)], 0⟩⟩
 
 noncomputable def st0_cd : List CdE := []
 
@@ -50,14 +44,13 @@ noncomputable def st0_eqs : List (CCell × CCell) := []
 /-- The state before statement 0. -/
 noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr0 tr1),
     .nil,
-    (.node (some v2) (.node (some v3) (.node (some v4) .nil .nil) .nil) (.node (some ⟨⟨[(8, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(9,
-        1)], 0⟩⟩) (.node (some v5) .nil .nil) .nil)),
+    (.node (some v2) (.node (some ⟨⟨[(8, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(9, 1)], 0⟩⟩) .nil .nil) (.node (some v3) .nil .nil)),
     .nil,
     .nil,
     .nil,
     .nil,
     .nil,
-    0, 5, 0, 0,
+    0, 3, 0, 0,
     st0_cd,
     st0_eqs,
     []⟩
