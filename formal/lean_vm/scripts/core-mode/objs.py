@@ -134,9 +134,11 @@ def objs_of_mono(P, st, m):
     return out
 
 
-def content_obj(P, st, t, depth=0):
+def content_obj(P, st, t, depth=0, conds=None):
     """The object the word at cell `t` points into."""
     w = st.hv.get(t)
+    for cd in conds or ():
+        w = w or cd[2].get(t)
     if w is not None and w != base(t) and t not in [((b, 1),) for b, _ in w[0]]:
         o = obj_of_mono(P, st, w, depth + 1)
         if o is not None:
@@ -158,7 +160,7 @@ def matches(P, t, Q, S):
     return P.idx_in(t, (Q, S, num(0), num(0))) is not None
 
 
-def resolve(P, st, anc, args, ginst, depth=0):
+def resolve(P, st, anc, args, ginst, depth=0, conds=None):
     """A callee's anchor at a call with `args`: the caller's object."""
     if anc[0] == 'param':
         return obj_of_mono(P, st, P.mono(st, args[anc[1]]), depth + 1) if anc[1] < len(args) else None
@@ -167,7 +169,7 @@ def resolve(P, st, anc, args, ginst, depth=0):
         P.ginst = ginst
         t = P.tr(st, anc[1], args, None)
         P.ginst = old
-        return content_obj(P, st, t, depth + 1) if t is not None else None
+        return content_obj(P, st, t, depth + 1, conds) if t is not None else None
     return None
 
 
@@ -195,7 +197,7 @@ def run_for(P, st, obj, conds=None, create=True):
                 if best is None or not R[3][0] and best[0][3][0]:
                     best = (R, rw)
         if best is None and create and not P.at_tail:
-            best = derive_for(P, st, v, runs)
+            best = derive_for(P, st, v, runs, conds)
         if best is not None:
             return best
         if obj[0] == 'val':
@@ -275,7 +277,7 @@ def inst(P, st, G, args, conds, tail=False):
     for j, anc in enumerate(G.ghosts):
         if anc[0] == 'hi':
             continue
-        o = resolve(P, st, anc, args, gi)
+        o = resolve(P, st, anc, args, gi, conds=conds or P.armconds)
         if o is None:
             continue
         rr = run_for(P, st, o, conds, create=not tail)
@@ -374,7 +376,7 @@ def narrow_update():
     return changed
 
 
-def derive_for(P, st, v, runs):
+def derive_for(P, st, v, runs, conds=None):
     """The object `v` written as `S` residue runs of stride `S` (a table filled `S` cells an iteration) and points
     before them: one run `⟨v, 1, 0, hi⟩` (`merge`, `concat`: index arithmetic, generic residuals)."""
     by = {}
@@ -392,7 +394,8 @@ def derive_for(P, st, v, runs):
         lo1 = R[2]
         if lo1 != num(0) and not lo1[0] and lo1[1] <= 64:
             # the cells below the merged run as points (a callee's guarantees before its loop)
-            if all(shift((((v, 1),), 0), i) in st.pts for i in range(lo1[1])):
+            pts = set(st.pts).union(*[cd[0] for cd in conds or ()])
+            if all(shift((((v, 1),), 0), i) in pts for i in range(lo1[1])):
                 R2 = (R[0], 1, num(0), R[3])
                 k2 = P.addres(('sub', R2, (R,), 'concat'))
                 st.runs.append((R, rw))

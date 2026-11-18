@@ -66,6 +66,8 @@ FEATURES = {
               '`sub` (`objs.py`)',
     'pfr': 'pointer runs: the words at a run of cells (a table filled in a loop) are pointers whose given cells are '
            'written (`prePR`/`postPR`, `ptrrun.py`)',
+    'armx': 'a dispatch arm `j` excluded by a fact `e(x) < j` on its selector: its preconditions not met, its '
+            'guarantees not in the meet',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -1119,8 +1121,16 @@ class Pass:
         outs = []
         ws = []
         n0, nr0 = self.n, self.nr
+        live = []
         for j, f in enumerate(fs):
             self.n, self.nr = n0, nr0
+            if 'armx' in F:
+                u = []
+                if self.lt(st, xm, num(j), u):
+                    ws.append(('armx', ('armx', u)))
+                    self.stats['armx'] += 1
+                    continue
+            live.append(j)
             t = st.copy()
             cd = self.conds_of(st, x, j) if 'cond' in F else []
             self.armconds = cd
@@ -1133,12 +1143,12 @@ class Pass:
             self.armconds = None
             outs.append(t)
         self.calls.append((tuple(fs), ws))
-        m = meet(outs, (xm, list(range(len(fs)))) if 'cond' in F else None)
+        m = meet(outs, (xm, live) if 'cond' in F else None)
         # `heapOkC`'s numbering: the arms' common guarantees, in the first arm's order, one serial each
         self.n, self.nr = n0, nr0
         pts, runs = dict(st.pts), list(st.runs)
-        sigs = [SIGS.get(f) for f in fs]
-        if all(sigs):
+        sigs = [SIGS.get(fs[j]) for j in live]
+        if sigs and all(sigs):
             posts = [[self.tr(st, c, args, rets) for c in G.post] for G in sigs]
             others = [set(p) for p in posts[1:]]
             for t in posts[0]:
@@ -1302,9 +1312,11 @@ def retsig(P, G):
         postV = hv if postV is None else postV & hv
         postP = pp if postP is None else {c: o & pp[c] for c, o in postP.items() if c in pp and o & pp[c]}
     pre = set(G.pre)
-    if 'retM' not in F:
-        # a returned word `p·g^k` over a parameter: the cells past `p` also over the returned word's slot
-        G.retM = {}
+    if 'retM' not in F or 'obj' in F:
+        # a returned word `p·g^k` over a parameter: the cells past `p` also over the returned word's slot (with `obj`
+        # beside `retM`: a dispatch's arms returning different offsets meet there)
+        if 'retM' not in F:
+            G.retM = {}
         for p_, slot, k in alias:
             post |= {mk(((slot, 1),), c[1] - k) for c in post if c[0] == ((p_, 1),) and (WRAP[0] or c[1] >= k)}
             postR |= {((((slot, 1),), (r[0][1] - k) % ORD if WRAP[0] else r[0][1] - k), r[1], r[2], r[3])
@@ -1445,6 +1457,9 @@ def used_res(P):
                 add(i)
         elif k == 'pfr':
             for i in w[2]:
+                add(i)
+        elif k == 'armx':
+            for i in w[1]:
                 add(i)
         elif k == 'pts':
             for x in w[1]:
