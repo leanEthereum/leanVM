@@ -81,6 +81,8 @@ def infer_one(k, S):
             raise No('recursive')
         # `CoreMode.fitBL`: `callc.py`'s `fitB`; no pointer cell guaranteed (`calleePtrOk`)
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
+        # `fitBL` and `callChk`: no returned word's monomial at a loop's call
+        h.retM = {}
         if h.postP:
             raise No('callee pointer base')
         callc.exp_bounds(h, s[2], body, np, callc.exp_cells(G))

@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 1479 to 2181. -/
 theorem win10 : winOk Fn.«child_claim_list_mono_loop0».pows sigW core hcert (((Memory.loopBody core).drop 1479).take (2182 - 1479)) st10 st11 = true := by
+  simp only [winOk, withCx_cx hcx]
   decide +kernel
 
 end

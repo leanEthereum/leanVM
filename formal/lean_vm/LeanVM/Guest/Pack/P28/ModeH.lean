@@ -26,18 +26,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«shared_selector_tables»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L18_L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `decode_query_windows__L18_L6`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 953) (d := Data.adviceFn953) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«decode_query_windows__L18_L6»

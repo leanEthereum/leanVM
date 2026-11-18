@@ -1890,7 +1890,8 @@ noncomputable def st7 : CSt := ⟨tr2033,
     .nil,
     584, 1, 0, 0,
     st7_cd,
-    st7_eqs⟩
+    st7_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW

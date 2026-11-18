@@ -258,7 +258,8 @@ def hcert : CoreMode.HCert where
         ⟨[(2, 1)], 10⟩, ⟨[(2, 1)], 11⟩],
       post := [⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩],
       preR := [⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 27)⟩, ⟨⟨[(4, 1)], 2⟩, 2, (.num 0), (.num 27)⟩,
-        ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 27)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 27)⟩],
+        ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 27)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 27)⟩,
+        ⟨⟨[(4, 1)], 1⟩, 1, (.num 0), (.num 54)⟩, ⟨⟨[(5, 1)], 1⟩, 1, (.num 0), (.num 54)⟩],
       postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 12)⟩, ⟨⟨[(4, 1)], 1⟩, 2, (.num 0), (.num 27)⟩,
         ⟨⟨[(4, 1)], 2⟩, 2, (.num 0), (.num 27)⟩, ⟨⟨[(4, 1)], 0⟩, 2, (.num 0), (.num 28)⟩,
         ⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 27)⟩, ⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 27)⟩,
@@ -330,15 +331,16 @@ def hcert : CoreMode.HCert where
         .ev 625, .ev 626, .ev 627, .ev 628, .ev 629, .ev 630, .ev 631, .ev 632, .ev 633, .ev 634, .ev 635,
         .ev 636, .ev 637, .ev 638, .ev 639, .ev 640],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .pre 12, .pre 13, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 4 [], .pfr 5 []]]
-  rets := [[.ev 641, .ev 642, .run 6 [], .run 7 [], .run 8 [], .pts, .ev 641, .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [],
-        .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 8 [], .run 9 [], .run 10 [], .pts, .ev 642,
+        .pre 12, .pre 13, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 6 [], .pfr 7 []]]
+  rets := [[.ev 641, .ev 642, .run 8 [], .run 9 [], .run 10 [], .pts, .ev 641, .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
-        .run 10 [], .run 10 [], .run 10 [], .pf 643, .pfr 11 [], .pfr 12 []]]
+        .run 11 [], .run 12 [], .pts, .ev 642, .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
+        .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .pf 643, .pfr 13 [],
+        .pfr 14 []]]
 
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

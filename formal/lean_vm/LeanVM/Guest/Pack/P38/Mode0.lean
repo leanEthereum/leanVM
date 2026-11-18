@@ -61,28 +61,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«verify_bus_gkr»
-
-namespace LeanVM.Guest.Fn.«column_selector__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L30`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L30`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨211471, 12, Fn.«column_selector__L30».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    1 4 28 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 464, [((.fr
-    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4),
-    4, 464⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L30`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L30»

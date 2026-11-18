@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 0 to 296. -/
 theorem win0 : winOkF Fn.«da_weights».pows sigW core hcert ((core.body.drop 0).take (297 - 0)) st0 st1 = true := by
+  simp only [winOkF, withCx_cx hcx]
   decide +kernel
 
 end

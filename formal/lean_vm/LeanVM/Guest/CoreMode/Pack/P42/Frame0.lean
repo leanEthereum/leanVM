@@ -24,6 +24,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».Ok
+public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P42».Pair
@@ -119,8 +121,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `exponent_tables`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 14755, 4490,
-    Fn.«exponent_tables».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, .nil, .nil,
-    .nil⟩
+    Fn.«exponent_tables».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«exponent_tables».pairO, Fn.«exponent_tables».pairS, .nil⟩
 
 /-- `exponent_tables`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -552,10 +554,7 @@ noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 245316, 30,
     Fn.«child_claim_list_mono_last__L0».modeSig, .nil, 524287, advice.2.2, (.node none (.node none
     (.node none (.node none .nil (.node (some [3]) .nil .nil)) .nil) .nil) .nil), .nil, .nil, .nil,
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some
-    ()) (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ())
-    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)))), .nil, .nil⟩
+    Fn.«child_claim_list_mono_last__L0».pairO, Fn.«child_claim_list_mono_last__L0».pairS, .nil⟩
 
 /-- `child_claim_list_mono_last__L0`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

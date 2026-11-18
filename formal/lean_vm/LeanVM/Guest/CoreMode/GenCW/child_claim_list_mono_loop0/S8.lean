@@ -1779,7 +1779,8 @@ noncomputable def st8 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some �
     .nil,
     614, 1, 0, 0,
     st8_cd,
-    st8_eqs⟩
+    st8_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0».HeapW

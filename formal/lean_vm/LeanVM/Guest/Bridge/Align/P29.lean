@@ -198,7 +198,7 @@ open LeanVM.Guest
 /-- `claim_list_digest`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«claim_list_digest».cert.locs [] Fn.«claim_list_digest».code.entryPc false
-    Fn.«claim_list_digest».plumb Data.powTree Data.jtTrie [("__loop0_claim_list_digest", 234256), ("__loop1_claim_list_digest", 235498), ("list_split", 61181)] 524287 Fn.«claim_list_digest».code.instructionCount
+    Fn.«claim_list_digest».plumb Data.powTree Data.jtTrie [("__loop0_claim_list_digest", 234256), ("__loop1_claim_list_digest", 235498), ("claim_list_last__L0", 235701), ("claim_list_last__L1", 235726), ("claim_list_last__L10", 236333), ("claim_list_last__L11", 236445), ("claim_list_last__L12", 236566), ("claim_list_last__L13", 236696), ("claim_list_last__L14", 236834), ("claim_list_last__L15", 236982), ("claim_list_last__L16", 237138), ("claim_list_last__L2", 235762), ("claim_list_last__L3", 235798), ("claim_list_last__L4", 235852), ("claim_list_last__L5", 235906), ("claim_list_last__L6", 235974), ("claim_list_last__L7", 236050), ("claim_list_last__L8", 236136), ("claim_list_last__L9", 236230), ("list_split", 61181)] 524287 Fn.«claim_list_digest».code.instructionCount
 
 end
 

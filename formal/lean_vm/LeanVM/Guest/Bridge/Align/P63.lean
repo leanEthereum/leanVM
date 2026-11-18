@@ -111,7 +111,7 @@ open LeanVM.Guest
 /-- `child_claim_list_mono`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«child_claim_list_mono».cert.locs [] Fn.«child_claim_list_mono».code.entryPc false
-    Fn.«child_claim_list_mono».plumb Data.powTree Data.jtTrie [("__loop0_child_claim_list_mono", 242952), ("__loop1_child_claim_list_mono", 245009)] 524287 Fn.«child_claim_list_mono».code.instructionCount
+    Fn.«child_claim_list_mono».plumb Data.powTree Data.jtTrie [("__loop0_child_claim_list_mono", 242952), ("__loop1_child_claim_list_mono", 245009), ("child_claim_list_mono_last__L0", 245316), ("child_claim_list_mono_last__L1", 245346), ("child_claim_list_mono_last__L10", 246313), ("child_claim_list_mono_last__L11", 246495), ("child_claim_list_mono_last__L12", 246692), ("child_claim_list_mono_last__L13", 246904), ("child_claim_list_mono_last__L14", 247130), ("child_claim_list_mono_last__L15", 247372), ("child_claim_list_mono_last__L16", 247628), ("child_claim_list_mono_last__L2", 245398), ("child_claim_list_mono_last__L3", 245456), ("child_claim_list_mono_last__L4", 245538), ("child_claim_list_mono_last__L5", 245626), ("child_claim_list_mono_last__L6", 245734), ("child_claim_list_mono_last__L7", 245856), ("child_claim_list_mono_last__L8", 245994), ("child_claim_list_mono_last__L9", 246146)] 524287 Fn.«child_claim_list_mono».code.instructionCount
 
 end
 

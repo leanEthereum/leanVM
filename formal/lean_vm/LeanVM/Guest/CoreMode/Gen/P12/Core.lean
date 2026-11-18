@@ -47,7 +47,8 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `index_mle__L2`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `index_mle__L2`: its returned products. -/
@@ -78,6 +79,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -87,6 +91,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«index_mle__L2».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«index_mle__L2».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«index_mle__L2».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `index_mle__L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -116,7 +122,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `column_selector__L1`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `column_selector__L1`: its returned products. -/
@@ -147,6 +154,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -156,6 +166,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«column_selector__L1».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«column_selector__L1».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«column_selector__L1».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `column_selector__L1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -185,7 +197,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3`: its returned products. -/
@@ -216,6 +229,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -225,6 +241,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_residual__L109_L14_L6_L3».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L109_L14_L6_L3».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L109_L14_L6_L3».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -254,7 +272,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L4_L20_L2`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_positions__L4_L20_L2`: its returned products. -/
@@ -285,6 +304,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -294,6 +316,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_positions__L4_L20_L2».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L4_L20_L2».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L4_L20_L2».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_positions__L4_L20_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -323,7 +347,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2`: its returned products. -/
@@ -354,6 +379,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -363,6 +391,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_residual__L23_L10_L4_L2».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L23_L10_L4_L2».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L23_L10_L4_L2».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -392,7 +422,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L32_L16_L4_L2`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_residual__L32_L16_L4_L2`: its returned products. -/
@@ -423,6 +454,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -432,6 +466,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_residual__L32_L16_L4_L2».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L32_L16_L4_L2».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L32_L16_L4_L2».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_residual__L32_L16_L4_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -461,7 +497,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_positions__L11_L25_L7`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_positions__L11_L25_L7`: its returned products. -/
@@ -492,6 +529,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -501,6 +541,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_positions__L11_L25_L7».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_positions__L11_L25_L7».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_positions__L11_L25_L7».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_positions__L11_L25_L7`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -530,7 +572,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3`: its returned products. -/
@@ -561,6 +604,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -570,6 +616,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_residual__L55_L21_L6_L3».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L55_L21_L6_L3».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L55_L21_L6_L3».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -599,7 +647,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its returned products. -/
@@ -630,6 +679,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -639,6 +691,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -668,7 +722,8 @@ theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
   decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3`: its returned products. -/
@@ -699,6 +754,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -708,6 +766,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«level_residual__L218_L24_L6_L3».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«level_residual__L218_L24_L6_L3».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«level_residual__L218_L24_L6_L3».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -757,6 +817,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   rdFree := by decide +kernel
   cptr := by decide +kernel
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   code := loop_code
   pair := pair_ok
@@ -822,6 +883,7 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
@@ -888,6 +950,7 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
@@ -954,6 +1017,7 @@ theorem loop_shape : CoreMode.loopShapeOk cfun = true := by
 theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
   heap := heap_okC
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   cs := rfl
   body := by decide +kernel
@@ -1025,6 +1089,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   rdFree := by decide +kernel
   cptr := by decide +kernel
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   code := loop_code
   pair := pair_ok
@@ -1095,6 +1160,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   rdFree := by decide +kernel
   cptr := by decide +kernel
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   code := loop_code
   pair := pair_ok
@@ -1165,6 +1231,7 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   rdFree := by decide +kernel
   cptr := by decide +kernel
   ders := rfl
+  gw := rfl
   nofa := by decide +kernel
   code := loop_code
   pair := pair_ok

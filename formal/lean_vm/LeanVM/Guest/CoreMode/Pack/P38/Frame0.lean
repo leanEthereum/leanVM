@@ -31,6 +31,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P23».ModeSig
 public import LeanVM.Guest.Pack.«P24».ModeSig
@@ -204,9 +205,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `column_selector__L30`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 211471, 12,
-    Fn.«column_selector__L30».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) .nil),
-    .nil, .nil⟩
+    Fn.«column_selector__L30».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«column_selector__L30».pairO, Fn.«column_selector__L30».pairS, .nil⟩
 
 /-- `column_selector__L30`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

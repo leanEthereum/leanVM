@@ -48,6 +48,10 @@ rejected.
 * `catk`: a run split at a symbolic index (`catM`); `useME`: a merge whose root is given by an equation
   (`mrgE`); `useAb`: a block every arm of a `dispatch` writes up to its index (`ab`); `pubRd`: constant
   preconditions (the public input); `fillP`, `useFillP`: a loop's accumulated pointer run, consumed.
+* `mkq`, `useq`, `catq`: a run at the word a callee stores at a cell (`postQ`), read by the caller after it loads
+  the cell; the run's second part split again (nested `catM`).
+
+* `rdw`: a read through the word at a parameter's cell, a ghost's by the signature (`gw`).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -859,6 +863,140 @@ theorem ifRd_bad :
       hIfRd = false := by
   decide +kernel
 
+/-- `fillN p n` guarantees `p·g^[0, e(n))`. -/
+def sigsZ (g : String) : HSig :=
+  if g = "fillN" then { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] } else .empty
+
+/-- Guarantees `p·g^[0, e(n))`: `fillN p n` unless `n = 1`, where the run is empty. -/
+def zDup : Fn where
+  name := "zDup"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
+    .ite (.n 3) [] [.call "fillN" [.n 0, .n 1] []], .ret []]
+
+/-- `zDup`'s certificate: the `ret` checked in each branch, empty where `n + 1 = 0`, `fillN`'s run otherwise. -/
+def hZDup : HCert where
+  sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := []
+  res := []
+  calls := [[]]
+  rets := [[.empty], [.run 0 []]]
+  dups := [3]
+
+theorem zDup_ok : heapOkC Data.powTree sigsZ zDup hZDup = true := by decide +kernel
+
+/-- Without `dups`, one `ret` after the join: neither branch's witness holds there. -/
+theorem zDup_nodup : heapOkC Data.powTree sigsZ zDup { hZDup with dups := [], rets := [[.empty]] } = false := by
+  decide +kernel
+
+theorem zDup_nodup2 : heapOkC Data.powTree sigsZ zDup { hZDup with dups := [], rets := [[.run 0 []]] } = false := by
+  decide +kernel
+
+/-- The call in the zero branch: the other branch's run is not empty (no equation there). -/
+theorem zDup_bad : heapOkC Data.powTree sigsZ
+    { zDup with body := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
+      .ite (.n 3) [.call "fillN" [.n 0, .n 1] []] [], .ret []] } { hZDup with rets := [[.run 0 []], [.empty]] } = false := by
+  decide +kernel
+
+/-- The guard's sum not over the bounds: `n + p = 0` makes no run of `p·g^[0, e(n))` empty. -/
+theorem zDup_bad2 : heapOkC Data.powTree sigsZ
+    { zDup with body := [.atom (.add (.n 3) (.n 1) (.n 0)), .ite (.n 3) [] [.call "fillN" [.n 0, .n 1] []], .ret []] }
+    hZDup = false := by
+  decide +kernel
+
+/-- Reads `p·i`, `e(i) ≤ e(n)`: the run `p·g^[0, e(n))` and its next point `p·n`. -/
+def appRd : Fn where
+  name := "appRd"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.mul (.n 3) (.n 0) (.n 2)), .atom (.load (.n 4) (.n 3) 0), .ret []]
+
+/-- `appRd`'s certificate: the read by `app`, the point `p·n` a precondition, the residual `e(i) < e(n·g)`. -/
+def hAppRd : HCert where
+  sig := { pre := [⟨[(0, 1), (1, 1)], 0⟩], preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := [(4, [(3, 0, .app 0 (.pre 0) [0])])]
+  res := [.lt (.val 2) (.mono ⟨[(1, 1)], 1⟩)]
+  rets := [[]]
+
+theorem appRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) appRd hAppRd = true := by decide +kernel
+
+/-- Without the next point. -/
+theorem appRd_nopt : heapOkC Data.powTree (fun _ ↦ .empty) appRd
+    { hAppRd with sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] } } = false := by
+  decide +kernel
+
+/-- The index up to two past the run: `p·n·g` is not written. -/
+theorem appRd_far : heapOkC Data.powTree (fun _ ↦ .empty) appRd
+    { hAppRd with res := [.lt (.val 2) (.mono ⟨[(1, 1)], 2⟩)] } = false := by
+  decide +kernel
+
+/-- Guarantees `p·g^[0, e(m))` from the residues `p·g^r·g^(2·[0, e(n)))`, `e(m) ≤ 2·e(n)` by a fact. -/
+def mrgLe : Fn where
+  name := "mrgLe"
+  params := [.n 0, .n 1, .n 2]
+  body := [.ret []]
+
+def hMrgLe : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 2, .num 0, .val 1⟩, ⟨⟨[(0, 1)], 1⟩, 2, .num 0, .val 1⟩],
+           postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := [.lt (.val 2) (.mono ⟨[(1, 2)], 1⟩), .lt (.val 1) (.num 100)]
+  rets := [[.mrgE 2 ⟨[(1, 1)], 0⟩ [0, 1], .run 0 [], .run 1 []]]
+
+theorem mrgLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) mrgLe hMrgLe = true := by decide +kernel
+
+/-- `e(m) ≤ 2·e(n) + 1` is not enough. -/
+theorem mrgLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) mrgLe
+    { hMrgLe with res := [.lt (.val 2) (.mono ⟨[(1, 2)], 2⟩), .lt (.val 1) (.num 100)] } = false := by
+  decide +kernel
+
+/-- `fillE p n` guarantees the cell `p·n` (as a run of one cell). -/
+def sigsFE (g : String) : HSig :=
+  if g = "fillE" then { postR := [⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 1⟩] } else .empty
+
+/-- Stores at `p`, then `fillE p n` unless `n = 1`: the cell `p·n` is written either way. -/
+def keepF : Fn where
+  name := "keepF"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 0) 0), .atom (.const (.n 3) (word 1 0)),
+    .atom (.add (.n 4) (.n 3) (.n 1)), .callIf (.n 4) "fillE" [.n 0, .n 1], .ret []]
+
+/-- `keepF`'s certificate: `fillE`'s run kept, where it is not entered `p·g^[0, 1)` by the store. -/
+def hKeepF : HCert where
+  sig := { postR := [⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 1⟩] }
+  reads := []
+  res := []
+  calls := [[.keep 0 ⟨[(0, 1)], 0⟩ ⟨[], 0⟩ ⟨[], 1⟩, .pts, .ev 0]]
+  rets := [[.run 0 []]]
+
+theorem keepF_ok : heapOkC Data.powTree sigsFE keepF hKeepF = true := by decide +kernel
+
+/-- Not kept: nothing in scope at the `ret`. -/
+theorem keepF_nokeep : heapOkC Data.powTree sigsFE keepF { hKeepF with calls := [[]] } = false := by decide +kernel
+
+/-- Kept as another run: `p·g` is not `p·n` where `n = 1`. -/
+theorem keepF_bad : heapOkC Data.powTree sigsFE keepF
+    { hKeepF with calls := [[.keep 0 ⟨[(0, 1)], 1⟩ ⟨[], 0⟩ ⟨[], 1⟩, .pts, .ev 0]] } = false := by
+  decide +kernel
+
+/-- Hints 2048 cells at `p` (a stream) and guarantees them as one run (`hintRun`). -/
+def hintR : Fn where
+  name := "hintR"
+  params := [.n 0]
+  body := [.atom (.hint (.witness "stream" (.heap (.n 0) 0 2048))), .ret []]
+
+def hHintR : HCert where
+  sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2048⟩] }
+  reads := []
+  res := []
+  rets := [[.run 0 []]]
+
+theorem hintR_ok : heapOkC Data.powTree (fun _ ↦ .empty) hintR hHintR = true := by decide +kernel
+
+/-- One cell more than written. -/
+theorem hintR_bad : heapOkC Data.powTree (fun _ ↦ .empty) hintR
+    { hHintR with sig := { postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 2049⟩] } } = false := by
+  decide +kernel
+
 /-- `rd3` needs `p·g^[0, 3)`. -/
 def sigsB (g : String) : HSig :=
   if g = "rd3" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 3⟩] } else .empty
@@ -1531,6 +1669,184 @@ def hUseFillP : HCert where
   rets := [[]]
 
 theorem useFillP_ok : heapOkC Data.powTree sigsP2 useFillP hUseFillP = true := by decide +kernel
+
+/-- Allocates two cells, writes them, stores the buffer's pointer at `o[0]`. -/
+def mkq : Fn where
+  name := "mkq"
+  params := [.n 0]
+  body := [.atom (.hint (.alloc (.n 1) 2)), .atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 1) 0),
+    .atom (.load (.n 2) (.n 1) 1), .atom (.load (.n 1) (.n 0) 0), .ret []]
+
+/-- `mkq`'s certificate: `o[0]` written, and the run of two cells at the word there (`postQ`), by the store of
+`o[0]` (`word`) and the run's points. -/
+def hMkq : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postQ := [(⟨[(0, 1)], 0⟩, ⟨⟨[], 0⟩, 1, .num 0, .num 2⟩)] }
+  reads := []
+  res := []
+  rets := [[.ev 2, .word 2, .pts, .ev 0, .ev 1]]
+
+theorem mkq_ok : heapOkC Data.powTree (fun _ ↦ .empty) mkq hMkq = true := by decide +kernel
+
+/-- A run of three cells at the word: its third cell is not written. -/
+def hMkq3 : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postQ := [(⟨[(0, 1)], 0⟩, ⟨⟨[], 0⟩, 1, .num 0, .num 3⟩)] }
+  reads := []
+  res := []
+  rets := [[.ev 2, .word 2, .pts, .ev 0, .ev 1, .ev 1]]
+
+theorem mkq_bad : heapOkC Data.powTree (fun _ ↦ .empty) mkq hMkq3 = false := by decide +kernel
+
+/-- The run's word stored elsewhere (`word 0`: the store of `b[0]`, not of `o[0]`). -/
+theorem mkq_bad2 : heapOkC Data.powTree (fun _ ↦ .empty) mkq
+    { hMkq with rets := [[.ev 2, .word 0, .pts, .ev 0, .ev 1]] } = false := by decide +kernel
+
+/-- Calls `mkq`, loads `o[0]`, reads the second cell past it. -/
+def useq : Fn where
+  name := "useq"
+  params := [.n 0]
+  body := [.call "mkq" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 1), .ret []]
+
+/-- `useq`'s certificate: the call's `post` cell (point serial `0`); the load of `o[0]` puts the run at its word
+into scope (run serial `0`). -/
+def hUseq : HCert where
+  sig := {}
+  reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 1, .run 0 [])])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+theorem useq_ok : heapOkC Data.powTree (fun g ↦ if g = "mkq" then hMkq.sig else .empty) useq hUseq = true := by
+  decide +kernel
+
+/-- Without the load of `o[0]`, no run at its word is in scope. -/
+theorem useq_bad : heapOkC Data.powTree (fun g ↦ if g = "mkq" then hMkq.sig else .empty)
+    { useq with body := [.call "mkq" [.n 0] [], .atom (.load (.n 2) (.n 1) 1), .ret []] }
+    { hUseq with reads := [(2, [(1, 1, .run 0 [])])] } = false := by
+  decide +kernel
+
+/-- Needs `p[0..k·g^4)` of `needQ` from its own `p[0..k)`, `p[k..k+2)`, `p[k+2..k+4)`: a `catM` at `k` whose part from
+`k` is a `catM` at `g^2` (nested). -/
+def catq : Fn where
+  name := "catq"
+  params := [.n 0, .n 1]
+  body := [.call "needQ" [.n 0, .n 1] [], .ret []]
+
+/-- `needQ (q, b)` needs `q[0..b·g^4)`. -/
+def sigsCq : String → HSig := fun g ↦
+  if g = "needQ" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 1)], 4⟩⟩] } else .empty
+
+/-- `catq`'s certificate: `catM k g^4`, its part from `k` `catM g^2 g^2`, each part a run in scope. -/
+def hCatq : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩, ⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .num 2⟩,
+    ⟨⟨[(0, 1), (1, 1)], 2⟩, 1, .num 0, .num 2⟩] }
+  reads := []
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[], 4⟩ [0], .run 0 [], .catM ⟨[], 2⟩ ⟨[], 2⟩ [], .run 1 [], .run 2 []]]
+  rets := [[]]
+
+theorem catq_ok : heapOkC Data.powTree sigsCq catq hCatq = true := by decide +kernel
+
+/-- Two levels only: the last part split a third time. -/
+theorem catq_bad : heapOkC Data.powTree sigsCq catq
+    { hCatq with calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[], 4⟩ [0], .run 0 [], .catM ⟨[], 2⟩ ⟨[], 2⟩ [], .run 1 [],
+      .catM ⟨[], 1⟩ ⟨[], 1⟩ [], .pts, .pts]] } = false := by decide +kernel
+
+/-! ## An own parameter word -/
+
+/-- Reads the word at `p[0]`, then through it. -/
+def rdw : Fn where
+  name := "rdw"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .ret []]
+
+/-- `rdw`'s certificate: `p[0]` written (`pre`); ghost `0` (slot `1`, value `GB`) the word at `p[0]` (`gw`), its
+cell `G·g^0` a precondition (`preR`), so the read through the word loaded at `p[0]` finds it. -/
+def sRdw : HSig where
+  pre := [⟨[(0, 1)], 0⟩]
+  preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 1⟩]
+  ghosts := 1
+  gw := [(⟨[(0, 1)], 0⟩, 0)]
+
+/-- `rdw`'s reads: `p[0]` by the precondition, the word's cell by the run. -/
+def hRdw : HCert where
+  sig := sRdw
+  reads := [(1, [(0, 0, .pre 0)]), (2, [(1, 0, .run 0 [])])]
+  res := []
+  rets := [[]]
+
+theorem rdw_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdw hRdw = true := by decide +kernel
+
+/-- Without the own parameter word, the word loaded is no ghost's. -/
+theorem rdw_bad : heapOkC Data.powTree (fun _ ↦ .empty) rdw { hRdw with sig := { sRdw with gw := [] } } = false := by
+  decide +kernel
+
+/-- Writes `p·g^[0, 3)` then reads `p·i`, `e(i) < 3` by a residual: the run of the three write events (`evs`). -/
+def evsRd : Fn where
+  name := "evsRd"
+  params := [.n 0, .n 1]
+  body := [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 0) 1), .atom (.load (.n 4) (.n 0) 2),
+    .atom (.mul (.n 5) (.n 0) (.n 1)), .atom (.load (.n 6) (.n 5) 0), .ret []]
+
+def hEvsRd : HCert where
+  sig := {}
+  reads := [(6, [(5, 0, .evs 0 3 [0])])]
+  res := [.lt (.val 1) (.num 3)]
+  rets := [[]]
+
+theorem evsRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) evsRd hEvsRd = true := by decide +kernel
+
+/-- `e(i) < 4`: `p·g^3` is not written. -/
+theorem evsRd_far : heapOkC Data.powTree (fun _ ↦ .empty) evsRd
+    { hEvsRd with reads := [(6, [(5, 0, .evs 0 4 [0])])], res := [.lt (.val 1) (.num 4)] } = false := by
+  decide +kernel
+
+/-- From the second event: its cells are `p·g^[1, 3)`, not from `p`. -/
+theorem evsRd_shift : heapOkC Data.powTree (fun _ ↦ .empty) evsRd
+    { hEvsRd with reads := [(6, [(5, 0, .evs 1 2 [0])])], res := [.lt (.val 1) (.num 2)] } = false := by
+  decide +kernel
+
+/-- Writes `p·g^0` and `p·g`, has `p·g·g^[1, e(n))` and reads `p·n`: in the run when `e(n) ≥ 2`, else one of the
+two points (`back`). -/
+def backRd : Fn where
+  name := "backRd"
+  params := [.n 0, .n 1]
+  body := [.atom (.load (.n 2) (.n 0) 0), .atom (.load (.n 3) (.n 0) 1),
+    .atom (.mul (.n 4) (.n 0) (.n 1)), .atom (.load (.n 5) (.n 4) 0), .ret []]
+
+def hBackRd : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 1⟩, 1, .num 1, .val 1⟩] }
+  reads := [(5, [(4, 0, .back 0 [0, 1] [0])])]
+  res := [.lt (.val 1) (.num 100)]
+  rets := [[]]
+
+theorem backRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) backRd hBackRd = true := by decide +kernel
+
+/-- Without the point for `e(n) = 1`. -/
+theorem backRd_short : heapOkC Data.powTree (fun _ ↦ .empty) backRd
+    { hBackRd with reads := [(5, [(4, 0, .back 0 [0] [0])])] } = false := by decide +kernel
+
+/-- The points in the wrong order. -/
+theorem backRd_swap : heapOkC Data.powTree (fun _ ↦ .empty) backRd
+    { hBackRd with reads := [(5, [(4, 0, .back 0 [1, 0] [0])])] } = false := by decide +kernel
+
+/-- Guarantees `p·g^[0, e(n))` from `p·g^[0, 40)`, `e(n) < 41` by a fact (`hiOk`, the upper bound's next). -/
+def hiLe : Fn where
+  name := "hiLe"
+  params := [.n 0, .n 1]
+  body := [.ret []]
+
+def hHiLe : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 40⟩], postR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := []
+  res := [.lt (.val 1) (.num 41)]
+  rets := [[.run 0 [0]]]
+
+theorem hiLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) hiLe hHiLe = true := by decide +kernel
+
+/-- `e(n) < 42` is not enough. -/
+theorem hiLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) hiLe { hHiLe with res := [.lt (.val 1) (.num 42)] } =
+    false := by
+  decide +kernel
 
 end
 

@@ -8455,7 +8455,8 @@ noncomputable def st2 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) tr610 (.node (
     .nil,
     14691, 113, 113, 0,
     st2_cd,
-    st2_eqs⟩
+    st2_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«da_weights».HeapW

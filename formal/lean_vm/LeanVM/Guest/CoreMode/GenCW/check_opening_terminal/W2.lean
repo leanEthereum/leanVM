@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 164 to 223. -/
 theorem win2 : winOkF Fn.«check_opening_terminal».pows sigW core hcert ((core.body.drop 164).take (224 - 164)) st2 st3 = true := by
+  simp only [winOkF, withCx_cx hcx]
   decide +kernel
 
 end

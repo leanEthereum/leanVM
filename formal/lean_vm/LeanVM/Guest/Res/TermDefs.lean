@@ -47,7 +47,7 @@ open LeanVM.Guest.B2C (cellJ fsN)
 
 /-- **What `verify_sub`'s front gives of `check_opening_terminal`'s arguments.** -/
 def TermFront (rd : Reader) : List E → Prop
-  | [gsq, zeta, chi, rm, gmu, gzcn, glm, gtau, kb, _lam, off, _zv, _ct, _pt, _pt1, _, _, _, _oz, _gm] =>
+  | [gsq, zeta, chi, rm, gmu, gzcn, glm, gtau, kb, _lam, off, _zv, _ct, _pt, _pt1, _, _, _, _oz, gm] =>
       ∃ (logMem : ℕ) (hs : List ℕ) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim),
         hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ logMem ≤ 30 ∧
         layout.logMemory = logMem ∧ layout.tableLogHeights = hs ∧ bus.point.length ≤ 40 ∧
@@ -57,7 +57,7 @@ def TermFront (rd : Reader) : List E → Prop
         Tables.KappasBelow (columnKappas logMem Tables.guestLogBytecode hs) ∧
         (stackOffsets (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode hs))).2 ≤ 30 ∧
         Tables.GTabsAt rd (gsq * gen ^ 34) ∧
-        Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn]
+        Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] ∧ ∃ sl ≤ 30, gm = gen ^ sl
   | _ => False
 
 /-! ## The claims' low dimensions -/

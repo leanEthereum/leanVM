@@ -106,6 +106,17 @@ theorem stmts_loopC {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c :
       · exact Or.inr h
 
 /-- A loop helper's body with calls has no `match`. -/
+theorem loopBC_noDsp {fn : Fn} (h : loopBC fn = true) {x : V} {fs : List String} {args rets : List V} :
+    Stmt.dispatch x fs args rets ∉ stmtsOf fn.body := by
+  obtain ⟨pre, c, args', hb, -, hpre⟩ := loopBC_spec h
+  intro hm
+  rw [hb] at hm
+  rcases stmts_loopC hpre hm with hm | hm | hm
+  · have := hpre _ hm
+    simp [isAC] at this
+  · cases hm
+  · cases hm
+
 theorem loopBC_noMatch {fn : Fn} (h : loopBC fn = true) {x : V} {arms : List (List Stmt)} :
     Stmt.match_ x arms ∉ stmtsOf fn.body := by
   obtain ⟨pre, c, args, hb, -, hpre⟩ := loopBC_spec h

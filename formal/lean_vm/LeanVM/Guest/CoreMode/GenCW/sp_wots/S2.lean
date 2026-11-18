@@ -46,7 +46,8 @@ noncomputable def st2 : CSt := ⟨tr3,
     .nil,
     0, 0, 0, 0,
     st2_cd,
-    st2_eqs⟩
+    st2_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«sp_wots».HeapW

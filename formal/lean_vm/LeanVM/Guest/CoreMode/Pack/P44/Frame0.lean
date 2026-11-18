@@ -32,6 +32,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P44».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P44».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P44».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P44».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P44».Pair
 public import LeanVM.Guest.Pack.«P0».ModeSig
 public import LeanVM.Guest.Pack.«P14».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
@@ -117,17 +118,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector_tab__L26`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 205530, 74,
-    Fn.«block_selector_tab__L26».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node
-    (some ()) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node
-    (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil
-    (.node (some ()) .nil .nil))) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil)))) (.node none (.node none (.node (some ()) .nil (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) .nil)))),
-    .nil, .nil⟩
+    Fn.«block_selector_tab__L26».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«block_selector_tab__L26».pairO, Fn.«block_selector_tab__L26».pairS, .nil⟩
 
 /-- `block_selector_tab__L26`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

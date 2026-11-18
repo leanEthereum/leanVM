@@ -34,7 +34,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `eq_prefix_run__L33`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `eq_prefix_run__L33`: its entry, length and signature; on the core route, nothing for a walk
+    but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨181436, 169, Fn.«eq_prefix_run__L33».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -52,8 +53,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `padding_weight__L25`: its entry, length and signature; on the core route, nothing for a walk.
-    -/
+/-- `padding_weight__L25`: its entry, length and signature; on the core route, nothing for a walk
+    but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨192746, 220, Fn.«padding_weight__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -71,7 +72,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `plus_one_run__L4`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `plus_one_run__L4`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨194216, 15, Fn.«plus_one_run__L4».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -89,7 +91,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `index_mle__L22`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `index_mle__L22`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨202851, 112, Fn.«index_mle__L22».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -107,8 +110,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `column_selector__L12`: its entry, length and signature; on the core route, nothing for a walk.
-    -/
+/-- `column_selector__L12`: its entry, length and signature; on the core route, nothing for a walk
+    but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨210895, 48, Fn.«column_selector__L12».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -127,7 +130,7 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
 /-- `child_claim_list_last__L8`: its entry, length and signature; on the core route, nothing for a
-    walk. -/
+    walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨240812, 166, Fn.«child_claim_list_last__L8».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -145,7 +148,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `grind_check__L20`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `grind_check__L20`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨254246, 37, Fn.«grind_check__L20».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -172,7 +176,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil))) .nil)) .nil)) .nil) .nil)) .nil)) .nil))), 524287⟩
 
 /-- `level_positions__L5_L17_L5`: its entry, length and signature; on the core route, nothing for a
-    walk. -/
+    walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨255336, 42, Fn.«level_positions__L5_L17_L5».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -199,7 +203,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil))) .nil)) .nil))) .nil)) .nil)) .nil), 524287⟩
 
 /-- `level_positions__L7_L16_L4`: its entry, length and signature; on the core route, nothing for a
-    walk. -/
+    walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨258965, 42, Fn.«level_positions__L7_L16_L4».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -227,7 +231,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil) .nil) .nil)))) .nil))))) .nil)))), 524287⟩
 
 /-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: its entry, length and signature; on the
-    core route, nothing for a walk. -/
+    core route, nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨259769, 35, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».modeSig, .nil, .nil, .nil,
     false, .nil⟩
@@ -255,7 +259,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil))) .nil)) .nil)) .nil)))) .nil))) .nil), 524287⟩
 
 /-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its entry, length and signature; on the
-    core route, nothing for a walk. -/
+    core route, nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨266008, 41, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeSig, .nil, .nil, .nil,
     false, .nil⟩
@@ -283,7 +287,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil) .nil)) .nil) .nil)) .nil) .nil))) .nil), 524287⟩
 
 /-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its entry, length and signature; on the core
-    route, nothing for a walk. -/
+    route, nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨267982, 37, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSig, .nil, .nil, .nil,
     false, .nil⟩
@@ -311,7 +315,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil))))))) .nil))) .nil)) .nil) .nil)))), 524287⟩
 
 /-- `level_positions__L44_L23_L5`: its entry, length and signature; on the core route, nothing for
-    a walk. -/
+    a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨269100, 42, Fn.«level_positions__L44_L23_L5».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -338,13 +342,32 @@ noncomputable def modeEnv : Mode.Env :=
     .nil)))) .nil) .nil) .nil)))) .nil), 524287⟩
 
 /-- `level_positions__L8_L25_L7`: its entry, length and signature; on the core route, nothing for a
-    walk. -/
+    walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨271383, 42, Fn.«level_positions__L8_L25_L7».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 end
 
 end LeanVM.Guest.Fn.«level_positions__L8_L25_L7»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L12_L6`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L12_L6`: its entry, length and signature; on the core route, nothing for
+    a walk but its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨281499, 294, Fn.«decode_query_windows__L12_L6».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L14_L6_L3_loop1»
 
@@ -361,7 +384,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil)) .nil))) .nil) .nil))) .nil) .nil) .nil)) .nil) .nil) .nil), 524287⟩
 
 /-- `__loop1_level_residual__L55_L14_L6_L3`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨285063, 132, Fn.«level_residual__L55_L14_L6_L3_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -384,7 +407,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil) .nil)) .nil) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil), 524287⟩
 
 /-- `__loop0_level_residual__L29_L6_L4_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨287779, 332, Fn.«level_residual__L29_L6_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -411,7 +434,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil)) .nil)))) .nil) .nil) .nil)))), 524287⟩
 
 /-- `__loop0_level_positions__L7_L20_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨316870, 50, Fn.«level_positions__L7_L20_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -434,7 +457,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil)) .nil) .nil)) .nil))) .nil) .nil) .nil) .nil) .nil)))))), 524287⟩
 
 /-- `__loop0_level_residual__L23_L11_L4_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨338974, 502, Fn.«level_residual__L23_L11_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -458,7 +481,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil))) .nil), 524287⟩
 
 /-- `__loop1_level_residual__L37_L17_L4_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨360421, 143, Fn.«level_residual__L37_L17_L4_L2_loop1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -481,7 +504,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil) .nil) .nil) .nil) .nil) .nil) .nil)))) .nil)) .nil)), 524287⟩
 
 /-- `__loop0_level_residual__L32_L17_L4_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨360564, 706, Fn.«level_residual__L32_L17_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -504,7 +527,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil)) .nil) .nil)) .nil))) .nil) .nil) .nil) .nil) .nil))), 524287⟩
 
 /-- `__loop0_level_residual__L28_L16_L4_L2`: its entry, length and signature; on the core route,
-    nothing for a walk. -/
+    nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨402818, 672, Fn.«level_residual__L28_L16_L4_L2_loop0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
@@ -532,7 +555,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil))))) .nil)) .nil), 524287⟩
 
 /-- `__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1`: its entry, length and
-    signature; on the core route, nothing for a walk. -/
+    signature; on the core route, nothing for a walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨426105, 223, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1_loop0».modeSig, .nil,
     .nil, .nil, false, .nil⟩
@@ -551,7 +574,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `walk_path__L18_L4`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `walk_path__L18_L4`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨427601, 1757, Fn.«walk_path__L18_L4».modeSig, .nil, .nil, .nil, false, .nil⟩
 

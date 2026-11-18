@@ -198,7 +198,8 @@ noncomputable def st20 : CSt := ⟨tr77,
     .nil,
     4, 1, 0, 0,
     st20_cd,
-    st20_eqs⟩
+    st20_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«main_loop2».HeapW

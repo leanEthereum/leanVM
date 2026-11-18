@@ -29,14 +29,37 @@ def kinds(body, acc):
     return acc
 
 
+def stmts_of(body):
+    """`stmtsOf`: the statements of a body, nested ones included."""
+    for s in body:
+        yield s
+        if s[0] == 'ite':
+            yield from stmts_of(s[2])
+            yield from stmts_of(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from stmts_of(a)
+
+
+def top_ok(s):
+    """A top-level statement `CoreMode.topOk` takes: a branch or `match` with no `ret` and no dispatch in it."""
+    if s[0] not in ('ite', 'match'):
+        return True
+    acc = collections.Counter()
+    for blk in (s[2], s[3]) if s[0] == 'ite' else s[2]:
+        kinds(blk, acc)
+    return not acc['ret'] and not acc['dispatch']
+
+
 def candidates():
-    """Bodies of atoms, calls and conditional calls (at least one) and one final `ret`, not loop helpers."""
+    """Bodies of atoms, branches, `match`es, calls and conditional calls (at least one) and one final `ret`, the
+    branches with no `ret` or dispatch in them, not loop helpers."""
     out = []
     for k, (params, body) in sorted(CORE.items()):
         acc = kinds(body, collections.Counter())
-        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch'} and (acc['call'] or acc['callIf'] or acc['dispatch']) \
-                and acc['ret'] == 1 and \
-                body[-1][0] == 'ret' and k not in I.IS_LOOP:
+        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch', 'ite', 'match'} and \
+                (acc['call'] or acc['callIf'] or acc['dispatch']) and acc['ret'] == 1 and \
+                body[-1][0] == 'ret' and all(top_ok(s) for s in body) and k not in I.IS_LOOP:
             out.append(k)
     return out
 
@@ -50,6 +73,9 @@ def _em():
     saved = list(sys.argv)
     import emitc
     sys.argv[:] = saved
+    emitc.WORD_RUN = True
+    I.ARMRUN[0] = True
+    I.DUPCALL[0] = True
     return emitc
 
 
@@ -82,12 +108,41 @@ def run(r, nslots, ent=None):
     if not (lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
         raise No('run bound')
     c = cell(q, nslots, ent)
-    return (I.shift(c, d), S, I.num(lo[1]), I.num(hi[1]))
+    return norm_run((I.shift(c, d), S, I.num(lo[1]), I.num(hi[1])), c[1] + d)
+
+
+def norm_run(R, off):
+    """`CoreMode.rngC`'s normal form: a run of constant bounds `[a, b)` whose cell offset `off` is `2^62` or more
+    (a negative one, modulo the order of `g`) starts at `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
+    Q, S, lo, hi = R
+    if off < 2 ** 62 or lo[0] or hi[0]:
+        return R
+    return ((Q[0], (off + S * lo[1]) % I.ORD), S, I.num(0), I.num(max(0, hi[1] - lo[1])))
+
+
+def cov_runs(G, np):
+    """`CoreMode.runCov`: stride-one runs `Q·g^o·[0, S·n)` whose strands `Q·g^(o+i)·[0, n)` of stride `S`, `i < S`, are
+    runs of constant bounds of the mode signature's `preR`."""
+    strands = set()
+    for r in G['preR']:
+        try:
+            strands.add(run(r, np))
+        except No:
+            pass
+    out = []
+    for (Q, S, lo, hi) in sorted(strands):
+        if S < 2 or lo != I.num(0) or not 0 < S * hi[1] < 2 ** 62:
+            continue
+        q = (Q, 1, I.num(0), I.num(S * hi[1]))
+        if q not in out and all(((Q[0], Q[1] + i), S, lo, hi) in strands for i in range(S)):
+            out.append(q)
+    return out
 
 
 def bound(b, n, ent, gl=None):
-    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent (`.val`); with `gl`
-    (`CoreMode.idxL`), the exponent of the caller's cell `d` linked to slot `b` times `g^k`."""
+    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent plus a constant below
+    `2^28` (`CoreMode.idxO`: `.val`, or the monomial `[b]·g^c`); with `gl` (`CoreMode.idxL`), the exponent of the
+    caller's cell `d` linked to slot `b` times `g^k`."""
     if gl and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and b[1][2] in gl:
         sl, k = gl[b[1][2]]
         return I.mk(((gslot(sl, n), 1),), k)
@@ -95,11 +150,11 @@ def bound(b, n, ent, gl=None):
         if not b[1] < 2 ** 62:
             raise No('run bound')
         return I.num(b[1])
-    if b[0] == 'ex' and b[1][0] == 'fr' and b[2] == 0:
+    if b[0] == 'ex' and b[1][0] == 'fr' and b[2] < 2 ** 28:
         o = b[1][1]
         if not (2 <= o and o - 2 < n and o < 2 ** 28) or (ent is not None and not ent(o)):
             raise No('run bound slot')
-        return I.base(o - 2)
+        return I.mk(((o - 2, 1),), b[2])
     raise No('run bound')
 
 
@@ -107,7 +162,7 @@ def runX(r, n, ent=None, gl=None):
     """`CoreMode.rngX`: a run with exponent bounds (`CoreMode.rngL` with the caller's cells `gl` linked)."""
     q, lo, hi, S, d = r
     c = cell(q, n, ent, gl=gl)
-    return (I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl))
+    return norm_run((I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl)), c[1] + d)
 
 
 def gslot(b, n):
@@ -206,19 +261,41 @@ def callee_sig(G, na, nr):
             h.postPR.append(prun(p, na + nr))
         except No:
             pass
+    # returned words' monomials over the argument cells its `retV` promises (`CoreMode.retMIn`)
+    for o, m in G['retV']:
+        k = o - 2 - na
+        if 0 <= k < nr and o < 2 ** 28:
+            try:
+                h.retM[k] = cell(m, na)
+            except No:
+                pass
     return h
 
 
-def const_pow(body, v):
-    """`CoreMode.constPow`: a value a top-level `const` atom before any `ret` sets to a power of `g` below `2^62`."""
+def const_pow(body, v, k=0):
+    """`CoreMode.constPow`: a value a top-level `const` atom before any `ret` sets to a power of `g` below `2^62`; with
+    `k`, the power times `g^k` (`CoreMode.idxPow`'s `.mono` case)."""
     for s in body:
         if s[0] == 'ret':
             return False
         if s[0] == 'a' and s[1][0] == 'const' and s[1][1] == v:
             c = s[1][2]
             e = I.POWS.get(c[0]) if c[1] == 0 else None
-            return e is not None and e < 2 ** 62
+            return e is not None and e + k < 2 ** 62
     return False
+
+
+JT_RUN = [None]
+
+
+def jt_run():
+    """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('mode_cert_data', os.path.join(HERE, '..', 'mode-cert', 'data.py'))
+    md = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(md)
+    jt = md.load()['jt']
+    return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
 
 
 def own_sig(G, np, nr, gl=None):
@@ -230,7 +307,35 @@ def own_sig(G, np, nr, gl=None):
         if G[f]:
             raise No('own ' + f)
     h = I.Sig(np)
-    h.pre = [cell(m, np) for m in G['pre'] if not hp_of(m)]
+    # own parameter words (`HSig.gw`): ghost slot `j` the word at `[p]·g^d`, `p` a parameter (`CoreMode.baseOfG`)
+    h.gw, gwk = [], {}
+
+    def ghost_b(q, d):
+        if (q - 2, d) not in gwk:
+            gwk[(q - 2, d)] = len(gwk)
+            h.gw.append(((((q - 2, 1),), d), gwk[(q - 2, d)]))
+        return I.GB + gwk[(q - 2, d)]
+
+    def own_pre(m):
+        try:
+            return [cell(m, np)]
+        except No as e:
+            if str(e) != 'pointer base' or gl:
+                raise
+        fp, k, bs = m
+        out = []
+        for b, e in bs:
+            if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28:
+                out.append((b[1] - 2, e))
+            elif b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28:
+                out.append((ghost_b(b[1], b[2]), e))
+            else:
+                raise No('pointer base')
+        # over ghost slots: a run of one point (`HSig.pre` is over the parameters, `preOver`)
+        gpre.append((I.mk(tuple(out), k), 1, I.num(0), I.num(1)))
+        return []
+    gpre = []
+    h.pre = [c for m in G['pre'] if not hp_of(m) for c in own_pre(m)]
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], np)
     def own_pre_run(r):
         try:
@@ -240,26 +345,148 @@ def own_sig(G, np, nr, gl=None):
                 raise
             return runX(r, np, gl=gl)
     h.preR = [own_pre_run(r) for r in G['preR']]
+    h.preR += [q for q in cov_runs(G, np) if q not in h.preR]
+    h.preR += [q for q in gpre if q not in h.preR]
     # the ghost slots the links name (`CFun.gl` past the parameters)
-    h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np]
+    h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np] + \
+        [('gw', key) for key, _ in sorted(gwk.items(), key=lambda p: p[1])]
     h.prePR = [prun(p, np) for p in G['preP']]
     ret_ok = lambda o: (o - 2 < np and o in G['entry']) or (np <= o - 2 < np + nr and o in G['ret'])
-    h.post = [cell(m, np + nr, ret_ok) for m in G['post'] if not hp_of(m)]
+    # guarantees over the body's values (`CoreMode.postNIn`, `postRNIn`): products of parameters' words and of words a
+    # top-level `load` reads past a parameter's (`baseOfP`), over the slots of `nv` (`CCell.mapN`)
+    body0 = CORE_BODY.get('body') or []
+    h.nv, h.postN, h.postRN = [], [], []
+
+    def nslot(v):
+        if v not in h.nv:
+            h.nv.append(v)
+        return h.nv.index(v)
+
+    def base_p(b, e):
+        if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np:
+            return (b[1] - 2, e)
+        if b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np:
+            n = hp_val(body0, b[1] - 2, b[2])
+            return None if n is None else (n, e)
+        return None
+
+    def mono_okp(bs):
+        return all(b[1] < 2 ** 28 and ((b[1] in G['entry'] and 2 <= b[1] and b[1] - 2 < np) or b[1] in G['ret'])
+                   if b[0] == 'fr' else
+                   (b[1] in G['entry'] and 2 <= b[1] and b[1] - 2 < np and b[1] < 2 ** 28) for b, _ in bs)
+
+    def val_cell(m):
+        fp, k, bs = m
+        cb = [base_p(b, e) for b, e in bs]
+        if fp != 0 or None in cb or not mono_okp(bs):
+            raise No('post over values')
+        return (tuple(cb), k)
+
+    def post_n(m):
+        c = val_cell(m)
+        c = (tuple((nslot(v), e) for v, e in c[0]), c[1])
+        if c not in h.postN:
+            h.postN.append(c)
+
+    def post(m):
+        try:
+            return [cell(m, np + nr, ret_ok)]
+        except No:
+            post_n(m)
+            return []
+    h.post = [c for m in G['post'] if not hp_of(m) for c in post(m)]
     h.postP = hp_facts([m for m in G['post'] if hp_of(m)], np, lambda q: q in G['entry'])
     if any(c not in h.post for c, _ in h.postP):
         raise No('own pointer cell')
     # bounds an entry run bounds too (`CoreMode.expCells`, `expB`): their cells' words have exponents (`ExpW`)
     expc = exp_cells(G)
 
+    import callcres
+    body = CORE_BODY.get('body') or []
+    sels = dict(top_sels(body))
+    tops = callcres.top_atoms(body)
+    for x in range(np):
+        if x not in sels and callcres.rc_bound(tops, x) is not None:
+            sels[x] = callcres.rc_bound(tops, x)
+    # a parameter of an exponent fact (`CoreMode.resQ`'s `expQ`)
+    for x in range(np):
+        if x not in sels and CORE_BODY.get('k') is not None and callcres.expq_bound(CORE_BODY['k'], x) is not None:
+            sels[x] = callcres.expq_bound(CORE_BODY['k'], x)
+    h.expRes = set()
+
     def own_run(r):
         try:
             return run(r, np + nr, ret_ok)
         except No:
             for b in (r[1], r[2]):
-                if b[0] != 'num' and not (b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] in expc and b[1][1] < 2 ** 28):
-                    raise No('run bound')
+                if b[0] == 'num' or (b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] < 2 ** 28 and
+                                     ((b[2] == 0 and b[1][1] in expc))):
+                    continue
+                # a parameter bounded by its selector's `sel` residual, or by its range check's `rc` residual, with room
+                # for the offset (`CoreMode.expRes`)
+                if b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] < 2 ** 28 and 2 <= b[1][1] and \
+                        b[1][1] - 2 < np and sels.get(b[1][1] - 2) is not None and \
+                        sels[b[1][1] - 2] + b[2] <= 2 ** 62:
+                    h.expRes.add((b[1][1] - 2, sels[b[1][1] - 2]))
+                    continue
+                raise No('run bound')
             return runX(r, np + nr, ret_ok)
-    h.postR = [own_run(r) for r in G['postR']]
+    def hp_cover(r):
+        # a run up to the word at a parameter's `[p]·g^d` (`.hp q d`) plus `c`, inside a guaranteed run of the same
+        # base and lower bound up to a constant `N`, the word loaded by a top-level `load` with an exponent fact
+        # `e < m`, `m + c <= N + 1` (`CoreMode.postRB`)
+        q, lo, hi, S, d = r
+        if hi[0] != 'ex' or hi[1][0] != 'hp' or not 2 <= hi[1][1] or hi[1][1] - 2 >= np or k_own is None:
+            return False
+        tops = callcres.top_atoms(body)
+        vs = [a[1] for a in tops if a[0] == 'load' and a[2] == hi[1][1] - 2 and a[3] == hi[1][2]]
+        if not vs:
+            return False
+        m = callcres.expq_bound(k_own, vs[0])
+        if m is None:
+            return False
+        for r2 in G['postR']:
+            if r2[0] == q and r2[1] == lo and r2[3] == S and r2[4] == d and r2[2][0] == 'num' and \
+                    m + hi[2] <= r2[2][1] + 1 and r2[2][1] < 2 ** 62:
+                h.expRes.add((vs[0], m))
+                return True
+        return False
+    k_own = CORE_BODY.get('k')
+
+    def idx_n(b):
+        # `CoreMode.idxN`, its value's exponent bounded by a residual (`idxOkN`): an exponent fact, a range check, a
+        # selector
+        if b[0] == 'num' and b[1] < 2 ** 62:
+            return ('num', b[1])
+        if b[0] == 'ex' and b[2] == 0:
+            p = base_p(b[1], 1)
+            if p is not None:
+                v = p[0]
+                m = callcres.expq_bound(k_own, v) if k_own is not None else None
+                if m is None:
+                    m = callcres.rc_bound(callcres.top_atoms(body0), v)
+                if m is None:
+                    m = dict(top_sels(body0)).get(v)
+                if m is not None and m <= 2 ** 62:
+                    h.expRes.add((v, m))
+                    return ('val', v)
+        raise No('run bound over values')
+
+    def own_run_n(r):
+        try:
+            return [own_run(r)]
+        except No:
+            q, lo, hi, S, d = r
+            if not mono_okp(list(q[2]) + [(b[1], 1) for b in (lo, hi) if b[0] == "ex"]):
+                raise
+            c = val_cell(q)
+            lo2, hi2 = idx_n(lo), idx_n(hi)
+            ix = lambda i: ('val', nslot(i[1])) if i[0] == 'val' else i
+            run = (tuple((nslot(v), e) for v, e in c[0]), c[1] + d), S, ix(lo2), ix(hi2)
+            if run not in h.postRN:
+                h.postRN.append(run)
+            return []
+    h.postR = [x for r in G['postR'] if not hp_cover(r) for x in own_run_n(r)]
     h.postPR = [(own_run(p[0]), tuple(p[1])) for p in G['postP']]
     # a pointer run's cells among the runs guaranteed (`sigOk`'s `postP` case asks both)
     h.postR += [p[0] for p in h.postPR if p[0] not in h.postR]
@@ -268,7 +495,41 @@ def own_sig(G, np, nr, gl=None):
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
+    if CORE_BODY.get('k') == 'main':
+        # `main`'s entry cells, its frame `0`: the constant cells `g^o` (`CoreMode.mainPre`)
+        h.pre = list(h.pre) + [((), o) for o in G['entry'] if ((), o) not in h.pre]
+    if 'jt' in I.F:
+        # the jump table's cells, which every frame's entry has written (`entryAbs`)
+        if JT_RUN[0] is None:
+            JT_RUN[0] = jt_run()
+        h.preR = list(h.preR) + [JT_RUN[0]]
     return h
+
+
+CORE_BODY = {}
+
+
+def hp_val(body, k, d):
+    """`CoreMode.hpVal`: the value a top-level `load` reads at parameter `k`'s `[p]·g^d`, before the first `ret`."""
+    for s in body:
+        if s[0] == 'ret':
+            return None
+        if s[0] == 'a' and s[1][0] == 'load' and s[1][2] == k and s[1][3] == d:
+            return s[1][1]
+    return None
+
+
+def top_sels(body):
+    """`Res.topSels`: the top-level selectors (a `match`'s or `dispatch`'s value and arm count) up to the first statement
+    that may return."""
+    import callcres
+    out = []
+    for s in body:
+        if s[0] in ('match', 'dispatch'):
+            out.append((s[1], len(s[2])))
+        if callcres.has_ret(s):
+            break
+    return out
 
 
 def exp_cells(G):
@@ -277,16 +538,25 @@ def exp_cells(G):
             if b[0] == 'ex' and b[1][0] == 'fr'}
 
 
-def exp_bounds(h, args, body, np, expc):
+def exp_bounds(h, args, body, np, expc, k=None, acc=None):
     """`CoreMode.callsB`'s exponents (`idxPowC`): each bound `.val b` of the callee's runs an argument a top-level
-    `const` sets to a power of `g`, or a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`)."""
+    `const` sets to a power of `g`, a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`), or an argument
+    of an exponent fact or range checked, its residual `e(a) < m` added to `acc` (`resArg`)."""
     for r in h.preR + [p[0] for p in h.prePR]:
         for b in (r[2], r[3]):
             if b[0]:
                 (sl, _), = b[0]
                 a = args[sl]
-                if not (const_pow(body, a) or (a < np and 2 + a in expc)):
+                if const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc):
+                    continue
+                import callcres
+                B = callcres.expq_bound(k, a) if k is not None and b[1] == 0 else None
+                if B is None and b[1] == 0:
+                    B = (callcres.addr_bound(k, a) if k is not None else None) or \
+                        callcres.rc_bound(callcres.top_atoms(body), a)
+                if B is None or acc is None:
                     raise No('callee bound not a constant power')
+                acc.add((a, B))
 
 
 def infer_one(k, S, allow=None, hcsig=None):
@@ -299,10 +569,16 @@ def infer_one(k, S, allow=None, hcsig=None):
     G = S.get(k)
     if G is None:
         raise No('no mode signature')
+    CORE_BODY['body'] = body
+    CORE_BODY['k'] = k
     own = own_sig(G, np, len(rets), gl_of(k))
+    if own.gw:
+        # own parameter words (`HSig.gw`) are not on the core route yet (`HeapK.c` asks `gw = []`)
+        raise No('own parameter words')
     cs = {}
     hcs = set()
-    for s in body:
+    arg_res = set()
+    for s in stmts_of(body):
         if s[0] == 'call':
             calls = [(s[1], s[2], len(s[3]))]
         elif s[0] == 'callIf':
@@ -322,7 +598,7 @@ def infer_one(k, S, allow=None, hcsig=None):
                 hcs.add((f, len(args), nr))
             else:
                 h = callee_sig(Gf, len(args), nr)
-            exp_bounds(h, args, body, np, exp_cells(G))
+            exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
             cs[f] = h
@@ -333,8 +609,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     G0 = own.clone()
     I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
-    if G0.pre != own.pre or G0.preR != own.preR or G0.prePR != own.prePR or G0.preP != own.preP:
-        raise No('own precondition grows')
+    # (the inference may want more own preconditions than the signature states: the solver below, at `own`, decides)
     # the witnesses: the emitter's solver, in `heapOkC`'s own pass, at these signatures
     sigs, hs = {}, {}
     for f, h in cs.items():
@@ -350,11 +625,42 @@ def infer_one(k, S, allow=None, hcsig=None):
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+    # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
+    for x, m in sorted(own.expRes):
+        r = ('lt', ('val', x), ('num', m))
+        if r not in H.res:
+            H.res.append(r)
+    # the arguments' exponent facts giving the callees' run bounds exponents (`CoreMode.resArg`)
+    for x, m in sorted(arg_res):
+        r = ('lt', ('val', x), ('num', m))
+        if r not in H.res:
+            H.res.append(r)
     if EM.check(k, H, sigOf) is not None:
         raise No('recheck')
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
+    hk = sigs[k]
+    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR or hk.postQ or hk.postN or hk.postRN):
+        # guarantees met without the frame run cells (`HCert.fas` empty) if they can; else the frame run cells
+        # written at the returns (`CoreMode.faNeed`, `faRetOk`, which the kernel checks on the frame walk)
+        fas = H.fas
+        H.fas = []
+        if EM.check(k, H, sigOf) is not None:
+            H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+def has_fa(body):
+    """Not `CoreMode.noFA`: a `frameAddr` atom anywhere in the body (then `CoreOk.faret` checks the frame run cells
+    the guarantees take at the returns, `CoreMode.faNeed`)."""
+    for s in body:
+        if s[0] == 'a' and s[1][0] == 'frameAddr':
+            return True
+        if s[0] == 'ite' and (has_fa(s[2]) or has_fa(s[3])):
+            return True
+        if s[0] == 'match' and any(has_fa(a) for a in s[2]):
+            return True
+    return False
 
 
 _FNS = {}
@@ -501,6 +807,31 @@ def ldata(k, r):
             f'counts. -/\ndef hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
 
 
+GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
+
+
+def windows(R, po):
+    """The heap checks estimated past `heapwin.BUDGET` (the heartbeats, or the memory a module may take), in windows
+    (`heapwin.one`): `GenW/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` as
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
+    import heapwin
+    epo = heapwin.E.pack_of()
+    files, dirs = {}, set()
+    for k in sorted(R):
+        H = R[k]['cert']
+        sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
+        sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
+        if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
+            continue
+        gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
+                   data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
+                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+        for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
+            files[os.path.join(GENW, k, name + '.lean')] = text
+        dirs.add(os.path.join(GENW, k))
+    return files, dirs
+
+
 def emit(R, check):
     import heap
     po = heap.pack_of()
@@ -520,6 +851,15 @@ def emit(R, check):
     files[os.path.join(GEN, 'HcSig.lean')] = hcsig_file(R)
     import glob
     stale = []
+    wfiles, wdirs = windows(R, po)
+    files.update(wfiles)
+    for path in sorted(set(glob.glob(os.path.join(GENW, '*', '*.lean'))) - set(wfiles)):
+        stale.append(path)
+        if not check:
+            os.remove(path)
+    for d in sorted(set(glob.glob(os.path.join(GENW, '*'))) - wdirs):
+        if not check:
+            os.rmdir(d)
     for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataC.lean'))) - set(files)):
         stale.append(path)
         if not check:

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GenW.verify_sig_lean_sphincs.Ok
 public import LeanVM.Guest.CoreMode.GlueC.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
 public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
@@ -38,11 +39,11 @@ public section
 attribute [local irreducible] pairO pairS
 
 /-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by
-  decide +kernel
+theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
 
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
+    (Mode.jtRng modeEnv) = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`: its returned products. -/
@@ -73,6 +74,9 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   jtd := core_jtd
   fsig := rfl
   fsigs := rfl
+  fmain := by decide +kernel
+  fhalt := by decide +kernel
+  xhalt := by decide +kernel
   fentry := rfl
   flen := by decide +kernel
   xentry := by decide +kernel
@@ -82,6 +86,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_sig_lean_sphincs».code_mem)
   pows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».pows_ok
   fpows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».fpows_ok
+  faret := by decide +kernel
+  nzrc := by decide +kernel
 
 /-- `verify_sig_lean_sphincs`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok

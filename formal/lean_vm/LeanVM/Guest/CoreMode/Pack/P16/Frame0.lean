@@ -45,6 +45,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P16».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
@@ -98,11 +99,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node (some Fn.«list_split».modeSig) .nil .nil))) .nil)))) .nil)))))))) .nil), 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node none (.node none (.node none .nil (.node
-    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) .nil) (.node none .nil (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    .nil (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)))), .nil, .nil⟩
+    advice.2.2, .nil, .nil, .nil, .nil, Fn.«child_claim_list_digest».pairO,
+    Fn.«child_claim_list_digest».pairS, .nil⟩
 
 /-- `child_claim_list_digest`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

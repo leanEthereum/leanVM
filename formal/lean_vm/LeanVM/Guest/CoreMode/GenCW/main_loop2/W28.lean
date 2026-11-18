@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 230 to 230. -/
 theorem win28 : winOk Fn.«main_loop2».pows sigW core hcert (((Memory.loopBody core).drop 230).take (231 - 230)) st28 st29 = true := by
+  simp only [winOk, withCx_cx hcx]
   decide +kernel
 
 end

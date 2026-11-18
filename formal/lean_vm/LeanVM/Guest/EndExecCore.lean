@@ -38,8 +38,8 @@ section Walk
 
 variable {σ : Val}
 
-theorem selGo_sound {j : ℕ} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
-    CoreMode.selGo j seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
+theorem selGo_sound {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
+    CoreMode.selGo j ps seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
     ∀ x arms, Stmt.match_ x arms ∈ stmtsOf ss → CoreMode.cellB j x = true ∧
       ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a
   | _, [], _, _, _, _, _, x, arms, hm => by simp [stmtsOf] at hm
@@ -100,9 +100,9 @@ theorem selGo_sound {j : ℕ} {σ : Val} : ∀ (seen : List Atom) (ss : List Stm
           simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
           exact h1'.1) _ _)
   | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo] at h
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    have := List.all_eq_true.mp h _ hm
+    have := List.all_eq_true.mp h.1 _ hm
     simp at this
   | seen, .call f args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo] at h
@@ -120,7 +120,117 @@ theorem selGo_sound {j : ℕ} {σ : Val} : ∀ (seen : List Atom) (ss : List Stm
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
     obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
     exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
-  | _, .dispatch .. :: _, _, _, h, _, _, _, _, _ => by simp [CoreMode.selGo] at h
+  | seen, .dispatch y fs args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    replace h := h.2
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
+    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
+
+theorem selGoD_sound {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
+    CoreMode.selGo j ps seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
+    ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf ss → CoreMode.cellB j x = true ∧
+      (x ∈ ps ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a)
+  | _, [], _, _, _, _, _, x, fs, args, rets, hm => by simp [stmtsOf] at hm
+  | seen, .atom b :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo] at h
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    rw [walk_atom_cons] at hw
+    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound (b :: seen) ss h ht.2 hw' x fs args rets hm
+    · exact ⟨hc, Or.inl hp⟩
+    refine ⟨hc, Or.inr ⟨a, ?_, hu⟩⟩
+    rcases ha with ha | ha
+    · rcases List.mem_cons.mp ha with rfl | ha
+      · exact Or.inr (by simp)
+      · exact Or.inl ha
+    · exact Or.inr (by simp [ha])
+  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    replace h := h.2
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
+    rcases hm with he | hm | hm
+    · cases he
+    · have h1' := ht.1
+      simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub] at h1'
+      exact absurd rfl (h1'.2 _ hm)
+    · rw [walk] at hw
+      rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
+      · obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 h2 x fs args rets hm
+        · exact ⟨hc', Or.inl hp⟩
+        refine ⟨hc', Or.inr ⟨a', ?_, hu'⟩⟩
+        rcases ha' with ha' | ha'
+        · exact Or.inl ha'
+        · exact Or.inr (List.mem_append_right _ ha')
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
+          have h1' := ht.1
+          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
+          exact h1'.1) _ _)
+  | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    replace h := h.2
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
+    rcases hm with he | hm | hm
+    · cases he
+    · have h1' := ht.1
+      simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub,
+        List.mem_append] at h1'
+      exact absurd rfl (h1'.2 _ hm)
+    · rw [walk] at hw
+      rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
+      · obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 h2 x fs args rets hm
+        · exact ⟨hc', Or.inl hp⟩
+        refine ⟨hc', Or.inr ⟨a', ?_, hu'⟩⟩
+        rcases ha' with ha' | ha'
+        · exact Or.inl ha'
+        · exact Or.inr (List.mem_append_right _ ha')
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
+          have h1' := ht.1
+          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
+          exact h1'.1) _ _)
+  | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    have := List.all_eq_true.mp h.2 _ hm
+    simp at this
+  | seen, .call f args' rets' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo] at h
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    rw [walk_call_cons] at hw
+    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
+    · exact ⟨hc, Or.inl hp⟩
+    exact ⟨hc, Or.inr ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
+  | seen, .callIf c f args' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo] at h
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    rw [walk_callIf_cons] at hw
+    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
+    · exact ⟨hc, Or.inl hp⟩
+    exact ⟨hc, Or.inr ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
+  | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
+      List.any_eq_true] at h
+    obtain ⟨⟨hc, hsel⟩, h⟩ := h
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
+    rcases hm with he | hm
+    · cases he
+      rcases hsel with hp | ⟨a, ha, hu⟩
+      · exact ⟨hc, Or.inl hp⟩
+      · exact ⟨hc, Or.inr ⟨a, Or.inl ha, hu⟩⟩
+    · obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
+      obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
+      · exact ⟨hc', Or.inl hp⟩
+      exact ⟨hc', Or.inr ⟨a', ha'.imp id (fun h ↦ by simp [h]), hu'⟩⟩
 
 end Walk
 
@@ -135,15 +245,17 @@ open LeanVM.Guest.Check (getF getF_eq)
 
 public section
 
-/-- **What a frame's jumps read**, for function `j` (neither `main` nor without chained `match`es) at
+/-- **What a frame's jumps read**, for function `j` (without chained `match`es; `main`'s frame `0`) at
 frame `fp` holding what its check reads (`FrameHolds`), the jump table in memory: `jumpCells_of`'s
 fixed cells, conditions and table targets, at any state of the frame. -/
 theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V} {kfps : List ℕ}
-    {hdr : E × E} (hj1 : 1 < j) (hj2 : j < nFns) (hch : (plumbOf j).chains = [])
+    {hdr : E × E} (hj1 : 0 < j) (hroot : j = 1 → fp = 0) (hj2 : j < nFns) (hch : (plumbOf j).chains = [])
     (hlocs : (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true)
     (hF : FrameHolds L j fp σ es vs kfps hdr) (hwc : walk σ (coreOf j).body = .ret es vs)
     (hjt : Check.JTHolds glob L) (htab : End.JumpTables L)
     (hsel : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf (coreOf j).body →
+      CoreMode.Rd L fp ((ctxOf j).locAt x.idx) = some (σ x))
+    (hdsel : ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf (coreOf j).body →
       CoreMode.Rd L fp ((ctxOf j).locAt x.idx) = some (σ x)) :
     CoreMode.JumpF L (ctxOf j) (coreOf j).body fp σ := by
   have hrd : ∀ o, CoreMode.Rd L fp o = cellAt L fp o := fun o ↦ by
@@ -161,8 +273,8 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     refine ⟨hF.stat _ hm hb.1.1 hb.1.2, fun a b hw' ↦ ?_⟩
     subst hw'
     simpa only [Bool.and_eq_true, Nat.blt_eq] using hb.2
-  have hmain : (j == 1) = false := by simp; omega
-  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, fun _ _ _ x arms hm ↦ hsel x arms hm⟩
+  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, fun _ _ _ x arms hm ↦ hsel x arms hm,
+    fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
   case zero =>
     intro o hz
     rw [hrd]
@@ -194,7 +306,12 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     · rename_i hso
       rw [(hstatB (statOf_ofData hso)).1]
       simp [PC.word, addressOfIndex]
-    · exact absurd hz (by simp [ctxOf, AlignCtx.ofData, hmain])
+    · rename_i hso
+      have h1 : j = 1 := by simpa [ctxOf, AlignCtx.ofData] using hz
+      rw [(hstatB (statOf_ofData hso)).1, hroot h1]
+      simp only [PC.word]
+      rw [(Exec.imm_of_ofBits rfl).trans Exec.ofK_one]
+      simp
     · cases hz
   case pcw =>
     intro o t hz
@@ -351,11 +468,17 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   subst hjj
   rw [hc0] at hfn
   -- the honest valuation
-  rw [Bool.and_eq_true, Bool.and_eq_true] at hb0
-  obtain ⟨⟨hb0, hres0⟩, hgl0⟩ := hb0
+  rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
+  obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
+  -- `main`'s instance is the root, in frame `0`
+  have hroot : j = 1 → s.fp = 0 := fun h1 ↦ by
+    rw [← hfpL]
+    rcases Bridge.insts_main_or _ _ _ hH.valid e.I hI with ⟨h0, -⟩ | h0
+    · exact h0
+    · exact absurd ((B2C.idx_one_iff hj).mp h1) h0
   have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   have hparF : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img s.fp (2 + k) = some (e.σ (V.n k)) := by
@@ -398,10 +521,12 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
-  refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
+  refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,
+    fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_,
+    fun hmX ↦ hroot ?_⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -429,6 +554,19 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have := hF.val p hnamed h2 h3
     rw [hloc, ← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- a frame run's pointer, its first value's cell's address
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    have hmem := Bridge.walk_atomS (σ := e.σ) Cf.fn.body (by rw [hfn, hw]; exact hl)
+    simp only [CoreMode.faOkB, hneed, Bool.not_true, Bool.false_or, List.all_eq_true] at hfa0
+    have hc := hfa0 _ hmem
+    simp only [CoreMode.faCellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    obtain ⟨hx, hidx⟩ := hc
+    have hloc : Cf.X.locAt r0.idx = cellJ j r0 := by
+      rw [← hx0]
+      exact Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
+    rw [hloc, ← hfpL]
+    exact hF.addr (p, r0) (List.mem_filterMap.mpr ⟨_, hl, rfl⟩)
   · -- a returned value at its cell
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
@@ -454,10 +592,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hfe, hw, Memory.Out.ret.injEq] at hw'
     obtain ⟨rfl, rfl⟩ := hw'
     rw [hfe, ← hfn] at hargs
-    have hnm : e.I.t.name = "main" → e.I.fp = 0 := fun hm ↦ by
-      rw [hm, B2C.idxOf_main, Option.some.injEq] at hj
-      subst hj
-      simp at hj1
+    have hnm : e.I.t.name = "main" → e.I.fp = 0 := fun hm ↦ hfpL.trans (hroot ((B2C.idx_one_iff hj).mpr hm))
     obtain ⟨-, -, -, -, -, hrr⟩ := B2C.inst_runs B2C.b2Hyps hr.name hH hXh.covers (e.I.t.total B2C.fs + 1) e.I hI
       (Nat.lt_succ_self _) hnm args rets (by rw [hIt]; exact hv)
     subst hargs hrets
@@ -494,28 +629,43 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [List.isEmpty_iff] at hch
     have hJT := B2C.jumpTables_cover hH.toHonest hXh.covers hr.name
     rw [← hfpL]
-    refine Bridge.jumpF_of hj1 hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
-      (End.jtHolds_of hJT) hJT fun x arms hm ↦ ?_
     have hwb : walk e.σ (coreOf j).body = .ret (e.pre ++ e.es) vs := by rw [hc0, hfn]; exact hw
-    have hnl : CoreMode.loopBC Cf.fn = false := by
-      cases hl : CoreMode.loopBC Cf.fn
-      · rfl
-      · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noMatch hl)
-    simp only [hnl, Bool.or_false] at hbody hselB
-    simp only [CoreMode.bodyC, Bool.and_eq_true] at hbody
-    obtain ⟨hc, a, ha, hu⟩ := Bridge.selGo_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x arms hm
-    rcases ha with ha | ha
-    · cases ha
-    simp only [CoreMode.cellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
-    obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
-    have hloc : (Bridge.ctxOf j).locAt x.idx = cellJ j x := Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
-    have hnamed : x ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
-      unfold namedOf
-      exact List.mem_append_left _ (List.mem_append_right _
-        (List.mem_flatMap.mpr ⟨_, ha, by simpa [Ev.uses] using hu⟩))
-    have := hF.val x hnamed h2 h3
-    rw [hloc]
-    simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+    -- a selector used by a top-level atom before it: at its cell
+    have hselU : ∀ x, (CoreMode.cellB j x = true ∧ (x ∈ (coreOf j).params ∨ ∃ a, (a ∈ ([] : List Atom) ∨
+        Ev.atom a ∈ e.pre ++ e.es) ∧ x ∈ Memory.atomUses a)) →
+        CoreMode.Rd r.img e.I.fp ((Bridge.ctxOf j).locAt x.idx) = some (e.σ x) := by
+      rintro x ⟨hc, hsel⟩
+      simp only [CoreMode.cellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+      obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
+      have hloc : (Bridge.ctxOf j).locAt x.idx = cellJ j x := Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
+      have hnamed : x ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
+        unfold namedOf
+        rcases hsel with hp | ⟨a, ha, hu⟩
+        · exact List.mem_append_left _ (List.mem_append_left _ hp)
+        rcases ha with ha | ha
+        · cases ha
+        exact List.mem_append_left _ (List.mem_append_right _
+          (List.mem_flatMap.mpr ⟨_, ha, by simpa [Ev.uses] using hu⟩))
+      have := hF.val x hnamed h2 h3
+      rw [hloc]
+      simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+    refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
+      (End.jtHolds_of hJT) hJT (fun x arms hm ↦ ?_) (fun x fs args rets hm ↦ ?_)
+    · have hnl : CoreMode.loopBC Cf.fn = false := by
+        cases hl : CoreMode.loopBC Cf.fn
+        · rfl
+        · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noMatch hl)
+      simp only [hnl, Bool.or_false] at hbody hselB
+      simp only [CoreMode.bodyCore, Bool.and_eq_true] at hbody
+      obtain ⟨hc, hu⟩ := Bridge.selGo_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x arms hm
+      exact hselU x ⟨hc, Or.inr hu⟩
+    · have hnl : CoreMode.loopBC Cf.fn = false := by
+        cases hl : CoreMode.loopBC Cf.fn
+        · rfl
+        · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noDsp hl)
+      simp only [hnl, Bool.or_false] at hbody hselB
+      simp only [CoreMode.bodyCore, Bool.and_eq_true] at hbody
+      exact hselU x (Bridge.selGoD_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x fs args rets hm)
 
   · -- the events hold on the reference: the tree is valid on it
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
@@ -542,6 +692,9 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
+  · -- `main`'s frame
+    rw [← hx0] at hmX
+    simpa [Bridge.ctxOf, Bridge.AlignCtx.ofData] using hmX
 
 end
 

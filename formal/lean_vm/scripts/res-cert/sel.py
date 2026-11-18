@@ -31,7 +31,7 @@ def residuals():
     fns = {}
     for path in sorted(glob.glob(os.path.join(R.PACKS, '*', 'Mode*.lean'))):
         b = os.path.basename(path)[:-5]
-        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeX', b): continue
+        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeX|ModeC', b): continue
         t = open(path).read()
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
             n = blk.split('»', 1)[0]

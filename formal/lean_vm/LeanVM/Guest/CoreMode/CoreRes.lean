@@ -13,6 +13,9 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.Res.AnyData
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
+public import LeanVM.Guest.Res.SelDefs
+public import LeanVM.Guest.Res.TermDefs
+import LeanVM.Guest.Data.Source
 
 /-!
 # Residual families on core names
@@ -25,15 +28,20 @@ function's own code whose soundness at its honest instances is proved once, in `
 * `rc`: `e(x) < n` (`.lt (.val x) (.num n)`), the value `x` range checked on every returning path
   against a constant `g^(N - 1)`, `N ≤ n` (`Res.rcBound` of the top-level atoms, `Res.topAtoms`), from
   the instance's path;
-* `sel`: the same, `x` a top-level selector of `m ≤ n` arms (`Res.topSels`), from its path;
+* `sel`: the same, `x` a top-level selector of `m ≤ n` arms (`Res.topSels`), from its path; and
+  `e(x·g^c) < n` (`.lt (.mono ⟨[(x, 1)], c⟩) (.num n)`) for such a selector of `m` arms, `m + c ≤ n`;
 * `exp`: the same, `n ≥ 2^28`, `x` a parameter an entry run bounds (so `g^e`, `e < 2^62`, `ExpW`) and
   `q = b·x` with `b` and `q` dereferenced on every returning path: `e` is the difference of two
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
 * `cs`: `column_selector__L{κ}`'s read of its lowest digit's entry lies in the strided table its
   callers write (`csSub κ`), from the offset its callers hand it (the old route's F3 on names);
+* `addr`: the same, `x = g^e` with `e` at most a bound `expM` reads off the top-level atoms: products of
+  addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
+  `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
 These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest valuation whatever its
 ghost words (`CRes.holds_congr`). One family names a ghost:
@@ -71,8 +79,99 @@ where
     | .load _ p' 0 => decide (p' = p)
     | _ => false
 
+/-- **A run of constant bounds inside one of the same bases** (`subRC`): `[b]·g^a·g^(S·j)`, `l ≤ j < h`, among
+`[b]·g^a'·g^(S·j')`, `l' ≤ j' < h'`: one stride `S > 0`, `a' ≤ a`, `S ∣ a - a'`, the shifted bounds inside. -/
+def subRC (q r : CRun) : Bool :=
+  match q.lo, q.hi, r.lo, r.hi with
+  | .num l, .num h, .num l', .num h' =>
+      basesBeq q.base.bases r.base.bases && Nat.beq q.stride r.stride && Nat.blt 0 q.stride &&
+        Nat.ble r.base.off q.base.off && Nat.beq ((q.base.off - r.base.off) % q.stride) 0 &&
+        Nat.ble l' (l + (q.base.off - r.base.off) / q.stride) &&
+        Nat.ble (h + (q.base.off - r.base.off) / q.stride) h' && Nat.blt l capE && Nat.blt h capE &&
+        Nat.blt l' capE && Nat.blt h' capE
+  | _, _, _, _ => false
+
+/-- A `DEREF` through `p` at offset `0` among the atoms: a `load` or a `touch`. -/
+def derefAt (as : List Atom) (p : V) : Bool := as.any fun
+  | .load _ p' 0 => decide (p' = p)
+  | .touch _ p' => decide (p' = p)
+  | _ => false
+
+/-- The first product `x = a·b` among the atoms: its factors. -/
+def mulOf (as : List Atom) (x : V) : Option (V × V) := as.findSome? fun
+  | .mul d a b => if d = x then some (a, b) else none
+  | _ => none
+
+/-- **A bit's power** `x = 1 + b·w` (the first sum of `x` among the atoms), `b·b = b` and `w = 1 + g^m`
+constants among them: `x = g^(m·b)`, at most `m`. -/
+noncomputable def bitPow (as : List Atom) (x : V) : Option ℕ :=
+  as.findSome? fun
+    | .add d o y => if d = x ∧ Res.constOf as o = some 1 then
+        match mulOf as y with
+        | some (b, w) => if Atom.mul b b b ∈ as then (Res.constOf as w).bind fun c ↦ Res.powOf (c + 1)
+          else none
+        | none => none
+      else none
+    | _ => none
+
+/-- **An exponent's bound** (`addr`, at most `M`, fuel `f`): `x = g^e`, `e ≤ M`, from atoms on every returning
+path: a `DEREF` through `x` at offset `0` (an address of a memory of at most `2^28` words), a product of two
+such values (the bounds' sum), a bit's power (`bitPow`), or a constant power of `g`. -/
+noncomputable def expM (as : List Atom) : ℕ → V → Option ℕ
+  | 0, _ => none
+  | f + 1, x => if derefAt as x then some (2 ^ 28 - 1) else
+      match mulOf as x with
+      | some (a, b) => (expM as f a).bind fun ma ↦ (expM as f b).map (ma + ·)
+      | none => match bitPow as x with
+        | some m => some m
+        | none => (Res.constOf as x).bind Res.powOf
+
+/-- The fuel of `expM` the families use. -/
+def expFuel : ℕ := 6
+
+/-- The top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level branch on `c`
+that does not return, before the first statement that may return. -/
+noncomputable def nzAtoms (c : V) : List Stmt → List Atom
+  | [] => []
+  | s :: ss => (match s with
+      | .ite c' _ n => if c' = c ∧ Memory.noRetR s = true then Res.topAtoms n else []
+      | _ => []) ++ (if Memory.noRetR s = true then nzAtoms c ss else [])
+
+/-- `g⁻¹`: `w·g = 1`. -/
+noncomputable def invG (w : E) : Bool := decide (w * ofK (addressOfIndex 1) = 1)
+
+/-- **`x·v·g^off` below `g^n`** (`negFam`), `k` a branch condition: `v` the constant `g⁻¹` of the arm taken when `k`
+is nonzero (`nzAtoms`), `x` range checked, `k = y + w` and `y = x·w`, `w` the constant `g^off` (so `x ≠ 1` there), `y`
+range checked below `g^(n + 1)`. -/
+noncomputable def negPair (fn : Fn) (k x v off n : ℕ) : Bool :=
+  decide (off < 2 ^ 33) && (Res.rcBound (Res.topAtoms fn.body) (V.n x)).isSome &&
+  (nzAtoms (V.n k) fn.body).any (fun
+    | .const d w => decide (d = V.n v) && invG w
+    | _ => false) &&
+  (Res.topAtoms fn.body).any fun
+    | .add d y o => decide (d = V.n k) && (Res.topAtoms fn.body).any (fun
+        | .mul y' x' b => decide (y' = y) && decide (x' = V.n x) &&
+          (match Res.constOf (Res.topAtoms fn.body) o, Res.constOf (Res.topAtoms fn.body) b with
+          | some w, some w' => decide (w = w') && decide (w = ofK (addressOfIndex off))
+          | _, _ => false) &&
+          (match Res.rcBound (Res.topAtoms fn.body) y with
+          | some N => decide (N ≤ n + 1)
+          | none => false)
+        | _ => false)
+    | _ => false
+
+/-- **The `neg` family**, under a branch condition `k ≠ 0`: `e(x·v·g^off) < n` (`negPair`, either base first). -/
+noncomputable def negFam (fn : Fn) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num n) => decide (n < capE) && cs.any fun
+      | .nonzero k => match c.bases with
+        | [(a, 1), (b, 1)] => negPair fn k a b c.off n || negPair fn k b a c.off n
+        | _ => false
+      | _ => false
+  | _ => false
+
 /-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
-parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`) on every
+parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
+constant power of `g`) on every
 returning path, of a parameter an entry run bounds and the quotient of two addresses the path
 dereferences (`exp`, a bound `≥ 2^28`), `column_selector`'s lowest digit (`cs`), or such a residual
 under branch conditions. -/
@@ -83,27 +182,31 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
         | none => false) ||
         ((Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n)) ||
         (decide (2 ^ 28 ≤ n) && decide (x < fn.params.length) && xc.contains (2 + x) &&
-          expDiff (Res.topAtoms fn.body) (V.n x)))
+          expDiff (Res.topAtoms fn.body) (V.n x)) ||
+        (expM (Res.topAtoms fn.body) expFuel (V.n x)).any (· < n))
   | .lt (.val x) (.mono c) => match c.bases, c.off with
     | [(p, 1)], 1 => (Res.topAtoms fn.body).any fun
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
         | _ => false
     | _, _ => false
+  | .lt (.mono c) (.num n) => match c.bases with
+    | [(x, 1)] => decide (n < capE) &&
+        ((Res.topSels fn.body).any (fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)) ||
+          match Res.rcBound (Res.topAtoms fn.body) (V.n x) with
+          | some N => decide (N + c.off ≤ n)
+          | none => false)
+    | _ => false
+  | .lt (.num j) (.mono c) => match c.bases with
+    | [(x, 1)] => decide (j < c.off) &&
+        (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off < capE)
+    | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
-  | .under _ r => resFam fn xc r
+  | .subR q r => subRC q r
+  | .under cs r => resFam fn xc r || negFam fn cs r
   | _ => false
 
 /-! ## The values a residual names -/
-
-def CCell.vals (c : CCell) : List ℕ := c.bases.map (·.1)
-
-def CIdx.vals : CIdx → List ℕ
-  | .num _ => []
-  | .val v => [v]
-  | .mono c => c.vals
-
-def CRun.vals (r : CRun) : List ℕ := r.base.vals ++ r.lo.vals ++ r.hi.vals
 
 def CCond.vals : CCond → List ℕ
   | .arm x _ => [x]
@@ -191,9 +294,78 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
   | _ => false
 
-/-- **A residual of a family**, ghost-free (`resFam`, its values below `GB`), or the ghost family `ml`. -/
+/-! ## The instance's exponent and dimension facts -/
+
+/-- The pointer and offset of the first `load` of `x` among the atoms. -/
+def ldOf (as : List Atom) (x : V) : Option (V × ℕ) :=
+  as.findSome? fun
+    | .load d p k => bif decide (d = x) then some (p, k) else none
+    | _ => none
+
+/-- **A top-level `load` of `x` through `p` at offset `k`** among the atoms: the first one (one scan per value, which
+the kernel shares between a function's residuals). -/
+def loadAt (as : List Atom) (x p : V) (k : ℕ) : Bool :=
+  decide (ldOf as x = some (p, k))
+
+/-- **The exponent fact of a value** (`Res.expFacts`): `x` a listed parameter of `fn` (offset `none`), or the word a
+top-level `load` reads at a listed parameter's `[p]·g^k` (offset `some k`); the fact's bound. -/
+noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
+  Res.expFacts.findSome? fun c ↦ if c.1 == fn.name then
+    match fn.params[c.2.1]?, c.2.2.1 with
+    | some p, none => if p = x then some c.2.2.2 else none
+    | some p, some k => if loadAt (Res.topAtoms fn.body) x p k then some c.2.2.2 else none
+    | none, _ => none
+  else none
+
+/-- **`check_opening_terminal`'s word `gmv = g^sl`, `sl ≤ 30`** (`Res.TermFront`): its parameter `19`. -/
+def termGm (fn : Fn) (x : V) : Bool :=
+  fn.name == name% «check_opening_terminal» && decide (fn.params[19]? = some x)
+
+/-- **The exponent fact of a value or of a top-level product** `x = a·w` of a value `a` of one (`expQ1`) and a
+constant `g^c`: the bound, plus `c`. -/
+noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+  match expQ1 fn x with
+  | some b => some b
+  | none => bif termGm fn x then some 31 else (Res.topAtoms fn.body).findSome? fun
+    | .mul d a w => if d = x then
+        match expQ1 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
+        | some b, some c => some (b + c)
+        | _, _ => none
+      else none
+    | _ => none
+
+/-- **A dimension fact's pair** (`Res.dimFacts`): `x` the word a top-level `load` reads at the base parameter's
+`[kb]·g^j`, `p` the bound parameter, `(j, c)` one of the pairs, `t < c + u`, `u < 2^33`. -/
+noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u : ℕ) : Bool :=
+  decide (u < 2 ^ 33) && Res.dimFacts.any fun c ↦ c.1 == fn.name &&
+    match fn.params[c.2.1]?, fn.params[c.2.2.1]? with
+    | some kb, some gb => decide (gb = p) &&
+        c.2.2.2.any fun q ↦ loadAt (Res.topAtoms fn.body) x kb q.1 && decide (t < q.2 + u)
+    | _, _ => false
+
+/-- **The residuals of the instance's exponent and dimension facts** (`expQ`, `dim`; `Res.expFacts`,
+`Res.dimFacts`, which the old route's F7 to F9 read): a value of an exponent fact (`expQB`), times `g^c`, below
+a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact times `g^t` below its
+bound parameter times `g^u` (`dimLt`). -/
+noncomputable def resQ (fn : Fn) : CRes → Bool
+  | .lt (.val x) (.num n) => decide (n < capE) && (expQB fn (V.n x)).any (· ≤ n)
+  | .lt (.mono c) (.num n) => match c.bases with
+    | [(x, 1)] => decide (n < capE) && (expQB fn (V.n x)).any (· + c.off ≤ n)
+    | _ => false
+  | .lt (.num k) (.mono c) => match c.bases with
+    | [(x, 1)] => decide (k < c.off) && (expQB fn (V.n x)).any (· + c.off < capE)
+    | _ => false
+  | .lt (.val x) (.mono c) => match c.bases with
+    | [(p, 1)] => dimLt fn (V.n x) 0 (V.n p) c.off
+    | _ => false
+  | .lt (.mono a) (.mono c) => match a.bases, c.bases with
+    | [(x, 1)], [(p, 1)] => dimLt fn (V.n x) a.off (V.n p) c.off
+    | _, _ => false
+  | _ => false
+
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  (resFam fn xc r && r.vals.all (Nat.blt · GB)) || mlSub fn r
+  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)

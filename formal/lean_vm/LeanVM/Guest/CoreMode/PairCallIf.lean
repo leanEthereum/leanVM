@@ -44,7 +44,7 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
     (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc od of = false)
-    (hnr : ¬ (od = 0 ∧ of = 1)) (hm : X.main = false) (hsf : X.selfAt of = false)
+    (hnr : ¬ (od = 0 ∧ of = 1)) (hsf : X.selfAt of = false)
     (hnx : ∀ t f, X.pcAt od = some t → X.entOk t f = true → X.nextAt of = false)
     (hd : ∀ s, getF X.sites of = some s → s.tgt ≠ od) :
     ∃ f args rets s t o pos', X.siteAt of args rets = some s ∧ X.pcAt od = some t ∧ X.entOk t f = true ∧
@@ -83,8 +83,10 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   | atom a => exact absurd rfl (hna a)
   | ret vs' =>
     obtain ⟨-, -, h3⟩ := headH_ret hh hcur
-    rw [hX, hm] at h3
-    exact absurd h3 hnr
+    rw [hX] at h3
+    split at h3
+    · rw [hsf] at h3; cases h3.1
+    · exact absurd h3 hnr
   | ite c zb nb =>
     have h3 := (headH_ite hh hcur).2.1
     rw [hX, hsf] at h3
@@ -169,7 +171,7 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
     (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc od of = false)
-    (hnr : ¬ (od = 0 ∧ of = 1)) (hm : X.main = false) (hsf : X.selfAt of = false) (hpc : X.pcAt od = none) :
+    (hnr : ¬ (od = 0 ∧ of = 1)) (hsf : X.selfAt of = false) (hpc : X.pcAt od = none) :
     ∃ x fs args rets s o pos', Stmt.dispatch x fs args rets ∈ stmtsOf body ∧ X.siteAt of args rets = some s ∧
       s.tgt = od ∧ X.fwdOff i s.r = some o ∧ pairAt (PairCtx.ofH X H O S) body code d o = some pos' ∧
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
@@ -197,8 +199,10 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   | atom a => exact absurd rfl (hna a)
   | ret vs' =>
     obtain ⟨-, -, h3⟩ := headH_ret hh hcur
-    rw [hX, hm] at h3
-    exact absurd h3 hnr
+    rw [hX] at h3
+    split at h3
+    · rw [hsf] at h3; cases h3.1
+    · exact absurd h3 hnr
   | ite c zb nb =>
     have h3 := (headH_ite hh hcur).2.1
     rw [hX, hsf] at h3

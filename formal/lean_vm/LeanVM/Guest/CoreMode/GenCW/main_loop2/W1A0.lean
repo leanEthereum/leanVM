@@ -90,6 +90,7 @@ def sum1_0 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [], 
 
 /-- Arms 0 to 255. -/
 theorem arms1_0 : armsOkW Fn.«main_loop2».pows sigW core hcert ((Memory.loopBody core).drop 79) 0 (256 - 0) st1 (cntOf st1) sum1_0 (4, 1, 0, 0) = true := by
+  simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 
 end

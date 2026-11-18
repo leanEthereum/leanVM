@@ -26,18 +26,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«verify_bus_gkr»
-
-namespace LeanVM.Guest.Fn.«column_selector__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L30`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 308) (d := Data.adviceFn308) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L30»

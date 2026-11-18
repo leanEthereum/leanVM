@@ -20,10 +20,12 @@ open LeanVM.Guest.CoreMode
 
 /-- The parameters, the entry state. -/
 theorem head_ok : headOkF Fn.«exponent_tables».pows sigW core hcert st0 = true := by
+  simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 2447 to the end. -/
-theorem last_ok : lastOkF Fn.«exponent_tables».pows sigW core hcert 2447 st1 = true := by
+/-- Statements 2451 to the end. -/
+theorem last_ok : lastOkF Fn.«exponent_tables».pows sigW core hcert 2451 st1 = true := by
+  simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
 end
@@ -37,7 +39,7 @@ namespace LeanVM.Guest.Fn.«exponent_tables»
 theorem heap_okC : CoreMode.heapOkC Fn.«exponent_tables».pows
     (fun _ ↦ .empty)
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(2447, HeapW.st1)]) HeapW.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(2451, HeapW.st1)]) HeapW.head_ok
     ⟨HeapW.win0, by omega,
     trivial⟩ rfl HeapW.last_ok
 

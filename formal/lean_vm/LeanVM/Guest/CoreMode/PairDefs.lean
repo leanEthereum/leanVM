@@ -191,12 +191,26 @@ noncomputable def hintsStepH (P : PairCtx) (hs : List Prover.Exec.Hint) : Zip �
 noncomputable def cellsAt (X : AlignCtx) (o1 o2 o3 : ℕ) (d p : V) (off : ℕ) : Bool :=
   Nat.beq (X.locAt p.idx) o1 && Nat.beq off o2 && Nat.beq (X.locAt d.idx) o3
 
+/-- A site's target cell is `o`; `d` of no site. -/
+def siteTgt (d : Bool) (o : ℕ) : Option B2C.Site → Bool
+  | some s => Nat.beq s.tgt o
+  | none => d
+
+/-- Some call site's dispatch target cell is `o3` (`Site.tgt`). -/
+noncomputable def tgtIn (o3 : ℕ) (t : Trie B2C.Site) : Bool :=
+  Trie.rec (motive := fun _ ↦ Bool) false (fun v _ _ al ar ↦ siteTgt false o3 v || al || ar) t
+
+/-- No call site is a dispatch's: every target cell `0`. -/
+noncomputable def tgtNone (t : Trie B2C.Site) : Bool :=
+  Trie.rec (motive := fun _ ↦ Bool) true (fun v _ _ al ar ↦ siteTgt true 0 v && al && ar) t
+
 /-- **A `DEREF o1 o2 o3` reading the jump table**: its word cell a table jump's target cell (`arms`), its
-offset the table's base, its pointer cell the selector's. -/
+offset the table's base, its pointer cell the selector's; or its word cell a dispatch's target cell, not
+`0` (its offset and pointer cell checked at its dispatch, `jtdGo`). -/
 noncomputable def jtd (X : AlignCtx) (o1 o2 o3 : ℕ) : Bool :=
   match getF X.arms o3 with
   | some a => Nat.beq a.2 o2 && Nat.beq (X.locAt a.1) o1
-  | none => false
+  | none => !Nat.beq o3 0 && tgtIn o3 X.sites
 
 /-- One step of a `DEREF`'s scan, `r` the rest: the head `load` at its cells consumed, a read before
 it skipped. -/

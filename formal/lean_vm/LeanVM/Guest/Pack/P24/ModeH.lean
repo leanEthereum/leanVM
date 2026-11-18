@@ -27,21 +27,6 @@ end
 
 end LeanVM.Guest.Fn.«main_loop3»
 
-namespace LeanVM.Guest.Fn.«block_selector_tab__L17»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector_tab__L17`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 250) (d := Data.adviceFn250) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L17»
-
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -40,50 +40,134 @@ open LeanVM.Guest
 
 public section
 
+/-- `rs_eq_rows__L1`'s core data, the deployed guest's. -/
+theorem cfOk0 : CoreMode.CfOk Fn.«rs_eq_rows__L1».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85
+    Bridge.ProgAl.tab85 rfl rfl rfl (by decide +kernel)
+
+/-- `index_mle__L13`'s core data, the deployed guest's. -/
+theorem cfOk1 : CoreMode.CfOk Fn.«index_mle__L13».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code212 Checked.core212 Checked.cert212 Checked.plumbEq212
+    Bridge.ProgAl.tab212 rfl rfl rfl (by decide +kernel)
+
+/-- `column_selector__L23`'s core data, the deployed guest's. -/
+theorem cfOk2 : CoreMode.CfOk Fn.«column_selector__L23».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code301 Checked.core301 Checked.cert301 Checked.plumbEq301
+    Bridge.ProgAl.tab301 rfl rfl rfl (by decide +kernel)
+
+/-- `squeeze_point_from__L25`'s core data, the deployed guest's. -/
+theorem cfOk3 : CoreMode.CfOk Fn.«squeeze_point_from__L25».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code317 Checked.core317 Checked.cert317 Checked.plumbEq317
+    Bridge.ProgAl.tab317 rfl rfl rfl (by decide +kernel)
+
+/-- `claim_list_last__L7`'s core data, the deployed guest's. -/
+theorem cfOk4 : CoreMode.CfOk Fn.«claim_list_last__L7».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code359 Checked.core359 Checked.cert359 Checked.plumbEq359
+    Bridge.ProgAl.tab359 rfl rfl rfl (by decide +kernel)
+
+/-- `child_claim_list_last__L0`'s core data, the deployed guest's. -/
+theorem cfOk5 : CoreMode.CfOk Fn.«child_claim_list_last__L0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code371 Checked.core371 Checked.cert371 Checked.plumbEq371
+    Bridge.ProgAl.tab371 rfl rfl rfl (by decide +kernel)
+
+/-- `da_column_offsets_loop3`'s core data, the deployed guest's. -/
+theorem cfOk6 : CoreMode.CfOk Fn.«da_column_offsets_loop3».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code419 Checked.core419 Checked.cert419 Checked.plumbEq419
+    Bridge.ProgAl.tab419 rfl rfl rfl (by decide +kernel)
+
+/-- `grind_check__L28`'s core data, the deployed guest's. -/
+theorem cfOk7 : CoreMode.CfOk Fn.«grind_check__L28».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code448 Checked.core448 Checked.cert448 Checked.plumbEq448
+    Bridge.ProgAl.tab448 rfl rfl rfl (by decide +kernel)
+
+/-- `level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0`'s core data, the deployed guest's. -/
+theorem cfOk8 : CoreMode.CfOk Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code470 Checked.core470 Checked.cert470 Checked.plumbEq470
+    Bridge.ProgAl.tab470 rfl rfl rfl (by decide +kernel)
+
+/-- `level_positions__L3_L18_L6`'s core data, the deployed guest's. -/
+theorem cfOk9 : CoreMode.CfOk Fn.«level_positions__L3_L18_L6».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code612 Checked.core612 Checked.cert612 Checked.plumbEq612
+    Bridge.ProgAl.tab612 rfl rfl rfl (by decide +kernel)
+
+/-- `level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1`'s core data, the deployed guest's. -/
+theorem cfOk10 : CoreMode.CfOk Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code615 Checked.core615 Checked.cert615 Checked.plumbEq615
+    Bridge.ProgAl.tab615 rfl rfl rfl (by decide +kernel)
+
+/-- `level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0`'s core data, the deployed guest's. -/
+theorem cfOk11 : CoreMode.CfOk Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code649 Checked.core649 Checked.cert649 Checked.plumbEq649
+    Bridge.ProgAl.tab649 rfl rfl rfl (by decide +kernel)
+
+/-- `level_residual__L21_L9_L4_L2`'s core data, the deployed guest's. -/
+theorem cfOk12 : CoreMode.CfOk Fn.«level_residual__L21_L9_L4_L2».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code792 Checked.core792 Checked.cert792 Checked.plumbEq792
+    Bridge.ProgAl.tab792 rfl rfl rfl (by decide +kernel)
+
+/-- `level_residual__L18_L9_L4_L2`'s core data, the deployed guest's. -/
+theorem cfOk13 : CoreMode.CfOk Fn.«level_residual__L18_L9_L4_L2».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code794 Checked.core794 Checked.cert794 Checked.plumbEq794
+    Bridge.ProgAl.tab794 rfl rfl rfl (by decide +kernel)
+
+/-- `level_residual__L218_L22_L6_L3`'s core data, the deployed guest's. -/
+theorem cfOk14 : CoreMode.CfOk Fn.«level_residual__L218_L22_L6_L3».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code826 Checked.core826 Checked.cert826 Checked.plumbEq826
+    Bridge.ProgAl.tab826 rfl rfl rfl (by decide +kernel)
+
+/-- `level_residual__L15_L6_L4_L2`'s core data, the deployed guest's. -/
+theorem cfOk15 : CoreMode.CfOk Fn.«level_residual__L15_L6_L4_L2».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code842 Checked.core842 Checked.cert842 Checked.plumbEq842
+    Bridge.ProgAl.tab842 rfl rfl rfl (by decide +kernel)
+
+/-- `opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`'s core data, the deployed guest's. -/
+theorem cfOk16 : CoreMode.CfOk Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code1018 Checked.core1018 Checked.cert1018 Checked.plumbEq1018
+    Bridge.ProgAl.tab1018 rfl rfl rfl (by decide +kernel)
+
+/-- `level_positions__L4_L19_L7_loop0`'s core data, the deployed guest's. -/
+theorem cfOk17 : CoreMode.CfOk Fn.«level_positions__L4_L19_L7_loop0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code1104 Checked.core1104 Checked.cert1104 Checked.plumbEq1104
+    Bridge.ProgAl.tab1104 rfl rfl rfl (by decide +kernel)
+
+/-- `level_residual__L73_L21_L6_L3_loop1`'s core data, the deployed guest's. -/
+theorem cfOk18 : CoreMode.CfOk Fn.«level_residual__L73_L21_L6_L3_loop1».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code1287 Checked.core1287 Checked.cert1287 Checked.plumbEq1287
+    Bridge.ProgAl.tab1287 rfl rfl rfl (by decide +kernel)
+
+/-- `walk_path__L12_L6`'s core data, the deployed guest's. -/
+theorem cfOk19 : CoreMode.CfOk Fn.«walk_path__L12_L6».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code1460 Checked.core1460 Checked.cert1460 Checked.plumbEq1460
+    Bridge.ProgAl.tab1460 rfl rfl rfl (by decide +kernel)
+
+/-- `opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0`'s core data, the deployed guest's. -/
+theorem cfOk20 : CoreMode.CfOk Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code1471 Checked.core1471 Checked.cert1471 Checked.plumbEq1471
+    Bridge.ProgAl.tab1471 rfl rfl rfl (by decide +kernel)
+
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85
-      Bridge.ProgAl.tab85 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code212 Checked.core212 Checked.cert212 Checked.plumbEq212
-      Bridge.ProgAl.tab212 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code301 Checked.core301 Checked.cert301 Checked.plumbEq301
-      Bridge.ProgAl.tab301 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code317 Checked.core317 Checked.cert317 Checked.plumbEq317
-      Bridge.ProgAl.tab317 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code359 Checked.core359 Checked.cert359 Checked.plumbEq359
-      Bridge.ProgAl.tab359 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code371 Checked.core371 Checked.cert371 Checked.plumbEq371
-      Bridge.ProgAl.tab371 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code419 Checked.core419 Checked.cert419 Checked.plumbEq419
-      Bridge.ProgAl.tab419 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code448 Checked.core448 Checked.cert448 Checked.plumbEq448
-      Bridge.ProgAl.tab448 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code470 Checked.core470 Checked.cert470 Checked.plumbEq470
-      Bridge.ProgAl.tab470 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code612 Checked.core612 Checked.cert612 Checked.plumbEq612
-      Bridge.ProgAl.tab612 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code615 Checked.core615 Checked.cert615 Checked.plumbEq615
-      Bridge.ProgAl.tab615 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code649 Checked.core649 Checked.cert649 Checked.plumbEq649
-      Bridge.ProgAl.tab649 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code792 Checked.core792 Checked.cert792 Checked.plumbEq792
-      Bridge.ProgAl.tab792 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code794 Checked.core794 Checked.cert794 Checked.plumbEq794
-      Bridge.ProgAl.tab794 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code826 Checked.core826 Checked.cert826 Checked.plumbEq826
-      Bridge.ProgAl.tab826 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code842 Checked.core842 Checked.cert842 Checked.plumbEq842
-      Bridge.ProgAl.tab842 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1018 Checked.core1018 Checked.cert1018 Checked.plumbEq1018
-      Bridge.ProgAl.tab1018 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1104 Checked.core1104 Checked.cert1104 Checked.plumbEq1104
-      Bridge.ProgAl.tab1104 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1287 Checked.core1287 Checked.cert1287 Checked.plumbEq1287
-      Bridge.ProgAl.tab1287 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1460 Checked.core1460 Checked.cert1460 Checked.plumbEq1460
-      Bridge.ProgAl.tab1460 rfl rfl rfl (by decide +kernel))
-    (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1471 Checked.core1471 Checked.cert1471 Checked.plumbEq1471
-      Bridge.ProgAl.tab1471 rfl rfl rfl (by decide +kernel))
+  Mode.fa_cons cfOk0
+    (Mode.fa_cons cfOk1
+    (Mode.fa_cons cfOk2
+    (Mode.fa_cons cfOk3
+    (Mode.fa_cons cfOk4
+    (Mode.fa_cons cfOk5
+    (Mode.fa_cons cfOk6
+    (Mode.fa_cons cfOk7
+    (Mode.fa_cons cfOk8
+    (Mode.fa_cons cfOk9
+    (Mode.fa_cons cfOk10
+    (Mode.fa_cons cfOk11
+    (Mode.fa_cons cfOk12
+    (Mode.fa_cons cfOk13
+    (Mode.fa_cons cfOk14
+    (Mode.fa_cons cfOk15
+    (Mode.fa_cons cfOk16
+    (Mode.fa_cons cfOk17
+    (Mode.fa_cons cfOk18
+    (Mode.fa_cons cfOk19
+    (Mode.fa_cons cfOk20
     (Mode.fa_nil)))))))))))))))))))))
 
 end

@@ -22,6 +22,7 @@ open LeanVM.Guest.CoreMode
 
 /-- Statements 0 to 13. -/
 theorem win0 : winOkF Fn.«walk_path__L24_L4».pows sigW core hcert ((core.body.drop 0).take (14 - 0)) st0 st1 = true := by
+  simp only [winOkF, withCx_cx hcx]
   decide +kernel
 
 end

@@ -1,7 +1,9 @@
 """The core route's checks of each function on it (`route.py`): `Gen/<pack>/Core.lean`, its core data
 (`CoreMode.CFun`: its frame walk, alignment context, heap certificate, core function, advice entry, powers and
 promised cells) and the kernel's checks tying them to its mode certificate (`CoreMode.CoreOk`), hence its frame
-interface (`Mode.FnSpecC`); `Gen/<pack>/Route.lean`, its core data the deployed guest's (`CoreMode.CfOk`).
+interface (`Mode.FnSpecC`); `Gen/<pack>/Route.lean`, its core data the deployed guest's (`CoreMode.CfOk`). A heap
+check `callc.py` windowed (`GenW/<fn>/`) is taken from its windows; a body longer than `SPLIT` statements has its
+longest passes checked as declarations of their own (the kernel's memory goes by declaration).
 Usage: python3 -I scripts/core-mode/core.py [--check]  (with `CORE_MODE_CACHE` as for `heap.py`)"""
 import os, re, sys, glob, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -54,16 +56,52 @@ def pair_mod(g, n):
     return 'LeanVM.Guest.CoreMode.Gen.%s.Pair' % g
 
 
+# a body of more statements (nested ones included) than `SPLIT` has its longest passes over the body checked apart
+# (`shapeOk_of`, `honB_of`): the kernel's memory goes by declaration, not by module
+SPLIT = 10000
+
+
+def nstmts(body):
+    """The statements of a core body, nested ones included."""
+    t = 0
+    for s in body:
+        t += 1
+        if s[0] == 'ite':
+            t += nstmts(s[2]) + nstmts(s[3])
+        elif s[0] == 'match':
+            t += sum(nstmts(a) for a in s[2])
+    return t
+
+
+def long_body(k):
+    return nstmts(heap.CORE[k][1]) > SPLIT
+
+
+def shape(k):
+    """`core_shape`: one kernel evaluation, or a long body's passes apart (`shapeOk_of`)."""
+    if not long_body(k):
+        return (f'/-- `{k}`: its shape. -/\n'
+                f'theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by\n  decide +kernel\n\n')
+    return (f'/-- `{k}`: its body\'s statements. -/\n'
+            f'theorem core_body : CoreMode.bodyCore cfun.fn.body = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: its tables\' jumps. -/\n'
+            f'theorem core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: the rest of its shape. -/\n'
+            f'theorem core_rest : CoreMode.shapeRest cfun = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: its shape. -/\n'
+            f'theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true :=\n'
+            f'  CoreMode.shapeOk_of core_body core_tgt core_rest\n\n')
+
+
 def checks(k, j, K, frame, heap):
     """The kernel's checks of function `k` on the core route, each heavy one its own declaration, and its
     frame interface."""
     return (f'/-- `{k}`: its signature translated. -/\n'
-            f'theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by\n'
+            f'theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)\n    (Mode.jtRng modeEnv) = true := by\n'
             f'  decide +kernel\n\n'
             f'/-- `{k}`: its returned products. -/\n'
             f'theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by\n  decide +kernel\n\n'
-            f'/-- `{k}`: its shape. -/\n'
-            f'theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by\n  decide +kernel\n\n'
+            + shape(k) +
             f'/-- `{k}`: its calls\' jumps. -/\n'
             f'theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by\n  decide +kernel\n\n'
             f'/-- `{k}`: its reads of the jump table. -/\n'
@@ -80,6 +118,9 @@ def checks(k, j, K, frame, heap):
             f'  jtd := core_jtd\n'
             f'  fsig := rfl\n'
             f'  fsigs := rfl\n'
+            f'  fmain := by decide +kernel\n'
+            f'  fhalt := by decide +kernel\n'
+            f'  xhalt := by decide +kernel\n'
             f'  fentry := rfl\n'
             f'  flen := by decide +kernel\n'
             f'  xentry := by decide +kernel\n'
@@ -88,7 +129,9 @@ def checks(k, j, K, frame, heap):
             f'  fetch := Exec.guest_fetches Fn.«{k}».code_mem\n'
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«{k}».code_mem)\n'
             f'  pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok\n'
-            f'  fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok\n\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok\n'
+            f'  faret := by decide +kernel\n'
+            f'  nzrc := by decide +kernel\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := Mode.fnSpecC_of core_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
@@ -100,15 +143,28 @@ def dsp_arg(k):
 
 
 def cfun_c(k, j, K, frame):
-    """A body with calls: its heap check (`heapOkC` at its callees' heap signatures `csigs`), the kernel's checks."""
+    """A body with calls: its heap check (`heapOkC` at its callees' heap signatures `csigs`, in windows past
+    `heapwin.BUDGET`, `heap_proof`), the kernel's checks."""
     return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
             f'/-- `{k}`: what the core route knows of it. -/\n'
             f'noncomputable def cfun : CoreMode.CFun :=\n'
             f'  ⟨frameFun, alignCtx, hcert, core, Fn.«{k}».advice, Fn.«{k}».pows, [], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}⟩\n\nend\n\npublic section\n\n'
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
-            f'theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
+            f'theorem heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := {heap_proof(k)}\n\n'
             + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel)'))
+
+
+def heap_win(k):
+    """The module of `k`'s heap check in windows (`callc.windows`), if it has one."""
+    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenW', k, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.GenW.%s.Ok' % quote(k)
+    return None
+
+
+def heap_proof(k):
+    """`heapOkC`'s proof: one kernel evaluation, or its windows' (`GenW/<fn>/Ok.lean`)."""
+    return 'heap_okW' if heap_win(k) else 'by\n  decide +kernel'
 
 
 def cfun_l(k, j, K, frame):
@@ -132,6 +188,7 @@ def cfun_l(k, j, K, frame):
             f'theorem loop_ok : CoreMode.LoopOk {K} cfun where\n'
             f'  heap := heap_okC\n'
             f'  ders := rfl\n'
+            f'  gw := rfl\n'
             f'  nofa := by decide +kernel\n'
             f'  cs := rfl\n'
             f'  body := by decide +kernel\n'
@@ -185,6 +242,7 @@ def cfun_lc(k, j, K, frame):
             f'  rdFree := by decide +kernel\n'
             f'  cptr := by decide +kernel\n'
             f'  ders := rfl\n'
+            f'  gw := rfl\n'
             f'  nofa := by decide +kernel\n'
             f'  code := loop_code\n'
             f'  pair := pair_ok\n'
@@ -241,6 +299,7 @@ def main():
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
     tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
     files = {}
+    S = route.sigs()
     for p, ks in sorted(packs.items()):
         imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Small',
                 'LeanVM.Guest.Pack.«%s».ModeC' % p, 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
@@ -267,6 +326,8 @@ def main():
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
+                if heap_win(k):
+                    imps.add(heap_win(k))
                 imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
                 body.append(cfun_c(k, j, K, frame_term(frames[k])))
                 continue
@@ -284,20 +345,36 @@ def main():
             HEADER.format(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
             ''.join('public import %s\n' % m for m in sorted(imps)) + '\nset_option Elab.async false\n' + ''.join(body))
         rimps = {'LeanVM.Guest.CoreMode.Route', 'LeanVM.Guest.Pack.«%s».ModeCert' % p}
-        oks = []
-        for k in ks:
+        oks, hons, decls = [], [], []
+        for i, k in enumerate(ks):
             j = R[k]['j']
             rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
-            oks.append(f'CoreMode.cfOk_of (by decide) Checked.code{j} Checked.core{j} Checked.cert{j} Checked.plumbEq{j}\n'
-                       f'      Bridge.ProgAl.tab{j} rfl rfl rfl (by decide +kernel)')
+            hb = '(by decide +kernel)'
+            if long_body(k):
+                fn = f'Fn.«{k}».cfun.fn'
+                parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
+                         ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {j})', 'its pointers\' cells'),
+                         ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {j})', 'its returned values\' cells'),
+                         ('sel', f'(CoreMode.selGo {j} {fn}.params [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
+                         ('rest', f'CoreMode.honRest {j} {fn}', 'the rest of its frame')]
+                for nm, st, doc in parts:
+                    hons.append(f'/-- `{k}`: {doc}. -/\ntheorem hon{j}_{nm} : {st} = true := by\n  decide +kernel\n\n')
+                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest]; '
+                      f'decide +kernel)')
+            # each its own declaration, its own heartbeats
+            decls.append(f'/-- `{k}`\'s core data, the deployed guest\'s. -/\n'
+                         f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun :=\n'
+                         f'  CoreMode.cfOk_of (by decide) Checked.code{j} Checked.core{j} Checked.cert{j} Checked.plumbEq{j}\n'
+                         f'    Bridge.ProgAl.tab{j} rfl rfl rfl {hb}\n\n')
+            oks.append(f'cfOk{i}')
         chain = 'Mode.fa_nil'
         for q in reversed(oks):
-            chain = 'Mode.fa_cons (%s)\n    (%s)' % (q, chain)
+            chain = 'Mode.fa_cons %s\n    (%s)' % (q, chain)
         rmod = 'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p
         files[os.path.join(GEN, p, 'Route.lean')] = (
             HEADER.format(mod=rmod, what='The core route\'s data of `%s` and %d more, the deployed guest\'s.' % (ks[0], len(ks) - 1)) +
             ''.join('public import %s\n' % m for m in sorted(rimps)) + '\nset_option Elab.async false\n\n'
-            f'namespace LeanVM.Guest.ModePack.«{p}»\n\nopen LeanVM.Guest\n\npublic section\n\n'
+            f'namespace LeanVM.Guest.ModePack.«{p}»\n\nopen LeanVM.Guest\n\npublic section\n\n' + ''.join(hons) + ''.join(decls) +
             f'/-- The pack\'s core data, each the deployed guest\'s. -/\n'
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)

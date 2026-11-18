@@ -20,10 +20,12 @@ open LeanVM.Guest.CoreMode
 
 /-- The parameters, the entry state. -/
 theorem head_ok : headOkF Fn.«walk_path__L24_L2».pows sigW core hcert st0 = true := by
+  simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 14 to the end. -/
 theorem last_ok : lastOkF Fn.«walk_path__L24_L2».pows sigW core hcert 14 st1 = true := by
+  simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
 end

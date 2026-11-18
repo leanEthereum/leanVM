@@ -68,9 +68,9 @@ mutual
   | k :: ks => treeAll Q k ∧ kidsAll Q ks
 end
 
-/-- **An instance's facts**: its entry facts and residuals, under its function's certificate. -/
-def FactsAt (P : Program) (cert : String → HCert) (f : String) (σ : Val) : Prop :=
-  ∀ fn, P.find? f = some fn → EntryF (cert f) (fn.params.map σ) ∧ ResF (cert f) σ
+/-- **An instance's facts**: its entry facts, residuals and own parameter words, under its function's certificate. -/
+def FactsAt (P : Program) (cert : String → HCert) (rd : Reader) (f : String) (σ : Val) : Prop :=
+  ∀ fn, P.find? f = some fn → EntryF (cert f) (fn.params.map σ) ∧ ResF (cert f) σ ∧ GwOk (cert f).sig rd σ
 
 /-- **A valuation with ghost words**: the values `V.n (GB + j)`, `j` below their count, hold `gw[j]`. -/
 def setG (σ : Val) (gw : List E) : Val := fun v ↦
@@ -94,7 +94,7 @@ its facts at its valuation `instV rd (cert f) σ gw`, the cells its calls' ghost
 (`DerDef`), and each callee its own facts, at the ghost words its caller's certificate names for the call
 (`gargsW`, at the caller's valuation). -/
 def TreeFacts (P : Program) (cert : String → HCert) (rd : Reader) : Tree → List E → Prop
-  | .node f σ _ kids, gw => FactsAt P cert f (instV rd (cert f) σ gw) ∧
+  | .node f σ _ kids, gw => FactsAt P cert rd f (instV rd (cert f) σ gw) ∧
       ∀ fn es vs, P.find? f = some fn → walk σ fn.body = .ret es vs →
         (∀ g a r, Ev.call g a r ∈ es → DerDef (cert f) rd (instV rd (cert f) σ gw) g a) ∧
         KidsFacts P cert rd (cert f) (instV rd (cert f) σ gw) (calls es) kids
@@ -328,7 +328,7 @@ words is sound (`heapOkC_sound`), and its returned words are its `retM` monomial
 at both valuations, its events naming no ghost. -/
 theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : Val} {gw : List E}
     {kids : List Tree} {fn : Fn} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
-    (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) (hfa : FactsAt P cert f (instV rd (cert f) σ gw))
+    (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) (hfa : FactsAt P cert rd f (instV rd (cert f) σ gw))
     (hkids : ∀ c ∈ calls es, c.taken = true → ∃ k ∈ kids, k.name = c.f ∧
       k.Valid P rd (c.args.map σ) (c.rets.map σ) ∧
       PostT P cert rd k (c.args.map σ) (gargsW (cert f) (instV rd (cert f) σ gw) c.f c.args) (c.rets.map σ)) :
@@ -372,9 +372,9 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
     | atom _ => trivial
     | inK _ => trivial
     | skip _ _ => trivial
-  obtain ⟨hE, hR⟩ := hfa fn hf
+  obtain ⟨hE, hR, hG⟩ := hfa fn hf
   obtain ⟨hreads, hpost, hrm, hrv, hre⟩ := heapOkC_sound hp hok (by rw [fn_name_of_find hf]) hw'
-    (fun e he ↦ (holds_congr (hev e he)).mpr (hh e he)) hM hE hR (derOk_setD (heapOkC_ders hok))
+    (fun e he ↦ (holds_congr (hev e he)).mpr (hh e he)) hM hE hR (derOk_setD (heapOkC_ders hok)) hG
   rw [hpar] at hreads hpost hrm hrv hre
   rw [hvs'] at hrm hrv hre
   exact ⟨fun e he v hv ↦ hev e he v (List.mem_append_left _ hv), hpar, hvs', hreads, hpost, hrm, hrv, hre⟩
@@ -398,10 +398,11 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
     refine ⟨fun hlen x hx ↦ ?_, hrm, hrv, hre⟩
     have hW' : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (instV rd (cert f) σ gw) (fn.params.map σ) es x ∨
         FAW (instV rd (cert f) σ gw) es x := by
-      rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx
+      rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx | hx
       · exact hpost.1.1 c hc
       · exact hpost.1.2 r hr x hx
-      · exact hpost.2 x hx
+      · exact hpost.2.1 x hx
+      · exact hpost.2.2.1 x hx
     rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩
     rotate_left
     · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩)
@@ -464,7 +465,7 @@ mutual
 /-- **Without ghost words or words at cells named**, every instance's facts at its own valuation are its facts
 at its ghost words (none). -/
 theorem treeFacts_of_treeAll (hg : ∀ f, (cert f).gargs = []) (hd : ∀ f, (cert f).ders = []) : ∀ (t : Tree),
-    treeAll (FactsAt P cert) t → TreeFacts P cert rd t []
+    treeAll (FactsAt P cert rd) t → TreeFacts P cert rd t []
   | .node f σ _ kids, ht => by
     refine ⟨by rw [instV_nil (hd f)]; exact ht.1, fun fn es vs _ _ ↦ ⟨fun g a r _ k hk ↦ ?_, ?_⟩⟩
     · rw [callDers_nil (hg f)] at hk; cases hk
@@ -473,7 +474,7 @@ theorem treeFacts_of_treeAll (hg : ∀ f, (cert f).gargs = []) (hd : ∀ f, (cer
   | .phantom .., _ => trivial
 
 theorem kidsFacts_of_kidsAll (hg : ∀ f, (cert f).gargs = []) (hd : ∀ f, (cert f).ders = []) (H : HCert) (σ : Val) :
-    ∀ (cs : List Call) (ks : List Tree), kidsAll (FactsAt P cert) ks → H.gargs = [] → KidsFacts P cert rd H σ cs ks
+    ∀ (cs : List Call) (ks : List Tree), kidsAll (FactsAt P cert rd) ks → H.gargs = [] → KidsFacts P cert rd H σ cs ks
   | c :: cs, k :: ks, ⟨hk, hks⟩, hH => by
     refine ⟨?_, kidsFacts_of_kidsAll hg hd H σ cs ks hks hH⟩
     have : gargsW H σ c.f c.args = [] := by simp [gargsW, gargsOf, hH]

@@ -29,6 +29,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P32».Pair
 public import LeanVM.Guest.Pack.«P0».ModeSig
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
@@ -118,9 +120,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector_tab__L4`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 204568, 13,
-    Fn.«block_selector_tab__L4».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node
-    (some ()) .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil))), .nil, .nil⟩
+    Fn.«block_selector_tab__L4».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«block_selector_tab__L4».pairO, Fn.«block_selector_tab__L4».pairS, .nil⟩
 
 /-- `block_selector_tab__L4`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -146,15 +147,8 @@ theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
 /-- `block_selector_tab__L22`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 205265, 64,
-    Fn.«block_selector_tab__L22».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node
-    (some ()) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none (.node (some
-    ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none (.node (some ()) (.node (some ()) .nil
-    (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)))) (.node none (.node none (.node (some ()) .nil (.node (some ())
-    .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node (some ()) .nil
-    .nil))) (.node (some ()) .nil .nil)))), .nil, .nil⟩
+    Fn.«block_selector_tab__L22».modeSig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«block_selector_tab__L22».pairO, Fn.«block_selector_tab__L22».pairS, .nil⟩
 
 /-- `block_selector_tab__L22`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

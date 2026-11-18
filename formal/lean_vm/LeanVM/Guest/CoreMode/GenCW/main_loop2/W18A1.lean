@@ -52,6 +52,7 @@ def sum18_1 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
 
 /-- Arms 101 to 201. -/
 theorem arms18_1 : armsOkW Fn.«main_loop2».pows sigW core hcert ((Memory.loopBody core).drop 176) 101 (202 - 101) st18 (4, 1, 0, 0) sum18_1 (4, 1, 0, 0) = true := by
+  simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 
 end

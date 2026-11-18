@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L1».St
+public import LeanVM.Guest.CoreMode.GenCW.«open_stacked__L1».Cx
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -25,15 +25,12 @@ noncomputable def tr0 : Trie CCell :=
     (.node (some ⟨[(4, 1)], 0⟩) (.node (some ⟨[(8, 1)], 0⟩) .nil .nil) .nil) (.node (some ⟨[(6, 1)], 0⟩) (.node (some
     ⟨[(10, 1)], 0⟩) .nil .nil) .nil)))
 
-noncomputable def v1 : PRun :=
-  ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩
-
-noncomputable def tr2 : Trie PRun :=
-  (.node (some v1) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 4⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[],
-    32⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 16⟩⟩) .nil .nil) .nil) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[],
-    0⟩, ⟨[], 64⟩⟩) .nil .nil)) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 2048⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1,
-    ⟨[], 0⟩, ⟨[], 8⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 128⟩⟩) .nil .nil) .nil) (.node (some ⟨⟨[(10,
-    1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 2⟩⟩) .nil .nil)))
+noncomputable def tr1 : Trie PRun :=
+  (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 4⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 2048⟩⟩) (.node
+    (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 8⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 128⟩⟩) .nil .nil)
+    .nil) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 2⟩⟩) .nil .nil)) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩,
+    ⟨[], 32⟩⟩) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[], 64⟩⟩) .nil .nil) (.node (some ⟨⟨[(10, 1)], 0⟩, 1, ⟨[],
+    0⟩, ⟨[], 16⟩⟩) .nil .nil)))
 
 noncomputable def st0_cd : List CdE := []
 
@@ -42,15 +39,16 @@ noncomputable def st0_eqs : List (CCell × CCell) := []
 /-- The state before statement 0. -/
 noncomputable def st0 : CSt := ⟨tr0,
     .nil,
-    tr2,
+    tr1,
     .nil,
     .nil,
     .nil,
     .nil,
     .nil,
-    0, 9, 0, 0,
+    0, 8, 0, 0,
     st0_cd,
-    st0_eqs⟩
+    st0_eqs,
+    []⟩
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L1».HeapW

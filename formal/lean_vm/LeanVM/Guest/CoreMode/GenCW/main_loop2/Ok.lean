@@ -57,10 +57,12 @@ open LeanVM.Guest.CoreMode
 
 /-- The parameters, the tail's shape, the entry state. -/
 theorem head_ok : headOk Fn.«main_loop2».pows sigW core hcert (.val 1) 327 st0 = true := by
+  simp only [headOk, withCx_cx hcx]
   decide +kernel
 
 /-- The tail call and the guarantees at `ret []`. -/
 theorem tail_ok : tailOkW Fn.«main_loop2».pows sigW core hcert (.val 1) st39 = true := by
+  simp only [tailOkW, withCx_cx hcx]
   decide +kernel
 
 end
