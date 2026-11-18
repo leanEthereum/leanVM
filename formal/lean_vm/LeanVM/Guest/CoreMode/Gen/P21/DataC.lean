@@ -30,6 +30,7 @@ def hcert : CoreMode.HCert where
   res := [.sub ⟨[(1, 1), (3, 1)], 336⟩ ⟨⟨[(1, 1)], 336⟩, 4, (.num 0), (.num 4)⟩, .lt (.val 3) (.num 16),
     .lt (.val 4) (.num 16), .lt (.val 5) (.num 16)]
   rets := [[.run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 []]]
+  eqs := [33]
 
 /-- `column_selector__L22`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

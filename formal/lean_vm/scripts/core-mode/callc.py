@@ -34,7 +34,8 @@ def candidates():
     out = []
     for k, (params, body) in sorted(CORE.items()):
         acc = kinds(body, collections.Counter())
-        if set(acc) <= {'a', 'ret', 'call', 'callIf'} and (acc['call'] or acc['callIf']) and acc['ret'] == 1 and \
+        if set(acc) <= {'a', 'ret', 'call', 'callIf', 'dispatch'} and (acc['call'] or acc['callIf'] or acc['dispatch']) \
+                and acc['ret'] == 1 and \
                 body[-1][0] == 'ret' and k not in I.IS_LOOP:
             out.append(k)
     return out
@@ -247,21 +248,25 @@ def infer_one(k, S, allow=None):
     cs = {}
     for s in body:
         if s[0] == 'call':
-            f, args, nr = s[1], s[2], len(s[3])
+            calls = [(s[1], s[2], len(s[3]))]
         elif s[0] == 'callIf':
-            f, args, nr = s[2], s[3], 0
+            calls = [(s[2], s[3], 0)]
+        elif s[0] == 'dispatch':
+            calls = [(f, s[3], len(s[4])) for f in s[2]]
         else:
             continue
-        Gf = S.get(STABLE.get(f, f)) or S.get(f)
-        if Gf is None:
-            raise No('callee without mode signature')
-        if f == k:
-            raise No('recursive')
-        h = callee_sig(Gf, len(args), nr)
-        exp_bounds(h, args, body, np, exp_cells(G))
-        if f in cs and cs[f].key() != h.key():
-            raise No('callee arity')
-        cs[f] = h
+        for f, args, nr in calls:
+            Gf = S.get(STABLE.get(f, f)) or S.get(f)
+            if Gf is None:
+                raise No('callee without mode signature')
+            if f == k:
+                raise No('recursive')
+            h = callee_sig(Gf, len(args), nr)
+            exp_bounds(h, args, body, np, exp_cells(G))
+            if f in cs and cs[f].key() != h.key():
+                raise No('callee arity')
+            cs[f] = h
+    dsp = dsp_of(k, body)
     I.SIGS.clear()
     for f, h in cs.items():
         I.SIGS[I.callee(f)] = h
@@ -289,7 +294,37 @@ def infer_one(k, S, allow=None):
         raise No('recheck')
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
-    return dict(cert=H, cs=hs)
+    return dict(cert=H, cs=hs, dsp=dsp)
+
+
+_FNS = {}
+
+
+def dsp_of(k, body):
+    """`CFun.dsp`: each dispatch's callees by its call site's callee frame cell (`callsB`: every site of a dispatch's
+    arguments and returns lists that dispatch's callees)."""
+    ds = [s for s in body if s[0] == 'dispatch']
+    if not ds:
+        return []
+    if not _FNS:
+        sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
+        import align
+        _FNS.update(align.functions())
+    sites = _FNS[k]['sites']
+    out = {}
+    for s in ds:
+        qs = [q for q, si in sites.items() if si[0] == list(s[3]) and si[1] == list(s[4]) and si[4] != 0]
+        if not qs:
+            raise No('dispatch without site')
+        for q in qs:
+            if out.get(q, s[2]) != s[2]:
+                raise No('dispatch sites clash')
+            out[q] = s[2]
+    for q, si in sites.items():
+        for s in ds:
+            if si[0] == list(s[3]) and si[1] == list(s[4]) and out.get(q, s[2]) != s[2]:
+                raise No('dispatch sites clash')
+    return sorted(out.items())
 
 
 def results(verbose=False):
@@ -352,7 +387,10 @@ def ldata(k, r):
     cs = ',\n    '.join(f'("{f}", {lcsig(h)})' for f, h in sorted(r['cs'].items()))
     return (f'{auxt}/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n{body}\n'
             f'/-- `{k}`: its callees\' heap signatures, their mode signatures\' translated. -/\n'
-            f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n')
+            f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n' + (
+                '/-- `%s`: each dispatch\'s callees by its call site\'s callee frame cell. -/\n'
+                'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (k, ', '.join(
+                    '(%d, [%s])' % (q, ', '.join('"%s"' % f for f in fs)) for q, fs in r['dsp'])) if r.get('dsp') else ''))
 
 
 def emit(R, check):

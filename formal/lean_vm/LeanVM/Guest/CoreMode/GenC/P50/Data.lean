@@ -110,6 +110,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16), .lt (.val 7) (.num 16),
     .lt (.val 8) (.num 16), .lt (.val 9) (.num 16), .lt (.val 10) (.num 16)]
   rets := [[]]
+  eqs := [88]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L3»
@@ -689,8 +690,8 @@ def hcert : CoreMode.HCert where
         ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }
-  reads := [(16, [(15, 0, .run 3 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+  reads := [(16, [(15, 0, .prep 4 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .ev 0, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[]]
 
@@ -708,8 +709,8 @@ def hcert : CoreMode.HCert where
         ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }
-  reads := [(16, [(15, 0, .run 3 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+  reads := [(16, [(15, 0, .prep 4 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .ev 0, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[]]
 
@@ -768,8 +769,8 @@ def hcert : CoreMode.HCert where
   reads := [(11, [(5, 0, .pre 0)]), (12, [(6, 0, .pre 1)]), (247, [(3, 0, .pre 2)]), (248, [(3, 1, .pre 3)]),
     (315, [(3, 2, .pre 4)]), (316, [(3, 3, .pre 5)]), (351, [(3, 4, .pre 6)]), (352, [(3, 5, .pre 7)]),
     (371, [(3, 6, .pre 8)]), (372, [(3, 7, .pre 9)]), (383, [(3, 8, .pre 10)]), (384, [(3, 9, .pre 11)]),
-    (391, [(3, 10, .pre 12)]), (392, [(3, 11, .pre 13)]), (402, [(401, 0, .run 6 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+    (391, [(3, 10, .pre 12)]), (392, [(3, 11, .pre 13)]), (402, [(401, 0, .prep 7 (.ev 15) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pf 0, .pf 0, .pf 0, .pf 0],
     [.ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
         .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]

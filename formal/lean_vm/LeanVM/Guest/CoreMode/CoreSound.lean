@@ -250,11 +250,11 @@ theorem callReq_pre {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Va
 
 /-- What made a call event of a body the core route takes: a `call` statement, or a `callIf`
 returning nothing. -/
-theorem body_callS {body : List Stmt} (hb : bodyC body = true) {σ : Val} {es : List Ev} {vs : List V}
+theorem body_callS {body : List Stmt} (_hb : bodyC body = true) {σ : Val} {es : List Ev} {vs : List V}
     (hw : walk σ body = .ret es vs) {f : String} {a r : List V} (he : Ev.call f a r ∈ es) :
-    Stmt.call f a r ∈ stmtsOf body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf body) := by
+    Stmt.call f a r ∈ stmtsOf body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf body) ∨
+      ∃ x fs, Stmt.dispatch x fs a r ∈ stmtsOf body ∧ f ∈ fs := by
   obtain ⟨t, ht, hc⟩ := Bridge.walk_callS body (by rw [hw]; exact he)
-  have hct := List.all_eq_true.mp (Bool.and_eq_true_iff.mp hb).1 t ht
   cases t with
   | call g a' r' =>
     simp only [Bridge.CallS] at hc
@@ -263,16 +263,24 @@ theorem body_callS {body : List Stmt} (hb : bodyC body = true) {σ : Val} {es : 
   | callIf c g a' =>
     simp only [Bridge.CallS] at hc
     obtain ⟨rfl, rfl, rfl⟩ := hc
-    exact Or.inr ⟨rfl, c, ht⟩
-  | _ => simp [ctrlOk, Bridge.CallS] at hct hc
+    exact Or.inr (Or.inl ⟨rfl, c, ht⟩)
+  | dispatch x fs a' r' =>
+    simp only [Bridge.CallS] at hc
+    obtain ⟨hf, rfl, rfl⟩ := hc
+    exact Or.inr (Or.inr ⟨x, fs, ht, hf⟩)
+  | _ => simp [Bridge.CallS] at hc
 
 /-- A call of the body passes `callChk`. -/
 theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List V}
-    (hs : Stmt.call f a r ∈ stmtsOf Cf.fn.body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf Cf.fn.body)) :
+    (hs : Stmt.call f a r ∈ stmtsOf Cf.fn.body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf Cf.fn.body) ∨
+      ∃ x fs, Stmt.dispatch x fs a r ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
     callChk Cf f a = true := by
-  rcases hs with hs | ⟨-, c, hs⟩
+  rcases hs with hs | ⟨-, c, hs⟩ | ⟨x, fs, hs, hf⟩
   · exact List.all_eq_true.mp hcb _ hs
   · exact List.all_eq_true.mp hcb _ hs
+  · have := List.all_eq_true.mp hcb _ hs
+    simp only [Bool.and_eq_true] at this
+    exact List.all_eq_true.mp this.1 f hf
 
 /-- **The heap facts of an honest path**: its parameters `V.n k`; every event's needs written before
 it; the promised cells and the signature's runs written by the end, at the parameters' and returned
@@ -316,7 +324,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyC C
     · cases e with
       | atom a => exact fun x hr ↦ hconv _ _ (hrw es1 a es2 x he hr)
       | call f args rets =>
-        rcases body_callS hst hw (by rw [he]; exact List.mem_append_right _ List.mem_cons_self) with h | ⟨-, c, h⟩ <;>
+        rcases body_callS hst hw (by rw [he]; exact List.mem_append_right _ List.mem_cons_self) with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
           simpa [isCall] using List.all_eq_true.mp hstr _ h
       | _ => trivial
     · simp only [CFun.posts, hpost, List.append_nil, List.mem_filter] at hc
@@ -366,7 +374,17 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {�
   cases hk with
   | m1 _ _ hstr0 _ =>
     simp only [Bool.and_eq_true] at hstr0
-    rcases body_callS hst hw he with h | ⟨-, c, h⟩ <;> simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
+    rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
+      simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
+  | c _ _ hcb _ _ _ => exact hcb
+
+theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
+  cases hk with
+  | m1 _ _ hstr0 _ =>
+    simp only [Bool.and_eq_true] at hstr0
+    refine List.all_eq_true.mpr fun s hs ↦ ?_
+    have := List.all_eq_true.mp hstr0.1.1 s hs
+    cases s <;> simp_all [isCall]
   | c _ _ hcb _ _ _ => exact hcb
 
 /-- A path through a call: no word at a cell among the heap certificate's ghosts. -/
@@ -376,13 +394,15 @@ theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyC Cf.fn.body = true) {σ 
   cases hk with
   | m1 _ _ hstr0 _ =>
     simp only [Bool.and_eq_true] at hstr0
-    rcases body_callS hst hw he with h | ⟨-, c, h⟩ <;> simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
+    rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
+      simpa [isCall] using List.all_eq_true.mp hstr0.1.1 _ h
   | c _ _ _ _ hd _ => exact hd
 
 /-- **A call's callee runs' bounds have exponents** (`callsB`'s `idxPow`). -/
 theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets : List V}
     (hs : Stmt.call f args rets ∈ stmtsOf Cf.fn.body ∨
-      (rets = [] ∧ ∃ c, Stmt.callIf c f args ∈ stmtsOf Cf.fn.body)) :
+      (rets = [] ∧ ∃ c, Stmt.callIf c f args ∈ stmtsOf Cf.fn.body) ∨
+      ∃ x fs, Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
     (∀ q ∈ (Cf.sigOf f).preR, (idxPowC Cf args q.lo && idxPowC Cf args q.hi) = true) ∧
     ∀ p ∈ (Cf.sigOf f).prePR, (idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi) = true := by
   have := callsB_chk hcb hs
@@ -497,6 +517,7 @@ theorem noRet_of_topOk {s : Stmt} (h : topOk s = true) (hr : ∀ vs, s ≠ .ret 
   cases s with
   | ret vs => exact absurd rfl (hr vs)
   | call => simp [Core.Stmt.noRet]
+  | dispatch => simp [Core.Stmt.noRet]
   | _ =>
     simp only [topOk, Bool.and_eq_true] at h
     exact h.1
@@ -1007,7 +1028,7 @@ theorem jumpCallOk_spec {Cf : CFun} {oc od of t : ℕ} {f : String} (h : jumpCal
       ∃ G s, Cf.frame.sigs.get t = some G ∧ getF Cf.X.sites of = some s ∧ s.r < 2 ^ 30 ∧
         fitB G (Cf.sigOf f) s.args.length s.rets.length = true := by
   simp only [jumpCallOk, hpt, hent, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨hout, ht⟩, hsf⟩, -⟩, h⟩ := h
+  obtain ⟨-, ⟨⟨⟨hout, ht⟩, hsf⟩, -⟩, h⟩ := h
   refine ⟨fun ⟨h1, h2⟩ ↦ by simp [h1, h2] at hout, ht, hsf, ?_⟩
   split at h
   · rename_i G s hG hs
@@ -1015,10 +1036,28 @@ theorem jumpCallOk_spec {Cf : CFun} {oc od of t : ℕ} {f : String} (h : jumpCal
     exact ⟨G, s, hG, hs, h.1, h.2⟩
   · cases h
 
+/-- **A `JUMP` through its call site's target cell** goes through no `0`, no pc, no table target cell,
+from a cell not the own frame's. -/
+theorem jumpCallOk_dsp {Cf : CFun} {oc od of : ℕ} (h : jumpCallOk Cf (.jump oc od of) = true) {s : B2C.Site}
+    (hs : getF Cf.X.sites of = some s) (he : s.tgt = od) :
+    od ≠ 0 ∧ Cf.X.pcAt od = none ∧ getF Cf.X.arms od = none ∧ Cf.X.selfAt of = false := by
+  simp only [jumpCallOk, Bool.and_eq_true] at h
+  have h1 := h.1
+  simp only [dspNo, hs, he, Nat.beq_refl, Bool.not_true, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true',
+    Option.isNone_iff_eq_none] at h1
+  obtain ⟨⟨⟨h0, hp⟩, ha⟩, hsf⟩ := h1
+  exact ⟨fun e ↦ by simp [e] at h0, hp, ha, hsf⟩
+
+/-- A call's site has no dispatch target cell its jump's. -/
+theorem jumpCallOk_tgt {Cf : CFun} {oc od of t : ℕ} (h : jumpCallOk Cf (.jump oc od of) = true)
+    (hpt : Cf.X.pcAt od = some t) : ∀ s, getF Cf.X.sites of = some s → s.tgt ≠ od := fun s hs he ↦ by
+  have := (jumpCallOk_dsp h hs he).2.1
+  rw [hpt] at this; cases this
+
 theorem jumpCallOk_next {Cf : CFun} {oc od of t : ℕ} {f : String} (h : jumpCallOk Cf (.jump oc od of) = true)
     (hpt : Cf.X.pcAt od = some t) (hent : getF Cf.X.ents t = some f) : Cf.X.nextAt of = false := by
   simp only [jumpCallOk, hpt, hent, Bool.and_eq_true, Bool.not_eq_true'] at h
-  exact h.1.2
+  exact h.2.1.2
 
 theorem mapM_base_lt {n : ℕ} : ∀ (bs : List (Mode.Base × ℕ)) (cb : List (ℕ × ℕ)), bs.mapM baseOfMono = some cb →
     (∀ b ∈ bs, ∀ o, b.1 = .fr o → o - 2 < n) → ∀ b ∈ cb, b.1 < n
@@ -1072,8 +1111,9 @@ theorem armsCover_at {X : AlignCtx} {e : ℕ} {ml : List (ℕ × ℕ)} {a : ℕ 
 theorem tgtGo_at {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : List OffsetInstruction},
     tgtGo Cf ml n code = true → ∀ {i k oc od of : ℕ}, code[i]? = some (.jump oc od of) →
       Cf.frame.tgt.get (n + i) = some k →
+      (dspSite Cf.X od of = true ∧ dspJ Cf k od of = true) ∨ (dspSite Cf.X od of = false ∧
       od ≠ 0 ∧ Cf.X.pcAt od = none ∧ Cf.frame.calls.get k = none ∧ ∃ a ts, getF Cf.X.arms od = some a ∧
-        Cf.frame.arms.get k = some ts ∧ armsCover Cf.X Cf.frame.entry ml a ts = true
+        Cf.frame.arms.get k = some ts ∧ armsCover Cf.X Cf.frame.entry ml a ts = true)
   | _, [], _, _, _, _, _, _, h, _ => by simp at h
   | n, ins :: code, h, i, k, oc, od, of, hi, ht => by
     simp only [tgtGo, Bool.and_eq_true] at h
@@ -1084,14 +1124,38 @@ theorem tgtGo_at {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : Li
       rw [Nat.add_zero] at ht
       have h1 := h.1
       rw [ht] at h1
-      simp only [Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at h1
-      obtain ⟨⟨⟨h0, hpc⟩, hcl⟩, h2⟩ := h1
-      split at h2
-      · rename_i a ts ha hts
-        exact ⟨fun e ↦ by simp [e] at h0, hpc, hcl, a, ts, ha, hts, h2⟩
-      · cases h2
+      simp only at h1
+      cases hd : dspSite Cf.X od of
+      · rw [hd, Bool.cond_false] at h1
+        simp only [Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at h1
+        obtain ⟨⟨⟨h0, hpc⟩, hcl⟩, h2⟩ := h1
+        split at h2
+        · rename_i a ts ha hts
+          exact .inr ⟨rfl, fun e ↦ by simp [e] at h0, hpc, hcl, a, ts, ha, hts, h2⟩
+        · cases h2
+      · rw [hd, Bool.cond_true] at h1
+        exact .inl ⟨rfl, h1⟩
     | succ i =>
       exact tgtGo_at h.2 (by simpa using hi) (by rw [show n + 1 + i = n + (i + 1) by omega]; exact ht)
+
+/-- A `JUMP` the frame walk reads no table for is no dispatch's. -/
+theorem tgtGo_none {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : List OffsetInstruction},
+    tgtGo Cf ml n code = true → ∀ {i oc od of : ℕ}, code[i]? = some (.jump oc od of) →
+      Cf.frame.tgt.get (n + i) = none → dspSite Cf.X od of = false
+  | _, [], h, _, _, _, _, hi, _ => by simp at hi
+  | n, ins :: code, h, i, oc, od, of, hi, ht => by
+    simp only [tgtGo, Bool.and_eq_true] at h
+    cases i with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
+      subst hi
+      rw [Nat.add_zero] at ht
+      have h1 := h.1
+      rw [ht] at h1
+      simp only [Bool.not_eq_true'] at h1
+      exact h1
+    | succ i =>
+      exact tgtGo_none h.2 (by simpa using hi) (by rw [show n + 1 + i = n + (i + 1) by omega]; exact ht)
 
 /-! ## Jumps -/
 
@@ -1120,22 +1184,23 @@ theorem jump_events {img : MemoryImage κ} (hκ : κ ≤ 28) {X : AlignCtx} {H :
     exact flow_wrk hκ e1 hs0 hm hpairs ha.1 ha.2 (hptr a ha.1) hwa
 
 /-- The head statement a jump steps by, on the core route's shape: a branch, a `match` or a return. -/
-theorem head_cases {Cf : CFun} {zs : Zip} (hzsok : ZOk Cf.fn.body zs) (hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true)
+theorem head_cases {Cf : CFun} {zs : Zip} (_hzsok : ZOk Cf.fn.body zs)
+    (_hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true)
     {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {r : Option Zip × List (ℕ × Zip)}
     (hh : headStepH Cf.P i oc od of tabs zs = some r) :
+    (∃ x fs args rets ss, zs.cur = .dispatch x fs args rets :: ss) ∨
     (∃ c f args ss, zs.cur = .callIf c f args :: ss) ∨ (∃ c zb nb ss, zs.cur = .ite c zb nb :: ss) ∨
       (∃ x arms ss, zs.cur = .match_ x arms :: ss) ∨ (∃ vs ss, zs.cur = .ret vs :: ss) ∨
       ∃ f args rets ss, zs.cur = .call f args rets :: ss := by
   obtain ⟨st, ss, hcur, hna⟩ := headH_stmt hh
-  have hc := hctrl st (zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self))
   cases st with
   | atom a => exact absurd rfl (hna a)
-  | callIf c f args => exact Or.inl ⟨c, f, args, ss, hcur⟩
-  | ite c zb nb => exact Or.inr (Or.inl ⟨c, zb, nb, ss, hcur⟩)
-  | match_ x arms => exact Or.inr (Or.inr (Or.inl ⟨x, arms, ss, hcur⟩))
-  | ret vs => exact Or.inr (Or.inr (Or.inr (Or.inl ⟨vs, ss, hcur⟩)))
-  | call f args rets => exact Or.inr (Or.inr (Or.inr (Or.inr ⟨f, args, rets, ss, hcur⟩)))
-  | _ => simp [ctrlOk] at hc
+  | dispatch x fs args rets => exact Or.inl ⟨x, fs, args, rets, ss, hcur⟩
+  | callIf c f args => exact Or.inr (Or.inl ⟨c, f, args, ss, hcur⟩)
+  | ite c zb nb => exact Or.inr (Or.inr (Or.inl ⟨c, zb, nb, ss, hcur⟩))
+  | match_ x arms => exact Or.inr (Or.inr (Or.inr (Or.inl ⟨x, arms, ss, hcur⟩)))
+  | ret vs => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨vs, ss, hcur⟩))))
+  | call f args rets => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨f, args, rets, ss, hcur⟩))))
 
 theorem headH_match_nz {P : PairCtx} {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {zs : Zip}
     {r : Option Zip × List (ℕ × Zip)} {x : V} {arms : List (List Stmt)} {ss : List Stmt}
@@ -1150,33 +1215,120 @@ theorem headH_match_nz {P : PairCtx} {i oc od of : ℕ} {tabs : List (ℕ × Zip
   · rw [ha] at h; cases h
   · exact ⟨_, rfl⟩
 
+theorem lookup_mem {α β : Type} [BEq α] [LawfulBEq α] {a : α} {b : β} :
+    ∀ {l : List (α × β)}, l.lookup a = some b → (a, b) ∈ l
+  | [], h => by simp at h
+  | (a', b') :: l, h => by
+    simp only [List.lookup] at h
+    split at h
+    · rename_i hab
+      cases h
+      rw [beq_iff_eq] at hab
+      subst hab
+      exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (lookup_mem h)
+
+/-- A dispatch site's `JUMP`: what `dspSite` says. -/
+theorem dspSite_of {X : AlignCtx} {od of : ℕ} {args rets : List V} {s : B2C.Site} (hpc : X.pcAt od = none)
+    (hsite : X.siteAt of args rets = some s) (htg : s.tgt = od) (hd0 : od ≠ 0) : dspSite X od of = true := by
+  obtain ⟨hs, -, -⟩ := siteAt_spec hsite
+  have h0 : Nat.beq od 0 = false := by cases h : Nat.beq od 0 <;> simp_all [Nat.beq_eq]
+  simp only [dspSite, hpc, hs, h0, htg, Nat.beq_refl, Option.isNone_none, Bool.not_false, Bool.and_self]
+
+/-- **A dispatch's `JUMP` the walk reads callees for**: its callees' entries `dspPc`, each callee of the
+dispatch at its site among them. -/
+theorem dsp_at {Cf : CFun} (hcb : callsB Cf = true) {k od of : ℕ} (hdj : dspJ Cf k od of = true) {x : V}
+    {fs : List String} {args rets : List V} {s : B2C.Site} (hst : Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body)
+    (hsite : Cf.X.siteAt of args rets = some s) :
+    ∃ pcs, Cf.frame.calls.get k = some pcs ∧ Cf.frame.arms.get k = none ∧ Cf.X.selfAt of = false ∧
+      Cf.X.nextAt of = false ∧ s.r < 2 ^ 30 ∧ s.tgt = od ∧ (∀ t ∈ pcs, dspPc Cf s t = true) ∧
+      ∀ f ∈ fs, ∃ t ∈ pcs, Cf.X.entOk t f = true := by
+  obtain ⟨hs, -, -⟩ := siteAt_spec hsite
+  simp only [dspJ, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hdj
+  obtain ⟨⟨⟨ha, hsf⟩, hnx⟩, hdj⟩ := hdj
+  rw [hs] at hdj
+  split at hdj
+  · rename_i pcs s' fs' hpcs hs' hfs
+    cases hs'
+    simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, List.all_eq_true, List.any_eq_true] at hdj
+    obtain ⟨⟨⟨htg, hr⟩, hpc⟩, hfs'⟩ := hdj
+    have hc := List.all_eq_true.mp hcb _ hst
+    simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none, beq_iff_eq] at hc
+    have hfe : fs' = fs := by
+      rcases hc.2 _ (lookup_mem hfs) with h | h
+      · rw [hsite] at h; cases h
+      · exact h
+    subst hfe
+    exact ⟨pcs, hpcs, ha, hsf, hnx, hr, htg, hpc, hfs'⟩
+  · cases hdj
+
+/-- **A dispatch's target cell holds the picked callee's entry**, by `HonF.tgt`, at a call on the path. -/
+theorem honF_dsp {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} (hσ : HonF img Cf fp σ) {f : String}
+    {args rets : List V} {pre es : List Ev}
+    {vs : List V} (hb : walk σ Cf.fn.body = .ret (pre ++ Ev.call f args rets :: es) vs) {q : ℕ} {s : B2C.Site}
+    (hsite : Cf.X.siteAt q args rets = some s) (htg : s.tgt ≠ 0) {t : ℕ} (he : Cf.X.entOk t f = true) :
+    Rd img fp s.tgt = some (ofK (g ^ t)) :=
+  hσ.tgt _ _ hb (calls pre).length ⟨f, args, rets, true⟩ q s calls_mid rfl hsite htg t he
+
 /-- **The frame walk's table jumps land at their arms**, of the reference: a `JUMP` the walk reads
-a table for is a `match`'s, its target the slot of the arm the selector picks. -/
+a table for is a `match`'s, its target the slot of the arm the selector picks, or a dispatch's, its
+target the entry of the callee the path calls. -/
 theorem core_tgt {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction}
     (hpair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body code Cf.d = true)
     (hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true) (hmain : Cf.X.main = false) (htgt : tgtOk Cf code = true)
-    {fp i : ℕ} {σ : Val} (hσ : HonF img Cf fp σ) {pos : List Stmt} {es : List Ev} {vs : List V}
-    (hat : pairAt Cf.P Cf.fn.body code Cf.d i = some pos) (hwp : walk σ pos = .ret es vs) :
+    (hcb : callsB Cf = true) {fp i : ℕ} {σ : Val} (hσ : HonF img Cf fp σ) {pos : List Stmt} {pre es : List Ev}
+    {vs : List V} (hat : pairAt Cf.P Cf.fn.body code Cf.d i = some pos)
+    (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs) (hwp : walk σ pos = .ret es vs) :
     TgtOk img Cf.frame code i fp := by
   intro c d f hci cv dv hcv hne hdv pc hpcl hdl kk hk
   rw [tgtOk, Exec.listSeq_eq] at htgt
-  obtain ⟨hd0, hpcn, hcl, a, ts0, ha, hts0, hcov⟩ := tgtGo_at htgt hci (by rw [Nat.zero_add]; exact hk)
-  refine ⟨fun pcs h ↦ by (rw [hcl] at h; cases h), fun ts hts ↦ ?_⟩
-  rw [hts0, Option.some.injEq] at hts
-  subst hts
   obtain ⟨as, bs, z, zs, tabs, r, hpos, hzpos, -, -, -, -, hzsok, hr, -, -, -⟩ := pair_jump hpair hat hci
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hwp
-  obtain ⟨es1, hes1, -⟩ := walk_atoms_ret hwp
+  obtain ⟨es1, hes1, hes⟩ := walk_atoms_ret hwp
   cases hz : Cf.X.zeroAt c
   swap
   · exact absurd (Option.some.inj ((hσ.jc.zero c hz).symm.trans hcv)).symm hne
+  have hpcn : Cf.X.pcAt d = none := by
+    rcases tgtGo_at htgt hci (by rw [Nat.zero_add]; exact hk) with ⟨hds, -⟩ | ⟨-, -, hpcn, -⟩
+    · simp only [dspSite, Bool.and_eq_true, Option.isNone_iff_eq_none] at hds
+      exact hds.1.2
+    · exact hpcn
   cases hf : fwdJ Cf.X i c d f
   swap
   · obtain ⟨-, -, t, -, ht, -⟩ := jumpH_fwd hr hz hf
     have ht' : Cf.X.pcAt d = some t := ht
     rw [hpcn] at ht'; cases ht'
   have hh := headH_of hr hz hf
-  rcases head_cases hzsok hctrl hh with ⟨c', f', args', ss, hcur⟩ | hh4
+  rcases head_cases hzsok hctrl hh with ⟨x, fs, args, rets, ss, hcur⟩ | ⟨c', f', args', ss, hcur⟩ | hh4
+  · -- a dispatch: its target cell the entry of the callee the path calls
+    obtain ⟨-, hd0, s, c0, o, hsite, htg, -⟩ := headH_dispatch hh hcur
+    have hds := dspSite_of hpcn hsite htg hd0
+    rcases tgtGo_at htgt hci (by rw [Nat.zero_add]; exact hk) with ⟨-, hdj⟩ | ⟨hds', -⟩
+    swap
+    · rw [hds] at hds'; cases hds'
+    have hmem : Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body :=
+      zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
+    obtain ⟨pcs, hpcs, harm, -, -, -, -, hpc, hfs⟩ := dsp_at hcb hdj hmem hsite
+    refine ⟨fun pcs' h ↦ ?_, fun ts h ↦ by rw [harm] at h; cases h⟩
+    rw [hpcs, Option.some.injEq] at h
+    subst h
+    rw [Zip.pos_head hcur] at hes1
+    obtain ⟨f0, hf0, es2, rfl, -⟩ := walk_dispatch_ret hes1
+    obtain ⟨t, ht, hte⟩ := hfs f0 hf0
+    have hpt := hpc t ht
+    simp only [dspPc] at hpt
+    split at hpt
+    · rename_i f1 hf1
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hpt
+      have hrd := honF_dsp hσ (pre := pre ++ (as ++ bs).map Ev.atom) (by rw [hb, hes, List.append_assoc]) hsite
+        (by omega) hte
+      rw [htg, hdv, Option.some.injEq] at hrd
+      subst hrd
+      have hgt : (g : K) ^ t = g ^ pc := by simpa using hdl
+      have := gpow_lt_inj (by omega) (by unfold pcLim at hpcl; omega) hgt
+      rw [← this]
+      exact ht
+    · cases hpt
   · obtain ⟨-, t, -, ht, -⟩ := headH_callIf hh hcur
     have ht' : Cf.X.pcAt d = some t := ht
     rw [hpcn] at ht'; cases ht'
@@ -1189,7 +1341,15 @@ theorem core_tgt {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstructi
   · obtain ⟨-, -, t, -, -, -, ht, -⟩ := headH_ite hh hcur
     have ht' : Cf.X.pcAt d = some t := ht
     rw [hpcn] at ht'; cases ht'
-  · obtain ⟨-, -, hax, -⟩ := jumpH_match hr hcur hz hf ha
+  · obtain ⟨-, hsfm, -⟩ := headH_match_nz hh hcur
+    rcases tgtGo_at htgt hci (by rw [Nat.zero_add]; exact hk) with ⟨-, hdj⟩ | ⟨-, hd0, -, hcl, a, ts0, ha, hts0, hcov⟩
+    · simp only [dspJ, Bool.and_eq_true, Bool.not_eq_true'] at hdj
+      have hsf2 : Cf.X.selfAt f = true := hsfm
+      rw [hdj.1.1.2] at hsf2; cases hsf2
+    refine ⟨fun pcs h ↦ by (rw [hcl] at h; cases h), fun ts hts ↦ ?_⟩
+    rw [hts0, Option.some.injEq] at hts
+    subst hts
+    obtain ⟨-, -, hax, -⟩ := jumpH_match hr hcur hz hf ha
     obtain ⟨k0, hk0, hσx, -⟩ := side_arm hcur hes1
     have hmem : Stmt.match_ x arms ∈ stmtsOf Cf.fn.body :=
       zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
@@ -1203,6 +1363,11 @@ theorem core_tgt {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstructi
   · obtain ⟨-, -, h01⟩ := headH_ret hh hcur
     simp only [show (PairCtx.ofH Cf.X Cf.H Cf.frame.O Cf.frame.S).X.main = false from hmain, Bool.false_eq_true,
       ↓reduceIte] at h01
+    have hd0 : d ≠ 0 := by
+      rcases tgtGo_at htgt hci (by rw [Nat.zero_add]; exact hk) with ⟨hds, -⟩ | ⟨-, hd0, -⟩
+      · simp only [dspSite, Bool.and_eq_true, Bool.not_eq_true'] at hds
+        exact fun h ↦ by simp [h] at hds
+      · exact hd0
     exact absurd h01.1 hd0
 
 /-- **A jump falling through**, its condition cell `0`: the next offset's position, the events since
@@ -1240,7 +1405,8 @@ theorem core_jfall {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code : 
   swap
   · exact absurd (jumpH_fwd hr hz hf).1 (fun h ↦ hnz h)
   have hh := headH_of hr hz hf
-  rcases head_cases hzsok hctrl hh with ⟨c, f, args, ss, hcur⟩ | hh4
+  rcases head_cases hzsok hctrl hh with ⟨x, fs, args, rets, ss, hcur⟩ | ⟨c, f, args, ss, hcur⟩ | hh4
+  · exact absurd (headH_dispatch hh hcur).1 (fun h ↦ hnz h)
   · obtain ⟨hloc, t, ca, -, -, hca, rfl, -⟩ := headH_callIf hh hcur
     obtain ⟨cs, hcs, hcpos, -⟩ := normG_pos _ _ hca
     rw [Zip.pos_head hcur, hcpos, Bridge.walk_callIf_cons] at hes1
@@ -1289,7 +1455,8 @@ theorem core_jtaken {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code :
     (hlen : ∀ o < code.length, Cf.X.entry + o < 2 ^ 30)
     {C : Ctx} {s s1 s' : St} {i oc od of : ℕ} (hins : code[i]? = some (.jump oc od of))
     (hcj : ∀ t f, Cf.X.pcAt od = some t → getF Cf.X.ents t = some f → Cf.X.selfAt of = false)
-    (hsf : Cf.X.selfAt of = true) (hoc : oc < 2 ^ 28)
+    (hsf : Cf.X.selfAt of = true) (hdn : ∀ s, getF Cf.X.sites of = some s → s.tgt = od → Cf.X.selfAt of = false)
+    (hoc : oc < 2 ^ 28)
     (hod : od < 2 ^ 28)
     (e1 : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1)
     (hs : Fine (refMem img) s) (hm : Moves (refMem img) s s1) {v : E} (hcv : s1.mem.get (s1.fp + oc) = some v)
@@ -1330,7 +1497,10 @@ theorem core_jtaken {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code :
     rw [hzpos, walk_atoms, hes1]
     rfl
   have hh := headH_of hr hz hf
-  rcases head_cases hzsok hctrl hh with ⟨c', f', args', ss, hcur⟩ | hh4
+  rcases head_cases hzsok hctrl hh with ⟨x, fs, args, rets, ss, hcur⟩ | ⟨c', f', args', ss, hcur⟩ | hh4
+  · obtain ⟨-, -, s0, -, -, hsite, htg, -⟩ := headH_dispatch hh hcur
+    rw [hdn s0 (siteAt_spec hsite).1 htg] at hsf
+    cases hsf
   · obtain ⟨-, t, -, ht, hent, -⟩ := headH_callIf hh hcur
     rw [hcj t f' ht (entOk_spec hent)] at hsf
     cases hsf
@@ -1412,6 +1582,7 @@ its selector, whose arm the path takes is a slot of the table; the selector's wo
 theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : CFun}
     (hpair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true)
     (hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true) (hjtd : jtdOk Cf K.E K.code = true)
+    (hcalls : K.code.all (jumpCallOk Cf) = true)
     {s s1 : St} {i o1 o2 o3 : ℕ} (hins : K.code[i]? = some (.deref o1 o2 o3 .cell)) (hj : jtd Cf.X o1 o2 o3 = true)
     (ho1 : o1 < 2 ^ 28) (henv : Mode.EnvOk s K.E) (hm : Moves (refMem img) s s1)
     {σ : Val} (hσ : HonF img Cf s.fp σ) {pos : List Stmt} {pre es : List Ev} {vs : List V}
@@ -1428,7 +1599,11 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
   have hf : fwdJ Cf.X (i + 1) oc o3 of = false := by simp [fwdJ, hpcn]
   have hh := headH_of hr hz hf
   obtain ⟨x, arms, ss, hcur⟩ : ∃ x arms ss, zs.cur = .match_ x arms :: ss := by
-    rcases head_cases hzsok hctrl hh with ⟨c', f', args', ss, hcur⟩ | hh4
+    rcases head_cases hzsok hctrl hh with ⟨x, fs, args, rets, ss, hcur⟩ | ⟨c', f', args', ss, hcur⟩ | hh4
+    · obtain ⟨-, -, s0, -, -, hsite, htg, -⟩ := headH_dispatch hh hcur
+      have hcj := List.all_eq_true.mp hcalls _ (List.mem_of_getElem? hci)
+      have := (jumpCallOk_dsp hcj (siteAt_spec hsite).1 htg).2.2.1
+      rw [ha] at this; cases this
     · obtain ⟨-, t, -, ht, -⟩ := headH_callIf hh hcur
       have ht' : Cf.X.pcAt o3 = some t := ht
       rw [hpcn] at ht'; cases ht'
@@ -1493,9 +1668,6 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
     Option.isNone_iff_eq_none] at hsh
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hbody, hmainX⟩, hself1⟩, hpc0⟩, hrN⟩, htgt⟩, hsout⟩, hfp1⟩, hnzr0⟩, hent⟩, hend⟩, hincr⟩ := hsh
   have hctrl := bodyC_ctrl hbody
-  have hnd : ∀ s ∈ stmtsOf Cf.fn.body, NoD s := fun s hs x fs a r h ↦ by
-    have := hctrl s hs
-    subst h; simp [ctrlOk] at this
   obtain ⟨henv, harm, hacc⟩ := hok.frame
   have hsig := hok.sig
   simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff, List.all_eq_true] at hsig
@@ -1633,7 +1805,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         by_cases hj : jtd Cf.X a o c = true
         · have hsm := hok.small i hi
           rw [hci] at hsm
-          exact core_jtd hκ hok.pair hctrl hok.jtd (by rw [List.getElem?_eq_getElem hi, hci]) hj hsm.1 henvK hm hσ0
+          exact core_jtd hκ hok.pair hctrl hok.jtd hok.calls (by rw [List.getElem?_eq_getElem hi, hci]) hj hsm.1 henvK hm hσ0
             hpos hb hwp
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) (Bool.eq_false_iff.mpr hj) hwp
@@ -1668,8 +1840,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         | fp => trivial
       | _ => trivial
     · -- a table jump's target, one of its arms
-      obtain ⟨pos, pre, es, vs, rd, hrd, hpos, -, hwp, -, -⟩ := hheap σ0 hσ0
-      exact core_tgt hok.pair hctrl hmainX htgt hσ0 hpos hwp
+      obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, -, -⟩ := hheap σ0 hσ0
+      exact core_tgt hok.pair hctrl hmainX htgt (callsB_of' hok.heap) hσ0 hpos hb hwp
     · -- falling through
       intro s1 s' e1 hm hmo e' hpc' hfp' hf' hle' hat' hstw hc0
       have hle : s.mem ≤ s'.mem := Mem.le_trans hm.le hle'
@@ -1743,9 +1915,11 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         have hof1 : of ≠ 1 := fun h ↦ by rw [h, hself1] at hsf; cases hsf
         have hcj : ∀ t f, Cf.X.pcAt od = some t → getF Cf.X.ents t = some f → Cf.X.selfAt of = false :=
           fun t f ht hf ↦ (jumpCallOk_spec hcall0 ht hf).2.2.1
+        have hdn : ∀ s, getF Cf.X.sites of = some s → s.tgt = od → Cf.X.selfAt of = false :=
+          fun s hs he ↦ (jumpCallOk_dsp hcall0 hs he).2.2.2
         have hpcs' : s'.pc < 2 ^ 30 := by omega
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
-        rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf soc sod e1' hs hm hv hv0 h0 hpcs' hσ0 hpos hb hwp
+        rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ0 hpos hb hwp
           (hrwOf σ0 pre es vs rd hb hh0 hσ0.res) hW with ⟨-, h1', -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
         · exact absurd h1' hof1
         have hol := pairAt_lt hok.pair hpos0
@@ -1759,7 +1933,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               fun o ho ↦ by rw [hfp', hm.fp]; exact written_mono hle (hentw o ho), fun σ hσ ↦ ?_⟩))
           rw [hfp', hm.fp] at hσ
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ hσ
-          rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf soc sod e1' hs hm hv hv0 h0 hpcs' hσ hpos hb
+          rcases core_jtaken hκ hok.pair hctrl hmainX hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ hpos hb
             hwp (hrwOf σ pre es vs rd hb hh0 hσ.res) hW with ⟨-, h1', -⟩ | ⟨-, o', pos', hpco', -, hpos', evs, es', rfl, hwp', hWr⟩
           · exact absurd h1' hof1
           have ho' : o' = t := by omega
@@ -1795,7 +1969,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret oc hci (by omega) h0 h1 ?_)
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
           obtain ⟨-, hreads, hposts, hpostRs, hretM, hpostM, hptrs⟩ := heapK_sound hok.heap hok.pows hbody hb hh0 hσ0.res
-          obtain ⟨as, hpairs, hpr⟩ := pair_retC hok.pair hpos hci hz hfw hpc0 hself1 hnd hwp hreads
+          obtain ⟨as, hpairs, hpr⟩ := pair_retC hok.pair hpos hci hz hfw hpc0 hself1 hwp hreads
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
             intro x hx
@@ -1972,44 +2146,127 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
         have hcall := List.all_eq_true.mp hok.calls _ (List.getElem_mem hi)
         rw [hcode] at hcall
-        obtain ⟨f, args, rets, st, t, o, pos', hsite, hpt, hentF, hfo, hat', as, hpairs, hkA⟩ :=
-          pair_callAny hok.pair hpos hci hz hfw hr01 hmainX hsf'
-            (fun t f ht he ↦ jumpCallOk_next hcall ht (entOk_spec he)) hnd
-        -- a `call`, or a `callIf` entered: its condition the jump's nonzero cell
-        have hkC : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ →
-            walk σ Cf.fn.body = .ret (pre ++ es) vs → walk σ pos = .ret es vs →
-            ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) →
-            ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
-              es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
-              (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-              ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
-                WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
-                ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x := by
-          intro σ pre es vs rd hσ hb' hwp' hrw
-          rcases hkA with hkA | ⟨c, hloc, rfl, hkA⟩
-          · exact hkA hwp' hrw
-          obtain ⟨evs, cs, es', rfl, hwp2, hcs, hasin, hW'⟩ := hkA hwp' hrw
-          have hcond := hσ.jc.cond _ _ hb' c (by simp)
-          rw [hloc] at hcond
-          have hσc : σ c ≠ 0 := fun h0 ↦ hv0 (by rw [rd_get hκ hm.fine soc (by rw [hm.fp]; exact hcond) hv, h0])
-          refine ⟨evs ++ [Ev.inK c], cs, es', by simp [hσc], hwp2, hcs, fun a ha ↦ by simp [hasin a ha],
-            fun x hx ↦ ?_⟩
-          rcases hW' x (writtenC_noAtom (e := Ev.inK c) (pre := pre ++ evs) (fun a h ↦ by cases h)
-              (fun f a r h ↦ by cases h) (by simpa [List.append_assoc] using hx)) with h | ⟨a, ha, hfa, hma, hwa⟩
-          · exact Or.inl h
-          · exact Or.inr ⟨a, ha, hfa, by simp [hma], hwa⟩
+        -- the call's pairing (a `call`, a `callIf` entered, or a `dispatch`), its callee the same for
+        -- every honest valuation of the frame, entered at `t`, its mode signature there `G`
+        obtain ⟨f, args, rets, st, t, o, pos', hsite, hfo, hat', as, hpairs, hkC, hpe, hout, ht30, G, hG, hr30,
+            hfit⟩ : ∃ f args rets st t o pos', Cf.X.siteAt of args rets = some st ∧ Cf.X.fwdOff i st.r = some o ∧
+            pairAt Cf.P Cf.fn.body K.code Cf.d o = some pos' ∧ ∃ as : List Atom,
+            List.Forall₂ (Pairs Cf.X) (as.filter flowAtom)
+              (((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).filter isaFlowHint) ∧
+            (∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ →
+              walk σ Cf.fn.body = .ret (pre ++ es) vs → walk σ pos = .ret es vs →
+              ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) →
+              ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
+                es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
+                (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
+                ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+                  WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
+                  ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∧
+            s'.pc = t ∧ ¬ (Cf.frame.entry ≤ t ∧ t < Cf.frame.entry + Cf.frame.len) ∧ t < 2 ^ 30 ∧
+            ∃ G, Cf.frame.sigs.get t = some G ∧ st.r < 2 ^ 30 ∧
+              fitB G (Cf.sigOf f) st.args.length st.rets.length = true := by
+          cases hpcod : Cf.X.pcAt od with
+          | some t =>
+            obtain ⟨f, args, rets, st, t', o, pos', hsite, hpt, hentF, hfo, hat', as, hpairs, hkA⟩ :=
+              pair_callAny hok.pair hpos hci hz hfw hr01 hmainX hsf'
+                (fun t f ht he ↦ jumpCallOk_next hcall ht (entOk_spec he)) (jumpCallOk_tgt hcall hpcod)
+            rw [hpcod, Option.some.injEq] at hpt
+            subst hpt
+            obtain ⟨hout, ht30, -, G, st', hG, hst', hr30, hfit⟩ := jumpCallOk_spec hcall hpcod (entOk_spec hentF)
+            rw [(siteAt_spec hsite).1, Option.some.injEq] at hst'
+            subst hst'
+            refine ⟨f, args, rets, st, t, o, pos', hsite, hfo, hat', as, hpairs, ?_, ?_, hout, ht30, G, hG, hr30,
+              hfit⟩
+            · intro σ pre es vs rd hσ hb' hwp' hrw
+              rcases hkA with hkA | ⟨c, hloc, rfl, hkA⟩
+              · exact hkA hwp' hrw
+              obtain ⟨evs, cs, es', rfl, hwp2, hcs, hasin, hW'⟩ := hkA hwp' hrw
+              have hcond := hσ.jc.cond _ _ hb' c (by simp)
+              rw [hloc] at hcond
+              have hσc : σ c ≠ 0 := fun h0 ↦ hv0 (by rw [rd_get hκ hm.fine soc (by rw [hm.fp]; exact hcond) hv, h0])
+              refine ⟨evs ++ [Ev.inK c], cs, es', by simp [hσc], hwp2, hcs, fun a ha ↦ by simp [hasin a ha],
+                fun x hx ↦ ?_⟩
+              rcases hW' x (writtenC_noAtom (e := Ev.inK c) (pre := pre ++ evs) (fun a h ↦ by cases h)
+                  (fun f a r h ↦ by cases h) (by simpa [List.append_assoc] using hx)) with h | ⟨a, ha, hfa, hma, hwa⟩
+              · exact Or.inl h
+              · exact Or.inr ⟨a, ha, hfa, by simp [hma], hwa⟩
+            · have := rd_get hκ hm.fine sod (by rw [hm.fp]; exact hσ0.jc.pcw od t hpcod) h0
+              exact gpow_inj (by omega) (by omega) (pow_of_ofK this)
+          | none =>
+            -- a dispatch: the callee its target cell names, by `HonF.tgt` the same for every honest valuation
+            obtain ⟨x, fs, args, rets, st, o, pos', hmem, hsite, htg, hfo, hat', as, hpairs, hkD⟩ :=
+              pair_dispatch hok.pair hpos hci hz hfw hr01 hmainX hsf' hpcod
+            have hd0 : od ≠ 0 := (jumpCallOk_dsp hcall (siteAt_spec hsite).1 htg).1
+            have hds := dspSite_of hpcod hsite htg hd0
+            rw [tgtOk, Exec.listSeq_eq] at htgt
+            obtain ⟨kk, hkk⟩ : ∃ kk, Cf.frame.tgt.get (0 + i) = some kk := by
+              cases hk : Cf.frame.tgt.get (0 + i) with
+              | none => rw [tgtGo_none htgt hci hk] at hds; cases hds
+              | some kk => exact ⟨kk, rfl⟩
+            obtain ⟨-, hdj⟩ : dspSite Cf.X od of = true ∧ dspJ Cf kk od of = true := by
+              rcases tgtGo_at htgt hci hkk with h | ⟨h, -⟩
+              · exact h
+              · rw [hds] at h; cases h
+            obtain ⟨pcs, -, -, -, -, hr30, -, hpcs, hfs⟩ := dsp_at (callsB_of' hok.heap) hdj hmem hsite
+            -- the callee a path's dispatch calls: entered at the entry its target cell holds
+            have hpick : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {f : String} {evs es' : List Ev},
+                HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
+                es = evs ++ Ev.call f args rets :: es' → f ∈ fs → ∃ t ∈ pcs, Cf.X.entOk t f = true ∧
+                  Rd img s.fp od = some (ofK (g ^ t)) := by
+              intro σ pre es vs f evs es' hσ hb' hes hf
+              obtain ⟨t, ht, hte⟩ := hfs f hf
+              refine ⟨t, ht, hte, ?_⟩
+              rw [← htg]
+              exact honF_dsp hσ (pre := pre ++ evs) (by rw [hb', hes, List.append_assoc]) hsite (by omega) hte
+            obtain ⟨f0, hf0, evs0, cs0, es0, hes0, -⟩ := hkD hwp (hrwOf σ0 pre es vs rd hb hh0 hσ0.res)
+            obtain ⟨t, ht, hte, hrdt⟩ := hpick hσ0 hb hes0 hf0
+            have hpt := hpcs t ht
+            simp only [dspPc] at hpt
+            split at hpt
+            swap
+            · cases hpt
+            rename_i f1 hf1
+            have hf10 : f1 = f0 := by
+              have := entOk_spec hte
+              rw [hf1, Option.some.injEq] at this
+              exact this
+            subst hf10
+            simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hpt
+            obtain ⟨⟨hout, ht30⟩, hpt⟩ := hpt
+            split at hpt
+            swap
+            · cases hpt
+            rename_i G hG
+            refine ⟨f1, args, rets, st, t, o, pos', hsite, hfo, hat', as, hpairs, ?_, ?_,
+              fun ⟨h1, h2⟩ ↦ by simp [h1, h2] at hout, ht30, G, hG, hr30, hpt⟩
+            · intro σ pre es vs rd hσ hb' hwp' hrw
+              obtain ⟨f', hf', evs, cs, es', hes, hrest⟩ := hkD hwp' hrw
+              obtain ⟨t', ht', hte', hrdt'⟩ := hpick hσ hb' hes hf'
+              have htt : t' = t := by
+                rw [hrdt, Option.some.injEq] at hrdt'
+                have h30 : t' < 2 ^ 30 := by
+                  have hp' := hpcs t' ht'
+                  simp only [dspPc] at hp'
+                  split at hp'
+                  · simp only [Bool.and_eq_true, decide_eq_true_eq] at hp'
+                    exact hp'.1.2
+                  · cases hp'
+                exact gpow_inj (by omega) (by omega) (pow_of_ofK hrdt'.symm)
+              subst htt
+              have hff : f' = f1 := by
+                have := entOk_spec hte'
+                rw [hf1, Option.some.injEq] at this
+                exact this.symm
+              subst hff
+              exact ⟨evs, cs, es', hes, hrest⟩
+            · have := rd_get hκ hm.fine sod (by rw [hm.fp]; exact hrdt) h0
+              exact gpow_inj (by omega) (by omega) (pow_of_ofK this)
         rw [hhd i] at hpairs
-        obtain ⟨hout, ht30, -, G, st', hG, hst', hr30, hfit⟩ := jumpCallOk_spec hcall hpt (entOk_spec hentF)
         obtain ⟨hst'', hna, hnr'⟩ := siteAt_spec hsite
-        rw [hst''] at hst'
-        cases hst'
         rw [hna, hnr'] at hfit
         simp only [fitB, Bool.and_eq_true, List.isEmpty_iff, List.contains_iff_mem, List.all_eq_true] at hfit
         obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, hG0⟩, hG1⟩, hhpostP⟩, hhpostPR⟩, hhretM⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
           hhpostR⟩, hhgh⟩ := hfit
-        have hpe : s'.pc = t := by
-          have := rd_get hκ hm.fine sod (by rw [hm.fp]; exact hσ0.jc.pcw od t hpt) h0
-          exact gpow_inj (by omega) (by omega) (pow_of_ofK this)
         -- the walk's split at the call, the callee frame
         have hsplit : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ →
             pairAt Cf.P Cf.fn.body K.code Cf.d i = some pos → walk σ Cf.fn.body = .ret (pre ++ es) vs →

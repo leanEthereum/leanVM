@@ -85,6 +85,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 7) (.num 16), .lt (.val 8) (.num 16)]
   rets := [[.run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
         .run 9 [], .run 10 [], .run 11 []]]
+  eqs := [66]
 
 /-- `column_selector__L8`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

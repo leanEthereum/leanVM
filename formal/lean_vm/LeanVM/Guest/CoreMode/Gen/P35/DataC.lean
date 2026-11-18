@@ -36,6 +36,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 6) (.num 16), .lt (.val 7) (.num 16), .lt (.val 8) (.num 16), .lt (.val 9) (.num 16),
     .lt (.val 10) (.num 16)]
   rets := [[.run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+  eqs := [72]
 
 /-- `assert_small_g_power`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
@@ -59,6 +60,7 @@ def hcert : CoreMode.HCert where
     (21, [(20, 112, .run 3 [1])])]
   res := [.lt (.val 3) (.num 16), .lt (.val 4) (.num 16)]
   rets := [[.run 0 [], .run 1 [], .run 2 [], .run 3 []]]
+  eqs := [22]
 
 /-- `column_selector__L24`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

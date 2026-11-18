@@ -53,6 +53,19 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 end
 end LeanVM.Guest.Fn.«column_selector__L12»
 
+namespace LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
+
+@[expose] public section
+
+/-- `decode_query_windows__L12_L6`: the heap check. -/
+theorem heap_okC : CoreMode.heapOkC Data.powTree
+    (fun _ ↦ .empty)
+    core hcert = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L33»
 
 @[expose] public section
@@ -366,16 +379,3 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L4»
-
-namespace LeanVM.Guest.Fn.«walk_path__L18_L4»
-
-@[expose] public section
-
-/-- `walk_path__L18_L4`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
-    (fun _ ↦ .empty)
-    core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«walk_path__L18_L4»

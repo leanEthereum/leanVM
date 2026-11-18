@@ -86,6 +86,7 @@ def hcert : CoreMode.HCert where
   res := [.sub ⟨[(1, 1), (3, 1)], 384⟩ ⟨⟨[(1, 1)], 384⟩, 8, (.num 0), (.num 2)⟩, .lt (.val 3) (.num 16),
     .lt (.val 4) (.num 16)]
   rets := [[]]
+  eqs := [22]
 
 end
 end LeanVM.Guest.Fn.«column_selector__L27»
@@ -747,8 +748,8 @@ def hcert : CoreMode.HCert where
         ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2])] }
-  reads := [(16, [(15, 0, .run 3 [0])])]
-  res := [.subR ⟨⟨[(7, 1), (10, 1)], 0⟩, 1, (.num 0), (.num 1)⟩ ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.val 7)⟩]
+  reads := [(16, [(15, 0, .prep 4 (.ev 0) [0])])]
+  res := [.lt (.val 7) (.num 4611686018427387903)]
   calls := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .ev 0, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[]]
 

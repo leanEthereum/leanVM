@@ -77,6 +77,19 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 end
 end LeanVM.Guest.Fn.«claim_list_last__L12»
 
+namespace LeanVM.Guest.Fn.«decode_query_windows__L15_L3»
+
+@[expose] public section
+
+/-- `decode_query_windows__L15_L3`: the heap check. -/
+theorem heap_okC : CoreMode.heapOkC Data.powTree
+    (fun _ ↦ .empty)
+    core hcert = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«decode_query_windows__L15_L3»
+
 namespace LeanVM.Guest.Fn.«level_positions__L3_L16_L4»
 
 @[expose] public section
@@ -334,16 +347,3 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L14»
-
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
-
-@[expose] public section
-
-/-- `verify_merkle_cap__L8`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
-    (fun _ ↦ .empty)
-    core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»

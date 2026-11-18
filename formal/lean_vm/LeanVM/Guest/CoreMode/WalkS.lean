@@ -136,21 +136,22 @@ theorem walkArms_retS (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {es : Li
 end
 
 theorem pick_callS {x : V} {args rets : List V} {f : String} {a r : List V} : ∀ (fs : List String) (j : ℕ),
-    Ev.call f a r ∈ evsC (pick σ x args rets j fs) → f ∈ fs
+    Ev.call f a r ∈ evsC (pick σ x args rets j fs) → f ∈ fs ∧ args = a ∧ rets = r
   | [], _, h => by simp [pick, evsC] at h
   | g :: fs, j, h => by
     unfold pick at h
     split_ifs at h
     · simp only [evsC, List.mem_cons, Ev.call.injEq, List.not_mem_nil, or_false] at h
-      obtain ⟨rfl, -, -⟩ := h
-      exact List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (pick_callS fs (j + 1) h)
+      obtain ⟨rfl, rfl, rfl⟩ := h
+      exact ⟨List.mem_cons_self, rfl, rfl⟩
+    · obtain ⟨h1, h2, h3⟩ := pick_callS fs (j + 1) h
+      exact ⟨List.mem_cons_of_mem _ h1, h2, h3⟩
 
 /-- What made a call event: a `call`, a `callIf` or a `dispatch` naming its callee. -/
 @[expose] def CallS (f : String) (a r : List V) : Stmt → Prop
   | .call g a' r' => g = f ∧ a' = a ∧ r' = r
   | .callIf _ g a' => g = f ∧ a' = a ∧ r = []
-  | .dispatch _ fs _ _ => f ∈ fs
+  | .dispatch _ fs a' r' => f ∈ fs ∧ a' = a ∧ r' = r
   | _ => False
 
 mutual

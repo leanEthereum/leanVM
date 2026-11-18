@@ -16,7 +16,10 @@ site whose arguments are the child's parameters (the call sites `infer.py` recor
 tail's). A residual is checked where the branch conditions it was asked under hold (`Pass.rpath`); one false there is
 a false residual (exit status 1). One false only where none of its paths holds is reported apart: the Lean side states
 residuals per instance, so it must still be true there, or be stated under its path. `--all` checks every residual,
-not only those the witnesses use.
+not only those the witnesses use. `--emit` checks the emitted certificates' residuals instead (`emitc.py`'s
+certificates, its features: every `H.res` entry at every instance of its function, in `CRes.Holds`'s semantics: a
+`.mono` cell over value numbers, exponents existing below `2^62`, `under` vacuous where its conditions fail, ghost words
+from the parent certificate's `gargs`). `validate.sh` makes the runs and runs both.
 """
 import sys, os, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -329,12 +332,196 @@ def site_ghosts(par, P, k, child):
     return dict(enumerate(found.pop()))
 
 
+# ---- the emitted certificates' residuals (`emitc.py`), in `CRes.Holds`'s semantics
+
+def cexp(I_, c):
+    """The exponent of a cell's word, `None` if a base has no word, `False` if a base's word is not a power of `g`."""
+    s = c[1]
+    for b, e in c[0]:
+        if b >= GB:
+            x = I_.ghosts.get(b - GB)
+            if x is None:
+                return None
+        else:
+            w = I_.word(b)
+            if w is None:
+                return None
+            if w[1] != 0 or w[0] == 0:
+                return False
+            x = I_.run.dl(w[0])
+            if x is None:
+                return False
+        s += e * x
+    return s % ORD
+
+
+def cidx(i):
+    return ((), i[1]) if i[0] == 'num' else (((i[1], 1),), 0) if i[0] == 'val' else i[1]
+
+
+def crep(I_, i):
+    """`rep` of an index's word: its exponent if below `2^62`; `False` if none; `None` if unknown."""
+    x = cexp(I_, cidx(i))
+    if x is None or x is False:
+        return x
+    return x if x < 2 ** 62 else False
+
+
+def crun_cells(I_, r, cap=1 << 16):
+    """The exponents of a run's cells (`CRun.Set`): `[]` when a bound has no exponent, `None` if unknown."""
+    b, S, lo, hi = r
+    q, a, z = cexp(I_, b), crep(I_, lo), crep(I_, hi)
+    if None in (q, a, z):
+        return None
+    if a is False or z is False:
+        return []
+    if q is False:
+        return None
+    if z - a > cap:
+        return None
+    return [(q + S * j) % ORD for j in range(a, max(a, z))]
+
+
+def ccond(I_, c):
+    w = I_.word(c[1])
+    if w is None:
+        return None
+    if c[0] == 'zero':
+        return w == (0, 0)
+    if c[0] == 'nonzero':
+        return w != (0, 0)
+    return w[1] == 0 and w[0] != 0 and I_.run.dl(w[0]) == c[2] % ORD
+
+
+def choldsC(I_, r):
+    """`CRes.Holds` at the instance: True, False or None (unknown)."""
+    k = r[0]
+    if k == 'under':
+        cs = [ccond(I_, c) for c in r[1]]
+        if any(c is False for c in cs):
+            return True
+        t = choldsC(I_, r[2])
+        return t if all(cs) else (True if t else None)
+    if k == 'lt':
+        a, b = crep(I_, r[1]), crep(I_, r[2])
+        if a is False or b is False:
+            return False
+        return None if None in (a, b) else a < b
+    if k == 'sub':
+        x = cexp(I_, r[1])
+        cells = crun_cells(I_, r[2])
+        if x is None or cells is None:
+            return None
+        return x is not False and x in set(cells)
+    if k == 'subR':
+        q, rr = crun_cells(I_, r[1]), crun_cells(I_, r[2])
+        if q == []:
+            return True
+        if q is None or rr is None:
+            return None
+        return set(q) <= set(rr)
+    if k == 'subP':
+        x = cexp(I_, r[1])
+        if x is None:
+            return None
+        xs = [cexp(I_, c) for c in r[2]]
+        if x is not False and x in xs:
+            return True
+        return None if None in xs else False
+    return None
+
+
+def cfam(r):
+    """A residual's family for the report: its kind, `exp` (the emitter's `e(x) < 2^62 - 1`), and `under`."""
+    u = r[0] == 'under'
+    while r[0] == 'under':
+        r = r[2]
+    k = r[0]
+    if k == 'lt' and r[2] == ('num', 2 ** 62 - 1):
+        k = 'exp'
+    return k + (' under' if u else '')
+
+
+def cert_ghosts(par, Hp, k, child):
+    """The child's ghost exponents from the parent certificate's `gargs` at a call of `k` on the child's parameters."""
+    params = I.CORE[k][0]
+    pw = [child.word(v) for v in params]
+    found = set()
+    for g, args, ms in Hp.gargs:
+        if I.callee(g) != k or len(args) != len(params):
+            continue
+        if any(par.word(a) != w for a, w in zip(args, pw)):
+            continue
+        found.add(tuple(cexp(par, m) for m in ms))
+    if len(found) != 1:
+        return None
+    return {j: x for j, x in enumerate(found.pop()) if x is not None and x is not False}
+
+
+def main_emit(prefixes):
+    """`--emit`: every emitted certificate's residuals at every instance."""
+    import emitc as M
+    I.F.difference_update(M.OFF)
+    res, dt = I.run_all()
+    sigs, certs, why, drops, stmt_names, stats = M.build(res)
+    print(f'emitted {len(certs)} certificates ({len(certs) - len(why)} pass the Python check); runs: {len(prefixes)}')
+    D = I.D
+    dl = DLog()
+    stat = collections.Counter()
+    per = collections.defaultdict(collections.Counter)
+    ex = {}
+    gh = collections.Counter()
+    unk = collections.Counter()
+    for pre in prefixes:
+        run = Run(pre, D, dl)
+        insts = {}
+        for n, (k, fp, pfp) in enumerate(run.inst):
+            if k not in certs:
+                continue
+            I_ = Inst(run, k, fp, D['comp'][k]['locs'])
+            insts[fp] = I_
+            H = certs[k]
+            if H.sig.ghosts and pfp is not None and pfp in insts:
+                par = insts[pfp]
+                g = cert_ghosts(par, certs[par.k], k, I_)
+                gh['resolved' if g is not None else 'unresolved'] += 1
+                if g:
+                    I_.ghosts = g
+            for i, r in enumerate(H.res):
+                t = choldsC(I_, r)
+                key = 'true' if t else 'unknown' if t is None else 'FALSE'
+                stat[(cfam(r), key, k not in why)] += 1
+                per[(k, i)][key] += 1
+                if t is None and k not in why:
+                    miss = sorted({b for b in bases(r) if cexp(I_, (((b, 1),), 0)) is None})
+                    unk[(k.split('__')[0], cfam(r), 'ghost' if any(b >= GB for b in miss) else 'no word' if miss
+                         else 'too long')] += 1
+                if t is False:
+                    bs = sorted(set(bases(r)))
+                    ex.setdefault((k, i), (run.name, fp, {b: cexp(I_, (((b, 1),), 0)) for b in bs}))
+        print(f'{run.name}: {len(run.inst)} instances')
+    print('ghosts:', dict(gh))
+    print('not evaluated in passing certificates (function, family, why):', dict(unk.most_common(12)))
+    print('residual instances by family, outcome, certificate passing:')
+    for (fam, key, ok), n in sorted(stat.items()):
+        print(f'  {fam:14s} {key:8s} {"pass" if ok else "fail":5s} {n}')
+    nres = sum(len(H.res) for H in certs.values())
+    false = {ki: c for ki, c in per.items() if c['FALSE']}
+    reached = {ki for ki, c in per.items() if c['true'] or c['FALSE']}
+    print(f'emitted residuals: {nres}; evaluated true or false somewhere: {len(reached)}; false: {len(false)}')
+    for (k, i), c in sorted(false.items()):
+        print(f'  FALSE: {k} #{i} {dict(c)} at {ex.get((k, i))}: {str(certs[k].res[i])[:300]}')
+    sys.exit(1 if false else 0)
+
+
 def main():
     files = [a for a in argv[1:] if not a.startswith('--')]
     fn = argv[argv.index('--fn') + 1] if '--fn' in argv else None
     files = [f for f in files if f != fn]
     prefixes = sorted({g.rsplit('.', 1)[0] for f in files for g in glob.glob(f) + glob.glob(f + '.jumps')
                        if g.endswith(('.jumps', '.mem', '.written'))})
+    if '--emit' in argv:
+        return main_emit(prefixes)
     res, dt = I.run_all()
     print(f'inferred {len(res)} functions in {dt:.1f} s; runs: {len(prefixes)}')
     U = {k: (set(range(len(P.res))) if '--all' in argv else I.used_res(P)) for k, P in res.items()}

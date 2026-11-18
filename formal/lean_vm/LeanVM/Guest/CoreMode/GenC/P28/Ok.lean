@@ -14,7 +14,6 @@ public import LeanVM.Guest.CoreMode.GenC.«P17».Data
 public import LeanVM.Guest.CoreMode.GenC.«P18».Data
 public import LeanVM.Guest.CoreMode.GenC.«P21».Data
 public import LeanVM.Guest.CoreMode.GenC.«P28».Data
-public import LeanVM.Guest.CoreMode.GenC.«P29».Data
 public import LeanVM.Guest.CoreMode.GenC.«P2».Data
 public import LeanVM.Guest.CoreMode.GenC.«P37».Data
 public import LeanVM.Guest.CoreMode.GenC.«P47».Data
@@ -92,20 +91,18 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree
 end
 end LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
-namespace LeanVM.Guest.Fn.«da_weights»
+namespace LeanVM.Guest.Fn.«decode_query_windows__L18_L6»
 
 @[expose] public section
 
-/-- `da_weights`: the heap check. -/
+/-- `decode_query_windows__L18_L6`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
-    (fun g ↦ match g with
-    | "da_expand__L6_L7" => Fn.«da_expand__L6_L7».hcert.sig
-    | _ => .empty)
+    (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_weights»
+end LeanVM.Guest.Fn.«decode_query_windows__L18_L6»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L39»
 

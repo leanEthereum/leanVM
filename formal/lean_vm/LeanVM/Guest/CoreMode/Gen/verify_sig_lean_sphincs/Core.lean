@@ -28,7 +28,7 @@ open LeanVM.Guest
 
 /-- `verify_sig_lean_sphincs`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Data.powTree, [], csigs⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Data.powTree, [], csigs, []⟩
 
 end
 

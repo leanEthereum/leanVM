@@ -28,7 +28,7 @@ open LeanVM.Guest.Mode (IdxVal RW HW PW MonoVal LTF TermAt RetAll entryAbs stOf)
 @[expose] public section
 
 /-- **The termination facts are the heap check's entry facts** (`termAt_entryF` for `SigLP`). -/
-theorem termAt_entryFP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {s : St} {ws : List E}
+theorem termAt_entryFP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : SigLP G h np ps) {s : St} {ws : List E}
     (hP : ParAt G np s ws) (hT : ∀ p ∈ G.term, LTF s p.1 p.2) : ∀ p ∈ h.term, LtF (slotW ws) (idxC p.1) (idxC p.2) := by
   obtain ⟨hi, ei, hG, hh, h2, hei⟩ := hs.term
   intro p hp
@@ -40,16 +40,16 @@ theorem termAt_entryFP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) 
 
 /-- **The guarantees at return**, from their heap cells written, its pointer runs' words read by a
 reader of the memory's written cells. -/
-theorem retAll_of_wrkP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {m : Mem} {fp : ℕ} {ws : List E}
+theorem retAll_of_wrkP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : SigLP G h np ps) {m : Mem} {fp : ℕ} {ws : List E}
     (hP : ParAt G np (stOf m fp) ws) (hT : ∀ p ∈ G.term, LTF (stOf m fp) p.1 p.2)
-    (hpost : ∀ c ∈ h.post, WrK m (c.addrW (slotW ws)))
+    (hX : ExpM G (expCells G) (stOf m fp)) (hpost : ∀ c ∈ h.post, WrK m (c.addrW (slotW ws)))
     (hpostR : ∀ r ∈ h.postR, ∀ x, r.Set (slotW ws) x → WrK m x) {rd : Reader} (hrd : RdM rd m)
     (hptr : ∀ x, PtrSigSet rd h.postP h.postPR ws x → WrK m x) : RetAll m fp G := by
   have hRW : ∀ r ∈ G.postR ++ G.postL, RW (stOf m fp) r := fun r hr ↦ by
     obtain ⟨q, hq, hrq⟩ := (mapM_mem hs.postR).2 r hr
     have hk := hs.kpostR r hr
-    simp only [rngK, Bool.and_eq_true] at hk
-    exact slot_rwT hP hrq (idxK_val hT hk.1) (idxK_val hT hk.2) (hpostR q hq)
+    simp only [rngKX, Bool.and_eq_true] at hk
+    exact slot_rwT hP hrq (idxKX_val hT hX hk.1) (idxKX_val hT hX hk.2) (hpostR q hq)
   refine ⟨⟨fun o ho ↦ (by rw [hs.ret] at ho; cases ho), fun m0 hm0 ↦ ?_, fun r hr ↦ hRW r (List.mem_append_left _ hr),
     fun q hq ↦ (by rw [hs.postP] at hq; cases hq), fun p hp ↦ (by rw [hs.retV] at hp; cases hp),
     fun p hp ↦ (by rw [hs.postT] at hp; cases hp), fun q hq ↦ (by rw [hs.postC] at hq; cases hq)⟩,
@@ -59,14 +59,14 @@ theorem retAll_of_wrkP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) 
   · obtain ⟨p, hp, hqp⟩ := (mapM_mem hs.postLP).2 q hq
     obtain ⟨hrq, hos⟩ := prT_spec hqp
     have hk := hs.kpostLP q hq
-    simp only [rngK, Bool.and_eq_true] at hk
+    simp only [rngKX, Bool.and_eq_true] at hk
     rw [← hos]
-    exact slot_pwT hP hrq hrd (idxK_val hT hk.1) (idxK_val hT hk.2) (hpostR p.1 (hs.inPost p hp))
+    exact slot_pwT hP hrq hrd (idxKX_val hT hX hk.1) (idxKX_val hT hX hk.2) (hpostR p.1 (hs.inPost p hp))
       fun x ⟨a, ha, hpa⟩ ↦ hptr x (Or.inr ⟨p, hp, a, ha, hpa⟩)
 
 /-- **What a frame guarantees at return is its heap signature's guarantees written**, its pointer runs'
 words read by a reader consistent with the memory. -/
-theorem postSet_of_retAllP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {m : Mem} {fp : ℕ} {ws : List E}
+theorem postSet_of_retAllP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : SigLP G h np ps) {m : Mem} {fp : ℕ} {ws : List E}
     (hP : ParAt G np (stOf m fp) ws) (hR : RetAll m fp G) {rd : Reader} (hrd : RdW rd m) :
     ∀ x, PostSet rd h ws x → WrK m x := by
   rintro x ((⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | (⟨p, hp, -⟩ | ⟨p, hp, a, ha, hpa⟩))
@@ -86,7 +86,7 @@ theorem postSet_of_retAllP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h 
     exact pw_slotT hP hrq hrd hPW x ⟨a, ha, hpa⟩
 
 /-- **The preconditions at entry are the heap signature's written**, pointer runs included. -/
-theorem preSet_of_entryP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {s : St} {ws : List E}
+theorem preSet_of_entryP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : SigLP G h np ps) {s : St} {ws : List E}
     (hP : ParAt G np s ws) (hpre : ∀ m ∈ G.pre, HW s m) (hpreR : ∀ r ∈ G.preR, RW s r)
     (hpreP : ∀ q ∈ G.preP, PW s q.1 q.2) {rd : Reader} (hrd : RdW rd s.mem) :
     ∀ x, PreSet rd h ws x → WrK s.mem x := by
@@ -104,8 +104,8 @@ theorem preSet_of_entryP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np
 
 /-- **The entry facts are the heap signature's preconditions**, pointer runs included, their words read
 by a reader of the memory's written cells. -/
-theorem entry_of_preP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {s : St} {ws : List E}
-    (hP : ParAt G np s ws) (hT : ∀ p ∈ G.term, LTF s p.1 p.2) {W : K → Prop} (hW : ∀ x, W x → WrK s.mem x)
+theorem entry_of_preP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : SigLP G h np ps) {s : St} {ws : List E}
+    (hP : ParAt G np s ws) (hT : ∀ p ∈ G.term, LTF s p.1 p.2) (hX : ExpM G ps s) {W : K → Prop} (hW : ∀ x, W x → WrK s.mem x)
     (hpre : SigOk W h.pre h.preR ws) {rd : Reader} (hptr : PtrOk W rd h.preP h.prePR ws) (hrd : RdM rd s.mem) :
     (∀ m ∈ G.pre, HW s m) ∧ (∀ r ∈ G.preR, RW s r) ∧ ∀ q ∈ G.preP, PW s q.1 q.2 := by
   refine ⟨fun m hm ↦ ?_, fun r hr ↦ ?_, fun q hq ↦ ?_⟩
@@ -113,14 +113,14 @@ theorem entry_of_preP {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigLP G h np) {
     exact slot_hwT hP hmc (hW _ (hpre.1 c hc))
   · obtain ⟨q, hq, hrq⟩ := (mapM_mem hs.preR).2 r hr
     have hk := hs.kpreR r hr
-    simp only [rngK, Bool.and_eq_true] at hk
-    exact slot_rwT hP hrq (idxK_val hT hk.1) (idxK_val hT hk.2) fun x hx ↦ hW x (hpre.2 q hq x hx)
+    simp only [rngKX, Bool.and_eq_true] at hk
+    exact slot_rwT hP hrq (idxKX_val hT hX hk.1) (idxKX_val hT hX hk.2) fun x hx ↦ hW x (hpre.2 q hq x hx)
   · obtain ⟨p, hp, hqp⟩ := (mapM_mem hs.preP).2 q hq
     obtain ⟨hrq, hos⟩ := prT_spec hqp
     have hk := hs.kpreP q hq
-    simp only [rngK, Bool.and_eq_true] at hk
+    simp only [rngKX, Bool.and_eq_true] at hk
     rw [← hos]
-    exact slot_pwT hP hrq hrd (idxK_val hT hk.1) (idxK_val hT hk.2)
+    exact slot_pwT hP hrq hrd (idxKX_val hT hX hk.1) (idxKX_val hT hX hk.2)
       (fun x hx ↦ hW x (hpre.2 p.1 (hs.inPre p hp) x hx)) fun x ⟨a, ha, hpa⟩ ↦ hW x (hptr x (Or.inr ⟨p, hp, a, ha, hpa⟩))
 
 /-- **The entry abstraction's pointer runs**: the signature's preconditions `preP`. -/
