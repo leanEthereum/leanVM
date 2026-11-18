@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.CoreMode.Contracts
 public import LeanVM.Guest.CoreMode.Gen.«P11».Core
-public import LeanVM.Guest.CoreMode.Gen.«P17».Core
 public import LeanVM.Guest.CoreMode.Gen.«P23».Core
 public import LeanVM.Guest.CoreMode.Gen.«P42».Core
 public import LeanVM.Guest.CoreMode.Gen.«P4».Core
@@ -23,8 +22,7 @@ namespace LeanVM.Guest.CoreMode
 
 /-- **The heap contracts' table**: each function on a heap contract, its entry, signature, frame cells and counts. -/
 noncomputable def hcTab : List HcEnt :=
-  [CoreMode.hcEnt LeanVM.Guest.Fn.«da_levels__L128_L7».cfun,
-    CoreMode.hcEnt LeanVM.Guest.Fn.«verify_merkle_cap__L2».cfun,
+  [CoreMode.hcEnt LeanVM.Guest.Fn.«verify_merkle_cap__L2».cfun,
     CoreMode.hcEnt LeanVM.Guest.Fn.«verify_merkle_cap__L3».cfun,
     CoreMode.hcEnt LeanVM.Guest.Fn.«verify_merkle_cap__L4».cfun,
     CoreMode.hcEnt LeanVM.Guest.Fn.«verify_merkle_cap__L5».cfun,

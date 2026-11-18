@@ -12,24 +12,6 @@ public import LeanVM.Guest.CoreMode.Defs
 set_option maxRecDepth 100000
 set_option linter.all false
 
-namespace LeanVM.Guest.CoreMode.HcSig.«da_levels__L128_L7»
-
-@[expose] public section
-
-/-- `da_levels__L128_L7`: its own heap signature, its contract. -/
-def sig : CoreMode.HSig := 
-    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 256)⟩],
-      postR := [⟨⟨[(0, 1)], 256⟩, 2, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 257⟩, 2, (.num 0), (.num 64)⟩,
-        ⟨⟨[(0, 1)], 384⟩, 2, (.num 0), (.num 32)⟩, ⟨⟨[(0, 1)], 385⟩, 2, (.num 0), (.num 32)⟩,
-        ⟨⟨[(0, 1)], 448⟩, 2, (.num 0), (.num 16)⟩, ⟨⟨[(0, 1)], 449⟩, 2, (.num 0), (.num 16)⟩,
-        ⟨⟨[(0, 1)], 480⟩, 2, (.num 0), (.num 8)⟩, ⟨⟨[(0, 1)], 481⟩, 2, (.num 0), (.num 8)⟩,
-        ⟨⟨[(0, 1)], 496⟩, 2, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 497⟩, 2, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 504⟩, 2, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 505⟩, 2, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 508⟩, 2, (.num 0), (.num 1)⟩, ⟨⟨[(0, 1)], 509⟩, 2, (.num 0), (.num 1)⟩] }
-
-end
-end LeanVM.Guest.CoreMode.HcSig.«da_levels__L128_L7»
-
 namespace LeanVM.Guest.CoreMode.HcSig.«verify_merkle_cap__L2»
 
 @[expose] public section

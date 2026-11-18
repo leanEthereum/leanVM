@@ -37,35 +37,35 @@ def hcert : CoreMode.HCert where
   reads := [(4, [(1, 640, .run 2 [])])]
   res := []
   calls := [[.ev 0, .run 0 [], .pfr 1 []],
-    [.pts, .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [],
-        .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 [], .run 3 [],
-        .run 4 [], .run 3 [], .run 4 [], .run 3 [], .run 4 []]]
+    [.pts, .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .pts, .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .pts, .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [],
+        .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .run 3 [], .pts, .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [],
+        .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 [], .run 4 []]]
   rets := [[.run 0 [], .pfr 1 []]]
 
 /-- `da_verify_blob`: its callees' heap signatures, their mode signatures' translated. -/
@@ -81,12 +81,30 @@ def csigs : List (String × CoreMode.HSig) :=
         80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103,
         104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123,
         124, 125, 126, 127])] }),
-    ("da_levels__L128_L7", CoreMode.HcSig.«da_levels__L128_L7».sig)]
+    ("da_levels__L128_L7", 
+    { preR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.num 64)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.num 64)⟩],
+      postR := [⟨⟨[(0, 1)], 508⟩, 2, (.num 0), (.num 1)⟩, ⟨⟨[(0, 1)], 509⟩, 2, (.num 0), (.num 1)⟩,
+        ⟨⟨[(0, 1)], 504⟩, 2, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 505⟩, 2, (.num 0), (.num 2)⟩,
+        ⟨⟨[(0, 1)], 506⟩, 2, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 507⟩, 2, (.num 0), (.num 2)⟩,
+        ⟨⟨[(0, 1)], 502⟩, 2, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 503⟩, 2, (.num 0), (.num 3)⟩,
+        ⟨⟨[(0, 1)], 496⟩, 2, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 497⟩, 2, (.num 0), (.num 4)⟩,
+        ⟨⟨[(0, 1)], 494⟩, 2, (.num 0), (.num 5)⟩, ⟨⟨[(0, 1)], 495⟩, 2, (.num 0), (.num 5)⟩,
+        ⟨⟨[(0, 1)], 480⟩, 2, (.num 0), (.num 8)⟩, ⟨⟨[(0, 1)], 481⟩, 2, (.num 0), (.num 8)⟩,
+        ⟨⟨[(0, 1)], 478⟩, 2, (.num 0), (.num 9)⟩, ⟨⟨[(0, 1)], 479⟩, 2, (.num 0), (.num 9)⟩,
+        ⟨⟨[(0, 1)], 448⟩, 2, (.num 0), (.num 16)⟩, ⟨⟨[(0, 1)], 449⟩, 2, (.num 0), (.num 16)⟩,
+        ⟨⟨[(0, 1)], 446⟩, 2, (.num 0), (.num 17)⟩, ⟨⟨[(0, 1)], 447⟩, 2, (.num 0), (.num 17)⟩,
+        ⟨⟨[(0, 1)], 384⟩, 2, (.num 0), (.num 32)⟩, ⟨⟨[(0, 1)], 385⟩, 2, (.num 0), (.num 32)⟩,
+        ⟨⟨[(0, 1)], 382⟩, 2, (.num 0), (.num 33)⟩, ⟨⟨[(0, 1)], 383⟩, 2, (.num 0), (.num 33)⟩,
+        ⟨⟨[(0, 1)], 256⟩, 2, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 257⟩, 2, (.num 0), (.num 64)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.num 64)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.num 64)⟩,
+        ⟨⟨[(0, 1)], 254⟩, 2, (.num 0), (.num 65)⟩, ⟨⟨[(0, 1)], 255⟩, 2, (.num 0), (.num 65)⟩] })]
 /-- `da_verify_blob`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
 /-- `da_verify_blob`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
-  [("da_levels__L128_L7", 1, 2)]
+  []
 
 end
 end LeanVM.Guest.Fn.«da_verify_blob»

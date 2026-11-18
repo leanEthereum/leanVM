@@ -399,8 +399,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     G0 = own.clone()
     I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
-    if G0.pre != own.pre or G0.preR != own.preR or G0.prePR != own.prePR or G0.preP != own.preP:
-        raise No('own precondition grows')
+    # (the inference may want more own preconditions than the signature states: the solver below, at `own`, decides)
     # the witnesses: the emitter's solver, in `heapOkC`'s own pass, at these signatures
     sigs, hs = {}, {}
     for f, h in cs.items():
