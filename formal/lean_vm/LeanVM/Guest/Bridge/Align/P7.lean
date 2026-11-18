@@ -778,7 +778,7 @@ open LeanVM.Guest
 /-- `rs_eq_run`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«rs_eq_run».cert.locs [] Fn.«rs_eq_run».code.entryPc false
-    Fn.«rs_eq_run».plumb Data.powTree Data.jtTrie [("__loop5", 182928)] 524287 Fn.«rs_eq_run».code.instructionCount
+    Fn.«rs_eq_run».plumb Data.powTree Data.jtTrie [("__loop5", 182928), ("rs_eq_rows__L0", 182962), ("rs_eq_rows__L1", 182965), ("rs_eq_rows__L2", 183291), ("rs_eq_rows__L3", 183810), ("rs_eq_rows__L4", 184522), ("rs_eq_rows__L5", 185427), ("rs_eq_rows__L6", 186525), ("rs_eq_rows__L7", 187816)] 524287 Fn.«rs_eq_run».code.instructionCount
 
 end
 

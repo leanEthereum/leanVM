@@ -718,6 +718,12 @@ def matchLens (body : List Stmt) : List (ℕ × ℕ) :=
     | .match_ x arms => some (x.idx, arms.length)
     | _ => none
 
+/-- The body's `dispatch`es: selector, callee count, arguments' and returned values' indices. -/
+def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × List ℕ) :=
+  (stmtsOf body).filterMap fun s ↦ match s with
+    | .dispatch x fs args rets => some (x, fs.length, args.map (·.idx), rets.map (·.idx))
+    | _ => none
+
 /-- The slots of table `a` that every `match` of the selector it reads has, at offsets of `ts` past
 the entry `e`. -/
 noncomputable def armsCover (X : AlignCtx) (e : ℕ) (ml : List (ℕ × ℕ)) (a : ℕ × ℕ) (ts : List ℕ) : Bool :=
@@ -773,24 +779,40 @@ noncomputable def tgtGo (Cf : CFun) (ml : List (ℕ × ℕ)) : ℕ → List Offs
 noncomputable def tgtOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ tgtGo Cf ml 0 code
 
+/-- Slots `b + j`, `j < n`, lie in the environment's jump table. -/
+noncomputable def slotsIn (E : Mode.Env) (b n : ℕ) : Bool :=
+  (List.range n).all fun j ↦ decide (E.jtLo ≤ b + j) && decide (b + j < E.jtHi) && (E.jt.get (b + j)).isSome
+
+/-- A dispatch's table read `DEREF o1 o2 o3` before its `JUMP` through call site `s`: every `dispatch` at
+that site (`dl`, `dspLens`) on a parameter `k` (`o1 = 2 + k`), its callees' slots from base `o2` in the
+environment's jump table. -/
+noncomputable def dspRd (Cf : CFun) (E : Mode.Env) (dl : List (V × ℕ × List ℕ × List ℕ)) (s : B2C.Site)
+    (o1 o2 : ℕ) : Bool :=
+  dl.all fun q ↦ !(q.2.2.1 == s.args && q.2.2.2 == s.rets) ||
+    (decide (q.1 = V.n q.1.idx) && decide (q.1.idx < Cf.fn.params.length) && Nat.beq o1 (2 + q.1.idx) &&
+      slotsIn E o2 q.2.1)
+
 /-- From the instructions `code`: each `DEREF` reading the jump table (`jtd`) is followed by its table
 jump, through its word cell, on no constant `0` cell and no pc, and each slot of its table that a
-`match` on its selector has lies in the environment's jump table. -/
-noncomputable def jtdGo (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) : List OffsetInstruction → Bool
+`match` on its selector has lies in the environment's jump table; or, its word cell no table's, by its
+dispatch's `JUMP` through that cell (`dspRd`). -/
+noncomputable def jtdGo (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) (dl : List (V × ℕ × List ℕ × List ℕ)) :
+    List OffsetInstruction → Bool
   | [] => true
   | ins :: code => (match ins with
       | .deref o1 o2 o3 .cell => !jtd Cf.X o1 o2 o3 || match code with
-        | .jump oc od _ :: _ => Nat.beq od o3 && !Cf.X.zeroAt oc && (Cf.X.pcAt o3).isNone && !Nat.beq o3 0 &&
+        | .jump oc od of :: _ => Nat.beq od o3 && !Cf.X.zeroAt oc && (Cf.X.pcAt o3).isNone && !Nat.beq o3 0 &&
             match Check.getF Cf.X.arms o3 with
-            | some a => ml.all fun p ↦ !Nat.beq p.1 a.1 || (List.range p.2).all fun j ↦
-                decide (E.jtLo ≤ a.2 + j) && decide (a.2 + j < E.jtHi) && (E.jt.get (a.2 + j)).isSome
-            | none => false
+            | some a => ml.all fun p ↦ !Nat.beq p.1 a.1 || slotsIn E a.2 p.2
+            | none => match Check.getF Cf.X.sites of with
+              | some s => Nat.beq s.tgt o3 && dspRd Cf E dl s o1 o2
+              | none => false
         | _ => false
-      | _ => true) && jtdGo Cf E ml code
+      | _ => true) && jtdGo Cf E ml dl code
 
 /-- **The jump table's reads**: `jtdGo` over the code. -/
 noncomputable def jtdOk (Cf : CFun) (E : Mode.Env) (code : List OffsetInstruction) : Bool :=
-  Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ jtdGo Cf E ml code
+  Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ Exec.listSeq (dspLens Cf.fn.body) fun dl ↦ jtdGo Cf E ml dl code
 
 /-- An empty trie. -/
 def trieNil {α : Type} : Exec.Trie α → Bool

@@ -107,8 +107,9 @@ open LeanVM.Guest.Exec (Trie)
 def alignExtras : Trie (List (Nat × Nat)) :=
   ''' + trie({j: extras[j] for j in range(n) if extras[j] != '[]'}) + '''
 
-/-- Each compiled function's callees its alignment check names, by index, in the order of their names. -/
-def alignCallees : Trie (List Nat) :=
+/-- Each compiled function's callees its alignment check names, by index, in the order of their names (no code: a
+dispatch's lists are long). -/
+noncomputable def alignCallees : Trie (List Nat) :=
   ''' + trie({j: '[' + ', '.join(map(str, callees[j])) + ']' for j in range(n) if callees[j]}) + '''
 
 /-- Each compiled function's advice, by index. -/

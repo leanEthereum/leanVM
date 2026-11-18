@@ -749,7 +749,7 @@ open LeanVM.Guest
 /-- `shared_selector_tables`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«shared_selector_tables».cert.locs [] Fn.«shared_selector_tables».code.entryPc false
-    Fn.«shared_selector_tables».plumb Data.powTree Data.jtTrie [("__loop8", 189599)] 524287 Fn.«shared_selector_tables».code.instructionCount
+    Fn.«shared_selector_tables».plumb Data.powTree Data.jtTrie [("__loop8", 189599), ("sel_partial_nibble__L0", 189732), ("sel_partial_nibble__L1", 189735), ("sel_partial_nibble__L2", 189755), ("sel_partial_nibble__L3", 189796)] 524287 Fn.«shared_selector_tables».code.instructionCount
 
 end
 

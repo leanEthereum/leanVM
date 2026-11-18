@@ -371,10 +371,6 @@ def infer_one(k, S, allow=None, hcsig=None):
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
             cs[f] = h
-    if any(s[0] == 'dispatch' for s in body):
-        # the pairing gives no oracle for a dispatch's jump-table read (`pair.py` marks a `match`'s only, by the
-        # alignment's arms), so the frame walk fails at its `JUMP` (open_stacked__L*)
-        raise No('dispatch table read')
     dsp = dsp_of(k, body)
     I.SIGS.clear()
     for f, h in cs.items():

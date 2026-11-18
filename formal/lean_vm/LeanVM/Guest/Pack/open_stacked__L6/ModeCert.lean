@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.HcTab
+public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L6».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeH
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeL0
+public import LeanVM.Guest.Pack.«open_stacked__L6».ModeC
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -96,7 +96,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  []
+  [Fn.«open_stacked__L6».cfun]
 
 end
 
@@ -111,10 +111,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
 
 /-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
     -/
-theorem certs_spec {T : List CoreMode.CFun} (_hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«open_stacked__L6».modeOk,
-    Fn.«open_stacked__L6».modeHintsOk⟩)
+  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«open_stacked__L6».fnSpecC)
     (Mode.fa_nil)
 
 end
