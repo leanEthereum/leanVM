@@ -26,7 +26,7 @@ class Unsupported(Exception):
 
 
 def lcell(c):
-    if any(e < 0 for _, e in c[0]):
+    if any(e < 0 for _, e in c[0]) or c[1] < 0:
         raise Unsupported(('cell', c))
     return '⟨[' + ', '.join(f'({b}, {e})' for b, e in c[0]) + f'], {c[1]}⟩'
 
@@ -34,7 +34,7 @@ def lcell(c):
 def lidx(i):
     """A signature run's bound: `.num n` or `.val slot`."""
     if not i[0]:
-        if i[1] >= 2 ** 62:
+        if i[1] >= 2 ** 62 or i[1] < 0:
             raise Unsupported(('idx', i))
         return f'(.num {i[1]})'
     if len(i[0]) == 1 and i[0][0][1] == 1 and i[1] == 0:
@@ -108,9 +108,16 @@ def pack_of():
     out = {}
     for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
         pack = os.path.basename(os.path.dirname(p))
-        for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
-            out.setdefault(m.group(1), (pack, os.path.basename(p)[:-5]))
-    return out
+        text = open(p, encoding='utf-8').read()
+        ms = list(re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', text, re.M))
+        for i, m in enumerate(ms):
+            # the module that defines the function's `core` (a split body's parts come first in no order)
+            end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
+            has = re.search(r'^noncomputable def core : Core\.Fn', text[m.end():end], re.M) is not None
+            prev = out.get(m.group(1))
+            if prev is None or has and not prev[2]:
+                out[m.group(1)] = (pack, os.path.basename(p)[:-5], has)
+    return {k: v[:2] for k, v in out.items()}
 
 
 HEADER = '''/-

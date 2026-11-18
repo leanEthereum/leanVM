@@ -1167,6 +1167,9 @@ def retsig(P, G):
                 off -= e * names[b][1]
             else:
                 return None
+        if not WRAP[0] and off < 0:
+            # below the returned word: not a cell over its slot (offsets are naturals)
+            return None
         return mk(tuple(bs), off)
 
     post = postR = postV = postP = None

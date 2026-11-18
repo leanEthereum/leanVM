@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapC
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.Pack.«sp_wots».Core1
+public import LeanVM.Guest.Pack.«sp_wots».Core
 public import LeanVM.Guest.CoreMode.GenC.«sp_wots».Data
 
 set_option Elab.async false
