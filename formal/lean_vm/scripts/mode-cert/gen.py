@@ -831,9 +831,10 @@ def loadRoute():
 def onRoute(n): return I.fns[n]['ns'] in ROUTE
 
 
-def coreDataFile(p, ns):
+def coreDataFile(p, ns, R=None):
     """The mode certificates' data of the pack's functions on the core route: their program and signature, no
-    walk (`Mode.Fun` with no hints, residuals, tables or cuts)."""
+    walk (`Mode.Fun` with no hints, tables or cuts; of the residuals, the nonzero ones, the frame walk's divisors
+    `FFun.nzr`, which `CoreMode.nzrOk` checks there)."""
     mod = 'LeanVM.Guest.Pack.«%s».ModeC' % p
     out = [header(mod, "The mode certificates' data of compiled functions on the core route, checked there.")]
     out.append(importLines(imports(p, ns)))
@@ -844,9 +845,13 @@ def coreDataFile(p, ns):
             I.JT_LO, I.JT_HI, trie(sigt, lambda m: '%s.modeSig' % fnq(m)), I.HALT)
         out.append(nsOpen(n))
         out.append('/-- `%s`: the program its certificate shares. -/\nnoncomputable def modeEnv : Mode.Env :=\n  %s\n\n' % (n, env))
-        out.append('/-- `%s`: its entry, length and signature; on the core route, nothing for a walk. -/\n'
-                   'noncomputable def modeFun : Mode.Fun :=\n  ⟨%d, %d, %s.modeSig, .nil, .nil, .nil, %s, .nil⟩\n\n' % (
-                       n, f['entry'], f['count'], fnq(n), 'true' if n == 'main' else 'false'))
+        nz = {i: [r for r in rs if r[0] == 'nz'] for i, rs in (R or {}).get(n, {}).items()}
+        nz = {i: rs for i, rs in nz.items() if rs}
+        out.append('/-- `%s`: its entry, length and signature; on the core route, nothing for a walk but its nonzero '
+                   'residuals. -/\n'
+                   'noncomputable def modeFun : Mode.Fun :=\n  ⟨%d, %d, %s.modeSig, .nil, %s, .nil, %s, .nil⟩\n\n' % (
+                       n, f['entry'], f['count'], fnq(n), trie(nz, lambda l: lst(l, res_)) if nz else '.nil',
+                       'true' if n == 'main' else 'false'))
         out.append(nsClose(n))
     return ''.join(out)
 
@@ -902,7 +907,7 @@ def main(argv):
                 files[os.path.join(PACKS, p, name)] = text; nwin += name.startswith('ModeD') and 'W' in name
         xs = [n for n in ns if not checkable(n, fails) and not onRoute(n)]
         cs = [n for n in ns if onRoute(n)]
-        if cs: files[os.path.join(PACKS, p, 'ModeC.lean')] = coreDataFile(p, cs)
+        if cs: files[os.path.join(PACKS, p, 'ModeC.lean')] = coreDataFile(p, cs, R)
         if xs: files[os.path.join(PACKS, p, 'ModeX.lean')] = dataFile(p, xs, R)
         mods = ['Mode%d' % k for k in range(len(groups))] + ['ModeD%d' % k for k in range(len(long_))] + (['ModeX'] if xs else [])
         hs = [n for g in groups for n in g] + long_ + xs

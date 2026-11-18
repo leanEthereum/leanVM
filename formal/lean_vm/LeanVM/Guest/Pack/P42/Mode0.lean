@@ -2304,26 +2304,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `child_claim_list_mono_last__L0`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `child_claim_list_mono_last__L0`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨245316, 30, Fn.«child_claim_list_mono_last__L0».modeSig, .nil, (.node none (.node none (.node
-    none (.node none .nil (.node (some [(.nz 3)]) .nil .nil)) .nil) .nil) .nil), .nil, false, .nil⟩
-
-/-- `child_claim_list_mono_last__L0`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»

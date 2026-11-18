@@ -992,27 +992,36 @@ def mainOk (Cf : CFun) : Bool :=
 /-- **The shape the core route takes**: a body of atoms, branches, `match`es, calls at its top level
 and returns, one return count (`bodyCore`, `retsN`), `main`'s code before its halting pc (`mainOk`), its frame
 walk's `main` its own (`fpOne`), no frame cell `1` its frame pointer's,
-no pc at cell `0`, the walk's tables the `match`es' arms, no callee inside the function, no residual,
+no pc at cell `0`, the walk's tables the `match`es' arms, no callee inside the function,
 small entry cells. -/
 noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   bodyCore Cf.fn.body && mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
     tgtOk Cf code && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
-    Cf.frame.F.fpOne == Cf.X.main && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
+    Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
 /-- `shapeOk` but for its two longest passes (`bodyCore`, `tgtOk`), which a long body checks apart. -/
 noncomputable def shapeRest (Cf : CFun) : Bool :=
   mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
     sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
-    Cf.frame.F.fpOne == Cf.X.main && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
+    Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
 theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf.fn.body = true)
     (ht : tgtOk Cf code = true) (hr : shapeRest Cf = true) : shapeOk Cf code = true := by
   simp only [shapeRest, Bool.and_eq_true] at hr
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := hr
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h8⟩, h9⟩, h10⟩ := hr
   simp only [shapeOk, Bool.and_eq_true]
-  exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩
+  exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h8⟩, h9⟩, h10⟩
+
+/-- **The frame walk's residual divisors** (`FFun.nzr`): at each offset, each a frame cell the walk's state there
+has written and the mode certificate's residuals there (`res`) say nonzero. -/
+noncomputable def nzrOk (Cf : CFun) (res : Exec.Trie (List Mode.Res)) (code : List OffsetInstruction) : Bool :=
+  (List.range code.length).all fun i ↦ match Cf.frame.nzr.get i with
+    | none => true
+    | some os => match retSt Cf.frame code i with
+      | some A => os.all fun o ↦ (A.w.get o).isSome && ((res.get i).getD []).contains (.nz o)
+      | none => false
 
 /-- A value an atom of the body defines. -/
 def dstIn (body : List Stmt) (v : V) : Bool :=
@@ -1153,6 +1162,8 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   fpows : Cf.frame.F.pows.Ok
   /-- The frame run cells it guarantees written at its returns. -/
   faret : faRetOk Cf K.code = true
+  /-- The frame walk's residual divisors among the mode certificate's nonzero residuals. -/
+  nzrc : nzrOk Cf K.F.res K.code = true
 
 end
 

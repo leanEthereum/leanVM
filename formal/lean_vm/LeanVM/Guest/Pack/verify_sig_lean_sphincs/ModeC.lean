@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
     .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) .nil)) .nil)), 524287⟩
 
 /-- `verify_sig_lean_sphincs`: its entry, length and signature; on the core route, nothing for a
-    walk. -/
+    walk but its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨57221, 3887, Fn.«verify_sig_lean_sphincs».modeSig, .nil, .nil, .nil, false, .nil⟩
 

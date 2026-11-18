@@ -22,7 +22,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
-/-- `sp_wots`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `sp_wots`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨33508, 23713, Fn.«sp_wots».modeSig, .nil, .nil, .nil, false, .nil⟩
 

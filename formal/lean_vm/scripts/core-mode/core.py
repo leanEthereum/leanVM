@@ -130,7 +130,8 @@ def checks(k, j, K, frame, heap):
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
             f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
             f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
-            f'  faret := by decide +kernel\n\n'
+            f'  faret := by decide +kernel\n'
+            f'  nzrc := by decide +kernel\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := Mode.fnSpecC_of core_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')

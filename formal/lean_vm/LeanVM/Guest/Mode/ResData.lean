@@ -22,6 +22,7 @@ public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P42».Mode0
+public import LeanVM.Guest.Pack.«P42».ModeC
 public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P51».Mode0

@@ -254,7 +254,6 @@ def route(verbose=False):
         G = S.get(ns) or S.get(k)
         if not branchy(body): why['not straight'] += 1; continue
         if not sel_ok(body, params): why['selector'] += 1; continue
-        if k in NZR: why['residual divisors'] += 1; continue
         if k in CALLS: why['callees'] += 1; continue
         if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue
         ex, locs = pf['extra'], pf['locs']

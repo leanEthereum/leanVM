@@ -2069,6 +2069,28 @@ theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryIma
   simp only [cellAt, hp, limb_ofK, addressOfIndex, pow_add]
   simp [mul_assoc]
 
+/-- **The frame walk's residual divisors are nonzero** in the reference: each written in the walk's state at its
+offset (`atF_ret`) and a nonzero residual of the mode certificate there (`nzrOk`), which `ResAt` makes hold. -/
+theorem nzr_hnz {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : CFun}
+    (hn : nzrOk Cf K.F.res K.code = true) (har : armsOk Cf.frame = true) (hacc : FrameAcc Cf.frame K.code)
+    {i : ℕ} (hi : i < K.code.length) {s : St} (hat : AtF img Cf.frame K.code i s) (hs : Fine (refMem img) s)
+    (hres : ResAt (refMem img) K i s) :
+    ∀ o ∈ (Cf.frame.nzr.get i).getD [], ∃ v, Rd img s.fp o = some v ∧ v ≠ 0 := by
+  intro o ho
+  have h := List.all_eq_true.mp hn i (List.mem_range.mpr hi)
+  cases hz : Cf.frame.nzr.get i with
+  | none => rw [hz] at ho; cases ho
+  | some os =>
+    rw [hz, Option.getD_some] at ho
+    obtain ⟨A, hA, hH⟩ := atF_ret har hacc hi hat
+    simp only [hz, hA, List.all_eq_true] at h
+    have ho' := h o ho
+    simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.contains_iff_mem] at ho'
+    obtain ⟨⟨u, hu⟩, hr⟩ := ho'
+    have hw := hH.2.w o hu
+    obtain ⟨v, hv, hv0⟩ := hres s ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩ (.nz o) hr hw
+    exact ⟨v, rdE_of_get hκ hs.agree hv hv0, hv0⟩
+
 /-- `main`'s own precondition at the constant cell `g^o`, `o` an entry cell of its frame `0`, written. -/
 theorem mainPre_wrk {Cf : CFun} {G : Mode.Sig} {c : CCell} (h : mainPre Cf G c = true) {M : ℕ → E} {s : St}
     (hfp : s.fp = 0) (hw : ∀ o ∈ G.entry, s.mem.written (s.fp + o) = true) (hs : Fine M s) (w : ℕ → E) :
@@ -2091,7 +2113,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
   have hsh := hok.shape
   simp only [shapeOk, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, beq_iff_eq] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hbody, hmainO⟩, hself1⟩, hpc0⟩, hrN⟩, htgt⟩, hsout⟩, hfpM⟩, hnzr0⟩, hent⟩, hend⟩, hincr⟩ := hsh
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hbody, hmainO⟩, hself1⟩, hpc0⟩, hrN⟩, htgt⟩, hsout⟩, hfpM⟩, hent⟩, hend⟩, hincr⟩ := hsh
   have hctrl := bodyC_ctrl hbody
   obtain ⟨henv, harm, hacc⟩ := hok.frame
   have hown := hok.sig
@@ -2233,7 +2255,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       · cases hrq
     · cases he
   · -- a step
-    intro s i hi hpc hat hs hYs hsz hhalt henvK _ hjtR _ hmainS _ hh _ href Inv k
+    intro s i hi hpc hat hs hYs hsz hhalt henvK _ hjtR _ hmainS _ hh hres href Inv k
     obtain ⟨hAtF0, hentw, hheap⟩ := hat.2 s.mem (Mem.le_refl _) hs.agree
     have hxw := hat.1
     have hAtF : AtF img Cf.frame K.code i s := atF_mono (s := Mode.stOf s.mem s.fp) (Mem.le_refl _) rfl hAtF0
@@ -2271,7 +2293,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       (fun j hj ↦ by rw [hok.fentry]; exact hK.ops j hj) hhintsF (hok.fentry ▸ hok.fetch) hok.small hi hpcF hAtF hs
       hon.2 (fun h ↦ hmainS (hok.fmain.trans (hfpM.symm.trans h)))
       (fun pre h post hp s1 e hm hin ↦ hh pre h post (by rw [hpcF, hhintsF i hi]; exact hp) s1 e hm hin)
-      (fun o ho ↦ by simp [trieNil_get hnzr0] at ho) ?_ ?_
+      (nzr_hnz hκ hok.nzrc harm hacc hi hAtF hs hres) ?_ ?_
       (fun s1 hm ↦ refOk_fp hm.fp href) ?_ ?_
     · -- the oracle's heap cell, written
       intro hOi s1 e1 hm

@@ -1,5 +1,6 @@
 """Writes `Guest/Mode/ResData.lean`: the mode walk's residuals by family (`Guest/Mode/ResFam.lean`),
-read off the walk's checks `gen.py` wrote (`Pack/*/Mode{k}.lean`, `ModeD{k}.lean`), each family's
+read off the walk's checks `gen.py` wrote (`Pack/*/Mode{k}.lean`, `ModeD{k}.lean`, and the core route's nonzero
+residuals, `ModeC.lean`), each family's
 functions with the kernel's check that their residuals have its shape. Run after `gen.py`.
 `--check` writes nothing and fails when the file differs; `--list` prints each function's residuals.
 Usage: python3 -I scripts/mode-cert/res.py [--check] [--list]"""
@@ -102,7 +103,7 @@ def load():
     fns = {}
     for path in sorted(glob.glob(os.path.join(PACKS, '*', 'Mode*.lean'))):
         b = os.path.basename(path)[:-5]
-        if not re.fullmatch(r'Mode\d+|ModeD\d+', b): continue
+        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeC', b): continue
         p = path.split(os.sep)[-2]
         t = open(path).read()
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
