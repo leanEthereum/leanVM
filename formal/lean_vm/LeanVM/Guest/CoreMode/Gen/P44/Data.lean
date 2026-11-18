@@ -18,7 +18,7 @@ namespace LeanVM.Guest.Fn.«block_selector_tab__L0»
 
 /-- `block_selector_tab__L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[], [], [], [], []⟩
+  sig := ⟨[], [], [], [], [], []⟩
   reads := []
   res := []
 
@@ -33,7 +33,7 @@ namespace LeanVM.Guest.Fn.«claim_list_last__L14»
 def hcert : CoreMode.HCert where
   sig := ⟨[⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
     ⟨[(0, 1)], 6⟩, ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(0, 1)], 10⟩, ⟨[(0, 1)], 11⟩,
-    ⟨[(0, 1)], 12⟩], [], [], [], []⟩
+    ⟨[(0, 1)], 12⟩], [], [], [], [], []⟩
   reads := [(2, [(1, 0, .ev 0)]), (3, [(1, 1, .ev 1)]), (4, [(1, 2, .ev 2)]), (5, [(1, 3, .ev 3)]),
     (6, [(1, 4, .ev 4)]), (7, [(1, 5, .ev 5)]), (8, [(1, 6, .ev 6)]), (9, [(1, 7, .ev 7)]),
     (10, [(1, 8, .ev 8)]), (11, [(1, 9, .ev 9)]), (12, [(1, 10, .ev 10)]), (13, [(1, 11, .ev 11)]),
@@ -66,7 +66,7 @@ namespace LeanVM.Guest.Fn.«sel_partial_nibble__L2»
 
 /-- `sel_partial_nibble__L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(4, 1)], 0⟩, ⟨[(4, 1)], 1⟩], [], [], [], []⟩
+  sig := ⟨[⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(4, 1)], 0⟩, ⟨[(4, 1)], 1⟩], [], [], [], [], []⟩
   reads := [(5, [(3, 0, .pre 0)]), (6, [(2, 0, .pre 1)]), (7, [(2, 1, .pre 2)]), (8, [(3, 1, .pre 3)]),
     (24, [(4, 0, .pre 4)]), (25, [(4, 1, .pre 5)])]
   res := []
@@ -80,7 +80,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L12»
 
 /-- `squeeze_point_from__L12`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[], [], [], [], []⟩
+  sig := ⟨[], [], [], [], [], []⟩
   reads := []
   res := []
 

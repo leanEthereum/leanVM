@@ -94,31 +94,35 @@ inductive Wit where
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
-(`pre`) and the callee guarantees on return (`post`), runs of them, termination facts. Milestone 1
-uses `pre` only. -/
+(`pre`) and the callee guarantees on return (`post`), runs of them, termination facts, and the
+returned words' monomials over the parameters (`retM`: `(k, c)`, returned word `k` is `c`'s word).
+Milestone 1 uses `pre` only. -/
 structure HSig where
   pre : List CCell
   post : List CCell
   preR : List CRun
   postR : List CRun
   term : List (CIdx × CIdx)
+  retM : List (ℕ × CCell)
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
-def HSig.empty : HSig := ⟨[], [], [], [], []⟩
+def HSig.empty : HSig := ⟨[], [], [], [], [], []⟩
 
 /-- **A function's heap certificate**: its signature; its reads, by the word's value number `d`,
 each read `load (.n d) (.n p) off` as `(p, off, w)` with its witness `w`; its residuals; and, for the
 check with calls and loops (`CoreMode/HeapC.lean`), the witnesses of each call statement's callee
 preconditions (`calls`, by call serial: the callee's `pre` cells then its `preR` runs) and of the own
-guarantees at each `ret` (`rets`, by ret serial: `post` then `postR`). Milestone 1's check reads
-neither. -/
+guarantees at each `ret` (`rets`, by ret serial: `post` then `postR`), and the value numbers of
+the quotients the check divides out (`divs`: `q` of a `mul d q b`, `b` a constant). Milestone 1's
+check reads none of them. -/
 structure HCert where
   sig : HSig
   reads : List (ℕ × List (ℕ × ℕ × Wit))
   res : List CRes
   calls : List (List Wit) := []
   rets : List (List Wit) := []
+  divs : List ℕ := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

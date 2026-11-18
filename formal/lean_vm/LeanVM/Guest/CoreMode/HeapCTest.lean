@@ -31,6 +31,9 @@ rejected.
   index `3` (a residual `3 < e(n)`) and passed whole to a second loop's `preR`; `useFillIf`, the loop
   entered by a `callIf` whose guard is `g^0 + n`, its run pushed (`callIfR`); `useFillX`, reads at the
   indices `x` and `x·g^3` of the run, by residuals on a value and on a monomial (`idx`, `CIdx.mono`).
+* `off2`, `useOff2`, `useOff2D`: a returned word `p·g^2` (`retM`), read through by the caller, after a
+  call and after a `dispatch`; `hvf`: a word stored, read back and read through (`hv`); `divf`: a
+  quotient by `g` (`divs`).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -44,7 +47,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 /-- `__loop7`'s certificate. -/
 def h7 : HCert where
   sig := ⟨[], [], [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
-    [(.val 0, .val 1)]⟩
+    [(.val 0, .val 1)], []⟩
   reads := [(5, [(4, 0, .run 0 [])])]
   res := []
   calls := [[.run 0 []]]
@@ -61,7 +64,7 @@ theorem loop7_bad :
 /-- `__loop23`'s certificate. -/
 def h23 : HCert where
   sig := ⟨[], [], [], [⟨⟨[(2, 1), (3, 2)], 0⟩, 2, .val 0, .val 1⟩, ⟨⟨[(2, 1), (3, 2)], 1⟩, 2, .val 0, .val 1⟩],
-    [(.val 0, .val 1)]⟩
+    [(.val 0, .val 1)], []⟩
   reads := []
   res := []
   calls := [[]]
@@ -75,7 +78,7 @@ theorem loop23_ok : heapOkC Data.powTree (fun _ ↦ h23.sig) Fn.«da_pad_loop0»
 /-- `opening_round`'s certificate, `grind_check__L7`'s signature taken empty. -/
 def hOR : HCert where
   sig := ⟨[⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
-    [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩], [], [], []⟩
+    [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩], [], [], [], []⟩
   reads := [(15, [(5, 0, .pre 0)]), (18, [(5, 1, .pre 1)]), (21, [(5, 2, .pre 2)]), (24, [(5, 3, .pre 3)]),
     (40, [(5, 4, .pre 4)])]
   res := []
@@ -98,7 +101,7 @@ def mk : Fn where
 
 /-- `mk`'s certificate: its guarantees over the returned word (slot `1`). -/
 def hMk : HCert where
-  sig := ⟨[], [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩], [], [], []⟩
+  sig := ⟨[], [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩], [], [], [], []⟩
   reads := []
   res := []
   rets := [[.ev 0, .ev 1]]
@@ -122,8 +125,8 @@ def sigs (g : String) : HSig :=
   if g = "mk" then hMk.sig else if g = "fill" then hFill else if g = "readAll" then hReadAll
   else .empty
 where
-  hFill : HSig := ⟨[], [], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [(.val 0, .val 1)]⟩
-  hReadAll : HSig := ⟨[], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [], []⟩
+  hFill : HSig := ⟨[], [], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [(.val 0, .val 1)], []⟩
+  hReadAll : HSig := ⟨[], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [], [], []⟩
 
 theorem mk_ok : heapOkC Data.powTree sigs mk hMk = true := by decide +kernel
 
@@ -175,7 +178,7 @@ def readAll : Fn where
 
 /-- `readAll`'s certificate: its read at its counter in its own `preR`, its tail call's one further. -/
 def hReadAll : HCert where
-  sig := ⟨sigs.hReadAll.pre, [], sigs.hReadAll.preR, [], [(.val 0, .val 1)]⟩
+  sig := ⟨sigs.hReadAll.pre, [], sigs.hReadAll.preR, [], [(.val 0, .val 1)], []⟩
   reads := [(4, [(3, 0, .run 0 [])])]
   res := []
   calls := [[.run 0 []]]
@@ -255,6 +258,104 @@ theorem useFillX_bad :
     heapOkC Data.powTree sigs useFillX { hUseFillX with reads := [(5, [(4, 0, .run 0 [0])]), (6, [(4, 3, .run 0 [0])])] } =
       false := by
   decide +kernel
+
+
+/-! ## Returned words' monomials, words read back, divisions -/
+
+/-- Returns `p·g^2`. -/
+def off2 : Fn where
+  name := "off2"
+  params := [.n 0]
+  body := [.atom (.const (.n 1) (word 4 0)), .atom (.mul (.n 2) (.n 0) (.n 1)), .ret [.n 2]]
+
+/-- `off2`'s certificate: its returned word is `p·g^2` (`retM`). -/
+def hOff2 : HCert where
+  sig := ⟨[], [], [], [], [], [(0, ⟨[(0, 1)], 2⟩)]⟩
+  reads := []
+  res := []
+  rets := [[]]
+
+theorem off2_ok : heapOkC Data.powTree (fun _ ↦ .empty) off2 hOff2 = true := by decide +kernel
+
+/-- The returned word is not `p·g^3`. -/
+theorem off2_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) off2 { hOff2 with sig := { hOff2.sig with retM := [(0, ⟨[(0, 1)], 3⟩)] } } =
+      false := by
+  decide +kernel
+
+/-- Calls `off2` and reads the word after the one it returns, `p·g^3`. -/
+def useOff2 : Fn where
+  name := "useOff2"
+  params := [.n 0]
+  body := [.call "off2" [.n 0] [.n 1], .atom (.load (.n 2) (.n 1) 1), .ret []]
+
+/-- `useOff2`'s certificate: the read is its precondition `p·g^3`, the returned word named by `off2`'s
+`retM`. -/
+def hUseOff2 : HCert where
+  sig := ⟨[⟨[(0, 1)], 3⟩], [], [], [], [], []⟩
+  reads := [(2, [(1, 1, .pre 0)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+theorem useOff2_ok : heapOkC Data.powTree (fun g ↦ if g = "off2" then hOff2.sig else .empty) useOff2 hUseOff2 = true := by
+  decide +kernel
+
+/-- Without `off2`'s `retM` the returned word is its own base. -/
+theorem useOff2_bad : heapOkC Data.powTree (fun _ ↦ .empty) useOff2 hUseOff2 = false := by decide +kernel
+
+/-- The same through a `dispatch` of `off2` and `off2`: the monomial both arms give. -/
+def useOff2D : Fn where
+  name := "useOff2D"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 1) ["off2", "off2"] [.n 0] [.n 2], .atom (.load (.n 3) (.n 2) 1), .ret []]
+
+theorem useOff2D_ok :
+    heapOkC Data.powTree (fun g ↦ if g = "off2" then hOff2.sig else .empty) useOff2D
+      { hUseOff2 with reads := [(3, [(2, 1, .pre 0)])] } = true := by
+  decide +kernel
+
+/-- Stores `p·g` at `p[0]`, reads `p[0]` back, then reads through the word read. -/
+def hvf : Fn where
+  name := "hvf"
+  params := [.n 0]
+  body := [.atom (.const (.n 1) (word 2 0)), .atom (.mul (.n 2) (.n 0) (.n 1)), .atom (.load (.n 2) (.n 0) 0),
+    .atom (.load (.n 3) (.n 0) 0), .atom (.load (.n 4) (.n 3) 0), .ret []]
+
+/-- `hvf`'s certificate: the read of `p[0]` is the store (event `0`), so its word is `p·g`, and the read
+through it is the precondition `p·g`. -/
+def hHvf : HCert where
+  sig := ⟨[⟨[(0, 1)], 1⟩], [], [], [], [], []⟩
+  reads := [(3, [(0, 0, .ev 0)]), (4, [(3, 0, .pre 0)])]
+  res := []
+  rets := [[]]
+
+theorem hvf_ok : heapOkC Data.powTree (fun _ ↦ .empty) hvf hHvf = true := by decide +kernel
+
+/-- The read through the word read is not `p·g^2`. -/
+theorem hvf_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) hvf { hHvf with sig := ⟨[⟨[(0, 1)], 2⟩], [], [], [], [], []⟩ } = false := by
+  decide +kernel
+
+/-- Computes `d = p·g^3`, divides it by `g` (`mul d q g`), reads `q[0]`. -/
+def divf : Fn where
+  name := "divf"
+  params := [.n 0]
+  body := [.atom (.const (.n 1) (word 8 0)), .atom (.mul (.n 2) (.n 0) (.n 1)), .atom (.const (.n 3) (word 2 0)),
+    .atom (.mul (.n 2) (.n 4) (.n 3)), .atom (.load (.n 5) (.n 4) 0), .ret []]
+
+/-- `divf`'s certificate: the quotient `q = p·g^2` (`divs`), its read the precondition `p·g^2`. -/
+def hDivf : HCert where
+  sig := ⟨[⟨[(0, 1)], 2⟩], [], [], [], [], []⟩
+  reads := [(5, [(4, 0, .pre 0)])]
+  res := []
+  rets := [[]]
+  divs := [4]
+
+theorem divf_ok : heapOkC Data.powTree (fun _ ↦ .empty) divf hDivf = true := by decide +kernel
+
+/-- Not listed, the quotient is its own base. -/
+theorem divf_bad : heapOkC Data.powTree (fun _ ↦ .empty) divf { hDivf with divs := [] } = false := by decide +kernel
 
 end
 
