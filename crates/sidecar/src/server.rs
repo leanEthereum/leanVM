@@ -28,11 +28,13 @@ use std::time::Duration;
 pub struct Config {
     /// The socket to listen on. A stale one, left by a sidecar that stopped, is replaced.
     pub socket: PathBuf,
-    /// The longest request body taken, in bytes.
-    pub max_request: u64,
     /// The prover's thread count (0: one per core).
     pub threads: usize,
 }
+
+/// The longest request body taken, in bytes: room for every blob and child a request may have and thousands of
+/// signatures, while bounding the memory a connection holds.
+const MAX_REQUEST: u64 = 64 << 20;
 
 /// A request, its client's connection, and where its outcome goes.
 type Job = (Request, UnixStream, Sender<Outcome>);
@@ -54,16 +56,15 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
     warm_up::<P>();
     let listener = UnixListener::bind(&config.socket)?;
     let hello = encode_hello(&Hello {
-        max_request: config.max_request,
+        max_request: MAX_REQUEST,
         tag: verifier::TAG.to_vec(),
         program,
         prover: P::NAME.into(),
     });
     let (jobs, queue) = mpsc::channel();
-    let max_request = config.max_request;
     thread::Builder::new()
         .name("accept".into())
-        .spawn(move || accept(&listener, &jobs, hello.into(), max_request))?;
+        .spawn(move || accept(&listener, &jobs, hello.into()))?;
     eprintln!("serving {} with the {} prover", config.socket.display(), P::NAME);
     prove_forever::<P>(&queue)
 }
@@ -202,14 +203,14 @@ fn aggregate<P: Prover>(request: Request) -> Outcome {
     })
 }
 
-fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>, max_request: u64) {
+fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>) {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 let (jobs, hello) = (jobs.clone(), hello.clone());
                 let spawned = thread::Builder::new()
                     .name("connection".into())
-                    .spawn(move || connection(stream, &jobs, &hello, max_request));
+                    .spawn(move || connection(stream, &jobs, &hello));
                 if let Err(e) = spawned {
                     eprintln!("a connection dropped: {e}");
                 }
@@ -224,16 +225,16 @@ fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>, max_req
 }
 
 /// Serves one connection: its hello, then each request in turn, until the client closes it.
-fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8], max_request: u64) {
+fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8]) {
     if stream.write_all(hello).is_err() {
         return;
     }
     loop {
-        let body = match wire::read_frame(&mut stream, max_request) {
+        let body = match wire::read_frame(&mut stream, MAX_REQUEST) {
             Ok(Incoming::Body(body)) => body,
             // The body is left unread, so the stream is lost: say why, and close.
             Ok(Incoming::TooLarge(len)) => {
-                let message = format!("a request of {len} bytes, the sidecar takes at most {max_request}");
+                let message = format!("a request of {len} bytes, the sidecar takes at most {MAX_REQUEST}");
                 eprintln!("a request refused (Malformed): {message}");
                 let _ = stream.write_all(&encode_response(&Err((Rejection::Malformed, message))));
                 return;

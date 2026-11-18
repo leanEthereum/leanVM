@@ -13,7 +13,6 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 | --- | --- | --- |
 | `--prover` | required | `stable` or `experimental`: both give the same proofs, experimental faster |
 | `--socket` | required | the socket to listen on |
-| `--max-request-mib` | 1024 | the longest request taken, in MiB |
 | `--threads` | 0 | the prover's thread count, 0 for one per core |
 | `--tracing` | off | print each proof's timing tree (`RUST_LOG` sets the level) |
 
@@ -53,7 +52,7 @@ On each connection the sidecar first sends a hello frame. The client then sends 
 | --- | --- | --- |
 | magic | 8 bytes | `leanvmsc` |
 | version | `u32` | 1 |
-| max request | `u64` | the longest request body the sidecar takes |
+| max request | `u64` | the longest request body the sidecar takes, 64 MiB |
 | verifier | bytes | the verifier's version tag, `leanvm-v1` |
 | program | 32 bytes | the aggregation program's Fiat-Shamir IV, `Bytecode::fiat_shamir_iv` |
 | prover | bytes | `stable` or `experimental` |

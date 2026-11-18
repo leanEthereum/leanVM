@@ -30,14 +30,6 @@ struct Cli {
     #[arg(long)]
     socket: PathBuf,
 
-    /// The longest request taken, in MiB.
-    #[arg(
-        long,
-        default_value_t = 1024,
-        value_parser = clap::builder::RangedU64ValueParser::<u64>::new().range(1..=1 << 20)
-    )]
-    max_request_mib: u64,
-
     /// Thread count (0: one per core).
     #[arg(long, default_value_t = 0)]
     threads: usize,
@@ -54,7 +46,6 @@ fn main() -> ExitCode {
     }
     let config = sidecar::Config {
         socket: cli.socket,
-        max_request: cli.max_request_mib << 20,
         threads: cli.threads,
     };
     let Err(e) = match cli.prover {
