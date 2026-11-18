@@ -360,15 +360,19 @@ def hvf : Fn where
   body := [.atom (.const (.n 1) (word 2 0)), .atom (.mul (.n 2) (.n 0) (.n 1)), .atom (.load (.n 2) (.n 0) 0),
     .atom (.load (.n 3) (.n 0) 0), .atom (.load (.n 4) (.n 3) 0), .ret []]
 
-/-- `hvf`'s certificate: the read of `p[0]` is the store (event `0`), so its word is `p·g`, and the read
-through it is the precondition `p·g`. -/
+/-- `hvf`'s certificate: the read of `p[0]` is the store (event `0`), so its word is `p·g` (`hvs`), and the
+read through it is the precondition `p·g`. -/
 def hHvf : HCert where
   sig := { pre := [⟨[(0, 1)], 1⟩] }
   reads := [(3, [(0, 0, .ev 0)]), (4, [(3, 0, .pre 0)])]
   res := []
   rets := [[]]
+  hvs := [3]
 
 theorem hvf_ok : heapOkC Data.powTree (fun _ ↦ .empty) hvf hHvf = true := by decide +kernel
+
+/-- Not listed, the word read is its own base. -/
+theorem hvf_unlisted : heapOkC Data.powTree (fun _ ↦ .empty) hvf { hHvf with hvs := [] } = false := by decide +kernel
 
 /-- The read through the word read is not `p·g^2`. -/
 theorem hvf_bad :

@@ -379,6 +379,7 @@ structure CX where
   T : Trie (List Wit)
   res : Trie CRes
   dv : Trie Unit
+  hv : Trie Unit
   sigOf : String → HSig
   sig : HSig
   params : List V
@@ -736,12 +737,14 @@ noncomputable def retC (X : CX) (st : CSt) (vs : List V) : Bool :=
     | none => false
   | _, _, _ => false
 
-/-- A read of the cell `c` into `d` whose witness is a load event of that very cell: `d`'s first
-monomial the word stored there (memory is written once). -/
-noncomputable def hvDef (st : CSt) (c : CCell) (d : V) : Wit → CSt
-  | .ev n => match getF st.sv n, vnum d with
-    | some p, some k => bif p.1.beq c then st.def k p.2 else st
-    | _, _ => st
+/-- A read of the cell `c` into `d`, `d` listed (`HCert.hvs`), whose witness is a load event of that
+very cell: `d`'s first monomial the word stored there (memory is written once). -/
+noncomputable def hvDef (X : CX) (st : CSt) (c : CCell) (d : V) : Wit → CSt
+  | .ev n => match vnum d with
+    | some k => match getF X.hv k, getF st.sv n with
+      | some _, some p => bif p.1.beq c then st.def k p.2 else st
+      | _, _ => st
+    | none => st
   | _ => st
 
 /-- A load's write event of the cell `c`, with its word's monomial; `c` the cell `d` was loaded
@@ -768,7 +771,7 @@ cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`
 noncomputable def atomC (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with
     | some m => (m.shift off).seq fun c ↦ match readWitT X.R d p off with
-      | some w => bif ptOk X st c w then (hvDef st c d w).seq fun st1 ↦ some (loadPush st1 c d) else none
+      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush st1 c d) else none
       | none => some (loadPush st c d)
     | none => none
   | .mul d a b => match divOf X st d a b, divOf X st d b a with
@@ -979,11 +982,11 @@ noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
-      (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦
-        match initC ⟨pows, R, P, C, T, RS, DV, sigOf, H.sig, f.params⟩ with
+      (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ with
         | some st0 => match H.sig.term with
-          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, sigOf, H.sig, f.params⟩ f.body st0).isSome
-          | [(.val 0, ei)] => H.sig.retM.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, sigOf, H.sig, f.params⟩ f ei st0
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ f.body st0).isSome
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && loopC ⟨pows, R, P, C, T, RS, DV, HV, sigOf, H.sig, f.params⟩ f ei st0
           | _ => false
         | none => false
 

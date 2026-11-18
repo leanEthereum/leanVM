@@ -149,6 +149,8 @@ structure HCert where
   calls : List (List Wit) := []
   rets : List (List Wit) := []
   divs : List ℕ := []
+  /-- Reads taking the word stored at their cell (`hvs`, by value number). -/
+  hvs : List ℕ := []
   deriving Repr, Inhabited
 
 /-- A value's number, `n` for `V.n n`. -/

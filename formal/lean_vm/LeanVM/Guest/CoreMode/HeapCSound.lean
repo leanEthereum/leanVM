@@ -1435,16 +1435,20 @@ theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
 
 /-- A read through a load event of its cell: the word stored there. -/
 theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd (c.addr σ) = some (σ d)) :
-    ∀ w, StOk rd W σ (hvDef st c d w)
+    ∀ w, StOk rd W σ (hvDef X st c d w)
   | .ev n => by
     unfold hvDef
     dsimp only
-    cases hn : getF st.sv n with
+    cases hk : vnum d with
     | none => exact hs
-    | some p =>
-      cases hk : vnum d with
+    | some k =>
+      dsimp only
+      cases hv : getF X.hv k with
       | none => exact hs
-      | some k =>
+      | some _ =>
+      cases hn : getF st.sv n with
+      | none => exact hs
+      | some p =>
         dsimp only
         cases hb : p.1.beq c with
         | false => exact hs
@@ -2736,7 +2740,7 @@ theorem heapOkC_sound {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} 
   have hpar' : f.params = (List.range f.params.length).map V.n := by
     rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar
   generalize hXdef : (⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
-    trieFrom H.res 0 .nil, keysT H.divs .nil, sigOf, H.sig, f.params⟩ : CX) = X at hc
+    trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, sigOf, H.sig, f.params⟩ : CX) = X at hc
   have hX : XOk sigOf H f σ X := by
     subst hXdef
     exact { R := rfl
