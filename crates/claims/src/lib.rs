@@ -34,9 +34,8 @@ pub enum OutputClaims<'a> {
     Only(&'a AggregateClaims),
 }
 
-// Wire format of claims: the leanXMSS claims (a u64 count, then each claim's pubkey and message), the leanSPHINCS
-// claims alike, then the DA commitment (a byte, 0 for none or 1, then the 32-byte root). Little-endian, and
-// canonical: decoding rejects any other flag and trailing bytes. Order is kept, sorted or not.
+// The claims' byte form is specified in `bins/leanvm-sidecar/README.md` (Claims). Decoding is canonical: it rejects
+// any other flag and trailing bytes. Order is kept, sorted or not.
 
 const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZE == 32);
 const _: () = assert!(lean_xmss::MESSAGE_LEN == 32 && lean_sphincs::MESSAGE_LEN == 32);

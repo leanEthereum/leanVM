@@ -51,7 +51,6 @@ On connecting, the client reads a hello frame, then sends request frames, readin
 | version | `u32` | 1 |
 | max request | `u64` | the longest request body taken, 64 MiB |
 | verifier | bytes | the verifier's tag, `leanvm-v1` |
-| program | 32 bytes | the aggregation program's Fiat-Shamir IV, which identifies the leanVM build |
 | prover | bytes | `stable` or `experimental` |
 
 The magic and the version come first in every version. A client checks them and the verifier tag, and sends no request body longer than the max request.

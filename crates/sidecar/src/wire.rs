@@ -140,8 +140,6 @@ impl<'a> Cursor<'a> {
 pub(crate) struct Hello {
     pub max_request: u64,
     pub tag: Vec<u8>,
-    /// The aggregation program's Fiat-Shamir IV, which pins the program and the verifier tag.
-    pub program: [u8; 32],
     pub prover: String,
 }
 
@@ -158,7 +156,6 @@ pub(crate) fn decode_hello(body: &[u8]) -> Option<Hello> {
     let hello = Hello {
         max_request: c.u64()?,
         tag: c.bytes()?.to_vec(),
-        program: *c.array()?,
         prover: c.string()?,
     };
     c.is_empty().then_some(hello)

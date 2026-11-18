@@ -185,8 +185,8 @@ mod tests {
     #[test]
     #[should_panic(expected = "already runs")]
     fn a_fixed_shape_refuses_another() {
-        set_num_threads(topology().perf);
-        set_num_threads(topology().perf + 1);
+        set_num_threads(num_threads());
+        set_num_threads(num_threads() + 1);
     }
 
     #[test]

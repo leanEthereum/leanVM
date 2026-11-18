@@ -48,13 +48,11 @@ pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible>
         P::set_num_threads(threads);
     }
     P::init();
-    let program = aggregation::unified_guest().bytecode().fiat_shamir_iv();
     warm_up::<P>();
     let listener = UnixListener::bind(socket)?;
     let hello = encode_hello(&Hello {
         max_request: MAX_REQUEST,
         tag: verifier::TAG.to_vec(),
-        program,
         prover: P::NAME.into(),
     });
     let (jobs, queue) = mpsc::channel();
@@ -66,8 +64,9 @@ pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible>
 }
 
 /// A fresh process's first proofs are slower, touching memory the allocator then keeps: this pays for it before the
-/// first request, with a discarded leaf and a full recursion over it, at rate 1/4, the one used in practice (a higher
-/// rate still pays for its extra memory on its first proof). A blob is the one input that needs no key.
+/// first request, with a discarded leaf and a full recursion over it, at rate 1/4, the one used in practice (a lower
+/// rate, a larger `log_inv_rate`, still pays for its extra memory on its first proof). A blob is the one input that
+/// needs no key.
 fn warm_up<P: Prover>() {
     let blobs = lean_da::BlobMatrix::build(&[[0; lean_da::BLOB_SYMBOLS]]).expect("one blob");
     let rate = 2;
@@ -299,7 +298,6 @@ fn encode_hello(hello: &Hello) -> Vec<u8> {
     f.raw(&wire::VERSION.to_le_bytes());
     f.u64(hello.max_request);
     f.bytes(&hello.tag);
-    f.raw(&hello.program);
     f.bytes(hello.prover.as_bytes());
     f.finish()
 }
@@ -452,7 +450,6 @@ mod tests {
         let hello = Hello {
             max_request: 1 << 30,
             tag: verifier::TAG.to_vec(),
-            program: [7; 32],
             prover: "stable".into(),
         };
         let bytes = body(encode_hello(&hello));
