@@ -34,7 +34,7 @@ use primitives::{
 };
 
 #[global_allocator]
-static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
     bench_harness::init_tracing_from_env();

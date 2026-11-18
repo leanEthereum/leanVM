@@ -23,6 +23,7 @@ lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_lean_vm_core = { path = "../crates/stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../crates/experimental_prover/lean_vm_core" }
+allocator.workspace = true
 bench_harness.workspace = true
 rand.workspace = true
 tracing.workspace = true

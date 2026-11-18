@@ -24,8 +24,11 @@ pub fn num_threads() -> usize {
     })
 }
 
-/// Fixes [`num_threads`] (at least 1) before the pool starts. Panics if it is already another.
+/// Fixes [`num_threads`] before the pool starts; `0` keeps the default. Panics if it is already another.
 pub fn set_num_threads(n: usize) {
+    if n == 0 {
+        return;
+    }
     let set = *NUM_THREADS.get_or_init(|| n);
     assert_eq!(set, n, "the thread pool already runs with {set} threads");
 }

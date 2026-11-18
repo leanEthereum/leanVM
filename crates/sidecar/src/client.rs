@@ -92,22 +92,14 @@ impl Client {
         let request = wire::encode_request(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate);
         // The claims a response carries are no longer than the request.
         let body = self.call(&request, request.len() as u64 + PROOF_ROOM)?;
-        match wire::decode_response(&body) {
-            Some(Ok(proven)) => Ok(proven),
-            Some(Err((rejection, message))) => Err(SidecarError::Rejected(rejection, message)),
-            None => Err(SidecarError::Protocol("a response that does not decode".into())),
-        }
+        answer(wire::decode_response(&body))
     }
 
     /// The library's `AggregateProof::verify`, run by the sidecar: whether `proof` proves `claims`. Bytes that do not
     /// decode prove nothing.
     pub fn verify(&mut self, claims: &AggregateClaims, proof: &[u8]) -> Result<bool, SidecarError> {
         let body = self.call(&wire::encode_verify(claims, proof), SHORT_ROOM)?;
-        match wire::decode_verdict(&body) {
-            Some(Ok(valid)) => Ok(valid),
-            Some(Err((rejection, message))) => Err(SidecarError::Rejected(rejection, message)),
-            None => Err(SidecarError::Protocol("a response that does not decode".into())),
-        }
+        answer(wire::decode_verdict(&body))
     }
 
     /// Sends a request frame and reads the response's body, at most `max_response` bytes.
@@ -131,4 +123,10 @@ impl Client {
             ))),
         }
     }
+}
+
+/// A decoded response as the client's result.
+fn answer<T>(decoded: Option<Result<T, (Rejection, String)>>) -> Result<T, SidecarError> {
+    let decoded = decoded.ok_or_else(|| SidecarError::Protocol("a response that does not decode".into()))?;
+    decoded.map_err(|(rejection, message)| SidecarError::Rejected(rejection, message))
 }

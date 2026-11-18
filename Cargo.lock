@@ -101,7 +101,6 @@ dependencies = [
 name = "bench_harness"
 version = "0.1.0"
 dependencies = [
- "allocator",
  "isa",
  "libc",
  "tracing-forest",
@@ -226,6 +225,7 @@ dependencies = [
 name = "experimental_keccak_gkr"
 version = "0.1.0"
 dependencies = [
+ "allocator",
  "bench_harness",
  "experimental_keccak_gkr",
  "experimental_parallel",
@@ -262,6 +262,7 @@ dependencies = [
 name = "experimental_pcs"
 version = "0.1.0"
 dependencies = [
+ "allocator",
  "bench_harness",
  "experimental_parallel",
  "experimental_primitives",
@@ -410,6 +411,7 @@ name = "leanvm-bench"
 version = "0.1.0"
 dependencies = [
  "aggregation",
+ "allocator",
  "bench_harness",
  "clap",
  "experimental_lean_vm_core",
@@ -619,6 +621,7 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 name = "stable_keccak_gkr"
 version = "0.1.0"
 dependencies = [
+ "allocator",
  "bench_harness",
  "fiat_shamir_prover",
  "isa",
@@ -653,6 +656,7 @@ version = "0.1.0"
 name = "stable_pcs"
 version = "0.1.0"
 dependencies = [
+ "allocator",
  "bench_harness",
  "fiat_shamir_prover",
  "isa",

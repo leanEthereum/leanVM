@@ -44,9 +44,7 @@ pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible>
     std::os::unix::net::SocketAddr::from_pathname(socket)?;
     let _lock = lock(socket)?;
     remove_stale(socket)?;
-    if threads > 0 {
-        P::set_num_threads(threads);
-    }
+    P::set_num_threads(threads);
     P::init();
     warm_up::<P>();
     let listener = UnixListener::bind(socket)?;
@@ -290,7 +288,7 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8]) {
 
 const XMSS_RECORD: usize = lean_xmss::PUB_KEY_SIZE + lean_xmss::MESSAGE_LEN + lean_xmss::SIG_SIZE;
 const SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::MESSAGE_LEN + lean_sphincs::SIG_SIZE;
-const BLOB_BYTES: usize = 16 * lean_da::BLOB_SYMBOLS;
+const BLOB_BYTES: usize = size_of::<Blob>();
 
 fn encode_hello(hello: &Hello) -> Vec<u8> {
     let mut f = Frame::new();

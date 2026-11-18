@@ -15,7 +15,7 @@ use bench_harness::{Plan, env_usize};
 use pcs::whir::LOG_INV_RATE_0;
 
 #[global_allocator]
-static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
     bench_harness::init_tracing_from_env();

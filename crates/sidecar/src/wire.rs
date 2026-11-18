@@ -216,23 +216,23 @@ pub(crate) fn encode_verify(claims: &AggregateClaims, proof: &[u8]) -> Vec<u8> {
 
 /// `None` if the body is not a verify request's response.
 pub(crate) fn decode_verdict(body: &[u8]) -> Option<Result<bool, (Rejection, String)>> {
-    let mut c = Cursor(body);
-    let result = match c.u8()? {
-        OK => Ok(match c.u8()? {
-            0 => false,
-            1 => true,
-            _ => return None,
-        }),
-        status => Err((Rejection::from_code(status)?, c.string()?)),
-    };
-    c.is_empty().then_some(result)
+    decode(body, |c| match c.u8()? {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    })
 }
 
 /// `None` if the body is not an aggregate request's response.
 pub(crate) fn decode_response(body: &[u8]) -> Option<Outcome> {
+    decode(body, |c| Some((c.claims()?, c.bytes()?.to_vec())))
+}
+
+/// A response: `ok` reads what follows status 0, any other status is a rejection and its message.
+fn decode<T>(body: &[u8], ok: impl FnOnce(&mut Cursor) -> Option<T>) -> Option<Result<T, (Rejection, String)>> {
     let mut c = Cursor(body);
     let result = match c.u8()? {
-        OK => Ok((c.claims()?, c.bytes()?.to_vec())),
+        OK => Ok(ok(&mut c)?),
         status => Err((Rejection::from_code(status)?, c.string()?)),
     };
     c.is_empty().then_some(result)

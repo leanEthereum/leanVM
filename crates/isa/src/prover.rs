@@ -12,7 +12,7 @@ pub trait Prover: 'static {
     /// Warm up the prover's thread pool, so that no timed work pays for starting it. Idempotent.
     fn init();
 
-    /// Fixes the thread pool's size (at least 1) before it starts. Panics if it is already another.
+    /// Fixes the thread pool's size before it starts; `0` keeps the default. Panics if it is already another.
     fn set_num_threads(n: usize);
 
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.

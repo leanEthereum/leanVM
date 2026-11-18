@@ -35,7 +35,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bench/tes
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
 | `allocator`       | the jemalloc global allocator and its configuration (below), for the benchmark CLI, the benches and the sidecar; never linked by a library |
-| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output; it re-exports `allocator::Jemalloc`); never linked by a prover |
+| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
 | `claims`          | `AggregateClaims` and `OutputClaims`, and the claims' byte form: what both the library and the sidecar's client name |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |

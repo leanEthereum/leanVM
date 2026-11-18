@@ -16,6 +16,7 @@ verifier.workspace = true
 
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }
+allocator.workspace = true
 bench_harness.workspace = true
 isa.workspace = true
 

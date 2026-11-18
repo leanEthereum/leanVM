@@ -29,8 +29,11 @@ pub(crate) fn topology() -> Topology {
 }
 
 /// Fixes the worker count before the pool starts: performance workers first, efficiency workers only beyond the
-/// performance cores; `1` is sequential. Panics if it is already another.
+/// performance cores; `1` is sequential and `0` keeps the default. Panics if it is already another.
 pub fn set_num_threads(n: usize) {
+    if n == 0 {
+        return;
+    }
     let set = TOPOLOGY
         .get_or_init(|| {
             let efficiency = n.saturating_sub(perf_cores()).min(efficiency_cores());

@@ -1,7 +1,7 @@
 //! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
 #[global_allocator]
-static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 use clap::{Parser, Subcommand};
 use experimental_lean_vm_core::ExperimentalProver;
@@ -13,9 +13,7 @@ mod report;
 
 /// Run the CLI's command on prover `P`.
 fn run<P: isa::Prover>(cli: Cli) {
-    if cli.threads > 0 {
-        P::set_num_threads(cli.threads);
-    }
+    P::set_num_threads(cli.threads);
     P::init();
     let plan = bench_harness::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {

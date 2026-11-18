@@ -25,9 +25,7 @@ pub mod lean_da {
 /// # Panics
 /// If the pool already runs with another thread count.
 pub fn setup(threads: usize) {
-    if threads > 0 {
-        P::set_num_threads(threads);
-    }
+    P::set_num_threads(threads);
     P::init();
     aggregation::unified_guest();
 }
