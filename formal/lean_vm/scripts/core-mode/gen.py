@@ -19,7 +19,7 @@ OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
 # a module's checks: at most this many instructions
 CHUNK = int(os.environ.get('FRAME_CHUNK', 12000))
 # a function longer than this is checked in windows of about this many instructions
-WIN = int(os.environ.get('FRAME_WIN', 12000))
+WIN = int(os.environ.get("FRAME_WIN", 7000))
 
 
 def wrap(text, width=100):
@@ -199,6 +199,27 @@ def main(argv):
                     'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\n\nset_option Elab.async false\n' % (p, k) +
                     ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWin '
                        'frameFun code.chunks.flatten %d %d = true := by\n  decide +kernel\n' % (n, a, b, m, a, b)))
+            pairs = list(zip(bounds[:-1], bounds[1:]))
+            wl = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameL%d' % (p, k)
+            chain = 'List.forall_mem_nil _'
+            for m in reversed(range(len(pairs))):
+                chain = 'List.forall_mem_cons.2 ⟨frameWin%d, %s⟩' % (m, chain)
+            files[os.path.join(OUT, p, 'FrameL%d.lean' % k)] = (
+                header(wl, 'The windows of `%s`\'s frame walk, chained.' % n) +
+                'public import LeanVM.Guest.CoreMode.FrameWin\n' +
+                ''.join('public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d\n' % (p, k, m) for m in range(len(pairs))) +
+                '\nset_option Elab.async false\n' +
+                ns(ns_, '/-- `%s`: its hints by pc increase. -/\ntheorem frameHints : Mode.pcsIncr frameFun.hints = true := by\n'
+                   '  decide +kernel\n\n/-- `%s`: its code\'s length. -/\ntheorem frameLen : code.chunks.flatten.length = %d := by\n'
+                   '  decide +kernel\n\n/-- `%s`: its frame walk accepts its code, its windows chained. -/\n'
+                   'theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by\n'
+                   '  have hl : frameFun.len = code.chunks.flatten.length := by rw [frameLen]; rfl\n'
+                   '  have hc0 : frameFun.cuts.get 0 = none := rfl\n'
+                   '  refine CoreMode.frameAcc_of_wins frameHints hl %s 0 _ (by rw [frameLen]; decide) rfl\n'
+                   '    ⟨_, by simp [CoreMode.winStart, hc0], fun _ _ ↦ rfl⟩ ?_\n'
+                   '  rw [frameLen]\n  show ∀ p ∈ %s, CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true\n'
+                   '  exact %s\n' % (n, n, D['fns'][n]['count'], n, lst(bounds[1:-1]),
+                                    lst(pairs, lambda q: '(%d, %d)' % q), chain)))
             stats['fns'] += 1; stats['windows'] += len(bounds) - 1
     lines = 0
     for path, text in sorted(files.items()):
