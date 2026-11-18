@@ -15,7 +15,7 @@ use std::convert::Infallible;
 use std::fs::{File, TryLockError};
 use std::io::{self, Write};
 use std::os::fd::AsRawFd;
-use std::os::unix::fs::FileTypeExt;
+use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -75,11 +75,17 @@ fn warm_up<P: Prover>() {
         .expect("the warm-up's recursion proves");
 }
 
-/// Locks `<socket>.lock`, which the process holds until it ends, so that one sidecar at a time owns the socket.
+/// Locks `<socket>.lock`, which the process holds until it ends, so that one sidecar at a time owns the socket. A
+/// symlink or a FIFO there is refused rather than followed or waited on.
 fn lock(socket: &Path) -> io::Result<File> {
     let mut path = socket.as_os_str().to_owned();
     path.push(".lock");
-    let file = File::options().create(true).truncate(false).write(true).open(&path)?;
+    let file = File::options()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(&path)?;
     match file.try_lock() {
         Ok(()) => Ok(file),
         Err(TryLockError::WouldBlock) => Err(io::Error::new(
