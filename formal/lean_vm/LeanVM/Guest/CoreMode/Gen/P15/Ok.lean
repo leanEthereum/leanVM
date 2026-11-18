@@ -14,46 +14,17 @@ public import LeanVM.Guest.CoreMode.Gen.«P15».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L12»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `eq_prefix_run__L12`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L12»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L9»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L9`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«eq_prefix_run__L12».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L9».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L14».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L6».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«eq_prefix_run__L9»
 
-namespace LeanVM.Guest.Fn.«plus_one_run__L14»
-
-@[expose] public section
-
-/-- `plus_one_run__L14`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L14»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L6»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L6`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L6»
+end LeanVM.Guest

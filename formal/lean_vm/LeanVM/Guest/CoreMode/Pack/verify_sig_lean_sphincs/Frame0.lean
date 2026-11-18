@@ -17,14 +17,15 @@ public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
+noncomputable def Fn.«verify_sig_lean_sphincs».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 57221, 3887,
     Fn.«verify_sig_lean_sphincs».modeSig, (.node none .nil (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
@@ -33,10 +34,9 @@ noncomputable def frameFun : CoreMode.FFun :=
     Data.adviceFn21.2.2, .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO,
     Fn.«verify_sig_lean_sphincs».pairS, .nil⟩
 
-/-- `verify_sig_lean_sphincs`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«verify_sig_lean_sphincs».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
+    := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

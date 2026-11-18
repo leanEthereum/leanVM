@@ -364,3 +364,14 @@ def isa_hint(e):
         k, v = head(a[1])
         return (h, a[0], (k[1:], v[0]))
     return (h,) + tuple(a)
+
+
+def fn_thms(thms, ns='LeanVM.Guest'):
+    """Per-function theorems in one section of namespace `ns`: each `(k, name, stmt, prf)` declared as
+    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined)."""
+    out = []
+    for k, name, stmt, prf in thms:
+        tac = '; '.join(x.strip() for x in prf.strip().split('\n'))
+        out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
+    return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +
+            f'\nend\n\nend {ns}\n')

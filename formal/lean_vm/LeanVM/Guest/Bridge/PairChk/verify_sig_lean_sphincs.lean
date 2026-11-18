@@ -11,17 +11,14 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_sig_lean_sphincs`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«verify_sig_lean_sphincs».cert.locs Fn.«verify_sig_lean_sphincs».fs Fn.«verify_sig_lean_sphincs».core.body = true := by
-  decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

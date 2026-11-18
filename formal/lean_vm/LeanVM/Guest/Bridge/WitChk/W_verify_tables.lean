@@ -12,16 +12,14 @@ public import LeanVM.Guest.Bridge.AlignWin.«verify_tables».Ok
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
 
-namespace LeanVM.Guest.Fn.«verify_tables»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_tables`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«verify_tables».fs Fn.«verify_tables».core.body = true := by
-  decide +kernel
+theorem Fn.«verify_tables».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest

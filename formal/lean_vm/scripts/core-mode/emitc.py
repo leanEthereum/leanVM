@@ -1716,6 +1716,16 @@ def sig_text(arms):
     return '(fun g ↦ match g with\n    ' + wrap(arms + ['| _ => .empty)'], '    ', 118).replace(',\n', '\n').replace(', |', ' |')
 
 
+def routed():
+    """The functions on the core route: each mode pack's `coreFns` (`Pack/*/ModeCert.lean`, as `core.py` reads them)."""
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
+        m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
+        if m:
+            out |= set(re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)))
+    return out
+
+
 def pack_of():
     out = {}
     for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
@@ -1885,16 +1895,21 @@ def emit(out, res, check_only, only=None):
         if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
             closed.add(k)
     po = pack_of()
+    # Lean only for the functions off the core route (`routed`), the kernel's checks they wait on, and their callees'
+    # certificates (signatures the checks read); the routed ones' checks are the route's own (`callc.py`, `Gen/`)
+    cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
+    off = set(certs) - routed()
+    lean = off | {c for k in off for c in cal(k)}
+    wins = [k for k in wins if k in off]
     packs = collections.defaultdict(list)
-    for k in sorted(certs):
+    for k in sorted(lean):
         packs[po[k][0]].append(k)
     stale, mods, lines = [], [], 0
     for pack, ks in sorted(packs.items()):
         d = os.path.join(out, pack)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in passing and k not in wins and k not in nokernel]
-        cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
+        oks = [k for k in ks if k in off and k in passing and k not in wins and k not in nokernel]
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of {len(oks)} functions.')
@@ -1902,10 +1917,10 @@ def emit(out, res, check_only, only=None):
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
-            aux, body = lcert(certs[k], sig_only=k not in passing or k in nokernel)
+            aux, body = lcert(certs[k], sig_only=k not in off or k not in passing or k in nokernel)
             auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
             data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                     f'/-- `{k}`: its heap certificate{"" if k in passing and k not in nokernel else " (its signature only: not checked)"}. -/\n'
+                     f'/-- `{k}`: its heap certificate{"" if k in off and k in passing and k not in nokernel else " (its signature only: not checked here)"}. -/\n'
                      f'def hcert : CoreMode.HCert where\n{body}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for k in oks:
             names = sorted(stmt_names[k])

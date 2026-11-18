@@ -36,21 +36,7 @@ def run(check):
         okp = os.path.join(data.LEAN_VM, *[x.strip('«»') for x in cm.split('.')]) + '.lean'
         win = cm.endswith('».Ok') and 'theorem alignCtxEq' in open(okp, encoding='utf-8').read()
         prf = 'rw [alignCtxEq]\n  decide +kernel' if win else 'decide +kernel'
-        body = ''.join(f'''namespace LeanVM.Guest.Fn.«{k}»
-
-open LeanVM.Guest
-
-public section
-
-/-- `{k}`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«{k}».fs Fn.«{k}».core.body = true := by
-  {prf}
-
-end
-
-end LeanVM.Guest.Fn.«{k}»
-
-''' for k in ks)
+        body = data.fn_thms((k, 'witOk', 'Bridge.witChk alignCtx fs core.body = true', prf) for k in ks)
         files[os.path.join(OUT, mod.split('WitChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' witness hints pass the data check.")
             + 'public import LeanVM.Guest.Bridge.WitDefs\n' + f'public import {cm}\n'
@@ -73,10 +59,8 @@ end LeanVM.Guest.Fn.«{k}»
             if j not in fss:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
-            body.append(f'''theorem wok{j} : Bridge.WitJ {j} :=
-  Bridge.witJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
-    Fn.«{k}».witOk
-''')
+            body.append(f'theorem wok{j} : Bridge.WitJ {j} := Bridge.witJ_of Checked.code{j} Checked.core{j} '
+                        f'Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».witOk\n')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.WitChk.{lmod}',
                         what=f"The functions of `Checked.{lmod}` pass the witness hints' data check over their alignment's context.")
@@ -88,7 +72,7 @@ open LeanVM.Guest
 
 public section
 
-''' + '\n'.join(body) + '''
+''' + ''.join(body) + '''
 end
 
 end LeanVM.Guest.Bridge.WitChk

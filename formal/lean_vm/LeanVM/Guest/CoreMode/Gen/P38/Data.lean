@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«batch_sumcheck__L23»
-
 @[expose] public section
-
-/-- `batch_sumcheck__L23`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(5, 1)], 5⟩,
     ⟨[(5, 1)], 6⟩, ⟨[(5, 1)], 7⟩, ⟨[(5, 1)], 8⟩, ⟨[(5, 1)], 9⟩, ⟨[(5, 1)], 10⟩, ⟨[(5, 1)], 11⟩,
@@ -43,7 +40,6 @@ def hcert : CoreMode.HCert where
     (613, [(5, 44, .pre 44)]), (616, [(5, 45, .pre 45)])]
   res := []
 
-/-- `batch_sumcheck__L23`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(5, 1)], 0⟩, .ev 0), (⟨[(5, 1)], 1⟩, .ev 1), (⟨[(5, 1)], 2⟩, .ev 3), (⟨[(5, 1)], 3⟩, .ev 4),
     (⟨[(5, 1)], 4⟩, .ev 6), (⟨[(5, 1)], 5⟩, .ev 7), (⟨[(5, 1)], 6⟩, .ev 9), (⟨[(5, 1)], 7⟩, .ev 10),
@@ -72,10 +68,7 @@ end
 end LeanVM.Guest.Fn.«batch_sumcheck__L23»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L28»
-
 @[expose] public section
-
-/-- `eq_prefix_run__L28`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
     ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
@@ -107,7 +100,6 @@ def hcert : CoreMode.HCert where
     (112, [(2, 27, .pre 54)]), (113, [(3, 27, .pre 55)])]
   res := []
 
-/-- `eq_prefix_run__L28`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 6), (⟨[(0, 1)], 3⟩, .ev 9),
     (⟨[(0, 1)], 4⟩, .ev 12), (⟨[(0, 1)], 5⟩, .ev 15), (⟨[(0, 1)], 6⟩, .ev 18),
@@ -142,16 +134,12 @@ end
 end LeanVM.Guest.Fn.«eq_prefix_run__L28»
 
 namespace LeanVM.Guest.Fn.«index_mle__L4»
-
 @[expose] public section
-
-/-- `index_mle__L4`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩] }
   reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)]), (13, [(0, 2, .pre 2)]), (19, [(0, 3, .pre 3)])]
   res := []
 
-/-- `index_mle__L4`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(0, 1)], 1⟩, .ev 1), (⟨[(0, 1)], 2⟩, .ev 2), (⟨[(0, 1)], 3⟩, .ev 3)]
 

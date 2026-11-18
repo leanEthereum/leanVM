@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«claim_list_digest_loop1»
-
 @[expose] public section
-
-/-- `claim_list_digest_loop1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(0, 13), (2, 1)], 0⟩, ⟨[(0, 13), (2, 1)], 1⟩, ⟨[(0, 13), (2, 1)], 2⟩, ⟨[(0, 13), (2, 1)], 3⟩,
@@ -94,10 +91,7 @@ end
 end LeanVM.Guest.Fn.«claim_list_digest_loop1»
 
 namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
-
 @[expose] public section
-
-/-- `da_levels__L128_L7_loop5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { preR := [⟨⟨[(2, 1)], 496⟩, 4, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 497⟩, 4, (.val 0), (.val 1)⟩,

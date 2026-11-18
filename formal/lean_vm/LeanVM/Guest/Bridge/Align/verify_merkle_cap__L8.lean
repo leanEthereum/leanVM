@@ -7,39 +7,33 @@
 
 module
 
-
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 public import Statement.Data.AdviceHints
 
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L8`: what its alignment check reads beyond its body and code. -/
-noncomputable def alignCtx : Bridge.AlignCtx :=
-  Bridge.AlignCtx.ofData Fn.«verify_merkle_cap__L8».cert.locs [] Fn.«verify_merkle_cap__L8».code.entryPc false
-    Fn.«verify_merkle_cap__L8».plumb Data.powTree Data.jtTrie [] 524287 Fn.«verify_merkle_cap__L8».code.instructionCount
+noncomputable def Fn.«verify_merkle_cap__L8».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 
 end
+
+end LeanVM.Guest
+
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_merkle_cap__L8`: its hint-only cells are fresh. -/
-theorem alignCellsOk :
-    Bridge.cellsFresh Fn.«verify_merkle_cap__L8».cert.locs (Bridge.plumbCells Fn.«verify_merkle_cap__L8».plumb) [] = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8` aligns with its body. -/
-theorem alignOk :
-    Bridge.alignOk alignCtx Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1182 = true := by
-  decide +kernel
+theorem Fn.«verify_merkle_cap__L8».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1182 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

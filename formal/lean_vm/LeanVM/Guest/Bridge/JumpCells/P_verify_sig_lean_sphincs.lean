@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_sig_lean_sphincs`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«verify_sig_lean_sphincs».plumb Fn.«verify_sig_lean_sphincs».fs (Fn.«verify_sig_lean_sphincs».cert.withPows Data.powTree) []
-    Fn.«verify_sig_lean_sphincs».core Fn.«verify_sig_lean_sphincs».code.code (21 == 1) = true := by
-  decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (21 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

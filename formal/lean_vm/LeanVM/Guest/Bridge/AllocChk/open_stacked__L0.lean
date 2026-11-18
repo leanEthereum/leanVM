@@ -13,33 +13,17 @@ public import LeanVM.Guest.Bridge.Align.«open_stacked__L0»
 public import LeanVM.Guest.Pack.«P53».Core
 public import LeanVM.Guest.Pack.«open_stacked__L0».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L0»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L0`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L0».core.body = true := by
-  decide +kernel
-
-/-- `open_stacked__L0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L0».plumb Fn.«open_stacked__L0».core.body Fn.«open_stacked__L0».code.code Data.adviceFn339 = true := by
-  decide +kernel
-
-/-- `open_stacked__L0`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L0».fs [8, 9, 311, 437, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500] Fn.«open_stacked__L0».core.params Fn.«open_stacked__L0».core.body
-      Data.adviceFn339 = true := by
-  decide +kernel
-
-/-- `open_stacked__L0`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«open_stacked__L0».fs Fn.«open_stacked__L0».core.loop Fn.«open_stacked__L0».plumb Fn.«open_stacked__L0».core.body Fn.«open_stacked__L0».code.code
-      Data.adviceFn339 = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L0».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«open_stacked__L0».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn339 = true := by decide +kernel
+theorem Fn.«open_stacked__L0».frOk : Bridge.frChk alignCtx fs [8, 9, 311, 437, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500] core.params core.body Data.adviceFn339 = true := by decide +kernel
+theorem Fn.«open_stacked__L0».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn339 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L0»
+end LeanVM.Guest

@@ -12,16 +12,14 @@ public import LeanVM.Guest.Bridge.Align.«verify_merkle_cap__L8»
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_merkle_cap__L8`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«verify_merkle_cap__L8».fs Fn.«verify_merkle_cap__L8».core.body = true := by
-  decide +kernel
+theorem Fn.«verify_merkle_cap__L8».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

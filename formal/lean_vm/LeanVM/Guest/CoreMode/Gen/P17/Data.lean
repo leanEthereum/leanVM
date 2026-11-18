@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«block_selector__L25»
-
 @[expose] public section
-
-/-- `block_selector__L25`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
     ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩,
@@ -57,7 +54,6 @@ def hcert : CoreMode.HCert where
     (241, [(0, 24, .pre 72)]), (243, [(1, 24, .pre 73)]), (247, [(2, 24, .pre 74)])]
   res := []
 
-/-- `block_selector__L25`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 2⟩, .ev 9), (⟨[(0, 1)], 3⟩, .ev 13),
     (⟨[(0, 1)], 4⟩, .ev 17), (⟨[(0, 1)], 5⟩, .ev 21), (⟨[(0, 1)], 6⟩, .ev 25),
@@ -88,10 +84,7 @@ end
 end LeanVM.Guest.Fn.«block_selector__L25»
 
 namespace LeanVM.Guest.Fn.«block_selector__L3»
-
 @[expose] public section
-
-/-- `block_selector__L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
     ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩] }
@@ -100,7 +93,6 @@ def hcert : CoreMode.HCert where
     (27, [(2, 2, .pre 8)])]
   res := []
 
-/-- `block_selector__L3`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(1, 1)], 0⟩, .ev 2), (⟨[(2, 1)], 0⟩, .ev 3), (⟨[(0, 1)], 1⟩, .ev 5),
     (⟨[(1, 1)], 1⟩, .ev 6), (⟨[(2, 1)], 1⟩, .ev 7), (⟨[(0, 1)], 2⟩, .ev 9), (⟨[(1, 1)], 2⟩, .ev 10),
@@ -110,10 +102,7 @@ end
 end LeanVM.Guest.Fn.«block_selector__L3»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L21»
-
 @[expose] public section
-
-/-- `eq_prefix_run__L21`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
     ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
@@ -137,7 +126,6 @@ def hcert : CoreMode.HCert where
     (81, [(3, 19, .pre 39)]), (84, [(2, 20, .pre 40)]), (85, [(3, 20, .pre 41)])]
   res := []
 
-/-- `eq_prefix_run__L21`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 6), (⟨[(0, 1)], 3⟩, .ev 9),
     (⟨[(0, 1)], 4⟩, .ev 12), (⟨[(0, 1)], 5⟩, .ev 15), (⟨[(0, 1)], 6⟩, .ev 18),
@@ -165,10 +153,7 @@ end
 end LeanVM.Guest.Fn.«eq_prefix_run__L21»
 
 namespace LeanVM.Guest.Fn.«plus_one_run__L30»
-
 @[expose] public section
-
-/-- `plus_one_run__L30`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
     ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
@@ -187,7 +172,6 @@ def hcert : CoreMode.HCert where
     (90, [(1, 29, .pre 29)])]
   res := []
 
-/-- `plus_one_run__L30`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 5), (⟨[(0, 1)], 3⟩, .ev 7),
     (⟨[(0, 1)], 4⟩, .ev 9), (⟨[(0, 1)], 5⟩, .ev 11), (⟨[(0, 1)], 6⟩, .ev 13),

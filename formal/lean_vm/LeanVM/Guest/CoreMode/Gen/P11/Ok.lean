@@ -14,24 +14,15 @@ public import LeanVM.Guest.CoreMode.Gen.«P11».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«padding_weight__L17»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `padding_weight__L17`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«padding_weight__L17»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L2»
-
-@[expose] public section
-
-/-- `padding_weight__L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«padding_weight__L17».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L2».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«padding_weight__L2»
+
+end LeanVM.Guest

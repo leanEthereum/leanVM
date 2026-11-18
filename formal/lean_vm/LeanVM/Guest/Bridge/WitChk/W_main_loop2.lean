@@ -12,17 +12,14 @@ public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
-namespace LeanVM.Guest.Fn.«main_loop2»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `main_loop2`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«main_loop2».fs Fn.«main_loop2».core.body = true := by
-  rw [alignCtxEq]
-  decide +kernel
+theorem Fn.«main_loop2».witOk : Bridge.witChk alignCtx fs core.body = true := by rw [alignCtxEq]; decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«main_loop2»
+end LeanVM.Guest

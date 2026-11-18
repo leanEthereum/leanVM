@@ -10,16 +10,14 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
-namespace LeanVM.Guest.Fn.«main_loop2»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `main_loop2`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«main_loop2».core.body = true := by
-  decide +kernel
+theorem Fn.«main_loop2».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«main_loop2»
+end LeanVM.Guest

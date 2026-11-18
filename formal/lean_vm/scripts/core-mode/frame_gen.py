@@ -6,7 +6,7 @@ function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the
 `frame.py` computes. The oracle and the residual divisors are read off today's mode walk
 (`frame_data.py`, `MODE_CERT_CACHE`) until the core heap certificate gives them.
 Usage: MODE_CERT_CACHE=FILE python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
-import os, sys, collections, glob
+import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
@@ -122,7 +122,7 @@ def fnData(D, n, cuts):
     for nm, tab, what in (('frameArm', tarms, 'a table jump\'s arms, as offsets'), ('frameCallee', tcalls, 'a table call\'s callees\' pcs')):
         for k, ps in sorted(tab.items()):
             names[(nm, k)] = '%s%d' % (nm, k)
-            defs.append('/-- `%s`: %s. -/\ndef %s%d : List ℕ :=\n  %s\n\n' % (n, what, nm, k, lst(ps)))
+            defs.append('def %s%d : List ℕ := %s\n' % (nm, k, lst(ps)))
     cutT = '.nil'
     if cuts:
         cn = {}
@@ -165,12 +165,18 @@ def pair_mod(g, n):
 
 
 def ns(n, body):
-    return ('\nnamespace LeanVM.Guest.Fn.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n@[expose] public section\n\n%s'
-            '\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (n, body, n))
+    return ('\nnamespace LeanVM.Guest.Fn.«%s»\nopen LeanVM.Guest LeanVM.Guest.Exec\n@[expose] public section\n%s'
+            'end\nend LeanVM.Guest.Fn.«%s»\n' % (n, body, n))
+
+
+def qual(ns_, text):
+    """A function's top-level declarations named in its namespace (`Fn.«ns».name`), in a section shared with others."""
+    return re.sub(r'^((?:noncomputable )?def )(\w+)', lambda m: '%sFn.«%s».%s' % (m.group(1), ns_, m.group(2)), text,
+                  flags=re.M)
 
 
 def funDef(D, n, lit, defs):
-    return ''.join(defs) + '/-- `%s`: what its frame walk is told. -/\nnoncomputable def frameFun : CoreMode.FFun :=\n  %s\n\n' % (n, lit)
+    return ''.join(defs) + 'noncomputable def frameFun : CoreMode.FFun :=\n  %s\n\n' % lit
 
 
 def main(argv):
@@ -208,13 +214,14 @@ def main(argv):
                 packs |= ps
                 if n in ROUTE: gens.add((gen_pack[n], n))
                 ns_ = D['fns'][n]['ns']
-                body.append(ns(ns_, funDef(D, n, lit, defs) +
-                               '/-- `%s`: its frame walk accepts its code. -/\ntheorem frameOk : CoreMode.frameOk frameFun '
-                               'code.chunks.flatten = true := by\n  decide +kernel\n' % n))
+                body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
+                            'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
                 stats['fns'] += 1
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (
-                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens) + ''.join(body))
+                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens) +
+                '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
+                '@[expose] public section\n\n' + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
         for k, n in enumerate(long_):
             cuts = cutsFor(D, n)
             lit, defs, packs = fnData(D, n, cuts)

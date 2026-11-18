@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«block_selector__L11»
-
 @[expose] public section
-
-/-- `block_selector__L11`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
     ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩,
@@ -36,7 +33,6 @@ def hcert : CoreMode.HCert where
     (101, [(0, 10, .pre 30)]), (103, [(1, 10, .pre 31)]), (107, [(2, 10, .pre 32)])]
   res := []
 
-/-- `block_selector__L11`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 2⟩, .ev 9), (⟨[(0, 1)], 3⟩, .ev 13),
     (⟨[(0, 1)], 4⟩, .ev 17), (⟨[(0, 1)], 5⟩, .ev 21), (⟨[(0, 1)], 6⟩, .ev 25),
@@ -54,10 +50,7 @@ end
 end LeanVM.Guest.Fn.«block_selector__L11»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L6»
-
 @[expose] public section
-
-/-- `eq_prefix_run__L6`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
     ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩] }
@@ -66,7 +59,6 @@ def hcert : CoreMode.HCert where
     (20, [(2, 4, .pre 8)]), (21, [(3, 4, .pre 9)]), (24, [(2, 5, .pre 10)]), (25, [(3, 5, .pre 11)])]
   res := []
 
-/-- `eq_prefix_run__L6`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(2, 1)], 0⟩, .ev 1), (⟨[(3, 1)], 0⟩, .ev 2), (⟨[(0, 1)], 1⟩, .ev 3),
     (⟨[(2, 1)], 1⟩, .ev 4), (⟨[(3, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 2⟩, .ev 6), (⟨[(2, 1)], 2⟩, .ev 7),
@@ -81,10 +73,7 @@ end
 end LeanVM.Guest.Fn.«eq_prefix_run__L6»
 
 namespace LeanVM.Guest.Fn.«fold_final_msg__L5»
-
 @[expose] public section
-
-/-- `fold_final_msg__L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(0, 1)], 0⟩,
     ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩, ⟨[(0, 1)], 6⟩,
@@ -108,7 +97,6 @@ def hcert : CoreMode.HCert where
     (97, [(0, 30, .pre 35)]), (99, [(0, 31, .pre 36)])]
   res := []
 
-/-- `fold_final_msg__L5`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 1), (⟨[(1, 1)], 1⟩, .ev 3), (⟨[(1, 1)], 2⟩, .ev 5), (⟨[(1, 1)], 3⟩, .ev 7),
     (⟨[(1, 1)], 4⟩, .ev 9), (⟨[(0, 1)], 0⟩, .ev 10), (⟨[(0, 1)], 1⟩, .ev 11),
@@ -127,10 +115,7 @@ end
 end LeanVM.Guest.Fn.«fold_final_msg__L5»
 
 namespace LeanVM.Guest.Fn.«plus_one_run__L22»
-
 @[expose] public section
-
-/-- `plus_one_run__L22`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
     ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
@@ -145,7 +130,6 @@ def hcert : CoreMode.HCert where
     (63, [(1, 20, .pre 20)]), (66, [(1, 21, .pre 21)])]
   res := []
 
-/-- `plus_one_run__L22`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 5), (⟨[(0, 1)], 3⟩, .ev 7),
     (⟨[(0, 1)], 4⟩, .ev 9), (⟨[(0, 1)], 5⟩, .ev 11), (⟨[(0, 1)], 6⟩, .ev 13),
@@ -166,16 +150,12 @@ end
 end LeanVM.Guest.Fn.«plus_one_run__L22»
 
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L9»
-
 @[expose] public section
-
-/-- `squeeze_point_from__L9`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
 
-/-- `squeeze_point_from__L9`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
     (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),

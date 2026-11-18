@@ -13,33 +13,17 @@ public import LeanVM.Guest.Bridge.Align.«open_stacked__L9»
 public import LeanVM.Guest.Pack.«P58».Core
 public import LeanVM.Guest.Pack.«open_stacked__L9».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L9»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L9`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L9».core.body = true := by
-  decide +kernel
-
-/-- `open_stacked__L9`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code Data.adviceFn348 = true := by
-  decide +kernel
-
-/-- `open_stacked__L9`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L9».fs [8, 9, 311, 315, 437, 451, 461, 501, 510, 519, 526, 531, 651, 672, 676, 683, 687, 689, 692, 693, 696, 699, 707, 710, 713, 730, 734, 774, 811, 815, 819, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888] Fn.«open_stacked__L9».core.params Fn.«open_stacked__L9».core.body
-      Data.adviceFn348 = true := by
-  decide +kernel
-
-/-- `open_stacked__L9`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«open_stacked__L9».fs Fn.«open_stacked__L9».core.loop Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code
-      Data.adviceFn348 = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L9».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«open_stacked__L9».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn348 = true := by decide +kernel
+theorem Fn.«open_stacked__L9».frOk : Bridge.frChk alignCtx fs [8, 9, 311, 315, 437, 451, 461, 501, 510, 519, 526, 531, 651, 672, 676, 683, 687, 689, 692, 693, 696, 699, 707, 710, 713, 730, 734, 774, 811, 815, 819, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888] core.params core.body Data.adviceFn348 = true := by decide +kernel
+theorem Fn.«open_stacked__L9».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn348 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L9»
+end LeanVM.Guest
