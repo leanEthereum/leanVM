@@ -10,9 +10,10 @@ values. What the check cannot witness is reported by cause; only functions the P
 
 Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
 `def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
-true` for each function whose certificate the Python check passes (but `KERNEL_SKIP`), `sigOf` its callees' signatures
-by their `Fn.name`. Residuals carry the branch conditions common to the paths the inference asked them on
-(`CRes.under`); a `mrg` whose root has no exponent gets one stated (`exp`).
+true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
+(the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
+carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
+exponent gets one stated (`exp`).
 
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/emitc.py [--with F,..] [--without F,..]
   [--out DIR] [--check] [--mods FILE] [--fn NAME,..] (those functions only, nothing written) [--report FILE.json]
@@ -35,12 +36,10 @@ NAME = {k: nm for nm, k in I.STABLE.items()}
 # naturals there) and range checks as free facts (there every fact is a residual)
 OFF = {'wrap', 'lts'}
 PTSMAX = 4096
-# functions whose kernel check runs past the build's memory cap (`lake-build.py --cap 36`) in one `decide`: their
-# certificate is emitted here, their `heap_okC` by `heapwin.py` in windows (`GenCW/<fn>/`)
+# functions checked in windows whatever their size (`heapwin.py`, `GenCW/<fn>/`); every other passing function whose
+# check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
+# one `decide`) is windowed too
 KERNEL_WIN = {'main_loop2'}
-# not a loop helper, so no windows yet: its certificate passes the Python check, its one `decide` runs past the cap
-# (request E13 in `m2-heap.md`)
-KERNEL_SKIP = KERNEL_WIN | {'check_opening_terminal'}
 
 
 # ---- the inference's values, recorded as it assigns them
@@ -1249,6 +1248,9 @@ def emit(out, res, check_only, only=None):
     built = build(res, only)
     sigs, certs, why, drops, stmt_names, stats = built
     passing = {k for k in certs if k not in why}
+    import heapwin
+    sigOf = lambda g: sigs.get(I.callee(g), C.EMPTY)
+    wins = sorted(k for k in passing if k in KERNEL_WIN or heapwin.fn_cost(k, certs[k], sigOf) > heapwin.BUDGET)
     closed = set()
     for k in I.ORDER:
         if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
@@ -1262,7 +1264,7 @@ def emit(out, res, check_only, only=None):
         d = os.path.join(out, pack)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in passing and k not in KERNEL_SKIP]
+        oks = [k for k in ks if k in passing and k not in wins]
         cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
@@ -1280,9 +1282,7 @@ def emit(out, res, check_only, only=None):
             names = sorted(stmt_names[k])
             arms = ''.join(f'\n    | "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE)
             sig = f'(fun g ↦ match g with{arms}\n    | _ => .empty)' if arms else '(fun _ ↦ .empty)'
-            # no heartbeat limit: the kernel's `decide` is bounded by the build's memory cap (`check_opening_terminal`
-            # runs past the default)
-            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\nset_option maxHeartbeats 0 in\n'
+            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
                    f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
@@ -1306,13 +1306,22 @@ def emit(out, res, check_only, only=None):
         want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
         for p in set(glob.glob(os.path.join(out, '*', '*.lean'))) - want:
             os.remove(p)
-    # the `KERNEL_WIN` functions' kernel checks in windows (`heapwin.py`, `GenCW/<fn>/`)
-    wins = sorted(k for k in KERNEL_WIN if k in passing)
-    if wins:
-        import heapwin
-        wmods, wstale = heapwin.run(res, built, wins, os.path.join(os.path.dirname(out), 'GenCW'), check=check_only)
+    # the windowed kernel checks (`heapwin.py`, `GenCW/<fn>/`)
+    if wins and not only:
+        wout = os.path.join(os.path.dirname(out), 'GenCW')
+        wmods, wstale = heapwin.run(res, built, wins, wout, check=check_only)
         mods += wmods
         stale += wstale
+        want = {os.path.join(wout, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in wmods}
+        have = set(glob.glob(os.path.join(wout, '*', '*.lean')))
+        if check_only:
+            stale += sorted(have - want)
+        else:
+            for p in have - want:
+                os.remove(p)
+            for d in glob.glob(os.path.join(wout, '*')):
+                if os.path.isdir(d) and not os.listdir(d):
+                    os.rmdir(d)
     clean, inf_closed = I.closure(res)
     cw = collections.Counter(cause(k, why[k], res[k]) for k in why)
     print(f'certificates: {len(certs)}; the Python check passes {len(passing)} (closed, callees too: {len(closed)}); '

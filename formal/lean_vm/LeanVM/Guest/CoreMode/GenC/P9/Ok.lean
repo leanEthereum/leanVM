@@ -27,7 +27,6 @@ namespace LeanVM.Guest.Fn.«child_claim_list_last__L5»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `child_claim_list_last__L5`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -41,7 +40,6 @@ namespace LeanVM.Guest.Fn.«claim_list_last__L2»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `claim_list_last__L2`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -55,7 +53,6 @@ namespace LeanVM.Guest.Fn.«column_selector__L26»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `column_selector__L26`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -69,7 +66,6 @@ namespace LeanVM.Guest.Fn.«da_column_offsets_loop6»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `da_column_offsets_loop6`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -85,7 +81,6 @@ namespace LeanVM.Guest.Fn.«decode_query_windows__L20_L2»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `decode_query_windows__L20_L2`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -99,7 +94,6 @@ namespace LeanVM.Guest.Fn.«index_mle__L16»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `index_mle__L16`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -113,7 +107,6 @@ namespace LeanVM.Guest.Fn.«level_positions__L19_L26_L2_loop0»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_positions__L19_L26_L2_loop0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -130,7 +123,6 @@ namespace LeanVM.Guest.Fn.«level_positions__L3_L21_L3»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_positions__L3_L21_L3`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -147,7 +139,6 @@ namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -164,7 +155,6 @@ namespace LeanVM.Guest.Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -181,7 +171,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L18_L11_L4_L2»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L18_L11_L4_L2`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -198,7 +187,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L21_L11_L4_L2»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L21_L11_L4_L2`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -215,7 +203,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop0»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L25_L12_L4_L2_loop0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -231,7 +218,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L12_L4_L2_loop1»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L37_L12_L4_L2_loop1`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -247,7 +233,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2_loop0»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L44_L11_L4_L2_loop0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -263,7 +248,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L55_L14_L4_L2»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L55_L14_L4_L2`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -280,7 +264,6 @@ namespace LeanVM.Guest.Fn.«level_residual__L73_L20_L6_L3_loop1»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `level_residual__L73_L20_L6_L3_loop1`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -296,7 +279,6 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0�
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun g ↦ match g with
@@ -313,7 +295,6 @@ namespace LeanVM.Guest.Fn.«padding_weight__L28»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `padding_weight__L28`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -327,7 +308,6 @@ namespace LeanVM.Guest.Fn.«plus_one_run__L9»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `plus_one_run__L9`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -341,7 +321,6 @@ namespace LeanVM.Guest.Fn.«rs_eq_rows__L4»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `rs_eq_rows__L4`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -355,7 +334,6 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L20»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `squeeze_point_from__L20`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
@@ -369,7 +347,6 @@ namespace LeanVM.Guest.Fn.«walk_path__L12_L3»
 
 @[expose] public section
 
-set_option maxHeartbeats 0 in
 /-- `walk_path__L12_L3`: the heap check. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree
     (fun _ ↦ .empty)
