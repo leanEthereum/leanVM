@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Compiled.Program
-public import LeanVM.Compiler.Sound.Main
+public import LeanVM.Compiler.Sound.Consts
 public import Statement.LeanVmGuest
 
 /-!

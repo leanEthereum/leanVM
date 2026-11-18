@@ -101,7 +101,7 @@ theorem emitStmt_fills (f : String) : ∀ (s : PStmt) (acc : Rev LInstr × Rev F
       rw [emitStages_fills]
       simp [Rev.size_push]
   | .call _ c, (code, fills) => by simp [emitStmt, stmtFills]
-  | .loopNext _ _ _ _ _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
+  | .loopNext _ _ _ _ _ _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .dispatch _ _ _ _ _ _ _ _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .ret _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .halt _ _ _, (code, fills) => by simp [emitStmt, stmtFills]

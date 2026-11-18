@@ -174,6 +174,9 @@ structure PlaceEnv {κ : ℕ} (Γ : Site κ) (fp : K) (ctx : Ctx) (C : CallRel)
     U g (frameWords Γ.L fp' 2 a) → Γ.Pre g fp'
   post : ∀ g a r fp', isCallee ctx.sigs a r g = true → Γ.Post g fp' →
     C g (frameWords Γ.L fp' 2 a) (frameWords Γ.L fp' (2 + a) r)
+  /-- The function's own constant parameters (`LoopInfo.consts`) hold their words in their cells,
+  or no call is asked for at all (`U` holds nowhere). -/
+  consts : (∀ x ∈ constsOf ctx.loops ctx.name, wd Γ.L fp (2 + x.1) = x.2) ∨ ∀ g a, ¬ U g a
 
 /-- **Placement is sound** at one function: whenever `placeFn` succeeds, on any trace, a memory
 that has the meaning of the placed body at a frame (`PStmt.SemList`), with the program around as
@@ -291,6 +294,11 @@ def Obligations (tf : TracedFn) : Prop :=
     W.U tf.core.name (frameWords W.L fp 2 (sigOf tf).1) →
     OblList W.C W.U W.L.read (W.vf tf.core.name fp) tf.core.body True
 
+/-- **The callers' preconditions carry the constant parameters**: the arguments of a function
+that its constant parameters (`constsOf`) name hold their words. -/
+def ConstsIn : Prop :=
+  ∀ g a, W.U g a → ∀ x ∈ constsOf (loopTable W.p) g, a[x.1]? = some x.2
+
 /-- **(b) A function is compiled correctly**: its contract for runs shorter than `n + 1` follows
 from every function's contract for runs shorter than `n`. -/
 def FnSound (tf : TracedFn) : Prop :=
@@ -309,10 +317,11 @@ def PlaceSoundStmt : Prop :=
     PlaceFnSound loops sigs tables tf
 
 /-- **(b), for every program**: every function other than `main` of a compiled program whose
-obligations hold is compiled correctly. -/
+obligations hold is compiled correctly, where the callers' preconditions carry the constant
+parameters. -/
 def FnSoundStmt : Prop :=
-  ∀ {κ : ℕ} (W : World κ), W.Compiled → κ < 64 → ∀ tf ∈ W.p, tf.core.name ≠ "main" →
-    W.Obligations tf → W.FnSound tf
+  ∀ {κ : ℕ} (W : World κ), W.Compiled → κ < 64 → W.ConstsIn → ∀ tf ∈ W.p,
+    tf.core.name ≠ "main" → W.Obligations tf → W.FnSound tf
 
 /-- **(c), for every program**: on a memory where a run of the compiled program from `(g^0, 1)`
 halts, every function's obligations holding, `main`'s core body holds at frame `1`. -/

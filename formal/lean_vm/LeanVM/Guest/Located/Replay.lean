@@ -35,7 +35,7 @@ argument and return counts and registered flags are the decoder's literal tables
   than `2^128` steps (it never repeats a state, `Protocol.Halting.run_injective`), so the replay
   with `replayFuel = 2^128` sees every state of a valid execution.
 * `selfTest_iff`: the decided test is the back end's precondition `World.Pre` but for the jump
-  table, which the run writes first, and what callers are asked for (`guestU`), which reads only
+  table, which the run writes first, and what callers are asked for (`guestUc`), which reads only
   the argument words, so it carries over between frames of one call.
 * **`unfoldsV_replay`**: on a valid execution, the located relation `RLg` unfolds along the
   replayed frame map: the frame the replay finds is one the run entered, so the callee's contract
@@ -196,7 +196,7 @@ end Replay
 /-- **Function `j`'s self test at frame `fp`**: `j` is a callee (`2 ≤ j < nFns`), and if it is a
 registered loop helper (`guestRegistered`), its frame holds its own pointer in the cell past its
 arguments. The back end's precondition `World.Pre` but for the jump table, which the run writes
-first, and what its callers are asked for (`guestU`), which reads only the argument words. -/
+first, and what its callers are asked for (`guestUc`), which reads only the argument words. -/
 def selfTest (rd : Reader) (j : ℕ) (fp : K) : Bool :=
   decide (2 ≤ j) && decide (j < nFns) &&
     if guestRegistered.getD j 0 = 1 then decide (wordWith rd fp (2 + guestArgCounts.getD j 0) = ofK fp)
@@ -211,7 +211,7 @@ theorem selfTest_iff {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     selfTest L.read j fp = true ↔ 2 ≤ j ∧ ((guestW L).registered (coreOf j).name →
       LeanVM.Compiler.wd L fp (2 + (coreOf j).params.length) = ofK fp) := by
   have hg : guestRegistered.getD j 0 = 1 ↔
-      (LeanVM.Compiler.isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
+      (LeanVM.Compiler.isLoopName (coreOf j).name && (infoOf j).2.2.1.1) = true := by
     rw [← guestRegistered_eq j h1 h2, beq_iff_eq]
   have hr := LeanVM.Guest.Compiled.registered_tfOf (L := L) LeanVM.Guest.Compiled.guest_compiles h1 h2
   rw [← hg] at hr

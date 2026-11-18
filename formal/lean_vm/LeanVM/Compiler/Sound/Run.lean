@@ -182,12 +182,21 @@ theorem callRets_noJump (nfp : Cell) (nargs : ℕ) (rets : List Cell) :
   obtain ⟨_, _, rfl⟩ := ho
   rfl
 
-theorem loopPre_noJump (callee : String) (nfp entry one : Cell) (args : List Cell) :
-    ∀ o ∈ loopPre callee nfp entry one args, o.isJump = false := by
+theorem nextArg_noJump (one : Cell) (consts : List (ℕ × ℕ × ℕ)) (x : Cell × ℕ) :
+    (nextArg one consts x).isJump = false := by
+  unfold nextArg
+  split <;> rfl
+
+theorem loopPre_noJump (callee : String) (nfp entry one : Cell) (args : List Cell)
+    (consts : List (ℕ × ℕ × ℕ)) :
+    ∀ o ∈ loopPre callee nfp entry one args consts, o.isJump = false := by
   intro o ho
   simp only [loopPre, List.mem_append, List.mem_cons, List.mem_map, List.not_mem_nil, or_false]
     at ho
-  rcases ho with (rfl | ⟨_, _, rfl⟩) | rfl | rfl | rfl <;> rfl
+  rcases ho with (rfl | ⟨_, _, rfl⟩) | rfl | rfl | rfl
+  · rfl
+  · exact nextArg_noJump _ _ _
+  all_goals rfl
 
 theorem dispatchPre_noJump (pos : ℕ) (nfp joinCell x entry : Cell) (first : ℕ) (args : List Cell) :
     ∀ o ∈ dispatchPre pos nfp joinCell x entry first args, o.isJump = false := by
@@ -320,11 +329,11 @@ theorem PStmt.sem_of_run (hL : Loaded prog Γ code) {n : ℕ}
       · exact callSem_of_run hC (by omega) hs2 (fun k' hk' r hr hs' => by
           obtain rfl := Option.some.inj hr
           exact hafter k' (by omega) hs')
-  | .loopNext _ callee nfp entry oc one args, pos, k, next, kj, kret, khalt, hat, hk, hs, hnext,
-      hjump, hret, hhalt => by
+  | .loopNext _ callee nfp entry oc one args consts, pos, k, next, kj, kret, khalt, hat, hk, hs,
+      hnext, hjump, hret, hhalt => by
       simp only [stmtOps, codeAt_append, codeAt_cons] at hat
       obtain ⟨hpre, hj, -⟩ := hat
-      obtain ⟨k1, rfl, hsegs, hs1⟩ := seg_run hL _ pos k (loopPre_noJump _ _ _ _ _) hpre hs
+      obtain ⟨k1, rfl, hsegs, hs1⟩ := seg_run hL _ pos k (loopPre_noJump _ _ _ _ _ _) hpre hs
       simp only [PStmt.Sem]
       refine ⟨hsegs, jumpAt_of_run hL hj hs1
         (fun k2 hk2 hs2 => hnext k2 (by omega) (hs2.cast (by sz)))

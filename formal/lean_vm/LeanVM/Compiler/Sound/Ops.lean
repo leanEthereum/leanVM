@@ -45,9 +45,9 @@ def callRets (nfp : Cell) (nargs : Nat) (rets : List Cell) : List LOp :=
   rets.zipIdx.map fun (r, i) => LOp.deref nfp (argBase + nargs + i) r .cell
 
 /-- A loop helper's closing call before its jump. -/
-def loopPre (callee : String) (nfp entry one : Cell) (args : List Cell) : List LOp :=
-  [LOp.set entry (.entry callee)] ++
-    (args.zipIdx.map fun (a, k) => LOp.mulNextFrame a one (argBase + k)) ++
+def loopPre (callee : String) (nfp entry one : Cell) (args : List Cell)
+    (consts : List (Nat × Nat × Nat)) : List LOp :=
+  [LOp.set entry (.entry callee)] ++ (args.zipIdx.map (nextArg one consts)) ++
     [LOp.mulNextFrame nfp one (argBase + args.length), LOp.mulNextFrame 1 one 1,
       LOp.mulNextFrame 0 one 0]
 
@@ -74,8 +74,8 @@ def stmtOps : PStmt → Nat → List LOp
         LOp.jump one entry sfp] ++ stagesOps stages (pos + 3)
   | .call _ c, _ =>
       callPre c ++ [LOp.jump c.oc c.entry c.nfp] ++ callRets c.nfp c.args.length c.rets
-  | .loopNext _ callee nfp entry oc one args, _ =>
-      loopPre callee nfp entry one args ++ [LOp.jump oc entry nfp]
+  | .loopNext _ callee nfp entry oc one args consts, _ =>
+      loopPre callee nfp entry one args consts ++ [LOp.jump oc entry nfp]
   | .dispatch _ _ nfp joinCell x entry one first args rets, pos =>
       dispatchPre pos nfp joinCell x entry first args ++ [LOp.jump one entry nfp] ++
         callRets nfp args.length rets
@@ -106,8 +106,9 @@ theorem callRets_length (nfp : Cell) (nargs : Nat) (rets : List Cell) :
     (callRets nfp nargs rets).length = rets.length := by
   simp [callRets]
 
-theorem loopPre_length (callee : String) (nfp entry one : Cell) (args : List Cell) :
-    (loopPre callee nfp entry one args).length = 1 + args.length + 3 := by
+theorem loopPre_length (callee : String) (nfp entry one : Cell) (args : List Cell)
+    (consts : List (Nat × Nat × Nat)) :
+    (loopPre callee nfp entry one args consts).length = 1 + args.length + 3 := by
   simp [loopPre]
   omega
 
@@ -130,7 +131,7 @@ theorem stmtOps_length : ∀ (s : PStmt) (pos : Nat), (stmtOps s pos).length = s
   | .call _ c, _ => by
       simp only [stmtOps, stmtSize, List.length_append, callPre_length, callRets_length,
         List.length_cons, List.length_nil]
-  | .loopNext _ _ _ _ _ _ _, _ => by
+  | .loopNext _ _ _ _ _ _ _ _, _ => by
       simp only [stmtOps, stmtSize, List.length_append, loopPre_length, List.length_cons,
         List.length_nil]
   | .dispatch _ _ _ _ _ _ _ _ _ _, _ => by
@@ -185,9 +186,9 @@ theorem emitCall_ops (hints : List LHint) (c : CallSite) :
   split <;> rename_i h <;> rw [h] <;> simp [bare, Function.comp_def]
 
 theorem emitLoopNext_ops (hints : List LHint) (callee : String) (nfp entry oc one : Cell)
-    (args : List Cell) :
-    (emitLoopNext hints callee nfp entry oc one args).map (·.op) =
-      loopPre callee nfp entry one args ++ [LOp.jump oc entry nfp] := by
+    (args : List Cell) (consts : List (Nat × Nat × Nat)) :
+    (emitLoopNext hints callee nfp entry oc one args consts).map (·.op) =
+      loopPre callee nfp entry one args consts ++ [LOp.jump oc entry nfp] := by
   simp [emitLoopNext, loopPre, bare, Function.comp_def]
 
 theorem emitDispatch_ops (pos : Nat) (hints : List LHint) (callees : List String)
@@ -227,7 +228,7 @@ theorem emitStmt_ops (f : String) : ∀ (s : PStmt) (acc : Rev LInstr × Rev Fil
       rw [emitStages_ops]
       simp [opsR_push, bare, Rev.size_push]
   | .call _ c, (code, fills) => by simp [emitStmt, stmtOps, opsR_appendList, emitCall_ops]
-  | .loopNext _ _ _ _ _ _ _, (code, fills) => by
+  | .loopNext _ _ _ _ _ _ _ _, (code, fills) => by
       simp [emitStmt, stmtOps, opsR_appendList, emitLoopNext_ops]
   | .dispatch _ _ _ _ _ _ _ _ _ _, (code, fills) => by
       simp [emitStmt, stmtOps, opsR_appendList, emitDispatch_ops]

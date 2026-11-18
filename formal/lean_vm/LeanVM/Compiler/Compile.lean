@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Expand
-public import LeanVM.Compiler.Place
+public import LeanVM.Compiler.Consts
 public import LeanVM.Compiler.Assemble
 
 /-!
@@ -16,11 +16,12 @@ public import LeanVM.Compiler.Assemble
 
 `compile` is the Rust compiler's `compile` (`crates/zkdsl_compiler/src/lib.rs` at leanVM `6363526c0`) as four functions:
 
-    Source.Program ─Expand.expandProgramTraced→ List TracedFn ─placeProgram→ List PFn
-      ─emitFn→ List Lowered, jump table slots ─assemble→ Assembled
+    Source.Program ─Expand.expandProgramTraced→ List TracedFn ─withConstTable→ List TracedFn
+      ─placeProgram→ List PFn ─emitFn→ List Lowered, jump table slots ─assemble→ Assembled
 
-The first is the front end, `Expand`, with the allocation trace it records; the other three are
-the back end, `compileTraced`.
+The first is the front end, `Expand`, with the allocation trace it records; the others are the
+back end, `compileTraced`. `lowerProgram` checks the loop helpers' constant parameters
+(`ConstsOk`) before it places the program.
 `cli/GuestBackend.lean` runs it compiled on the guest's source and compares the result with
 `Statement/Data/`, instruction for instruction.
 -/
@@ -41,8 +42,12 @@ def slotsHold (slots : Array KVal) (fills : List Fill) (shared : List (List Stri
 /-- The jump table slots the placed functions fill, in order. -/
 def fillsOf (fns : List Placed) : List Fill := fns.flatMap fun pf => (emitFn pf.fn).2.toList
 
-/-- The labelled code of a program's functions, in order, and the jump tables' slots. -/
+/-- The labelled code of a program's functions, in order, and the jump tables' slots, its loop
+helpers' constant parameters right of it. -/
 def lowerProgram (p : List TracedFn) : Except String (List Lowered × Array KVal) :=
+  if !ConstsOk (constsOf (loopTable p)) (p.map (·.core)) then
+    .error "a constant parameter that a call does not pass as its word"
+  else
   match placeProgram p with
   | .error e => .error e
   | .ok (fns, tables) =>
@@ -51,9 +56,9 @@ def lowerProgram (p : List TracedFn) : Except String (List Lowered × Array KVal
       else .ok (fns.map fun pf => (emitFn pf.fn).1, slots)
 
 /-- The back end: the core functions of a program, each with its source and its trace, to the
-assembled program. -/
+assembled program, its loop helpers' constant parameters found (`withConstTable`). -/
 def compileTraced (p : List TracedFn) : Except String Assembled := do
-  let (fns, slots) ← lowerProgram p
+  let (fns, slots) ← lowerProgram (withConstTable p)
   return assemble fns slots
 
 /-- The compiler: a zkDSL program to its assembled program. -/

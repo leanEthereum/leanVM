@@ -267,7 +267,8 @@ theorem call_ok (h : List LHint) (c : CallSite) : SOk keyed σ (.call h c) := by
   · exact ⟨fun _ => ⟨hk, ⟨es0 ++ e, by rw [hw, walk_fall_cons he, pre_pre]⟩, cle_refl _⟩, tf⟩
 
 theorem loopNext_ok (h : List LHint) (callee : String) (nfp entry oc one : Cell)
-    (args : List Cell) : SOk keyed σ (.loopNext h callee nfp entry oc one args) := by
+    (args : List Cell) (consts : List (ℕ × ℕ × ℕ)) :
+    SOk keyed σ (.loopNext h callee nfp entry oc one args consts) := by
   intro cs k hal hns
   obtain ⟨s, rest, hcs⟩ := ctrl_of hal (fun _ _ => nofun)
   obtain ⟨es0, hw⟩ := walk_ctrlSplit_some σ hcs
@@ -457,7 +458,8 @@ theorem stmt_ok : ∀ s : PStmt, SOk keyed σ s
   | .ite _ _ _ _ zero _ _ _ nonzero => ite_ok (block_ok zero) (block_ok nonzero)
   | .chain _ _ _ _ _ _ _ stages => chain_ok (stages_ok stages)
   | .call h c => call_ok h c
-  | .loopNext h callee nfp entry oc one args => loopNext_ok h callee nfp entry oc one args
+  | .loopNext h callee nfp entry oc one args consts =>
+      loopNext_ok h callee nfp entry oc one args consts
   | .dispatch h callees nfp joinCell x entry one first args rets =>
       dispatch_ok h callees nfp joinCell x entry one first args rets
   | .ret h one => ret_ok h one

@@ -35,7 +35,7 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **The guest's world on the memory `L`**: the back end's compilation of the guest, its callers'
-preconditions `guestU`. -/
+preconditions `guestUc` (`guestU` and the loop helpers' constant parameters). -/
 noncomputable abbrev guestW {κ : ℕ} (L : MemoryImage κ) : Compiler.World κ :=
   Compiled.guestEnd Compiled.guestFns Compiled.guestSlots L
 

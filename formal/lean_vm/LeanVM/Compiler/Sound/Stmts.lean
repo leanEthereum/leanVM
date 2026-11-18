@@ -202,6 +202,25 @@ theorem callIf_finish {c : V} {f : String} {args : List V} {lc : Cell} {las : Li
     | true => exact hesc rfl hk
     | false => exact hnext hk (hg fun _ => hC)
 
+/-- The limbs a loop helper's closing call writes into the next frame (`nextConsts`) are the
+words of its argument cells, where its constant parameters hold their words. -/
+theorem nextConsts_words {consts : List (ℕ × E)} {las : List Cell}
+    (h : ∀ x ∈ consts, wd Γ.L fp (2 + x.1) = x.2) :
+    ∀ x ∈ nextConsts consts las, ∀ hk : x.1 < las.length,
+      wd Γ.L fp las[x.1] = Guest.word x.2.1 x.2.2 := by
+  intro x hx hk
+  obtain ⟨y, hy, hxy⟩ := List.mem_filterMap.mp hx
+  by_cases hc : (las[y.1]? == some (2 + y.1)) = true
+  · simp only [hc, ↓reduceIte, Option.some.injEq] at hxy
+    subst hxy
+    have hl : las[y.1]? = some (2 + y.1) := by simpa using hc
+    have he : las[y.1]'hk = 2 + y.1 := by
+      rw [List.getElem?_eq_getElem hk] at hl
+      exact Option.some.inj hl
+    dsimp only
+    rw [he, h y hy, word_limbsOf]
+  · simp [hc] at hxy
+
 include env in
 /-- The conditional call ending a loop helper. -/
 theorem callIf_lays (c : V) (f : String) (args : List V) (rest : List Stmt) (st : St) :
@@ -253,7 +272,11 @@ theorem callIf_lays (c : V) (f : String) (args : List V) (rest : List Stmt) (st 
         obtain ⟨⟨⟨⟨⟨⟨-, hlc⟩, hlas⟩, hown⟩, hset⟩, hnfp⟩, hone⟩ := hH
         have hnfp' : wd Γ.L fp nfp = ofK (fp * addressOfIndex Γ.frame) := by
           rw [hnfp, hown, holds_set_frame env.pow env.frameLt hset.choose_spec, ofK_mul]
-        have hnode := loopNext_node env (by rw [← forall₂_len hlas]; exact hcal') hone hnfp' hsem
+        have hf : f = ctx.name := by simpa using hself
+        have hcs := env.consts.imp_left fun h =>
+          nextConsts_words (las := las) (consts := constsOf ctx.loops f) (by rw [hf]; exact h)
+        have hnode := loopNext_node env (by rw [← forall₂_len hlas]; exact hcal') hone hnfp' hcs
+          hsem
         refine callIf_finish (tail := true) hlc (forall₂_cells hlas) hnode hG
           (fun hN hg => hnext hp hN hg) fun _ hk => ?_
         have := hret (Or.inr hk)

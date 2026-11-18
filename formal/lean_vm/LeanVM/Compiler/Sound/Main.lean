@@ -70,10 +70,11 @@ theorem World.slots_lt (hW : W.Compiled) (hne : W.fns ≠ []) : W.slots.size < 2
   · omega
 
 /-- **What a function's code is given of the program around it** (`PlaceEnv`), the jump tables
-written. -/
+written and its constant parameters holding their words. -/
 theorem placeEnv_of (hW : W.Compiled) {tf : TracedFn} {pf : Placed} {pre post : List Lowered}
     {f : Lowered} (hat : FnAt W tf pf pre post f) (hjt : JTHolds W.L W.layout W.slots) {fp : K}
-    (hfp : tf.core.name = "main" → fp = 1) :
+    (hfp : tf.core.name = "main" → fp = 1)
+    (hc : ∀ x ∈ constsOf (loopTable W.p) tf.core.name, wd W.L fp (2 + x.1) = x.2) :
     PlaceEnv (siteOf W.L W.fns W.slots pre f W.Pre W.Post) fp
       (ctxOf (loopTable W.p) (sigTable W.p) tf) W.C W.U W.slots (blockSize pf.fn.body) := by
   obtain ⟨hn, hnd, -, -⟩ := World.names hW
@@ -83,7 +84,7 @@ theorem placeEnv_of (hW : W.Compiled) {tf : TracedFn} {pf : Placed} {pre post : 
     intro h0
     have := hat.split
     simp [h0, withTables] at this
-  refine ⟨layout_gpow _ _, hjt, hent, ?_, ?_, fun hm => hfp (eq_of_beq hm), ?_, ?_, ?_⟩
+  refine ⟨layout_gpow _ _, hjt, hent, ?_, ?_, fun hm => hfp (eq_of_beq hm), ?_, ?_, ?_, .inl hc⟩
   · show totalSize pre + blockSize pf.fn.body < 2 ^ 128
     omega
   · show f.frameSize < 2 ^ 128
@@ -135,6 +136,19 @@ theorem World.params_vf (hW : W.Compiled) {tf : TracedFn} (htf : tf ∈ W.p) (fp
   simp only [List.getElem_map, frameWords, List.getElem_range]
   exact valP_of_cell (hp k hk)
 
+/-- A word the frame's arguments hold at position `k` is the word of its cell `2 + k`. -/
+theorem frameWords_cell {L : MemoryImage κ} {fp : K} {n : ℕ} {x : ℕ × E}
+    (h : (frameWords L fp 2 n)[x.1]? = some x.2) : wd L fp (2 + x.1) = x.2 := by
+  simp only [frameWords, List.getElem?_map] at h
+  cases hr : (List.range n)[x.1]? with
+  | none => rw [hr] at h; cases h
+  | some i =>
+      rw [hr] at h
+      obtain ⟨_, hi⟩ := List.getElem?_eq_some_iff.mp hr
+      rw [List.getElem_range] at hi
+      subst hi
+      exact Option.some.inj h
+
 /-! ## A function's body from a run -/
 
 /-- **A run entering a function makes its core body hold**: with every contract for runs no
@@ -142,7 +156,7 @@ longer than it, the jump tables written and the function's obligations, a haltin
 function's entry at a frame satisfies the core body under the valuation by places; where the
 body returns, the frame's return cells hold the returned words and (but in `main`) the run went
 on from the frame's return registers. -/
-theorem body_of_run (hW : W.Compiled) {tf : TracedFn} (htf : tf ∈ W.p)
+theorem body_of_run (hW : W.Compiled) (hUc : W.ConstsIn) {tf : TracedFn} (htf : tf ∈ W.p)
     (hobl : W.Obligations tf) (hjt : JTHolds W.L W.layout W.slots) {fp : K}
     (hfp : tf.core.name = "main" → fp = 1)
     (hself : W.registered tf.core.name → wd W.L fp (2 + (sigOf tf).1) = ofK fp)
@@ -158,7 +172,7 @@ theorem body_of_run (hW : W.Compiled) {tf : TracedFn} (htf : tf ∈ W.p)
   obtain ⟨ti, ti', hplace, hshared⟩ := hat.placed
   obtain ⟨hent, -, -⟩ := hat.entry hW
   rw [hent] at hs
-  have env := placeEnv_of hW hat hjt hfp
+  have env := placeEnv_of hW hat hjt hfp fun x hx => frameWords_cell (hUc _ _ hU x hx)
   have hsem := lowered_sound W.L (World.nodup hW) hat.split hat.code W.hl hW.2 W.Pre W.Post hC hk hs
     (next := True) (kj := fun _ _ => True)
     (kret := ∃ k' < k, ∃ rg, retRegs W.L fp = some rg ∧ SafeReached W.prog W.L k' rg)
@@ -184,13 +198,13 @@ theorem inMem_of_retRegs (hκ : κ < 64) {L : MemoryImage κ} {fp : K} {r : Regi
 
 /-- **(b) A function is compiled correctly**: for every function other than `main` of a compiled
 program, its obligations holding. -/
-theorem fn_sound (hW : W.Compiled) (hκ : κ < 64) {tf : TracedFn} (htf : tf ∈ W.p)
-    (hne : tf.core.name ≠ "main") (hobl : W.Obligations tf) : W.FnSound tf := by
+theorem fn_sound (hW : W.Compiled) (hκ : κ < 64) (hUc : W.ConstsIn) {tf : TracedFn}
+    (htf : tf ∈ W.p) (hne : tf.core.name ≠ "main") (hobl : W.Obligations tf) : W.FnSound tf := by
   intro n hC fp k hk hpre hs
   have hpre' := hpre
   obtain ⟨-, hjt, tf', htf', hname, hself, hU⟩ := hpre
   obtain rfl := eq_of_name (World.names hW).2.1 htf' htf hname
-  obtain ⟨hparams, hbody⟩ := body_of_run hW htf hobl hjt (fun h => absurd h hne) hself hU hC
+  obtain ⟨hparams, hbody⟩ := body_of_run hW hUc htf hobl hjt (fun h => absurd h hne) hself hU hC
     (Nat.le_of_lt_succ hk) hs
   obtain ⟨rs, -, hback⟩ := (holdsList_reach _ hbody).resolve_left id
   obtain ⟨k', hk', rg, hr, hs'⟩ := hback.resolve_left hne
@@ -199,10 +213,10 @@ theorem fn_sound (hW : W.Compiled) (hκ : κ < 64) {tf : TracedFn} (htf : tf ∈
 
 /-- A function with no `match` and no `dispatch`, nothing asked of the callers (`U` true), is
 compiled correctly with no obligation: the hypotheses of `fn_sound` are met. -/
-theorem fn_sound_plain (hW : W.Compiled) (hκ : κ < 64) {tf : TracedFn} (htf : tf ∈ W.p)
-    (hne : tf.core.name ≠ "main") (hU : ∀ f a, W.U f a)
+theorem fn_sound_plain (hW : W.Compiled) (hκ : κ < 64) (hUc : W.ConstsIn) {tf : TracedFn}
+    (htf : tf ∈ W.p) (hne : tf.core.name ≠ "main") (hU : ∀ f a, W.U f a)
     (hsel : selFreeList tf.core.body = true) : W.FnSound tf :=
-  fn_sound hW hκ htf hne fun _ _ _ => oblList_of_selFree hU _ _ hsel trivial
+  fn_sound hW hκ hUc htf hne fun _ _ _ => oblList_of_selFree hU _ _ hsel trivial
 
 /-! ## The whole program -/
 
@@ -286,18 +300,21 @@ theorem jt_of_run (hW : W.Compiled) {k : ℕ}
 
 /-- **Every function's contract**, by induction on the steps left, every function's obligations
 holding. -/
-theorem contracts (hW : W.Compiled) (hκ : κ < 64) (hobl : ∀ tf ∈ W.p, W.Obligations tf)
-    (g : String) : FunSpecReached W.prog W.L (W.ent g) (W.Pre g) (W.Post g) :=
+theorem contracts (hW : W.Compiled) (hκ : κ < 64) (hUc : W.ConstsIn)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf) (g : String) :
+    FunSpecReached W.prog W.L (W.ent g) (W.Pre g) (W.Post g) :=
   funSpecReached_induction (ι := String) (entry := W.ent) (P := W.Pre) (Q := W.Post)
     (fun n hn g fp k hk hpre hs => by
       have hpre' := hpre
       obtain ⟨hne, -, tf, htf, rfl, -⟩ := hpre
-      exact fn_sound hW hκ htf hne (hobl tf htf) n hn fp k hk hpre' hs) g
+      exact fn_sound hW hκ hUc htf hne (hobl tf htf) n hn fp k hk hpre' hs) g
 
-/-- **(c) The program is compiled correctly**: on a memory where a run of the compiled program
-from `(g^0, 1)` halts, every function's obligations holding, `main`'s core body holds at frame
-`1` under the valuation by places, its calls located. -/
-theorem program_sound (hW : W.Compiled) (hκ : κ < 64) (hobl : ∀ tf ∈ W.p, W.Obligations tf)
+/-- **(c) The program is compiled correctly**, where the callers' preconditions carry the
+constant parameters: on a memory where a run of the compiled program from `(g^0, 1)` halts,
+every function's obligations holding, `main`'s core body holds at frame `1` under the valuation
+by places, its calls located. `program_sound` (`Consts.lean`) asks no such precondition. -/
+theorem program_sound_of (hW : W.Compiled) (hκ : κ < 64) (hUc : W.ConstsIn)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
     (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
     {k : ℕ} (hs : Safe W.prog W.L k ⟨addressOfIndex 0, 1⟩) : W.MainHolds := by
   obtain ⟨-, -, -, hmain⟩ := World.names hW
@@ -311,9 +328,9 @@ theorem program_sound (hW : W.Compiled) (hκ : κ < 64) (hobl : ∀ tf ∈ W.p, 
         exact ⟨tf, List.mem_cons_self, by simpa using hmain⟩
   obtain ⟨k', -, hjt, hs'⟩ := jt_of_run hW ⟨hs, Reach.refl _⟩
   rw [← hname] at hs'
-  obtain ⟨hparams, hbody⟩ := body_of_run hW htf (hobl tf htf) hjt (fun _ => rfl)
+  obtain ⟨hparams, hbody⟩ := body_of_run hW hUc htf (hobl tf htf) hjt (fun _ => rfl)
     (fun hreg => absurd (hname ▸ hreg) (main_not_registered hW)) (hname ▸ hU tf htf hname)
-    (fun g => (contracts hW hκ hobl g).lt k') (Nat.le_refl _) hs'
+    (fun g => (contracts hW hκ hUc hobl g).lt k') (Nat.le_refl _) hs'
   exact ⟨tf, htf, hname, hparams,
     holdsList_mono (fun _ _ _ h => h) _ id (fun _ h => h.1) hbody⟩
 
@@ -331,24 +348,6 @@ theorem program_rel (hW : W.Compiled) (h : W.MainHolds) :
     exact this
   exact (rel_iff W.core "main" _ _).mpr ⟨tf.core, hfind, W.vf tf.core.name 1, hparams,
     holdsList_mono (relL_le_rel W.core) _ id (fun _ h => h) hbody⟩
-
-/-- (c) for a valid execution of the compiled program. -/
-theorem program_sound_valid (hW : W.Compiled) (hκ : κ < 64)
-    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
-    (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
-    {input : PublicInput} {steps : ℕ}
-    (h : ValidExecution W.prog input ⟨κ, W.L, steps⟩) : W.MainHolds :=
-  program_sound hW hκ hobl hU (safe_of_validExecution h)
-
-/-! ## The statements -/
-
-/-- **(b), for every program.** -/
-theorem fnSound : FnSoundStmt :=
-  fun _ hW hκ _ htf hne hobl => fn_sound hW hκ htf hne hobl
-
-/-- **(c), for every program.** -/
-theorem programSound : ProgramSoundStmt :=
-  fun _ hW hκ hobl hU _ hs => program_sound hW hκ hobl hU hs
 
 end
 end LeanVM.Compiler

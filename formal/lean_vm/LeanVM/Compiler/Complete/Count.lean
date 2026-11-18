@@ -35,6 +35,7 @@ def ctrlSplit : List Stmt → Option (Stmt × List Stmt)
 /-- The opcode a labelled instruction assembles to. -/
 def lopCode : LOp → Opcode
   | .mulNextFrame .. => .mulNative
+  | .setNextFrame .. => .setConstant
   | .set .. => .setConstant
   | .xor .. => .xor
   | .mul .. => .mulNative
@@ -95,9 +96,9 @@ def pmS (keyed top : Bool) : PStmt → PM
   | .call _ c =>
       ⟨some (opsCnt (callPre c) + jumpCnt + opsCnt (callRets c.nfp c.args.length c.rets)),
         if c.tail then some (opsCnt (callPre c) + jumpCnt) else none⟩
-  | .loopNext _ callee nfp entry _ one args =>
-      ⟨some (opsCnt (loopPre callee nfp entry one args) + jumpCnt),
-        some (opsCnt (loopPre callee nfp entry one args) + jumpCnt)⟩
+  | .loopNext _ callee nfp entry _ one args consts =>
+      ⟨some (opsCnt (loopPre callee nfp entry one args consts) + jumpCnt),
+        some (opsCnt (loopPre callee nfp entry one args consts) + jumpCnt)⟩
   | .dispatch _ _ nfp joinCell x entry _ first args rets =>
       ⟨some (opsCnt (dispatchPre 0 nfp joinCell x entry first args) + jumpCnt +
         opsCnt (callRets nfp args.length rets)), none⟩
@@ -201,7 +202,7 @@ def alS : PStmt → List Stmt → (List Stmt → Bool) → Bool
       | some (.call _ _ _, rest) => k rest
       | some (.callIf _ _ _, rest) => k rest
       | _ => false
-  | .loopNext _ _ _ _ _ _ _, cs, k =>
+  | .loopNext _ _ _ _ _ _ _ _, cs, k =>
       match ctrlSplit cs with
       | some (.callIf _ _ _, rest) => k rest
       | _ => false
