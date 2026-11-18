@@ -22,7 +22,7 @@ pub use execute::{ExecError, Execution, Fault, Memory, execute};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Jrow, Krow, Prow, Srow, Trace, Xrow};
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) on the stream, from which the
 /// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not
@@ -355,7 +355,12 @@ mod tests {
         for k in 0..2u32 {
             prog.push(set(39 + k, F128::ONE));
         }
-        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        prog.push(Op::Xor {
+            a: 0,
+            b: 0,
+            c: 0,
+            k: verifier::E::default(),
+        }); // sentinel
         assert_eq!(prog.len(), 16);
         from_bytecode(prog, 64)
     }
@@ -379,9 +384,19 @@ mod tests {
                 out_cells,
             });
         }
-        prog.push(Op::Xor { a: 13, b: 27, c: 40 });
+        prog.push(Op::Xor {
+            a: 13,
+            b: 27,
+            c: 40,
+            k: verifier::E::default(),
+        });
         prog.push(set(41, F128::ONE));
-        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        prog.push(Op::Xor {
+            a: 0,
+            b: 0,
+            c: 0,
+            k: verifier::E::default(),
+        }); // sentinel
         assert_eq!(prog.len(), 16);
         from_bytecode(prog, 64)
     }
@@ -450,7 +465,12 @@ mod tests {
     fn halts_in_the_final_state() {
         let pi = [w(7), w(11)];
         let (last_pc, other_fp) = (F128::from(g_pow(7)), F128::from(g_pow(1)));
-        let fill = Op::Xor { a: 0, b: 0, c: 0 };
+        let fill = Op::Xor {
+            a: 0,
+            b: 0,
+            c: 0,
+            k: verifier::E::default(),
+        };
         // The last slot is reached at `fp = g`, which is not main's, so it runs like any other.
         let program = |last| {
             let code = vec![
@@ -469,7 +489,11 @@ mod tests {
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
         let exec = execute(&jumping, &[], pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
-        assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
+        assert_eq!(
+            exec.rows(),
+            [0, 0, 3, 0, 2, 0, 0],
+            "XOR, MUL, SET, DEREF, JUMP, KECCAK, DISPATCH"
+        );
         let (proof, _) = prove(&jumping, &[], pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 
@@ -489,8 +513,18 @@ mod tests {
         let prog = vec![
             set(2, x),
             set(3, y),
-            Op::Mul { a: 2, b: 3, c: 4 },
-            Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
+            Op::Mul {
+                a: 2,
+                b: 3,
+                c: 4,
+                k: verifier::E::default(),
+            },
+            Op::Xor {
+                a: 0,
+                b: 0,
+                c: 0,
+                k: verifier::E::default(),
+            }, // sentinel (never executed)
         ];
         let program = from_bytecode(prog, 5);
         let pi = [w(1), w(2)];

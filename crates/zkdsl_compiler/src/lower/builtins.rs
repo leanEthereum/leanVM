@@ -343,8 +343,8 @@ impl FnLower<'_> {
             SpongeCell::Zero => SpongeCell::Const(v),
             SpongeCell::Const(c) => SpongeCell::Const(c + v),
             SpongeCell::Cell(o) => {
-                let (k, dst) = (self.const_cell(v), self.fresh());
-                self.emit(LOp::Xor { a: o, b: k, c: dst });
+                let dst = self.fresh();
+                self.xor_const(o, v, dst);
                 SpongeCell::Cell(dst)
             }
         };
@@ -373,24 +373,20 @@ impl FnLower<'_> {
     /// `state ⊕ c`, into `dst` if given: a zero `c` is the state cell itself (or a copy of it
     /// into `dst`).
     fn sponge_xor(&mut self, state: Off, c: SpongeCell, dst: Option<Off>) -> Off {
-        let other = match c {
-            SpongeCell::Zero => {
-                return match dst {
-                    Some(d) => {
-                        self.copy(state, d);
-                        d
-                    }
-                    None => state,
-                };
+        let d = match (c, dst) {
+            (SpongeCell::Zero, None) => return state,
+            (SpongeCell::Zero, Some(d)) => {
+                self.copy(state, d);
+                return d;
             }
-            c => self.sponge_cell(c),
+            (_, Some(d)) => d,
+            (_, None) => self.fresh(),
         };
-        let d = dst.unwrap_or_else(|| self.fresh());
-        self.emit(LOp::Xor {
-            a: state,
-            b: other,
-            c: d,
-        });
+        match c {
+            SpongeCell::Const(v) => self.xor_const(state, v, d),
+            SpongeCell::Cell(other) => self.arith(PureOp::Xor, state, other, d, F128::ZERO),
+            SpongeCell::Zero => {}
+        }
         d
     }
 

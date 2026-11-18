@@ -51,15 +51,19 @@ pub(crate) enum LOp {
         o: Off,
         k: KVal,
     },
+    /// `c = a + b + k`.
     Xor {
         a: Off,
         b: Off,
         c: Off,
+        k: F128,
     },
+    /// `c = a·b + k`.
     Mul {
         a: Off,
         b: Off,
         c: Off,
+        k: F128,
     },
     Deref {
         o1: Off,
@@ -78,6 +82,13 @@ pub(crate) enum LOp {
         x: Off,
         first: u32,
         dst: Off,
+    },
+    /// `DISPATCH`: jump, in this frame, to slot `x = g^j` of the jump table at `first`, `j < bound`
+    /// checked by the instruction ([`JumpTables`]).
+    Dispatch {
+        x: Off,
+        first: u32,
+        bound: u32,
     },
     /// `KECCAK`: one permutation. The four `m` cells and `b8` are addressed
     /// independently, `tail` (4 cells), `cap` (4 cells) and the output `c` (its first

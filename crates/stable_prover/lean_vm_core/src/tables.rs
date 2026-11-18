@@ -15,7 +15,7 @@
 //! identities to the table sumcheck as a degree-2 form (`Table::constraint`).
 
 use crate::constraints::Form;
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Srow, Trace};
+use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Prow, Srow, Trace};
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F128, mul_by_g};
 use std::ops::Range;
@@ -57,6 +57,7 @@ pub(crate) const OP_SET: F64 = g_pow(verifier::layout::OP_SET);
 pub(crate) const OP_DEREF: F64 = g_pow(verifier::layout::OP_DEREF);
 pub(crate) const OP_JUMP: F64 = g_pow(verifier::layout::OP_JUMP);
 pub(crate) const OP_KECCAK: F64 = g_pow(verifier::layout::OP_KECCAK);
+pub(crate) const OP_DISPATCH: F64 = g_pow(verifier::layout::OP_DISPATCH);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -185,12 +186,12 @@ impl<'a> FillCtx<'a> {
         self.gpow[i as usize]
     }
 
-    /// The three frame offsets of an `XOR`/`MUL` row. A row records
+    /// The three frame offsets and the immediate of an `XOR`/`MUL` row. A row records
     /// only its `(pc, fp)`; the operands are the instruction's, so they are read
     /// back from the bytecode rather than copied into every row (`cpu::trace`).
-    fn ternary_operands(&self, pc: u32) -> (u32, u32, u32) {
+    fn ternary_operands(&self, pc: u32) -> (u32, u32, u32, [F64; 2]) {
         match self.prog[pc as usize] {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (a, b, c),
+            Op::Xor { a, b, c, k } | Op::Mul { a, b, c, k } => (a, b, c, [F64(k.c0), F64(k.c1)]),
             op => unreachable!("a three-operand row's pc {pc} holds {op:?}"),
         }
     }
@@ -297,7 +298,7 @@ pub(crate) trait Table: Sync {
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
+/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK, DISPATCH]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
 pub use verifier::layout::N_TABLES;
 
@@ -309,6 +310,7 @@ pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
         &DerefTable,
         &JumpTable,
         &KeccakTable,
+        &DispatchTable,
     ]
 }
 
@@ -400,7 +402,8 @@ const fn free_limb(odd: bool) -> (usize, bool) {
 
 /// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
 /// differ only in the opcode tag and in how the destination cell's value rides
-/// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
+/// the bus (`v_A + v_B + k` for `XOR`, `v_A·v_B + k` in `E = K[y]/(y²+x·y+1)` for `MUL`,
+/// `k` the immediate the bytecode carries).
 /// Neither commits that value and neither has an identity: the destination's
 /// memory flush carries the result as a degree-≤2 coordinate over the operand
 /// lanes, so bus balance is the assertion (§sec:m3).
@@ -421,26 +424,32 @@ mod arith {
     pub const VA_HI: usize = 6;
     pub const VB_LO: usize = 7;
     pub const VB_HI: usize = 8;
-    pub const RA: usize = 9;
-    pub const RB: usize = 10;
-    pub const RC: usize = 11;
-    pub const RBC: usize = 12;
-    pub const N: usize = 13;
+    // The immediate's two K-limbs, bound by the bytecode's spare slots.
+    pub const K_LO: usize = 9;
+    pub const K_HI: usize = 10;
+    pub const RA: usize = 11;
+    pub const RB: usize = 12;
+    pub const RC: usize = 13;
+    pub const RBC: usize = 14;
+    pub const N: usize = 15;
 }
 
-/// The result word's two K-lanes as forms over the operand lanes. For `XOR`
+/// The result word's two K-lanes as forms over the operand lanes and the immediate. For `XOR`
 /// that is the lane-wise sum; for `MUL` it is the tower product, unrolled through
-/// [`TOWER_LANES`].
+/// [`TOWER_LANES`], plus the immediate.
 fn arith_result(is_xor: bool) -> [Coord; 2] {
     use arith::*;
     if is_xor {
         return [
-            Coord::Sum(vec![Col(VA_LO), Col(VB_LO)]),
-            Coord::Sum(vec![Col(VA_HI), Col(VB_HI)]),
+            Coord::Sum(vec![Col(VA_LO), Col(VB_LO), Col(K_LO)]),
+            Coord::Sum(vec![Col(VA_HI), Col(VB_HI), Col(K_HI)]),
         ];
     }
-    let (a, b) = ([VA_LO, VA_HI], [VB_LO, VB_HI]);
-    let lane = |i: usize| Coord::Sum(TOWER_LANES[i].iter().map(|&(j, k, e)| Prod(a[j], b[k], e)).collect());
+    let (a, b, k) = ([VA_LO, VA_HI], [VB_LO, VB_HI], [K_LO, K_HI]);
+    let lane = |i: usize| {
+        let product = TOWER_LANES[i].iter().map(|&(j, l, e)| Prod(a[j], b[l], e));
+        Coord::Sum(product.chain([Col(k[i])]).collect())
+    };
     [lane(0), lane(1)]
 }
 
@@ -458,7 +467,7 @@ impl Table for Arith {
             PC,
             RBC,
             if self.is_xor { OP_XOR } else { OP_MUL },
-            &[Col(OA), Col(OB), Col(OC), Const(F64::ZERO), Const(F64::ZERO)],
+            &[Col(OA), Col(OB), Col(OC), Col(K_LO), Col(K_HI)],
         );
         f.memory(Prod(FP, OA, 0), RA, VA_LO, VA_HI);
         f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI);
@@ -470,9 +479,19 @@ impl Table for Arith {
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         ctx.cols(out, rows, OA, |r| {
-            let (a, b, c) = ctx.ternary_operands(r.pc);
+            let (a, b, c, k) = ctx.ternary_operands(r.pc);
             let (va, vb) = (ctx.limbs(r.fp + a), ctx.limbs(r.fp + b));
-            [ctx.g_at(a), ctx.g_at(b), ctx.g_at(c), va[0], va[1], vb[0], vb[1]]
+            [
+                ctx.g_at(a),
+                ctx.g_at(b),
+                ctx.g_at(c),
+                va[0],
+                va[1],
+                vb[0],
+                vb[1],
+                k[0],
+                k[1],
+            ]
         });
         ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc].map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
@@ -904,10 +923,90 @@ impl Table for KeccakTable {
     }
 }
 
+// ---- DISPATCH ----------------------------------------------------------------
+
+/// `DISPATCH`: the index `x = g^n` read from the frame, the next pc read from slot `n` of the table at `t`, and
+/// `n < bound` held by reads at `x` and at `y = g^(bound-1)/x`, whose product rides the bytecode tuple: both must be
+/// addresses, so neither exponent is negative. The frame stays.
+struct DispatchTable;
+
+mod dispatch {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const OX: usize = 2;
+    pub const T: usize = 3;
+    pub const X: usize = 4;
+    pub const Y: usize = 5;
+    pub const DEST: usize = 6;
+    // The words at `x` and at `y`, read only for their addresses.
+    pub const LO_LO: usize = 7;
+    pub const LO_HI: usize = 8;
+    pub const HI_LO: usize = 9;
+    pub const HI_HI: usize = 10;
+    pub const RX: usize = 11;
+    pub const RDEST: usize = 12;
+    pub const RLO: usize = 13;
+    pub const RHI: usize = 14;
+    pub const RBC: usize = 15;
+    pub const N: usize = 16;
+}
+
+impl Table for DispatchTable {
+    fn n_committed_columns(&self) -> usize {
+        dispatch::N
+    }
+    fn count_columns(&self) -> Range<usize> {
+        dispatch::RX..dispatch::RBC + 1
+    }
+    fn flushes(&self, f: &mut FlushBuilder) {
+        use dispatch::*;
+        f.state_derived(PC, FP, Col(DEST), Col(FP));
+        f.bytecode(
+            PC,
+            RBC,
+            OP_DISPATCH,
+            &[Col(OX), Col(T), Prod(X, Y, 0), Const(F64::ZERO), Const(F64::ZERO)],
+        );
+        f.memory_k(Prod(FP, OX, 0), RX, X);
+        f.memory_k(Prod(X, T, 0), RDEST, DEST);
+        f.memory(Col(X), RLO, LO_LO, LO_HI);
+        f.memory(Col(Y), RHI, HI_LO, HI_HI);
+    }
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
+        use dispatch::*;
+        let rows = &ctx.trace.dispatch;
+        let ins = |r: &Prow| match ctx.prog[r.pc as usize] {
+            Op::Dispatch { x, table, bound } => (x, table, bound),
+            op => unreachable!("a DISPATCH row's pc {} holds {op:?}", r.pc),
+        };
+        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
+        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
+        ctx.cols(out, rows, OX, |r| {
+            let (x, table, bound) = ins(r);
+            let (lo, hi) = (ctx.limbs(r.n), ctx.limbs(bound - 1 - r.n));
+            [
+                ctx.g_at(x),
+                ctx.g_at(table),
+                ctx.g_at(r.n),
+                ctx.g_at(bound - 1 - r.n),
+                F64(ctx.mem.word((table + r.n) as usize).c0),
+                lo[0],
+                lo[1],
+                hi[0],
+                hi[1],
+            ]
+        });
+        ctx.cols(out, rows, RX, |r| [r.rx, r.rdest, r.rlo, r.rhi].map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+    }
+}
+
 /// The fewest committed columns of a table's row, `SET`'s: a run of `n` steps commits at least `n` times it, which
 /// bounds the steps of a provable run (the interpreter's step limit).
 pub(crate) const MIN_COMMITTED_COLUMNS: usize = set::N;
-const _: () = assert!(set::N <= arith::N && set::N <= deref::N && set::N <= jump::N && set::N <= keccakt::N);
+const _: () = assert!(
+    set::N <= arith::N && set::N <= deref::N && set::N <= jump::N && set::N <= keccakt::N && set::N <= dispatch::N
+);
 
 // Each table's columns are the verifier's, in number, and the KECCAK value lanes and read counts where the verifier's
 // spare slots expect them.
@@ -916,6 +1015,7 @@ const _: () = {
     assert!(arith::N == TABLE_WIDTHS[OP_XOR] && arith::N == TABLE_WIDTHS[OP_MUL]);
     assert!(set::N == TABLE_WIDTHS[OP_SET] && deref::N == TABLE_WIDTHS[OP_DEREF] && jump::N == TABLE_WIDTHS[OP_JUMP]);
     assert!(keccakt::N == TABLE_WIDTHS[verifier::layout::OP_KECCAK]);
+    assert!(dispatch::N == TABLE_WIDTHS[verifier::layout::OP_DISPATCH]);
     assert!(keccakt::V_IN == KECCAK_IN && keccakt::V_OUT == KECCAK_OUT && keccakt::R0 == KECCAK_CNT);
 };
 

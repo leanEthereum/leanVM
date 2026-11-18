@@ -7,33 +7,33 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 
 \subsection{\texttt{XOR}}\label{sec:tab-xor}
 
-\texttt{XOR}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}$, the $128$-bit field sum (in $\E$).
+\texttt{XOR}\ $[o_A,o_B,o_C,k_0,k_1]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}+k_0+k_1y$, the $128$-bit field sum (in $\E$) with the immediate $k_0+k_1y$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; the immediate $(k_i)_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{XOR},o_A,o_B,o_C,0,0}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{XOR},o_A,o_B,o_C,k_0,k_1}$.
   \item \textbf{Memory:}
     \begin{align*}
       &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0},v_{A,1}+v_{B,1}}.
+      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0}+k_0,v_{A,1}+v_{B,1}+k_1}.
     \end{align*}
   \end{itemize}
 \end{itemize}
 
 \subsection{\texttt{MUL\_NATIVE}}\label{sec:tab-mul}
 
-\texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}$, the $128$-bit field multiplication (in $\E$).
+\texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C,k_0,k_1]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}+k_0+k_1y$, the $128$-bit field multiplication (in $\E$) plus the immediate.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; the immediate $(k_i)_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{MUL},o_A,o_B,o_C,0,0}$.
-  \item \textbf{Memory} (the destination carries $v_Av_B$ in $\E$, of degree two). With $y^2=\gen y+1$ (\S\ref{sec:vm}), put
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{MUL},o_A,o_B,o_C,k_0,k_1}$.
+  \item \textbf{Memory} (the destination carries $v_Av_B+k$ in $\E$, of degree two). With $y^2=\gen y+1$ (\S\ref{sec:vm}), put
     \[
     p_0=v_{A,0}v_{B,0},\qquad
     p_1=v_{A,0}v_{B,1}+v_{A,1}v_{B,0},\qquad
@@ -42,7 +42,7 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
     four products over the four pairs $v_{A,i}v_{B,j}$:
     \begin{align*}
       &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_2,p_1+\gen\,p_2}.
+      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_2+k_0,p_1+\gen\,p_2+k_1}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -150,3 +150,22 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
   \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.
   \end{itemize}
 \end{itemize}
+
+\subsection{\texttt{DISPATCH}}\label{sec:tab-dispatch}
+
+\texttt{DISPATCH}\ $[o_x,t,L]$ reads $x=\loc{o_x}$ and jumps to the pc $d=\mem[x\cdot t]$ in the same frame, holding $n<b$ for $x=\gen^n$ and $L=\gen^{b-1}$ by two reads, at $x$ and at $y$, whose product $x\cdot y$ the bytecode pins to $L$.
+\begin{itemize}
+\item \textbf{Columns:} $\pc,\fp$; operands $o_x,t$; $x,y,d$; the words read at $x$ and $y$, $(u_i)_{i\in\{0,1\}}$ and $(w_i)_{i\in\{0,1\}}$; memory counts $r_x,r_d,r_u,r_w$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Constraints:} none.
+\item \textbf{Flushes:}
+  \begin{itemize}
+  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},d,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{DSP},o_x,t,x\cdot y,0,0}$.
+  \item \textbf{Memory:}
+    \begin{align*}
+      &\rdf{\dsep{MEM},\fp\cdot o_x,r_x,x,0},\qquad \rdf{\dsep{MEM},x\cdot t,r_d,d,0},\\
+      &\rdf{\dsep{MEM},x,r_u,u_0,u_1},\qquad \rdf{\dsep{MEM},y,r_w,w_0,w_1}.
+    \end{align*}
+  \end{itemize}
+\end{itemize}
+Both $x$ and $y$ are addresses, so $x=\gen^n$ and $y=\gen^m$ with $n,m<2^{\kmem}\le2^{30}$, and $n+m=b-1$ exactly since $n+m<2^{64}-1$: hence $n\le b-1$.

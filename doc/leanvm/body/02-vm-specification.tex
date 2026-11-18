@@ -51,24 +51,27 @@ For a given pair of bytecode and public input, there is in general more than one
 \paragraph{Operands.} An instruction is an opcode followed by a list of $\K$-valued operands. An operand is either:
 \begin{itemize}
   \item an \emph{fp-relative reference} $o=\gen^{\,j}$, which names the word $\mem[\fp\cdot o]$, at offset $j$ in the current frame;
-  \item one $\K$-limb of an \emph{immediate} ($k_0,k_1$ in \texttt{SET\_CONSTANT}).
+  \item one $\K$-limb of an \emph{immediate} ($k_0,k_1$ in \texttt{SET\_CONSTANT}, \texttt{XOR} and \texttt{MUL\_NATIVE}).
 \end{itemize}
 
-\paragraph{Instruction set.} The machine implements six instructions.
+\paragraph{Instruction set.} The machine implements seven instructions.
 \begin{center}
 \begin{tabularx}{\textwidth}{@{}llX@{}}
 \hline
 Instruction & Operands & Semantics\\
 \hline
-\texttt{XOR}           & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}+\loc{o_B}$ (addition in $\E$)\\
-\texttt{MUL\_NATIVE}   & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}\cdot\loc{o_B}$ (multiplication in $\E$)\\
+\texttt{XOR}           & $[o_A,o_B,o_C,k_0,k_1]$ & $\loc{o_C}=\loc{o_A}+\loc{o_B}+k_0+k_1y$ (addition in $\E$)\\
+\texttt{MUL\_NATIVE}   & $[o_A,o_B,o_C,k_0,k_1]$ & $\loc{o_C}=\loc{o_A}\cdot\loc{o_B}+k_0+k_1y$ (multiplication in $\E$)\\
 \texttt{SET\_CONSTANT} & $[o,k_0,k_1]$ & $\loc{o}=k_0+k_1y$\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\
 \texttt{KECCAK}           & $\begin{array}[t]{@{}l@{}}[o_{m_0},o_{m_1},o_{m_2},o_{m_3},\\ \;\:o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\\ \;\:\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}},\\ \;\:\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}]\end{array}$ & one Keccak permutation (see below)\\
+\texttt{DISPATCH}         & $[o_x,t,L]$ & with $\loc{o_x}=\gen^n$, $n<\log_\gen L+1$: $\pc\gets\mem[t\cdot\gen^n]$, $\fp\gets\fp$ (see below)\\
 \hline
 \end{tabularx}
 \end{center}
+
+\texttt{DISPATCH} reads $x=\loc{o_x}\in\K$ and jumps, in the same frame, to the pc held at $\mem[x\cdot t]$, slot $n$ of a table at $t$ when $x=\gen^n$. It also reads the words at addresses $x$ and $y$ with $x\cdot y=L$, $L=\gen^{b-1}$ for the bound $b$: both being addresses, $n$ and $b-1-n$ lie in $[0,2^{\kmem})$, so $n<b$.
 
 
 \texttt{DEREF} stores, at the dereferenced address $\loc{o_1}\cdot o_2$, a value chosen by a \emph{store mode} $\dmode\in\{\texttt{deref\_cell}[o_3],\texttt{deref\_pc},\texttt{deref\_fp}\}$:

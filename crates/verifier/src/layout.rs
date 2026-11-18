@@ -219,9 +219,10 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     );
     let va = cols(ARITH_COLUMNS, ["va_0", "va_1"]);
     let vb = cols(ARITH_COLUMNS, ["vb_0", "vb_1"]);
+    let k = cols(ARITH_COLUMNS, ["k_0", "k_1"]);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), constant(ZERO), constant(ZERO)];
+    let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), col(k[0], 0), col(k[1], 0)];
     flushes.bytecode(pc, cnt_bc, opcode, operands);
     flushes.memory_cols(prod(fp, o_a, 0), cnt_a, &va);
     flushes.memory_cols(prod(fp, o_b, 0), cnt_b, &vb);
@@ -232,6 +233,7 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     } else {
         std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
     };
+    let result = std::array::from_fn(|i| result[i].clone() + col(k[i], 0));
     flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
     flushes
 }
@@ -296,6 +298,26 @@ fn flushes_jump() -> Flushes {
 fn jump_constraints(columns: &[E]) -> Vec<E> {
     let [condition, inverse, flag] = cols(JUMP_COLUMNS, ["v_cond", "w", "b"]).map(|index| columns[index]);
     vec![flag + condition * inverse, condition * (flag + ONE)]
+}
+
+/// `DISPATCH`: `x = g^n` from the frame, the next pc read from slot `n` of the table at `t`, and `n` held below the
+/// bound by two reads at `x` and at `y`, `x·y` the bytecode's `g^(bound-1)`: both are addresses, so `n` and
+/// `bound - 1 - n` are at least zero.
+fn flushes_dispatch() -> Flushes {
+    let [pc, fp, o_x, t, x, y, dest] = cols(DISPATCH_COLUMNS, ["pc", "fp", "o_x", "t", "x", "y", "dest"]);
+    let [cnt_x, cnt_dest, cnt_lo, cnt_hi, cnt_bc] =
+        cols(DISPATCH_COLUMNS, ["cnt_x", "cnt_dest", "cnt_lo", "cnt_hi", "cnt_bc"]);
+    let lo = cols(DISPATCH_COLUMNS, ["lo_0", "lo_1"]);
+    let hi = cols(DISPATCH_COLUMNS, ["hi_0", "hi_1"]);
+    let mut flushes = Flushes::default();
+    flushes.state_derived(pc, fp, col(dest, 0), col(fp, 0));
+    let operands = vec![col(o_x, 0), col(t, 0), prod(x, y, 0), constant(ZERO), constant(ZERO)];
+    flushes.bytecode(pc, cnt_bc, OP_DISPATCH, operands);
+    flushes.memory_cols(prod(fp, o_x, 0), cnt_x, &[x]);
+    flushes.memory_cols(prod(x, t, 0), cnt_dest, &[dest]);
+    flushes.memory_cols(col(x, 0), cnt_lo, &lo);
+    flushes.memory_cols(col(y, 0), cnt_hi, &hi);
+    flushes
 }
 
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
@@ -380,15 +402,18 @@ pub const OP_SET: usize = 2;
 pub const OP_DEREF: usize = 3;
 pub const OP_JUMP: usize = 4;
 pub const OP_KECCAK: usize = 5;
-pub const N_TABLES: usize = 6;
+pub const OP_DISPATCH: usize = 6;
+pub const N_TABLES: usize = 7;
 
 #[rustfmt::skip]
-const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
+const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "k_0", "k_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
 const SET_COLUMNS: &[&str] = &["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"];
 #[rustfmt::skip]
 const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"];
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
+#[rustfmt::skip]
+const DISPATCH_COLUMNS: &[&str] = &["pc", "fp", "o_x", "t", "x", "y", "dest", "lo_0", "lo_1", "hi_0", "hi_1", "cnt_x", "cnt_dest", "cnt_lo", "cnt_hi", "cnt_bc"];
 // KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
 // read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
 // q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
@@ -469,6 +494,7 @@ pub fn tables() -> Vec<Table> {
         table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
         table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
         keccak,
+        table(OP_DISPATCH, named(DISPATCH_COLUMNS), flushes_dispatch(), |_| vec![]),
     ]
 }
 
@@ -479,6 +505,7 @@ pub const TABLE_WIDTHS: [usize; N_TABLES] = [
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
     KECCAK_CNT_BC + 1,
+    DISPATCH_COLUMNS.len(),
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -491,7 +518,7 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
 };
 
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
-pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
+pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG, 0];
 
 fn keccak_shape(table_log_heights: &[usize]) -> KeccakShape {
     KeccakShape {

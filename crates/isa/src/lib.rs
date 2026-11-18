@@ -66,15 +66,19 @@ impl CompiledProgram {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
+    /// `mem[fp·c] = mem[fp·a] + mem[fp·b] + k`, the immediate `k` riding the bytecode like `SET`'s.
     Xor {
         a: u32,
         b: u32,
         c: u32,
+        k: E,
     },
+    /// `mem[fp·c] = mem[fp·a]·mem[fp·b] + k`.
     Mul {
         a: u32,
         b: u32,
         c: u32,
+        k: E,
     },
     Set {
         o: u32,
@@ -114,6 +118,14 @@ pub enum Op {
         in_odd: bool,
         out_odd: bool,
         out_cells: OutCells,
+    },
+    /// `DISPATCH`: `x = mem[fp·g^x]` is `g^n` for some `n < bound`, and control moves to the pc held at
+    /// `mem[g^(table + n)]`, the frame unchanged. `n < bound` is checked by reading the cells at `g^n` and at
+    /// `g^(bound - 1 - n)`, both of which must be addresses.
+    Dispatch {
+        x: u32,
+        table: u32,
+        bound: u32,
     },
 }
 

@@ -919,6 +919,7 @@ pub(super) fn walk<M: Machine>(
         mut deref,
         mut jump,
         mut keccak,
+        mut dispatch,
     } = std::mem::replace(&mut r.rows, RowSet::new());
     let stopped = loop {
         if pc >= ending_pc {
@@ -1200,10 +1201,11 @@ pub(super) fn walk<M: Machine>(
         // and `Op` is wide enough that re-reading it costs a second load.
         let op = program.prog[pc as usize];
         match op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
+            Op::Xor { a, b, c, k } | Op::Mul { a, b, c, k } => {
                 let is_xor = matches!(op, Op::Xor { .. });
+                let k = super::from_scalar(k);
                 let (aa, ab, ac) = (at(fp, a)?, at(fp, b)?, at(fp, c)?);
-                // The row is the equality `m[c] = m[a] op m[b]` over write-once
+                // The row is the equality `m[c] = m[a] op m[b] + k` over write-once
                 // memory. Normally the operands are known and the result is
                 // computed forward; for a `MUL` whose result is already written
                 // and exactly one of whose operands is not, the runner
@@ -1223,7 +1225,7 @@ pub(super) fn walk<M: Machine>(
                         if vk.is_zero() {
                             return Err(fail(Fault::BackSolveThroughZero));
                         }
-                        let vc = m.get(ac);
+                        let vc = m.get(ac) + k;
                         m.put(if ha { ab } else { aa }, vc * vk.inv())?;
                     }
                 }
@@ -1231,7 +1233,7 @@ pub(super) fn walk<M: Machine>(
                 // operands alias still pairs each access with its own count.
                 let (va, ra) = m.read(aa);
                 let (vb, rb) = m.read(ab);
-                let vc = if is_xor { va + vb } else { va * vb };
+                let vc = if is_xor { va + vb + k } else { va * vb + k };
                 let rc = m.put_counted(ac, vc)?;
                 let row = Xrow {
                     pc,
@@ -1376,6 +1378,39 @@ pub(super) fn walk<M: Machine>(
                 });
                 pc += 1;
             }
+            Op::Dispatch { x, table, bound } => {
+                let ax = at(fp, x)?;
+                let (v, rx) = m.read(ax);
+                let v = in_k("DISPATCH index", v).map_err(fail)?;
+                let n = m.g_log_below(v, bound as usize).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH index",
+                        value: v,
+                    })
+                })?;
+                let (slot, lo, hi) = (at(table, n)?, at(0, n)?, at(0, bound - 1 - n)?);
+                let (d, rdest) = m.read(slot);
+                let d = in_k("DISPATCH target", d).map_err(fail)?;
+                // The cells at `g^n` and `g^(bound-1-n)` are read only for their addresses.
+                let (rlo, rhi) = (m.bump(lo), m.bump(hi));
+                m.row(Table::Dispatch, dispatch.len());
+                dispatch.push(Prow {
+                    pc,
+                    fp,
+                    n,
+                    rx,
+                    rdest,
+                    rlo,
+                    rhi,
+                    bytecode_read,
+                });
+                pc = m.g_log_below(d, program.prog.len()).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH target",
+                        value: d,
+                    })
+                })?;
+            }
         }
         steps += 1;
     };
@@ -1388,6 +1423,7 @@ pub(super) fn walk<M: Machine>(
         deref,
         jump,
         keccak,
+        dispatch,
     };
     Ok(stopped)
 }

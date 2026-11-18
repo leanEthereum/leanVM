@@ -483,8 +483,15 @@ pub fn execute(
         .then(|| vec![0u64; program.prog.len()]);
 
     let mut bytecode_count: Vec<u32> = vec![0; program.prog.len()];
-    let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
-        (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak, mut dispatch) = (
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
     let (mut pc, mut fp) = (0u32, 0u32);
     let mut steps = 0usize;
     loop {
@@ -524,10 +531,11 @@ pub fn execute(
         // re-reading it costs a second load.
         let op = program.prog[pc as usize];
         match op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
+            Op::Xor { a, b, c, k } | Op::Mul { a, b, c, k } => {
                 let is_xor = matches!(op, Op::Xor { .. });
+                let k = super::from_scalar(k);
                 let (aa, ab, ac) = (at(fp, a)?, at(fp, b)?, at(fp, c)?);
-                // The row is `m[c] = m[a] op m[b]` over write-once memory. A `MUL` whose result is written and
+                // The row is `m[c] = m[a] op m[b] + k` over write-once memory. A `MUL` whose result is written and
                 // exactly one of whose operands is not back-solves that operand: the range check's complement
                 // `y = g^{k-1}·x^{-1}` and the quotient `a / b`, with no hint. An `XOR` does not, as one into a
                 // written cell is how `assert a == b` is spelled.
@@ -538,11 +546,13 @@ pub fn execute(
                         if known.is_zero() {
                             return Err(fail(Fault::BackSolveThroughZero));
                         }
-                        m.put(if ha { ab } else { aa }, m.get(ac) * known.inv()).map_err(fail)?;
+                        m.put(if ha { ab } else { aa }, (m.get(ac) + k) * known.inv())
+                            .map_err(fail)?;
                     }
                 }
                 let (va, vb) = (m.read(aa), m.read(ab));
-                m.put(ac, if is_xor { va + vb } else { va * vb }).map_err(fail)?;
+                m.put(ac, if is_xor { va + vb + k } else { va * vb + k })
+                    .map_err(fail)?;
                 let row = Xrow {
                     pc,
                     fp,
@@ -664,6 +674,34 @@ pub fn execute(
                 });
                 pc += 1;
             }
+            Op::Dispatch { x, table, bound } => {
+                let ax = at(fp, x)?;
+                let v = in_k("DISPATCH index", m.read(ax)).map_err(fail)?;
+                let n = g.log_below(v, bound as usize).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH index",
+                        value: v,
+                    })
+                })?;
+                let (slot, lo, hi) = (at(table, n)?, at(0, n)?, at(0, bound - 1 - n)?);
+                let d = in_k("DISPATCH target", m.read(slot)).map_err(fail)?;
+                dispatch.push(Prow {
+                    pc,
+                    fp,
+                    n,
+                    rx: m.bump_access_count(ax),
+                    rdest: m.bump_access_count(slot),
+                    rlo: m.bump_access_count(lo),
+                    rhi: m.bump_access_count(hi),
+                    bytecode_read,
+                });
+                pc = g.log_below(d, program.prog.len()).ok_or_else(|| {
+                    fail(Fault::NotAGPower {
+                        what: "DISPATCH target",
+                        value: d,
+                    })
+                })?;
+            }
         }
         steps += 1;
     }
@@ -679,6 +717,7 @@ pub fn execute(
         deref,
         jump,
         keccak,
+        dispatch,
         bytecode_count,
         counts,
     };
