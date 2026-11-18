@@ -13,36 +13,6 @@ public import LeanVM.Guest.Pack.«P44».Mode1
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«sel_partial_nibble__L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `sel_partial_nibble__L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 98) (d := Data.adviceFn98) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«sel_partial_nibble__L2»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector_tab__L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 233) (d := Data.adviceFn233) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L0»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L26»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -117,21 +87,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L12»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L12`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 553) (d := Data.adviceFn553) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L12»
 
 namespace LeanVM.Guest.Fn.«level_positions__L3_L17_L5»
 

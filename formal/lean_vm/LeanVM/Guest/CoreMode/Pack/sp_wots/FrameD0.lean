@@ -1748,14 +1748,14 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil) .nil)))) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none (.node (some ()) .nil .nil) .nil)) .nil))))) (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil)))) .nil)))))) .nil)), (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node (some frameCut1) .nil .nil))
-    .nil))) .nil)) .nil))) (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node none (.node (some frameCut2) .nil .nil)
-    .nil)) .nil) .nil)) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node (some frameCut0) .nil .nil)) .nil)))
-    .nil)) .nil))) .nil) .nil))⟩
+    (some ()) .nil .nil) .nil) .nil)))) .nil)))))) .nil)), .nil, (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some frameCut1) .nil
+    .nil)) .nil))) .nil)) .nil))) (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node (some frameCut2) .nil
+    .nil) .nil)) .nil) .nil)) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some frameCut0) .nil
+    .nil)) .nil))) .nil)) .nil))) .nil) .nil))⟩
 
 
 end

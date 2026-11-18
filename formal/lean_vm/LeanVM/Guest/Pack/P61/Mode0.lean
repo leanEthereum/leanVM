@@ -69,28 +69,6 @@ end
 
 end LeanVM.Guest.Fn.«padding_weight__L11»
 
-namespace LeanVM.Guest.Fn.«index_mle__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `index_mle__L30`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `index_mle__L30`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨203887, 152, Fn.«index_mle__L30».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `index_mle__L30`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L30»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -410,28 +388,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L19»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `squeeze_point_from__L19`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `squeeze_point_from__L19`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨264111, 77, Fn.«squeeze_point_from__L19».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `squeeze_point_from__L19`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L19»
 
 namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 

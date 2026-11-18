@@ -276,6 +276,14 @@ theorem smallOps_of {code : List OffsetInstruction} (h : code.all offSmall = tru
   generalize code[i] = ins at hs ⊢
   cases ins <;> simp_all [offSmall, CoreMode.SmallOps]
 
+/-- **The advice's hints at a function's pcs** are its entry's, `d` the `j`-th of the advice's
+functions, at the function's entry and covering its code. -/
+theorem hintsEq_of_fn {K : Cert} {Fh : List (ℕ × List Hint)} {j : ℕ} {d : ℕ × ℕ × List (ℕ × List Hint)}
+    (hj : Data.adviceFns[j]? = some d) (he : d.1 = K.F.entry) (hn : K.code.length ≤ d.2.1) (hF : Fh = d.2.2) :
+    ∀ i < K.code.length, hintsAt Data.adviceHints (K.F.entry + i) = hintsAt Fh (K.F.entry + i) := by
+  intro i hi
+  rw [adviceHints_eq, hintsAt_fns adviceFns_ok (List.mem_of_getElem? hj) (by omega) (by omega), hF]
+
 /-- **A function on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of {K : Cert} {Cf : CoreMode.CFun} (hok : CoreMode.CoreOk K Cf) : FnSpecC K Cf :=
   fun _ _ hC ha hK _ _ _ hκ hY hH ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH

@@ -7,10 +7,12 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P53».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P53».Mode1
 public import LeanVM.Guest.Pack.«P53».Mode2
+public import LeanVM.Guest.Pack.«P53».ModeC
 public import LeanVM.Guest.Pack.«P53».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -509,6 +511,10 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1».modeCert,
     Fn.«level_residual__L218_L24_L6_L3_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«eq_prefix_run__L10».cfun, Fn.«plus_one_run__L16».cfun]
+
 end
 
 public section
@@ -701,15 +707,16 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«sumcheck_round4».modeOk,
     Fn.«sumcheck_round4».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«eq_prefix_run__L10».modeOk,
-    Fn.«eq_prefix_run__L10».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«plus_one_run__L16».modeOk,
-    Fn.«plus_one_run__L16».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L10».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«eq_prefix_run__L10».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L16».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«plus_one_run__L16».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«block_selector_tab__L32».modeOk,
     Fn.«block_selector_tab__L32».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«da_pad_loop0».modeOk,

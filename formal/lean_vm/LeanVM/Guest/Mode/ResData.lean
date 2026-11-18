@@ -13,7 +13,7 @@ public import LeanVM.Guest.Pack.«P10».Mode0
 public import LeanVM.Guest.Pack.«P10».Mode1
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P12».Mode0
-public import LeanVM.Guest.Pack.«P13».Mode2
+public import LeanVM.Guest.Pack.«P13».Mode1
 public import LeanVM.Guest.Pack.«P15».Mode0
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode0
@@ -45,7 +45,7 @@ public import LeanVM.Guest.Pack.«P35».Mode0
 public import LeanVM.Guest.Pack.«P36».Mode0
 public import LeanVM.Guest.Pack.«P37».Mode0
 public import LeanVM.Guest.Pack.«P38».Mode0
-public import LeanVM.Guest.Pack.«P39».Mode1
+public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P40».Mode0
 public import LeanVM.Guest.Pack.«P40».Mode2
@@ -54,8 +54,7 @@ public import LeanVM.Guest.Pack.«P42».Mode1
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P44».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode0
-public import LeanVM.Guest.Pack.«P45».Mode1
-public import LeanVM.Guest.Pack.«P45».Mode4
+public import LeanVM.Guest.Pack.«P45».Mode3
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode2
@@ -69,7 +68,6 @@ public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode3
 public import LeanVM.Guest.Pack.«P55».Mode0
-public import LeanVM.Guest.Pack.«P55».Mode1
 public import LeanVM.Guest.Pack.«P56».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
 public import LeanVM.Guest.Pack.«P58».Mode2

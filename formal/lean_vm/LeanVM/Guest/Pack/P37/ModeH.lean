@@ -28,21 +28,6 @@ end
 
 end LeanVM.Guest.Fn.«shared_selector_tables_loop0»
 
-namespace LeanVM.Guest.Fn.«sel_partial_nibble__L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `sel_partial_nibble__L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 97) (d := Data.adviceFn97) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«sel_partial_nibble__L1»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L19»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -147,21 +132,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_positions__L4_L13_L7»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L11»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L11`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 510) (d := Data.adviceFn510) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L11»
 
 namespace LeanVM.Guest.Fn.«level_residual__L32_L11_L4_L2»
 

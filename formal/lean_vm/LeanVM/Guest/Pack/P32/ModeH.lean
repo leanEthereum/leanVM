@@ -28,21 +28,6 @@ end
 
 end LeanVM.Guest.Fn.«selector_tables»
 
-namespace LeanVM.Guest.Fn.«block_selector__L31»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector__L31`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 196) (d := Data.adviceFn196) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector__L31»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -147,21 +132,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L32_L7_L4_L2»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L16»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L16`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 544) (d := Data.adviceFn544) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L16»
 
 namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0»
 

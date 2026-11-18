@@ -7,9 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P38».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P38».Mode1
+public import LeanVM.Guest.Pack.«P38».ModeC
 public import LeanVM.Guest.Pack.«P38».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -413,6 +415,10 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«eq_prefix_run__L28».cfun, Fn.«index_mle__L4».cfun, Fn.«batch_sumcheck__L23».cfun]
+
 end
 
 public section
@@ -557,23 +563,24 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_bus_gkr».modeOk,
     Fn.«verify_bus_gkr».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«eq_prefix_run__L28».modeOk,
-    Fn.«eq_prefix_run__L28».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«index_mle__L4».modeOk,
-    Fn.«index_mle__L4».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L28».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«eq_prefix_run__L28».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L4».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«index_mle__L4».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«column_selector__L7».modeOk,
     Fn.«column_selector__L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«column_selector__L30».modeOk,
     Fn.«column_selector__L30».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«bus_grind_check__L9».modeOk,
     Fn.«bus_grind_check__L9».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«batch_sumcheck__L23».modeOk,
-    Fn.«batch_sumcheck__L23».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«batch_sumcheck__L23».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«batch_sumcheck__L23».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«grind_check__L19».modeOk,
     Fn.«grind_check__L19».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8)

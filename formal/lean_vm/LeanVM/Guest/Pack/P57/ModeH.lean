@@ -14,36 +14,6 @@ public import LeanVM.Guest.Pack.«P57».Mode2
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L29»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L29`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 71) (d := Data.adviceFn71) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L29»
-
-namespace LeanVM.Guest.Fn.«index_mle__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 204) (d := Data.adviceFn204) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L5»
-
 namespace LeanVM.Guest.Fn.«column_selector__L6»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -80,6 +80,10 @@ def hcert : CoreMode.HCert where
   reads := []
   res := []
 
+/-- `sel_partial_nibble__L0`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  []
+
 end
 end LeanVM.Guest.Fn.«sel_partial_nibble__L0»
 
@@ -92,6 +96,12 @@ def hcert : CoreMode.HCert where
   sig := ⟨[], [], [], [], []⟩
   reads := []
   res := []
+
+/-- `squeeze_point_from__L10`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
+    (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),
+    (⟨[(6, 1)], 8⟩, .ev 8), (⟨[(6, 1)], 9⟩, .ev 9)]
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L10»

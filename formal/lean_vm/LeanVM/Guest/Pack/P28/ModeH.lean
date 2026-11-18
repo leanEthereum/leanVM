@@ -11,7 +11,6 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode1
 public import LeanVM.Guest.Pack.«P28».Mode2
-public import LeanVM.Guest.Pack.«P28».Mode3
 public import LeanVM.Guest.Pack.«P28».ModeD0
 
 set_option Elab.async false
@@ -31,21 +30,6 @@ end
 
 end LeanVM.Guest.Fn.«shared_selector_tables»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L39»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L39`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 81) (d := Data.adviceFn81) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L39»
-
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -60,36 +44,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«rs_eq_rows__L3»
-
-namespace LeanVM.Guest.Fn.«index_mle__L11»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L11`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 210) (d := Data.adviceFn210) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L11»
-
-namespace LeanVM.Guest.Fn.«index_mle__L28»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L28`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 227) (d := Data.adviceFn227) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L28»
 
 namespace LeanVM.Guest.Fn.«column_selector__L18»
 
@@ -120,21 +74,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L21»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L27»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L27`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 319) (d := Data.adviceFn319) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L27»
 
 namespace LeanVM.Guest.Fn.«opening_message__L1_L1»
 

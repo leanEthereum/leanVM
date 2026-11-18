@@ -60,7 +60,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)))) .nil)
     .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node (some ()) .nil .nil))) .nil)) (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil)))))))))), .nil⟩
+    (.node (some ()) .nil .nil)))))))))), .nil, .nil⟩
 
 /-- `verify_sig_lean_sphincs`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

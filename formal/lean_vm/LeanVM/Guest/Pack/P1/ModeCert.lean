@@ -7,9 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P1».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P1».Mode1
+public import LeanVM.Guest.Pack.«P1».ModeC
 public import LeanVM.Guest.Pack.«P1».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -399,6 +401,11 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«level_positions__L44_L24_L6_loop0».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«eq_prefix_run__L7».cfun, Fn.«plus_one_run__L23».cfun, Fn.«block_selector__L10».cfun,
+    Fn.«squeeze_point_from__L8».cfun, Fn.«fold_final_msg__L4».cfun]
+
 end
 
 public section
@@ -534,15 +541,16 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«eq_prefix_run__L7».modeOk,
-    Fn.«eq_prefix_run__L7».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«plus_one_run__L23».modeOk,
-    Fn.«plus_one_run__L23».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«block_selector__L10».modeOk,
-    Fn.«block_selector__L10».modeHintsOk⟩)
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
+  Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L7».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«eq_prefix_run__L7».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L23».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«plus_one_run__L23».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«block_selector__L10».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«block_selector__L10».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«verify_tables_loop0».modeOk,
     Fn.«verify_tables_loop0».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«verify_keccak_loop1».modeOk,
@@ -550,10 +558,12 @@ theorem certs_spec :
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5)
     ⟨Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».modeOk,
     Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«squeeze_point_from__L8».modeOk,
-    Fn.«squeeze_point_from__L8».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«fold_final_msg__L4».modeOk,
-    Fn.«fold_final_msg__L4».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L8».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«squeeze_point_from__L8».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«fold_final_msg__L4».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«fold_final_msg__L4».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«level_positions__L7_L23_L5».modeOk,
     Fn.«level_positions__L7_L23_L5».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9)

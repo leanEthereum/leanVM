@@ -7,9 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P50».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P50».Mode0
 public import LeanVM.Guest.Pack.«P50».Mode1
+public import LeanVM.Guest.Pack.«P50».ModeC
 public import LeanVM.Guest.Pack.«P50».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -401,6 +403,10 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«block_selector__L28».cfun, Fn.«index_mle__L0».cfun]
+
 end
 
 public section
@@ -538,13 +544,14 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«block_selector__L28».modeOk,
-    Fn.«block_selector__L28».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«index_mle__L0».modeOk,
-    Fn.«index_mle__L0».modeHintsOk⟩)
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
+  Mode.fa_cons (.inr ⟨Fn.«block_selector__L28».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«block_selector__L28».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L0».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«index_mle__L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«block_selector_tab__L19».modeOk,
     Fn.«block_selector_tab__L19».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«column_selector__L3».modeOk,

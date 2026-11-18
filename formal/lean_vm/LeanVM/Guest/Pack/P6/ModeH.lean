@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P6».Mode0
 public import LeanVM.Guest.Pack.«P6».Mode1
-public import LeanVM.Guest.Pack.«P6».Mode2
 
 set_option Elab.async false
 
@@ -28,21 +27,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«padding_weight__L9»
-
-namespace LeanVM.Guest.Fn.«block_selector__L33»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector__L33`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 198) (d := Data.adviceFn198) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector__L33»
 
 namespace LeanVM.Guest.Fn.«block_selector_tab__L6»
 
@@ -88,21 +72,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«claim_list_last__L12»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L14»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L14`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 452) (d := Data.adviceFn452) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L14»
 
 namespace LeanVM.Guest.Fn.«level_positions__L3_L16_L4»
 

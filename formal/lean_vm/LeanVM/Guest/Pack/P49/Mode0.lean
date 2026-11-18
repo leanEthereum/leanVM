@@ -164,28 +164,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `gkr_rounds__L2`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `gkr_rounds__L2`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨253454, 76, Fn.«gkr_rounds__L2».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `gkr_rounds__L2`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
-
 namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec

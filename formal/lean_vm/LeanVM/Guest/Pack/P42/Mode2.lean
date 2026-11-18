@@ -94,28 +94,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L55_L11_L4_L2»
 
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L18»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `squeeze_point_from__L18`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `squeeze_point_from__L18`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨262387, 74, Fn.«squeeze_point_from__L18».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `squeeze_point_from__L18`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L18»
-
 namespace LeanVM.Guest.Fn.«level_positions__L19_L20_L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec

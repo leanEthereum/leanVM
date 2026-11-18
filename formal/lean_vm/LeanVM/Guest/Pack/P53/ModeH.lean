@@ -29,36 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«sumcheck_round4»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L10`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 52) (d := Data.adviceFn52) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L10»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L16»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `plus_one_run__L16`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 147) (d := Data.adviceFn147) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«plus_one_run__L16»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L32»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -7,9 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P49».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P49».Mode0
 public import LeanVM.Guest.Pack.«P49».Mode1
+public import LeanVM.Guest.Pack.«P49».ModeC
 public import LeanVM.Guest.Pack.«P49».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -382,6 +384,10 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«level_residual__L23_L15_L4_L2_loop1».modeCert,
     Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«gkr_rounds__L2».cfun]
+
 end
 
 public section
@@ -509,9 +515,10 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«padding_weight__L0».modeOk,
     Fn.«padding_weight__L0».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«padding_weight__L15».modeOk,
@@ -520,8 +527,8 @@ theorem certs_spec :
     Fn.«block_selector_tab__L29».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«child_claim_list_mono_last__L5».modeOk,
     Fn.«child_claim_list_mono_last__L5».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«gkr_rounds__L2».modeOk,
-    Fn.«gkr_rounds__L2».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«gkr_rounds__L2».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«gkr_rounds__L2».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«level_positions__L4_L14_L2».modeOk,
     Fn.«level_positions__L4_L14_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6)

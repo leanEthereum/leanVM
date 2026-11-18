@@ -12,78 +12,13 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P33».ModeSig
 public import LeanVM.Guest.Pack.«P34».ModeSig
+public import LeanVM.Guest.Pack.«P3».ModeSig
 public import LeanVM.Guest.Pack.«P53».ModeSig
 public import LeanVM.Guest.Pack.«P55».Bundle
 public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P7».ModeSig
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L27»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `eq_prefix_run__L27`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `eq_prefix_run__L27`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨180527, 139, Fn.«eq_prefix_run__L27».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `eq_prefix_run__L27`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L27»
-
-namespace LeanVM.Guest.Fn.«block_selector__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `block_selector__L5`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `block_selector__L5`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨196083, 52, Fn.«block_selector__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `block_selector__L5`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«block_selector__L5»
-
-namespace LeanVM.Guest.Fn.«block_selector__L23»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `block_selector__L23`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `block_selector__L23`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨198549, 232, Fn.«block_selector__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `block_selector__L23`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«block_selector__L23»
 
 namespace LeanVM.Guest.Fn.«block_selector_tab__L12»
 
@@ -302,3 +237,111 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«bus_grind_check__L6»
+
+namespace LeanVM.Guest.Fn.«bus_grind_check__L13»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `bus_grind_check__L13`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«grind_check__L30».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil))
+    .nil)) .nil) .nil) .nil)) .nil), 524287⟩
+
+/-- `bus_grind_check__L13`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨212801, 9, Fn.«bus_grind_check__L13».modeSig, (.node none .nil (.node (some [(.alloc 5 46)])
+    .nil .nil)), .nil, .nil, false, .nil⟩
+
+/-- `bus_grind_check__L13`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«bus_grind_check__L13»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `child_claim_list_mono_last__L10`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `child_claim_list_mono_last__L10`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨246313, 182, Fn.«child_claim_list_mono_last__L10».modeSig, (.node none .nil (.node (some
+    [(.witnessStack "child_claim_gap" 82 1)]) (.node none (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 100 1)]) .nil .nil) .nil) (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_gap" 124 1)]) .nil .nil) .nil) .nil)) (.node (some
+    [(.witnessStack "child_claim_gap" 88 1)]) (.node none .nil (.node (some [(.witnessStack
+    "child_claim_gap" 112 1)]) .nil .nil)) (.node none .nil (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 136 1)]) .nil .nil) .nil)))) (.node none (.node none (.node
+    none .nil (.node none (.node (some [(.witnessStack "child_claim_gap" 130 1)]) .nil .nil) .nil))
+    (.node none (.node (some [(.witnessStack "child_claim_gap" 106 1)]) .nil .nil) .nil)) (.node
+    none (.node (some [(.witnessStack "child_claim_gap" 94 1)]) .nil .nil) (.node none .nil (.node
+    (some [(.witnessStack "child_claim_gap" 118 1)]) .nil .nil)))))), (.node none .nil (.node none
+    (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 82), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4),
+    1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2),
+    1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5)
+    0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) (.node none .nil
+    (.node (some [(.sub ⟨⟨0, 16, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4),
+    ((.fr 106), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
+    0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩,
+    ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
+    0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil)) (.node none .nil (.node none (.node (some [(.sub
+    ⟨⟨0, 32, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr
+    112), 4), ((.fr 118), 4), ((.fr 124), 4), ((.fr 130), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num
+    4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2),
+    1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5)
+    0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil)))
+    (.node none (.node none (.node none (.node (some [(.sub ⟨⟨0, 24, [((.fr 82), 4), ((.fr 88), 4),
+    ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4), ((.fr 118), 4), ((.hp 2 14),
+    1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩,
+    ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num
+    0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])])
+    .nil .nil) .nil) .nil) (.node (some [(.sub ⟨⟨0, 8, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94),
+    4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex
+    (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0,
+    [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
+    (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))) (.node none (.node none (.node (some [(.sub ⟨⟨0, 4,
+    [((.fr 82), 4), ((.fr 88), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1
+    2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1
+    5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1
+    2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) (.node none .nil (.node (some [(.sub ⟨⟨0, 36,
+    [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4),
+    ((.fr 118), 4), ((.fr 124), 4), ((.fr 130), 4), ((.fr 136), 4), ((.hp 2 14), 1)]⟩, (.num 0),
+    (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp
+    1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp
+    1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))
+    .nil) (.node none .nil (.node (some [(.sub ⟨⟨0, 20, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94),
+    4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1,
+    0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩,
+    (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4,
+    2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil))) (.node none
+    (.node none (.node (some [(.sub ⟨⟨0, 12, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr
+    100), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
+    (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0,
+    0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
+    (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil) (.node none (.node none (.node (some [(.sub ⟨⟨0,
+    28, [((.fr 82), 4), ((.fr 88), 4), ((.fr 94), 4), ((.fr 100), 4), ((.fr 106), 4), ((.fr 112),
+    4), ((.fr 118), 4), ((.fr 124), 4), ((.hp 2 14), 1)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0,
+    [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
+    (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0,
+    0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil) .nil))))), .nil,
+    false, .nil⟩
+
+/-- `child_claim_list_mono_last__L10`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L10»

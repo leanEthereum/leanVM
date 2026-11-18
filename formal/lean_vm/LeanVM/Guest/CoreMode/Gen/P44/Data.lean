@@ -22,6 +22,10 @@ def hcert : CoreMode.HCert where
   reads := []
   res := []
 
+/-- `block_selector_tab__L0`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  []
+
 end
 end LeanVM.Guest.Fn.«block_selector_tab__L0»
 
@@ -71,6 +75,26 @@ def hcert : CoreMode.HCert where
     (24, [(4, 0, .pre 4)]), (25, [(4, 1, .pre 5)])]
   res := []
 
+/-- `sel_partial_nibble__L2`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(2, 1)], 0⟩, .ev 1), (⟨[(3, 1)], 0⟩, .ev 0), (⟨[(4, 1)], 0⟩, .ev 20), (⟨[(2, 1)], 1⟩, .ev 2),
+    (⟨[(3, 1)], 1⟩, .ev 3), (⟨[(4, 1)], 1⟩, .ev 21), (⟨[(0, 1)], 0⟩, .ev 4), (⟨[(0, 1)], 1⟩, .ev 5),
+    (⟨[(0, 1)], 2⟩, .ev 6), (⟨[(0, 1)], 3⟩, .ev 7), (⟨[(0, 1)], 4⟩, .ev 8), (⟨[(0, 1)], 5⟩, .ev 9),
+    (⟨[(0, 1)], 6⟩, .ev 10), (⟨[(0, 1)], 7⟩, .ev 11), (⟨[(0, 1)], 8⟩, .ev 12),
+    (⟨[(0, 1)], 9⟩, .ev 13), (⟨[(0, 1)], 10⟩, .ev 14), (⟨[(0, 1)], 11⟩, .ev 15),
+    (⟨[(0, 1)], 12⟩, .ev 16), (⟨[(0, 1)], 13⟩, .ev 17), (⟨[(0, 1)], 14⟩, .ev 18),
+    (⟨[(0, 1)], 15⟩, .ev 19), (⟨[(1, 1)], 0⟩, .ev 22), (⟨[(1, 1)], 1⟩, .ev 23),
+    (⟨[(1, 1)], 2⟩, .ev 24), (⟨[(1, 1)], 3⟩, .ev 25), (⟨[(1, 1)], 4⟩, .ev 26),
+    (⟨[(1, 1)], 5⟩, .ev 27), (⟨[(1, 1)], 6⟩, .ev 28), (⟨[(1, 1)], 7⟩, .ev 29),
+    (⟨[(0, 1)], 0⟩, .ev 4), (⟨[(0, 1)], 8⟩, .ev 12), (⟨[(0, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 9⟩, .ev 13),
+    (⟨[(0, 1)], 2⟩, .ev 6), (⟨[(0, 1)], 10⟩, .ev 14), (⟨[(0, 1)], 3⟩, .ev 7),
+    (⟨[(0, 1)], 11⟩, .ev 15), (⟨[(0, 1)], 4⟩, .ev 8), (⟨[(0, 1)], 12⟩, .ev 16),
+    (⟨[(0, 1)], 5⟩, .ev 9), (⟨[(0, 1)], 13⟩, .ev 17), (⟨[(0, 1)], 6⟩, .ev 10),
+    (⟨[(0, 1)], 14⟩, .ev 18), (⟨[(0, 1)], 7⟩, .ev 11), (⟨[(0, 1)], 15⟩, .ev 19),
+    (⟨[(1, 1)], 0⟩, .ev 22), (⟨[(1, 1)], 4⟩, .ev 26), (⟨[(1, 1)], 1⟩, .ev 23),
+    (⟨[(1, 1)], 5⟩, .ev 27), (⟨[(1, 1)], 2⟩, .ev 24), (⟨[(1, 1)], 6⟩, .ev 28),
+    (⟨[(1, 1)], 3⟩, .ev 25), (⟨[(1, 1)], 7⟩, .ev 29)]
+
 end
 end LeanVM.Guest.Fn.«sel_partial_nibble__L2»
 
@@ -83,6 +107,13 @@ def hcert : CoreMode.HCert where
   sig := ⟨[], [], [], [], []⟩
   reads := []
   res := []
+
+/-- `squeeze_point_from__L12`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
+    (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),
+    (⟨[(6, 1)], 8⟩, .ev 8), (⟨[(6, 1)], 9⟩, .ev 9), (⟨[(6, 1)], 10⟩, .ev 10),
+    (⟨[(6, 1)], 11⟩, .ev 11)]
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L12»

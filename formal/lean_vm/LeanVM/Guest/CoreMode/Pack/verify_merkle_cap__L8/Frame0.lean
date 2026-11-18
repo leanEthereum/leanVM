@@ -353,7 +353,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     (some ()) .nil .nil)))) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) .nil
     .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ())
     .nil .nil))) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil))))))))), .nil⟩
+    .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil))))))))), .nil, .nil⟩
 
 /-- `verify_merkle_cap__L8`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

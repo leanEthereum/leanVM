@@ -640,7 +640,7 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node (some ()) (.node
     (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil
     .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil
-    .nil) .nil)))))))))), .nil⟩
+    .nil) .nil)))))))))), .nil, .nil⟩
 
 /-- `open_stacked__L9`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

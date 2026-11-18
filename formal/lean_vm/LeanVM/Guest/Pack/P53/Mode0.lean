@@ -48,50 +48,6 @@ end
 
 end LeanVM.Guest.Fn.«sumcheck_round4»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `eq_prefix_run__L10`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `eq_prefix_run__L10`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨178929, 54, Fn.«eq_prefix_run__L10».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `eq_prefix_run__L10`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L10»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L16»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `plus_one_run__L16`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `plus_one_run__L16`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨194594, 51, Fn.«plus_one_run__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `plus_one_run__L16`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«plus_one_run__L16»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L32»
 
 open LeanVM.Guest LeanVM.Guest.Exec

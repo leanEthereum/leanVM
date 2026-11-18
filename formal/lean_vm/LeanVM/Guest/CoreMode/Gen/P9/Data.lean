@@ -48,6 +48,14 @@ def hcert : CoreMode.HCert where
     (85, [(0, 14, .pre 14)]), (91, [(0, 15, .pre 15)])]
   res := []
 
+/-- `index_mle__L16`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(0, 1)], 1⟩, .ev 1), (⟨[(0, 1)], 2⟩, .ev 2), (⟨[(0, 1)], 3⟩, .ev 3),
+    (⟨[(0, 1)], 4⟩, .ev 4), (⟨[(0, 1)], 5⟩, .ev 5), (⟨[(0, 1)], 6⟩, .ev 6), (⟨[(0, 1)], 7⟩, .ev 7),
+    (⟨[(0, 1)], 8⟩, .ev 8), (⟨[(0, 1)], 9⟩, .ev 9), (⟨[(0, 1)], 10⟩, .ev 10),
+    (⟨[(0, 1)], 11⟩, .ev 11), (⟨[(0, 1)], 12⟩, .ev 12), (⟨[(0, 1)], 13⟩, .ev 13),
+    (⟨[(0, 1)], 14⟩, .ev 14), (⟨[(0, 1)], 15⟩, .ev 15)]
+
 end
 end LeanVM.Guest.Fn.«index_mle__L16»
 
@@ -88,6 +96,14 @@ def hcert : CoreMode.HCert where
     (15, [(1, 4, .pre 4)]), (18, [(1, 5, .pre 5)]), (21, [(1, 6, .pre 6)]), (24, [(1, 7, .pre 7)]),
     (27, [(1, 8, .pre 8)])]
   res := []
+
+/-- `plus_one_run__L9`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 5), (⟨[(0, 1)], 3⟩, .ev 7),
+    (⟨[(0, 1)], 4⟩, .ev 9), (⟨[(0, 1)], 5⟩, .ev 11), (⟨[(0, 1)], 6⟩, .ev 13),
+    (⟨[(0, 1)], 7⟩, .ev 15), (⟨[(0, 1)], 8⟩, .ev 17), (⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 2),
+    (⟨[(1, 1)], 2⟩, .ev 4), (⟨[(1, 1)], 3⟩, .ev 6), (⟨[(1, 1)], 4⟩, .ev 8), (⟨[(1, 1)], 5⟩, .ev 10),
+    (⟨[(1, 1)], 6⟩, .ev 12), (⟨[(1, 1)], 7⟩, .ev 14), (⟨[(1, 1)], 8⟩, .ev 16)]
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L9»
@@ -147,6 +163,15 @@ def hcert : CoreMode.HCert where
   sig := ⟨[], [], [], [], []⟩
   reads := []
   res := []
+
+/-- `squeeze_point_from__L20`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
+    (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),
+    (⟨[(6, 1)], 8⟩, .ev 8), (⟨[(6, 1)], 9⟩, .ev 9), (⟨[(6, 1)], 10⟩, .ev 10),
+    (⟨[(6, 1)], 11⟩, .ev 11), (⟨[(6, 1)], 12⟩, .ev 12), (⟨[(6, 1)], 13⟩, .ev 13),
+    (⟨[(6, 1)], 14⟩, .ev 14), (⟨[(6, 1)], 15⟩, .ev 15), (⟨[(6, 1)], 16⟩, .ev 16),
+    (⟨[(6, 1)], 17⟩, .ev 17), (⟨[(6, 1)], 18⟩, .ev 18), (⟨[(6, 1)], 19⟩, .ev 19)]
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L20»

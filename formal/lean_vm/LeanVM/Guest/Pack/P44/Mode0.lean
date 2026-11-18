@@ -25,50 +25,6 @@ public import LeanVM.Guest.Pack.«P60».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«sel_partial_nibble__L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `sel_partial_nibble__L2`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `sel_partial_nibble__L2`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨189755, 41, Fn.«sel_partial_nibble__L2».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `sel_partial_nibble__L2`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«sel_partial_nibble__L2»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `block_selector_tab__L0`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `block_selector_tab__L0`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨204525, 4, Fn.«block_selector_tab__L0».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `block_selector_tab__L0`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«block_selector_tab__L0»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L26»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -286,28 +242,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L12»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `squeeze_point_from__L12`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `squeeze_point_from__L12`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨258909, 56, Fn.«squeeze_point_from__L12».modeSig, .nil, .nil, .nil, false, .nil⟩
-
-/-- `squeeze_point_from__L12`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L12»
 
 namespace LeanVM.Guest.Fn.«level_positions__L3_L17_L5»
 

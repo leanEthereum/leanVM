@@ -29,21 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«rs_eq_rows__L0»
 
-namespace LeanVM.Guest.Fn.«index_mle__L12»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L12`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 211) (d := Data.adviceFn211) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L12»
-
 namespace LeanVM.Guest.Fn.«column_selector__L22»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -58,21 +43,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L22»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L24»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L24`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 316) (d := Data.adviceFn316) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L24»
 
 namespace LeanVM.Guest.Fn.«claim_list_last__L6»
 

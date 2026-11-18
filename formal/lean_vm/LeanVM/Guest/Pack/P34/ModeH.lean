@@ -29,36 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_any»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L11»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L11`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 53) (d := Data.adviceFn53) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L11»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L17»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `plus_one_run__L17`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 148) (d := Data.adviceFn148) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«plus_one_run__L17»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L33»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -7,11 +7,13 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P16».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P16».Mode1
 public import LeanVM.Guest.Pack.«P16».Mode2
 public import LeanVM.Guest.Pack.«P16».Mode3
+public import LeanVM.Guest.Pack.«P16».ModeC
 public import LeanVM.Guest.Pack.«P16».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -671,6 +673,10 @@ noncomputable def certs : List Mode.Cert :=
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».modeCert,
     Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».modeCert]])
 
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [Fn.«index_mle__L15».cfun, Fn.«squeeze_point_from__L23».cfun]
+
 end
 
 public section
@@ -968,21 +974,22 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))
 
-/-- The certificates' frame interfaces: by their walks and hints, or hypotheses. -/
-theorem certs_spec :
-    ∀ K ∈ certs, Mode.FnSpec K :=
+/-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
+    -/
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+    ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«child_claim_list_digest».modeOk,
     Fn.«child_claim_list_digest».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«da_padding».modeOk,
     Fn.«da_padding».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«rs_eq_rows__L7».modeOk,
     Fn.«rs_eq_rows__L7».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«index_mle__L15».modeOk,
-    Fn.«index_mle__L15».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L15».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«index_mle__L15».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«column_selector__L25».modeOk,
     Fn.«column_selector__L25».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«squeeze_point_from__L23».modeOk,
-    Fn.«squeeze_point_from__L23».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L23».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«squeeze_point_from__L23».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«claim_list_last__L1».modeOk,
     Fn.«claim_list_last__L1».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«child_claim_list_last__L6».modeOk,

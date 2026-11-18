@@ -973,7 +973,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) .nil))
     (.node (some ()) (.node none (.node none (.node (some ()) (.node none (.node (some ()) .nil
     .nil) .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node
-    none .nil (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))))))))))), .nil⟩
+    none .nil (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))))))))))), .nil,
+    .nil⟩
 
 /-- `verify_tables`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

@@ -14,21 +14,6 @@ public import LeanVM.Guest.Pack.«P14».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L37»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L37`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 79) (d := Data.adviceFn79) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L37»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L21»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -44,36 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«padding_weight__L21»
 
-namespace LeanVM.Guest.Fn.«plus_one_run__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `plus_one_run__L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 131) (d := Data.adviceFn131) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«plus_one_run__L0»
-
-namespace LeanVM.Guest.Fn.«index_mle__L26»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L26`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 225) (d := Data.adviceFn225) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L26»
-
 namespace LeanVM.Guest.Fn.«column_selector__L16»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -88,21 +43,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L16»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L29»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L29`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 321) (d := Data.adviceFn321) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L29»
 
 namespace LeanVM.Guest.Fn.«grind_check__L2»
 

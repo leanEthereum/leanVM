@@ -28,36 +28,6 @@ end
 
 end LeanVM.Guest.Fn.«verify_bus_gkr»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L28»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_run__L28`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 70) (d := Data.adviceFn70) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L28»
-
-namespace LeanVM.Guest.Fn.«index_mle__L4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L4`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 203) (d := Data.adviceFn203) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L4»
-
 namespace LeanVM.Guest.Fn.«column_selector__L7»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -102,21 +72,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«bus_grind_check__L9»
-
-namespace LeanVM.Guest.Fn.«batch_sumcheck__L23»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `batch_sumcheck__L23`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 426) (d := Data.adviceFn426) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«batch_sumcheck__L23»
 
 namespace LeanVM.Guest.Fn.«grind_check__L19»
 

@@ -13,36 +13,6 @@ public import LeanVM.Guest.Pack.«P50».Mode1
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L28»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `block_selector__L28`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 193) (d := Data.adviceFn193) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«block_selector__L28»
-
-namespace LeanVM.Guest.Fn.«index_mle__L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 199) (d := Data.adviceFn199) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L0»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L19»
 
 open LeanVM.Guest LeanVM.Guest.Exec

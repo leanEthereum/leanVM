@@ -45,21 +45,6 @@ end
 
 end LeanVM.Guest.Fn.«padding_weight__L11»
 
-namespace LeanVM.Guest.Fn.«index_mle__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `index_mle__L30`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 229) (d := Data.adviceFn229) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L30»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -164,21 +149,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L19»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `squeeze_point_from__L19`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 672) (d := Data.adviceFn672) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L19»
 
 namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 
