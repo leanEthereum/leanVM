@@ -44,6 +44,10 @@ rejected.
   (guarantees under a selector).
 * `useM`: a run of stride `1` met by its two residue runs of stride `2` (`mrg`).
 * `mkv`, `useV`: a word stored at a guaranteed cell, named at return (`postV`) and read back by the caller.
+* `rdd`, `useD`: a callee's ghost named by the word at a cell its caller never loads (`ders`, value `DB`).
+* `catk`: a run split at a symbolic index (`catM`); `useME`: a merge whose root is given by an equation
+  (`mrgE`); `useAb`: a block every arm of a `dispatch` writes up to its index (`ab`); `pubRd`: constant
+  preconditions (the public input); `fillP`, `useFillP`: a loop's accumulated pointer run, consumed.
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -1279,6 +1283,254 @@ theorem fa2_ok : heapOkC Data.powTree (fun _ ↦ .empty) fa2 hFa2 = true := by d
 
 /-- The run's cell `0` is not the returned word's cell `0`. -/
 theorem fa2_bad : heapOkC Data.powTree (fun _ ↦ .empty) fa2 { hFa2 with fas := [(3, 0)] } = false := by decide +kernel
+
+/-! ## Words at cells (round 6, E11) -/
+
+/-- Loads the pointer `x` stored at `q[0]`, reads `x[0]`, `x[1]`. -/
+def rdd : Fn where
+  name := "rdd"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .atom (.load (.n 3) (.n 1) 1), .ret []]
+
+/-- `rdd`'s certificate: `q[0]` written (`pre`); one ghost (slot `1`, value `GB`), the object `q[0]` points to,
+its cells `G·g^[0, 2)` a precondition; the reads in it by the residual "`x·g^[0, 2)` is in the object". -/
+def hRdd : HCert where
+  sig := { pre := [⟨[(0, 1)], 0⟩], preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 2⟩], ghosts := 1 }
+  reads := [(1, [(0, 0, .pre 0)]), (2, [(1, 0, .run 0 [0])]), (3, [(1, 1, .run 0 [0])])]
+  res := [.subR ⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 2⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, .num 0, .num 2⟩]
+  rets := [[]]
+
+theorem rdd_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdd hRdd = true := by decide +kernel
+
+/-- A body naming a word at a cell's value (`DB`) is refused. -/
+theorem rdd_named :
+    heapOkC Data.powTree (fun _ ↦ .empty) { rdd with body := [.atom (.load (.n 1) (.n 0) 0),
+      .atom (.load (.n 524288) (.n 1) 0), .atom (.load (.n 3) (.n 1) 1), .ret []] } hRdd = false := by
+  decide +kernel
+
+/-- `mkp` and `rdd`. -/
+def sigsD (g : String) : HSig := if g = "mkp" then hMkp.sig else if g = "rdd" then hRdd.sig else .empty
+
+/-- Calls `mkp` (it stores at `p[0]` a pointer to two written cells), then `rdd` on `p`, never loading `p[0]`. -/
+def useD : Fn where
+  name := "useD"
+  params := [.n 0]
+  body := [.call "mkp" [.n 0] [], .call "rdd" [.n 0] [], .ret []]
+
+/-- `useD`'s certificate: `rdd`'s ghost is the word at `p[0]` (`ders`, the value `DB`): the cell witnessed first
+(`mkp`'s `post`, point serial `0`), then `rdd`'s `pre` (the same cell) and its object's two cells, each past the
+word at `p[0]` by `mkp`'s pointer fact (serial `1`), `DB` loaded from `p[0]`. -/
+def hUseD : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[], [.ev 0, .ev 0, .pts, .pf 1, .pf 1]]
+  rets := [[]]
+  gargs := [("rdd", [0], [⟨[(524288, 1)], 0⟩])]
+  ders := [⟨[(0, 1)], 0⟩]
+
+theorem useD_ok : heapOkC Data.powTree sigsD useD hUseD = true := by decide +kernel
+
+/-- The cell of the word at a cell not witnessed. -/
+theorem useD_nowit : heapOkC Data.powTree sigsD useD { hUseD with calls := [[], [.ev 0, .pts, .pf 1, .pf 1]] } = false := by
+  decide +kernel
+
+/-- No such word at a cell. -/
+theorem useD_noders : heapOkC Data.powTree sigsD useD { hUseD with ders := [] } = false := by decide +kernel
+
+/-- The ghost named by `p` itself: no pointer fact holds `p`'s cells. -/
+theorem useD_self :
+    heapOkC Data.powTree sigsD useD
+      { hUseD with calls := [[], [.ev 0, .pts, .pf 1, .pf 1]], gargs := [("rdd", [0], [⟨[(0, 1)], 0⟩])] } = false := by
+  decide +kernel
+
+/-- A word at a cell over a word at a cell is refused. -/
+theorem useD_nested :
+    heapOkC Data.powTree sigsD useD { hUseD with ders := [⟨[(524288, 1)], 0⟩] } = false := by
+  decide +kernel
+
+/-! ## A run split at a symbolic index (round 6, E10) -/
+
+/-- `need4` needs `p·g^[0, 4)`. -/
+def sigsK (g : String) : HSig := if g = "need4" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 4⟩] } else .empty
+
+/-- `a·b = g^4` (a `mul` whose product is known), then `need4` on `p`. -/
+def catk : Fn where
+  name := "catk"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.const (.n 3) (word 16 0)), .atom (.mul (.n 3) (.n 1) (.n 2)), .call "need4" [.n 0] [], .ret []]
+
+/-- `catk`'s certificate: `p·g^[0, e(a))` and `p·a·g^[0, e(b))` preconditions, `need4`'s run split at `a`
+(`catM a b`: `a·b = g^4` by the kept equation, the exponents by the residuals). -/
+def hCatk : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩, ⟨⟨[(0, 1), (1, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := [.lt (.num 0) (.val 1), .lt (.num 0) (.val 2)]
+  calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[(2, 1)], 0⟩ [0, 1], .run 0 [], .run 1 []]]
+  rets := [[]]
+  eqs := [3]
+
+theorem catk_ok : heapOkC Data.powTree sigsK catk hCatk = true := by decide +kernel
+
+/-- Without the equation kept. -/
+theorem catk_noeq : heapOkC Data.powTree sigsK catk { hCatk with eqs := [] } = false := by decide +kernel
+
+/-- Without the exponents' facts. -/
+theorem catk_noexp :
+    heapOkC Data.powTree sigsK catk { hCatk with calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[(2, 1)], 0⟩ [], .run 0 [], .run 1 []]] } =
+      false := by
+  decide +kernel
+
+/-- The parts swapped. -/
+theorem catk_bad :
+    heapOkC Data.powTree sigsK catk { hCatk with calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[(2, 1)], 0⟩ [0, 1], .run 1 [], .run 0 []]] } =
+      false := by
+  decide +kernel
+
+/-! ## A merge with a root by an equation (round 6, E9) -/
+
+/-- `fill2` as for `useM`; `readQ` needs `p·g^[0, e(q))`. -/
+def sigsME (g : String) : HSig :=
+  if g = "fill2" then sigsM "fill2"
+  else if g = "readQ" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] } else .empty
+
+/-- `q = n·n` (kept), calls `fill2` on `p, n`, then `readQ` on `p, q`. -/
+def useME : Fn where
+  name := "useME"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.mul (.n 2) (.n 1) (.n 1)), .call "fill2" [.n 0, .n 1] [], .call "readQ" [.n 0, .n 2] [], .ret []]
+
+/-- `useME`'s certificate: `readQ`'s run merged from `fill2`'s two residues, the root `n` given (`mrgE`): `n²` is
+`q` by the kept equation. -/
+def hUseME : HCert where
+  sig := {}
+  reads := []
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[], [.mrgE 2 ⟨[(1, 1)], 0⟩ [0], .run 0 [], .run 1 []]]
+  rets := [[]]
+  eqs := [2]
+
+theorem useME_ok : heapOkC Data.powTree sigsME useME hUseME = true := by decide +kernel
+
+/-- Without the equation. -/
+theorem useME_noeq : heapOkC Data.powTree sigsME useME { hUseME with eqs := [] } = false := by decide +kernel
+
+/-- `mrg` takes the root of `q` itself, which has no square root. -/
+theorem useME_mrg :
+    heapOkC Data.powTree sigsME useME { hUseME with calls := [[], [.mrg 2 [0], .run 0 [], .run 1 []]] } = false := by
+  decide +kernel
+
+/-! ## A block growing with the arm (round 6, E8) -/
+
+/-- Arm `j` writes `p·g^[0, j + 1)`; `needX` needs `p·g^[0, e(x·g))`. -/
+def sigsAb (g : String) : HSig :=
+  if g = "blk0" then { post := [⟨[(0, 1)], 0⟩] }
+  else if g = "blk1" then { post := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩] }
+  else if g = "needX" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 1)], 1⟩⟩] } else .empty
+
+/-- A dispatch on `x` over `blk0`, `blk1`, then `needX` on `p, x`. -/
+def useAb : Fn where
+  name := "useAb"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 1) ["blk0", "blk1"] [.n 0] [], .call "needX" [.n 0, .n 1] [], .ret []]
+
+/-- `useAb`'s certificate: the block `ab p 1 1`, arm `j`'s run `p·g^[0, j + 1)` by its callee's points (`pts`);
+after the dispatch, `p·g^[0, e(x·g))` at run serial `0`. -/
+def hUseAb : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[.ab ⟨[(0, 1)], 0⟩ 1 1, .pts, .ev 0, .pts, .ev 0, .ev 1], [.run 0 []]]
+  rets := [[]]
+
+theorem useAb_ok : heapOkC Data.powTree sigsAb useAb hUseAb = true := by decide +kernel
+
+/-- Arm `1`'s second cell not witnessed. -/
+theorem useAb_bad :
+    heapOkC Data.powTree sigsAb useAb { hUseAb with calls := [[.ab ⟨[(0, 1)], 0⟩ 1 1, .pts, .ev 0, .pts, .ev 0, .ev 0],
+      [.run 0 []]] } = false := by
+  decide +kernel
+
+/-- A block one longer (`d = 2`): arm `0` writes one cell only. -/
+theorem useAb_long :
+    heapOkC Data.powTree sigsAb useAb { hUseAb with calls := [[.ab ⟨[(0, 1)], 0⟩ 1 2, .pts, .ev 0, .pts, .ev 0, .ev 1],
+      [.run 0 []]] } = false := by
+  decide +kernel
+
+/-! ## Constant preconditions: the public input (round 6, E12) -/
+
+/-- Reads the public input's cells `g^0[0]`, `g^0[1]` (`main`'s `pub_ptr`). -/
+def pubRd : Fn where
+  name := "pubRd"
+  params := []
+  body := [.atom (.const (.n 0) (word 1 0)), .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 0) 1), .ret []]
+
+/-- `pubRd`'s certificate: the two cells constant preconditions (`preSet_const`). -/
+def hPubRd : HCert where
+  sig := { pre := [⟨[], 0⟩, ⟨[], 1⟩] }
+  reads := [(1, [(0, 0, .pre 0)]), (2, [(0, 1, .pre 1)])]
+  res := []
+  rets := [[]]
+
+theorem pubRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) pubRd hPubRd = true := by decide +kernel
+
+/-- Without them. -/
+theorem pubRd_bad : heapOkC Data.powTree (fun _ ↦ .empty) pubRd { hPubRd with sig := {} } = false := by decide +kernel
+
+/-! ## A loop's accumulated pointer run (round 6: `aggregate_claims_loop0`'s guarantee) -/
+
+/-- Stores `s·i` at `q·i` for the counter `i` from its start to `n`. -/
+def fillP : Fn where
+  name := "fillP"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.mul (.n 5) (.n 3) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
+    .atom (.const (.n 6) (word 2 0)), .atom (.mul (.n 7) (.n 0) (.n 6)), .atom (.add (.n 8) (.n 7) (.n 1)),
+    .atom (.const (.n 9) (word 2 0)), .atom (.mul (.n 10) (.n 0) (.n 9)), .callIf (.n 8) "fillP" [.n 10, .n 1, .n 2, .n 3],
+    .ret []]
+
+/-- `fillP` writes, from its counter to its end, `q`'s cells each pointing to a written cell (`postPR`, offset `0`),
+the cells `s·g^j` it points to its precondition. -/
+def sigFillP : HSig :=
+  { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postPR := [(⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩, [0])],
+    «term» := [(.val 0, .val 1)] }
+
+/-- `fillP`'s certificate: the tail call's `preR` one further (shifted); the pointer run accumulated, the
+counter's cell by the store's word (`word 0`) and the cell it points to by the own run at the counter. -/
+def hFillP : HCert where
+  sig := sigFillP
+  reads := []
+  res := []
+  calls := [[.run 0 []]]
+  rets := [[.word 0, .run 0 []]]
+
+theorem fillP_ok : heapOkC Data.powTree (fun _ ↦ sigFillP) fillP hFillP = true := by decide +kernel
+
+/-- The pointed cell witnessed by the store of the counter's cell. -/
+theorem fillP_bad : heapOkC Data.powTree (fun _ ↦ sigFillP) fillP { hFillP with rets := [[.word 0, .ev 0]] } = false := by
+  decide +kernel
+
+/-- `fillP`, and `needP` needing `q`'s cells `[0, e(n))` pointing to written cells at offset `0`. -/
+def sigsP2 (g : String) : HSig :=
+  if g = "fillP" then sigFillP
+  else if g = "needP" then { prePR := [(⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩, [0])] } else .empty
+
+/-- Fills `q` from `g^0` to `n`, then calls `needP`. -/
+def useFillP : Fn where
+  name := "useFillP"
+  params := [.n 0, .n 1, .n 2]
+  body := [.atom (.const (.n 3) (word 1 0)), .call "fillP" [.n 3, .n 2, .n 0, .n 1] [], .call "needP" [.n 0, .n 2] [],
+    .ret []]
+
+/-- `useFillP`'s certificate: `fillP`'s `preR` its own (run serial `0`), `needP`'s pointer run `fillP`'s guarantee
+(run serial `1`). -/
+def hUseFillP : HCert where
+  sig := { preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := []
+  calls := [[.run 0 []], [.pfr 1 []]]
+  rets := [[]]
+
+theorem useFillP_ok : heapOkC Data.powTree sigsP2 useFillP hUseFillP = true := by decide +kernel
 
 end
 
