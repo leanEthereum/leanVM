@@ -341,7 +341,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · exact consecutive_entry functions_consecutive f hf cf hcf h1 (by omega)
     rw [hcentry, heq, hentry]
   -- it is `Cf`'s function
-  obtain ⟨j0, hj0, he0, hc0, hx0, hb0⟩ := hCf
+  obtain ⟨⟨j0, hj0, he0, hc0, hx0, hb0⟩, -, -⟩ := hCf
   obtain ⟨-, -, -, -, -, -, -, -, -, hjn⟩ := fn_of_idx hj
   have hjj : j = j0 := fnOf_entry_inj hjn hj0 (by rw [← B2C.entryOf_of hj, hentK, ← hent, he0])
   subst hjj

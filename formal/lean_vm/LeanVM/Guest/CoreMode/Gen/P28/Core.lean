@@ -44,7 +44,7 @@ open LeanVM.Guest
 
 /-- `da_weights`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn29, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn29, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -57,11 +57,11 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `da_weights`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `da_weights`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `da_weights`: its shape. -/
@@ -113,7 +113,7 @@ open LeanVM.Guest
 
 /-- `eq_prefix_run__L39`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn81, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn81, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -126,11 +126,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `eq_prefix_run__L39`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `eq_prefix_run__L39`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `eq_prefix_run__L39`: its shape. -/
@@ -182,7 +182,7 @@ open LeanVM.Guest
 
 /-- `rs_eq_rows__L3`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn87, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn87, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -195,11 +195,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `rs_eq_rows__L3`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `rs_eq_rows__L3`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `rs_eq_rows__L3`: its shape. -/
@@ -251,7 +251,7 @@ open LeanVM.Guest
 
 /-- `index_mle__L11`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn210, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn210, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -264,11 +264,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `index_mle__L11`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `index_mle__L11`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `index_mle__L11`: its shape. -/
@@ -320,7 +320,7 @@ open LeanVM.Guest
 
 /-- `index_mle__L28`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn227, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn227, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -333,11 +333,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `index_mle__L28`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `index_mle__L28`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `index_mle__L28`: its shape. -/
@@ -389,7 +389,7 @@ open LeanVM.Guest
 
 /-- `squeeze_point_from__L27`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn319, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn319, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -402,11 +402,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `squeeze_point_from__L27`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `squeeze_point_from__L27`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `squeeze_point_from__L27`: its shape. -/
@@ -458,7 +458,7 @@ open LeanVM.Guest
 
 /-- `opening_message__L1_L1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn323, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn323, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -471,11 +471,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `opening_message__L1_L1`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `opening_message__L1_L1`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `opening_message__L1_L1`: its shape. -/
@@ -527,7 +527,7 @@ open LeanVM.Guest
 
 /-- `claim_list_last__L5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn357, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn357, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -540,11 +540,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `claim_list_last__L5`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `claim_list_last__L5`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `claim_list_last__L5`: its shape. -/
@@ -596,7 +596,7 @@ open LeanVM.Guest
 
 /-- `da_column_offsets_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn417, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn417, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -645,6 +645,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code417 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `da_column_offsets_loop1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -661,7 +663,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L218_L19_L6_L3`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn700, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn700, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -674,11 +676,11 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_residual__L218_L19_L6_L3`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `level_residual__L218_L19_L6_L3`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `level_residual__L218_L19_L6_L3`: its shape. -/
@@ -730,7 +732,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L8_L22_L4`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn723, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn723, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -743,11 +745,11 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L8_L22_L4`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `level_positions__L8_L22_L4`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `level_positions__L8_L22_L4`: its shape. -/
@@ -799,7 +801,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn740, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn740, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -812,11 +814,11 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: its shape. -/
@@ -868,7 +870,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L28_L26_L2`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn890, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn890, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -881,11 +883,11 @@ theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true :=
   decide +kernel
 
 /-- `level_positions__L28_L26_L2`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `level_positions__L28_L26_L2`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `level_positions__L28_L26_L2`: its shape. -/
@@ -937,7 +939,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L33_L6_L4_L2_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1005, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1005, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -986,6 +988,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1005 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `level_residual__L33_L6_L4_L2_loop1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -1002,7 +1006,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L55_L11_L4_L2_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1039, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1039, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -1051,6 +1055,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1039 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `level_residual__L55_L11_L4_L2_loop1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -1067,7 +1073,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L109_L17_L6_L3_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1112, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1112, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -1116,6 +1122,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1112 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `level_residual__L109_L17_L6_L3_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -1132,7 +1140,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L55_L22_L6_L3_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1333, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1333, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -1181,6 +1189,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1333 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `level_residual__L55_L22_L6_L3_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -1197,7 +1207,7 @@ open LeanVM.Guest
 
 /-- `level_residual__L19_L11_L4_L2_loop1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1400, Data.powTree, [], [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1400, Data.powTree, [], [], [], false, []⟩
 
 end
 
@@ -1246,6 +1256,8 @@ theorem loop_ok : CoreMode.LoopOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1400 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `level_residual__L19_L11_L4_L2_loop1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loop loop_ok
@@ -1262,7 +1274,7 @@ open LeanVM.Guest
 
 /-- `walk_path__L12_L4`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1456, Data.powTree, hpost, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1456, Data.powTree, hpost, [], [], false, []⟩
 
 end
 
@@ -1275,11 +1287,11 @@ theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = tr
   decide +kernel
 
 /-- `walk_path__L12_L4`: its signature translated. -/
-theorem core_sig : CoreMode.sigOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
   decide +kernel
 
 /-- `walk_path__L12_L4`: its returned products. -/
-theorem core_retv : CoreMode.retVOk cfun modeFun.sig = true := by
+theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
 /-- `walk_path__L12_L4`: its shape. -/
@@ -1331,7 +1343,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1485, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1485, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -1384,6 +1396,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1485 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loopC loop_ok
@@ -1400,7 +1414,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1506, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1506, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -1453,6 +1467,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1506 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loopC loop_ok
@@ -1469,7 +1485,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1513, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1513, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -1522,6 +1538,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1513 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loopC loop_ok
@@ -1538,7 +1556,7 @@ open LeanVM.Guest
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1527, Data.powTree, [], csigs, []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1527, Data.powTree, [], csigs, [], false, []⟩
 
 end
 
@@ -1591,6 +1609,8 @@ theorem loop_ok : CoreMode.LoopOkC ⟨modeEnv, modeFun, code.chunks.flatten⟩ c
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1527 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  hc := rfl
+  hcs := rfl
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := CoreMode.fnSpecC_of_loopC loop_ok

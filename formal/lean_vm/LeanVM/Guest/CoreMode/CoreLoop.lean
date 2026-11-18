@@ -110,6 +110,9 @@ structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   small : ∀ i (hi : i < K.code.length), SmallOps K.code[i]
   pows : Cf.pows.Ok
   fpows : Cf.frame.F.pows.Ok
+  /-- Its contract is its mode signature's, and its callees'. -/
+  hc : Cf.hc = false
+  hcs : Cf.hcs = []
 
 /-! ## The body and its path -/
 
@@ -500,7 +503,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
     intro s hH0 hs0
     rw [Mode.preAt_none hCt.1] at hH0
     obtain ⟨hw, hpre, hpreR, hself⟩ := entry_facts hent' (fun o ho ↦ (hso o ho).1) hH0
-    refine coreAt_of (by rw [hok.fsig]; exact expW_entry hκ hs0.agree hH0)
+    refine coreAt_of (by rw [CFun.xc_of hok.hc, hok.fsig]; exact expW_entry hκ hs0.agree hH0)
       ⟨atF_mono (s := s) (Mem.le_refl _) rfl (atF_entry henv ⟨fun o ho ↦ hw o (hok.fsig ▸ ho),
       fun o hso' ↦ ?_⟩), fun o ho ↦ hw o (hok.fsig ▸ ho), fun σ hσ ↦ ?_⟩
     · rw [hok.fsig] at hso'
@@ -787,7 +790,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
 
 /-- **A leaf loop helper on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) : Mode.FnSpecC K Cf :=
-  fun _ _ hC ha hK _ _ _ _ hκ hY hH _ hCt ↦ frameSpec_loop hok hC ha hK hκ hY hH hCt
+  fun _ _ hC ha hK _ _ _ _ hκ hY hH _ hCt ↦ frameSpec_loop hok hC ha hK hκ hY hH (modeCts_of hCt hok.hc hok.hcs)
 
 end
 

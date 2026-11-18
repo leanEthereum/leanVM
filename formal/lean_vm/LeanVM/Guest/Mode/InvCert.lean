@@ -188,7 +188,7 @@ def FnSpecC (K : Cert) (Cf : CoreMode.CFun) : Prop :=
   ∀ adv C, Ctx.of guestProgram adv = .ok C → adv.hints = Data.adviceHints → CodeOk C K →
     ∀ {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (Ct : Cts), κ ≤ 28 →
       (∀ s, Y s → ∃ n, OnRef guestProgram img n s) → CoreMode.CoreHon img Y K Cf → CoreMode.UsedNext C img Y →
-        ModeCts Ct K → FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code)
+        CoreMode.CtOk img Ct K Cf → FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code)
 
 /-- **A guest function's frame interface**: the walk's, or the core route's with core data among
 `T` at its entry. -/
@@ -227,7 +227,7 @@ theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {ad
     {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (Ct : Cts) (hκ : κ ≤ 28)
     (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
     (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) (hU : CoreMode.UsedNext C img Y)
-    (hCt : ModeCts Ct K) :
+    (hCt : ModeCts Ct K) (hCc : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CtOk img Ct K Cf) :
     FrameSpec C (refMem img) Y Ct K (guestQ T img K) := by
   by_cases hc : ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf
   · have hq : guestQ T img K = fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧
@@ -236,7 +236,7 @@ theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {ad
     rw [hq]
     have hS : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → FnSpecC K Cf →
         FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code) := fun Cf hCf he hs ↦
-      hs adv C hC ha hK img Y Ct hκ hY (hH Cf hCf he) hU hCt
+      hs adv C hC ha hK img Y Ct hκ hY (hH Cf hCf he) hU (hCc Cf hCf he)
     obtain ⟨Cf0, hCf0, he0, hs0⟩ := hc
     refine ⟨fun hle hfp ⟨Cf, hCf, he, hs, hq⟩ ↦ ⟨Cf, hCf, he, hs, (hS Cf hCf he hs).mono hle hfp hq⟩,
       fun hA hf ↦ ⟨Cf0, hCf0, he0, hs0, (hS Cf0 hCf0 he0 hs0).entry hA hf⟩, ?_⟩

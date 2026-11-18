@@ -300,7 +300,8 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
       (fun _ ↦ none) hκ
       (fun s h ↦ ⟨r.n, h.2.2⟩) (fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
       (fun s op s1 s' hY hop e1 hm e ↦ G.used r hr { s' with steps := s'.steps + 1 }
-        (G.keepOp r hr C hC s op s1 s' hY hop e1 hm e)) ⟨rfl, fun _ _ _ ↦ rfl⟩) rfl
+        (G.keepOp r hr C hC s op s1 s' hY hop e1 hm e)) ⟨rfl, fun _ _ _ ↦ rfl⟩
+      fun Cf hCf _ ↦ CoreMode.ctOk_none (hT Cf hCf).2.1 (hT Cf hCf).2.2) rfl
     (fun C hC ↦
       { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
           have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp

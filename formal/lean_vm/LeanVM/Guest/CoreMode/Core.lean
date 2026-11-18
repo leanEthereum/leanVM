@@ -71,6 +71,11 @@ structure CFun where
   cs : List (String × HSig)
   /-- Each dispatch's callees, by its call site's callee frame cell. -/
   dsp : List (ℕ × List String)
+  /-- Its contract is its heap signature's (`heapCtr`), not its mode signature's. -/
+  hc : Bool
+  /-- The callees whose contract is their heap signature's (`Cf.sigOf f`), by name, with their numbers of
+  arguments and returned words. -/
+  hcs : List (String × ℕ × ℕ)
 
 /-- **The heap signatures the heap check reads**: its own at its own name, its callees' (`cs`). -/
 def CFun.sigOf (Cf : CFun) (f : String) : HSig :=
@@ -167,11 +172,18 @@ def CoreIn (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i
       walk σ Cf.fn.body = .ret (pre ++ es) vs ∧ walk σ pos = .ret es vs ∧ (∀ e ∈ pre ++ es, e.Holds rd σ) ∧
       ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK m y
 
+/-- The frame cells whose words the core route knows to be powers of `g`: the mode signature's entry runs'
+exponent cells (`expCells`), none for a heap contract. -/
+def CFun.xc (Cf : CFun) : List ℕ := bif Cf.hc then [] else expCells Cf.frame.sig
+
+theorem CFun.xc_of {Cf : CFun} (h : Cf.hc = false) : Cf.xc = expCells Cf.frame.sig := by
+  simp [CFun.xc, h]
+
 /-- **The core route's frame predicate**: the entry runs' exponent cells powers of `g` (`ExpW`, from
-entry), and `CoreIn` in every memory past the state's agreeing with the reference (so a caller resumes
+entry, `CFun.xc`), and `CoreIn` in every memory past the state's agreeing with the reference (so a caller resumes
 from what its callee guarantees, in any memory past the call). -/
 def CoreAt (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) (s : St) : Prop :=
-  ExpW img (expCells Cf.frame.sig) s.fp ∧ ∀ m, s.mem ≤ m → Agree m (refMem img) → CoreIn img Cf code i m s.fp
+  ExpW img Cf.xc s.fp ∧ ∀ m, s.mem ≤ m → Agree m (refMem img) → CoreIn img Cf code i m s.fp
 
 /-- **The memory after a step stays within the reference's `2 ^ κ` cells**, from the states `Y`. -/
 def UsedNext (C : Ctx) (img : MemoryImage κ) (Y : St → Prop) : Prop :=
@@ -201,7 +213,7 @@ theorem CoreAt.mono {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstru
 
 /-- `CoreIn` at the state's memory gives `CoreAt`. -/
 theorem coreAt_of {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction} {i : ℕ} {s : St}
-    (hx : ExpW img (expCells Cf.frame.sig) s.fp) (h : CoreIn img Cf code i s.mem s.fp) : CoreAt img Cf code i s :=
+    (hx : ExpW img Cf.xc s.fp) (h : CoreIn img Cf code i s.mem s.fp) : CoreAt img Cf code i s :=
   ⟨hx, fun _ hm _ ↦ h.mono hm⟩
 
 /-! ## The signature, translated -/
@@ -375,18 +387,18 @@ noncomputable def idxPow (pows : Exec.PowTree) (body : List Stmt) (args : List V
   | .mono _ => false
 
 /-- **A callee's run bound at a call on `args` is a parameter's exponent**: argument `b` the parameter
-`k < np` whose cell `2 + k` is one of the entry runs' (`expCells`). -/
-def expArg (G : Mode.Sig) (np : ℕ) (args : List V) : CIdx → Bool
+`k < np` whose cell `2 + k` is one of `xs` (the entry runs' exponent cells, `CFun.xc`). -/
+def expArg (xs : List ℕ) (np : ℕ) (args : List V) : CIdx → Bool
   | .val b => match args[b]? with
     | some v => match vnum v with
-      | some k => decide (k < np) && (expCells G).contains (2 + k)
+      | some k => decide (k < np) && xs.contains (2 + k)
       | none => false
     | none => false
   | _ => false
 
 /-- A callee's run bound at a call on `args` has an exponent: `idxPow`, or a parameter's (`expArg`). -/
 noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
-  idxPow Cf.pows Cf.fn.body args i || expArg Cf.frame.sig Cf.fn.params.length args i
+  idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i
 
 /-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
 def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=
@@ -475,6 +487,14 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
       (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts 0
 
+/-- **A call's callee** `f` at a site of `na` arguments and `nr` returned words, of mode signature `G`: a
+callee whose contract is its heap signature's (`hcs`), its counts the site's, its header cells entry cells; or
+its mode signature holding of its heap signature (`fitB`). -/
+def callOkC (Cf : CFun) (G : Mode.Sig) (f : String) (na nr : ℕ) : Bool :=
+  match Cf.hcs.lookup f with
+  | some p => decide (p = (na, nr)) && G.entry.contains 0 && G.entry.contains 1
+  | none => fitB G (Cf.sigOf f) na nr
+
 /-- A `JUMP` through the target cell of the call site at its callee frame cell: through no `0`, no pc,
 no table target cell, from a cell not the own frame's. -/
 noncomputable def dspNo (X : AlignCtx) (od of : ℕ) : Bool :=
@@ -490,7 +510,7 @@ noncomputable def jumpCallOk (Cf : CFun) : OffsetInstruction → Bool
     | some t => match getF Cf.X.ents t with
       | some f => !(decide (Cf.frame.entry ≤ t) && decide (t < Cf.frame.entry + Cf.frame.len)) &&
         decide (t < 2 ^ 30) && !Cf.X.selfAt of && !Cf.X.nextAt of && match Cf.frame.sigs.get t, getF Cf.X.sites of with
-        | some G, some s => decide (s.r < 2 ^ 30) && fitB G (Cf.sigOf f) s.args.length s.rets.length
+        | some G, some s => decide (s.r < 2 ^ 30) && callOkC Cf G f s.args.length s.rets.length
         | _, _ => false
       | none => true
     | none => true
@@ -616,7 +636,7 @@ noncomputable def dspPc (Cf : CFun) (s : B2C.Site) (t : ℕ) : Bool :=
   match getF Cf.X.ents t with
   | some f => !(decide (Cf.frame.entry ≤ t) && decide (t < Cf.frame.entry + Cf.frame.len)) && decide (t < 2 ^ 30) &&
       match Cf.frame.sigs.get t with
-      | some G => fitB G (Cf.sigOf f) s.args.length s.rets.length
+      | some G => callOkC Cf G f s.args.length s.rets.length
       | none => false
   | none => false
 
@@ -705,6 +725,81 @@ inductive HeapK (Cf : CFun) : Prop
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → Cf.H.res = [] → callsB Cf = true →
       Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
 
+/-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
+def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=
+  G.self.isNone && G.term.isEmpty && G.postL.isEmpty && G.postLP.isEmpty && Nat.beq Cf.H.sig.ghosts 0
+
+/-- **The own signature's check**: a heap contract's (`hcOwn`), or the mode signature's translation
+(`sigOk`). -/
+noncomputable def ownOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
+  bif Cf.hc then hcOwn G Cf else sigOk G Cf np nr
+
+/-! ## Heap contracts -/
+
+/-- **The words of frame `fp`'s cells `2, …, 2 + n - 1`** in the reference. -/
+noncomputable def wsAt (img : MemoryImage κ) (fp n : ℕ) : List E := (List.range n).map fun b ↦ (Rd img fp (2 + b)).getD 0
+
+/-- **A core function's heap contract**: its heap signature `h` at the words of its frame's slots in the
+reference (`np` parameters, `nr` returned words), its mode signature `G` for the frame cells: at entry, its
+entry cells written and its preconditions; at return, its return cells written, its guarantees and its
+returned words' monomials. -/
+noncomputable def heapCtr (img : MemoryImage κ) (h : HSig) (G : Mode.Sig) (np nr : ℕ) : Mode.Ctr where
+  pre m fp := (∀ o ∈ G.entry, m.written (fp + o) = true) ∧
+    ∀ y, PreSet img.read h (wsAt img fp np) y → WrK m y
+  post m fp := (∀ o ∈ G.ret, m.written (fp + o) = true) ∧
+    (∀ y, PostSet img.read h (wsAt img fp (np + nr)) y → WrK m y) ∧
+    RetMOk h (wsAt img fp np) ((wsAt img fp (np + nr)).drop np)
+  mono hle h := ⟨fun o ho ↦ written_mono hle (h.1 o ho), fun y hy ↦ (h.2.1 y hy).mono hle, h.2.2⟩
+
+/-- The contract the core data `Cf` assumes of its callee `f`, of mode signature `G`: its heap contract
+(`hcs`), or its mode signature's. -/
+noncomputable def hcAt (img : MemoryImage κ) (Cf : CFun) (G : Mode.Sig) (f : String) : Option Mode.Ctr :=
+  (Cf.hcs.lookup f).map fun p ↦ heapCtr img (Cf.sigOf f) G p.1 p.2
+
+/-- **The contracts the core data `Cf` of `K` assumes**: its own (its heap contract iff `Cf.hc`), and at each
+callee entry of its environment the one `hcAt` names by the callee's name there. -/
+def CtOk (img : MemoryImage κ) (Ct : Mode.Cts) (K : Mode.Cert) (Cf : CFun) : Prop :=
+  Ct K.F.entry = (bif Cf.hc then some (heapCtr img Cf.H.sig K.F.sig Cf.fn.params.length (retN Cf.fn.body))
+    else none) ∧
+  ∀ t G, K.E.sigs.get t = some G → Ct t = (getF Cf.X.ents t).bind (hcAt img Cf G)
+
+theorem preAt_own {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    (hc : Cf.hc = false) {s : St} : Mode.PreAt Ct K.E K.F.entry K.F.sig s = Mode.Holds s (entryAbs K.E K.F.sig) := by
+  unfold Mode.PreAt; rw [h.1, hc]; rfl
+
+theorem preAt_ownH {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    (hc : Cf.hc = true) {s : St} : Mode.PreAt Ct K.E K.F.entry K.F.sig s =
+      (heapCtr img Cf.H.sig K.F.sig Cf.fn.params.length (retN Cf.fn.body)).pre s.mem s.fp := by
+  unfold Mode.PreAt; rw [h.1, hc]; rfl
+
+theorem postAt_own {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    (hc : Cf.hc = false) {m : Mem} {fp : ℕ} : Mode.PostAt Ct K.F.entry K.F.sig m fp = RetAll m fp K.F.sig := by
+  unfold Mode.PostAt; rw [h.1, hc]; rfl
+
+theorem postAt_ownH {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    (hc : Cf.hc = true) {m : Mem} {fp : ℕ} : Mode.PostAt Ct K.F.entry K.F.sig m fp =
+      (heapCtr img Cf.H.sig K.F.sig Cf.fn.params.length (retN Cf.fn.body)).post m fp := by
+  unfold Mode.PostAt; rw [h.1, hc]; rfl
+
+/-- A callee's contract, by its name at its entry. -/
+theorem ct_callee {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    {t : ℕ} {G : Mode.Sig} {f : String} (hG : K.E.sigs.get t = some G) (hf : getF Cf.X.ents t = some f) :
+    Ct t = hcAt img Cf G f := by
+  rw [h.2 t G hG, hf]; rfl
+
+/-- Mode contracts everywhere, for core data naming none. -/
+theorem ctOk_none {img : MemoryImage κ} {K : Mode.Cert} {Cf : CFun} (hc : Cf.hc = false) (hcs : Cf.hcs = []) :
+    CtOk img (fun _ ↦ none) K Cf := by
+  refine ⟨by rw [hc]; rfl, fun t G _ ↦ ?_⟩
+  cases getF Cf.X.ents t <;> simp [hcAt, hcs]
+
+/-- Mode contracts for core data naming none. -/
+theorem modeCts_of {img : MemoryImage κ} {Ct : Mode.Cts} {K : Mode.Cert} {Cf : CFun} (h : CtOk img Ct K Cf)
+    (hc : Cf.hc = false) (hcs : Cf.hcs = []) : Mode.ModeCts Ct K := by
+  refine ⟨by rw [h.1, hc]; rfl, fun t G hG ↦ ?_⟩
+  rw [h.2 t G hG]
+  cases getF Cf.X.ents t <;> simp [hcAt, hcs]
+
 /-- **The kernel's checks of a function on the core route**, and its ties to its mode certificate
 `K`: the code, entry and signatures, the advice's hints at its pcs, its fetches, its operands small,
 the powers' tables. -/
@@ -712,8 +807,8 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : HeapK Cf
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : envOk Cf.frame = true ∧ armsOk Cf.frame = true ∧ FrameAcc Cf.frame K.code
-  sig : sigOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) = true
-  retv : retVOk Cf K.F.sig = true
+  sig : ownOk K.F.sig Cf Cf.fn.params.length (retN Cf.fn.body) = true
+  retv : (Cf.hc || retVOk Cf K.F.sig) = true
   shape : shapeOk Cf K.code = true
   calls : K.code.all (jumpCallOk Cf) = true
   jtd : jtdOk Cf K.E K.code = true
