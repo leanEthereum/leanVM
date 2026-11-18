@@ -337,14 +337,14 @@ theorem ExecGaps.ofX {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     (res : ∀ r, r.Ok → ResRef guestProgram r.img r.n Ks (XOf Y r)) (termInst : TermInst Ks)
     (progAl : ProgAl guestProgram coreProgram A) (mainAt : entOf A "main" = mainEntry) (layout : AlLayout A)
     (jumpCells : JumpCellsAt A) (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (derefPow : DerefPow Y)
-    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) :
+    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) (core : CoreHonAll Ks (XOf Y)) :
     ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) :=
   ExecGaps.ofParts certs main mainExact hintAlloc hintWitness hintComputed res termInst
     (entryInst_X certs entries progAl mainAt jumpCells layout)
     (fun _ hr _ hC _ _ hon hop ↦ ptrPow_X progAl mainAt jumpCells hr hC hon hop)
     (fun _ hr _ hC _ _ _ _ hon hop e1 hm e ↦
       keep_X progAl mainAt jumpCells derefPow hintsUsed keepY hr hC hon hop e1 hm e)
-    (fun _ hr _ _ hC hm ↦ init_X initY hr hC hm) (fun _ _ _ hX ↦ hX.2.1)
+    (fun _ hr _ _ hC hm ↦ init_X initY hr hC hm) (fun _ _ _ hX ↦ hX.2.1) core
 
 end
 

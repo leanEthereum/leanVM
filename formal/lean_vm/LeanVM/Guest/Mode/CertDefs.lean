@@ -104,9 +104,9 @@ theorem loopRng_of {G : Sig} (h : loopRngB G = true) :
   of_decide_eq_true (List.all_eq_true.1 h r hr)
 
 /-- **A function on the walk meets its frame interface**: its static facts, its walk and its hints. -/
-theorem fnSpec_walk {K : Cert} (hst : CertSt K) (hw : CertWalk K) : FnSpec K :=
+theorem fnSpec_walk {T : List CoreMode.CFun} {K : Cert} (hst : CertSt K) (hw : CertWalk K) : FnSpec T K :=
   have h := staticB_spec hst.b
-  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1)
+  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1) T
 
 /-- A callee's signature at entry `p.1` is `p.2`, a certificate's among `Ks`, not `main`'s. -/
 def SigIn (Ks : List Cert) (p : ℕ × Sig) : Prop :=

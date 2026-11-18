@@ -104,7 +104,7 @@ falling through or taken as its exit says. -/
 theorem offF_cases {Fn : FFun} {i : ℕ} {hs : List Hint} {A : FSt} {ins : OffsetInstruction}
     {pend pend' : FPend} {cur' : Option FSt} (h : offF Fn i hs A ins pend = some (cur', pend')) :
     ∃ A1, stepHintsF A hs = some A1 ∧
-      (((∀ c d f, ins ≠ .jump c d f) ∧ ∃ A3, stepF Fn.O i (addNzs A1 ((Fn.nzr.get i).getD [])) ins = some A3 ∧
+      (((∀ c d f, ins ≠ .jump c d f) ∧ ∃ A3, stepF Fn.O Fn.S i (addNzs A1 ((Fn.nzr.get i).getD [])) ins = some A3 ∧
           cur' = some (execF Fn.F (Fn.entry + i) A3 ins)) ∨
        (∃ c d f, ins = .jump c d f ∧
           (addNzs A1 ((Fn.nzr.get i).getD [])).hasW c = true ∧
@@ -181,20 +181,44 @@ theorem hintAbs_holds {s : St} {A : FSt} (h : FWr s A) : Mode.Holds s (hintAbs A
   p _ hx := by simp [hintAbs] at hx
   c _ hx := by simp [hintAbs] at hx
 
+/-- **The hints in order**: each one's needs at the state its predecessors reach, once its inputs
+are written, and the instruction's obligations after them. -/
+theorem stepOk_hintsAt {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prover.Exec.Op} :
+    ∀ (hs : List Hint) (s : St) (A A' : Mode.Abs), Fine M s → Mode.Holds s A → Mode.stepHints A hs = some A' →
+      (∀ pre h post, hs = pre ++ h :: post → ∀ s1, pre.foldlM (Prover.Exec.runHint C) s = .ok s1 →
+        Moves M s s1 → HintIn s1 h → HintOk C M s1 h) →
+      (∀ s1, hs.foldlM (Prover.Exec.runHint C) s = .ok s1 → Moves M s s1 → Mode.Holds s1 A' →
+        StepOk C M Inv op [] s1) → StepOk C M Inv op hs s
+  | [], s, A, A', hs, hA, h, _, hk => by
+    cases h
+    exact hk s rfl (Mode.Moves.refl' hs) hA
+  | x :: xs, s, A, A', hs, hA, h, hh, hk => by
+    simp only [Mode.stepHints, Option.bind_eq_some_iff] at h
+    obtain ⟨B, hB, h⟩ := h
+    have hin := (Mode.stepHint_sound (C := C) (s' := s) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).1
+    refine ⟨hh [] x xs rfl s rfl (Mode.Moves.refl' hs) hin, fun s1 e1 m1 ↦ ?_⟩
+    have hrun := (Mode.stepHint_sound (C := C) (s' := s1) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).2
+    exact stepOk_hintsAt xs s1 B A' m1.fine (hrun e1 m1.fine.agree.used) h
+      (fun pre y post hp s2 e2 m2 hi ↦ hh (x :: pre) y post (by rw [hp]; rfl) s2
+        (by rw [List.foldlM_cons, e1]; exact e2) (m1.trans m2) hi)
+      (fun s2 e2 m2 hB2 ↦ hk s2 (by rw [List.foldlM_cons, e1]; exact e2) (m1.trans m2) hB2)
+
 /-- **The hints**: each one's needs, once its inputs are written, and the instruction's obligations
 after them, from the state after the hints. -/
 theorem stepOk_hintsF {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prover.Exec.Op} {s : St} {A A1 : FSt}
     {hs : List Hint} (hf : Fine M s) (hA : FHolds img s A) (h : stepHintsF A hs = some A1)
-    (hh : ∀ s1 h, Moves M s s1 → h ∈ hs → HintIn s1 h → HintOk C M s1 h)
-    (hk : ∀ s1, Moves M s s1 → FHolds img s1 A1 → StepOk C M Inv op [] s1) : StepOk C M Inv op hs s := by
+    (hh : ∀ pre h post, hs = pre ++ h :: post → ∀ s1, pre.foldlM (Prover.Exec.runHint C) s = .ok s1 →
+      Moves M s s1 → HintIn s1 h → HintOk C M s1 h)
+    (hk : ∀ s1, hs.foldlM (Prover.Exec.runHint C) s = .ok s1 → Moves M s s1 → FHolds img s1 A1 →
+      StepOk C M Inv op [] s1) : StepOk C M Inv op hs s := by
   cases hs with
   | nil =>
     cases h
-    exact hk s (Mode.Moves.refl' hf) hA
+    exact hk s rfl (Mode.Moves.refl' hf) hA
   | cons x xs =>
     obtain ⟨B, hB, rfl⟩ := Option.map_eq_some_iff.mp h
-    exact Mode.stepOk_hints (x :: xs) s (hintAbs A.w) B hf (hintAbs_holds hA.2) hB hh fun s1 hm hB1 ↦
-      hk s1 hm ⟨by rw [hm.fp]; exact ⟨hA.1.st, hA.1.nz, hA.1.hs, hA.1.cp, hA.1.one⟩,
+    exact stepOk_hintsAt (x :: xs) s (hintAbs A.w) B hf (hintAbs_holds hA.2) hB hh fun s1 e1 hm hB1 ↦
+      hk s1 e1 hm ⟨by rw [hm.fp]; exact ⟨hA.1.st, hA.1.nz, hA.1.hs, hA.1.cp, hA.1.one⟩,
         ⟨hB1.w, (hA.2.mono hm.le hm.fp).hq⟩⟩
 
 theorem addNzs_holds {s : St} : ∀ {A : FSt} {os : List ℕ}, FHolds img s A →
@@ -323,26 +347,27 @@ def SmallOps : OffsetInstruction → Prop
   | _ => True
 
 /-- **Where a taken jump goes**, and what holds there. -/
-inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruction) (s1 s' : St) : Prop
+inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruction) (rj : Prop)
+    (s1 s' : St) : Prop
   /-- A jump in the frame, to an offset the walk names. -/
-  | local (t : ℕ) : s'.fp = s1.fp → s'.pc = Fn.entry + t → AtF img Fn code t s' → JumpOut img Fn code s1 s'
+  | local (t : ℕ) : ¬ rj → s'.fp = s1.fp → s'.pc = Fn.entry + t → AtF img Fn code t s' → JumpOut img Fn code rj s1 s'
   /-- A return: the caller's registers, the signature's return cells written. -/
   | ret : retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
-      (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → JumpOut img Fn code s1 s'
+      (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → JumpOut img Fn code rj s1 s'
   /-- `main`'s halt. -/
-  | halt : Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code s1 s'
+  | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code rj s1 s'
   /-- A loop's tail call into frame `fp + e`: its entry facts, its header this frame's, nothing
   returned in its frame. -/
-  | tail (e : ℕ) : s'.pc = Fn.entry → s'.fp = s1.fp + e → EntryF img Fn.sig s' →
+  | tail (e : ℕ) : ¬ rj → s'.pc = Fn.entry → s'.fp = s1.fp + e → EntryF img Fn.sig s' →
       Rd img s'.fp 0 = Rd img s1.fp 0 → Rd img s'.fp 1 = Rd img s1.fp 1 → Fn.sig.ret = [] →
-      JumpOut img Fn code s1 s'
+      JumpOut img Fn code rj s1 s'
   /-- A call into callee `G` at offset `t`'s return point: its entry facts, its frame's header this
   frame's return point, and the walk at `t` once the callee has written its return cells. -/
-  | call (G : Mode.Sig) (t : ℕ) : Fn.sigs.get s'.pc = some G → EntryF img G s' →
+  | call (G : Mode.Sig) (t : ℕ) : ¬ rj → Fn.sigs.get s'.pc = some G → EntryF img G s' →
       retRegs img (g ^ s'.fp) = some ⟨g ^ (Fn.entry + t), g ^ s1.fp⟩ →
       (∀ s'', Fine (refMem img) s'' → s''.fp = s1.fp → s''.pc = Fn.entry + t → s1.mem ≤ s''.mem →
         (∀ o ∈ G.ret, s''.mem.written (s'.fp + o) = true) → AtF img Fn code t s'') →
-      JumpOut img Fn code s1 s'
+      JumpOut img Fn code rj s1 s'
 
 /-- Where a jump through a cell lands, of the reference: a table call at one of its callees, a
 table jump at one of its arms. -/
@@ -402,7 +427,13 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
     {dv : E} (hdv : Rd img s1.fp d = some dv)
     (htgt : ∀ k, Fn.tgt.get i = some k → (∀ pcs, Fn.calls.get k = some pcs → s'.pc ∈ pcs) ∧
       (∀ ts, Fn.arms.get k = some ts → ∃ t ∈ ts, s'.pc = Fn.entry + t))
-    (cov : ∀ s j, j ∈ ts → FHolds img s B → AtF img Fn code j s) : JumpOut img Fn code s1 s' := by
+    (cov : ∀ s j, j ∈ ts → FHolds img s B → AtF img Fn code j s) {rj : Prop} (hrj : rj → d = 0 ∧ f = 1) :
+    JumpOut img Fn code rj s1 s' := by
+  have hnr : kind ≠ .ret → ¬ rj := fun hk h ↦ by
+    obtain ⟨rfl, rfl⟩ := hrj h
+    unfold Exec.jumpKind at hjk
+    simp only [and_self, ↓reduceIte, Prod.mk.injEq] at hjk
+    exact hk hjk.1.symm
   have hfp1 := hs1.fp
   unfold maxCells at hfp1 hfps
   unfold exitF at hx
@@ -414,7 +445,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
     simp only [Exec.Kind.Regs, Registers.mk.injEq, addressOfIndex] at hregs
     have h1 := gpow_lt_inj (by omega) (by omega) hregs.1
     have h2 := gpow_lt_inj (by omega) (by omega) hregs.2
-    exact .local t h2 h1 (cov s' t List.mem_cons_self (hA.mono hle h2))
+    exact .local t (hnr nofun) h2 h1 (cov s' t List.mem_cons_self (hA.mono hle h2))
   | ret =>
     split_ifs at hx with hr
     cases hx
@@ -487,7 +518,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
       simp
     obtain ⟨p3, hp3, hrr⟩ := hextra
     rw [hp] at hp3; cases hp3
-    refine .call G' t hsig hentry (by rw [← hfpp]; exact hrr) fun s'' hs'' hfp'' hpc'' hle'' hret ↦ ?_
+    refine .call G' t (hnr nofun) hsig hentry (by rw [← hfpp]; exact hrr) fun s'' hs'' hfp'' hpc'' hle'' hret ↦ ?_
     refine cov s'' t List.mem_cons_self (addRets_holds ((hA.mono hle'' hfp'')) fun o ho _ ↦ ?_)
     obtain ⟨vf, hvf, hrf⟩ := hfget
     change img.read (g ^ s1.fp * addressOfIndex q) = some vf at hrf
@@ -513,7 +544,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hh
         obtain ⟨⟨h1, rfl⟩, he⟩ := hh
         unfold pcLim at he
-        exact .halt h1 (gpow_lt_inj (by omega) (by omega) (hpa.trans hpt))
+        exact .halt (hnr nofun) h1 (gpow_lt_inj (by omega) (by omega) (hpa.trans hpt))
       | cell o =>
         obtain rfl := jumpKind_cell (by rw [hjk])
         simp only at hx
@@ -527,7 +558,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         replace hv : Rd img s1.fp o = some v := hv
         rw [hdv] at hv; cases hv
         obtain ⟨t, ht, hpt'⟩ := (htgt k hk).2 _ hts'
-        exact .local t hfp' hpt' (cov s' t ht (hA.mono hle hfp'))
+        exact .local t (hnr nofun) hfp' hpt' (cov s' t ht (hA.mono hle hfp'))
       | fpg e => simp at hx
     · rw [ite_eq_right hself] at hx
       rcases ft with e0 | e | o <;> rcases pt with e' | e1 | o' <;> simp only at hx <;> try cases hx
@@ -552,7 +583,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         obtain rfl := beq_iff_eq.mp hc
         obtain ⟨v, hv1, hv2⟩ := hA.1.cp t c' hct
         rw [hfp', rd_shift, show e + (t - e) = t by omega, hv1, hv2]
-      refine .tail e hpc' hfp' ⟨fun o ho ↦ ?_, fun o hso ↦ ?_⟩ ?_ ?_ hret
+      refine .tail e (hnr nofun) hpc' hfp' ⟨fun o ho ↦ ?_, fun o hso ↦ ?_⟩ ?_ ?_ hret
       · have := hA.2.w _ (has_iff.mp (hent o ho))
         rw [hfp', Nat.add_assoc]
         exact written_mono hle this
@@ -596,6 +627,16 @@ theorem isNonzero_rd {fp : ℕ} {A : FSt} (hv : FVal img fp A) {c : ℕ} (h : Ex
   rw [hr] at this
   rw [Option.some.inj this]; exact hne
 
+/-- A `DEREF` of mode `cell` at an offset of `S` has written its heap cell. -/
+def StoreW (Fn : FFun) (code : List OffsetInstruction) (i : ℕ) (s : St) : Prop :=
+  ∀ a o c, code[i]? = some (.deref a o c .cell) → has Fn.S i = true →
+    ∃ p x, s.mem.get (s.fp + a) = some p ∧ Names (p * ofK (g ^ o)) x ∧ s.mem.written x = true
+
+/-- A taken `JUMP` at offset `i`: its target and frame cells name the next registers. -/
+def JumpTaken (C : Ctx) (code : List OffsetInstruction) (i : ℕ) (s1 s' : St) : Prop :=
+  ∃ c d f, code[i]? = some (.jump c d f) ∧ s1.mem.get (s1.fp + d) = some (ofK (g ^ s'.pc)) ∧
+    s1.mem.get (s1.fp + f) = some (ofK (g ^ s'.fp)) ∧ s'.pc < C.ops.size
+
 /-- **A step at an offset the frame walk reaches** has its obligations: the hints' and the
 instruction's needs, what falls through at the next offset, and a taken `JUMP` by kind. -/
 theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St → Prop} {Fn : FFun}
@@ -610,17 +651,21 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     (hat : AtF img Fn code i s) (hs : Fine (refMem img) s) {k : ℕ}
     (hsafe : Safe prog img k ⟨addressOfIndex s.pc, g ^ s.fp⟩)
     (hmain : Fn.F.fpOne = true → s.fp = 0)
-    (hhint : ∀ s1 h, Moves (refMem img) s s1 → h ∈ Mode.hintsAt Fn.hints (Fn.entry + i) → HintIn s1 h →
+    (hhint : ∀ pre h post, Mode.hintsAt Fn.hints (Fn.entry + i) = pre ++ h :: post → ∀ s1,
+      pre.foldlM (Prover.Exec.runHint C) s = .ok s1 → Moves (refMem img) s s1 → HintIn s1 h →
       HintOk C (refMem img) s1 h)
     (hnz : ∀ o ∈ (Fn.nzr.get i).getD [], ∃ v, Rd img s.fp o = some v ∧ v ≠ 0)
     (hO : has Fn.O i = true → ∀ s1, Moves (refMem img) s s1 → HeapRd s1 code[i])
     (htgt : TgtOk img Fn code i s.fp)
     (href : ∀ s1, Moves (refMem img) s s1 → RefOk (refMem img) s1 (opOfOff code[i]))
-    (hfall : ∀ s', s'.pc = s.pc + 1 → s'.fp = s.fp → Fine (refMem img) s' → s.mem ≤ s'.mem →
-      AtF img Fn code (i + 1) s' → Inv { s' with steps := s'.steps + 1 })
-    (hjump : ∀ s1 s', Moves (refMem img) s s1 → runOp C s1 (opOfOff code[i]) = .ok s' →
-      Fine (refMem img) s' → s1.mem ≤ s'.mem → JumpOut img Fn code s1 s' →
-      Inv { s' with steps := s'.steps + 1 }) :
+    (hfall : ∀ s1 s', (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
+      Moves (refMem img) s s1 → OpModed (refMem img) s1 (opOfOff code[i]) → runOp C s1 (opOfOff code[i]) = .ok s' →
+      s'.pc = s.pc + 1 → s'.fp = s.fp → Fine (refMem img) s' → s1.mem ≤ s'.mem →
+      AtF img Fn code (i + 1) s' → StoreW Fn code i s' → Inv { s' with steps := s'.steps + 1 })
+    (hjump : ∀ s1 s', (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
+      Moves (refMem img) s s1 → OpModed (refMem img) s1 (opOfOff code[i]) → runOp C s1 (opOfOff code[i]) = .ok s' →
+      Fine (refMem img) s' → s1.mem ≤ s'.mem → JumpOut img Fn code (∃ c, code[i]? = some (.jump c 0 1)) s1 s' →
+      JumpTaken C code i s1 s' → Inv { s' with steps := s'.steps + 1 }) :
     StepOk C (refMem img) Inv (opOfOff code[i]) ((C.hints[s.pc]?).getD []) s := by
   have hops_i := hops i hi
   have hszC : Fn.entry + i < C.ops.size := by
@@ -631,7 +676,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
   obtain ⟨A, hA, pa, cur', pb, e, hpa, hnext, hcov⟩ := atF_step (img := img) har hacc hi hat
   obtain ⟨A1, h1, hc⟩ := offF_cases e
   rw [hpc, hhints i hi]
-  refine stepOk_hintsF hs hA h1 hhint (fun s1 hm hA1 ↦ ?_)
+  refine stepOk_hintsF hs hA h1 hhint (fun s1 e1 hm hA1 ↦ ?_)
   have hA2 : FHolds img s1 (addNzs A1 ((Fn.nzr.get i).getD [])) :=
     addNzs_holds hA1 (by rw [hm.fp]; exact hnz)
   generalize addNzs A1 ((Fn.nzr.get i).getD []) = A2 at hA2 hc
@@ -647,13 +692,24 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     obtain ⟨k', -, hh, -⟩ := hsafe1.fallThrough hf hpcl hj
     have hreads := stepF_reads hκ hm.fine hA2 hh (fun a b c he ↦ by
       have := hsmall i hi; rw [he] at this; exact this) h3
-    refine ⟨Mode.opModed_of hm.fine.agree hreads (href s1 hm), fun s' e' hf' hle' ↦ ?_⟩
-    obtain ⟨hw', hfp', hpc', -⟩ := stepF_wr hg1 hm.fine.fp (by rw [hpc1]; exact hszC) hA2.2
+    have hmo := Mode.opModed_of hm.fine.agree hreads (href s1 hm)
+    refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
+    have e'' := e'
+    obtain ⟨hw', hfp', hpc', hle3⟩ := stepF_wr hg1 hm.fine.fp (by rw [hpc1]; exact hszC) hA2.2
       (fun ho ↦ hO ho s1 hm) h3 e'
+    have hstw : StoreW Fn code i s' := by
+      intro a o c' hci hS
+      rw [List.getElem?_eq_getElem hi, Option.some.injEq] at hci
+      rw [hci] at h3 e'
+      obtain ⟨-, hc, -⟩ := stepF_deref h3
+      obtain ⟨p, x, hp, -, hx, -, -, hcell⟩ := Mode.deref_vals hg1 e'
+      obtain ⟨-, hst⟩ := hcell rfl
+      obtain ⟨v, hv⟩ := Mem.get_of_written (hA2.2.w c' (has_iff.mp (hc hS)))
+      exact ⟨p, x, by rw [hfp']; exact hle3.get _ _ hp, hx, written_of_get (hst v hv)⟩
     have hv' : FVal img s'.fp (execF Fn.F (Fn.entry + i) A3 code[i]) := by
       rw [hfp']; exact execF_val (by omega) hpows (stepF_val hA2.1 hh h3) hh
-    exact hfall s' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' (Mem.le_trans hm.le hle')
-      (hnext s' ⟨_, rfl, hv', execF_wr hw'⟩)
+    exact hfall s1 s' e1 hm hmo e'' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' hle'
+      (hnext s' ⟨_, rfl, hv', execF_wr hw'⟩) hstw
   · have hop : opOfOff code[i] = .jump c d f := by rw [hins]; rfl
     have hsm := hsmall i hi
     rw [hins] at hsm hf
@@ -661,7 +717,9 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     have hW : ∀ o, A2.hasW o = true → s1.mem.written (s1.fp + o) = true := fun o ho ↦ hA2.2.w o (has_iff.mp ho)
     have hreads : Reads s1 (.jump c d f) := ⟨hW c hwc, hW d hwd, hW f hwf⟩
     rw [hop]
-    refine ⟨Mode.opModed_of hm.fine.agree hreads (hop ▸ href s1 hm), fun s' e' hf' hle' ↦ ?_⟩
+    have hmo : OpModed (refMem img) s1 (opOfOff code[i]) := by
+      rw [hop]; exact Mode.opModed_of hm.fine.agree hreads (hop ▸ href s1 hm)
+    refine ⟨hop ▸ hmo, fun s' e' hf' hle' ↦ ?_⟩
     obtain ⟨k', r, -, ⟨cv, dv, fv, hcv, hdv, hfv, hcK, hdK, hfK, -⟩, -⟩ := hsafe1.jump hf hpcl
     obtain ⟨vc, vd, vf, hvc, hvd, hvf, -, hcase'⟩ := Mode.jump_vals hg1 e'
     have ec : vc = cv := rd_get hκ hm.fine sc hcv hvc
@@ -675,8 +733,9 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
           cases hnz' : Exec.isNonzero (A2.st.env.get c)
           · rfl
           · exact absurd (ec ▸ hz) (isNonzero_rd hA2.1 hnz' hcv)
-      exact hfall s' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' (Mem.le_trans hm.le hle')
+      exact hfall s1 s' e1 hm hmo (by rw [hop]; exact e') (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf' hle'
         (hnext s' ⟨A2, hcur, hA2.mono hle' hfp'⟩)
+        (fun a o c' hci _ ↦ by rw [List.getElem?_eq_getElem hi, hins] at hci; cases hci)
     · rcases hcase with ⟨hz, -⟩ | ⟨-, hj, -⟩
       · exact absurd (ec.trans (isZero_rd hA2.1 hz hcv)) hne
       obtain ⟨ts, B, hx, -, hP⟩ := jumpF_spec (img := img) har hj
@@ -690,8 +749,12 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
         (fun h1 ↦ by rw [hm.fp, hmain h1, pow_zero]) hA2.1.st hdv hdK hfv hfK
       rw [hjk, hdl, hfl] at hregs
       rw [hjk] at hextra
-      refine hjump s1 s' hm (by rw [hop]; exact e') hf' hle' (exit_out hκ hm.fine hle' hend (by omega) hfps sf hA2
-        (fun h1 ↦ hm.fp.trans (hmain h1)) ⟨vf, hvf, ef ▸ hfv⟩ hjk hx hregs hextra hdv ?_ cov)
+      refine hjump s1 s' e1 hm hmo (by rw [hop]; exact e') hf' hle' (exit_out hκ hm.fine hle' hend (by omega) hfps sf hA2
+        (fun h1 ↦ hm.fp.trans (hmain h1)) ⟨vf, hvf, ef ▸ hfv⟩ hjk hx hregs hextra hdv ?_ cov
+        (fun ⟨c', hc'⟩ ↦ by
+          rw [List.getElem?_eq_getElem hi, hins, Option.some.injEq, OffsetInstruction.jump.injEq] at hc'
+          exact ⟨hc'.2.1, hc'.2.2⟩))
+        ⟨c, d, f, by rw [List.getElem?_eq_getElem hi, hins], hd' ▸ hvd, hf'' ▸ hvf, hpcs⟩
       intro kk' hk'
       have hcv' : Rd img s.fp c = some cv := by rw [← hm.fp]; exact hcv
       have hdv' : Rd img s.fp d = some dv := by rw [← hm.fp]; exact hdv

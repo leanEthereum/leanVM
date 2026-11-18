@@ -183,10 +183,10 @@ theorem scan_pos (P : PairCtx) (o1 o2 o3 : ℕ) : ∀ (f : ℕ) {z : Zip} {r : Z
     · cases h
 
 theorem kindOk_some {P : PairCtx} {i : ℕ} {b : Bool} (h : P.kindOk i (some b) = true) :
-    has P.O i = b ∧ has P.S i = !b := by
+    hasP P.O i = b ∧ hasP P.S i = !b := by
   cases b <;> simp_all [PairCtx.kindOk]
 
-theorem kindOk_none {P : PairCtx} {i : ℕ} (h : P.kindOk i none = true) : has P.O i = false ∧ has P.S i = false := by
+theorem kindOk_none {P : PairCtx} {i : ℕ} (h : P.kindOk i none = true) : hasP P.O i = false ∧ hasP P.S i = false := by
   simp_all [PairCtx.kindOk]
 
 /-- **An instruction other than a jump, by positions**: a `DEREF` of mode `cell` consuming the `load`
@@ -196,8 +196,8 @@ theorem plainStep_pos {P : PairCtx} {i : ℕ} {ins : OffsetInstruction} {z z' : 
     (∃ (o1 o2 o3 : ℕ) (bs : List Atom) (d p : V) (off : ℕ) (cs : List Atom), ins = .deref o1 o2 o3 .cell ∧
       z.pos = bs.map Stmt.atom ++ .atom (.load d p off) :: (cs.map Stmt.atom ++ z'.pos) ∧
       (∀ a ∈ bs, stopS P.R a = false) ∧ (∀ a ∈ cs, stopL a = false) ∧ cellsAt P.X o1 o2 o3 d p off = true ∧
-      has P.O i = isRead P.R (.load d p off) ∧ has P.S i = !isRead P.R (.load d p off)) ∨
-    (z' = z ∧ has P.O i = false ∧ has P.S i = false) := by
+      hasP P.O i = isRead P.R (.load d p off) ∧ hasP P.S i = !isRead P.R (.load d p off)) ∨
+    (z' = z ∧ hasP P.O i = false ∧ hasP P.S i = false) := by
   unfold plainStep at h
   split at h
   · rename_i o1 o2 o3
@@ -238,9 +238,9 @@ theorem pairAt_step {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : Li
             (∀ a ∈ bs, stopS H.readT a = false) ∧ (∀ a ∈ cs, stopL a = false) ∧
             cellsAt X o1 o2 o3 dv pv off = true ∧
             pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some pos' ∧
-            has O i = (H.readWit dv pv off).isSome ∧ has S i = !(H.readWit dv pv off).isSome) ∨
-          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ has O i = false ∧ has S i = false))) ∨
-      ∃ oc od of zs, ins = .jump oc od of ∧ has O i = false ∧ has S i = false ∧
+            hasP O i = (H.readWit dv pv off).isSome ∧ hasP S i = !(H.readWit dv pv off).isSome) ∨
+          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ hasP O i = false ∧ hasP S i = false))) ∨
+      ∃ oc od of zs, ins = .jump oc od of ∧ hasP O i = false ∧ hasP S i = false ∧
         (PairCtx.ofH X H O S).nS z = some zs ∧ ZOk body zs ∧
         (∃ bs : List Atom, z.pos = bs.map Stmt.atom ++ zs.pos ∧ ∀ a ∈ bs, stopS H.readT a = false) ∧
         ∃ tabs r, jumpStepH (PairCtx.ofH X H O S) i oc od of tabs z zs = some r ∧
@@ -358,11 +358,11 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {o1 o2 o3 : ℕ}
-    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : has O i = true)
+    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true)
     {σ : Val} {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsWritten H σ (pre ++ es)) :
     ∃ (as : List Atom) (dv pv : V) (off : ℕ),
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
-      cellsAt X o1 o2 o3 dv pv off = true ∧ (H.readWit dv pv off).isSome ∧
+      cellsAt X o1 o2 o3 dv pv off = true ∧ (H.readWit dv pv off).isSome ∧ Ev.atom (.load dv pv off) ∈ es ∧
       (Written H σ pre (cellAt σ pv off) ∨ ∃ a ∈ as, flowAtom a = true ∧ Writes σ a (cellAt σ pv off)) := by
   obtain ⟨ins, z, as, hins', -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hins] at hins'
@@ -372,11 +372,11 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
   · simp only [OffsetInstruction.deref.injEq] at heq
     obtain ⟨rfl, rfl, rfl, -⟩ := heq
     have hrd : (H.readWit dv pv off).isSome = true := by rw [← hO', hO]
-    refine ⟨as, dv, pv, off, hpairs, hcell, hrd, ?_⟩
     rw [hpos, hz, ← List.append_assoc, ← List.map_append] at hp
     obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp
     rw [walk_atom_cons] at hes1
     obtain ⟨es2, -, rfl⟩ := pre_eq_ret hes1
+    refine ⟨as, dv, pv, off, hpairs, hcell, hrd, by simp, ?_⟩
     have hR : Reads H σ (.load dv pv off) (cellAt σ pv off) := ⟨hrd, rfl⟩
     have hw := hrw (pre ++ (as ++ bs).map Ev.atom) (.load dv pv off) es2 _ (by simp) hR
     have hw' : Written H σ (pre ++ (as ++ bs).map Ev.atom) (cellAt σ pv off) := hw
@@ -421,8 +421,8 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       ∀ {σ : Val} {pre es : List Ev} {vs : List V}, walk σ pos = .ret es vs → ReadsWritten H σ (pre ++ es) →
         ∃ evs es', es = evs ++ es' ∧ walk σ pos' = .ret es' vs ∧ ∀ x, Written H σ (pre ++ evs) x →
           Written H σ pre x ∨ (∃ a ∈ as, flowAtom a = true ∧ Writes σ a x) ∨
-          ∃ (o1 o2 o3 : ℕ) (dv pv : V) (off : ℕ), code[i]? = some (.deref o1 o2 o3 .cell) ∧ has S i = true ∧
-            cellsAt X o1 o2 o3 dv pv off = true ∧ x = cellAt σ pv off := by
+          ∃ (o1 o2 o3 : ℕ) (dv pv : V) (off : ℕ), code[i]? = some (.deref o1 o2 o3 .cell) ∧ hasP S i = true ∧
+            cellsAt X o1 o2 o3 dv pv off = true ∧ Ev.atom (.load dv pv off) ∈ evs ∧ x = cellAt σ pv off := by
   obtain ⟨ins, z, as, hins, -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rcases hcase with ⟨-, hc⟩ | ⟨oc, od, of, -, rfl, -⟩
   swap
@@ -467,7 +467,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
         · exact Or.inr (Or.inl (hflow ⟨a, ha, hwa⟩))
         · rw [List.mem_singleton] at ha
           subst ha
-          exact Or.inr (Or.inr ⟨o1, o2, o3, dv, pv, off, hins, by simpa [hr] using hS, hcell, hwa⟩)
+          exact Or.inr (Or.inr ⟨o1, o2, o3, dv, pv, off, hins, by simpa [hr] using hS, hcell, by simp, hwa⟩)
   · refine ⟨z.pos, hat', as, hpairs, fun {σ pre es vs} hp hrw ↦ ?_⟩
     rw [hpos] at hp
     obtain ⟨es', hes', rfl, hW⟩ := atoms_written (fs := as.filter flowAtom) hp hrw hfs

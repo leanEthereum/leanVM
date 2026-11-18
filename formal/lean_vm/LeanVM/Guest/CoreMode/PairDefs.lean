@@ -75,7 +75,7 @@ structure PairCtx where
   S : Trie Unit
 
 /-- A trie of offsets holds `i`. -/
-noncomputable def has (t : Trie Unit) (i : ℕ) : Bool := (getF t i).isSome
+noncomputable def hasP (t : Trie Unit) (i : ℕ) : Bool := (getF t i).isSome
 
 /-- A list of offsets as a trie. -/
 noncomputable def offsT (l : List ℕ) : Trie Unit := trieOf (l.map fun o ↦ (o, ()))
@@ -100,9 +100,9 @@ noncomputable def nS : Zip → Option Zip := normG (stopS P.R) P.X.fuel
 /-- **The oracle at offset `i`**: a consumed read (`some true`) in `O` only, a consumed store
 (`some false`) in `S` only, nothing in neither. -/
 noncomputable def kindOk (i : ℕ) : Option Bool → Bool
-  | some true => has P.O i && !has P.S i
-  | some false => !has P.O i && has P.S i
-  | none => !has P.O i && !has P.S i
+  | some true => hasP P.O i && !hasP P.S i
+  | some false => !hasP P.O i && hasP P.S i
+  | none => !hasP P.O i && !hasP P.S i
 
 end PairCtx
 

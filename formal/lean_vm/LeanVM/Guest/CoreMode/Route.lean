@@ -1,0 +1,65 @@
+/-
+  LeanVM.Guest.CoreMode.Route
+
+  What ties a function's core data to the deployed guest's tables, so that the tree track's honest
+  frames give its honest valuations.
+-/
+
+module
+
+public import LeanVM.Guest.CoreMode.Core
+public import LeanVM.Guest.Bridge.ProgAlDefs
+public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.Bridge.JumpCellsPack
+
+/-!
+# Core data of the deployed guest
+
+`CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
+alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
+honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`,
+each `load`'s pointer at its certificate cell within the frame, no hint-only cell.
+-/
+
+namespace LeanVM.Guest.CoreMode
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+
+@[expose] public section
+
+/-- A `load`'s pointer at its certificate cell, within the frame, not a hint-only value. -/
+noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
+  | .atom (.load _ p _) => ((Bridge.extraOf j).lookup p.idx).isNone && decide (p.idx < 2 ^ 30) &&
+      decide (2 ≤ B2C.cellJ j p) && decide (B2C.cellJ j p < B2C.fsN j)
+  | _ => true
+
+/-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers at their cells. -/
+noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && straight fn.body &&
+    fn.body.all (ptrCellB j) && paramsN fn.params 0 &&
+    (List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)
+
+/-- **Core data of the deployed guest's function `j`.** -/
+def CfOk (Cf : CFun) : Prop :=
+  ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
+    honB j Cf.fn = true
+
+
+/-- **Core data of the deployed guest**, from the tables' entries of function `j` and its checks. -/
+theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P : B2C.Plumb} {ex : List (ℕ × ℕ)}
+    {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {Cf : CFun} (hj : j < nFns)
+    (hf : fnOf j = f) (hcf : coreOf j = cf) (hC : certOf j = C.withPows Data.powTree) (hP : B2C.plumbOf j = P)
+    (ht : (Bridge.extraOf j, Bridge.entsOf j, Bridge.adviceOf j) = (ex, en, d)) (he : f.entryPc = Cf.frame.entry)
+    (hfn : cf = Cf.fn)
+    (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
+      f.instructionCount = Cf.X)
+    (hb : honB j Cf.fn = true) : CfOk Cf := by
+  simp only [Prod.mk.injEq] at ht
+  obtain ⟨hex, hen, -⟩ := ht
+  have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
+  refine ⟨j, hj, by rw [hf, he], by rw [hcf, hfn], ?_, hb⟩
+  rw [← hX, Bridge.ctxOf, hl, hex, hen, hf, hP]
+
+end
+
+end LeanVM.Guest.CoreMode

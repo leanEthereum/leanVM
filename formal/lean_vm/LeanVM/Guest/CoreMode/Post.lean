@@ -1,0 +1,120 @@
+/-
+  LeanVM.Guest.CoreMode.Post
+
+  A straight-line function's heap guarantees at its return: each cell it promises its callers is a
+  precondition's or written by an atom of its path.
+-/
+
+module
+
+public import LeanVM.Guest.CoreMode.HeapSound
+public import LeanVM.Guest.Bridge.Track
+
+/-!
+# The heap guarantees at a return
+
+`postOk pows H post body`: the heap check's pass (`atomH`, its environment and scope) over a
+straight-line `body` up to its `ret`, where each promised cell `(c, w)` of `post` has its witness `w`
+(`witOk`: a write event in scope or a precondition, of that very cell). `postOk_sound`: on the path,
+every event holding, each promised cell is written after the path (`Written`).
+-/
+
+namespace LeanVM.Guest.CoreMode
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.Exec (Trie PowTree natSeq natSeq_eq)
+open LeanVM.Guest.Check (getF)
+
+@[expose] public section
+
+/-- The pass over a straight-line block to its `ret`, where each promised cell has its witness. -/
+noncomputable def postGo (X : HX) (post : List (CCell × Wit)) : List Stmt → HSt → Bool
+  | .atom a :: ss, st => match atomH X st a with
+    | some st' => st'.seq fun st' ↦ postGo X post ss st'
+    | none => false
+  | .ret _ :: _, st => post.all fun p ↦ witOk X.pre st.sc p.1 p.2
+  | _, _ => false
+
+/-- **The heap guarantees' check** of a straight-line function: the heap check's pass to its `ret`,
+each promised cell witnessed there. -/
+noncomputable def postOk (pows : PowTree) (H : HCert) (post : List (CCell × Wit)) (body : List Stmt) : Bool :=
+  H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ postGo ⟨pows, R, P⟩ post body ⟨.nil, .nil, 0⟩
+
+section
+
+variable {σ : Val} {rd : Reader} {H : HCert} {X : HX}
+
+theorem witOk_sound {W : K → Prop} (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ))
+    (hP : ∀ k c, getF X.pre k = some c → c ∈ H.sig.pre) {sc : Trie CCell} (hs : ScOk W σ sc) {c : CCell}
+    {w : Wit} (h : witOk X.pre sc c w = true) : W (c.addr σ) := by
+  cases w with
+  | ev n =>
+    simp only [witOk] at h
+    split at h
+    · rename_i c' hc
+      rw [← CCell.beq_eq h]
+      exact (hs : ∀ n c, getF sc n = some c → W (c.addr σ)) n c' hc
+    · cases h
+  | pre k =>
+    simp only [witOk] at h
+    split at h
+    · rename_i c' hc
+      rw [← CCell.beq_eq h]
+      exact hpre c' (hP k c' hc)
+    · cases h
+  | run => simp [witOk] at h
+  | res => simp [witOk] at h
+
+theorem postGo_sound (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c ∈ H.sig.pre)
+    (hpows : X.pows.Ok) {post : List (CCell × Wit)} :
+    ∀ (ss : List Stmt) {st : HSt} {W : K → Prop} {es : List Ev} {vs : List V},
+      (∀ c ∈ H.sig.pre, W (c.addr σ)) → postGo X post ss st = true → EnvOk σ st.env → ScOk W σ st.sc →
+      walk σ ss = .ret es vs → AllHold rd σ es → ∀ p ∈ post, W (p.1.addr σ) ∨ WL σ es (p.1.addr σ)
+  | [], _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+  | .atom a :: ss, st, W, es, vs, hpre, h, he, hs, hw, hh => by
+    simp only [postGo] at h
+    cases ha : atomH X st a with
+    | none => rw [ha] at h; cases h
+    | some st1 =>
+      rw [ha] at h
+      simp only [HSt.seq_eq] at h
+      rw [Bridge.walk_atom_cons] at hw
+      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
+      obtain ⟨-, he1, hs1⟩ := atomH_ok hR hP hpows hpre ha he hs (hh _ List.mem_cons_self)
+      intro p hp
+      rcases postGo_sound hR hP hpows ss (fun c hc ↦ Or.inl (hpre c hc)) h he1 hs1 hw'
+        (fun e he ↦ hh e (List.mem_cons_of_mem _ he)) p hp with (hw1 | hw1) | hw1
+      · exact Or.inl hw1
+      · exact Or.inr ⟨a, List.mem_cons_self, hw1⟩
+      · obtain ⟨b, hb, hx⟩ := (hw1 : ∃ b, Ev.atom b ∈ es' ∧ Writes σ b (p.1.addr σ))
+        exact Or.inr ⟨b, List.mem_cons_of_mem _ hb, hx⟩
+  | .ret _ :: _, st, W, es, vs, hpre, h, _, hs, _, _ => by
+    simp only [postGo, List.all_eq_true] at h
+    exact fun p hp ↦ Or.inl (witOk_sound hpre hP hs (h p hp))
+  | .ite .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+  | .match_ .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+  | .call .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+  | .callIf .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+  | .dispatch .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [postGo] at h
+
+/-- **The heap guarantees are written**: on a path of a straight-line function passing `postOk`
+that returns, every event holding, each promised cell is a precondition's or written by an atom of
+the path. -/
+theorem postOk_sound {pows : PowTree} (hpw : pows.Ok) {post : List (CCell × Wit)} {body : List Stmt}
+    (hok : postOk pows H post body = true) {es : List Ev} {vs : List V}
+    (hw : walk σ body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) : ∀ p ∈ post, Written H σ es (p.1.addr σ) := by
+  unfold postOk at hok
+  rw [Trie.seq_eq, Trie.seq_eq] at hok
+  intro p hp
+  rcases postGo_sound (X := ⟨pows, H.readT, trieFrom H.sig.pre 0 .nil⟩) (H := H) (rd := rd) rfl
+    (fun k c h ↦ (getF_trieFrom _ _ _ h).resolve_right (by simp [getF_nil])) hpw body
+    (W := fun x ↦ ∃ c ∈ H.sig.pre, c.addr σ = x) (fun c hc ↦ ⟨c, hc, rfl⟩) hok envOk_nil
+    (fun n c h ↦ by simp [getF_nil] at h) hw hh p hp with h | h
+  · exact Or.inl h
+  · exact Or.inr h
+
+end
+
+end
+
+end LeanVM.Guest.CoreMode

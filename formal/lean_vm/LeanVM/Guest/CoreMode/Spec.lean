@@ -7,7 +7,9 @@ public import LeanVM.Guest.Mode.InvDefs
 
 `FrameSpec C M K Q`: what `Mode/InvRule.lean`'s stack needs of one function `K`, for a frame predicate
 `Q i s` (frame `s.fp` of `K` at offset `i`), stated once for any `Q`: `Q` is monotone in the memory
-(`mono`); it holds at entry from `Sig`'s entry facts (`entry`); and at an offset where it holds, the
+(`mono`); it holds at entry from `Sig`'s entry facts, the memory agreeing with `M` (`entry`); and at an
+offset where it holds, at a state satisfying `Y` (the stack's instance: the other tracks' invariant
+and the reference run, from which the core route reads the honest frame), the
 step's obligations hold (`StepOk`: `OpModed`, each hint's needs), given the hints' agreement in order
 (`HintsAt`), the residuals (`ResAt`) and the reference's part of the instruction's modedness, and what
 the step does is an outcome (`Out`): it stays in the frame at an offset where `Q` holds (a
@@ -67,14 +69,15 @@ inductive Out (K : Cert) (Q : ℕ → St → Prop) (i : ℕ) (s1 s' : St) : Prop
         (∀ o ∈ G.entry, s'.mem.written (s'.fp + o) = true) ∧ Holds s' (entryAbs K.E G) ∧
         Resume Q s1.fp ro G s'.fp s'.mem) → Out K Q i s1 s'
 
-/-- **A function's frame interface**, for the frame predicate `Q` (see the module doc). The step's
-hypotheses on the frame are the stack's: the program within `2^30` pcs, its halting pc too, the
+/-- **A function's frame interface**, for the frame predicate `Q` (see the module doc), the states
+where a step starts satisfying `Y` (the stack's instance: the other tracks' invariant, on the
+reference run). The step's hypotheses on the frame are the stack's: the program within `2^30` pcs, its halting pc too, the
 jump table written (`EnvOk`, `RW … jtRng`), the environment's targets small, the frame's termination
 facts, `main`'s frame `0`, and the function's own signature its environment's at its entry. -/
-structure FrameSpec (C : Ctx) (M : ℕ → E) (K : Cert) (Q : ℕ → St → Prop) : Prop where
+structure FrameSpec (C : Ctx) (M : ℕ → E) (Y : St → Prop) (K : Cert) (Q : ℕ → St → Prop) : Prop where
   mono : ∀ {i : ℕ} {s s' : St}, s.mem ≤ s'.mem → s'.fp = s.fp → Q i s → Q i s'
-  entry : ∀ {s : St}, Holds s (entryAbs K.E K.F.sig) → Q 0 s
-  step : ∀ {s : St} {i : ℕ} (_hi : i < K.code.length), s.pc = K.F.entry + i → Q i s → Fine M s →
+  entry : ∀ {s : St}, Holds s (entryAbs K.E K.F.sig) → Fine M s → Q 0 s
+  step : ∀ {s : St} {i : ℕ} (_hi : i < K.code.length), s.pc = K.F.entry + i → Q i s → Fine M s → Y s →
     C.ops.size ≤ 2 ^ 30 → K.E.halt < 2 ^ 30 → EnvOk s K.E → EnvSmall K.E →
     (∀ s', s.mem ≤ s'.mem → RW s' (jtRng K.E)) → TermAt s.mem s.fp K.F.sig →
     (K.F.main = true → s.fp = 0) → (∀ G, K.E.sigs.get K.F.entry = some G → G = K.F.sig) →

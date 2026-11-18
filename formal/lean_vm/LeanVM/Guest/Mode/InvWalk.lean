@@ -67,13 +67,13 @@ theorem resume_of_call {K : Cert} {A : Abs} {sel : Option Base} {mq : Mono} {Gs 
     (fun x hx ↦ IdxVal.mono (s := sC) (s' := stOf m sC.fp) hm rfl (hsel x hx)) hR hL hLP hT)
 
 /-- **The mode walk meets the frame interface**, for its frame predicate `AtOff`. -/
-theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {K : Cert} (hK : CertOk C K)
+theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {Y : St → Prop} {K : Cert} (hK : CertOk C K)
     (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term) :
-    FrameSpec C M K (AtOff K.E K.F K.code) where
+    FrameSpec C M Y K (AtOff K.E K.F K.code) where
   mono hle hfp h := AtOff.mono hle hfp h
-  entry h := atOff_zero h
+  entry h _ := atOff_zero h
   step := by
-    intro s i hi hpc hat hs hsz hhalt hE hES hjt hT hm0 hown hh hres href Inv k
+    intro s i hi hpc hat hs _ hsz hhalt hE hES hjt hT hm0 hown hh hres href Inv k
     have hlen : K.F.entry + K.F.len < 2 ^ 62 := by
       have := cert_pc hK (show K.code.length - 1 < K.code.length by omega)
       rw [hK.len]

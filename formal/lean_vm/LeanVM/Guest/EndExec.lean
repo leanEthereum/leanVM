@@ -13,6 +13,7 @@ public import LeanVM.Guest.Mode.ResRef
 public import LeanVM.Guest.EndRpm
 public import LeanVM.Guest.Budget.Fits
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Guest.CoreMode.Route
 
 /-!
 # The executor on the guest
@@ -121,12 +122,12 @@ theorem logMemorySize_le_28 {prog : LeanIsaProgram} {e : Execution prog}
 /-! ## The certificates -/
 
 /-- **The certificates, closed**: each is a guest function's (its code and entry), its operands below
-`2^28`, its frame meeting its interface (`FnSpec`: the mode walk's, or later the core route's); and
-they are tied to each other as `ProgOk` asks. -/
+`2^28`, its frame meeting its interface (`FnSpec`: the mode walk's, or the core route's, its core data
+among `T`, each the deployed guest's, `CfOk`); and they are tied to each other as `ProgOk` asks. -/
 structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   fn : ∀ K ∈ Ks, ∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc ∧
     K.code.all offSmall = true
-  spec : ∀ K ∈ Ks, FnSpec K
+  spec : ∃ T : List CoreMode.CFun, (∀ Cf ∈ T, CoreMode.CfOk Cf) ∧ ∀ K ∈ Ks, FnSpec T K
   ne : ∀ K ∈ Ks, 0 < K.code.length
   uniq : ∀ K ∈ Ks, ∀ K' ∈ Ks, K.F.entry = K'.F.entry → K = K'
   sigs : ∀ K ∈ Ks, ∀ t G, K.E.sigs.get t = some G →
@@ -205,6 +206,12 @@ theorem term_of_ref_entry {Ks : List Mode.Cert} {X : Ref → St → Prop} (h : T
   rw [Bool.and_eq_true] at this
   exact term_of_ref h hr hK hon hpc hp ⟨idxIn_fr hw this.1, idxIn_fr hw this.2⟩
 
+/-- **Each frame of a function on the core route has an honest valuation**: for core data of the
+deployed guest at a function's entry, at each state of its run on a reference run. -/
+def CoreHonAll (Ks : List Mode.Cert) (X : Ref → St → Prop) : Prop :=
+  ∀ r, r.Ok → ∀ K ∈ Ks, ∀ Cf, CoreMode.CfOk Cf → Cf.frame.entry = K.F.entry →
+    CoreMode.CoreHon r.img (OnRun X r) K Cf
+
 /-- **What the executor's completeness on the guest rests on and is not yet proved**, for the mode
 walk's certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` and the
 prologue's states `Pro`, each read at a node's reference run `r` (`Ref.Ok`) and the executor's
@@ -264,6 +271,10 @@ structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro
     X r (initSt C r.adv m) ∧ Pro r (initSt C r.adv m)
   /-- `X` keeps the cells the run touches within the reference's `2^κ`. -/
   used : ∀ r, r.Ok → ∀ s, X r s → s.mem.used ≤ 2 ^ r.κ
+  /-- Each frame of a function on the core route has an honest valuation, at each state of its
+  run (the tree track's frame-to-instance map, `X`, and what the completeness check reads of the
+  frame, `FrameHolds`). -/
+  core : CoreHonAll Ks X
 
 /-! ## The chain -/
 
@@ -281,10 +292,12 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
   have hmain : r.adv.mainFrame < maxCells := by
     show Data.adviceMainFrame < maxCells
     decide
+  obtain ⟨T, hT, hspec⟩ := G.certs.spec
   obtain ⟨t, he, hv, -, -, -, -, hsz⟩ := execute_complete_guest (Ks := Ks) (Km := Km) (E0 := E0)
-    (Q := guestQ (refMem r.img)) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
+    (Q := guestQ T r.img) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
     (fun C hC ↦ progOk_of G.certs hC)
-    (fun C hC K hK ↦ G.certs.spec K hK r.adv C hC rfl ((progOk_of G.certs hC).ok K hK) (refMem r.img))
+    (fun C hC K hK ↦ frameSpec_guest (hspec K hK) hC rfl ((progOk_of G.certs hC).ok K hK) r.img (OnRun X r) hκ
+      (fun s h ↦ ⟨r.n, h.2.2⟩) fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
     (fun C hC ↦
       { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
           have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp

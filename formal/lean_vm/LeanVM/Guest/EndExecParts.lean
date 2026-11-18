@@ -86,7 +86,7 @@ theorem ExecGaps.ofParts {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} 
       Moves (refMem r.img) s s1 → runOp C s1 op = .ok s' → X r { s' with steps := s'.steps + 1 })
     (initX : ∀ r, r.Ok → ∀ C m, Ctx.of guestProgram r.adv = .ok C → initMem r.adv r.input = .ok m →
       X r (initSt C r.adv m))
-    (used : ∀ r, r.Ok → ∀ s, X r s → s.mem.used ≤ 2 ^ r.κ) :
+    (used : ∀ r, r.Ok → ∀ s, X r s → s.mem.used ≤ 2 ^ r.κ) (core : CoreHonAll Ks X) :
     ExecGaps Ks Km E0 X (fun _ ↦ ProAt) where
   certs := certs
   mainExact := mainExact
@@ -104,6 +104,7 @@ theorem ExecGaps.ofParts {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} 
       certs.mainTerm hC rfl hP hon.2.1 hop
   init r hr C m hC hm := ⟨initX r hr C m hC hm, pro_init hm⟩
   used := used
+  core := core
 
 end
 
