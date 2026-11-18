@@ -608,6 +608,25 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L37_L13_L4_L2_loop0»
 
+namespace LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L22_L4`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L22_L4`: its entry, length and signature; on the core route, nothing for
+    a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨316180, 247, Fn.«decode_query_windows__L22_L4».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
+
 namespace LeanVM.Guest.Fn.«level_residual__L109_L18_L6_L3_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -706,6 +725,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_positions__L8_L24_L6_loop0»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L27_L3`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L27_L3`: its entry, length and signature; on the core route, nothing for
+    a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨379109, 239, Fn.«decode_query_windows__L27_L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
 
 namespace LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2_loop1»
 

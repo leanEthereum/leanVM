@@ -464,8 +464,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   subst hjj
   rw [hc0] at hfn
   -- the honest valuation
-  rw [Bool.and_eq_true, Bool.and_eq_true] at hb0
-  obtain ⟨⟨hb0, hres0⟩, hgl0⟩ := hb0
+  rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
+  obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
@@ -511,7 +511,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
-  refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
+  refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,
+    fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
     fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩
@@ -542,6 +543,19 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have := hF.val p hnamed h2 h3
     rw [hloc, ← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+  · -- a frame run's pointer, its first value's cell's address
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    have hmem := Bridge.walk_atomS (σ := e.σ) Cf.fn.body (by rw [hfn, hw]; exact hl)
+    simp only [CoreMode.faOkB, hneed, Bool.not_true, Bool.false_or, List.all_eq_true] at hfa0
+    have hc := hfa0 _ hmem
+    simp only [CoreMode.faCellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    obtain ⟨hx, hidx⟩ := hc
+    have hloc : Cf.X.locAt r0.idx = cellJ j r0 := by
+      rw [← hx0]
+      exact Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
+    rw [hloc, ← hfpL]
+    exact hF.addr (p, r0) (List.mem_filterMap.mpr ⟨_, hl, rfl⟩)
   · -- a returned value at its cell
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0

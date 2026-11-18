@@ -9,13 +9,186 @@ module
 
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
+public import LeanVM.Guest.Pack.«P10».ModeSig
+public import LeanVM.Guest.Pack.«P13».ModeSig
 public import LeanVM.Guest.Pack.«P14».Bundle
 public import LeanVM.Guest.Pack.«P14».ModeSig
+public import LeanVM.Guest.Pack.«P15».ModeSig
+public import LeanVM.Guest.Pack.«P17».ModeSig
+public import LeanVM.Guest.Pack.«P1».ModeSig
+public import LeanVM.Guest.Pack.«P20».ModeSig
+public import LeanVM.Guest.Pack.«P22».ModeSig
+public import LeanVM.Guest.Pack.«P24».ModeSig
+public import LeanVM.Guest.Pack.«P26».ModeSig
+public import LeanVM.Guest.Pack.«P27».ModeSig
+public import LeanVM.Guest.Pack.«P28».ModeSig
+public import LeanVM.Guest.Pack.«P29».ModeSig
 public import LeanVM.Guest.Pack.«P32».ModeSig
+public import LeanVM.Guest.Pack.«P33».ModeSig
+public import LeanVM.Guest.Pack.«P34».ModeSig
+public import LeanVM.Guest.Pack.«P36».ModeSig
+public import LeanVM.Guest.Pack.«P38».ModeSig
+public import LeanVM.Guest.Pack.«P39».ModeSig
+public import LeanVM.Guest.Pack.«P3».ModeSig
+public import LeanVM.Guest.Pack.«P40».ModeSig
+public import LeanVM.Guest.Pack.«P41».ModeSig
+public import LeanVM.Guest.Pack.«P43».ModeSig
 public import LeanVM.Guest.Pack.«P44».ModeSig
+public import LeanVM.Guest.Pack.«P45».ModeSig
+public import LeanVM.Guest.Pack.«P46».ModeSig
+public import LeanVM.Guest.Pack.«P47».ModeSig
+public import LeanVM.Guest.Pack.«P48».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
+public import LeanVM.Guest.Pack.«P52».ModeSig
+public import LeanVM.Guest.Pack.«P53».ModeSig
 public import LeanVM.Guest.Pack.«P55».ModeSig
+public import LeanVM.Guest.Pack.«P57».ModeSig
+public import LeanVM.Guest.Pack.«P58».ModeSig
+public import LeanVM.Guest.Pack.«P59».ModeSig
+public import LeanVM.Guest.Pack.«P60».ModeSig
 public import LeanVM.Guest.Pack.«P62».ModeSig
+public import LeanVM.Guest.Pack.«P7».ModeSig
+public import LeanVM.Guest.Pack.«P8».ModeSig
+
+namespace LeanVM.Guest.Fn.«eq_prefix_chain»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `eq_prefix_chain`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«eq_prefix_run__L30».modeSig) .nil .nil) .nil))) .nil) .nil) .nil) .nil)) .nil))))
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L27».modeSig) .nil .nil) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil)
+    .nil))) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some Fn.«eq_prefix_run__L11».modeSig) .nil .nil) .nil)) .nil)))) .nil)))
+    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L14».modeSig) .nil .nil) .nil)) .nil)))) .nil)))))) .nil)) (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    (some Fn.«eq_prefix_run__L3».modeSig) .nil .nil) .nil)) .nil)))) .nil)) .nil) .nil) (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L22».modeSig) .nil .nil) .nil)) .nil)))))) .nil))) .nil) (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L35».modeSig) .nil .nil) .nil))) .nil) .nil) .nil))) .nil) .nil) .nil)
+    .nil)) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some Fn.«eq_prefix_run__L19».modeSig) .nil .nil) .nil)) .nil))))) .nil)))
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L6».modeSig)
+    .nil .nil) .nil)) .nil)))) .nil)) .nil) .nil)) .nil) (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L38».modeSig) .nil .nil) .nil)))
+    .nil) .nil)) .nil) .nil) .nil) .nil) .nil))))) (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L15».modeSig) .nil .nil) .nil)) .nil))))) .nil) .nil) .nil) (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L10».modeSig) .nil
+    .nil) .nil)) .nil)))) .nil)) .nil))))) (.node none (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L26».modeSig) .nil .nil) .nil)))
+    .nil) .nil) .nil) .nil) .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L31».modeSig) .nil .nil)
+    .nil))) .nil) .nil) .nil) .nil))) .nil))))) (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L34».modeSig) .nil .nil) .nil))) .nil) .nil) .nil)) .nil)) .nil))) (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    (some Fn.«eq_prefix_run__L23».modeSig) .nil .nil) .nil)) .nil))))))) .nil) (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L2».modeSig) .nil
+    .nil) .nil)) .nil)))) .nil) .nil)))))) (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L18».modeSig)
+    .nil .nil) .nil)) .nil))))) .nil)) .nil) (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node (some Fn.«eq_prefix_run__L7».modeSig) .nil .nil) .nil)) .nil)))) .nil)) .nil) .nil)))
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L39».modeSig) .nil .nil) .nil))) .nil) .nil)) .nil) .nil) .nil))))))))
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L16».modeSig) .nil .nil)
+    .nil)) .nil))))) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    (some Fn.«eq_prefix_run__L9».modeSig) .nil .nil) .nil)) .nil)))) .nil)) .nil))) .nil) .nil)
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L25».modeSig) .nil .nil) .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L0».modeSig) .nil .nil) .nil)) .nil)))) .nil) .nil))))) (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L32».modeSig)
+    .nil .nil) .nil))) .nil) .nil) .nil)) .nil) .nil) .nil) .nil) .nil))) (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L40».modeSig) .nil .nil) .nil))) .nil) .nil)) .nil) .nil)))) .nil) (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L8».modeSig) .nil .nil) .nil)) .nil)))) .nil)) .nil)) (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L17».modeSig) .nil
+    .nil) .nil)) .nil))))) .nil) .nil))) .nil)) (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L24».modeSig) .nil .nil) .nil)) .nil)))))))) (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L1».modeSig) .nil .nil) .nil))
+    .nil)))) .nil) .nil))))) (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«eq_prefix_run__L33».modeSig) .nil .nil) .nil))) .nil) .nil) .nil)) .nil)
+    .nil)) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L13».modeSig) .nil .nil) .nil)) .nil)))) .nil)))) (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L12».modeSig) .nil .nil)
+    .nil)) .nil)))) .nil))) .nil))) .nil) (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L29».modeSig) .nil .nil) .nil)))
+    .nil) .nil) .nil) .nil)) .nil) .nil)) .nil) (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L28».modeSig) .nil .nil) .nil)))
+    .nil) .nil) .nil) .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L36».modeSig) .nil .nil) .nil))) .nil) .nil) .nil))) .nil))) .nil) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    Fn.«eq_prefix_run__L4».modeSig) .nil .nil) .nil)) .nil)))) .nil)) .nil) .nil) (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L21».modeSig)
+    .nil .nil) .nil)) .nil)))))) .nil) .nil)) .nil)) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node (some Fn.«eq_prefix_run__L5».modeSig)
+    .nil .nil) .nil)) .nil)))) .nil)) .nil) .nil) (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node (some Fn.«eq_prefix_run__L20».modeSig) .nil .nil) .nil)) .nil)))))
+    .nil))))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«eq_prefix_run__L37».modeSig) .nil .nil) .nil))) .nil) .nil) .nil))))
+    .nil)))))))), 524287⟩
+
+/-- `eq_prefix_chain`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨19350, 16, Fn.«eq_prefix_chain».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«eq_prefix_chain»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L37»
 
@@ -217,6 +390,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L17_L5`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L17_L5`: its entry, length and signature; on the core route, nothing for
+    a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨275754, 255, Fn.«decode_query_windows__L17_L5».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L15_L6_L3_loop0»
 

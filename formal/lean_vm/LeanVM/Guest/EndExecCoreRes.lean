@@ -268,6 +268,27 @@ theorem subRC_holds {q r : CoreMode.CRun} (h : CoreMode.subRC q r = true) (σ : 
     rw [show qo + S * j = ro + S * (j + k) by rw [Nat.mul_add]; omega]
   · cases h
 
+/-- **The `sel` family below a selector's word times a power of `g`** (`g^j` below `x·g^c`, `j < c`, `x` a top-level
+selector of `m` arms, `m + c < 2^62`). -/
+theorem resSelN_sound {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) {c : CoreMode.CCell} {j : ℕ} (h : resFam fn xc (.lt (.num j) (.mono c)) = true) :
+    (CRes.lt (.num j) (.mono c)).Holds σ := by
+  obtain ⟨cb, k⟩ := c
+  simp only [resFam] at h
+  split at h
+  · rename_i _ x
+    have e1 : CoreMode.CCell.valW (vw σ) ⟨[(x, 1)], k⟩ = σ (V.n x) * ofK (addressOfIndex k) := by
+      simp [CoreMode.CCell.valW, CoreMode.prodW, vw]
+    simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    obtain ⟨hjk, p, hp, hpx, hpk⟩ := h
+    obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
+    rw [hpx] at hσ
+    refine ⟨j, e + k, CoreMode.rep_const (by omega), ?_, by omega⟩
+    simp only [idxC]
+    rw [e1, hσ, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+    exact rep_of (by omega)
+  · cases h
+
 /-- **A residual of a family holds** at an honest instance's valuation, in a frame `fp` holding its
 parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/
 theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -292,12 +313,16 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resSelM_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
+  | .lt (.num j) (.mono c), h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    exact resSelN_sound hw h
   | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
   | .subR q r', h => by
     simp only [resFam] at h
     exact subRC_holds h σ
-  | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
-  | .nz _, h | .subP _ _, h => by simp [resFam] at h
+  | .lt (.val _) (.val _), h | .lt (.num _) (.num _), h | .lt (.num _) (.val _), h | .lt (.mono _) (.val _), h
+  | .lt (.mono _) (.mono _), h | .nz _, h | .subP _ _, h => by simp [resFam] at h
 
 /-! ## The instance's exponent and dimension facts (`expQ`, `dim`) -/
 

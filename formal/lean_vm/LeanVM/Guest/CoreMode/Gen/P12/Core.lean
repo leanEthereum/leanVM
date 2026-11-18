@@ -94,6 +94,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code201 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `index_mle__L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -144,7 +145,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `column_selector__L1`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -163,6 +164,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code279 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `column_selector__L1`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -213,7 +215,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L109_L14_L6_L3`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -232,6 +234,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code490 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -282,7 +285,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_positions__L4_L20_L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -301,6 +304,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code647 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_positions__L4_L20_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -351,7 +355,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L23_L10_L4_L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -370,6 +374,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code668 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -420,7 +425,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L32_L16_L4_L2`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -439,6 +444,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code748 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_residual__L32_L16_L4_L2`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -489,7 +495,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_positions__L11_L25_L7`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -508,6 +514,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code758 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_positions__L11_L25_L7`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -558,7 +565,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L55_L21_L6_L3`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -577,6 +584,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code784 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -627,7 +635,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -646,6 +654,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code867 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
@@ -696,7 +705,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `level_residual__L218_L24_L6_L3`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl
+  heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -715,6 +724,7 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code919 ▸ End.fnOf_mem (by decide)))
   pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
   fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
+  faret := by decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3`: its frame interface, by the core route. -/
 theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok

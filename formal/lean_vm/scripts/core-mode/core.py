@@ -126,7 +126,8 @@ def checks(k, j, K, frame, heap):
             f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
             f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
             f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
-            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
+            f'  faret := by decide +kernel\n\n'
             f'/-- `{k}`: its frame interface, by the core route. -/\n'
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := Mode.fnSpecC_of core_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
@@ -147,7 +148,7 @@ def cfun_c(k, j, K, frame):
             f'attribute [local irreducible] pairO pairS\n\n'
             f'/-- `{k}`: the heap check, at its callees\' heap signatures. -/\n'
             f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := {heap_proof(k)}\n\n'
-            + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel) rfl'))
+            + checks(k, j, K, frame, '.c heap_okC rfl (by decide +kernel) rfl rfl rfl'))
 
 
 def heap_win(k):

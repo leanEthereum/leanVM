@@ -85,7 +85,7 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
     fun x fs args rets hm ↦ setG_eq (hs _ hm x (by simp [Stmt.uses]))
   have hrw : ∀ {es vs}, walk (setG σ gw) Cf.fn.body = .ret es vs → walk σ Cf.fn.body = .ret es vs := fun hw ↦ by
     rw [← hW]; exact hw
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · obtain ⟨es, vs, rd, hw, hh⟩ := h.path
     exact ⟨es, vs, rd, by rw [hW]; exact hw, fun e he ↦ (holds_congr (hev hw e he)).mpr (hh e he)⟩
   · intro es vs hw a p ha hp
@@ -103,6 +103,10 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
       | _ => simp [ptrOf] at hp
     rw [hev hw' _ ha p (List.mem_append_left _ hpu)]
     exact h.ptr es vs hw' a p ha hp
+  · intro hn es vs hw p r rs ha
+    have hw' := hrw hw
+    rw [hev hw' _ ha p (List.mem_append_left _ (by simp [Ev.uses, atomUses]))]
+    exact h.fa hn es vs hw' p r rs ha
   · intro k hk
     rw [setG_eq (show (V.n k).idx < GB by show k < GB; omega)]
     exact h.par k hk

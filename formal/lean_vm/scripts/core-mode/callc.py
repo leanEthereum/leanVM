@@ -51,6 +51,7 @@ def _em():
     import emitc
     sys.argv[:] = saved
     emitc.WORD_RUN = True
+    I.ARMRUN[0] = True
     return emitc
 
 
@@ -472,13 +473,19 @@ def infer_one(k, S, allow=None, hcsig=None):
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
     hk = sigs[k]
-    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR):
-        raise No('frame run and guarantees')
+    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR or hk.postQ):
+        # guarantees met without the frame run cells (`HCert.fas` empty) if they can; else the frame run cells
+        # written at the returns (`CoreMode.faNeed`, `faRetOk`, which the kernel checks on the frame walk)
+        fas = H.fas
+        H.fas = []
+        if EM.check(k, H, sigOf) is not None:
+            H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
 
 
 def has_fa(body):
-    """Not `CoreMode.noFA`: a `frameAddr` atom anywhere in the body (then `HeapK.c` asks `noPost`)."""
+    """Not `CoreMode.noFA`: a `frameAddr` atom anywhere in the body (then `CoreOk.faret` checks the frame run cells
+    the guarantees take at the returns, `CoreMode.faNeed`)."""
     for s in body:
         if s[0] == 'a' and s[1][0] == 'frameAddr':
             return True

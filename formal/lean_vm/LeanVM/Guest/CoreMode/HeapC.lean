@@ -302,6 +302,13 @@ def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 
     PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
     ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x
 
+/-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
+def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
+    (vs : List V) : Prop :=
+  SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
+    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x
+
 /-- **Returned words' monomials**: each `(k, c)` of the signature's `retM`, returned word `k` is
 `c`'s word at the parameters' words `ws0`. -/
 def RetMOk (G : HSig) (ws0 rets : List E) : Prop := ∀ k c, (k, c) ∈ G.retM → rets[k]? = some (c.valW (slotW ws0))

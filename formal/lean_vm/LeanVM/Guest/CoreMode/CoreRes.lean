@@ -113,6 +113,10 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
           | some N => decide (N + c.off ≤ n)
           | none => false)
     | _ => false
+  | .lt (.num j) (.mono c) => match c.bases with
+    | [(x, 1)] => decide (j < c.off) &&
+        (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off < capE)
+    | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
   | .subR q r => subRC q r

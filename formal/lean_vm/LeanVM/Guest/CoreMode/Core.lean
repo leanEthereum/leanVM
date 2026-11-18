@@ -151,12 +151,30 @@ def GlF (img : MemoryImage κ) (gl : List (ℕ × ℕ × ℕ)) (fp : ℕ) (ws : 
   ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧
     refMem img (a + d) = slotW ws b * ofK (g ^ k)
 
+/-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
+def noFA (body : List Stmt) : Bool :=
+  (stmtsOf body).all fun s ↦ match s with
+    | .atom (.frameAddr ..) => false
+    | _ => true
+
+/-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
+def noPost (h : HSig) : Bool :=
+  h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.postQ.isEmpty
+
+/-- **Frame run cells guaranteed**: a `frameAddr` atom, a guarantee, and frame run cells in the heap certificate
+(`HCert.fas`); then the walk's facts at the returns write them (`faRetOk`). -/
+def faNeed (Cf : CFun) : Bool := !(noFA Cf.fn.body || noPost Cf.H.sig || Cf.H.fas.isEmpty)
+
 /-- **An honest valuation's path, cells and jumps** of `Cf.fn` in frame `fp` of the reference image (`HonF` but its
 residuals and linked cells: what does not depend on its ghost words). -/
 structure HonB (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop where
   path : ∃ es vs rd, walk σ Cf.fn.body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ
   ptr : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ a p, Ev.atom a ∈ es → ptrOf a = some p →
     Rd img fp (Cf.X.locAt p.idx) = some (σ p)
+  /-- A frame run's pointer, the address of its first value's cell, where frame run cells are guaranteed
+  (`faNeed`). -/
+  fa : faNeed Cf = true → ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ p r rs,
+    Ev.atom (.frameAddr p (r :: rs)) ∈ es → σ p = ofK (addressOfIndex (fp + Cf.X.locAt r.idx))
   par : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k))
   rets : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ v ∈ vs, Rd img fp (Cf.X.locAt v.idx) = some (σ v)
   /-- Its returned values at the cells after its parameters. -/
@@ -930,15 +948,29 @@ theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf
   simp only [shapeOk, Bool.and_eq_true]
   exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩
 
-/-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
-def noFA (body : List Stmt) : Bool :=
-  (stmtsOf body).all fun s ↦ match s with
-    | .atom (.frameAddr ..) => false
-    | _ => true
+/-- A value an atom of the body defines. -/
+def dstIn (body : List Stmt) (v : V) : Bool :=
+  (stmtsOf body).any fun s ↦ match s with
+    | .atom a => (atomDst a).contains v
+    | _ => false
 
-/-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
-def noPost (h : HSig) : Bool :=
-  h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.postQ.isEmpty
+/-- **A frame run's cells at a return state `A`**: from its first value's cell `c` on, each cell `c + k` whose value an
+atom of the body defines is written. -/
+noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (A : FSt) : Stmt → Bool
+  | .atom (.frameAddr _ (r :: rs)) => (List.range (rs.length + 1)).all fun k ↦
+      !(match (r :: rs)[k]? with
+        | some v => dstIn body v
+        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome
+  | _ => true
+
+/-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
+(`retSt`) has them (`faRetAt`). -/
+noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
+  !faNeed Cf || (List.range code.length).all fun i ↦ match code[i]? with
+    | some (.jump _ 0 1) => match retSt Cf.frame code i with
+      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body A)
+      | none => false
+    | _ => true
 
 /-- **The heap check of a function on the core route**: milestone 1's (`heapOk`, `postOk`, straight
 line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
@@ -950,7 +982,7 @@ inductive HeapK (Cf : CFun) : Prop
         Cf.H.sig.postQ.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
-      Cf.post = [] → Cf.H.ders = [] → (noFA Cf.fn.body || noPost Cf.H.sig) = true → Cf.H.sig.gw = [] → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → Cf.H.sig.gw = [] → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
 def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=
@@ -1050,6 +1082,8 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   small : ∀ i (hi : i < K.code.length), SmallOps K.code[i]
   pows : Cf.pows.Ok
   fpows : Cf.frame.F.pows.Ok
+  /-- The frame run cells it guarantees written at its returns. -/
+  faret : faRetOk Cf K.code = true
 
 end
 

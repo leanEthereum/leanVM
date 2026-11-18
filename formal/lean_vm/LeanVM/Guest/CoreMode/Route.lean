@@ -38,6 +38,14 @@ noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
     | none => true
   | _ => true
 
+/-- A frame run's first value at its certificate cell, not a hint-only value. -/
+noncomputable def faCellB (j : ℕ) : Stmt → Bool
+  | .atom (.frameAddr _ (r :: _)) => ((Bridge.extraOf j).lookup r.idx).isNone && decide (r.idx < 2 ^ 30)
+  | _ => true
+
+/-- Where frame run cells are guaranteed (`faNeed`), the frame runs' first values at their cells (`HonB.fa`). -/
+noncomputable def faOkB (j : ℕ) (Cf : CFun) : Bool := !faNeed Cf || (Bridge.stmtsOf Cf.fn.body).all (faCellB j)
+
 /-- A `ret`'s values at their certificate cells, within the frame, not hint-only values. -/
 noncomputable def retCellB (j : ℕ) : Stmt → Bool
   | .ret vs => vs.all fun v ↦ ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) &&
@@ -102,7 +110,7 @@ theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
   ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
-    (honB j Cf.fn && resOk Cf && glOk Cf) = true
+    (honB j Cf.fn && resOk Cf && glOk Cf && faOkB j Cf) = true
 
 
 /-- **Core data of the deployed guest**, from the tables' entries of function `j` and its checks. -/
@@ -113,7 +121,7 @@ theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P :
     (hfn : cf = Cf.fn)
     (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
       f.instructionCount = Cf.X)
-    (hb : (honB j Cf.fn && resOk Cf && glOk Cf) = true) : CfOk Cf := by
+    (hb : (honB j Cf.fn && resOk Cf && glOk Cf && faOkB j Cf) = true) : CfOk Cf := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, -⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl

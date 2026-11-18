@@ -4700,6 +4700,12 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
       | _ => simp [faAt] at hfa
     · exact faOk_spec h.2 p hp
 
+/-- No frame run cell guaranteed (`HCert.fas` empty), none among them. -/
+theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x := by
+  rintro ⟨p, hp, -⟩
+  rw [hn] at hp
+  cases hp
+
 /-- The frame run cells the certificate guarantees at return are frame run cells of the path. -/
 theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
     (hfa : faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas = true) (hw : walk σ f.body = .ret es vs)
@@ -4766,7 +4772,7 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
     ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
-      PostOkC sigOf H rd σ (f.params.map σ) es vs ∧
+      (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
       RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
       RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
   unfold heapOkC at hok
@@ -4804,13 +4810,17 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
   have fin : CovC sigOf H rd σ W0 es → ((∀ e ∈ es, EvM sigOf rd σ e) →
       PostW sigOf H rd σ (f.params.map σ) (fun x ↦ W0 x ∨ EW sigOf rd σ es x) vs) →
       ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
-        PostOkC sigOf H rd σ (f.params.map σ) es vs ∧
+        (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧
+          (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
         RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
           RetEqOk H.sig (f.params.map σ ++ vs.map σ)) :=
     fun h1 h2 ↦ ⟨fun es1 e es2 he hm ↦ h1 es1 e es2 he hm, fun hM ↦
-      ⟨⟨(h2 hM).1.mono fun x hx ↦ hx.imp_right (fax_faw hfa hw),
+      ⟨⟨⟨(h2 hM).1.mono fun x hx ↦ hx.imp_right (fax_faw hfa hw),
         fun x hx ↦ ((h2 hM).2.1 x hx).imp_right (fax_faw hfa hw),
         fun x hx ↦ ((h2 hM).2.2.2.2.2 x hx).imp_right (fax_faw hfa hw)⟩,
+        fun hn ↦ ⟨(h2 hM).1.mono fun x hx ↦ hx.resolve_right (noFAX hn),
+          fun x hx ↦ ((h2 hM).2.1 x hx).resolve_right (noFAX hn),
+          fun x hx ↦ ((h2 hM).2.2.2.2.2 x hx).resolve_right (noFAX hn)⟩⟩,
       (h2 hM).2.2.1, (h2 hM).2.2.2.1, (h2 hM).2.2.2.2.1⟩⟩
   cases hi : initC X with
   | none => simp [hi] at hc
@@ -4926,7 +4936,16 @@ theorem heapOkC_sound {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} 
       RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
       RetEqOk H.sig (f.params.map σ ++ vs.map σ) :=
   have h := heapOkC_soundP hp hok hself hw hh hE hR hD hG
-  ⟨readsOkC_of_P h.1 hM, h.2 hM⟩
+  ⟨readsOkC_of_P h.1 hM, (h.2 hM).1.1, (h.2 hM).2⟩
+
+/-- `heapOkC_sound` with no frame run cell guaranteed (`HCert.fas` empty): the guarantees written by the
+events. -/
+theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+    {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hM : ∀ e ∈ es, EvM sigOf rd σ e) (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ)
+    (hG : GwOk H.sig rd σ) (hn : H.fas = []) : PostOkW sigOf H rd σ (f.params.map σ) es vs :=
+  ((heapOkC_soundP hp hok hself hw hh hE hR hD hG).2 hM).1.2 hn
 
 end Main
 

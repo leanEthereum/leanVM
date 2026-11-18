@@ -26,18 +26,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«certify_placement»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L26_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `decode_query_windows__L26_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1312) (d := Data.adviceFn1312) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«decode_query_windows__L26_L2»

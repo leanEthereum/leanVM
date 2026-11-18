@@ -399,6 +399,25 @@ end
 
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0»
 
+namespace LeanVM.Guest.Fn.«decode_query_windows__L21_L3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `decode_query_windows__L21_L3`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `decode_query_windows__L21_L3`: its entry, length and signature; on the core route, nothing for
+    a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨306698, 267, Fn.«decode_query_windows__L21_L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«decode_query_windows__L21_L3»
+
 namespace LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
