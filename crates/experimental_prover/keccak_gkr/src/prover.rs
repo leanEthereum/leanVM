@@ -30,6 +30,8 @@ fn ternary(b: usize) -> usize {
 /// Digits a weight splits into, and the values of one.
 const DIGIT_BITS: usize = 8;
 const DIGITS: usize = 128 / DIGIT_BITS;
+// `add_rows` sums a digit's buckets into its two nibbles.
+const _: () = assert!(DIGIT_BITS == 8);
 /// The bits of a block position's products, 48 to each pack.
 pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX2 the whole
@@ -153,31 +155,42 @@ impl Groups {
 
     /// `sum over positions of weight[j] (x) payloads[j]` into `rows`: row `DIGIT_BITS * d + i`
     /// sums the payloads whose weight has that bit set. Each group is summed in registers, so
-    /// the payloads are only read.
-    fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128], sums: &mut [Part; 1 << DIGIT_BITS]) {
+    /// the payloads are only read, then added into the sums of its value's low nibble and of its
+    /// high one, the latter kept in registers; those make the rows of the digit's low bits and of
+    /// its high bits.
+    fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128]) {
         for (rows, (order, starts)) in rows
             .as_chunks_mut::<DIGIT_BITS>()
             .0
             .iter_mut()
             .zip(self.order.iter().zip(&self.starts))
         {
-            for (v, sum) in sums.iter_mut().enumerate() {
-                let mut acc = Part::ZERO;
-                for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
-                    // SAFETY: `order` holds positions.
-                    acc.add(unsafe { payloads.get_unchecked(p as usize) });
+            let mut low = [Part::ZERO; 16];
+            let mut high: [Part; 16] = std::array::from_fn(|h| {
+                let mut nibble = Part::ZERO;
+                for (l, low) in low.iter_mut().enumerate() {
+                    let v = 16 * h + l;
+                    let mut acc = Part::ZERO;
+                    for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
+                        // SAFETY: `order` holds positions.
+                        acc.add(unsafe { payloads.get_unchecked(p as usize) });
+                    }
+                    nibble.add(&acc);
+                    low.add(&acc);
                 }
-                *sum = acc;
-            }
-            // Bit `i` of the digit: the sums whose value has it, then fold it away.
-            for (i, row) in rows.iter_mut().enumerate().rev() {
-                let (low, high) = sums[..2 << i].split_at_mut(1 << i);
-                let mut acc = Part::ZERO;
-                for (low, high) in low.iter_mut().zip(&*high) {
-                    acc.add(high);
-                    low.add(high);
+                nibble
+            });
+            for (sums, rows) in [&mut low, &mut high].into_iter().zip(rows.as_chunks_mut::<4>().0) {
+                // Bit `i` of the nibble: the sums whose value has it, then fold it away.
+                for (i, row) in rows.iter_mut().enumerate().rev() {
+                    let (low, high) = sums[..2 << i].split_at_mut(1 << i);
+                    let mut acc = Part::ZERO;
+                    for (low, high) in low.iter_mut().zip(&*high) {
+                        acc.add(high);
+                        low.add(high);
+                    }
+                    *row = acc;
                 }
-                *row = acc;
             }
         }
     }
@@ -289,11 +302,10 @@ impl Layer<'_> {
                 (
                     vec![[Part::ZERO; BITS]; PACKS / PART],
                     vec![[Part::ZERO; 128]; PACKS / PART],
-                    Box::new([Part::ZERO; 1 << DIGIT_BITS]),
                 )
             },
             || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
-            |(payloads, rows, digit_sums), sums, task| {
+            |(payloads, rows), sums, task| {
                 let (_, _, block) = self.block(task);
                 for r in 0..5 {
                     for z in 0..64 {
@@ -308,7 +320,7 @@ impl Layer<'_> {
                     }
                 }
                 for (payloads, rows) in payloads.iter().zip(rows.iter_mut()) {
-                    groups.add_rows(payloads, rows, digit_sums);
+                    groups.add_rows(payloads, rows);
                 }
                 // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
                 // field elements, which the block's weight multiplies.
@@ -856,6 +868,36 @@ fn round_coefficients(zero: F128, infinity: F128, value: F128, r: F128) -> [F128
     // value = c0 + r (c1 + c2).
     let c1 = (value + c0) * r.inv() + c2;
     [c0, c1, c2]
+}
+
+#[cfg(test)]
+mod tests {
+    use primitives::test_rng::Rng;
+
+    use super::*;
+
+    /// The digit buckets' rows against summing the payloads bit by bit, on random weights and the
+    /// nibble edges.
+    #[test]
+    fn rows_are_the_weighted_sums() {
+        let mut rng = Rng::new(0xB0C);
+        let mut weights: Vec<F128> = (0..BITS).map(|_| rng.ext()).collect();
+        weights[0] = F128::new(u64::MAX, u64::MAX);
+        weights[1] = F128::ZERO;
+        weights[2] = F128::new(0x0F0F_0F0F_0F0F_0F0F, 0xF0F0_F0F0_F0F0_F0F0);
+        let payloads: [Part; BITS] = std::array::from_fn(|_| Part(std::array::from_fn(|_| rng.next_u64())));
+        let mut rows = [Part(std::array::from_fn(|_| rng.next_u64())); 128];
+        Groups::new(&weights).add_rows(&payloads, &mut rows);
+        for (r, row) in rows.iter().enumerate() {
+            let mut want = Part::ZERO;
+            for (weight, payload) in weights.iter().zip(&payloads) {
+                if weight.to_limbs()[r / 64] >> (r % 64) & 1 == 1 {
+                    want.add(payload);
+                }
+            }
+            assert_eq!(row.0, want.0, "row {r}");
+        }
+    }
 }
 
 #[cfg(all(test, target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
