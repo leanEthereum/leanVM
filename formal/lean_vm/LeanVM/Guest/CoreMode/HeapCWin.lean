@@ -67,7 +67,7 @@ end
 noncomputable def cxOf (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : CX :=
   ⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
     trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
-    keysT H.eqs .nil, H.fas⟩
+    keysT H.eqs .nil, H.fas, H.ders⟩
 
 /-- `k (cxOf pows sigOf f H)`, the context's tries evaluated first (as `heapOkC` does). -/
 noncomputable def withCx {β : Type} (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (k : CX → β) :
@@ -75,7 +75,7 @@ noncomputable def withCx {β : Type} (pows : PowTree) (sigOf : String → HSig) 
   H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
     (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦
       (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
-        k ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas⟩
+        k ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩
 
 theorem withCx_eq {β : Type} (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (k : CX → β) :
     withCx pows sigOf f H k = k (cxOf pows sigOf f H) := by
@@ -84,8 +84,8 @@ theorem withCx_eq {β : Type} (pows : PowTree) (sigOf : String → HSig) (f : Fn
 
 /-! ## Blocks by the recursors -/
 
-/-- A value below the ghosts' numbers. -/
-def okV (v : V) : Bool := Nat.blt v.idx GB
+/-- A value below the words at cells' and the ghosts' numbers (`DB`). -/
+def okV (v : V) : Bool := Nat.blt v.idx DB
 
 /-- No value a block names is a ghost's. -/
 def noGhostL (ss : List Stmt) : Bool := (Stmt.usesList ss ++ Stmt.tmpsList ss).all okV
@@ -375,7 +375,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
   simp only [Trie.seq_eq]
   have hX : (⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
       trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
-      keysT H.eqs .nil, H.fas⟩ : CX) = cxOf pows sigOf f H := rfl
+      keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = cxOf pows sigOf f H := rfl
   rw [hX, hinit, hterm]
   simp only [Bool.and_eq_true]
   refine ⟨⟨⟨hrm, hpv⟩, hre⟩, ?_⟩
