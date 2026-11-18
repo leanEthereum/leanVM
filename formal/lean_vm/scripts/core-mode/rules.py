@@ -89,7 +89,9 @@ def lin_sub(P, st, r, site, conds):
             dm = dict(M[0])
             if not all(dm.get(x, 0) >= S * e for x, e in hi[0]):
                 continue
-            R = (Q, 1, lo, pm)
+            # the cells `Q·g^(k + S·j)`, `k < S`, lie in the stride-1 run from `Q·g^0` (`k + S·j < S·e(h) <= e(p)`);
+            # one from `Q·g^k` would reach `k` cells past `e(p)`
+            R = ((Q[0], 0), 1, lo, pm) if lo == num(0) and Q[1] < S else (Q, 1, lo, pm)
             w = P.cover_run(st, R, site, conds)
             if w is None or w[0] == 'run' and w[2]:
                 continue
@@ -127,7 +129,9 @@ def derive(P, st):
     for R, parts, why in new:
         for x, y in P.eqs:
             for M, pm in ((x, y), (y, x)):
-                if len(pm[0]) == 1 and pm[0][0][1] == 1 and pm[0][0][0] < P.m and pm[1] == 0 and M[0]:
+                # `pm` a parameter, or a constant (`M = g^c` by a quotient's equation: the bound a constant)
+                if (len(pm[0]) == 1 and pm[0][0][1] == 1 and pm[0][0][0] < P.m and pm[1] == 0 or not pm[0] and
+                        pm[1] < 2 ** 20) and M[0] and M[1] == 0:
                     k = None
                     dm, dh = dict(M[0]), dict(R[3][0])
                     if set(dm) == set(dh) and R[3][1] == 0:

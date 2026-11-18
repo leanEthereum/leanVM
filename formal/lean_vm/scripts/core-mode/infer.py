@@ -107,6 +107,11 @@ def mdiv(a, b):
     return mk(tuple(da.items()), a[1] - b[1])
 
 
+def negidx(j):
+    """An index with a negative constant offset (it wraps below 0 unless its bases make up for it)."""
+    return bool(j[0]) and (j[1] >= 2 ** 63 if WRAP[0] else j[1] < 0)
+
+
 def shift(a, o):
     return (a[0], (a[1] + o) % ORD if WRAP[0] else a[1] + o)
 
@@ -219,7 +224,8 @@ def shape(k):
 # ---- signatures: monomials over parameter numbers `0..m-1` and returned words `m + j`
 
 class Sig:
-    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn', 'prePR', 'postPR')
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn', 'prePR', 'postPR',
+              'retEq')
 
     def __init__(self, m):
         self.m = m
@@ -237,6 +243,7 @@ class Sig:
         self.prePR = []      # (run, offsets): each cell of the run holds a pointer with these cells past it written
         self.postPR = []
         self.retIn = {}      # returned word j -> the anchor of the object it points into
+        self.retEq = []      # (x, y): monomials over the parameters and returned words (`m + j`), equal at return
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.ctr = None      # a loop's counter and bound parameters
         self.bnd = None
@@ -345,12 +352,16 @@ class Pass:
         self.ltprov = {}
         self.ltkey = {}
         self.eqs = []
+        self.eqpath = []                 # the branch path of each equation
         self.defs = {}
         self.ginst = None                # the ghost instantiation of the call being met
         self.retsite = {}                # returned value -> (callee, args, j, ginst)
         self.contents = []               # (cell pattern run, object): words stored by callees
         self.objres = {}                 # residual merging (`objs.py`)
         self.stores = []                 # (cell root, offset, stride, object of the stored word) (`objs.py`)
+        self.path = []                   # the branch conditions in scope: ('ite', c, zero?) or ('arm', x, j)
+        self.rpath = collections.defaultdict(list)   # residual -> the paths it was asked under (`validate.py`)
+        self.sites = []                  # (callee, args, ghost instantiation, path), every call met (`validate.py`)
         for s in stmts(self.body):
             if s[0] == 'a' and s[1][0] in ('add', 'mul', 'const', 'copy'):
                 self.defs.setdefault(s[1][1], s[1])
@@ -392,15 +403,20 @@ class Pass:
         """A residual's index; `e(a·g^k) < e(b)` for the largest `k` asked of one `a`, `b` (the reads of one run at
         several offsets ask one bound)."""
         if r in self.res:
-            return self.res.index(r)
+            i = self.res.index(r)
+            self.rpath[i].append(tuple(self.path))
+            return i
         if r[0] == 'lt' and r[1][1] < 2 ** 40:
-            key = (r[1][0], r[2], r[3:])
+            # merged only under one branch path: an arm's bound need not hold in another arm
+            key = (r[1][0], r[2], r[3:], tuple(self.path))
             i = self.ltkey.get(key)
             if i is not None:
                 if self.res[i][1][1] < r[1][1]:
                     self.res[i] = r
+                self.rpath[i].append(tuple(self.path))
                 return i
             self.ltkey[key] = len(self.res)
+        self.rpath[len(self.res)].append(tuple(self.path))
         self.res.append(r)
         self.stats['res-' + r[0]] += 1
         return len(self.res) - 1
@@ -518,7 +534,11 @@ class Pass:
                 if used is not None:
                     used.extend(u)
                 return r, rw, j, True, True
-            if best is None and not (not okl and not j[0] and not r[2][0]) and not (not okh and not j[0] and not r[3][0]):
+            # a bound over the same bases is decided: one that fails is false, not a residual
+            dl, dh = ioff(r[2], j), ioff(j, r[3])
+            if not (not okl and dl is not None) and not (not okh and dh is not None) and (
+                    best is None or negidx(best[2]) and not negidx(j)):
+                # a run the cell has a negative constant offset in is a last resort: its index wraps below 0
                 best = (r, rw, j, okl, okh)
         return best
 
@@ -556,18 +576,51 @@ class Pass:
                 if allow_pre and not self.at_tail and self.iface(s[0]) and c[1] < 2 ** 20 and (
                         'pfr' in F or not (self.loop and any(b == self.sig.ctr for b, _ in s[0][0]))):
                     return self.add_preP(s[0], c[1])
-        if allow_pre and not self.at_tail and self.iface(c) and c[0]:
-            if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
+        def pre_point(arm_only=False):
+            if allow_pre and not self.at_tail and self.iface(c) and c[0] and self.subst and 'cond' in F:
+                # a constant cell `Q·g^k` read in arm `j` of a match on a parameter `x` with `k < j`: inside the run
+                # `⟨Q, 1, 0, x⟩` (by the arm, `e(x) = j`), a precondition every caller can meet, where the cell alone
+                # would be one only the callers taking that arm write
+                if len(c[0]) == 1 and c[0][0][1] == 1 and c[1] < 2 ** 20:
+                    for b, j in self.subst.items():
+                        if b < self.m and 0 <= c[1] < j and not (self.loop and b == self.sig.ctr):
+                            r = (mk(c[0], 0), 1, num(0), base(b))
+                            if r not in self.sig.preR:
+                                self.sig.preR.append(r)
+                            self.stats['w-arm-run'] += 1
+                            return ('run', ('preR', self.sig.preR.index(r)), [])
+            if arm_only:
+                return None
+            if allow_pre and not self.at_tail and self.iface(c) and c[0]:
+                if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
+                    if c not in self.sig.pre:
+                        self.sig.pre.append(c)
+                    self.stats['w-pre-ctr'] += 1
+                    return ('pre', self.sig.pre.index(c))
                 if c not in self.sig.pre:
                     self.sig.pre.append(c)
-                self.stats['w-pre-ctr'] += 1
+                self.stats['w-pre'] += 1
                 return ('pre', self.sig.pre.index(c))
-            if c not in self.sig.pre:
-                self.sig.pre.append(c)
-            self.stats['w-pre'] += 1
-            return ('pre', self.sig.pre.index(c))
+            return None
+
+        # under a selector's arm, a point precondition binds every caller to what only that arm reads: the object's
+        # run with a residual (asked under the arm's path) goes first
+        late = 'obj' in F and any(p[0] == 'arm' for p in self.path) and len(c[0]) == 1 and c[0][0][1] == 1 \
+            and c[0][0][0] < self.m and c[1] < 2 ** 20
+        w = pre_point(arm_only=late)
+        if w is not None:
+            return w
         if best is not None and 'idx' in F:
             r, rw, j, okl, okh = best
+            if okl and not okh:
+                # the index one past the run, where a point is written: the run and the point (`concat`)
+                pt, u = mmul(r[0], mpow(r[3], r[1])), []
+                if pt in st.pts and self.lt(st, j, shift(r[3], 1), u) and self.le(st, r[2], j, u):
+                    R2 = (r[0], r[1], r[2], shift(r[3], 1))
+                    k = self.addres(('sub', R2, (r, pt), 'concat'))
+                    st.runs.append((R2, ('derived', k)))
+                    self.stats['w-run-pt'] += 1
+                    return ('run', ('derived', k), u)
             res = []
             if not okl:
                 res.append(self.addres(('lt', r[2], shift(j, 1), 'idx')))
@@ -585,6 +638,8 @@ class Pass:
             w = objs.read(self, st, c, site, conds)
             if w is not None:
                 return w
+        if late:
+            return pre_point()
         return None
 
     def add_preP(self, cell, o):
@@ -661,7 +716,12 @@ class Pass:
                 # a division `u = d / o`: its monomial when `o`'s divides `d`'s
                 for u, o in ((x, y), (y, x)):
                     if u not in st.D:
-                        self.define(st, u, mdiv(self.mono(st, d), self.mono(st, o)) if 'div' in F else None, 'mul')
+                        q = mdiv(self.mono(st, d), self.mono(st, o)) if 'div' in F else None
+                        self.define(st, u, q, 'mul')
+                        if q is None and 'div' in F:
+                            # no monomial for the quotient: the equation `u·o = d` instead (`retEq`, `rename`)
+                            self.eqs.append((mmul(self.mono(st, u), self.mono(st, o)), self.mono(st, d)))
+                            self.eqpath.append(tuple(self.path))
         elif k == 'add':
             d, x, y = a[1:]
             self.adds[d] = (x, y)
@@ -675,6 +735,7 @@ class Pass:
             mx, my = st.env.get(x), st.env.get(y)
             if mx is not None and my is not None and mx != my:
                 self.eqs.append((mx, my))
+                self.eqpath.append(tuple(self.path))
             if mx is None and my is not None:
                 st.env[x] = my
             elif my is None and mx is not None:
@@ -816,7 +877,7 @@ class Pass:
             if okl and okh:
                 self.stats['wr-run'] += 1
                 return ('run', rw, [])
-            false = (not okl and not jl[0] and not R[2][0]) or (not okh and not jh[0] and not R[3][0])
+            false = (not okl and ioff(R[2], jl) is not None) or (not okh and ioff(jh, R[3]) is not None)
             if not false and (best is None or (okl or okh) and not (best[2] or best[3])):
                 best = (R, rw, okl, okh, jl, jh)
         if n is not None and n <= 64 and not lo[0] and 'ptsrun' in F:
@@ -913,6 +974,7 @@ class Pass:
             import objs
             self.ginst = objs.inst(self, st, G, args, conds)
         ginst = self.ginst
+        self.sites.append((f, tuple(args), ginst, tuple(self.path)))
         if G is not None:
             for c in G.pre:
                 t = self.tr(st, c, args, None)
@@ -954,6 +1016,12 @@ class Pass:
         if 'obj' in F:
             import objs
             objs.after_call(self, st, f, G, args, rets, ginst)
+        if not conditional and 'div' in F:
+            for x, y in G.retEq:
+                tx, ty = self.tr(st, x, args, rets), self.tr(st, y, args, rets)
+                if tx is not None and ty is not None and tx != ty:
+                    self.eqs.append((tx, ty))
+                    self.eqpath.append(tuple(self.path))
         if not conditional:
             for c in G.post:
                 t = self.tr(st, c, args, rets)
@@ -1012,7 +1080,12 @@ class Pass:
             if k == 'a':
                 self.atom(st, s[1])
             elif k == 'ite':
-                st = self.join(st, [self.block(st.copy(), s[2]), self.block(st.copy(), s[3])])
+                outs = []
+                for z, b in ((True, s[2]), (False, s[3])):
+                    self.path.append(('ite', s[1], z))
+                    outs.append(self.block(st.copy(), b))
+                    self.path.pop()
+                st = self.join(st, outs)
             elif k == 'match':
                 outs = []
                 x = self.mono(st, s[1])
@@ -1027,7 +1100,9 @@ class Pass:
                             t.pfr += hv.get(PFR, [])
                             t.pf.update({c: f for c, f in hv.get(PF, {}).items() if c not in t.pf})
                         self.subst = self.assume(st, s[1], j)
+                    self.path.append(('arm', s[1], j))
                     outs.append(self.block(t, arm))
+                    self.path.pop()
                     self.subst = old
                 st0 = st
                 st = self.join(st, outs, (x, list(range(len(s[2])))))
@@ -1041,9 +1116,14 @@ class Pass:
                 f = callee(s[2])
                 if f == self.key:
                     self.tails.append((st.copy(), s[3], s[1]))
+                    self.path.append(('ite', s[1], False))
                     self.calls.append((f, self.tail_wits(st, s[3])))
+                    self.sites.append((f, tuple(s[3]), self.ginst, tuple(self.path)))
+                    self.path.pop()
                 else:
+                    self.path.append(('ite', s[1], False))
                     self.call(st, f, s[3], [], cond=s[1], conditional=True)
+                    self.path.pop()
             elif k == 'dispatch':
                 self.dispatch(st, s)
             elif k == 'ret':
@@ -1142,7 +1222,9 @@ class Pass:
             old = self.subst
             if 'cond' in F:
                 self.subst = self.assume(st, x, j)
+            self.path.append(('arm', x, j))
             self.call(t, f, args, rets, conds=cd, record=False)
+            self.path.pop()
             ws.extend(self.lastws)
             self.subst = old
             self.armconds = None
@@ -1283,6 +1365,15 @@ def retsig(P, G):
             return None
         return mk(tuple(bs), off)
 
+    G.retEq = []
+    if 'div' in F:
+        # equations of the body's top level (on every path) over the parameters and returned words
+        for (x, y), pth in zip(P.eqs, P.eqpath):
+            if pth:
+                continue
+            rx, ry = rename(x) if x[0] else x, rename(y) if y[0] else y
+            if rx is not None and ry is not None and rx != ry and (rx[0] or ry[0]) and (rx, ry) not in G.retEq:
+                G.retEq.append((rx, ry))
     post = postR = postV = postP = None
     for st, vs in P.rets:
         cs = {rename(c) for c in st.pts}

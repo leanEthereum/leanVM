@@ -210,12 +210,25 @@ def run_for(P, st, obj, conds=None, create=True):
     if obj[0] in ('val', 'param'):
         v = obj[1]
         best = None
+        if create and not P.at_tail and 'rules' in F and not any(
+                R[0] == (((v, 1),), 0) and R[1] == 1 and R[2] == num(0) and not R[3][0] for R, _ in runs):
+            # runs implied by those in scope (`merge`, `concat`, `rename`), as at a `ret`
+            import rules
+            n = len(st.runs)
+            rules.derive(P, st)
+            runs = runs + st.runs[n:]
         for R, rw in reversed(runs):
-            if R[0][0] == ((v, 1),) and R[1] == 1 and R[2] == num(0):
+            if R[0] == (((v, 1),), 0) and R[1] == 1 and R[2] == num(0):
                 if best is None or not R[3][0] and best[0][3][0]:
                     best = (R, rw)
+        if create and not P.at_tail:
+            ch = chain(P, st, v, runs, conds)
+            if ch is not None and (best is None or best[0][3][0] or best[0][3][1] < ch[0][3][1]):
+                best = ch
         if best is None and create and not P.at_tail:
             best = derive_for(P, st, v, runs, conds)
+        if best is not None and create and not P.at_tail:
+            best = extend(P, st, best, runs, conds)
         if best is not None:
             return best
         if obj[0] == 'val':
@@ -242,6 +255,63 @@ def run_for(P, st, obj, conds=None, create=True):
     rw = ('preR', P.sig.preR.index(R))
     st.runs.append((R, rw))
     return R, rw
+
+
+def chain(P, st, v, runs, conds=None):
+    """The object `v`'s longest prefix written as adjacent constant runs and points from its base: one run
+    `⟨v, 1, 0, n⟩` (`concat`, generic) when it takes more than one part."""
+    pts = set(st.pts).union(*[cd[0] for cd in conds or ()])
+    by = {}
+    for R, rw in runs:
+        Q, S, lo, hi = R
+        if Q[0] == ((v, 1),) and S == 1 and lo == num(0) and not hi[0] and Q[1] < 2 ** 40 and hi[1] < 2 ** 40:
+            if hi[1] > by.get(Q[1], (0,))[0]:
+                by[Q[1]] = (hi[1], R)
+    pos, parts = 0, []
+    while True:
+        if pos in by:
+            n, R = by[pos]
+            parts.append(R)
+            pos += n
+        elif shift((((v, 1),), 0), pos) in pts:
+            parts.append(shift((((v, 1),), 0), pos))
+            pos += 1
+        else:
+            break
+    if len(parts) < 2 or not any(len(x) == 4 for x in parts):
+        return None
+    R = ((((v, 1),), 0), 1, num(0), num(pos))
+    for R2, rw in runs:
+        if R2 == R:
+            return R, rw
+    k = P.addres(('sub', R, tuple(parts), 'concat'))
+    st.runs.append((R, ('derived', k)))
+    P.stats['derive-chain'] += 1
+    return R, ('derived', k)
+
+
+def extend(P, st, best, runs, conds=None):
+    """The object's run `⟨v, 1, 0, A⟩` continued by the points `v·A·g^k`, `k < K`, written after it (a buffer filled
+    by a loop, then a few cells): `⟨v, 1, 0, A·g^K⟩` (`concat`, generic)."""
+    R, rw = best
+    Q, S, lo, hi = R
+    if S != 1 or lo != num(0) or not hi[0]:
+        return best
+    pts = set(st.pts).union(*[cd[0] for cd in conds or ()])
+    top = I.mmul(Q, hi)
+    K = 0
+    while shift(top, K) in pts and K < 64:
+        K += 1
+    if not K:
+        return best
+    R2 = (Q, 1, num(0), shift(hi, K))
+    for R3, rw3 in runs:
+        if R3 == R2:
+            return R3, rw3
+    k = P.addres(('sub', R2, (R,) + tuple(shift(top, i) for i in range(K)), 'concat'))
+    st.runs.append((R2, ('derived', k)))
+    P.stats['derive-extend'] += 1
+    return R2, ('derived', k)
 
 
 def addres(P, key, r):
@@ -418,7 +488,7 @@ def derive_for(P, st, v, runs, conds=None):
             pts = set(st.pts).union(*[cd[0] for cd in conds or ()])
             if all(shift((((v, 1),), 0), i) in pts for i in range(lo1[1])):
                 R2 = (R[0], 1, num(0), R[3])
-                k2 = P.addres(('sub', R2, (R,), 'concat'))
+                k2 = P.addres(('sub', R2, (R,) + tuple(shift((((v, 1),), 0), i) for i in range(lo1[1])), 'concat'))
                 st.runs.append((R, rw))
                 st.runs.append((R2, ('derived', k2)))
                 P.stats['derive-obj'] += 1
