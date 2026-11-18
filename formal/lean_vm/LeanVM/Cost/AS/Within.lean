@@ -26,10 +26,9 @@ public section
   2 ^ max 58 (2 * μ + 9) +
     (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
-/-- The budget is within the statement's. -/
-theorem asBudget_le_statement (μ N : ℕ) : asBudget μ N ≤ leanVmKnowledgeExtractorBudget μ N := by
-  unfold asBudget leanVmKnowledgeExtractorBudget
-  gcongr <;> omega
+/-- The budget is the statement's. -/
+theorem asBudget_le_statement (μ N : ℕ) : asBudget μ N ≤ leanVmKnowledgeExtractorBudget μ N :=
+  le_refl _
 
 /-- An index's price per query. -/
 @[expose] def idxPerQuery (L D W : ℕ) : ℕ :=
