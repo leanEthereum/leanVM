@@ -16,6 +16,9 @@ pub(super) const DIGIT_GROUP: usize = 3;
 pub(super) const LX_DIGIT_GROUP: usize = 4;
 /// The guest's `LX_WINDOW`: index bits a path dispatch covers.
 pub(super) const LX_WINDOW: usize = 8;
+/// The guest's arm cells for a leanXMSS digit group's chain values: an arm with more
+/// steps walks some of its full chains in a frame of their own (`LX_FAR`).
+pub(super) const LX_POOL: usize = 10;
 const _: () = assert!(
     lean_sphincs::internals::W * lean_sphincs::internals::V == 128 && lean_sphincs::internals::V % DIGIT_GROUP == 1
 );

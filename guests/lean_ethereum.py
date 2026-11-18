@@ -458,6 +458,11 @@ LX_GROUP_SIZES = LX_GROUP_SIZES_PLACEHOLDER
 LX_TAG_SLOT = LX_TAG_SLOT_PLACEHOLDER
 LX_TAG_LOG = LX_TAG_LOG_PLACEHOLDER
 LX_N_TAGS = LX_N_TAGS_PLACEHOLDER
+# A full digit group's arm walks the chains LX_FAR[k] names in `lx_far_chain`, so that
+# its own cells for chain values stay within the host's LX_POOL.
+LX_FAR = LX_FAR_PLACEHOLDER
+# The cells of `lx_sums`, one for every digit sum a key can have.
+LX_SUMS = LX_V * CHAIN_STEPS + 1
 
 # -------------------------------------------------- leanSPHINCS (host-supplied)
 # The scheme's own letters, prefixed SP_: under each bottom leaf a FORS instance of
@@ -537,6 +542,9 @@ SP_UNUSED_BYTES = 8 - SP_TAIL_BYTES
 # log is below the announced memory size, at most 2^30, and sums of a few never wrap.
 # MAX_RECURSIONS is the arity of an aggregation tree.
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
+# `main`'s first cells, memory cells 2 to ZERO_CELLS + 1, are left zero: `assert_small`
+# reads them.
+ZERO_CELLS = 256
 
 
 # ---------------------------------- LeanDA ------------------------------------------
@@ -795,6 +803,20 @@ def log2_ceil_in_the_exponent(g_N, g_squares, floor: Const, nbits: Const):
     if g_log != GEN ** floor:
         assert_small_g_power(g_N * INV_GEN / g_squares[g_log * INV_GEN], g_squares)
     return g_log
+
+
+@inline
+def assert_small(x, k: Const):
+    # log(x) < k <= ZERO_CELLS: the range check in the exponent (`assert log x < k`) with
+    # the zero cells `main` keeps at memory cells 2 on as both reads' destination, so it
+    # takes one cell, the complement y, rather than three. Reading x * g^2 and y * g^2
+    # bounds both logs below 2^30, -1 and -2 aside, which would read the public input
+    # cells, nonzero (`main`); x * y = g^(k - 1) then puts log(x) below k.
+    zeros = GEN ** 2
+    zeros[x] = 0
+    y = GEN ** (k - 1) / x
+    zeros[y] = 0
+    return
 
 
 @inline
@@ -3703,7 +3725,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 # hash's output feeds the next hash where it lands, and a hinted value needs no check
 # of its own, every cell being a 16-byte value. A key's chain tips are the first cells
 # of its `walks` run, one each, chain i's at i whatever its digit, so the leaf's hash
-# reads them as one run; the steps before a tip land after them, CHAIN_STEPS - 1 a chain.
+# reads them as one run.
 
 
 @inline
@@ -3719,49 +3741,31 @@ def is_child(node, kids, k: Const, bit):
 
 
 @inline
-def walk(at, pp, walks, tags, powers, i: Const, k: Const, lx: Const):
-    # Walk chain i from position k to its end, the step leaving the last position
-    # landing at walks[i], so that is the tip whatever k is, and an earlier one after
-    # the tips of the scheme's V chains. A leanSPHINCS step's address is at[0] and at[1]
-    # with i and s added, the value last; a leanXMSS one carries only s, at[s] computed
-    # once per key, i riding after the value, read off a cell set outside the dispatch
-    # (the zero cell, `powers` or `tags`), so an arm names it rather than setting it again.
-    if const(lx == 1):
-        if const(i == 0):
-            tag = 0
-        elif const(LX_TAG_SLOT[i] == 0):
-            tag = powers[LX_TAG_LOG[i]]
-        else:
-            tag = tags[LX_TAG_SLOT[i] - 1]
+def walk(at, pp, walks, i: Const, k: Const):
+    # Walk leanSPHINCS chain i from position k to its end, the step leaving the last
+    # position landing at walks[i], so that is the tip whatever k is, and an earlier one
+    # after the SP_V tips. A step's address is at[0] and at[1] with i and s added, the
+    # value last.
     if const(k == CHAIN_STEPS):
         hint_witness(walks[i:i + 1], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS):
             last = (s + 1) // CHAIN_STEPS
-            o = const(last * i + (1 - last) * (lx * LX_V + (1 - lx) * SP_V + (CHAIN_STEPS - 1) * i + s))
-            if const(lx == 1):
-                keccak([pp, at[s]], [value, tag], walks[o:o + 1])
-            else:
-                keccak([pp, at[0]], [at[1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0), value], walks[o:o + 1])
+            o = const(last * i + (1 - last) * (SP_V + (CHAIN_STEPS - 1) * i + s))
+            keccak([pp, at[0]], [at[1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0), value], walks[o:o + 1])
             value = walks[o]
     return
 
 
 @inline
-def walk_chains(at, pp, walks, tags, powers, first: Const, n: Const, k: Const, lx: Const):
-    # The n chains from `first` on, at the digits of k (its low n).
-    for r in unroll(0, n):
-        walk(at, pp, walks, tags, powers, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
-    return
-
-
-@inline
 def walk_group(at, pp, walks, first: Const, n: Const, k: Const, powers, product, encoded):
-    # A leanSPHINCS dispatch's arm: `walk_chains`, then the digits' sum folded into
-    # `product`, in the exponent (`powers[s]` is GEN ** s), and the digits into
-    # `encoded`, most significant first in each byte, as the encoding digest holds them.
-    walk_chains(at, pp, walks, powers, powers, first, n, k, 0)
+    # A leanSPHINCS dispatch's arm: the n chains from `first` on, at the digits of k
+    # (its low n), then the digits' sum folded into `product`, in the exponent
+    # (`powers[s]` is GEN ** s), and the digits into `encoded`, most significant first
+    # in each byte, as the encoding digest holds them.
+    for r in unroll(0, n):
+        walk(at, pp, walks, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH)
     digits = 0
     for r in unroll(0, n):
         digits = digits + const(((k // CHAIN_LENGTH ** r) % CHAIN_LENGTH) * 2 ** (8 * ((first + r) // SP_DIGITS_PER_BYTE) + W * (SP_DIGITS_PER_BYTE - 1 - (first + r) % SP_DIGITS_PER_BYTE)))
@@ -3838,13 +3842,61 @@ def lx_window(nodes, pp, powers, his, w: Const, v: Const, k: Const):
     return h
 
 
+def lx_far_chain(pp, a0, a1, a2, i: Const):
+    # A whole leanXMSS chain i, from its hinted start at position 0, in a frame of its
+    # own: a dispatch arm with more steps than its LX_POOL cells hold walks it here.
+    value = hint_witness("chain_starts")
+    one = StackBuf(1)
+    keccak([pp, a0], [value, i], one)
+    two = StackBuf(1)
+    keccak([pp, a1], [one[0], i], two)
+    tip = StackBuf(1)
+    keccak([pp, a2], [two[0], i], tip)
+    return tip[0]
+
+
 @inline
-def lx_walk_group(steps, pp, walks, tags, first: Const, n: Const, k: Const, powers, sums, encoded):
-    # A leanXMSS dispatch's arm: `walk_chains`, then the digits' sum folded into `sums`,
-    # a pointer into `lx_sums` (`main`), whose cell at an address holds that
-    # address, so the arm steps it by reading the cell that many further on; and the
-    # digits into `encoded`, low first, as the encoding digest holds them.
-    walk_chains(steps, pp, walks, tags, powers, first, n, k, 1)
+def lx_walk(steps, pp, tips, tags, powers, i: Const, k: Const, far: Const):
+    # Walk leanXMSS chain i from position k to its end at tips[i], each step before the
+    # last into a cell of the arm's own, which the arms of a dispatch share; with `far`,
+    # in `lx_far_chain`. A step's address carries only s, steps[s] computed once per key;
+    # the chain index rides after the value, read off a cell set outside the dispatch
+    # (the zero cell, `powers` or `tags`), so an arm names it rather than setting it again.
+    if const(i == 0):
+        tag = 0
+    elif const(LX_TAG_SLOT[i] == 0):
+        tag = powers[LX_TAG_LOG[i]]
+    else:
+        tag = tags[LX_TAG_SLOT[i] - 1]
+    if const(k == CHAIN_STEPS):
+        hint_witness(tips[i:i + 1], "chain_starts")
+    elif const(far == 1):
+        tips[i] = lx_far_chain(pp, steps[0], steps[1], steps[2], i)
+    else:
+        value = hint_witness("chain_starts")
+        for s in unroll(k, CHAIN_STEPS):
+            if const(s + 1 == CHAIN_STEPS):
+                keccak([pp, steps[s]], [value, tag], tips[i:i + 1])
+            else:
+                step = StackBuf(1)
+                keccak([pp, steps[s]], [value, tag], step)
+                value = step[0]
+    return
+
+
+@inline
+def lx_walk_group(steps, pp, tips, tags, first: Const, n: Const, k: Const, powers, sums, encoded):
+    # A leanXMSS dispatch's arm: the n chains from `first` on, at the digits of k (its
+    # low n), those LX_FAR[k] names walked by `lx_far_chain` so that the arm's own cells
+    # stay within LX_POOL; then the digits' sum folded into `sums`, a pointer into
+    # `lx_sums` (`main`), whose cell at an address holds that address, so the arm steps
+    # it by reading the cell that many further on; and the digits into `encoded`, low
+    # first, as the encoding digest holds them.
+    for r in unroll(0, n):
+        far = 0
+        if const(n == LX_DIGIT_GROUP):
+            far = const(LX_FAR[k] // 2 ** r % 2)
+        lx_walk(steps, pp, tips, tags, powers, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, far)
     return sums[GEN ** DIGIT_SUMS[k % CHAIN_LENGTH ** n]], encoded + const(k % CHAIN_LENGTH ** n * CHAIN_LENGTH ** first)
 
 
@@ -3868,7 +3920,7 @@ def verify_lean_xmss(signer, sums):
     windows = StackBuf(LX_WINDOWS)
     hint_witness(windows, "lx_windows")
     for w in unroll(0, LX_WINDOWS):
-        assert log(windows[w]) < LX_WINDOW_ARMS
+        assert_small(windows[w], LX_WINDOW_ARMS)
     powers = StackBuf(LX_WINDOW + 1)
     for s in unroll(0, LX_WINDOW + 1):
         powers[s] = GEN ** s
@@ -3896,25 +3948,25 @@ def verify_lean_xmss(signer, sums):
         steps = StackBuf(CHAIN_STEPS)
         for st in unroll(0, CHAIN_STEPS):
             steps[st] = at + (TW_MSG + const(TW_CHAIN + st * STEP_MUL))
-        walks = StackBuf(LX_V * CHAIN_STEPS)
+        tips = StackBuf(LX_V)
         digit_sum = sums
         encoded = 0
         groups = StackBuf(LX_DIGIT_DISPATCHES)
         hint_witness(groups, "lx_digits")
         for p in unroll(0, LX_DIGIT_DISPATCHES - 1):
-            assert log(groups[p]) < LX_DIGIT_GROUPS
-        assert log(groups[LX_DIGIT_DISPATCHES - 1]) < LX_TAIL_GROUPS
+            assert_small(groups[p], LX_DIGIT_GROUPS)
+        assert_small(groups[LX_DIGIT_DISPATCHES - 1], LX_TAIL_GROUPS)
         # Back to back, each arm entering the next dispatch. The last group's table is as
         # wide as the others, its range check what keeps it to LX_DIGIT_TAIL digits.
         for p in unroll(0, LX_DIGIT_DISPATCHES):
-            digit_sum, encoded = match(log(groups[p]), range(0, LX_DIGIT_GROUPS), lambda k: lx_walk_group(steps, pp, walks, tags, LX_DIGIT_GROUP * p, LX_GROUP_SIZES[p], k, powers, digit_sum, encoded))
+            digit_sum, encoded = match(log(groups[p]), range(0, LX_DIGIT_GROUPS), lambda k: lx_walk_group(steps, pp, tips, tags, LX_DIGIT_GROUP * p, LX_GROUP_SIZES[p], k, powers, digit_sum, encoded))
         digest[0] = encoded  # the digits, stored where D already is
         sums[GEN ** LX_TARGET_SUM] = digit_sum
 
         # The one-time leaf, then the path to the layer's root, a window at a time, back
         # to back: each window's top node is the next one's first.
         nodes = StackBuf(LX_LAYER_WINDOWS + 1)
-        wots_leaf(pp, at + (TW_MSG + TW_LEAF), walks, LX_V, nodes)
+        wots_leaf(pp, at + (TW_MSG + TW_LEAF), tips, LX_V, nodes)
         for v in unroll(0, LX_LAYER_WINDOWS):
             his[layer * LX_LAYER_WINDOWS + v] = match(log(windows[layer * LX_LAYER_WINDOWS + v]), range(0, LX_WINDOW_ARMS), lambda k: lx_window(nodes, pp, powers, his, layer * LX_LAYER_WINDOWS + v, v, k))
         root = nodes[LX_LAYER_WINDOWS]
@@ -4682,6 +4734,12 @@ def main():
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which claim. A
     # slot is four cells, a pubkey and the message that pubkey signed.
+    # Memory cells 2 to ZERO_CELLS + 1, the first of this frame, are left zero, and the
+    # two public input cells below them are not: `assert_small` reads them.
+    zero_cells = StackBuf(ZERO_CELLS)
+    public = GEN ** 0
+    assert public[1] != 0
+    assert public[GEN] != 0
     meta = StackBuf(8)
     hint_witness(meta, "meta")  # every count in the exponent
     n_lx_g = meta[0]
@@ -4745,25 +4803,27 @@ def main():
     # and the count below rejects a missed one. So every
     # declared claim is covered by a direct check of its own kind or by a verified
     # child. Each writer is confined to its own region.
-    cover = HeapBuf(n_total_g)
+    # The cell at each address of `lx_sums` holds that address, so a leanXMSS key's digit
+    # sum walks a pointer through it one dispatch at a time (`lx_walk_group`). The
+    # coverage table follows it, so the signature loop reaches both through one pointer.
+    lx_sums = HeapBuf(n_total_g * GEN ** LX_SUMS)
+    for s in unroll(0, LX_SUMS):
+        lx_sums[GEN ** s] = lx_sums * GEN ** s
+    cover = lx_sums * GEN ** LX_SUMS
     sp_cover = cover * lx_slots_g  # the leanSPHINCS region
     # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes, da_verify).
     byte_bits = HeapBuf(SP_BYTE_VALUES)
     for v in unroll(0, SP_BYTE_VALUES):
         byte_bits[GEN ** v] = v
-    # The cell at each address of `lx_sums` holds that address, so a leanXMSS key's digit
-    # sum walks a pointer through it one dispatch at a time (`lx_walk_group`).
-    lx_sums = HeapBuf(LX_V * CHAIN_STEPS + 1)
-    for s in unroll(0, LX_V * CHAIN_STEPS + 1):
-        lx_sums[GEN ** s] = lx_sums * GEN ** s
+    lx_last = lx_slots_g / GEN
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
         # The runtime bound is small by `assert_gpow(n_total_g)` above (its log below
         # the memory size). Without it this degenerates to what DEREF alone gives and an
         # index could reach past `cover`, which is the whole bijection. The bound is the
         # leanXMSS region, so a raw leanXMSS signature covers no leanSPHINCS claim.
-        assert log(idx) < log(lx_slots_g)
-        cover[idx] = xi
+        assert log(idx) < log(lx_last * GEN)
+        lx_sums[idx * GEN ** LX_SUMS] = xi  # cover[idx]
         verify_lean_xmss(lx_table * (idx ** 4), lx_sums)
     for xj in mul_range(1, n_raw_s_g):
         off_hint = hint_witness("sp_raw_index")

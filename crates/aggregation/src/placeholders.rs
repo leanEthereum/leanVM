@@ -7,7 +7,7 @@ use super::child::{
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
-use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW, lx_index_tags};
+use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_POOL, LX_WINDOW, lx_index_tags};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
@@ -874,6 +874,22 @@ fn signature_placeholders(ph: &mut Placeholders) {
     }
     ph.set("LX_TOP", address(lx::tweak(0, lx::TOP, 0)));
     ph.list("LX_INDEX_TAGS", lx_index_tags());
+    // An arm of a full digit group takes one cell a step of its own; past LX_POOL, its
+    // first full chains (digit zero, three steps, in an `lx_far_chain` call that takes
+    // two cells of the arm's) until it fits. Every arm has enough of them.
+    ph.list(
+        "LX_FAR",
+        (0..lx::CHAIN_LEN.pow(LX_DIGIT_GROUP as u32)).map(|k| {
+            let digits: Vec<usize> = (0..LX_DIGIT_GROUP)
+                .map(|r| k / lx::CHAIN_LEN.pow(r as u32) % lx::CHAIN_LEN)
+                .collect();
+            let steps: usize = digits.iter().map(|d| lx::CHAIN_LEN - 1 - d).sum();
+            let far = steps.saturating_sub(LX_POOL);
+            let zeros: Vec<usize> = (0..LX_DIGIT_GROUP).filter(|&r| digits[r] == 0).collect();
+            assert!(zeros.len() >= far, "a digit group's arm outgrows LX_POOL");
+            zeros[..far].iter().map(|r| 1usize << r).sum::<usize>()
+        }),
+    );
     ph.list(
         "LX_GROUP_SIZES",
         (0..lx::V.div_ceil(LX_DIGIT_GROUP)).map(|p| LX_DIGIT_GROUP.min(lx::V - LX_DIGIT_GROUP * p)),

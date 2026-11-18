@@ -214,6 +214,40 @@ fn forged_lean_xmss_hints_are_rejected() {
     }
 }
 
+/// A digit group with more chain steps than its arm's LX_POOL cells walks its first
+/// full chains in a frame of their own (`lx_far_chain`): a signature with such a group
+/// aggregates, and a forged start of one of those chains is rejected.
+#[test]
+fn lean_xmss_far_chains_are_bound() {
+    use super::hints::{LX_DIGIT_GROUP, LX_POOL, lean_xmss_hints};
+    use lean_xmss::internals::{CHAIN_LEN, V};
+    let signers = get_signers::<StableProver>(64);
+    let far_chain = |(pk, message, sig): &LeanXmssSigner| {
+        let hints = lean_xmss_hints(pk, sig, message).unwrap();
+        let layers = hints.iter().filter(|(name, _)| *name == "lx_digits");
+        layers.enumerate().find_map(|(layer, (_, groups))| {
+            groups
+                .iter()
+                .take(V / LX_DIGIT_GROUP)
+                .enumerate()
+                .find_map(|(p, &group)| {
+                    let k = (0..CHAIN_LEN.pow(LX_DIGIT_GROUP as u32)).find(|&k| count(k) == group)?;
+                    let digits = (0..LX_DIGIT_GROUP).map(|r| k / CHAIN_LEN.pow(r as u32) % CHAIN_LEN);
+                    let steps: usize = digits.clone().map(|d| CHAIN_LEN - 1 - d).sum();
+                    let first_zero = digits.clone().position(|d| d == 0)?;
+                    (steps > LX_POOL).then_some(layer * V + LX_DIGIT_GROUP * p + first_zero)
+                })
+        })
+    };
+    let (signer, chain) = signers
+        .iter()
+        .find_map(|s| Some((s.clone(), far_chain(s)?)))
+        .expect("a cached signer with a far chain");
+    prove(&[], std::slice::from_ref(&signer), &[]);
+    let forgery: Forgery = Box::new(move |hints: &mut Hints| hints.entry_mut("chain_starts", chain)[0] += F128::ONE);
+    assert_forgery_rejected(forgery, &[], vec![signer], vec![], &[]);
+}
+
 /// The guest reads each child's root off its statement and publishes the one the
 /// node picks, which must be its own with blobs: a child's root other than the one
 /// its proof carries, a pick past the children, a child's root picked over the
