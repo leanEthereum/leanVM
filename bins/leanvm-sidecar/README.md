@@ -18,9 +18,9 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 - It warms up (two discarded proofs) before listening, so the socket appears once it is ready. It logs to standard error.
 - One sidecar per socket: it locks `<socket>.lock`, and replaces a stale socket left by one that stopped.
 - The socket takes the process's umask, and connecting needs write permission on it: let only trusted clients connect, since any of them can keep it proving. Put it in a directory only the sidecar's user can write (not `/tmp`).
-- It serves 16 connections at once, each holding at most about twice the max request in memory; more wait to be accepted.
+- It serves 16 connections at once; more wait to be accepted.
 - Requests are proven one at a time, in the order they arrive. Closing the connection drops a request whose proof has not started.
-- Stop it with a signal; requests in flight are lost. A prover panic exits the process, so run it under a supervisor.
+- Stop it with a signal; requests in flight are lost.
 
 ## Clients
 
