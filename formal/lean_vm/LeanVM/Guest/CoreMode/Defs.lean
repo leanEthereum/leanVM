@@ -70,6 +70,14 @@ structure CRun where
   hi : CIdx
   deriving DecidableEq, Repr, Inhabited
 
+/-- **A branch condition** on core names: arm `j` of a `match`/`dispatch` on the value `x` (its word
+`g^j`), or the `0` / nonzero side of an `ite` / `callIf` guard `c`. -/
+inductive CCond where
+  | arm (x j : ℕ)
+  | zero (c : ℕ)
+  | nonzero (c : ℕ)
+  deriving DecidableEq, Repr, Inhabited
+
 /-- A closed statement on core names (the residual families, a later milestone). -/
 inductive CRes where
   /-- The exponent of the first index is below the second's. -/
@@ -80,6 +88,10 @@ inductive CRes where
   | sub (c : CCell) (r : CRun)
   /-- Every cell of the first run is one of the second's. -/
   | subR (q r : CRun)
+  /-- The statement where the branch conditions hold (a residual asked on a branch path). -/
+  | under (g : List CCond) (r : CRes)
+  /-- The cell is one of the cells (its address among theirs). -/
+  | subP (c : CCell) (cs : List CCell)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **Why a read's cell is written.** -/

@@ -803,6 +803,93 @@ theorem useV_bad :
     heapOkC Data.powTree (fun g ↦ if g = "mkv" then { post := [⟨[(0, 1)], 0⟩] } else .empty) useV hUseV = false := by
   decide +kernel
 
+/-! ## Branch paths (round 4) -/
+
+/-- Reads `p[1]` in arm `2` of a `match` on `x`. -/
+def armRd : Fn where
+  name := "armRd"
+  params := [.n 0, .n 1]
+  body := [.match_ (.n 1) [[], [], [.atom (.load (.n 2) (.n 0) 1)]], .ret []]
+
+/-- `armRd`'s certificate: the precondition run `p·g^[0, e(x))`, the read inside it by the arm's own
+fact `e(x) = 2` (no residual). -/
+def hArmRd : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 1⟩] }
+  reads := [(2, [(0, 1, .run 0 [])])]
+  res := []
+  rets := [[]]
+
+theorem armRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) armRd hArmRd = true := by decide +kernel
+
+/-- `p[2]` in arm `2`: past the run. -/
+theorem armRd_past :
+    heapOkC Data.powTree (fun _ ↦ .empty) { armRd with body := [.match_ (.n 1) [[], [], [.atom (.load (.n 2) (.n 0) 2)]],
+      .ret []] } { hArmRd with reads := [(2, [(0, 2, .run 0 [])])] } = false := by
+  decide +kernel
+
+/-- `p[1]` in arm `1`: past the run there. -/
+theorem armRd_arm1 :
+    heapOkC Data.powTree (fun _ ↦ .empty) { armRd with body := [.match_ (.n 1) [[], [.atom (.load (.n 2) (.n 0) 1)], []],
+      .ret []] } hArmRd = false := by
+  decide +kernel
+
+/-- Reads `p[5]` where `c = 0`. -/
+def ifRd : Fn where
+  name := "ifRd"
+  params := [.n 0, .n 1, .n 2]
+  body := [.ite (.n 1) [.atom (.load (.n 3) (.n 0) 5)] [], .ret []]
+
+/-- `ifRd`'s certificate: the precondition run `p·g^[0, e(n))`, the read by the residual `5 < e(n)`
+asked where `c = 0` only. -/
+def hIfRd : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := [(3, [(0, 5, .run 0 [0])])]
+  res := [.under [.zero 1] (.lt (.num 5) (.val 2))]
+  rets := [[]]
+
+theorem ifRd_ok : heapOkC Data.powTree (fun _ ↦ .empty) ifRd hIfRd = true := by decide +kernel
+
+/-- The read on the other side, where the residual is not asked. -/
+theorem ifRd_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) { ifRd with body := [.ite (.n 1) [] [.atom (.load (.n 3) (.n 0) 5)], .ret []] }
+      hIfRd = false := by
+  decide +kernel
+
+/-- `rd3` needs `p·g^[0, 3)`. -/
+def sigsB (g : String) : HSig :=
+  if g = "rd3" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 3⟩] } else .empty
+
+/-- Dispatches on `x` to `rd3` in arm `1`, and calls `rd3` if `c ≠ 0`. -/
+def armCall : Fn where
+  name := "armCall"
+  params := [.n 0, .n 1, .n 2]
+  body := [.dispatch (.n 1) ["none", "rd3"] [.n 0] [], .callIf (.n 1) "rd3" [.n 0], .ret []]
+
+/-- `armCall`'s certificate: `rd3`'s precondition inside the own run `p·g^[0, e(n))` by `2 < e(n)`, a
+residual asked in arm `1` (for the dispatch) and where `x ≠ 0` (for the `callIf`). -/
+def hArmCall : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := [.under [.arm 1 1] (.lt (.num 2) (.val 2)), .under [.nonzero 1] (.lt (.num 2) (.val 2))]
+  calls := [[.run 0 [0]], [.run 0 [1]]]
+  rets := [[]]
+
+theorem armCall_ok : heapOkC Data.powTree sigsB armCall hArmCall = true := by decide +kernel
+
+/-- The dispatch's residual asked in arm `0`: not in arm `1`. -/
+theorem armCall_bad :
+    heapOkC Data.powTree sigsB armCall
+      { hArmCall with res := [.under [.arm 1 0] (.lt (.num 2) (.val 2)), .under [.nonzero 1] (.lt (.num 2) (.val 2))] } =
+      false := by
+  decide +kernel
+
+/-- The `callIf`'s residual asked where `x = 0`. -/
+theorem armCall_bad2 :
+    heapOkC Data.powTree sigsB armCall
+      { hArmCall with res := [.under [.arm 1 1] (.lt (.num 2) (.val 2)), .under [.zero 1] (.lt (.num 2) (.val 2))] } =
+      false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test
