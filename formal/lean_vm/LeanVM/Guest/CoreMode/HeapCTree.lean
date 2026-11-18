@@ -402,7 +402,7 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
       · exact hpost.1.1 c hc
       · exact hpost.1.2 r hr x hx
       · exact hpost.2.1 x hx
-      · exact hpost.2.2 x hx
+      · exact hpost.2.2.1 x hx
     rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩
     rotate_left
     · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩)

@@ -300,14 +300,16 @@ def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 
     (vs : List V) : Prop :=
   SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
     PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
-    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) ∧
+    SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
 def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
     (vs : List V) : Prop :=
   SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
     PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
-    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x) ∧
+    SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **Returned words' monomials**: each `(k, c)` of the signature's `retM`, returned word `k` is
 `c`'s word at the parameters' words `ws0`. -/
@@ -1536,6 +1538,12 @@ noncomputable def reqQ (X : CX) (st : CSt) (ms : List CCell) : List (CCell × CR
     | _, _, _ => none
   | _ :: _, _ => none
 
+/-- The own guarantees over its values (`HSig.postN`, `postRN`), at their monomials: the witnesses left. -/
+noncomputable def reqN (X : CX) (st : CSt) (ws : List Wit) : Option (List Wit) :=
+  match monos st.env (X.sig.nv.map V.n) with
+  | some mn => (reqP X st mn X.sig.postN ws).bind (reqR X st mn X.sig.postRN)
+  | none => none
+
 /-- The own guarantees at the parameters and the returned words, the returned words' monomials, and the
 words at return. -/
 noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
@@ -1545,9 +1553,11 @@ noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
       | some ws2 => match reqPP X st (mp ++ mv) X.sig.postP ws2 with
         | some ws3 => match reqPR X st (mp ++ mv) X.sig.postPR ws3 with
           | some ws4 => match reqQ X st (mp ++ mv) X.sig.postQ ws4 with
-            | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
-                retEqC st.eqs (mp ++ mv) X.sig.retEq
-            | _ => false
+            | some ws5 => match reqN X st ws5 with
+              | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
+                  retEqC st.eqs (mp ++ mv) X.sig.retEq
+              | _ => false
+            | none => false
           | none => false
         | none => false
       | none => false
@@ -1846,7 +1856,7 @@ noncomputable def tailC (X : CX) (st : CSt) (args : List V) (ei : CIdx) : Bool :
       | some ws1 => match tailR X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) ei X.sig.postR ws1 with
         | some ws2 => match tailPP X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) X.sig.postP ws2 with
           | some ws3 => match tailPR X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) ei X.sig.postPR ws3 with
-            | some [] => true
+            | some [] => X.sig.postN.isEmpty && X.sig.postRN.isEmpty
             | _ => false
           | none => false
         | none => false

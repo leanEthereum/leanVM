@@ -84,7 +84,7 @@ def gw_def(st, gw, c, d):
 
 class HSig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq',
-              'postQ')
+              'postQ', 'nv', 'postN', 'postRN')
 
     def __init__(self, **kw):
         for f in self.FIELDS:
@@ -749,6 +749,13 @@ def runOkL(X, st, Q, ws, i):
     return runOk(X, st, Q, ws, i, runOk0)
 
 
+def reqN(X, st, G, ws, i):
+    """`CoreMode.reqN`: the guarantees over values, at their monomials."""
+    mn = monos(st.env, G.nv)
+    i = reqP(X, st, mn, G.postN, ws, i)
+    return None if i is None else reqR(X, st, mn, G.postRN, ws, i)
+
+
 def reqR(X, st, ms, rs, ws, i):
     for r in rs:
         q = instR(ms, r)
@@ -1286,7 +1293,7 @@ class Pass:
                 i = f(X, st, ms, l, ws, i)
                 if i is None:
                     break
-            if i != len(ws):
+            if (i if i is None or not (G.postN or G.postRN) else reqN(X, st, G, ws, i)) != len(ws):
                 self.fail('ret-check', ws)
             elif not retVC(st, ms, G.post, ws, G.postV):
                 self.fail('postV', ws)
@@ -1353,7 +1360,7 @@ class Pass:
             if ws is None:
                 raise Fail(('no-ret-wits', st.nt))
         i = tail_check(X, st, mp, mx, ex, ei, ws)
-        if i != len(ws):
+        if i != len(ws) or G.postN or G.postRN:
             self.fail('tail-check', ws)
 
 
