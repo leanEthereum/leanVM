@@ -79,7 +79,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `eq_prefix_run__L33`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl
+  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -148,7 +148,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `padding_weight__L25`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl
+  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -217,7 +217,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `plus_one_run__L4`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl
+  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -286,7 +286,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `index_mle__L22`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl
+  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig
@@ -321,7 +321,7 @@ open LeanVM.Guest
 
 /-- `column_selector__L12`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn290, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn290, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -390,7 +390,7 @@ open LeanVM.Guest
 
 /-- `child_claim_list_last__L8`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn379, Data.powTree, [], csigs, [], false, [], [(2, 1, 0), (5, 4, 1)]⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn379, Data.powTree, [], csigs, [], hcFlag, hcCallees, [(2, 1, 0), (5, 4, 1)]⟩
 
 end
 
@@ -459,7 +459,7 @@ open LeanVM.Guest
 
 /-- `grind_check__L20`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn440, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn440, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -528,7 +528,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L5_L17_L5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn466, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn466, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -597,7 +597,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L7_L16_L4`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn554, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn554, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -666,7 +666,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn573, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn573, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -735,7 +735,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn718, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn718, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -804,7 +804,7 @@ open LeanVM.Guest
 
 /-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn767, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn767, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -873,7 +873,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L44_L23_L5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn795, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn795, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -942,7 +942,7 @@ open LeanVM.Guest
 
 /-- `level_positions__L8_L25_L7`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn852, Data.powTree, [], csigs, [], false, [], []⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn852, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
@@ -1581,7 +1581,7 @@ theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
 
 /-- `walk_path__L18_L4`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl
+  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
   pair := pair_ok
   frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
   sig := core_sig

@@ -42,6 +42,11 @@ def hcert : CoreMode.HCert where
 /-- `verify_sig_lean_sphincs`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("sp_wots", {})]
+/-- `verify_sig_lean_sphincs`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `verify_sig_lean_sphincs`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  []
 
 end
 end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»

@@ -21,8 +21,7 @@ open LeanVM.Guest.CoreMode
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "sp_wots" => Fn.«sp_wots».hcert.sig
-    | _ => .empty)
+    | "sp_wots" => Fn.«sp_wots».hcert.sig | _ => .empty)
 
 end
 end LeanVM.Guest.Fn.«verify_sig_lean_sphincs».HeapW

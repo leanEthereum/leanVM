@@ -72,19 +72,19 @@ where
     | .load _ p' 0 => decide (p' = p)
     | _ => false
 
-/-- **A residual of a family**, read off the function's code and frame signature `G` of `np`
+/-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
 returning path, of a parameter an entry run bounds and the quotient of two addresses the path
 dereferences (`exp`, a bound `≥ 2^28`), `column_selector`'s lowest digit (`cs`), or such a residual
 under branch conditions. -/
-noncomputable def resFam (fn : Fn) (G : Mode.Sig) : CRes → Bool
+noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
   | .lt (.val x) (.num n) => decide (n < capE) &&
       ((match Res.rcBound (Res.topAtoms fn.body) (V.n x) with
         | some N => decide (N ≤ n)
         | none => false) ||
         ((Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n)) ||
-        (decide (2 ^ 28 ≤ n) && decide (x < fn.params.length) && (expCells G).contains (2 + x) &&
+        (decide (2 ^ 28 ≤ n) && decide (x < fn.params.length) && xc.contains (2 + x) &&
           expDiff (Res.topAtoms fn.body) (V.n x)))
   | .lt (.val x) (.mono c) => match c.bases, c.off with
     | [(p, 1)], 1 => (Res.topAtoms fn.body).any fun
@@ -97,7 +97,7 @@ noncomputable def resFam (fn : Fn) (G : Mode.Sig) : CRes → Bool
     | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
-  | .under _ r => resFam fn G r
+  | .under _ r => resFam fn xc r
   | _ => false
 
 /-! ## The values a residual names -/
@@ -198,11 +198,11 @@ def mlSub (fn : Fn) : CRes → Bool
   | _ => false
 
 /-- **A residual of a family**, ghost-free (`resFam`, its values below `GB`), or the ghost family `ml`. -/
-noncomputable def resFamG (fn : Fn) (G : Mode.Sig) (r : CRes) : Bool :=
-  (resFam fn G r && r.vals.all (Nat.blt · GB)) || mlSub fn r
+noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
+  (resFam fn xc r && r.vals.all (Nat.blt · GB)) || mlSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
-noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.frame.sig)
+noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)
 
 /-- **The ghost family's links** (`ml`): `child_claim_list_mono_last__L{k}`'s caller's cell `2` (its entries
 table) its one ghost slot, after its four parameters, and cell `5` its parameter `3` (`limit`); it names no

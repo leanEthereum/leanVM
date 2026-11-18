@@ -26,18 +26,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«verify_bus_gkr_loop0»
-
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `verify_merkle_cap__L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 955) (d := Data.adviceFn955) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«verify_merkle_cap__L3»

@@ -52,20 +52,20 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
         (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ((∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
-        walk σ pos = .ret es vs → ReadsOkC sigOf H rd σ ws0 (pre ++ es) →
+        walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
           es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
           (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-          ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
+          (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
             ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∨
        ∃ c, X.locAt c.idx = oc ∧ rets = [] ∧
         ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
-        walk σ pos = .ret es vs → ReadsOkC sigOf H rd σ ws0 (pre ++ es) →
+        walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
           es = evs ++ Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) ::
             (cs.map Ev.atom ++ es') ∧
           walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-          ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
+          (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
             ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) := by
   obtain ⟨as, bs, z, zs, tabs, r, hpos, hzpos, hq, hbs, hpairs, -, hzsok, hr, h1, h2, -⟩ := pair_jump hok hat hci
   have hh := headH_of hr hz hf
@@ -113,7 +113,7 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     rw [walk_call_cons] at hes1
     obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
-    refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], fun x hx ↦ ?_⟩
+    refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
     rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
         (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
     · exact Or.inl h
@@ -133,7 +133,7 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     rw [walk_callIf_cons] at hes1
     obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
-    refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], fun x hx ↦ ?_⟩
+    refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
     rcases written_extendC (fs := as.filter flowAtom)
         (rest := Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es3))
         (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
@@ -175,11 +175,11 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
         (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
-        walk σ pos = .ret es vs → ReadsOkC sigOf H rd σ ws0 (pre ++ es) →
+        walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ f ∈ fs, ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
           es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
           (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-          ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
+          (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
             ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x := by
   obtain ⟨as, bs, z, zs, tabs, r, hpos, hzpos, hq, hbs, hpairs, -, hzsok, hr, h1, h2, -⟩ := pair_jump hok hat hci
   have hh := headH_of hr hz hf
@@ -222,7 +222,7 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp
     obtain ⟨f, hf, es2, rfl, hes2⟩ := walk_dispatch_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
-    refine ⟨f, hf, (as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], fun x hx ↦ ?_⟩
+    refine ⟨f, hf, (as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
     rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
         (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
     · exact Or.inl h

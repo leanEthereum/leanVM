@@ -175,7 +175,7 @@ structure HSig where
   ghosts : ℕ := 0
   /-- Equations at return: `(a, b)`, `a`'s word is `b`'s, both over slots (parameters, returned words). -/
   retEq : List (CCell × CCell) := []
-  deriving Repr, Inhabited
+  deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/
 def HSig.empty : HSig := {}

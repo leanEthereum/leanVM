@@ -27,7 +27,7 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them.
 
-**Under a selector.** A `dispatch` on `x` also keeps each arm `j`'s guarantees under `x`'s monomial and `j` (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier arm `j` pushed, from the next serials (`condSt`).
+**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
 
 **Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
@@ -302,6 +302,80 @@ def EvM (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → Prop
       RetEqOk (sigOf f) ((args ++ rets).map σ)
   | _ => True
 
+/-- **Every event's needs are written before it, once the calls before it have their callees' returned words**
+(`EvM`, a property of the calls already made). -/
+def ReadsOkP (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 es1) e
+
+/-- **The needs of the events `es` after `pre` are written before each**, once the calls before it among `es`
+have their callees' returned words. -/
+def ReadsAt (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (pre es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 (pre ++ es1)) e
+
+section ReadsAt
+
+variable {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E}
+
+theorem readsOkC_of_P {es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 es) (hM : ∀ e ∈ es, EvM sigOf rd σ e) :
+    ReadsOkC sigOf H rd σ ws0 es := fun es1 e es2 he ↦
+  h es1 e es2 he fun e' he' ↦ hM e' (by rw [he]; exact List.mem_append_left _ he')
+
+/-- The events after `pre`, the calls of `pre` having their callees' returned words. -/
+theorem readsAt_of_P {pre es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 (pre ++ es))
+    (hm : ∀ e ∈ pre, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he hm1 ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hm e' h'
+    · exact hm1 e' h'
+
+/-- The events after `pre`, every call's returned words given. -/
+theorem readsAt_of_C {pre es : List Ev} (h : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
+    ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he _ ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc])
+
+theorem ReadsAt.shift {pre X es : List Ev} (h : ReadsAt sigOf H rd σ ws0 pre (X ++ es))
+    (hX : ∀ e ∈ X, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 (pre ++ X) es := fun es1 e es2 he hm ↦ by
+  have := h (X ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hX e' h'
+    · exact hm e' h'
+  rwa [← List.append_assoc] at this
+
+theorem ReadsAt.head {pre es : List Ev} {e : Ev} (h : ReadsAt sigOf H rd σ ws0 pre (e :: es)) :
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 pre) e := by
+  have := h [] e es rfl (by simp)
+  rwa [List.append_nil] at this
+
+/-- Atoms give nothing beyond their writes. -/
+theorem evM_atoms (as : List Atom) : ∀ e ∈ as.map Ev.atom, EvM sigOf rd σ e := fun e he ↦ by
+  obtain ⟨a, -, rfl⟩ := List.mem_map.mp he
+  trivial
+
+theorem evM_app {a b : List Ev} (ha : ∀ e ∈ a, EvM sigOf rd σ e) (hb : ∀ e ∈ b, EvM sigOf rd σ e) :
+    ∀ e ∈ a ++ b, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_append.mp he with h | h
+  · exact ha e h
+  · exact hb e h
+
+/-- A branch's condition, a skipped call: nothing beyond their writes. -/
+theorem evM_inK_cons {c : V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) : ∀ e ∈ Ev.inK c :: l, EvM sigOf rd σ e :=
+  fun e he ↦ by
+    rcases List.mem_cons.mp he with rfl | h'
+    · trivial
+    · exact h e h'
+
+theorem evM_skip_cons {f : String} {args : List V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) :
+    ∀ e ∈ Ev.skip f args :: l, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_cons.mp he with rfl | h'
+  · trivial
+  · exact h e h'
+
+theorem evM_nil : ∀ e ∈ ([] : List Ev), EvM sigOf rd σ e := fun _ h ↦ by cases h
+
+end ReadsAt
+
 /-- **What an instance is given at entry**: its termination facts. -/
 def EntryF (H : HCert) (ws0 : List E) : Prop := ∀ p ∈ H.sig.term, LtF (slotW ws0) (idxC p.1) (idxC p.2)
 
@@ -363,15 +437,18 @@ structure PRun where
   lo : CCell
   hi : CCell
 
-/-- **A dispatch arm's guarantees under its selector**: if the selector's word (`mx`'s) is `g^j`, arm
-`j` ran, and its guarantees hold: cells, runs, pointer facts, pointer runs. -/
-structure CdE where
-  mx : CCell
-  j : ℕ
+/-- **A dispatch arm's guarantees**: cells, runs, pointer facts, pointer runs. -/
+structure CdA where
   cs : List CCell
   rs : List PRun
   ps : List (CCell × List ℕ)
   prs : List (PRun × List ℕ)
+
+/-- **A dispatch's arms' guarantees under its selector** `mx`: if the selector's word is `g^j`, arm `j` ran, and
+`arms[j]` holds (one entry per dispatch, so a later dispatch on `mx` looks up its arm `j` by index). -/
+structure CdE where
+  mx : CCell
+  arms : List CdA
 
 /-- A signature run at a site. -/
 def instR (ms : List CCell) (r : CRun) : Option PRun :=
@@ -1004,8 +1081,10 @@ noncomputable def pushPRL : List (PRun × List ℕ) → CSt → CSt
 earlier dispatch's arm `j` on the same selector, pushed (its cells, pointer facts, runs, pointer runs). -/
 noncomputable def condSt (mx : CCell) (j : ℕ) : List CdE → CSt → CSt
   | [], st => st
-  | e :: l, st => bif e.mx.beq mx && Nat.beq e.j j then
-      (pushPRL e.prs (pushRL e.rs (pushPL e.ps (pushL e.cs st)))).seq fun st ↦ condSt mx j l st
+  | e :: l, st => bif e.mx.beq mx then
+      (match nth e.arms j with
+      | some a => (pushPRL a.prs (pushRL a.rs (pushPL a.ps (pushL a.cs st)))).seq fun st ↦ condSt mx j l st
+      | none => condSt mx j l st)
     else condSt mx j l st
 
 /-- The cells every list has. -/
@@ -1215,14 +1294,14 @@ noncomputable def pushPtrM : Option (List (List (CCell × List ℕ)) × List (Li
 def meetM (ls : List (List (ℕ × CCell))) (p : ℕ × CCell) : Bool :=
   ls.all fun l ↦ l.any fun q ↦ Nat.beq q.1 p.1 && q.2.beq p.2
 
-/-- Each arm's guarantees at the slots `ms`, under the selector `mx` at its index, from `j` (the arms
-whose guarantees instantiate). -/
-def condE (sigOf : String → HSig) (ms : List CCell) (mx : CCell) : ℕ → List String → List CdE
-  | _, [] => []
-  | j, g :: gs => match instAll ms (sigOf g).post, instAllR ms (sigOf g).postR, instPP ms (sigOf g).postP,
+/-- Each arm's guarantees at the slots `ms`, in arm order (none for an arm whose guarantees do not
+instantiate). -/
+def condE (sigOf : String → HSig) (ms : List CCell) : List String → List CdA
+  | [] => []
+  | g :: gs => (match instAll ms (sigOf g).post, instAllR ms (sigOf g).postR, instPP ms (sigOf g).postP,
       instPRL ms (sigOf g).postPR with
-    | some cs, some rs, some ps, some prs => ⟨mx, j, cs, rs, ps, prs⟩ :: condE sigOf ms mx (j + 1) gs
-    | _, _, _, _ => condE sigOf ms mx (j + 1) gs
+    | some cs, some rs, some ps, some prs => ⟨cs, rs, ps, prs⟩
+    | _, _, _, _ => ⟨[], [], [], []⟩) :: condE sigOf ms gs
 
 /-- The guarantees under a selector, added. -/
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
@@ -1273,7 +1352,7 @@ noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args ret
               (pushPtrM (instArmsP X.sigOf (ma ++ mr) (g :: gs))
               (pushRL (r.filter (meetR rs)) (svPut (meetVL X.sigOf (ma ++ mr) (g :: gs) (p.filter (meetC ps)) st1.n)
                 (pushL (p.filter (meetC ps)) st1)))))).addCd
-                (bif Nat.blt fs.length capE then condE X.sigOf (ma ++ mr) mx 0 fs else []))
+                (bif Nat.blt fs.length capE then [⟨mx, condE X.sigOf (ma ++ mr) fs⟩] else []))
           | _ => none
         | none => none
     | _ => none

@@ -315,6 +315,37 @@ theorem stmts_of_mem {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {ss
 
 /-! ## The heap facts -/
 
+/-- **A loop helper's calls give nothing beyond their writes**: its callees' by `callChk`, its own by its
+signature. -/
+theorem loopC_evM {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} (rd : Reader) {es : List Ev}
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e he ↦ by
+  have hs := sigLP_of hok.sig
+  have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
+  obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
+  cases e with
+  | call f args rets =>
+    have hw' := hw
+    rw [hbody, walk_loopC σ pre0 hpre0, Out.ret.injEq] at hw'
+    obtain ⟨rfl, -⟩ := hw'
+    rcases List.mem_append.mp he with he | he
+    · have hmem : Stmt.call f args rets ∈ stmtsOf Cf.fn.body := by
+        rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
+      exact callChk_evM (List.all_eq_true.mp hok.calls _ hmem) (by rw [hok.hcs]; rfl) rd σ
+    · have hf : f = Cf.fn.name := by
+        split_ifs at he <;> simp at he
+        exact he.1
+      subst hf
+      simp only [EvM, hself]
+      refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
+      · rw [hs.hretM] at hkc; cases hkc
+      · rw [hs.hpostV] at him; cases him
+      · rw [hs.hretEq] at hp; cases hp
+  | _ => trivial
+
+theorem loopC_evM_pre {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} (rd : Reader) {pre es : List Ev}
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret (pre ++ es) vs) : ∀ e ∈ pre, EvM Cf.sigOf rd σ e :=
+  fun e he ↦ loopC_evM hok rd hw e (List.mem_append_left _ he)
+
 /-- **The heap facts of an honest path of a loop helper with calls**, its parameter cells holding its
 words and its termination fact holding: every event's needs written before it, its guarantees at
 return. -/
@@ -325,32 +356,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
   have hs := sigLP_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
-  have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e he ↦ by
-    cases e with
-    | call f args rets =>
-      have hw' := hw
-      rw [hbody, walk_loopC σ pre0 hpre0, Out.ret.injEq] at hw'
-      obtain ⟨rfl, -⟩ := hw'
-      rcases List.mem_append.mp he with he | he
-      · have hmem : Stmt.call f args rets ∈ stmtsOf Cf.fn.body := by
-          rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
-        have hcs := List.all_eq_true.mp hok.calls _ hmem
-        simp only [callChk, Bool.and_eq_true, List.isEmpty_iff] at hcs
-        obtain ⟨⟨⟨⟨⟨⟨-, h1⟩, h2⟩, h3⟩, -⟩, -⟩, -⟩ := hcs
-        refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
-        · rw [h1] at hkc; cases hkc
-        · rw [h2] at him; cases him
-        · rw [h3] at hp; cases hp
-      · have hf : f = Cf.fn.name := by
-          split_ifs at he <;> simp at he
-          exact he.1
-        subst hf
-        simp only [EvM, hself]
-        refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
-        · rw [hs.hretM] at hkc; cases hkc
-        · rw [hs.hpostV] at him; cases him
-        · rw [hs.hretEq] at hp; cases hp
-    | _ => trivial
+  have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
     hR (derOk_nil hok.ders rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
@@ -722,8 +728,8 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   have hPs : ∀ {σ : Val}, HonF img Cf s.fp σ → ParAt K.F.sig np (stOf s.mem s.fp) (Cf.fn.params.map σ) :=
     fun hσ ↦ parAt_of hκ hs.agree hs.fp hwE (hws0 hσ)
   have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
-      (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-    fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
+      (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es :=
+    fun σ pre es vs rd hσ hb hh0 ↦ readsAt_of_C (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
   have hhd : ∀ j, (Cf.d.2.2.lookup (Cf.X.entry + j)).getD [] = Mode.hintsAt Cf.frame.hints (Cf.frame.entry + j) :=
     fun j ↦ by rw [lookupD_hintsAt, hok.dhints, hok.xentry, hok.fentry]
   have hlen : Cf.frame.len = K.code.length := hok.flen
@@ -732,7 +738,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   rw [hcode] at hsm
   obtain ⟨soc, sod, sof⟩ := hsm
   have hfw : fwdJ Cf.X i oc od of = false := by simp [fwdJ, hsf']
-  obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
+  obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
   obtain ⟨f, args, rets, st, t, o, pos', hcS, hsite, hpt, hentF, hfo, hat', as, hpairs, hkC⟩ :=
     pair_callLC hok.pair hpos hci hz hnz hfw hr01 hmainX hsf' hst hcif
   rw [hhd i] at hpairs
@@ -753,7 +759,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
       walk σ pos = .ret es vs → (∀ e ∈ pre ++ es, e.Holds rd σ) →
       ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧
         walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-        (∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+        (∀ e ∈ evs, EvM Cf.sigOf rd σ e) ∧ (∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
           WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
           ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∧
         ReqOk Cf.sigOf Cf.H rd σ (WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs))
@@ -762,14 +768,14 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
           (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
           Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
     intro σ pre es vs rd hσ hp hb hwp hh0
-    obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hW'⟩ := hkC hwp (hrwOf σ pre _ vs rd hσ hb hh0)
-    have hreq := hrwOf σ pre _ vs rd hσ hb hh0 (pre ++ evs) (.call f args rets) (cs.map Ev.atom ++ es')
-      (by simp)
+    obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hwp (hrwOf σ pre _ vs rd hσ hb hh0)
+    have hreq := hrwOf σ pre _ vs rd hσ hb hh0 evs (.call f args rets) (cs.map Ev.atom ++ es')
+      rfl hevM
     obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
       ⟨f, args, rets, true⟩ of st (by rw [← List.append_assoc]; exact calls_mid) rfl hsite
     have hfpE : (g : Parameters.K) ^ s'.fp = g ^ kfp :=
       (pow_of_ofK (rd_get hκ hm.fine sof (by rw [hm.fp]; exact hq) h1)).symm.symm
-    refine ⟨evs, cs, es', rfl, hwp', hcs, hasin, hW', hreq, kfp, hfpE, fun b hb' ↦ ?_,
+    refine ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, fun b hb' ↦ ?_,
       by rw [rd_pow hfpE]; exact hk0, by rw [rd_pow hfpE]; exact hk1⟩
     rw [rd_pow hfpE, List.map_append]
     by_cases hb1 : b < args.length
@@ -781,7 +787,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
       have := hrets (b - args.length) (by show b - args.length < rets.length; omega)
       rw [show 2 + args.length + (b - args.length) = 2 + b by omega] at this
       simpa using this
-  obtain ⟨evs, cs, es', heq, hwp', hcs, hasin, hW', hreq, kfp, hfpE, hwsE, hk0, hk1⟩ :=
+  obtain ⟨evs, cs, es', heq, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, hwsE, hk0, hk1⟩ :=
     hsplit hσ0 hpos hb hwp hh0
   obtain ⟨hpwR, hpwPR⟩ := callsBL_spec hok.calls hcS
   have hexp : ∀ j, idxPowC Cf args j = true →
@@ -957,13 +963,13 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
         rw [hm.fp]; exact written_mono hle0 (hentw o' ho')
       · change HonF img Cf s1.fp σ at hσ
         rw [hm.fp] at hσ
-        obtain ⟨pos2, pre2, es2, vs2, rd2, hrd2, hpos2, hb2, hwp2, hh2, hW2⟩ := hheap σ hσ
+        obtain ⟨pos2, pre2, es2, vs2, rd2, hrd2, hpos2, hb2, hwp2, hh2, -, hW2⟩ := hheap σ hσ
         rw [hpos, Option.some.injEq] at hpos2
         subst hpos2
-        obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
+        obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
           hsplit hσ hpos hb2 hwp2 hh2
         refine ⟨pos', pre2 ++ evs2 ++ Ev.call f args rets :: cs2.map Ev.atom, es2', vs2, rd2, hrd2, hat',
-          by simpa using hb2, hwp2', by simpa using hh2, fun y hy ↦ ?_⟩
+          by simpa using hb2, hwp2', by simpa using hh2, loopC_evM_pre hok _ (by simpa using hb2), fun y hy ↦ ?_⟩
         rcases writtenC_append hy with h | ⟨e, he, hwe⟩
         · rcases hW2' y h with h | ⟨a, ha, hfa, hma, hwa⟩
           · exact (hW2 y h).mono hle0
@@ -1067,7 +1073,7 @@ theorem zero_jfall {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code : 
     (hs : Fine (refMem img) s) (hm : Moves (refMem img) s s1)
     {σ : Val} (hσ : HonF img Cf s.fp σ) {pos : List Stmt} {pre es : List Ev} {vs : List V}
     (hat : pairAt Cf.P Cf.fn.body code Cf.d i = some pos) (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs)
-    (hwp : walk σ pos = .ret es vs) {rd : Reader} (hrw : ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es))
+    (hwp : walk σ pos = .ret es vs) {rd : Reader} (hrw : ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es)
     (hW : ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK s.mem y) :
     ∃ pos', pairAt Cf.P Cf.fn.body code Cf.d (i + 1) = some pos' ∧ ∃ evs es', es = evs ++ es' ∧
       walk σ pos' = .ret es' vs ∧ ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) y → WrK s1.mem y := by
@@ -1137,7 +1143,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       exact ⟨hwo, rd_of_get hκ hs0.agree hgo (Mode.ofK_gpow_ne_zero _)⟩
     obtain ⟨es, vs, -, hwk, -⟩ := hσ.path
     refine ⟨Cf.fn.body, [], es, vs, img.read, rfl, pairAt_zero hok.pair, by simpa using hwk, hwk,
-      by simpa using hσ.holds _ _ hwk,
+      by simpa using hσ.holds _ _ hwk, by simp,
       fun y hy ↦ ?_⟩
     have hP := parAt_of (G := K.F.sig) hκ hs0.agree hs0.fp hw (hws0 hσ)
     rcases hy with hy | ⟨e, he, -⟩
@@ -1171,8 +1177,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
     have hPs : ∀ {σ : Val}, HonF img Cf s.fp σ → ParAt K.F.sig np (stOf s.mem s.fp) (Cf.fn.params.map σ) :=
       fun hσ ↦ parAt_of hκ hs0.agree hs0.fp hwE (hws0 hσ)
     have hrwOf : ∀ σ pre es vs rd, HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →
-        (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ es) :=
-      fun σ pre es vs rd hσ hb hh0 ↦ (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
+        (∀ e ∈ pre ++ es, e.Holds rd σ) → ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es :=
+      fun σ pre es vs rd hσ hb hh0 ↦ readsAt_of_C (loopC_heap hok hb hh0 (hσ.res hxw) (hPs hσ) hT).1
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -1199,7 +1205,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       intro hOi s1 e1 hm
       have main : ∀ a o c, K.code[i] = .deref a o c .cell → HeapRd s1 (.deref a o c .cell) := by
         intro a o c hci
-        obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
+        obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
         have hj : jtd Cf.X a o c = false := by
           unfold jtd
           rw [Check.getF_eq, trieNil_get harms0]
@@ -1253,7 +1259,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         (by rw [hpc', hpc]; omega) (coreAt_of (by rw [hfp']; exact hxw) ⟨atF_mono (s := s') (Mem.le_refl _) rfl hat',
           fun o ho ↦ by rw [hfp']; exact written_mono hle (hentw o ho), fun σ hσ ↦ ?_⟩))
       rw [hfp'] at hσ
-      obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ hσ
+      obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ hσ
       by_cases hj : ∃ oc od of, K.code[i]? = some (.jump oc od of)
       · obtain ⟨oc, od, of, hci⟩ := hj
         rcases loopCodeC_jump hcode hcpre hci with ⟨-, hcj⟩ | ⟨-, rfl, rfl, rfl⟩ | ⟨-, rfl, rfl, rfl⟩
@@ -1269,18 +1275,20 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
             obtain ⟨pos', hpos', evs, es', rfl, hwp', hWr⟩ := zero_jfall hκ hok.pair hci hzc e1' hs0 hm hσ hpos hb hwp
               (hrwOf σ pre _ vs rd hσ hb hh0) hW
             exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
-              by rw [List.append_assoc]; exact hh0, fun y hy ↦ (hWr y hy).mono hle'⟩
+              by rw [List.append_assoc]; exact hh0,
+              loopC_evM_pre hok _ (by rw [List.append_assoc]; exact hb), fun y hy ↦ (hWr y hy).mono hle'⟩
         · -- the tail call not taken: its condition `0`, the call skipped
           obtain ⟨c, f, args, pos', -, hloc, hpos', -, as, hpairs, hsplit⟩ :=
             pair_tailLC hok.pair hpos hci htz htnz htsf htnx htod hst
-          obtain ⟨evs, cs, es', rfl, hwp', hcs, -, hW'⟩ := hsplit hwp (hrwOf σ pre _ vs rd hσ hb hh0)
+          obtain ⟨evs, cs, es', rfl, hwp', hcs, -, -, hW'⟩ := hsplit hwp (hrwOf σ pre _ vs rd hσ hb hh0)
           have hcond := hσ.jc.cond _ _ hb c (by simp)
           rw [hloc] at hcond
           have hσc : σ c = 0 :=
             (rd_get hκ hm.fine (hsm _ _ _ hci).1 (by rw [hm.fp]; exact hcond) (hc0 _ _ _ hci)).symm
           simp only [hσc, ↓reduceIte] at hb hh0
           refine ⟨pos', pre ++ evs ++ [Ev.inK c, Ev.skip f args] ++ cs.map Ev.atom, es', vs, rd, hrd, hpos',
-            by simpa [List.append_assoc] using hb, hwp', by simpa [List.append_assoc] using hh0, fun y hy ↦ ?_⟩
+            by simpa [List.append_assoc] using hb, hwp', by simpa [List.append_assoc] using hh0,
+            loopC_evM_pre hok _ (by simpa [List.append_assoc] using hb), fun y hy ↦ ?_⟩
           rcases writtenC_append hy with hy | ⟨e, he, hwe⟩
           · have hy1 : WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) y := by
               have h2 : WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs ++ [Ev.inK c] ++ [Ev.skip f args]) y := by
@@ -1301,9 +1309,10 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       have hnj : ∀ oc od of, K.code[i]? ≠ some (.jump oc od of) := fun oc od of h ↦ hj ⟨oc, od, of, h⟩
       obtain ⟨pos', hpos', as, hpairs, hfallP⟩ := pair_fallC (sigOf := Cf.sigOf) (rd := rd)
         (ws0 := Cf.fn.params.map σ) hok.pair hpos hnj
-      obtain ⟨evs, es', rfl, hwp', hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hσ hb hh0)
+      obtain ⟨evs, es', rfl, hwp', -, hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hσ hb hh0)
       refine ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
-        by rw [List.append_assoc]; exact hh0, fun y hy ↦ ?_⟩
+        by rw [List.append_assoc]; exact hh0, loopC_evM_pre hok _ (by rw [List.append_assoc]; exact hb),
+        fun y hy ↦ ?_⟩
       rcases hWr y hy with h | ⟨a, ha', hfa', hma, hwa⟩ | ⟨o1, o2, o3, dv, pv, off, hci, hS, hcell, hmem, rfl⟩
       · exact (hW y h).mono hle
       · rw [hhd i] at hpairs
@@ -1353,9 +1362,9 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
           rw [Mode.postAt_none hCt.1]
-          obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
+          obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
           obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
-          obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
+          obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hself1 hpc0 hst hwp (readsAt_of_C hreads)
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
             intro x hx
@@ -1376,11 +1385,12 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
             (fun r hr x hx ↦ W1 x (hposts.1.2 r hr x hx)) (rdM_img hκ hm.fine.agree hu1)
             fun x hx ↦ W1 x (hposts.2 x hx)
       · -- the tail call
-        obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
+        obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
         obtain ⟨c, f, args, pos', hcm, hloc, -, hrn, as, hpairs, hsplit⟩ :=
           pair_tailLC hok.pair hpos hci htz htnz htsf htnx htod hst
         have hrw0 := hrwOf σ0 pre es vs img.read hσ0 hb hh0
-        obtain ⟨evs, cs, es', heq, hwp', hcs, -, hW'⟩ := hsplit hwp hrw0
+        have hrw0C := (loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
+        obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0
         rw [hbody] at hcm
         rcases stmts_loopC hpre0 hcm with hceq | hceq | hceq
         · have := hpre0 _ hceq
@@ -1435,7 +1445,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           .tail hok.sigE fun hTE ↦ Mode.tail_of_mode hCt.1 <| tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
-            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (hσ0.res hxw) (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk)
+            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (hσ0.res hxw) (by simpa using heq) hrw0C hWc (fun k hk ↦ hnargs k hk)
             hargs (hPs hσ0) hT
             (expM_of hκ hf'.agree hs0.fp (hok.fsig ▸ hxwE) (fun o ho ↦ written_mono hle (hwE o ho)) _)
             (expM_next hκ hf'.agree hf'.fp (hok.fsig ▸ hxwE) (fun o ho ↦ hentry.w o (hok.fsig ▸ ho))

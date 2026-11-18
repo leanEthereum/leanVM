@@ -5247,48 +5247,44 @@ def hcert : CoreMode.HCert where
         ⟨[(1, 1)], 12⟩, ⟨[(1, 1)], 13⟩, ⟨[(1, 1)], 14⟩, ⟨[(1, 1)], 15⟩, ⟨[(1, 1)], 16⟩, ⟨[(1, 1)], 17⟩,
         ⟨[(1, 1)], 18⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩,
         ⟨[(2, 1)], 5⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 27)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 27)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 27)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 27)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 27)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 27)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 27)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 27)⟩, ⟨⟨[(0, 1)], 216⟩, 1, (.num 0), (.num 2)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 216)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 216⟩, 1, (.num 0), (.num 2)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 216)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 54, .run 12 [])]), (14, [(5, 55, .run 13 [])]), (24, [(16, 4, .run 16 [])]),
-    (25, [(16, 5, .run 17 [])])]
+  reads := [(13, [(5, 54, .run 5 [])]), (14, [(5, 55, .run 6 [])]), (24, [(16, 4, .run 9 [])]),
+    (25, [(16, 5, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
-        .pre 22, .pre 23, .pre 24, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [],
-        .run 8 []],
+        .pre 22, .pre 23, .pre 24, .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22,
-        .pre 23, .pre 24, .ev 4, .ev 5, .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [],
-        .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [],
-        .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [],
-        .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [],
-        .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [],
-        .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [],
-        .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [],
-        .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [],
-        .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [],
-        .run 8 []]]
+        .pre 23, .pre 24, .ev 4, .ev 5, .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3»
@@ -5674,7 +5670,7 @@ namespace LeanVM.Guest.Fn.«shared_selector_tables»
 
 @[expose] public section
 
-/-- `shared_selector_tables`: its heap certificate (its signature only: not checked). -/
+/-- `shared_selector_tables`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩,
@@ -5684,7 +5680,66 @@ def hcert : CoreMode.HCert where
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(5, 4)], 0⟩)⟩],
       ghosts := 6 }
   reads := []
-  res := []
+  res := [.under [.nonzero 44] (.subR ⟨⟨[(3, 1)], 0⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 0⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 1⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(3, 1)], 1⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 2⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(3, 1)], 2⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 3⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(3, 1)], 3⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(4, 1)], 0⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(4, 1)], 1⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(4, 1)], 2⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.nonzero 44] (.subR ⟨⟨[(4, 1)], 3⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
+    .under [.arm 20 1] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 0⟩) (.val 5)),
+    .under [.arm 20 2] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 0⟩) (.val 5)),
+    .under [.arm 20 2] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 1⟩) (.val 5)),
+    .under [.arm 20 3] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 0⟩) (.val 5)),
+    .under [.arm 20 3] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 1⟩) (.val 5)),
+    .under [.arm 20 3] (.lt (.mono ⟨[(24, 4), (28, 4), (33, 4), (38, 4)], 2⟩) (.val 5)),
+    .lt (.mono ⟨[(24, 32), (28, 32), (33, 32), (38, 32)], 0⟩) (.num 4611686018427387903),
+    .lt (.mono ⟨[(15, 8), (19, 8)], 0⟩) (.num 4611686018427387903),
+    .lt (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩) (.num 4611686018427387903),
+    .lt (.mono ⟨[(15, 1), (19, 1)], 0⟩) (.num 4611686018427387903),
+    .lt (.mono ⟨[(24, 16), (28, 16), (33, 16), (38, 16)], 0⟩) (.num 4611686018427387903),
+    .lt (.mono ⟨[(15, 4), (19, 4)], 0⟩) (.num 4611686018427387903)]
+  calls := [[.run 0 [0], .run 1 [1], .run 1 [2], .run 0 [3], .run 1 [4], .run 0 [5], .run 1 [6], .run 0 [7],
+        .run 2 [8], .run 2 [9], .run 2 [10], .run 2 [11]],
+    [.ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 0⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 1⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 2⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 3⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 4⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 5⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 6⟩ 8 0,
+        .ab ⟨[(0, 1), (24, 32), (28, 32), (33, 32), (38, 32)], 7⟩ 8 0,
+        .ab ⟨[(1, 1), (24, 16), (28, 16), (33, 16), (38, 16)], 0⟩ 4 0,
+        .ab ⟨[(1, 1), (24, 16), (28, 16), (33, 16), (38, 16)], 1⟩ 4 0,
+        .ab ⟨[(1, 1), (24, 16), (28, 16), (33, 16), (38, 16)], 2⟩ 4 0,
+        .ab ⟨[(1, 1), (24, 16), (28, 16), (33, 16), (38, 16)], 3⟩ 4 0, .empty, .empty, .empty, .empty, .empty,
+        .empty, .empty, .empty, .empty, .empty, .empty, .empty, .run 0 [12], .run 1 [12], .run 2 [12], .pts,
+        .ev 0, .pts, .ev 1, .pts, .ev 2, .pts, .ev 3, .pts, .ev 4, .pts, .ev 5, .pts, .ev 6, .pts, .ev 7, .pts,
+        .ev 8, .pts, .ev 9, .pts, .ev 10, .pts, .ev 11, .run 0 [13], .run 1 [13], .run 1 [14], .run 0 [14],
+        .run 2 [13], .run 2 [14], .pts, .ev 0, .ev 8, .pts, .ev 1, .ev 9, .pts, .ev 2, .ev 10, .pts, .ev 3,
+        .ev 11, .pts, .ev 4, .ev 12, .pts, .ev 5, .ev 13, .pts, .ev 6, .ev 14, .pts, .ev 7, .ev 15, .pts,
+        .ev 16, .ev 20, .pts, .ev 17, .ev 21, .pts, .ev 18, .ev 22, .pts, .ev 19, .ev 23, .run 0 [15],
+        .run 1 [15], .run 1 [16], .run 0 [16], .run 1 [17], .run 0 [17], .run 2 [15], .run 2 [16], .run 2 [17],
+        .pts, .ev 0, .ev 8, .ev 16, .pts, .ev 1, .ev 9, .ev 17, .pts, .ev 2, .ev 10, .ev 18, .pts, .ev 3,
+        .ev 11, .ev 19, .pts, .ev 4, .ev 12, .ev 20, .pts, .ev 5, .ev 13, .ev 21, .pts, .ev 6, .ev 14, .ev 22,
+        .pts, .ev 7, .ev 15, .ev 23, .pts, .ev 24, .ev 28, .ev 32, .pts, .ev 25, .ev 29, .ev 33, .pts, .ev 26,
+        .ev 30, .ev 34, .pts, .ev 27, .ev 31, .ev 35]]
+  rets := [[.catM ⟨[(24, 32), (28, 32), (33, 32), (38, 32)], 0⟩ ⟨[(15, 8), (19, 8)], 0⟩ [18, 19], .mrg 32 [20],
+        .run 22 [], .run 23 [], .run 24 [], .run 25 [], .run 26 [], .run 27 [], .run 28 [], .run 29 [],
+        .run 30 [], .run 31 [], .run 32 [], .run 33 [], .run 34 [], .run 35 [], .run 36 [], .run 37 [],
+        .run 38 [], .run 39 [], .run 40 [], .run 41 [], .run 42 [], .run 43 [], .run 44 [], .run 45 [],
+        .run 46 [], .run 47 [], .run 48 [], .run 49 [], .run 50 [], .run 51 [], .run 52 [], .run 53 [],
+        .mrg 8 [21], .run 54 [], .run 55 [], .run 56 [], .run 57 [], .run 58 [], .run 59 [], .run 60 [],
+        .run 61 [], .catM ⟨[(24, 16), (28, 16), (33, 16), (38, 16)], 0⟩ ⟨[(15, 4), (19, 4)], 0⟩ [22, 23],
+        .mrg 16 [20], .run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [],
+        .run 13 [], .run 14 [], .run 15 [], .run 16 [], .run 17 [], .run 18 [], .run 19 [], .run 20 [],
+        .run 21 [], .mrg 4 [21], .run 62 [], .run 63 [], .run 64 [], .run 65 []]]
+  eqs := [42]
 
 end
 end LeanVM.Guest.Fn.«shared_selector_tables»

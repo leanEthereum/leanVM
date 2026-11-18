@@ -19,16 +19,18 @@ open LeanVM.Guest.Exec (Trie)
 
 @[expose] public section
 
+noncomputable def v0 : PRun :=
+  ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩
+
 noncomputable def st0_cd : List CdE := []
 
 noncomputable def st0_eqs : List (CCell × CCell) := []
 
 /-- The state before statement 0. -/
-noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩)
-    (.node (some ⟨[(1, 1)], 0⟩) (.node (some ⟨[(3, 1)], 0⟩) .nil .nil) .nil)
-    (.node (some ⟨[(2, 1)], 0⟩) .nil .nil)),
+noncomputable def st0 : CSt := ⟨(.node (some ⟨[(0, 1)], 0⟩) (.node (some ⟨[(1, 1)], 0⟩) (.node (some ⟨[(3, 1)], 0⟩)
+    .nil .nil) .nil) (.node (some ⟨[(2, 1)], 0⟩) .nil .nil)),
     .nil,
-    (.node (some ⟨⟨[(1048576, 1)], 0⟩, 1, ⟨[], 0⟩, ⟨[(1048577, 1)], 0⟩⟩) .nil .nil),
+    (.node (some v0) .nil .nil),
     .nil,
     .nil,
     .nil,

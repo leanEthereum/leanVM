@@ -13,46 +13,9 @@ of its own: `CertSt`, decided by the kernel or by `rfl` (its length, its program
 call and runs, its termination facts' cells); `CertWalk`, its walk and its hints the advice's (from
 its pack's checks), which give its frame interface (`fnSpec_walk`, `FnSpec`, or a hypothesis for a
 function the walk does not check); `FnLink`, its code a function of the
-guest's table; `SigsIn`, each callee signature its environment holds a certificate's. `Trie.entries`
-lists a trie's entries, so that the signatures an environment holds are a list (`mem_entries`), and
-`nodupB` decides that a list of entries has no duplicate, as a bit set.
+guest's table; `SigsIn`, each callee signature its environment holds a certificate's (as a list, `Trie.entries`,
+`CoreMode/Contracts.lean`), and `nodupB` decides that a list of entries has no duplicate, as a bit set.
 -/
-
-namespace LeanVM.Guest.Exec.Trie
-
-@[expose] public section
-
-variable {α : Type}
-
-/-- A trie's entries with their keys: key `0` at the root, `2m+1` at key `m` of the left child,
-`2m+2` at the right one's. -/
-def entries : Trie α → List (ℕ × α)
-  | nil => []
-  | node v l r => (v.map fun a ↦ (0, a)).toList ++ (l.entries.map fun p ↦ (2 * p.1 + 1, p.2)) ++
-      (r.entries.map fun p ↦ (2 * p.1 + 2, p.2))
-
-theorem mem_entries : ∀ {t : Trie α} {n : ℕ} {a : α}, t.get n = some a → (n, a) ∈ t.entries
-  | nil, n, a, h => by rw [get_eq_getC] at h; cases h
-  | node v l r, n, a, h => by
-    rw [get_eq_getC] at h
-    simp only [getC] at h
-    simp only [entries, List.mem_append, List.mem_map]
-    by_cases h0 : n = 0
-    · subst h0
-      simp only [BEq.rfl, Bool.cond_true] at h
-      subst h
-      exact Or.inl (Or.inl (by simp))
-    · have hb : (n == 0) = false := by simpa using h0
-      rw [hb, Bool.cond_false] at h
-      by_cases h1 : n % 2 = 1
-      · rw [show (n % 2 == 1) = true by simpa using h1, Bool.cond_true, ← get_eq_getC] at h
-        exact Or.inl (Or.inr ⟨(n / 2, a), mem_entries h, by simp only [Prod.mk.injEq, and_true]; omega⟩)
-      · rw [show (n % 2 == 1) = false by simpa using h1, Bool.cond_false, ← get_eq_getC] at h
-        exact Or.inr ⟨(n / 2 - 1, a), mem_entries h, by simp only [Prod.mk.injEq, and_true]; omega⟩
-
-end
-
-end LeanVM.Guest.Exec.Trie
 
 namespace LeanVM.Guest.Mode
 
@@ -104,9 +67,17 @@ theorem loopRng_of {G : Sig} (h : loopRngB G = true) :
   of_decide_eq_true (List.all_eq_true.1 h r hr)
 
 /-- **A function on the walk meets its frame interface**: its static facts, its walk and its hints. -/
-theorem fnSpec_walk {T : List CoreMode.CFun} {K : Cert} (hst : CertSt K) (hw : CertWalk K) : FnSpec T K :=
+theorem fnSpec_walk {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun} {K : Cert} (hst : CertSt K)
+    (hw : CertWalk K) (hb : CoreMode.walkB tab K = true := by decide +kernel) : FnSpec tab T K :=
   have h := staticB_spec hst.b
-  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1) T
+  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1) hb T
+
+/-- **A function on the core route meets its frame interface**: its core data among `T` at its entry, its
+interface, and the heap contracts' table agreeing with it. -/
+theorem fnSpec_core {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun} {K : Cert} {Cf : CoreMode.CFun}
+    (hT : Cf ∈ T) (he : Cf.frame.entry = K.F.entry) (hs : FnSpecC K Cf)
+    (hb : CoreMode.ctB tab K Cf = true := by decide +kernel) : FnSpec tab T K :=
+  .inr ⟨Cf, hT, he, hs, hb⟩
 
 /-- A callee's signature at entry `p.1` is `p.2`, a certificate's among `Ks`, not `main`'s. -/
 def SigIn (Ks : List Cert) (p : ℕ × Sig) : Prop :=

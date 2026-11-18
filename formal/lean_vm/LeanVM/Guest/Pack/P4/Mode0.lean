@@ -109,27 +109,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L8»
-
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `verify_merkle_cap__L6`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `verify_merkle_cap__L6`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨277929, 698, Fn.«verify_merkle_cap__L6».modeSig, (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none (.node none (.node none (.node none (.node (some [(.cellAddress
-    267 268)]) .nil .nil) .nil) .nil) .nil) .nil) .nil)))), .nil, .nil, false, .nil⟩
-
-/-- `verify_merkle_cap__L6`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«verify_merkle_cap__L6»

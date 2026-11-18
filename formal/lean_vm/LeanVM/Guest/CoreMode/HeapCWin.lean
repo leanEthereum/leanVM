@@ -58,6 +58,7 @@ instance trieDecEq {α : Type} [DecidableEq α] : DecidableEq (Trie α) := fun a
   decidable_of_iff _ (trieEq_iff a b)
 
 deriving instance DecidableEq for PRun
+deriving instance DecidableEq for CdA
 deriving instance DecidableEq for CdE
 deriving instance DecidableEq for CSt
 

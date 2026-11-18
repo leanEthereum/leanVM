@@ -477,9 +477,21 @@ def oracle(f):
     return dict(entry=c['entry'], reads=sorted(reads), stores=sorted(stores))
 
 
+def hc_fns():
+    """The functions whose contract is their own heap signature: `hcFlag` true in `callc.py`'s data (checked there,
+    by the check with calls, not here)."""
+    import glob
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'DataC.lean')):
+        for blk in open(f, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
+            if '\ndef hcFlag : Bool := true\n' in blk:
+                out.add(blk.split('»', 1)[0])
+    return out
+
+
 def main():
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
-    ks = [only] if only else scope_fns()
+    ks = [only] if only else sorted(set(scope_fns()) - hc_fns())
     res = {k: Fn(k).run() for k in ks}
     if '--oracle' in sys.argv:
         import json

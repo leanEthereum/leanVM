@@ -80,10 +80,8 @@ noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
     | "column_selector__L7" => Fn.«column_selector__L7».hcert.sig
     | "column_selector__L8" => Fn.«column_selector__L8».hcert.sig
     | "column_selector__L9" => Fn.«column_selector__L9».hcert.sig
-    | "eq_prefix_chain" => Fn.«eq_prefix_chain».hcert.sig
-    | "ring_switch_weight" => Fn.«ring_switch_weight».hcert.sig
-    | "selector_tables" => Fn.«selector_tables».hcert.sig
-    | _ => .empty)
+    | "eq_prefix_chain" => Fn.«eq_prefix_chain».hcert.sig | "ring_switch_weight" => Fn.«ring_switch_weight».hcert.sig
+    | "selector_tables" => Fn.«selector_tables».hcert.sig | _ => .empty)
 
 end
 end LeanVM.Guest.Fn.«check_opening_terminal».HeapW

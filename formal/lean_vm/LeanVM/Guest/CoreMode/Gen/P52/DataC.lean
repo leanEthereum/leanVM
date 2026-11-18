@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.Gen.HcSig
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -45,6 +46,11 @@ def hcert : CoreMode.HCert where
 /-- `column_selector__L10`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
+/-- `column_selector__L10`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `column_selector__L10`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  []
 
 end
 end LeanVM.Guest.Fn.«column_selector__L10»
@@ -65,6 +71,11 @@ def hcert : CoreMode.HCert where
 
 /-- `grind_check__L22`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
+  []
+/-- `grind_check__L22`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `grind_check__L22`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
   []
 
 end
@@ -150,6 +161,11 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 2)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩,
         ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 10)⟩, [0, 1, 2])] })]
+/-- `level_positions__L3_L12_L6`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `level_positions__L3_L12_L6`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L3_L12_L6»
@@ -220,6 +236,11 @@ def csigs : List (String × CoreMode.HSig) :=
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
         ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, [0, 1, 2, 3])] })]
+/-- `level_positions__L3_L15_L3`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `level_positions__L3_L15_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L3_L15_L3»
@@ -247,51 +268,51 @@ def hcert : CoreMode.HCert where
       postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 17)⟩, [0, 1, 2, 3])] }
   reads := []
   res := []
-  calls := [[.pts, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16,
-        .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28, .ev 29,
-        .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41, .ev 42,
-        .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54, .ev 55,
-        .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67, .ev 68,
-        .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80, .ev 81,
-        .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93, .ev 94,
-        .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105, .ev 106,
-        .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116, .ev 117,
-        .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127, .ev 128,
-        .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138, .ev 139,
-        .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149, .ev 150,
-        .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160, .ev 161,
-        .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171, .ev 172,
-        .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182, .ev 183,
-        .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193, .ev 194,
-        .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204, .ev 205,
-        .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215, .ev 216,
-        .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226, .ev 227,
-        .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237, .ev 238,
-        .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248, .ev 249,
-        .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 256, .ev 257, .ev 258, .ev 259, .ev 260,
-        .ev 261, .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270, .ev 271,
-        .ev 272, .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281, .ev 282,
-        .ev 283, .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292, .ev 293,
-        .ev 294, .ev 295, .ev 296, .ev 297, .ev 298, .ev 299, .ev 300, .ev 301, .ev 302, .ev 303, .ev 304,
-        .ev 305, .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314, .ev 315,
-        .ev 316, .ev 317, .ev 318, .ev 319, .ev 320, .ev 321, .ev 322, .ev 323, .ev 324, .ev 325, .ev 326,
-        .ev 327, .ev 328, .ev 329, .ev 330, .ev 331, .ev 332, .ev 333, .ev 334, .ev 335, .ev 336, .ev 337,
-        .ev 338, .ev 339, .ev 340, .ev 341, .ev 342, .ev 343, .ev 344, .ev 345, .ev 346, .ev 347, .ev 348,
-        .ev 349, .ev 350, .ev 351, .ev 352, .ev 353, .ev 354, .ev 355, .ev 356, .ev 357, .ev 358, .ev 359,
-        .ev 360, .ev 361, .ev 362, .ev 363, .ev 364, .ev 365, .ev 366, .ev 367, .ev 368, .ev 369, .ev 370,
-        .ev 371, .ev 372, .ev 373, .ev 374, .ev 375, .ev 376, .ev 377, .ev 378, .ev 379, .ev 380, .ev 381,
-        .ev 382, .ev 383, .ev 384, .ev 385, .ev 386, .ev 387, .ev 388, .ev 389, .ev 390, .ev 391, .ev 392,
-        .ev 393, .ev 394, .ev 395, .ev 396, .ev 397, .ev 398, .ev 399, .ev 400, .ev 401, .ev 402, .ev 403,
-        .ev 404, .ev 405, .ev 406, .ev 407, .ev 408, .ev 409, .ev 410, .ev 411, .ev 412, .ev 413, .ev 414,
-        .ev 415, .ev 416, .ev 417, .ev 418, .ev 419, .ev 420, .ev 421, .ev 422, .ev 423, .ev 424, .ev 425,
-        .ev 426, .ev 427, .ev 428, .ev 429, .ev 430, .ev 431, .ev 432, .ev 433, .ev 434, .ev 435, .ev 436,
-        .ev 437, .ev 438, .ev 439, .ev 440, .ev 441, .ev 442, .ev 443, .ev 444, .ev 445, .ev 446, .ev 447,
-        .ev 448, .ev 449, .ev 450, .ev 451, .ev 452, .ev 453, .ev 454, .ev 455, .ev 456, .ev 457, .ev 458,
-        .ev 459, .ev 460, .ev 461, .ev 462, .ev 463, .ev 464, .ev 465, .ev 466, .ev 467, .ev 468, .ev 469,
-        .ev 470, .ev 471, .ev 472, .ev 473, .ev 474, .ev 475, .ev 476, .ev 477, .ev 478, .ev 479, .ev 480,
-        .ev 481, .ev 482, .ev 483, .ev 484, .ev 485, .ev 486, .ev 487, .ev 488, .ev 489, .ev 490, .ev 491,
-        .ev 492, .ev 493, .ev 494, .ev 495, .ev 496, .ev 497, .ev 498, .ev 499, .ev 500, .ev 501, .ev 502,
-        .ev 503, .ev 504, .ev 505, .ev 506, .ev 507, .ev 508, .ev 509, .ev 510, .ev 511, .pts, .ev 514,
+  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
+        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
+        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
+        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
+        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67,
+        .ev 68, .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80,
+        .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93,
+        .ev 94, .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105,
+        .ev 106, .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116,
+        .ev 117, .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127,
+        .ev 128, .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138,
+        .ev 139, .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149,
+        .ev 150, .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160,
+        .ev 161, .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171,
+        .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182,
+        .ev 183, .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193,
+        .ev 194, .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204,
+        .ev 205, .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215,
+        .ev 216, .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226,
+        .ev 227, .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237,
+        .ev 238, .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248,
+        .ev 249, .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 256, .ev 257, .ev 258, .ev 259,
+        .ev 260, .ev 261, .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270,
+        .ev 271, .ev 272, .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281,
+        .ev 282, .ev 283, .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292,
+        .ev 293, .ev 294, .ev 295, .ev 296, .ev 297, .ev 298, .ev 299, .ev 300, .ev 301, .ev 302, .ev 303,
+        .ev 304, .ev 305, .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314,
+        .ev 315, .ev 316, .ev 317, .ev 318, .ev 319, .ev 320, .ev 321, .ev 322, .ev 323, .ev 324, .ev 325,
+        .ev 326, .ev 327, .ev 328, .ev 329, .ev 330, .ev 331, .ev 332, .ev 333, .ev 334, .ev 335, .ev 336,
+        .ev 337, .ev 338, .ev 339, .ev 340, .ev 341, .ev 342, .ev 343, .ev 344, .ev 345, .ev 346, .ev 347,
+        .ev 348, .ev 349, .ev 350, .ev 351, .ev 352, .ev 353, .ev 354, .ev 355, .ev 356, .ev 357, .ev 358,
+        .ev 359, .ev 360, .ev 361, .ev 362, .ev 363, .ev 364, .ev 365, .ev 366, .ev 367, .ev 368, .ev 369,
+        .ev 370, .ev 371, .ev 372, .ev 373, .ev 374, .ev 375, .ev 376, .ev 377, .ev 378, .ev 379, .ev 380,
+        .ev 381, .ev 382, .ev 383, .ev 384, .ev 385, .ev 386, .ev 387, .ev 388, .ev 389, .ev 390, .ev 391,
+        .ev 392, .ev 393, .ev 394, .ev 395, .ev 396, .ev 397, .ev 398, .ev 399, .ev 400, .ev 401, .ev 402,
+        .ev 403, .ev 404, .ev 405, .ev 406, .ev 407, .ev 408, .ev 409, .ev 410, .ev 411, .ev 412, .ev 413,
+        .ev 414, .ev 415, .ev 416, .ev 417, .ev 418, .ev 419, .ev 420, .ev 421, .ev 422, .ev 423, .ev 424,
+        .ev 425, .ev 426, .ev 427, .ev 428, .ev 429, .ev 430, .ev 431, .ev 432, .ev 433, .ev 434, .ev 435,
+        .ev 436, .ev 437, .ev 438, .ev 439, .ev 440, .ev 441, .ev 442, .ev 443, .ev 444, .ev 445, .ev 446,
+        .ev 447, .ev 448, .ev 449, .ev 450, .ev 451, .ev 452, .ev 453, .ev 454, .ev 455, .ev 456, .ev 457,
+        .ev 458, .ev 459, .ev 460, .ev 461, .ev 462, .ev 463, .ev 464, .ev 465, .ev 466, .ev 467, .ev 468,
+        .ev 469, .ev 470, .ev 471, .ev 472, .ev 473, .ev 474, .ev 475, .ev 476, .ev 477, .ev 478, .ev 479,
+        .ev 480, .ev 481, .ev 482, .ev 483, .ev 484, .ev 485, .ev 486, .ev 487, .ev 488, .ev 489, .ev 490,
+        .ev 491, .ev 492, .ev 493, .ev 494, .ev 495, .ev 496, .ev 497, .ev 498, .ev 499, .ev 500, .ev 501,
+        .ev 502, .ev 503, .ev 504, .ev 505, .ev 506, .ev 507, .ev 508, .ev 509, .ev 510, .ev 511, .ev 514,
         .ev 515, .ev 516, .ev 517, .ev 518, .ev 519, .ev 520, .ev 521, .ev 522, .ev 523, .ev 524, .ev 525,
         .ev 526, .ev 527, .ev 528, .ev 529, .ev 530, .ev 531, .ev 532, .ev 533, .ev 534, .ev 535, .ev 536,
         .ev 537, .ev 538, .ev 539, .ev 540, .ev 541, .ev 542, .ev 543, .ev 544, .ev 545, .ev 546, .ev 547,
@@ -309,7 +330,7 @@ def hcert : CoreMode.HCert where
         .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .pre 29, .pre 30, .pre 31, .pre 32, .pre 33,
         .pre 34, .pre 35, .pre 36, .pre 37, .pre 38, .pre 39, .pre 40, .pre 41, .pre 42, .pre 43, .run 0 [],
         .run 1 [], .pfr 2 []]]
-  rets := [[.run 5 [], .run 6 [], .run 7 [], .run 8 [], .pfr 9 []]]
+  rets := [[.run 3 [], .run 4 [], .run 5 [], .run 6 [], .pfr 7 []]]
 
 /-- `level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
@@ -327,9 +348,12 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
-    ("verify_merkle_cap__L7", 
-    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 512)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 128)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 512)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 128)⟩] })]
+    ("verify_merkle_cap__L7", CoreMode.HcSig.«verify_merkle_cap__L7».sig)]
+/-- `level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  [("verify_merkle_cap__L7", 2, 2)]
 
 end
 end LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1»
@@ -355,15 +379,15 @@ def hcert : CoreMode.HCert where
         (⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩, [0, 1, 2, 3, 4])] }
   reads := []
   res := []
-  calls := [[.pts, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16,
-        .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28, .ev 29,
-        .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41, .ev 42,
-        .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54, .ev 55,
-        .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .pts, .ev 66, .ev 67, .ev 68, .ev 69,
+  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
+        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
+        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
+        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
+        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 66, .ev 67, .ev 68, .ev 69,
         .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]
-  rets := [[.run 8 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .pfr 13 [], .pfr 14 []]]
+  rets := [[.run 6 [], .run 7 [], .run 8 [], .run 9 [], .run 10 [], .pfr 11 [], .pfr 12 []]]
 
 /-- `level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
@@ -379,9 +403,12 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
-    ("verify_merkle_cap__L4", 
-    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 64)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 16)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 64)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 16)⟩] })]
+    ("verify_merkle_cap__L4", CoreMode.HcSig.«verify_merkle_cap__L4».sig)]
+/-- `level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  [("verify_merkle_cap__L4", 2, 2)]
 
 end
 end LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0»
@@ -403,28 +430,28 @@ def hcert : CoreMode.HCert where
       postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, [0, 1, 2, 3])] }
   reads := []
   res := []
-  calls := [[.pts, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16,
-        .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28, .ev 29,
-        .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41, .ev 42,
-        .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54, .ev 55,
-        .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67, .ev 68,
-        .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80, .ev 81,
-        .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93, .ev 94,
-        .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105, .ev 106,
-        .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116, .ev 117,
-        .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127, .ev 128,
-        .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138, .ev 139,
-        .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149, .ev 150,
-        .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160, .ev 161,
-        .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171, .ev 172,
-        .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182, .ev 183,
-        .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193, .ev 194,
-        .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204, .ev 205,
-        .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215, .ev 216,
-        .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226, .ev 227,
-        .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237, .ev 238,
-        .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248, .ev 249,
-        .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .pts, .ev 258, .ev 259, .ev 260, .ev 261,
+  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
+        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
+        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
+        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
+        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67,
+        .ev 68, .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80,
+        .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93,
+        .ev 94, .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105,
+        .ev 106, .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116,
+        .ev 117, .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127,
+        .ev 128, .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138,
+        .ev 139, .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149,
+        .ev 150, .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160,
+        .ev 161, .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171,
+        .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182,
+        .ev 183, .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193,
+        .ev 194, .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204,
+        .ev 205, .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215,
+        .ev 216, .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226,
+        .ev 227, .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237,
+        .ev 238, .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248,
+        .ev 249, .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 258, .ev 259, .ev 260, .ev 261,
         .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270, .ev 271, .ev 272,
         .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281, .ev 282, .ev 283,
         .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292, .ev 293, .ev 294,
@@ -432,7 +459,7 @@ def hcert : CoreMode.HCert where
         .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314, .ev 315, .ev 316,
         .ev 317, .ev 318, .ev 319],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
-  rets := [[.run 5 [], .run 6 [], .run 7 [], .pfr 8 []]]
+  rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
 /-- `level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
@@ -444,9 +471,12 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
-    ("verify_merkle_cap__L6", 
-    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 256)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 64)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 4), (.num 256)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 2), (.num 64)⟩] })]
+    ("verify_merkle_cap__L6", CoreMode.HcSig.«verify_merkle_cap__L6».sig)]
+/-- `level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
+def hcFlag : Bool := false
+/-- `level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
+def hcCallees : List (String × ℕ × ℕ) :=
+  [("verify_merkle_cap__L6", 2, 2)]
 
 end
 end LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0»

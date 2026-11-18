@@ -94,11 +94,11 @@ theorem exp_lt {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {σ : Val} {as
 /-- **The exponent bound families hold** (`rc`, `sel`, `exp`) at a valuation along a returning path of
 the function whose events hold on a memory of at most `2^28` words, its frame's parameter cells holding
 its parameters and its entry runs' exponent cells powers of `g` (`ExpW`). -/
-theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev}
+theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev}
     {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {fp : ℕ}
-    (hx : CoreMode.ExpW Lm (CoreMode.expCells G) fp)
+    (hx : CoreMode.ExpW Lm xc fp)
     (hpar : ∀ k < fn.params.length, CoreMode.Rd Lm fp (2 + k) = some (σ (V.n k))) {x n : ℕ}
-    (h : resFam fn G (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
+    (h : resFam fn xc (.lt (.val x) (.num n)) = true) : (CRes.lt (.val x) (.num n)).Holds σ := by
   simp only [resFam, Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, List.any_eq_true,
     List.contains_iff_mem] at h
   obtain ⟨hn, (h | ⟨p, hp, hpx⟩) | ⟨⟨⟨hn28, hxp⟩, hxc⟩, hd⟩⟩ := h
@@ -121,9 +121,9 @@ theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn}
 
 /-- **The `rcv` family holds** (`e(x) < e(p·g)`, `x` range checked against `p`) at a valuation along a returning
 path of the function whose events hold on a memory of at most `2^28` words. -/
-theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev}
+theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev}
     {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {x : ℕ} {c : CoreMode.CCell}
-    (h : resFam fn G (.lt (.val x) (.mono c)) = true) : (CRes.lt (.val x) (.mono c)).Holds σ := by
+    (h : resFam fn xc (.lt (.val x) (.mono c)) = true) : (CRes.lt (.val x) (.mono c)).Holds σ := by
   simp only [resFam] at h
   split at h
   · rename_i p hb ho
@@ -158,8 +158,8 @@ theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
 
 /-- **The `sel` family of a selector times a power of `g` holds** (`e(x·g^c) < n`, `x` a top-level selector of
 `m` arms, `m + c ≤ n`) at a valuation along a returning path. -/
-theorem resSelM_sound {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
-    {c : CoreMode.CCell} {n : ℕ} (h : resFam fn G (.lt (.mono c) (.num n)) = true) :
+theorem resSelM_sound {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
+    {c : CoreMode.CCell} {n : ℕ} (h : resFam fn xc (.lt (.mono c) (.num n)) = true) :
     (CRes.lt (.mono c) (.num n)).Holds σ := by
   obtain ⟨cb, k⟩ := c
   simp only [resFam] at h
@@ -230,9 +230,9 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
 parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/
 theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {G : Mode.Sig} {fp : ℕ} (hx : CoreMode.ExpW r.img (CoreMode.expCells G) fp)
+    (hf : coreProgram.find? f = some fn) {xc : List ℕ} {fp : ℕ} (hx : CoreMode.ExpW r.img xc fp)
     (hpar : ∀ k < fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k))) :
-    ∀ x : CRes, resFam fn G x = true → x.Holds σ
+    ∀ x : CRes, resFam fn xc x = true → x.Holds σ
   | .lt (.val x) (.num n), h => by
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
@@ -260,7 +260,7 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
-    (hx : CoreMode.ExpW r.img (CoreMode.expCells Cf.frame.sig) fp) : ResF Cf.H σ := fun x hx' ↦ by
+    (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
   rcases this with ⟨hf', -⟩ | hm
@@ -273,7 +273,7 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
-    (hx : CoreMode.ExpW r.img (CoreMode.expCells Cf.frame.sig) fp) {σ' : Val}
+    (hx : CoreMode.ExpW r.img Cf.xc fp) {σ' : Val}
     (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ') :
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'

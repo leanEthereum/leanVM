@@ -47,51 +47,51 @@ public section
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
   Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code50 Checked.core50 Checked.cert50 Checked.plumbEq50
-      Bridge.ProgAl.tab50 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab50 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code55 Checked.core55 Checked.cert55 Checked.plumbEq55
-      Bridge.ProgAl.tab55 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab55 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code146 Checked.core146 Checked.cert146 Checked.plumbEq146
-      Bridge.ProgAl.tab146 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab146 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code519 Checked.core519 Checked.cert519 Checked.plumbEq519
-      Bridge.ProgAl.tab519 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab519 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code676 Checked.core676 Checked.cert676 Checked.plumbEq676
-      Bridge.ProgAl.tab676 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab676 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code705 Checked.core705 Checked.cert705 Checked.plumbEq705
-      Bridge.ProgAl.tab705 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab705 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code899 Checked.core899 Checked.cert899 Checked.plumbEq899
-      Bridge.ProgAl.tab899 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab899 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code906 Checked.core906 Checked.cert906 Checked.plumbEq906
-      Bridge.ProgAl.tab906 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab906 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code928 Checked.core928 Checked.cert928 Checked.plumbEq928
-      Bridge.ProgAl.tab928 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab928 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code954 Checked.core954 Checked.cert954 Checked.plumbEq954
-      Bridge.ProgAl.tab954 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab954 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1010 Checked.core1010 Checked.cert1010 Checked.plumbEq1010
-      Bridge.ProgAl.tab1010 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1010 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1062 Checked.core1062 Checked.cert1062 Checked.plumbEq1062
-      Bridge.ProgAl.tab1062 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1062 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1080 Checked.core1080 Checked.cert1080 Checked.plumbEq1080
-      Bridge.ProgAl.tab1080 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1080 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1111 Checked.core1111 Checked.cert1111 Checked.plumbEq1111
-      Bridge.ProgAl.tab1111 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1111 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1212 Checked.core1212 Checked.cert1212 Checked.plumbEq1212
-      Bridge.ProgAl.tab1212 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1212 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1318 Checked.core1318 Checked.cert1318 Checked.plumbEq1318
-      Bridge.ProgAl.tab1318 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1318 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1321 Checked.core1321 Checked.cert1321 Checked.plumbEq1321
-      Bridge.ProgAl.tab1321 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1321 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1325 Checked.core1325 Checked.cert1325 Checked.plumbEq1325
-      Bridge.ProgAl.tab1325 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1325 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1331 Checked.core1331 Checked.cert1331 Checked.plumbEq1331
-      Bridge.ProgAl.tab1331 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1331 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1335 Checked.core1335 Checked.cert1335 Checked.plumbEq1335
-      Bridge.ProgAl.tab1335 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1335 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1420 Checked.core1420 Checked.cert1420 Checked.plumbEq1420
-      Bridge.ProgAl.tab1420 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1420 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1470 Checked.core1470 Checked.cert1470 Checked.plumbEq1470
-      Bridge.ProgAl.tab1470 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1470 rfl rfl rfl (by decide +kernel))
     (Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code1505 Checked.core1505 Checked.cert1505 Checked.plumbEq1505
-      Bridge.ProgAl.tab1505 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab1505 rfl rfl rfl (by decide +kernel))
     (Mode.fa_nil)))))))))))))))))))))))
 
 end

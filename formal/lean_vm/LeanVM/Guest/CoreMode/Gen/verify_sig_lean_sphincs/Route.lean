@@ -23,7 +23,7 @@ public section
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
   Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code21 Checked.core21 Checked.cert21 Checked.plumbEq21
-      Bridge.ProgAl.tab21 rfl rfl rfl (by decide +kernel) rfl rfl)
+      Bridge.ProgAl.tab21 rfl rfl rfl (by decide +kernel))
     (Mode.fa_nil)
 
 end

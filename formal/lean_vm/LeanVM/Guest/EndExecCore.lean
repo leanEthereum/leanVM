@@ -345,7 +345,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · exact consecutive_entry functions_consecutive f hf cf hcf h1 (by omega)
     rw [hcentry, heq, hentry]
   -- it is `Cf`'s function
-  obtain ⟨⟨j0, hj0, he0, hc0, hx0, hb0⟩, hhc, -⟩ := hCf
+  obtain ⟨j0, hj0, he0, hc0, hx0, hb0⟩ := hCf
   obtain ⟨-, -, -, -, -, -, -, -, -, hjn⟩ := fn_of_idx hj
   have hjj : j = j0 := fnOf_entry_inj hjn hj0 (by rw [← B2C.entryOf_of hj, hentK, ← hent, he0])
   subst hjj
@@ -383,8 +383,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       have hgl1 := hgl0
       simp only [CoreMode.glOk, hmk, Option.isSome_none, Bool.cond_false, Bool.and_eq_true] at hgl1
       refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_⟩
-      · rw [CoreMode.CFun.xc_of hhc] at hxw
-        exact resOk_inst hr hI hIt hfind hres0 hmk hparF hxw
+      · exact resOk_inst hr hI hIt hfind hres0 hmk hparF hxw
       · rw [← hfpL]
         exact glF_inst hr hI hIt hfind hpN hLk hgl1.1 hF.hdr1 _
     | some k =>
@@ -395,8 +394,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       obtain ⟨⟨⟨-, hglv⟩, hgh⟩, hng⟩ := hgl1
       obtain ⟨hpar4, a, ha, h5, hm5, hsub⟩ := ml_inst hr hMo hI hIt hfind hmk
       refine ⟨CoreMode.setG e.σ [refMem r.img (a + 2)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_⟩
-      · rw [CoreMode.CFun.xc_of hhc] at hxw
-        exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+      · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
