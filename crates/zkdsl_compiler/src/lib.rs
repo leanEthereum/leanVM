@@ -299,11 +299,22 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             KVal::At(name, i) => g_pow((entry[name] + i) as usize).into(),
         }
     };
+    let next = |o: &Off| frame_size.checked_add(*o).expect("frame offset overflow");
     match op {
         LOp::MulNextFrame { a, b, c } => Op::Mul {
             a: *a,
             b: *b,
-            c: frame_size.checked_add(*c).expect("frame offset overflow"),
+            c: next(c),
+        },
+        LOp::XorNextFrame { a, b, c } => Op::Xor {
+            a: next(a),
+            b: *b,
+            c: *c,
+        },
+        LOp::JumpNextFrame { oc, od, of } => Op::Jump {
+            oc: *oc,
+            od: *od,
+            of: next(of),
         },
         LOp::Set { o, k: kv } => Op::Set {
             o: *o,

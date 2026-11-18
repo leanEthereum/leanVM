@@ -136,9 +136,13 @@ impl FnLower<'_> {
                 base: Some(ib), exp, ..
             }) => {
                 if let Some(ga) = self.gaddr_of(arr)
-                    && let (Some(ab), Some(total)) = (ga.base, ga.exp.checked_add(exp))
+                    && let Some(total) = ga.exp.checked_add(exp)
                     && total <= FOLD_MAX
                 {
+                    // A constant pointer `g^j` needs no multiply: the index is the base.
+                    let Some(ab) = ga.base else {
+                        return (ib, total as u32);
+                    };
                     let ptr = self.pure(PureOp::Mul, ab, ib);
                     return (ptr, total as u32);
                 }

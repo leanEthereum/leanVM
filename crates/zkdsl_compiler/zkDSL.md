@@ -270,7 +270,7 @@ A runtime bound is evaluated once at entry and threaded through the loop as an e
 
 Lowering: the body becomes a tail-recursive helper function whose exit test is folded into the recursion's `JUMP` condition: one call per iteration, no separate is-zero gadget. Free variables of the body are captured **by value** as extra parameters; a `HeapBuf` pointer threads through, and a `StackBuf` as a run of parameter cells, one `MUL` per cell an iteration (every cell is read, so write them all before the loop).
 
-The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
+The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, the advanced counter and the next frame's own pointer computed straight into their cells there (the exit test and the jump read them in place), while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
 
 The body is a function of its own, returning nothing, so a bare `return` inside it ends the **loop**, not the enclosing function: execution continues after the `for`. The counter advances from its value at the end of the body, so rebinding it moves the walk.
 
@@ -511,7 +511,7 @@ Five builtins have the prover compute the values at witness generation instead o
 | `a + b` | 1 `XOR` |
 | `a * b` | 1 `MUL` |
 | `a / b` | 1 `MUL` (write-once back-solve; division by zero is undefined) |
-| heap read / store `buf[i]` | 1 `DEREF`; +1 `MUL` for a *runtime* index (a compile-time g-power offset folds into the `DEREF`, for free) |
+| heap read / store `buf[i]` | 1 `DEREF`; +1 `MUL` for a *runtime* index, none when `buf` is a constant `GEN ** k` (a compile-time g-power offset folds into the `DEREF`, for free) |
 | stack read `sa[k]` | 0 (direct cell addressing); a *store* is 1, like any other write |
 | `assert a == b` | 1 `MUL` (+ 1 `SET` amortized per frame for the one cell) |
 | `assert a != b` | 3 (`XOR`, `MUL`, `SET`), no branch, one hinted inverse |

@@ -104,6 +104,8 @@ impl FnLower<'_> {
                     }
                     arg_offs.extend((0..n).map(|k| (base + k, src + k)));
                 }
+                // A loop's back edge has already advanced its counter into place.
+                Shape::Scalar if i == 0 && self.counter_placed => {}
                 Shape::Scalar => {
                     let cell = self.expr(a);
                     arg_offs.push((base, cell));
@@ -115,8 +117,6 @@ impl FnLower<'_> {
             let own_fp = self.self_fp();
             let scale = self.fresh();
             self.set(scale, KVal::FrameSize);
-            self.pending.push(Hint::NextFrameAddress);
-            let nfp = self.pure(PureOp::Mul, own_fp, scale);
             let entry = self.fresh();
             let oc = cond.unwrap_or_else(|| self.one());
             let one = self.one();
@@ -124,10 +124,14 @@ impl FnLower<'_> {
             for &(off, ao) in &arg_offs {
                 self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
             }
+            // The next frame's own pointer, written where that frame reads it, is the
+            // jump's frame pointer too.
+            let next_fp = Abi::end(callee_arg_cells, 0);
+            self.pending.push(Hint::NextFrameAddress);
             self.emit(LOp::MulNextFrame {
-                a: nfp,
-                b: one,
-                c: Abi::end(callee_arg_cells, 0),
+                a: own_fp,
+                b: scale,
+                c: next_fp,
             });
             self.emit(LOp::MulNextFrame {
                 a: 1,
@@ -139,7 +143,11 @@ impl FnLower<'_> {
                 b: one,
                 c: Abi::RET_PC,
             });
-            self.emit(LOp::Jump { oc, od: entry, of: nfp });
+            self.emit(LOp::JumpNextFrame {
+                oc,
+                od: entry,
+                of: next_fp,
+            });
             return;
         }
         let nfp = self.fresh();

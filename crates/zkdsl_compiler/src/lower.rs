@@ -210,6 +210,9 @@ struct FnLower<'a> {
     /// the caller to bind (a `StackBuf` run or a folded g-address aliases at zero
     /// copies). `None` outside an inlined return.
     inline_stack_ret: Option<Vec<Binding>>,
+    /// Set while a loop's back edge lowers, once its advanced counter is already in the
+    /// next frame's first argument cell, so the call copies it no more.
+    counter_placed: bool,
     /// Source line of the statement being lowered, for diagnostics and for the
     /// pc-to-line table. Zero for a synthesized statement with no source.
     cur_line: u32,
@@ -1381,10 +1384,48 @@ impl FnLower<'_> {
                 // position the callee inherits THIS frame's `retpc`/`retfp`, so
                 // a `mul_range` loop builds no unwind chain: only the final
                 // iteration returns, straight to the loop's original caller.
-                let (la, lb) = (self.expr(lhs), self.expr(rhs));
-                // x = lhs + rhs; x != 0 ⇔ lhs != rhs
-                let x = self.pure(PureOp::Xor, la, lb);
+                // A loop's back edge advances its counter by a constant g-power straight
+                // into the next frame's counter cell, and tests that cell.
+                let advanced = match self.gaddr_of(lhs) {
+                    Some(GAddr {
+                        base: Some(base), exp, ..
+                    }) if tail
+                        && exp > 0
+                        && callee == self.fn_name
+                        && self.loop_bounds.contains_key(callee.as_str())
+                        && args.first() == Some(lhs) =>
+                    {
+                        Some((base, exp))
+                    }
+                    _ => None,
+                };
+                let x = match advanced {
+                    Some((base, exp)) => {
+                        let step = self.const_cell(F64::G.pow(exp).into());
+                        let counter = Abi::arg(std::iter::empty(), 0);
+                        self.emit(LOp::MulNextFrame {
+                            a: base,
+                            b: step,
+                            c: counter,
+                        });
+                        let lb = self.expr(rhs);
+                        let x = self.fresh();
+                        self.emit(LOp::XorNextFrame {
+                            a: counter,
+                            b: lb,
+                            c: x,
+                        });
+                        self.counter_placed = true;
+                        x
+                    }
+                    None => {
+                        let (la, lb) = (self.expr(lhs), self.expr(rhs));
+                        // x = lhs + rhs; x != 0 ⇔ lhs != rhs
+                        self.pure(PureOp::Xor, la, lb)
+                    }
+                };
                 self.lower_call(callee, args, Some(x), &[], tail);
+                self.counter_placed = false;
             }
             StmtKind::For { var, lo, hi, body } => self.lower_for(var, *lo, hi, body),
             // Compile-time unrolling: emit the body per integer, the counter
@@ -1711,6 +1752,7 @@ pub(crate) fn lower_func(
         heap_sizes: HashMap::new(),
         inline_ret: None,
         inline_stack_ret: None,
+        counter_placed: false,
 
         pending: Vec::new(),
         chain_next: None,

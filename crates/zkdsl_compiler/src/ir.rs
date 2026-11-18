@@ -41,11 +41,23 @@ pub(crate) struct LInstr {
 
 #[derive(Clone, Debug)]
 pub(crate) enum LOp {
-    /// A copy into the next loop frame, outside this frame's own allocation.
+    /// A product written into the next loop frame, outside this frame's own allocation.
     MulNextFrame {
         a: Off,
         b: Off,
         c: Off,
+    },
+    /// `XOR` whose `a` is a cell of the next loop frame.
+    XorNextFrame {
+        a: Off,
+        b: Off,
+        c: Off,
+    },
+    /// `JUMP` whose frame pointer is read off a cell of the next loop frame.
+    JumpNextFrame {
+        oc: Off,
+        od: Off,
+        of: Off,
     },
     Set {
         o: Off,

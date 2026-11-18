@@ -128,3 +128,32 @@ def main():
         verify(&program, &public, &proof).unwrap();
     }
 }
+
+/// A reserved loop's back edge advances its counter and its frame pointer straight into
+/// the next frame: an iteration of a loop storing a capture costs its body's pointer
+/// `MUL`, the counter's, the frame pointer's and one copy for each capture (`seen`, `c`
+/// and the runtime bound) and for the return target and frame, and the run proves.
+#[test]
+fn back_edge_writes_the_next_frame_in_place() {
+    parallel::init();
+    let source = r#"
+def main():
+    public = 1
+    c = public[1]
+    seen = HeapBuf(GEN ** 10)
+    for x in mul_range(1, public[GEN]):
+        seen[x] = c
+    return
+"#;
+    let program = compile(&parse(source).unwrap());
+    let muls = |n: usize| {
+        let public = [F128::from(F64(7)), g_pow(n).into()];
+        let run = execute(&program, &[], public).unwrap();
+        assert!(run.unconstrained_reads.is_empty());
+        run.rows()[1]
+    };
+    assert_eq!(muls(9) - muls(5), 4 * 8, "MUL rows per iteration");
+    let public = [F128::from(F64(7)), g_pow(9).into()];
+    let (proof, _) = prove(&program, &[], public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &public, &proof).unwrap();
+}

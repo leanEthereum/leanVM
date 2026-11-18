@@ -205,3 +205,45 @@ fn range_check_folded_non_gpower_bound_rejected() {
     let src = "def main():\n    x = GEN ** 3\n    assert log x < log 5\n    return\n";
     let _ = parse(src).map_err(|e| panic!("{e}"));
 }
+
+/// The range check the recursion guest runs as `assert_small`: the gadget's two reads
+/// land in zero cells the program keeps at memory cells 2 on, read through the constant
+/// pointer `g^2`, which takes no `MUL` (one per check, the complement's). In range it
+/// proves; the first value past the bound is rejected.
+#[test]
+fn range_check_through_zero_cells() {
+    let src = "\
+def main():
+    zero_cells = StackBuf(16)
+    public = GEN ** 0
+    assert public[1] != 0
+    assert public[GEN] != 0
+    x = StackBuf(1)
+    hint_witness(x, \"x\")
+    v = x[0]
+    zeros = GEN ** 2
+    zeros[v] = 0
+    y = GEN ** 15 / v
+    zeros[y] = 0
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F128::from(F64(3)), F128::from(F64(5))];
+    let witness = |e: usize| [("x".to_string(), vec![vec![F128::from(g_pow(e))]])];
+    let run = execute(&program, &witness(15), want).unwrap();
+    assert_eq!(
+        run.rows()[1] - mix_nonzero_asserts(),
+        1,
+        "MUL rows: the complement's alone"
+    );
+    let (proof, _) = prove(&program, &witness(15), want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("in range");
+    assert!(execute(&program, &witness(16), want).is_err(), "past the bound");
+}
+
+/// The `MUL` rows of the two `assert public[...] != 0` above.
+fn mix_nonzero_asserts() -> usize {
+    let src =
+        "def main():\n    public = GEN ** 0\n    assert public[1] != 0\n    assert public[GEN] != 0\n    return\n";
+    mix(src, [F128::from(F64(3)), F128::from(F64(5))])[1]
+}
