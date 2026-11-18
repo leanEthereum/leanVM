@@ -1,8 +1,13 @@
-name: PR title
+name: Bindings PR title
 
+# leanVM's own commits are not conventional commits ("zkDSL: ...", "verifier: ..."); only pull
+# requests touching the bindings need a conventional title, because release-please reads the
+# commits under bindings/ to version the bindings and write bindings/CHANGELOG.md.
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
+    paths:
+      - bindings/**
 
 permissions:
   pull-requests: read

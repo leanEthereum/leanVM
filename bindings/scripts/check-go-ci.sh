@@ -2,8 +2,8 @@
 # Keep the Go CI build matrix aligned with the native archive directories.
 set -eu
 
-repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-workflow="$repo_dir/.github/workflows/ci.yml"
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+workflow="$repo_dir/.github/workflows/bindings-ci.yml"
 
 assert_contains() {
     grep -F -- "$1" "$workflow" >/dev/null

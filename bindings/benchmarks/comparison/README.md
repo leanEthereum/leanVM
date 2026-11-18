@@ -10,6 +10,8 @@ These are performance comparisons, not claims of equivalent security
 semantics. leanVM aggregation generates zkVM proofs, whereas BLS
 aggregation combines elliptic-curve points.
 
+Run the commands below from `bindings/`, the bindings' Cargo workspace.
+
 ## Fast paired-operation benchmarks
 
 Run the Criterion suite in release mode:
@@ -140,6 +142,16 @@ mode, sample count, and whether proof warm-up was enabled.
 
 ## Pull request benchmark CI
 
+The benchmark workflows described here and in the dashboard section below,
+`benchmarks-pr.yml` and `benchmarks-history.yml`, were not migrated with the
+bindings from [ethereum/lean-pq-bindings](https://github.com/ethereum/lean-pq-bindings),
+where they last ran: they need a dedicated self-hosted runner labeled
+`size-attester7870-x64` registered to this repository, and the dashboard
+needs the Pages setup at the end. Restoring them means registering such a
+runner and copying them back as `.github/workflows/bindings-benchmarks-*.yml`
+with their paths under `bindings/`. `bindings/scripts/check-benchmark-ci.sh`
+still checks the benchmark workloads and the dashboard builder.
+
 Pull request benchmarks are opt-in. Add the `run-benchmarks` label to a
 same-repository pull request to run the fast suite and three warmed-up
 slow-suite samples on the dedicated runner labeled
@@ -206,7 +218,7 @@ replaces `data/fast.json` and/or `data/slow.json`. A fast-only run preserves the
 last slow result and vice versa. It also installs the static dashboard as the
 branch-root `index.html`; it does not execute measured repository code.
 
-The public page is <https://ethereum.github.io/lean-pq-bindings/>. It shows
+The public page was <https://ethereum.github.io/lean-pq-bindings/>. It shows
 only the newest result for each suite: LeanVM and Lighthouse timings and ratios
 grouped by operation family; serialized secret-key, public-key, and raw-signature
 sizes; LeanVM proof and aggregate BLS signature sizes; overall slow-suite peak

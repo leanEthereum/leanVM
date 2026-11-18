@@ -1,9 +1,16 @@
-name: CI
+name: Bindings CI
 
+# Only changes to the bindings run it; the leanVM crates they build are path dependencies.
 on:
   push:
     branches: [main]
+    paths:
+      - bindings/**
+      - .github/workflows/bindings-ci.yml
   pull_request:
+    paths:
+      - bindings/**
+      - .github/workflows/bindings-ci.yml
 
 jobs:
   rust:
@@ -17,27 +24,34 @@ jobs:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Check benchmark workflow policy
-        run: sh scripts/check-benchmark-ci.sh
+        run: sh bindings/scripts/check-benchmark-ci.sh
 
       - name: Check formatting
-        run: cargo fmt --check
+        run: cargo fmt --all --check
+        working-directory: bindings
 
       # Debug builds of leanVM prove roughly 30x slower, so tests build in release.
       - name: Test Rust bindings
         run: cargo test --release -p lean-pq
+        working-directory: bindings
 
       - name: Lint Rust bindings
         run: cargo clippy --release -p lean-pq --all-targets -- -D warnings
+        working-directory: bindings
 
       # Consumers that only sign and verify build without the leanVM prover.
       # The README's aggregation example is a doctest, so only the lib and integration tests run.
       - name: Test Rust bindings without aggregation
         run: cargo test --release -p lean-pq --no-default-features --lib --tests
+        working-directory: bindings
 
       - name: Lint Rust bindings without aggregation
         run: cargo clippy --release -p lean-pq --no-default-features --all-targets -- -D warnings
+        working-directory: bindings
 
   test:
     name: ${{ matrix.os }} / py${{ matrix.python }}
@@ -66,6 +80,8 @@ jobs:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Create virtualenv
         run: uv venv
@@ -101,11 +117,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Test the native ABI
         run: cargo test --release -p lean-pq-native --test abi
+        working-directory: bindings
 
       - name: Test Java bindings
         run: gradle -p bindings/java test
@@ -136,6 +155,8 @@ jobs:
           targets: x86_64-pc-windows-gnu
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -160,6 +181,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Build and test Node bindings
         run: |
@@ -221,6 +244,8 @@ jobs:
         run: rustup target add ${{ matrix.platform.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Stage static native bridge
         run: |
@@ -278,6 +303,8 @@ jobs:
         run: rustup target add ${{ matrix.platform.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Stage static native bridge
         run: |
@@ -352,7 +379,7 @@ jobs:
         run: |
           sh bindings/native/scripts/stage-static-test.sh
           sh bindings/go/native-platform-test.sh
-          sh scripts/check-go-ci.sh
+          sh bindings/scripts/check-go-ci.sh
 
       - uses: actions/setup-go@v7
         with:
@@ -372,6 +399,8 @@ jobs:
         run: rustup target add ${{ matrix.platform.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
 
       - name: Stage static native bridge
         run: |

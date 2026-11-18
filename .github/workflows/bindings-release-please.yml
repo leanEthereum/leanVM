@@ -1,4 +1,4 @@
-name: Release Please
+name: Bindings release please
 
 on:
   push:
@@ -16,17 +16,18 @@ jobs:
       tag_name: ${{ steps.rp.outputs.tag_name }}
       pr_branch: ${{ steps.rp.outputs.pr && fromJSON(steps.rp.outputs.pr).headBranchName || '' }}
     steps:
-      # Maintains one "release PR" for the whole repository from conventional commits. It sets
-      # the workspace version in Cargo.toml, the versions in the README install instructions, and
-      # CHANGELOG.md. Merging it creates the vX.Y.Z tag that every binding is released from.
+      # Maintains one "release PR" for the bindings from the conventional commits touching
+      # bindings/. It sets the workspace version in bindings/Cargo.toml, the versions in the README
+      # install instructions, and bindings/CHANGELOG.md. Merging it creates the bindings-vX.Y.Z tag
+      # that every binding is released from.
       - id: rp
         uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # release-please cannot select entries in Cargo.lock, so bring the workspace crates' locked
-  # versions in line with the release PR's Cargo.toml.
+  # release-please cannot select entries in Cargo.lock, so bring the bindings workspace crates'
+  # locked versions in line with the release PR's bindings/Cargo.toml.
   sync-cargo-lock:
     needs: release-please
     if: ${{ needs.release-please.outputs.pr_branch != '' }}
@@ -36,7 +37,8 @@ jobs:
         with:
           ref: ${{ needs.release-please.outputs.pr_branch }}
       - uses: dtolnay/rust-toolchain@stable
-      - name: Update the workspace crates in Cargo.lock
+      - name: Update the workspace crates in bindings/Cargo.lock
+        working-directory: bindings
         run: |
           cargo update --workspace
           if git diff --quiet -- Cargo.lock; then
@@ -49,8 +51,8 @@ jobs:
           git push origin "HEAD:${{ needs.release-please.outputs.pr_branch }}"
 
   # GITHUB_TOKEN-driven tag pushes do NOT trigger workflows (GitHub anti-loop
-  # protection), so we can't just rely on release.yml's `on: push: tags`
-  # trigger. Instead, when RP cuts a release, dispatch release.yml directly
+  # protection), so we can't just rely on bindings-release.yml's `on: push: tags`
+  # trigger. Instead, when RP cuts a release, dispatch bindings-release.yml directly
   # against the new tag.
   trigger-release:
     needs: release-please
@@ -65,6 +67,6 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'release.yml',
+              workflow_id: 'bindings-release.yml',
               ref: '${{ needs.release-please.outputs.tag_name }}',
             });

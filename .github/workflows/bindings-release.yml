@@ -1,14 +1,15 @@
-name: Release
+name: Bindings release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['bindings-v*']
   workflow_dispatch:
 
 env:
-  # The release tag. Dispatching this workflow from a branch is a dry run: every build and check
-  # runs at version 0.0.0, and nothing is published or uploaded.
-  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.0' }}
+  # The release tag, bindings-vX.Y.Z (a bare vX.Y.Z would name a leanVM version); every step takes
+  # the version as ${RELEASE_TAG#bindings-v}. Dispatching this workflow from a branch is a dry run:
+  # every build and check runs at version 0.0.0, and nothing is published or uploaded.
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/bindings-v') && github.ref_name || 'bindings-v0.0.0' }}
   # Python interpreters to build wheels against. Multi-line so
   # actions/setup-python installs all of them; maturin-action picks
   # them up via --find-interpreter inside the manylinux container.
@@ -38,7 +39,7 @@ jobs:
             target: aarch64
           - runner: macos-15
             target: aarch64
-          # x86_64-pc-windows-msvc; .cargo/config.toml links the C runtime statically.
+          # x86_64-pc-windows-msvc; bindings/.cargo/config.toml links the C runtime statically.
           - runner: windows-latest
             target: x64
     steps:
@@ -167,15 +168,15 @@ jobs:
     # https://pypi.org/manage/account/publishing/  (account-level — used
     # before the project exists on PyPI; flips to project-level after the
     # first successful publish). Configured publisher claims:
-    #   repo:        ethereum/lean-pq-bindings
-    #   workflow:    release.yml
+    #   repo:        leanEthereum/leanVM
+    #   workflow:    bindings-release.yml
     #   environment: pypi          (must match `environment.name` below)
     environment:
       name: pypi
       url: https://pypi.org/p/py-lean-pq
     permissions:
       id-token: write
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -247,13 +248,13 @@ jobs:
       - name: Assemble package
         run: |
           for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           sh bindings/zig/scripts/package.sh "$version" native "dist/lean-pq-zig-$version.tar.gz" | tee package.log
           for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
             grep -qx "bundled $target" package.log
           done
       - name: Build and run a consumer against the package
-        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz"
+        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: zig-package
@@ -280,7 +281,7 @@ jobs:
       - name: Show Zig's native target
         run: zig env
       - name: Build and run a consumer against the package
-        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz"
+        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz"
 
   zig-release:
     name: Attach the Zig package
@@ -294,10 +295,10 @@ jobs:
           name: zig-package
           path: dist
       - name: Attach to the GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/bindings-v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
+        run: gh release upload "$GITHUB_REF_NAME" "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
 
   # The Go module `go get` fetches: a parentless commit holding bindings/go plus the zig-native
   # archives, tagged bindings/go/vX.Y.Z, so building against it needs only Go and a C compiler.
@@ -321,7 +322,7 @@ jobs:
           rustup component add llvm-tools
           llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
           LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/go/scripts/assemble-module.sh "${RELEASE_TAG#v}" native go-module
+            sh bindings/go/scripts/assemble-module.sh "${RELEASE_TAG#bindings-v}" native go-module
       - uses: actions/upload-artifact@v4
         with:
           name: go-module
@@ -368,7 +369,7 @@ jobs:
             done
           done
       - name: Build and run a consumer against the module
-        run: sh bindings/go/scripts/consumer-smoke.sh go-module/proxy "${RELEASE_TAG#v}"
+        run: sh bindings/go/scripts/consumer-smoke.sh go-module/proxy "${RELEASE_TAG#bindings-v}"
 
   # Pushes only the module tag; a dry run checks the push with --dry-run.
   go-publish:
@@ -378,7 +379,7 @@ jobs:
     permissions:
       contents: write
     env:
-      MODULE: github.com/ethereum/lean-pq-bindings/bindings/go
+      MODULE: github.com/leanEthereum/leanVM/bindings/go
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -391,9 +392,9 @@ jobs:
           cache: false
       - name: Push the module tag
         env:
-          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/bindings-v') }}
         run: |
-          tag="bindings/go/$RELEASE_TAG"
+          tag="bindings/go/v${RELEASE_TAG#bindings-v}"
           git fetch go-module/go-module.bundle "refs/tags/$tag:refs/tags/$tag"
           git log -1 --format='%H %P %s' "$tag"
           if [ "$DRY_RUN" = true ]; then
@@ -402,10 +403,10 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
       - name: Fetch the module through the public proxy
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/bindings-v')
         run: |
-          GOPROXY=https://proxy.golang.org go list -m "$MODULE@$RELEASE_TAG"
-          GOPROXY=https://proxy.golang.org go mod download -json "$MODULE@$RELEASE_TAG"
+          GOPROXY=https://proxy.golang.org go list -m "$MODULE@v${RELEASE_TAG#bindings-v}"
+          GOPROXY=https://proxy.golang.org go mod download -json "$MODULE@v${RELEASE_TAG#bindings-v}"
 
   # The Nimble package: a parentless commit holding bindings/nim at its root plus the zig-native
   # archives, tagged bindings/nim/vX.Y.Z, so `nimble install`, a `requires` line or a
@@ -426,7 +427,7 @@ jobs:
           rustup component add llvm-tools
           llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
           LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/nim/scripts/assemble-package.sh "${RELEASE_TAG#v}" native nim-package | tee package.log
+            sh bindings/nim/scripts/assemble-package.sh "${RELEASE_TAG#bindings-v}" native nim-package | tee package.log
           for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
             grep -qx "bundled $target" package.log
           done
@@ -476,7 +477,7 @@ jobs:
       - name: Build and run a consumer against the package
         run: |
           git clone -q nim-package/nim-package.bundle "$RUNNER_TEMP/nim-package"
-          sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" "${RELEASE_TAG#v}"
+          sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" "${RELEASE_TAG#bindings-v}"
 
   # Pushes only the package tag; a dry run checks the push with --dry-run.
   nim-publish:
@@ -493,9 +494,9 @@ jobs:
           path: nim-package
       - name: Push the package tag
         env:
-          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/bindings-v') }}
         run: |
-          tag="bindings/nim/$RELEASE_TAG"
+          tag="bindings/nim/v${RELEASE_TAG#bindings-v}"
           git fetch nim-package/nim-package.bundle "refs/tags/$tag:refs/tags/$tag"
           git log -1 --format='%H %P %s' "$tag"
           if [ "$DRY_RUN" = true ]; then
@@ -520,8 +521,9 @@ jobs:
           - runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             build_args: --use-napi-cross
-          # napi sets RUSTFLAGS for musl targets, which overrides .cargo/config.toml's target
-          # rustflags, so the x86_64 features are passed through RUSTFLAGS instead.
+          # napi sets RUSTFLAGS for musl targets, which overrides the .cargo/config.toml target
+          # rustflags (the root's target-cpu=native included), so the x86_64 features are passed
+          # through RUSTFLAGS instead.
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-musl
             build_args: --cross-compile
@@ -533,8 +535,8 @@ jobs:
             target: x86_64-apple-darwin
           - runner: macos-15
             target: aarch64-apple-darwin
-          # cargo-xwin links against the MSVC CRT and Windows SDK; .cargo/config.toml links the C
-          # runtime statically.
+          # cargo-xwin links against the MSVC CRT and Windows SDK; bindings/.cargo/config.toml links
+          # the C runtime statically.
           - runner: ubuntu-latest
             target: x86_64-pc-windows-msvc
             build_args: --cross-compile
@@ -567,9 +569,10 @@ jobs:
           BUILD_ARGS: ${{ matrix.platform.build_args }}
           TARGET_RUSTFLAGS: ${{ matrix.platform.rustflags }}
         run: |
-          # An empty RUSTFLAGS would still override .cargo/config.toml, so set it only when needed.
+          # An empty RUSTFLAGS would still override bindings/.cargo/config.toml, so set it only when
+          # needed.
           if [ -n "$TARGET_RUSTFLAGS" ]; then export RUSTFLAGS="$TARGET_RUSTFLAGS"; fi
-          npm version "${RELEASE_TAG#v}" --no-git-tag-version
+          npm version "${RELEASE_TAG#bindings-v}" --no-git-tag-version
           npm ci
           npx napi build --platform --release --target "$TARGET" ${BUILD_ARGS:+"$BUILD_ARGS"}
       # Static CRT check: the addon must load without the Visual C++ redistributable, so it may
@@ -625,7 +628,7 @@ jobs:
       - name: Assemble and pack
         working-directory: bindings/node
         run: |
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           grep -q "expected $version but got" index.js
           npm version "$version" --no-git-tag-version
           npm ci
@@ -708,7 +711,7 @@ jobs:
           PACKAGE: ${{ matrix.platform.package }}
           CONTAINER: ${{ matrix.platform.container }}
         run: |
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz" --aggregate
           if [ -n "$CONTAINER" ]; then
             docker run --rm -v "$PWD:/w" -w /w "$CONTAINER" sh "$@"
@@ -718,8 +721,8 @@ jobs:
 
   # npm trusted publishing (OIDC); provenance is generated automatically. Each package's trusted
   # publisher on npmjs.com names:
-  #   repo:        ethereum/lean-pq-bindings
-  #   workflow:    release.yml
+  #   repo:        leanEthereum/leanVM
+  #   workflow:    bindings-release.yml
   #   environment: npm          (must match `environment.name` below)
   # npm can only attach a trusted publisher to a package that already exists, so the first publish
   # of each package uses an NPM_TOKEN secret; see bindings/node/README.md. npm tries trusted
@@ -729,7 +732,7 @@ jobs:
     name: Publish to npm
     needs: [node-package, node-test]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
     environment:
       name: npm
       url: https://www.npmjs.com/package/@kevaundray/lean-pq
@@ -754,7 +757,7 @@ jobs:
         run: npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
       - name: Publish platform packages, then the root package
         run: |
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           # Tarball paths need ./ — npm reads dist/name.tgz as the GitHub repository dist/name.tgz.
           root="./dist/kevaundray-lean-pq-$version.tgz"
@@ -821,7 +824,7 @@ jobs:
         with:
           gradle-version: "9.3.1"
       - name: Run a consumer against a jar bundling this library
-        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$GITHUB_WORKSPACE/native"
+        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$GITHUB_WORKSPACE/native"
       - uses: actions/upload-artifact@v4
         with:
           name: java-native-${{ matrix.platform.name }}
@@ -853,7 +856,7 @@ jobs:
       - name: Assemble the jar
         run: |
           for dir in native/java-native-*; do mv "$dir" "native/${dir#native/java-native-}"; done
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           gradle -p bindings/java jar -Pversion="$version" -PleanPqNativeDir="$PWD/native"
           unzip -Z1 "bindings/java/build/libs/lean-pq-$version.jar" | tee jar-contents.txt
           for library in linux-x86_64/liblean_pq_native.so linux-aarch64/liblean_pq_native.so macos-universal/liblean_pq_native.dylib windows-x86_64/lean_pq_native.dll; do
@@ -862,7 +865,7 @@ jobs:
           file native/macos-universal/liblean_pq_native.dylib | grep -q 'Mach-O universal binary with 2 architectures'
           file native/windows-x86_64/lean_pq_native.dll | tee /dev/stderr | grep -q 'PE32+ executable.*DLL.*x86-64'
       - name: Run a consumer against the jar
-        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$PWD/native"
+        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"
       - name: Check Maven Central secrets
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -885,7 +888,7 @@ jobs:
         run: |
           token=$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 | tr -d '\n')
           status=$(curl -sS -o published.json -w '%{http_code}' -H "Authorization: Bearer $token" \
-            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.github.crate-crypto&name=lean-pq&version=${RELEASE_TAG#v}")
+            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.github.crate-crypto&name=lean-pq&version=${RELEASE_TAG#bindings-v}")
           if [ "$status" != 200 ]; then
             echo "::error::the Central Portal rejected MAVEN_CENTRAL_USERNAME/MAVEN_CENTRAL_PASSWORD (HTTP $status)"
             exit 1
@@ -893,7 +896,7 @@ jobs:
           cat published.json
           # Central accepts a version once; fail before signing and uploading instead of after.
           if grep -q '"published" *: *true' published.json; then
-            echo "::error::io.github.crate-crypto:lean-pq:${RELEASE_TAG#v} is already on Maven Central"
+            echo "::error::io.github.crate-crypto:lean-pq:${RELEASE_TAG#bindings-v} is already on Maven Central"
             exit 1
           fi
       - name: Sign with the release key and verify against a public keyserver
@@ -901,7 +904,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          version=${RELEASE_TAG#v}
+          version=${RELEASE_TAG#bindings-v}
           repo="$RUNNER_TEMP/m2"
           gradle -p bindings/java publishToMavenLocal -Dmaven.repo.local="$repo" -Pversion="$version" -PleanPqNativeDir="$PWD/native"
           dir="$repo/io/github/crate-crypto/lean-pq/$version"
@@ -931,10 +934,10 @@ jobs:
             gpg --verify "$file.asc" "$file"
           done
       - name: Publish to Maven Central
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/bindings-v')
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-        run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$PWD/native"
+        run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"

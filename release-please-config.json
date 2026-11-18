@@ -1,11 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "include-component-in-tag": false,
+  "include-component-in-tag": true,
+  "tag-separator": "-",
   "bump-minor-pre-major": true,
   "packages": {
-    ".": {
+    "bindings": {
       "release-type": "simple",
-      "package-name": "lean-pq-bindings",
+      "package-name": "bindings",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {
@@ -19,37 +20,38 @@
         },
         {
           "type": "generic",
-          "path": "bindings/python/README.md"
+          "path": "python/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/node/README.md"
+          "path": "node/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/java/README.md"
+          "path": "java/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/go/README.md"
+          "path": "go/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/zig/README.md"
+          "path": "zig/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/nim/README.md"
+          "path": "nim/README.md"
         },
         {
           "type": "generic",
-          "path": "bindings/nim/lean_pq.nimble"
+          "path": "nim/lean_pq.nimble"
         },
         {
           "type": "generic",
-          "path": "bindings/rust/README.md"
+          "path": "rust/README.md"
         }
-      ]
+      ],
+      "component": "bindings"
     }
   }
 }
