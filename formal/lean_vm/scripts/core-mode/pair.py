@@ -1,0 +1,304 @@
+"""The order-aware pairing of the core route (`formal/notes/core-mode.md`, milestone 1, part D): inference and checks.
+
+The pass mirrors `CoreMode.pairOk` (`LeanVM/Guest/CoreMode/PairDefs.lean`), `Bridge.alignOk`'s pass with the heap events
+consumed in order: the normalization stops at every `load` atom besides the flow hints; a `DEREF` of mode `cell`
+consumes the head `load` at its cells (pointer cell, offset, word cell), skipping reads before it (a read's cell is
+written, so a read the compiler shares with an earlier `load`'s `DEREF` needs none of its own), and records its offset
+as a read (the oracle `O`) or a store (`S`) by the heap certificate (`heapOk`'s reads, from `heap.py`); flow hints and
+jumps skip the reads at the head first. Every other instruction leaves the position. The certificate is the pair
+`(O, S)` the pass finds; the kernel's check recomputes the pass and compares.
+
+usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit DIR [--mods FILE]] [--check]
+  [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export)
+"""
+import os, sys, glob, re, collections, json
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
+import data
+import align as AL
+import heap
+
+WIN = AL.WIN
+
+
+def stmt(e, env):
+    h, a = data.head(e)
+    if h == '.atom':
+        ah, aa = data.head(a[0])
+        if ah == '.hint':
+            return ('hint', data.core_hint(aa[0], env))
+        if ah == '.load':
+            return ('load', data.val(aa[0]), data.val(aa[1]), aa[2])
+        return ('atom', ah[1:])
+    if h == '.ite':
+        return ('ite', data.val(a[0]), block(a[1], env), block(a[2], env))
+    if h == '.match_':
+        return ('match', data.val(a[0]), [block(x, env) for x in data.as_list(a[1], env)])
+    return AL.stmt(e, env)
+
+
+def block(e, env):
+    return [stmt(x, env) for x in data.as_list(e, env)]
+
+
+def body_of(text):
+    ds = data.defs(text[text.index('namespace core'):])
+    cache = {}
+
+    def env(n):
+        if n not in cache:
+            cache[n] = data.parse(ds[n])
+        return cache[n]
+    return block(env('body'), env)
+
+
+def norm(z, stop):
+    up, k, blk, idx = z
+    while True:
+        if idx < len(blk):
+            s = blk[idx]
+            if s[0] == 'atom' or (s[0] == 'hint' and not AL.flow_atom(s)) or (s[0] == 'load' and not stop(s)):
+                k, idx = k + 1, idx + 1
+                continue
+            return (up, k, blk, idx)
+        if not up:
+            return (up, k, blk, idx)
+        (kk, _, blk, idx), up = up[0], up[1:]
+        k = kk + 1
+
+
+class Fail(Exception):
+    pass
+
+
+def pair(F, body, A, locs, extra, pows, jt, ents, reads, cuts=()):
+    """The pass: the reads' and stores' `DEREF` offsets and the pass's state at each offset of `cuts`, or `Fail`."""
+    entry, code, stat = F['entry'], F['code'], F['stat']
+    main = F['name'] == 'main'
+    ex = dict(extra)
+    loc = lambda v: ex[v] if v in ex else (locs[v] if v < len(locs) else 0)
+    is_read = lambda s: s[0] == 'load' and (s[1], s[2], s[3]) in reads
+    stopL = lambda s: True
+    stopS = lambda s: not is_read(s)
+    nL = lambda z: norm(z, stopL)
+    nS = lambda z: norm(z, stopS)
+    st = lambda o: stat.get(o)
+    zero = lambda o: st(o) == ('k', 0, 0)
+    nz = lambda o: st(o) is not None and st(o)[0] == 'k' and (st(o)[1], st(o)[2]) != (0, 0)
+    self_ = lambda o: st(o) == ('fpg', 0, 0) or (main and st(o) == ('k', 1, 0))
+    pc_at = lambda o: pows.get(st(o)[1]) if st(o) is not None and st(o)[0] == 'k' and st(o)[2] == 0 else None
+    next_ = lambda o: st(o) is not None and st(o)[0] == 'fpg' and st(o)[1] != 0
+    by_ent = {e: n for n, e in sorted(ents.items())}
+
+    def fwd(i, t):
+        if t is None or not entry + i < t:
+            raise Fail(f'backward target at {i}')
+        return t - entry
+
+    def site(q, args, rets):
+        s = F['sites'].get(q)
+        return s if s is not None and s[0] == args and s[1] == rets else None
+
+    def compiles(c, h):
+        from gen import need
+        n = need(c, h)
+        if n is None or any(loc(v) != cell for v, cell in n):
+            raise Fail(f'hint {h[0]} does not compile {c[0]}')
+
+    def fwd_j(i, oc, od, of):
+        t = pc_at(od)
+        return nz(oc) and self_(of) and t is not None and entry + i < t < entry + len(code)
+
+    def jump(i, oc, od, of, z, tabs):
+        if zero(oc):
+            return z, []
+        t = pc_at(od)
+        if fwd_j(i, oc, od, of):
+            return None, [(t - entry, z)]
+        z = nS(z)
+        s = AL.zhead(z)
+        if s is None:
+            raise Fail(f'jump at {i} past the body')
+        if s[0] == 'ite':
+            if loc(s[1]) != oc or not self_(of):
+                raise Fail(f'ite at {i}')
+            return nL(AL.enter(z, 0)), [(fwd(i, t), nL(AL.enter(z, 1)))]
+        if s[0] in ('match', 'call', 'dispatch', 'ret') and not nz(oc):
+            raise Fail(f'{s[0]} at {i} on a cell not a nonzero constant')
+        if s[0] == 'match':
+            a = F['arms'].get(od)
+            if not self_(of) or a is None or a[0] != s[1]:
+                raise Fail(f'match at {i}')
+            if any(t[0] == a[1] and AL.key(t[1]) == AL.key(z) and i < t[2] for t in tabs):
+                return None, []
+            return None, [(fwd(i, jt.get(a[1] + j)), nL(AL.enter(z, j))) for j in range(len(s[2]))]
+        if s[0] == 'call':
+            si = site(of, s[2], s[3])
+            if si is None or t is None or by_ent.get(t) != s[1]:
+                raise Fail(f'call at {i}')
+            return None, [(fwd(i, si[3]), nL(AL.nxt(z)))]
+        if s[0] == 'callIf':
+            if loc(s[1]) != oc or t is None or by_ent.get(t) != s[2]:
+                raise Fail(f'callIf at {i}')
+            ca = nL(AL.nxt(z))
+            if next_(of):
+                two, more = AL.pos2(ca)
+                if two != [('ret', [])] or more:
+                    raise Fail(f'tail at {i}')
+                return ca, []
+            si = site(of, s[3], [])
+            if si is None or si[3] != entry + i + 1:
+                raise Fail(f'callIf site at {i}')
+            return ca, []
+        if s[0] == 'dispatch':
+            si = site(of, s[3], s[4])
+            if si is None or si[4] != od or od == 0:
+                raise Fail(f'dispatch at {i}')
+            return None, [(fwd(i, si[3]), nL(AL.nxt(z)))]
+        if s[0] == 'ret':
+            if (main and self_(of) and t == AL.HALT) or (not main and od == 0 and of == 1):
+                return None, []
+            raise Fail(f'ret at {i}')
+        raise Fail(f'jump at {i} on {s[0]}')
+
+    def deref(o1, o2, o3, z):
+        """The head `load` at the cells, reads before it skipped: the position past it and whether it reads."""
+        zz = z
+        while True:
+            s = AL.zhead(zz)
+            if s is None or s[0] != 'load':
+                return z, None
+            if (loc(s[2]), s[3], loc(s[1])) == (o1, o2, o3):
+                return nL(AL.nxt(zz)), is_read(s)
+            if not is_read(s):
+                return z, None
+            zz = nL(AL.nxt(zz))
+
+    pcs = [pc for pc, _ in A['hints']]
+    if A['entry'] != entry or any(x >= y for x, y in zip(pcs, pcs[1:])) or any(x < entry for x in pcs):
+        raise Fail('advice not by increasing pc from the entry')
+    hints = dict(A['hints'])
+    flow = AL.data_flow()
+    cut_set, states = set(cuts), {}
+    O, S = [], []
+    cur, pend, nd, tabs = ((), 0, body, 0), [], 0, []
+    for i, (op, a) in enumerate(code):
+        if i in cut_set:
+            states[i] = (i, nd, None if cur is None else AL.key(cur), [(o, AL.key(z)) for o, z in pend],
+                         [(b, AL.key(z), m) for b, z, m in tabs])
+        if entry + i in hints:
+            nd += 1
+        n = 0
+        while n < len(pend) and pend[n][0] == i:
+            n += 1
+        here, pend = pend[:n], pend[n:]
+        c = cur if cur is not None else (here[0][1] if here else None)
+        if c is None:
+            continue
+        if any(AL.key(p[1]) != AL.key(c) for p in here):
+            raise Fail(f'join at {i}')
+        z = nL(c)
+        for h in hints.get(entry + i, []):
+            if h[0] not in flow:
+                continue
+            z = nS(z)
+            s = AL.zhead(z)
+            if s is None or s[0] != 'hint':
+                raise Fail(f'hint {h[0]} at {i} without its atom')
+            compiles(s[1], h)
+            z = nL(AL.nxt(z))
+        if op == '.jump':
+            cur, tg = jump(i, a[0], a[1], a[2], z, tabs)
+            zs = nS(z)
+            s = AL.zhead(zs)
+            if tg and s is not None and s[0] == 'match' and not fwd_j(i, a[0], a[1], a[2]) and \
+                    F['arms'].get(a[1]) is not None:
+                tabs.insert(0, (F['arms'][a[1]][1], zs, min(min(o for o, _ in tg), 1 << 64)))
+        elif op == '.deref' and len(a) == 4 and a[3] == ('id', '.cell'):
+            cur, r = deref(a[0], a[1], a[2], z)
+            tg = []
+            if r is True:
+                O.append(i)
+            elif r is False:
+                S.append(i)
+        else:
+            cur, tg = z, []
+        for t in reversed(tg):
+            n = 0
+            while n < len(pend) and pend[n][0] < t[0]:
+                n += 1
+            pend.insert(n, t)
+    if cur is not None or pend:
+        raise Fail('falls off the end')
+    if len(code) in cut_set:
+        states[len(code)] = (len(code), nd, None, [], [(b, AL.key(z), m) for b, z, m in tabs])
+    return O, S, states
+
+
+def count_loads(body):
+    n = 0
+    for s in body:
+        if s[0] == 'load':
+            n += 1
+        elif s[0] == 'ite':
+            n += count_loads(s[2]) + count_loads(s[3])
+        elif s[0] == 'match':
+            n += sum(count_loads(x) for x in s[2])
+    return n
+
+
+def collect():
+    """Each function passing `heapOk`, with what its pairing reads and the pass's result."""
+    res = {k: heap.Fn(k).run() for k in heap.scope_fns()}
+    ok = sorted(k for k, f in res.items() if f.fail is None)
+    only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
+    if only:
+        ok = [only]
+    texts = data.core_texts()
+    bundles = data.bundles()
+    advice = data.advice()
+    fns = AL.functions()
+    pows = AL.pow_table()
+    jt = AL.jump_table(pows)
+    entry_by_name = {F['name']: F['entry'] for F in fns.values()}
+    out, fails = {}, {}
+    for k in ok:
+        F, B = fns[k], bundles[k]
+        A = advice[F['entry']]
+        body = body_of(texts[k])
+        ents = {}
+        n = len(F['code'])
+        cuts = list(range(0, n, WIN)) + [n] if n > WIN else []
+        try:
+            extra, _ = AL.align(F, AL.body_of(texts[k]), A, B['locs'], B['plumb'], pows, jt, ents)
+            O, S, states = pair(F, body, A, B['locs'], extra, pows, jt, ents, set(res[k].wit), cuts)
+        except (Fail, AL.Fail) as e:
+            fails[k] = str(e)
+            continue
+        out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
+                      pack=B['pack'], loads=count_loads(body), reads=len(res[k].wit))
+    return out, fails
+
+
+def main():
+    out, fails = collect()
+    print(f'pairing: {len(out)} of {len(out) + len(fails)} functions pass; {sum(len(f["O"]) for f in out.values())} read '
+          f'and {sum(len(f["S"]) for f in out.values())} store DEREFs; {sum(f["loads"] for f in out.values())} loads')
+    by = collections.Counter(r.split(' at ')[0] for r in fails.values())
+    print('  failures by cause:', dict(by.most_common()))
+    for k, r in sorted(fails.items())[:20]:
+        print('   ', k, r)
+    if '--oracle' in sys.argv:
+        orc = json.load(open(sys.argv[sys.argv.index('--oracle') + 1]))
+        same = [k for k in out if k in orc and sorted(orc[k]['reads']) == out[k]['O'] and sorted(orc[k]['stores']) == out[k]['S']]
+        diff = [k for k in out if k in orc and k not in same]
+        print(f'  against the oracle: {len(same)} equal, {len(diff)} differ, {len([k for k in out if k not in orc])} not in it,'
+              f' {len([k for k in orc if k not in out])} only in it')
+        for k in diff[:10]:
+            print('   differ:', k, set(orc[k]['reads']) ^ set(out[k]['O']), set(orc[k]['stores']) ^ set(out[k]['S']))
+    return out
+
+
+if __name__ == '__main__':
+    main()
