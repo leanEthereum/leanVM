@@ -79,15 +79,13 @@ def infer_one(k, S):
             raise No('callee without mode signature')
         if I.callee(f) == k:
             raise No('recursive')
-        # `CoreMode.fitBL`: no self cell, loop runs or pointer-based products
-        if Gf['self'] != ('id', 'none') or Gf['postL'] or Gf['postLP']:
-            raise No('callee self')
+        # `CoreMode.fitBL`: `callc.py`'s `fitB`; no pointer cell guaranteed (`calleePtrOk`)
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
-        if h.preP or h.postP:
+        if h.postP:
             raise No('callee pointer base')
         callc.exp_bounds(h, s[2], body, np, callc.exp_cells(G))
-        # `CoreMode.fitBL`: a callee's pointer run's run is a run it guarantees written
-        for r, _ in Gf['postP']:
+        # `CoreMode.fitBL`: a callee's pointer run's run (its loop's too) is a run it guarantees written
+        for r, _ in Gf['postP'] + Gf['postLP']:
             try:
                 q = callc.runX(r, len(s[2]) + len(s[3]))
             except No:
