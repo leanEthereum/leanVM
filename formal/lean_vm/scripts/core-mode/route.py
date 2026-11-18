@@ -190,9 +190,9 @@ def ints(x):
     return []
 
 
-def sel_ok(body):
-    """Each `match` at the top level, its selector used by a top-level atom before it, none nested or past a `ret`
-    (`CoreMode.selGo`)."""
+def sel_ok(body, params=()):
+    """Each `match` and `dispatch` at the top level, its selector used by a top-level atom before it (a dispatch's, or a
+    parameter), no `match` nested, none past a `ret` (`CoreMode.selGo`)."""
     def has_match(ss):
         for s in ss:
             if s[0] == 'match': return True
@@ -204,10 +204,12 @@ def sel_ok(body):
             seen.update(ints(s[1][1:]))
         elif s[0] == 'match':
             if s[1] not in seen or any(has_match(a) for a in s[2]): return False
+        elif s[0] == 'dispatch':
+            if s[1] not in seen and s[1] not in params: return False
         elif s[0] == 'ite':
             if has_match(s[2]) or has_match(s[3]): return False
         elif s[0] == 'ret':
-            return not has_match(body[n + 1:])
+            return not has_match(body[n + 1:]) and not any(x[0] == 'dispatch' for x in body[n + 1:])
     return True
 
 
@@ -251,7 +253,7 @@ def route(verbose=False):
         ns = F.get('ns', k)
         G = S.get(ns) or S.get(k)
         if not branchy(body): why['not straight'] += 1; continue
-        if not sel_ok(body): why['selector'] += 1; continue
+        if not sel_ok(body, params): why['selector'] += 1; continue
         if k in NZR: why['residual divisors'] += 1; continue
         if k in CALLS: why['callees'] += 1; continue
         if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue

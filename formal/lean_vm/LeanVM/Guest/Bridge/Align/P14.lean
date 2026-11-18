@@ -82,7 +82,7 @@ open LeanVM.Guest
 /-- `eq_prefix_chain`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«eq_prefix_chain».cert.locs [] Fn.«eq_prefix_chain».code.entryPc false
-    Fn.«eq_prefix_chain».plumb Data.powTree Data.jtTrie [] 524287 Fn.«eq_prefix_chain».code.instructionCount
+    Fn.«eq_prefix_chain».plumb Data.powTree Data.jtTrie [("eq_prefix_run__L0", 178664), ("eq_prefix_run__L1", 178668), ("eq_prefix_run__L10", 178929), ("eq_prefix_run__L11", 178983), ("eq_prefix_run__L12", 179042), ("eq_prefix_run__L13", 179106), ("eq_prefix_run__L14", 179175), ("eq_prefix_run__L15", 179249), ("eq_prefix_run__L16", 179328), ("eq_prefix_run__L17", 179412), ("eq_prefix_run__L18", 179501), ("eq_prefix_run__L19", 179595), ("eq_prefix_run__L2", 178677), ("eq_prefix_run__L20", 179694), ("eq_prefix_run__L21", 179798), ("eq_prefix_run__L22", 179907), ("eq_prefix_run__L23", 180021), ("eq_prefix_run__L24", 180140), ("eq_prefix_run__L25", 180264), ("eq_prefix_run__L26", 180393), ("eq_prefix_run__L27", 180527), ("eq_prefix_run__L28", 180666), ("eq_prefix_run__L29", 180810), ("eq_prefix_run__L3", 178691), ("eq_prefix_run__L30", 180959), ("eq_prefix_run__L31", 181113), ("eq_prefix_run__L32", 181272), ("eq_prefix_run__L33", 181436), ("eq_prefix_run__L34", 181605), ("eq_prefix_run__L35", 181779), ("eq_prefix_run__L36", 181958), ("eq_prefix_run__L37", 182142), ("eq_prefix_run__L38", 182331), ("eq_prefix_run__L39", 182525), ("eq_prefix_run__L4", 178710), ("eq_prefix_run__L40", 182724), ("eq_prefix_run__L5", 178734), ("eq_prefix_run__L6", 178763), ("eq_prefix_run__L7", 178797), ("eq_prefix_run__L8", 178836), ("eq_prefix_run__L9", 178880)] 524287 Fn.«eq_prefix_chain».code.instructionCount
 
 end
 

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.Pack.«P11».Mode0
-public import LeanVM.Guest.Pack.«P17».ModeD0
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
@@ -34,23 +33,12 @@ public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 public import LeanVM.Guest.Pack.«P7».ModeD0
 public import LeanVM.Guest.Pack.«P8».Mode0
-public import LeanVM.Guest.Pack.«open_stacked__L0».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L1».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L4».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L5».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L7».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L8».ModeD0
-public import LeanVM.Guest.Pack.«open_stacked__L9».ModeD0
 public import LeanVM.Guest.Pack.«verify_tables».ModeD0
 
 /-!
 # The residuals' families, checked on the guest's data
 
-`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `certify_placement`, `check_opening_terminal`, `claim_list_digest`, `log2_ceil_in_the_exponent__L0_L34`, `log2_ceil_in_the_exponent__L16_L34`, `main`, `rs_eq_run`, `shared_selector_tables`, `verify_bus_gkr`, `verify_bus_gkr_loop0`, `verify_keccak`, `verify_sub`, `verify_tables`.
+`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `certify_placement`, `claim_list_digest`, `log2_ceil_in_the_exponent__L0_L34`, `log2_ceil_in_the_exponent__L16_L34`, `main`, `rs_eq_run`, `shared_selector_tables`, `verify_bus_gkr`, `verify_bus_gkr_loop0`, `verify_keccak`, `verify_sub`, `verify_tables`.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -86,17 +74,6 @@ theorem ltWin_guest : ∀ p ∈ wpFns, ltWin p.1 p.2.1.length 4 p.2.2 64 = true 
 noncomputable def frFns : List (Fun × List OffsetInstruction × ℕ × ℕ) := [
   (Fn.«child_claim_list_any».modeFun, Fn.«child_claim_list_any».code.chunks.flatten, 8, 17),
   (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten, 8, 17),
-  (Fn.«open_stacked__L0».modeFun, Fn.«open_stacked__L0».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L1».modeFun, Fn.«open_stacked__L1».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L10».modeFun, Fn.«open_stacked__L10».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L2».modeFun, Fn.«open_stacked__L2».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L3».modeFun, Fn.«open_stacked__L3».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L4».modeFun, Fn.«open_stacked__L4».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L5».modeFun, Fn.«open_stacked__L5».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L6».modeFun, Fn.«open_stacked__L6».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L7».modeFun, Fn.«open_stacked__L7».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L8».modeFun, Fn.«open_stacked__L8».code.chunks.flatten, 2, 4),
-  (Fn.«open_stacked__L9».modeFun, Fn.«open_stacked__L9».code.chunks.flatten, 2, 4),
   (Fn.«rs_eq_run».modeFun, Fn.«rs_eq_run».code.chunks.flatten, 24, 8),
   (Fn.«shared_selector_tables».modeFun, Fn.«shared_selector_tables».code.chunks.flatten, 21, 4)]
 
@@ -120,17 +97,6 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«keccak_layer__L1».modeFun, Fn.«keccak_layer__L1».code.chunks.flatten),
   (Fn.«keccak_layer__L1_loop0».modeFun, Fn.«keccak_layer__L1_loop0».code.chunks.flatten),
   (Fn.«keccak_layer__L1_loop1».modeFun, Fn.«keccak_layer__L1_loop1».code.chunks.flatten),
-  (Fn.«open_stacked__L0».modeFun, Fn.«open_stacked__L0».code.chunks.flatten),
-  (Fn.«open_stacked__L1».modeFun, Fn.«open_stacked__L1».code.chunks.flatten),
-  (Fn.«open_stacked__L10».modeFun, Fn.«open_stacked__L10».code.chunks.flatten),
-  (Fn.«open_stacked__L2».modeFun, Fn.«open_stacked__L2».code.chunks.flatten),
-  (Fn.«open_stacked__L3».modeFun, Fn.«open_stacked__L3».code.chunks.flatten),
-  (Fn.«open_stacked__L4».modeFun, Fn.«open_stacked__L4».code.chunks.flatten),
-  (Fn.«open_stacked__L5».modeFun, Fn.«open_stacked__L5».code.chunks.flatten),
-  (Fn.«open_stacked__L6».modeFun, Fn.«open_stacked__L6».code.chunks.flatten),
-  (Fn.«open_stacked__L7».modeFun, Fn.«open_stacked__L7».code.chunks.flatten),
-  (Fn.«open_stacked__L8».modeFun, Fn.«open_stacked__L8».code.chunks.flatten),
-  (Fn.«open_stacked__L9».modeFun, Fn.«open_stacked__L9».code.chunks.flatten),
   (Fn.«verify_bus_gkr_loop0_loop0».modeFun, Fn.«verify_bus_gkr_loop0_loop0».code.chunks.flatten),
   (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten),
   (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten)]

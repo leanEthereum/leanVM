@@ -36,7 +36,8 @@ def stmt(e, env):
     if h == '.callIf':
         return ('callIf', data.val(a[0]), a[1][1], data.vals(a[2], env))
     if h == '.dispatch':
-        return ('dispatch', data.val(a[0]), None, data.vals(a[2], env), data.vals(a[3], env))
+        return ('dispatch', data.val(a[0]), [x[1] for x in as_list(a[1], env)], data.vals(a[2], env),
+                data.vals(a[3], env))
     if h == '.ret':
         return ('ret', data.vals(a[0], env))
     raise ValueError(h)
@@ -686,7 +687,8 @@ def run(check):
         if A is None:
             raise SystemExit(f'align: {key} has no advice')
         body = body_of(texts[key])
-        callees = sorted({s[1] if s[0] == 'call' else s[2] for s in walk_stmts(body) if s[0] in ('call', 'callIf')})
+        callees = sorted({s[1] if s[0] == 'call' else s[2] for s in walk_stmts(body) if s[0] in ('call', 'callIf')} |
+                         {f for s in walk_stmts(body) if s[0] == 'dispatch' for f in s[2]})
         ents = {n: entry_by_name[n] for n in callees if n in entry_by_name}
         n = len(F['code'])
         cuts = list(range(0, n, WIN)) + [n] if n > WIN else []

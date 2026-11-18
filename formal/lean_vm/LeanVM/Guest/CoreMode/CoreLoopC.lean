@@ -123,7 +123,7 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
 /-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
 signatures; no conditional call's condition at a nonzero constant's cell. -/
 noncomputable def loopShapeOkC (Cf : CFun) : Bool :=
-  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && trieNil Cf.frame.tgt &&
+  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && tgtNone Cf.X.sites && trieNil Cf.frame.tgt &&
     !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     (match Cf.frame.sig.self with
@@ -196,6 +196,7 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   rdFree : ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true
   cptr : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true
   ders : Cf.H.ders = []
+  gw : Cf.H.sig.gw = []
   nofa : noFA Cf.fn.body = true
   code : loopCodeC Cf K.code = true
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
@@ -374,7 +375,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
   obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
-    hR (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The tail call -/
@@ -725,7 +726,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   have hsh := hok.shape
   simp only [loopShapeOkC, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, hcif0⟩ := hsh
   obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBC_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
@@ -812,7 +813,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   obtain ⟨hpwR, hpwPR⟩ := callsBL_spec hok.calls hcS
   have hexp : ∀ j, idxPowC Cf args j = true →
       IdxEx (slotW (args.map σ0)) j := fun j h ↦ by
-    simpa using idxPowC_rep (ws := []) hok.pows hok.top hb hh0 hσ0.par hxw h
+    simpa using idxPowC_rep (ws := []) hok.pows hok.top hb hh0 hσ0.par hxw (hσ0.res hxw) h
   have hWs1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s1.mem x := by
     intro x hx
     rcases hW' x hx with h | ⟨a, ha, hfa, hma, hwa⟩
@@ -1128,7 +1129,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   have hsh := hok.shape
   simp only [loopShapeOkC, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, -⟩ := hsh
   have hs := sigLP_of hok.sig
   obtain ⟨henv, harm, hacc⟩ := hok.frame
@@ -1227,9 +1228,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       have main : ∀ a o c, K.code[i] = .deref a o c .cell → HeapRd s1 (.deref a o c .cell) := by
         intro a o c hci
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-        have hj : jtd Cf.X a o c = false := by
-          unfold jtd
-          rw [Check.getF_eq, trieNil_get harms0]
+        have hj : jtd Cf.X a o c = false := jtd_none harms0 hsites0 a o c
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) hj hwp
           (hrwOf σ0 pre es vs rd hσ0 hb hh0)

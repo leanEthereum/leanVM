@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P17».Mode0
-public import LeanVM.Guest.Pack.«P17».ModeD0
 
 set_option Elab.async false
 
@@ -42,18 +41,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
-
-namespace LeanVM.Guest.Fn.«check_opening_terminal»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `check_opening_terminal`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 18) (d := Data.adviceFn18) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«check_opening_terminal»

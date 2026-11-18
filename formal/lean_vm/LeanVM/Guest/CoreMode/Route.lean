@@ -55,18 +55,25 @@ def noMatch (l : List Stmt) : Bool :=
     | .match_ .. => false
     | _ => true
 
-/-- **Each `match` of a body at its top level**, its selector used by a top-level atom before it (`seen`)
-and at its certificate cell; none nested, none past a `ret`. -/
-noncomputable def selGo (j : ℕ) : List Atom → List Stmt → Bool
+/-- No `dispatch` among the statements. -/
+def noDsp (l : List Stmt) : Bool :=
+  l.all fun s ↦ match s with
+    | .dispatch .. => false
+    | _ => true
+
+/-- **Each `match` and `dispatch` of a body at its top level**, its selector used by a top-level atom before it
+(`seen`; a dispatch's, or a parameter of `ps`) and at its certificate cell; no `match` nested, none past a `ret`. -/
+noncomputable def selGo (j : ℕ) (ps : List V) : List Atom → List Stmt → Bool
   | _, [] => true
-  | seen, .atom a :: ss => selGo j (a :: seen) ss
+  | seen, .atom a :: ss => selGo j ps (a :: seen) ss
   | seen, .match_ x arms :: ss => cellB j x && seen.any (fun a ↦ decide (x ∈ Memory.atomUses a)) &&
-      noMatch (Bridge.stmtsArms arms) && selGo j seen ss
-  | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selGo j seen ss
-  | _, .ret _ :: ss => noMatch (Bridge.stmtsOf ss)
-  | seen, .call .. :: ss => selGo j seen ss
-  | seen, .callIf .. :: ss => selGo j seen ss
-  | _, _ :: _ => false
+      noMatch (Bridge.stmtsArms arms) && selGo j ps seen ss
+  | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selGo j ps seen ss
+  | _, .ret _ :: ss => noMatch (Bridge.stmtsOf ss) && noDsp (Bridge.stmtsOf ss)
+  | seen, .call .. :: ss => selGo j ps seen ss
+  | seen, .callIf .. :: ss => selGo j ps seen ss
+  | seen, .dispatch x .. :: ss => cellB j x && (ps.contains x || seen.any fun a ↦ decide (x ∈ Memory.atomUses a)) &&
+      selGo j ps seen ss
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
 at their cells; `j` neither `main` nor with chained `match`es. -/
@@ -75,7 +82,7 @@ noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
     (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
     (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty &&
-    (selGo j [] fn.body || loopBC fn)
+    (selGo j fn.params [] fn.body || loopBC fn)
 
 /-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
 checks apart. -/
@@ -86,7 +93,7 @@ noncomputable def honRest (j : ℕ) (fn : Fn) : Bool :=
 
 theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true)
     (h2 : (Bridge.stmtsOf fn.body).all (ptrCellB j) = true) (h3 : (Bridge.stmtsOf fn.body).all (retCellB j) = true)
-    (h4 : (selGo j [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
+    (h4 : (selGo j fn.params [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
   simp only [honRest, Bool.and_eq_true] at h5
   obtain ⟨⟨⟨⟨r1, r2⟩, r3⟩, r4⟩, r5⟩ := h5
   simp only [honB, Bool.and_eq_true]

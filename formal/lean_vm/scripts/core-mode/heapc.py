@@ -6,7 +6,7 @@ Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(val
 a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
-`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`,
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('prep', r, q, res)`, `('prep2', r, q, q2, res)`,
 `('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
 `ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
@@ -72,6 +72,16 @@ def isconst(c):
 
 # ---- signatures and certificates
 
+def gw_def(st, gw, c, d):
+    """`CoreMode.gwDef`: `d` read from the cell `c` of an own parameter word `(c, j)` (`HSig.gw`) names ghost `j`; then
+    `d`'s monomial."""
+    for cg, j in gw:
+        if cg == c:
+            st.define(d, baseC(GB + j))
+            break
+    return mono(st.env, d)
+
+
 class HSig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq',
               'postQ')
@@ -80,6 +90,7 @@ class HSig:
         for f in self.FIELDS:
             setattr(self, f, list(kw.get(f, ())))
         self.ghosts = kw.get('ghosts', 0)
+        self.gw = list(kw.get('gw', ()))   # own parameter words: (cell, j), ghost `j` the word at the cell (`HSig.gw`)
 
 
 EMPTY = HSig()
@@ -424,6 +435,14 @@ def appIdx(F, R, c):
     J = idxOf(base, c, S)
     return not lo[0] and lo[1] == 0 and c == cmul(base, cpow(J, S)) and hasF(F, J, cshift(hi, 1))
 
+def prepIdx2(F, R, c):
+    """A cell of a run of lower bound `g^1` extended by its two points before it (`prepIdx2`)."""
+    base, S, lo, hi = R
+    Q = prepQ(R)
+    J = idxOf(Q, c, S)
+    return S <= base[1] and not lo[0] and lo[1] == 1 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
+        J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
+
 
 def subL(offs, o):
     return all(x in o for x in offs)
@@ -585,6 +604,11 @@ def ptOk(X, st, c, w):
     if k == 'app':
         R = st.rs.get(w[1])
         return R is not None and appIdx(X.facts(st.env, w[3]), R, c) and ptOk(X, st, appQ(R), w[2])
+
+    if k == 'prep2':
+        R = st.rs.get(w[1])
+        return R is not None and prepIdx2(X.facts(st.env, w[4]), R, c) and ptOk(X, st, prepQ(R), w[2]) and \
+            ptOk(X, st, R[0], w[3])
     return False
 
 
@@ -1002,8 +1026,8 @@ class Pass:
                     p2 = st.sv.get(w[1])
                     if p2 is not None and p2[0] == c:
                         st.define(d, p2[1])
-            # loadPush
-            st.sv[st.n] = (c, mono(st.env, d))
+            # loadPush (after `gwDef`: a read of an own parameter word names its ghost)
+            st.sv[st.n] = (c, gw_def(st, X.sig.gw, c, d) if getattr(X.sig, "gw", None) else mono(st.env, d))
             st.push(c)
             if d not in st.src:
                 st.src[d] = c

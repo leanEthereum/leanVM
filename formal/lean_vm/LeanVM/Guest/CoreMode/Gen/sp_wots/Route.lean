@@ -33,17 +33,21 @@ theorem hon20_ret : (Bridge.stmtsOf Fn.«sp_wots».cfun.fn.body).all (CoreMode.r
   decide +kernel
 
 /-- `sp_wots`: its `match`es' selectors. -/
-theorem hon20_sel : (CoreMode.selGo 20 [] Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by
+theorem hon20_sel : (CoreMode.selGo 20 Fn.«sp_wots».cfun.fn.params [] Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by
   decide +kernel
 
 /-- `sp_wots`: the rest of its frame. -/
 theorem hon20_rest : CoreMode.honRest 20 Fn.«sp_wots».cfun.fn = true := by
   decide +kernel
 
+/-- `sp_wots`'s core data, the deployed guest's. -/
+theorem cfOk0 : CoreMode.CfOk Fn.«sp_wots».cfun :=
+  CoreMode.cfOk_of (by decide) Checked.code20 Checked.core20 Checked.cert20 Checked.plumbEq20
+    Bridge.ProgAl.tab20 rfl rfl rfl (by rw [CoreMode.honB_of hon20_body hon20_ptr hon20_ret hon20_sel hon20_rest]; decide +kernel)
+
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons (CoreMode.cfOk_of (by decide) Checked.code20 Checked.core20 Checked.cert20 Checked.plumbEq20
-      Bridge.ProgAl.tab20 rfl rfl rfl (by rw [CoreMode.honB_of hon20_body hon20_ptr hon20_ret hon20_sel hon20_rest]; decide +kernel))
+  Mode.fa_cons cfOk0
     (Mode.fa_nil)
 
 end

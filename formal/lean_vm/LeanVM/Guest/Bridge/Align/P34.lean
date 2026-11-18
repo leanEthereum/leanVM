@@ -53,7 +53,7 @@ open LeanVM.Guest
 /-- `child_claim_list_any`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«child_claim_list_any».cert.locs [] Fn.«child_claim_list_any».code.entryPc false
-    Fn.«child_claim_list_any».plumb Data.powTree Data.jtTrie [("__loop18", 237304), ("__loop19", 239770)] 524287 Fn.«child_claim_list_any».code.instructionCount
+    Fn.«child_claim_list_any».plumb Data.powTree Data.jtTrie [("__loop18", 237304), ("__loop19", 239770), ("child_claim_list_last__L0", 240126), ("child_claim_list_last__L1", 240151), ("child_claim_list_last__L10", 241162), ("child_claim_list_last__L11", 241364), ("child_claim_list_last__L12", 241584), ("child_claim_list_last__L13", 241822), ("child_claim_list_last__L14", 242077), ("child_claim_list_last__L15", 242351), ("child_claim_list_last__L16", 242642), ("child_claim_list_last__L2", 240195), ("child_claim_list_last__L3", 240249), ("child_claim_list_last__L4", 240330), ("child_claim_list_last__L5", 240420), ("child_claim_list_last__L6", 240533), ("child_claim_list_last__L7", 240663), ("child_claim_list_last__L8", 240812), ("child_claim_list_last__L9", 240978)] 524287 Fn.«child_claim_list_any».code.instructionCount
 
 end
 

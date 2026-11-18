@@ -81,6 +81,8 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
     exact hev hw e he v (List.mem_append_left _ (hu' v hv))
   have hms : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf Cf.fn.body → setG σ gw x = σ x := fun x arms hm ↦
     setG_eq (hs _ hm x (by simp [Stmt.uses]))
+  have hds : ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body → setG σ gw x = σ x :=
+    fun x fs args rets hm ↦ setG_eq (hs _ hm x (by simp [Stmt.uses]))
   have hrw : ∀ {es vs}, walk (setG σ gw) Cf.fn.body = .ret es vs → walk σ Cf.fn.body = .ret es vs := fun hw ↦ by
     rw [← hW]; exact hw
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -120,9 +122,9 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
     · rw [hcl hw' hc _ (List.mem_append_right _ (List.getElem_mem hk))]; exact h5 k hk
   · intro es vs hw
     exact h.tgt es vs (hrw hw)
-  · obtain ⟨hz, hnz, hself, hpc, hcond, harm, hsel⟩ := h.jc
+  · obtain ⟨hz, hnz, hself, hpc, hcond, harm, hsel, hdsel⟩ := h.jc
     refine ⟨hz, hnz, hself, hpc, fun es vs hw c hc ↦ ?_, fun x arms hm od a ha hax k t hk ht ↦ ?_,
-      fun es vs hw x arms hm ↦ ?_⟩
+      fun es vs hw x arms hm ↦ ?_, fun es vs hw x fs args rets hm ↦ ?_⟩
     · have hw' := hrw hw
       rw [hev hw' _ hc c (by simp [Ev.uses])]
       exact hcond es vs hw' c hc
@@ -130,6 +132,8 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
       exact harm x arms hm od a ha hax k t hk ht
     · rw [hms x arms hm]
       exact hsel es vs (hrw hw) x arms hm
+    · rw [hds x fs args rets hm]
+      exact hdsel es vs (hrw hw) x fs args rets hm
   · intro es vs hw e he
     have hw' := hrw hw
     exact (holds_congr (hev hw' e he)).mpr (h.holds es vs hw' e he)

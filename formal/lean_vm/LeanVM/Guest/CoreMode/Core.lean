@@ -110,7 +110,7 @@ def ptrOf : Atom → Option V
 
 /-- **What a frame's jumps read** in the reference image, at the cells the alignment's context `X`
 names: a constant `0` or a nonzero one, the frame pointer, a pc, a branch's condition on the path, a
-`match`'s target on the arm its selector picks. -/
+`match`'s target on the arm its selector picks, a `match`'s or a dispatch's selector. -/
 structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : ℕ) (σ : Val) : Prop where
   zero : ∀ o, X.zeroAt o = true → Rd img fp o = some 0
   nz : ∀ o, X.nzAt o = true → ∃ w, Rd img fp o = some w ∧ w ≠ 0
@@ -120,6 +120,9 @@ structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : �
   arm : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body → ∀ od a, Check.getF X.arms od = some a → a.1 = x.idx →
     ∀ k t, σ x = ofK (g ^ k) → Check.getF X.jt (a.2 + k) = some t → Rd img fp od = some (ofK (g ^ t))
   sel : ∀ es vs, walk σ body = .ret es vs → ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body →
+    Rd img fp (X.locAt x.idx) = some (σ x)
+  /-- A dispatch's selector at its cell. -/
+  dsel : ∀ es vs, walk σ body = .ret es vs → ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf body →
     Rd img fp (X.locAt x.idx) = some (σ x)
 
 /-- The frame cell a run bound's exponent is of, if any. -/
@@ -476,9 +479,22 @@ def expArg (xs : List ℕ) (np : ℕ) (args : List V) : CIdx → Bool
     | none => false
   | _ => false
 
-/-- A callee's run bound at a call on `args` has an exponent: `idxPow`, or a parameter's (`expArg`). -/
+/-- **A callee's run bound at a call on `args` is an argument a residual of `res` bounds** (`e(v) < n`,
+`n < 2^62`). -/
+def resArg (res : List CRes) (args : List V) : CIdx → Bool
+  | .val b => match args[b]? with
+    | some v => match vnum v with
+      | some k => res.any fun
+          | .lt (.val k') (.num n) => Nat.beq k' k && decide (n < capE)
+          | _ => false
+      | none => false
+    | none => false
+  | _ => false
+
+/-- A callee's run bound at a call on `args` has an exponent: `idxPow`, a parameter's (`expArg`), or an argument's a
+residual bounds (`resArg`). -/
 noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
-  idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i
+  idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i || resArg Cf.H.res args i
 
 /-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
 def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=
@@ -559,6 +575,25 @@ theorem preCov_spec {G : Mode.Sig} {np : ℕ} {cs : List CCell} (h : preCov G np
   · rw [preSub_spec h c hc, Bool.true_or]
   · exact List.all_eq_true.mp h c hc
 
+/-- A residual `e(n) < m`, `m + c ≤ N + 1`, `m < 2^62`. -/
+def resBnd (n c N : ℕ) : CRes → Bool
+  | .lt (.val n') (.num m) => Nat.beq n' n && decide (m + c ≤ N + 1) && decide (m < capE)
+  | _ => false
+
+/-- **A guaranteed run up to a word past a parameter, inside one up to a constant** (`postRB`): `r`'s upper bound
+the exponent of the word at `[q]·g^d` (the value `n` a top-level `load` reads there, `hpVal`) plus `c`, a residual
+`e(n) < m`, and a guarantee of `r`'s product, lower bound, stride and offset up to `g^N`, `m + c ≤ N + 1`. -/
+noncomputable def postRB (G : Mode.Sig) (Cf : CFun) (np : ℕ) (r : Mode.Rng) : Bool :=
+  match r.hi with
+  | .ex (.hp q d) c => monoOkP G np ⟨0, 0, [(.hp q d, 1)]⟩ &&
+      match hpVal Cf.fn.body (q - 2) d with
+      | some n => G.postR.any fun r2 ↦ decide (r2.q = r.q) && decide (r2.lo = r.lo) && decide (r2.S = r.S) &&
+          decide (r2.d = r.d) && match r2.hi with
+          | .num N => Cf.H.res.any (resBnd n c N)
+          | .ex _ _ => false
+      | none => false
+  | _ => false
+
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
 signature's (over parameters; a run also over the caller's cells linked to parameters or ghost slots, `rngLIs`, or a
@@ -586,13 +621,20 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
       (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
-        Cf.H.sig.postR.any (rngXIs r ·))) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
+        Cf.H.sig.postR.any (rngXIs r ·)) || postRB G Cf np r) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
+
+/-- **A callee's returned word's monomial its mode signature promises** (`retV`): returned word `k < nr` at
+the callee's frame cell `2 + na + k`, a product over its argument cells that is the cell `c`. -/
+def retMIn (G : Mode.Sig) (na nr : ℕ) (p : ℕ × CCell) : Bool :=
+  decide (p.1 < nr) && decide (2 + na + p.1 < 2 ^ 28) &&
+    G.retV.any fun q ↦ Nat.beq q.1 (2 + na + p.1) && monoS G na false q.2 && monoIs q.2 p.2
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells); each guarantee of `h` one of `G`'s (cells or points over the arguments and
-returned words, runs `G`'s or its loop's); `h` with no returned word's monomial or ghost slot. -/
+returned words, runs `G`'s or its loop's); each returned word's monomial of `h` one `G` promises (`retMIn`); `h`
+with no ghost slot. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   (match G.self with
     | some o => decide (o < 2 ^ 28)
@@ -600,7 +642,7 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
-    (h.retM.isEmpty && h.postQ.isEmpty) &&
+    (h.retM.all (retMIn G na nr) && h.postQ.isEmpty) &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
       | none => false) || hpIn G na true h.preP h.pre m) &&
@@ -663,6 +705,14 @@ noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
+/-- **A call of `g` on `args` in a body checked whole** (`callsB`): `callChk`, a callee on a mode contract
+also naming returned words' monomials (its mode signature's `retV`, `fitB`'s `retMIn`). -/
+noncomputable def callChkM (Cf : CFun) (g : String) (args : List V) : Bool :=
+  !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).postV.isEmpty &&
+    (Cf.sigOf g).retEq.isEmpty) && Nat.beq (Cf.sigOf g).ghosts 0 &&
+    ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
+    (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
+
 /-- A checked call of a callee on a mode contract gives nothing beyond its writes. -/
 theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk Cf g args = true)
     (hl : Cf.hcs.lookup g = none) (rd : Reader) (σ : Val) : EvM Cf.sigOf rd σ (.call g args rets) := by
@@ -677,9 +727,9 @@ theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk C
 dispatch's callees those `dsp` lists at each of its sites. -/
 noncomputable def callsB (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
-    | .call g args _ => callChk Cf g args
-    | .callIf _ g args => callChk Cf g args
-    | .dispatch _ fs args rets => fs.all (callChk Cf · args) &&
+    | .call g args _ => callChkM Cf g args
+    | .callIf _ g args => callChkM Cf g args
+    | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
         Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
     | _ => true
 
@@ -753,6 +803,12 @@ def matchLens (body : List Stmt) : List (ℕ × ℕ) :=
     | .match_ x arms => some (x.idx, arms.length)
     | _ => none
 
+/-- The body's `dispatch`es: selector, callee count, arguments' and returned values' indices. -/
+def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × List ℕ) :=
+  (stmtsOf body).filterMap fun s ↦ match s with
+    | .dispatch x fs args rets => some (x, fs.length, args.map (·.idx), rets.map (·.idx))
+    | _ => none
+
 /-- The slots of table `a` that every `match` of the selector it reads has, at offsets of `ts` past
 the entry `e`. -/
 noncomputable def armsCover (X : AlignCtx) (e : ℕ) (ml : List (ℕ × ℕ)) (a : ℕ × ℕ) (ts : List ℕ) : Bool :=
@@ -808,24 +864,38 @@ noncomputable def tgtGo (Cf : CFun) (ml : List (ℕ × ℕ)) : ℕ → List Offs
 noncomputable def tgtOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ tgtGo Cf ml 0 code
 
+/-- Slots `b + j`, `j < n`, lie in the environment's jump table. -/
+noncomputable def slotsIn (E : Mode.Env) (b n : ℕ) : Bool :=
+  (List.range n).all fun j ↦ decide (E.jtLo ≤ b + j) && decide (b + j < E.jtHi) && (E.jt.get (b + j)).isSome
+
+/-- A dispatch's table read `DEREF o1 o2 o3` before its `JUMP` through call site `s`: every `dispatch` at
+that site (`dl`, `dspLens`) on the value at the pointer cell `o1`, its callees' slots from base `o2` in the
+environment's jump table. -/
+noncomputable def dspRd (Cf : CFun) (E : Mode.Env) (dl : List (V × ℕ × List ℕ × List ℕ)) (s : B2C.Site)
+    (o1 o2 : ℕ) : Bool :=
+  dl.all fun q ↦ !(q.2.2.1 == s.args && q.2.2.2 == s.rets) || (Nat.beq (Cf.X.locAt q.1.idx) o1 && slotsIn E o2 q.2.1)
+
 /-- From the instructions `code`: each `DEREF` reading the jump table (`jtd`) is followed by its table
 jump, through its word cell, on no constant `0` cell and no pc, and each slot of its table that a
-`match` on its selector has lies in the environment's jump table. -/
-noncomputable def jtdGo (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) : List OffsetInstruction → Bool
+`match` on its selector has lies in the environment's jump table; or, its word cell no table's, by its
+dispatch's `JUMP` through that cell (`dspRd`). -/
+noncomputable def jtdGo (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) (dl : List (V × ℕ × List ℕ × List ℕ)) :
+    List OffsetInstruction → Bool
   | [] => true
   | ins :: code => (match ins with
       | .deref o1 o2 o3 .cell => !jtd Cf.X o1 o2 o3 || match code with
-        | .jump oc od _ :: _ => Nat.beq od o3 && !Cf.X.zeroAt oc && (Cf.X.pcAt o3).isNone && !Nat.beq o3 0 &&
+        | .jump oc od of :: _ => Nat.beq od o3 && !Cf.X.zeroAt oc && (Cf.X.pcAt o3).isNone && !Nat.beq o3 0 &&
             match Check.getF Cf.X.arms o3 with
-            | some a => ml.all fun p ↦ !Nat.beq p.1 a.1 || (List.range p.2).all fun j ↦
-                decide (E.jtLo ≤ a.2 + j) && decide (a.2 + j < E.jtHi) && (E.jt.get (a.2 + j)).isSome
-            | none => false
+            | some a => ml.all fun p ↦ !Nat.beq p.1 a.1 || slotsIn E a.2 p.2
+            | none => match Check.getF Cf.X.sites of with
+              | some s => Nat.beq s.tgt o3 && dspRd Cf E dl s o1 o2
+              | none => false
         | _ => false
-      | _ => true) && jtdGo Cf E ml code
+      | _ => true) && jtdGo Cf E ml dl code
 
 /-- **The jump table's reads**: `jtdGo` over the code. -/
 noncomputable def jtdOk (Cf : CFun) (E : Mode.Env) (code : List OffsetInstruction) : Bool :=
-  Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ jtdGo Cf E ml code
+  Exec.listSeq (matchLens Cf.fn.body) fun ml ↦ Exec.listSeq (dspLens Cf.fn.body) fun dl ↦ jtdGo Cf E ml dl code
 
 /-- An empty trie. -/
 def trieNil {α : Type} : Exec.Trie α → Bool
@@ -880,7 +950,7 @@ inductive HeapK (Cf : CFun) : Prop
         Cf.H.sig.postQ.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
-      Cf.post = [] → Cf.H.ders = [] → (noFA Cf.fn.body || noPost Cf.H.sig) = true → HeapK Cf
+      Cf.post = [] → Cf.H.ders = [] → (noFA Cf.fn.body || noPost Cf.H.sig) = true → Cf.H.sig.gw = [] → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/
 def hcOwn (G : Mode.Sig) (Cf : CFun) : Bool :=

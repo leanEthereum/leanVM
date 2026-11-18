@@ -74,7 +74,7 @@ noncomputable def loopCode (X : AlignCtx) (code : List OffsetInstruction) : Bool
 no pc, no `match` table, no table jump, callee or residual for its frame walk, not `main`'s frame;
 its entry cells and self cell small, the header among the entry cells. -/
 noncomputable def loopShapeOk (Cf : CFun) : Bool :=
-  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && trieNil Cf.frame.tgt &&
+  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && tgtNone Cf.X.sites && trieNil Cf.frame.tgt &&
     trieNil Cf.frame.sigs && !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     (match Cf.frame.sig.self with
@@ -88,6 +88,7 @@ noncomputable def loopShapeOk (Cf : CFun) : Bool :=
 structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
   ders : Cf.H.ders = []
+  gw : Cf.H.sig.gw = []
   nofa : noFA Cf.fn.body = true
   cs : Cf.cs = []
   body : loopB Cf.fn = true
@@ -179,7 +180,7 @@ theorem loop_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {σ : Val} {rd
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e _ ↦ loop_evM hok rd σ e
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryF hs hP hT)
-    hR (derOk_nil hok.ders rd σ)
+    hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
 /-! ## The signature at a frame -/
@@ -482,7 +483,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
   have hsh := hok.shape
   simp only [loopShapeOk, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, htgt0⟩, hsigs0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hsigs0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩ := hsh
   have hs := sigL_of hok.sig
   obtain ⟨henv, harm, hacc⟩ := hok.frame
@@ -575,9 +576,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
       have main : ∀ a o c, K.code[i] = .deref a o c .cell → HeapRd s1 (.deref a o c .cell) := by
         intro a o c hci
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-        have hj : jtd Cf.X a o c = false := by
-          unfold jtd
-          rw [Check.getF_eq, trieNil_get harms0]
+        have hj : jtd Cf.X a o c = false := jtd_none harms0 hsites0 a o c
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) hj hwp
           (hrwOf σ0 pre es vs rd hσ0 hb hh0)
