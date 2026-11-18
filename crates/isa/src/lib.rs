@@ -66,15 +66,19 @@ impl CompiledProgram {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
+    /// `mem[fp·c] = mem[fp·a] + mem[fp·b] + k`, the immediate `k` riding the bytecode like `SET`'s.
     Xor {
         a: u32,
         b: u32,
         c: u32,
+        k: E,
     },
+    /// `mem[fp·c] = mem[fp·a]·mem[fp·b] + k`.
     Mul {
         a: u32,
         b: u32,
         c: u32,
+        k: E,
     },
     Set {
         o: u32,

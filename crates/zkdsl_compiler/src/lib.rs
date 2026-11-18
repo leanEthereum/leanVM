@@ -245,8 +245,10 @@ pub fn disassemble(prog: &[Op]) -> String {
     for (pc, op) in prog.iter().enumerate() {
         let line = match op {
             Op::Set { o, k } => format!("SET    fp[{o}] = {}", kfmt(*k)),
-            Op::Xor { a, b, c } => format!("XOR    fp[{c}] = fp[{a}] ^ fp[{b}]"),
-            Op::Mul { a, b, c } => format!("MUL    fp[{c}] = fp[{a}] * fp[{b}]"),
+            Op::Xor { a, b, c, k } if *k == F128::ZERO => format!("XOR    fp[{c}] = fp[{a}] ^ fp[{b}]"),
+            Op::Xor { a, b, c, k } => format!("XOR    fp[{c}] = fp[{a}] ^ fp[{b}] ^ {}", kfmt(*k)),
+            Op::Mul { a, b, c, k } if *k == F128::ZERO => format!("MUL    fp[{c}] = fp[{a}] * fp[{b}]"),
+            Op::Mul { a, b, c, k } => format!("MUL    fp[{c}] = fp[{a}] * fp[{b}] ^ {}", kfmt(*k)),
             Op::Deref { o1, o2, o3, mode } => {
                 let src = match mode {
                     DerefMode::Cell => format!("fp[{o3}]"),
@@ -304,13 +306,24 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             a: *a,
             b: *b,
             c: frame_size.checked_add(*c).expect("frame offset overflow"),
+            k: F128::ZERO,
         },
         LOp::Set { o, k: kv } => Op::Set {
             o: *o,
             k: resolve_kval(kv),
         },
-        LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
-        LOp::Mul { a, b, c } => Op::Mul { a: *a, b: *b, c: *c },
+        LOp::Xor { a, b, c, k } => Op::Xor {
+            a: *a,
+            b: *b,
+            c: *c,
+            k: *k,
+        },
+        LOp::Mul { a, b, c, k } => Op::Mul {
+            a: *a,
+            b: *b,
+            c: *c,
+            k: *k,
+        },
         LOp::Deref { o1, o2, o3, mode } => Op::Deref {
             o1: *o1,
             o2: *o2,

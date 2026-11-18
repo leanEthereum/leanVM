@@ -65,7 +65,7 @@ impl Program {
 }
 
 /// An instruction's bytecode tuple after its pc: the opcode `g^op`, then the operand slots, offsets as g-powers, a
-/// `SET` immediate as its two limbs and the flags as 0 or 1. Unused slots are zero.
+/// `SET`, `XOR` or `MUL` immediate as its two limbs and the flags as 0 or 1. Unused slots are zero.
 fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
     let flag = u64::from;
     let mut tuple = [0; 1 + BYTECODE_OPERANDS];
@@ -76,8 +76,8 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
         }
     };
     match *op {
-        Op::Xor { a, b, c } => put(OP_XOR, &[a, b, c], &[]),
-        Op::Mul { a, b, c } => put(OP_MUL, &[a, b, c], &[]),
+        Op::Xor { a, b, c, k } => put(OP_XOR, &[a, b, c], &[k.c0, k.c1]),
+        Op::Mul { a, b, c, k } => put(OP_MUL, &[a, b, c], &[k.c0, k.c1]),
         Op::Set { o, k } => put(OP_SET, &[o], &[k.c0, k.c1]),
         Op::Deref { o1, o2, o3, mode } => put(OP_DEREF, &[o1, o2, o3], &[flag(mode.f_pc()), flag(mode.f_fp())]),
         Op::Jump { oc, od, of } => put(OP_JUMP, &[oc, od, of], &[]),

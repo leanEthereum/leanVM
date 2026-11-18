@@ -185,12 +185,12 @@ impl<'a> FillCtx<'a> {
         self.gpow[i as usize]
     }
 
-    /// The three frame offsets of an `XOR`/`MUL` row. A row records
+    /// The three frame offsets and the immediate of an `XOR`/`MUL` row. A row records
     /// only its `(pc, fp)`; the operands are the instruction's, so they are read
     /// back from the bytecode rather than copied into every row (`cpu::trace`).
-    fn ternary_operands(&self, pc: u32) -> (u32, u32, u32) {
+    fn ternary_operands(&self, pc: u32) -> (u32, u32, u32, [F64; 2]) {
         match self.prog[pc as usize] {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (a, b, c),
+            Op::Xor { a, b, c, k } | Op::Mul { a, b, c, k } => (a, b, c, [F64(k.c0), F64(k.c1)]),
             op => unreachable!("a three-operand row's pc {pc} holds {op:?}"),
         }
     }
@@ -400,7 +400,8 @@ const fn free_limb(odd: bool) -> (usize, bool) {
 
 /// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
 /// differ only in the opcode tag and in how the destination cell's value rides
-/// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
+/// the bus (`v_A + v_B + k` for `XOR`, `v_A·v_B + k` in `E = K[y]/(y²+x·y+1)` for `MUL`,
+/// `k` the immediate the bytecode carries).
 /// Neither commits that value and neither has an identity: the destination's
 /// memory flush carries the result as a degree-≤2 coordinate over the operand
 /// lanes, so bus balance is the assertion (§sec:m3).
@@ -421,26 +422,32 @@ mod arith {
     pub const VA_HI: usize = 6;
     pub const VB_LO: usize = 7;
     pub const VB_HI: usize = 8;
-    pub const RA: usize = 9;
-    pub const RB: usize = 10;
-    pub const RC: usize = 11;
-    pub const RBC: usize = 12;
-    pub const N: usize = 13;
+    // The immediate's two K-limbs, bound by the bytecode's spare slots.
+    pub const K_LO: usize = 9;
+    pub const K_HI: usize = 10;
+    pub const RA: usize = 11;
+    pub const RB: usize = 12;
+    pub const RC: usize = 13;
+    pub const RBC: usize = 14;
+    pub const N: usize = 15;
 }
 
-/// The result word's two K-lanes as forms over the operand lanes. For `XOR`
+/// The result word's two K-lanes as forms over the operand lanes and the immediate. For `XOR`
 /// that is the lane-wise sum; for `MUL` it is the tower product, unrolled through
-/// [`TOWER_LANES`].
+/// [`TOWER_LANES`], plus the immediate.
 fn arith_result(is_xor: bool) -> [Coord; 2] {
     use arith::*;
     if is_xor {
         return [
-            Coord::Sum(vec![Col(VA_LO), Col(VB_LO)]),
-            Coord::Sum(vec![Col(VA_HI), Col(VB_HI)]),
+            Coord::Sum(vec![Col(VA_LO), Col(VB_LO), Col(K_LO)]),
+            Coord::Sum(vec![Col(VA_HI), Col(VB_HI), Col(K_HI)]),
         ];
     }
-    let (a, b) = ([VA_LO, VA_HI], [VB_LO, VB_HI]);
-    let lane = |i: usize| Coord::Sum(TOWER_LANES[i].iter().map(|&(j, k, e)| Prod(a[j], b[k], e)).collect());
+    let (a, b, k) = ([VA_LO, VA_HI], [VB_LO, VB_HI], [K_LO, K_HI]);
+    let lane = |i: usize| {
+        let product = TOWER_LANES[i].iter().map(|&(j, l, e)| Prod(a[j], b[l], e));
+        Coord::Sum(product.chain([Col(k[i])]).collect())
+    };
     [lane(0), lane(1)]
 }
 
@@ -458,7 +465,7 @@ impl Table for Arith {
             PC,
             RBC,
             if self.is_xor { OP_XOR } else { OP_MUL },
-            &[Col(OA), Col(OB), Col(OC), Const(F64::ZERO), Const(F64::ZERO)],
+            &[Col(OA), Col(OB), Col(OC), Col(K_LO), Col(K_HI)],
         );
         f.memory(Prod(FP, OA, 0), RA, VA_LO, VA_HI);
         f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI);
@@ -470,9 +477,19 @@ impl Table for Arith {
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         ctx.cols(out, rows, OA, |r| {
-            let (a, b, c) = ctx.ternary_operands(r.pc);
+            let (a, b, c, k) = ctx.ternary_operands(r.pc);
             let (va, vb) = (ctx.limbs(r.fp + a), ctx.limbs(r.fp + b));
-            [ctx.g_at(a), ctx.g_at(b), ctx.g_at(c), va[0], va[1], vb[0], vb[1]]
+            [
+                ctx.g_at(a),
+                ctx.g_at(b),
+                ctx.g_at(c),
+                va[0],
+                va[1],
+                vb[0],
+                vb[1],
+                k[0],
+                k[1],
+            ]
         });
         ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc].map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));

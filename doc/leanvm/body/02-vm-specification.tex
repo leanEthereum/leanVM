@@ -51,7 +51,7 @@ For a given pair of bytecode and public input, there is in general more than one
 \paragraph{Operands.} An instruction is an opcode followed by a list of $\K$-valued operands. An operand is either:
 \begin{itemize}
   \item an \emph{fp-relative reference} $o=\gen^{\,j}$, which names the word $\mem[\fp\cdot o]$, at offset $j$ in the current frame;
-  \item one $\K$-limb of an \emph{immediate} ($k_0,k_1$ in \texttt{SET\_CONSTANT}).
+  \item one $\K$-limb of an \emph{immediate} ($k_0,k_1$ in \texttt{SET\_CONSTANT}, \texttt{XOR} and \texttt{MUL\_NATIVE}).
 \end{itemize}
 
 \paragraph{Instruction set.} The machine implements six instructions.
@@ -60,8 +60,8 @@ For a given pair of bytecode and public input, there is in general more than one
 \hline
 Instruction & Operands & Semantics\\
 \hline
-\texttt{XOR}           & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}+\loc{o_B}$ (addition in $\E$)\\
-\texttt{MUL\_NATIVE}   & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}\cdot\loc{o_B}$ (multiplication in $\E$)\\
+\texttt{XOR}           & $[o_A,o_B,o_C,k_0,k_1]$ & $\loc{o_C}=\loc{o_A}+\loc{o_B}+k_0+k_1y$ (addition in $\E$)\\
+\texttt{MUL\_NATIVE}   & $[o_A,o_B,o_C,k_0,k_1]$ & $\loc{o_C}=\loc{o_A}\cdot\loc{o_B}+k_0+k_1y$ (multiplication in $\E$)\\
 \texttt{SET\_CONSTANT} & $[o,k_0,k_1]$ & $\loc{o}=k_0+k_1y$\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\

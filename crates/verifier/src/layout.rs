@@ -219,9 +219,10 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     );
     let va = cols(ARITH_COLUMNS, ["va_0", "va_1"]);
     let vb = cols(ARITH_COLUMNS, ["vb_0", "vb_1"]);
+    let k = cols(ARITH_COLUMNS, ["k_0", "k_1"]);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), constant(ZERO), constant(ZERO)];
+    let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), col(k[0], 0), col(k[1], 0)];
     flushes.bytecode(pc, cnt_bc, opcode, operands);
     flushes.memory_cols(prod(fp, o_a, 0), cnt_a, &va);
     flushes.memory_cols(prod(fp, o_b, 0), cnt_b, &vb);
@@ -232,6 +233,7 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     } else {
         std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
     };
+    let result = std::array::from_fn(|i| result[i].clone() + col(k[i], 0));
     flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
     flushes
 }
@@ -383,7 +385,7 @@ pub const OP_KECCAK: usize = 5;
 pub const N_TABLES: usize = 6;
 
 #[rustfmt::skip]
-const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
+const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "k_0", "k_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
 const SET_COLUMNS: &[&str] = &["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"];
 #[rustfmt::skip]
 const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"];

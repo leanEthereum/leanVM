@@ -156,7 +156,7 @@ struct Scope {
     /// cached cell's defining instruction always precedes its reuse. A new
     /// backward edge, or a `patch_local` that jumps backwards, would need this
     /// cleared at the target.
-    pure_cells: HashMap<(PureOp, Off, Off), Off>,
+    pure_cells: HashMap<(PureOp, Off, Off, F128), Off>,
     /// Dominating memory equalities. Reads reuse the frame cell; stores still
     /// emit their equality checks. Branch joins restore this with the scope.
     load_cells: HashMap<(Off, u32), Off>,
@@ -379,17 +379,102 @@ impl FnLower<'_> {
     /// bound's `n·g^{-1}` may come from here: its first `MUL` pins it before any range
     /// check writes into it.
     fn pure(&mut self, op: PureOp, a: Off, b: Off) -> Off {
-        let key = (op, a.min(b), a.max(b));
+        self.pure_k(op, a, b, F128::ZERO)
+    }
+
+    /// [`Self::pure`] of `a op b + k`, the immediate `k` riding the instruction.
+    fn pure_k(&mut self, op: PureOp, a: Off, b: Off, k: F128) -> Off {
+        let key = (op, a.min(b), a.max(b), k);
         if let Some(&o) = self.scope.pure_cells.get(&key) {
             return o;
         }
         let o = self.fresh();
-        match op {
-            PureOp::Xor => self.emit(LOp::Xor { a, b, c: o }),
-            PureOp::Mul => self.emit(LOp::Mul { a, b, c: o }),
-        }
+        self.arith(op, a, b, o, k);
         self.scope.pure_cells.insert(key, o);
         o
+    }
+
+    /// Emit `c = a op b + k`.
+    fn arith(&mut self, op: PureOp, a: Off, b: Off, c: Off, k: F128) {
+        self.emit(match op {
+            PureOp::Xor => LOp::Xor { a, b, c, k },
+            PureOp::Mul => LOp::Mul { a, b, c, k },
+        });
+    }
+
+    /// `x + k`, `k` a compile-time constant and `x` not, as one instruction with `k` its immediate: a product
+    /// `x = p·q` is that `MUL`, a sum `x = p + q` that `XOR`, and anything else is added to the zero cell, unless a
+    /// cell already holds `k`. Into `dst` when given, whose write may then be the assertion, else a pooled cell.
+    fn add_const(&mut self, mut x: &Expr, mut k: F128, dst: Option<Off>) -> Off {
+        loop {
+            match x {
+                Expr::Add(p, q) => {
+                    if let Some(y) = self.add_identity(p, q) {
+                        x = y;
+                    } else if let Some((y, j)) = self.const_addend(p, q) {
+                        (x, k) = (y, k + j);
+                    } else {
+                        break;
+                    }
+                }
+                Expr::Mul(p, q) => match self.mul_identity(p, q) {
+                    Some(y) => x = y,
+                    None => break,
+                },
+                _ => break,
+            }
+        }
+        if k == F128::ZERO {
+            return match dst {
+                Some(c) => {
+                    self.expr_into(x, c);
+                    c
+                }
+                None => self.expr(x),
+            };
+        }
+        let (op, a, b, k) = match x {
+            Expr::Mul(p, q) if !matches!(self.gaddr_of(x), Some(GAddr { base: Some(_), .. })) => {
+                (PureOp::Mul, self.expr(p), self.expr(q), k)
+            }
+            Expr::Add(p, q) => (PureOp::Xor, self.expr(p), self.expr(q), k),
+            _ => {
+                let a = self.expr(x);
+                let (b, k) = self.const_operand(k);
+                (PureOp::Xor, a, b, k)
+            }
+        };
+        match dst {
+            Some(c) => {
+                self.arith(op, a, b, c, k);
+                c
+            }
+            None => self.pure_k(op, a, b, k),
+        }
+    }
+
+    /// `c = a + k`: one `XOR`, of the cell already holding `k` if one does, else of the zero cell with `k` its
+    /// immediate.
+    pub(super) fn xor_const(&mut self, a: Off, k: F128, c: Off) {
+        let (b, k) = self.const_operand(k);
+        self.arith(PureOp::Xor, a, b, c, k);
+    }
+
+    /// The second operand and immediate an `XOR` adding `k` takes.
+    fn const_operand(&mut self, k: F128) -> (Off, F128) {
+        match self.scope.const_cells.get(&k) {
+            Some(&cell) => (cell, F128::ZERO),
+            None => (self.zero(), k),
+        }
+    }
+
+    /// `(x, k)` when one side of `a + b` is a compile-time constant `k` and the other, `x`, is not.
+    fn const_addend<'e>(&self, a: &'e Expr, b: &'e Expr) -> Option<(&'e Expr, F128)> {
+        match (self.try_field_const(a), self.try_field_const(b)) {
+            (None, Some(k)) => Some((a, k)),
+            (Some(k), None) => Some((b, k)),
+            _ => None,
+        }
     }
 
     /// The frame cell `arr[idx]` names, bounds-checked, or `None` when `arr` is
@@ -457,7 +542,12 @@ impl FnLower<'_> {
     /// `dst = src` (no MOV: multiply by `1`).
     fn copy(&mut self, src: Off, dst: Off) {
         let one = self.one();
-        self.emit(LOp::Mul { a: src, b: one, c: dst });
+        self.emit(LOp::Mul {
+            a: src,
+            b: one,
+            c: dst,
+            k: F128::ZERO,
+        });
     }
 
     /// A frame cell holding this function's own `fp` (the g-power element),
@@ -878,7 +968,12 @@ impl FnLower<'_> {
         let inv = self.fresh();
         self.pending.push(Hint::Resolved(RHint::Inverse { value: x, dst: inv }));
         let p = self.fresh();
-        self.emit(LOp::Mul { a: x, b: inv, c: p });
+        self.emit(LOp::Mul {
+            a: x,
+            b: inv,
+            c: p,
+            k: F128::ZERO,
+        });
         self.set_const(p, F128::ONE);
     }
 
@@ -968,7 +1063,12 @@ impl FnLower<'_> {
         let t1 = self.fresh(); // DEREF targets: unconstrained touch cells
         let t2 = self.fresh();
         self.deref(x, 0, t1, DerefMode::Cell);
-        self.emit(LOp::Mul { a: x, b: y, c: kcell });
+        self.emit(LOp::Mul {
+            a: x,
+            b: y,
+            c: kcell,
+            k: F128::ZERO,
+        });
         self.deref(y, 0, t2, DerefMode::Cell);
     }
 
@@ -1016,6 +1116,9 @@ impl FnLower<'_> {
                 if let Some(x) = self.add_identity(a, b) {
                     return self.expr(x);
                 }
+                if let Some((x, k)) = self.const_addend(a, b) {
+                    return self.add_const(x, k, None);
+                }
                 let (la, lb) = (self.expr(a), self.expr(b));
                 self.pure(PureOp::Xor, la, lb)
             }
@@ -1039,7 +1142,7 @@ impl FnLower<'_> {
                 // `a` must already be written, which `self.expr(a)` guarantees.
                 let (la, lb) = (self.expr(a), self.expr(b));
                 let q = self.fresh();
-                self.emit(LOp::Mul { a: q, b: lb, c: la });
+                self.emit(LOp::Mul { a: q, b: lb, c: la, k: F128::ZERO });
                 q
             }
             // Folded above when it is what it claims to be, so reaching here means
@@ -1186,11 +1289,13 @@ impl FnLower<'_> {
             Expr::Add(a, b) => {
                 if let Some(x) = self.add_identity(a, b) {
                     self.expr_into(x, dst);
+                } else if let Some((x, k)) = self.const_addend(a, b) {
+                    self.add_const(x, k, Some(dst));
                 } else {
                     // Not `pure`: `dst` is the caller's, so it may be written
                     // again and the second write be the assertion. See its doc.
                     let (la, lb) = (self.expr(a), self.expr(b));
-                    self.emit(LOp::Xor { a: la, b: lb, c: dst });
+                    self.arith(PureOp::Xor, la, lb, dst, F128::ZERO);
                 }
             }
             Expr::Mul(a, b) => {
@@ -1198,7 +1303,7 @@ impl FnLower<'_> {
                     self.expr_into(x, dst);
                 } else {
                     let (la, lb) = (self.expr(a), self.expr(b));
-                    self.emit(LOp::Mul { a: la, b: lb, c: dst });
+                    self.arith(PureOp::Mul, la, lb, dst, F128::ZERO);
                 }
             }
             // A call writes its single return value straight into `dst` (an
@@ -1320,7 +1425,12 @@ impl FnLower<'_> {
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
                 let one = self.one();
-                self.emit(LOp::Mul { a: la, b: one, c: lb });
+                self.emit(LOp::Mul {
+                    a: la,
+                    b: one,
+                    c: lb,
+                    k: F128::ZERO,
+                });
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),

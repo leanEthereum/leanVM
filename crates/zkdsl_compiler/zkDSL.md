@@ -508,8 +508,8 @@ Five builtins have the prover compute the values at witness generation instead o
 | construct | instructions |
 |---|---|
 | `x = <literal>` / `GEN ** k` | 1 `SET` |
-| `a + b` | 1 `XOR` |
-| `a * b` | 1 `MUL` |
+| `a + b` | 1 `XOR`; `a + <constant>` and `a + b + <constant>` too, the constant riding the `XOR` as its immediate |
+| `a * b` | 1 `MUL`; `a * b + <constant>` too, the constant its immediate |
 | `a / b` | 1 `MUL` (write-once back-solve; division by zero is undefined) |
 | heap read / store `buf[i]` | 1 `DEREF`; +1 `MUL` for a *runtime* index (a compile-time g-power offset folds into the `DEREF`, for free) |
 | stack read `sa[k]` | 0 (direct cell addressing); a *store* is 1, like any other write |

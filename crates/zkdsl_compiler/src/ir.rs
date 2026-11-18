@@ -51,15 +51,19 @@ pub(crate) enum LOp {
         o: Off,
         k: KVal,
     },
+    /// `c = a + b + k`.
     Xor {
         a: Off,
         b: Off,
         c: Off,
+        k: F128,
     },
+    /// `c = a·b + k`.
     Mul {
         a: Off,
         b: Off,
         c: Off,
+        k: F128,
     },
     Deref {
         o1: Off,

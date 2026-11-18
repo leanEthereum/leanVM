@@ -79,6 +79,7 @@ fn program(frame0: usize, iterations: &[Iteration], heap: bool, prefix: [Op; 2])
         a: STRIDE as u32,
         b: 5,
         c: 4,
+        k: verifier::E::default(),
     };
     code[11] = deref(1, 0);
     for k in 0..4 {
