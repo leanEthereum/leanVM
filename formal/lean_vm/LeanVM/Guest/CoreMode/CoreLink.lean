@@ -113,10 +113,10 @@ theorem monoVal_slotL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m 
   simp only [pow_zero, one_mul, CCell.valW]
   ring
 
-/-- **A bound's value is its heap index's exponent**, the caller's cells linked. -/
+/-- **A bound's value is its heap index's exponent, if it has one**, the caller's cells linked. -/
 theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx}
-    (hi : idxL gl i = some ci) (hc : SlotEqL gl s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) :
-    rep ((idxC ci).valW (slotW ws)) = some x := by
+    (hi : idxL gl i = some ci) (hc : SlotEqL gl s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) {y : ℕ}
+    (hy : rep ((idxC ci).valW (slotW ws)) = some y) : y = x := by
   -- the base's word, a power of `g`
   have hbase : ∀ b, IdxVal s (.ex b 0) x → (∃ w, BaseL gl ws b = some w ∧ ∀ u, BaseVal s b u → u = w) →
       ∃ w, BaseL gl ws b = some w ∧ rep w = some x := by
@@ -124,6 +124,9 @@ theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : 
     refine ⟨w, hw, ?_⟩
     rw [← hu v hv, hve]
     exact rep_of (by rw [capE_eq]; exact he)
+  suffices hs : rep ((idxC ci).valW (slotW ws)) = some x by
+    rw [hs, Option.some.injEq] at hy
+    exact hy.symm
   cases i with
   | num n =>
     simp only [idxL, idxX, Bool.cond_eq_ite, decide_eq_true_eq] at hi
@@ -135,15 +138,21 @@ theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : 
   | ex b c =>
     cases b with
     | fr o =>
-      simp only [idxL, idxX, Bool.cond_eq_ite, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hi
+      simp only [idxL, idxX, Bool.cond_eq_ite, Bool.and_eq_true, decide_eq_true_eq] at hi
       split_ifs at hi with hn
       cases hi
-      obtain ⟨h2, rfl⟩ := hn
-      obtain ⟨w, hw, hr⟩ := hbase _ h (hc _ List.mem_cons_self)
-      simp only [BaseL, h2, ite_true, Option.some.injEq] at hw
+      obtain ⟨v, e, hv, rfl, he, rfl⟩ := h
+      obtain ⟨w, hw, hu⟩ := hc _ List.mem_cons_self
+      simp only [BaseL, hn.1, ite_true, Option.some.injEq] at hw
       subst hw
-      rw [idxC, valW_baseC]
-      exact hr
+      have hy' := hy
+      rw [valW_idxO, ← hu _ hv] at hy'
+      obtain ⟨hy1, hy2⟩ := rep_spec hy'
+      rw [capE_eq] at hy1
+      have hyx : y = e + c := gpow_inj_lt (by omega) (by omega) (by
+        rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul'])
+      rw [← hyx]
+      exact hy
     | hp q d =>
       simp only [idxL] at hi
       split_ifs at hi with hn
@@ -177,9 +186,9 @@ theorem rw_slotL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {r : Mod
   intro x hx
   obtain ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩ := runSet_iff.mp hx
   obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
-  rw [idxVal_repL hlo hc2 hil, Option.some.injEq] at h1
-  rw [idxVal_repL hhi hc3 hih, Option.some.injEq] at h2
-  subst h1 h2
+  have e1 := idxVal_repL hlo hc2 hil h1
+  have e2 := idxVal_repL hhi hc3 hih h2
+  subst e1 e2
   obtain ⟨y, hy, hw⟩ := hall j h3 h4
   rw [monoVal_slotL hmc hcq hv, run_cell] at hy
   exact wrk_names hy hw

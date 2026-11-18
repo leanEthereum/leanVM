@@ -25,7 +25,8 @@ function's own code whose soundness at its honest instances is proved once, in `
 * `rc`: `e(x) < n` (`.lt (.val x) (.num n)`), the value `x` range checked on every returning path
   against a constant `g^(N - 1)`, `N ≤ n` (`Res.rcBound` of the top-level atoms, `Res.topAtoms`), from
   the instance's path;
-* `sel`: the same, `x` a top-level selector of `m ≤ n` arms (`Res.topSels`), from its path;
+* `sel`: the same, `x` a top-level selector of `m ≤ n` arms (`Res.topSels`), from its path; and
+  `e(x·g^c) < n` (`.lt (.mono ⟨[(x, 1)], c⟩) (.num n)`) for such a selector of `m` arms, `m + c ≤ n`;
 * `exp`: the same, `n ≥ 2^28`, `x` a parameter an entry run bounds (so `g^e`, `e < 2^62`, `ExpW`) and
   `q = b·x` with `b` and `q` dereferenced on every returning path: `e` is the difference of two
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
@@ -72,7 +73,8 @@ where
     | _ => false
 
 /-- **A residual of a family**, read off the function's code and frame signature `G` of `np`
-parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`) on every
+parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
+constant power of `g`) on every
 returning path, of a parameter an entry run bounds and the quotient of two addresses the path
 dereferences (`exp`, a bound `≥ 2^28`), `column_selector`'s lowest digit (`cs`), or such a residual
 under branch conditions. -/
@@ -89,6 +91,10 @@ noncomputable def resFam (fn : Fn) (G : Mode.Sig) : CRes → Bool
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
         | _ => false
     | _, _ => false
+  | .lt (.mono c) (.num n) => match c.bases with
+    | [(x, 1)] => decide (n < capE) &&
+        (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)
+    | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
   | .under _ r => resFam fn G r

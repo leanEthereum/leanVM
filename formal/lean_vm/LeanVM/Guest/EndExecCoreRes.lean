@@ -156,6 +156,27 @@ theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
     | _ => simp at hm
   · cases h
 
+/-- **The `sel` family of a selector times a power of `g` holds** (`e(x·g^c) < n`, `x` a top-level selector of
+`m` arms, `m + c ≤ n`) at a valuation along a returning path. -/
+theorem resSelM_sound {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
+    {c : CoreMode.CCell} {n : ℕ} (h : resFam fn G (.lt (.mono c) (.num n)) = true) :
+    (CRes.lt (.mono c) (.num n)).Holds σ := by
+  obtain ⟨cb, k⟩ := c
+  simp only [resFam] at h
+  split at h
+  · rename_i _ x
+    simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    obtain ⟨hn, p, hp, hpx, hpk⟩ := h
+    obtain ⟨e, he, hσ⟩ := topSels_sound hw (x := p.1) (n := p.2) hp
+    rw [hpx] at hσ
+    refine ⟨e + k, n, ?_, CoreMode.rep_const hn, by omega⟩
+    have e1 : CoreMode.CCell.valW (vw σ) ⟨[(x, 1)], k⟩ = σ (V.n x) * ofK (addressOfIndex k) := by
+      simp [CoreMode.CCell.valW, CoreMode.prodW, vw]
+    simp only [idxC]
+    rw [e1, hσ, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+    exact rep_of (by omega)
+  · cases h
+
 theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
   unfold Program.find? at h
   have := List.find?_some h
@@ -225,8 +246,12 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resLtM_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
+  | .lt (.mono c) (.num n), h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    exact resSelM_sound hw h
   | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
-  | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) _, h
+  | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
   | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
 
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in

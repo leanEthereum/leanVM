@@ -785,7 +785,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     hsplit hσ0 hpos hb hwp hh0
   obtain ⟨hpwR, hpwPR⟩ := callsBL_spec hok.calls hcS
   have hexp : ∀ j, idxPowC Cf args j = true →
-      ∃ y, rep ((idxC j).valW (slotW (args.map σ0))) = some y := fun j h ↦ by
+      IdxEx (slotW (args.map σ0)) j := fun j h ↦ by
     simpa using idxPowC_rep (ws := []) hok.pows hok.top hb hh0 hσ0.par hxw h
   have hWs1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s1.mem x := by
     intro x hx

@@ -36,8 +36,33 @@ variable {κ : ℕ}
 
 /-! ## Bounds -/
 
+theorem idxC_idxO (b c : ℕ) : idxC (idxO b c) = ⟨[(b, 1)], c⟩ := by
+  cases c <;> rfl
+
+theorem valW_idxO (w : ℕ → E) (b c : ℕ) :
+    (idxC (idxO b c)).valW w = w b * ofK (addressOfIndex c) := by
+  rw [idxC_idxO]
+  simp [CCell.valW, prodW]
+
+/-- **A heap index has an exponent** at the slots' words `w`, at least its constant offset. -/
+def IdxEx (w : ℕ → E) (i : CIdx) : Prop := ∃ y, rep ((idxC i).valW w) = some y ∧ (idxC i).off ≤ y
+
+theorem idxEx_num (w : ℕ → E) {n : ℕ} (hn : n < 2 ^ 62) : IdxEx w (.num n) :=
+  ⟨n, rep_const (by rw [capE_eq]; exact hn), le_refl _⟩
+
+theorem idxEx_val {w : ℕ → E} {b : ℕ} {e : ℕ} (he : e < 2 ^ 62) (hw : w b = ofK (g ^ e)) : IdxEx w (.val b) :=
+  ⟨e, by rw [idxC, valW_baseC, hw]; exact rep_of (by rw [capE_eq]; exact he), Nat.zero_le _⟩
+
+/-- `g^e · g^c` read as its exponent `e + c`. -/
+theorem idxEx_idxO {w : ℕ → E} {b c e : ℕ} (he : e + c < 2 ^ 62) (hw : w b = ofK (g ^ e)) : IdxEx w (idxO b c) := by
+  refine ⟨e + c, ?_, by rw [idxC_idxO]; exact Nat.le_add_left _ _⟩
+  rw [valW_idxO, hw, show ofK (g ^ e) * ofK (addressOfIndex c) = ofK (addressOfIndex (e + c)) by
+    rw [addressOfIndex, addressOfIndex, pow_add, ofK_mul']]
+  exact rep_of (by rw [capE_eq]; exact he)
+
 theorem idxX_spec {i : Mode.Idx} {ci : CIdx} (h : idxX i = some ci) :
-    (∃ n, i = .num n ∧ n < 2 ^ 62 ∧ ci = .num n) ∨ ∃ o, i = .ex (.fr o) 0 ∧ 2 ≤ o ∧ ci = .val (o - 2) := by
+    (∃ n, i = .num n ∧ n < 2 ^ 62 ∧ ci = .num n) ∨
+      ∃ o c, i = .ex (.fr o) c ∧ 2 ≤ o ∧ c < 2 ^ 28 ∧ ci = idxO (o - 2) c := by
   cases i with
   | num n =>
     simp only [idxX, Bool.cond_eq_ite, decide_eq_true_eq] at h
@@ -47,11 +72,10 @@ theorem idxX_spec {i : Mode.Idx} {ci : CIdx} (h : idxX i = some ci) :
   | ex b c =>
     cases b with
     | fr o =>
-      simp only [idxX, Bool.cond_eq_ite, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at h
+      simp only [idxX, Bool.cond_eq_ite, Bool.and_eq_true, decide_eq_true_eq] at h
       split_ifs at h with hn
       cases h
-      obtain ⟨h2, rfl⟩ := hn
-      exact .inr ⟨o, rfl, h2, rfl⟩
+      exact .inr ⟨o, c, rfl, hn.1, hn.2, rfl⟩
     | hp q d => simp [idxX] at h
 
 theorem rngX_spec {r : Mode.Rng} {q : CRun} (h : rngX r = some q) :
@@ -72,47 +96,61 @@ theorem slotGet_app {s : St} {ws : List E} {a b : List (Mode.Base × ℕ)} (h : 
     SlotGet s ws a ∧ SlotGet s ws b :=
   ⟨fun x hx ↦ h x (List.mem_append_left _ hx), fun x hx ↦ h x (List.mem_append_right _ hx)⟩
 
-/-- **A bound's value is its heap index's exponent** (where its cell holds its slot's word). -/
+/-- **A bound's value is its heap index's exponent, if it has one** (where its cell holds its slot's word): the
+bound `e + c` of the word `g^e`, `e < 2^62`, `c < 2^28`, and the exponent below `2^62` of `g^(e + c)`. -/
 theorem idxVal_rep {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX i = some ci)
-    (hc : SlotEq s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) : rep ((idxC ci).valW (slotW ws)) = some x := by
-  rcases idxX_spec hi with ⟨n, rfl, hn, rfl⟩ | ⟨o, rfl, h2, rfl⟩
+    (hc : SlotEq s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) {y : ℕ}
+    (hy : rep ((idxC ci).valW (slotW ws)) = some y) : y = x := by
+  rcases idxX_spec hi with ⟨n, rfl, hn, rfl⟩ | ⟨o, c, rfl, h2, hc28, rfl⟩
   · simp only [IdxVal] at h
     subst h
-    exact rep_const (by rw [capE_eq]; exact hn)
+    rw [idxC, rep_const (by rw [capE_eq]; exact hn), Option.some.injEq] at hy
+    exact hy.symm
   · obtain ⟨v, e, hv, rfl, he, rfl⟩ := h
     obtain ⟨o', ho', -, hget⟩ := hc _ List.mem_cons_self
     simp only [Mode.Base.fr.injEq] at ho'
     subst ho'
     simp only [BaseVal] at hv
-    rw [idxC, valW_baseC, ← hget _ hv]
-    exact rep_of (by rw [capE_eq]; exact he)
+    rw [valW_idxO, ← hget _ hv] at hy
+    obtain ⟨hy1, hy2⟩ := rep_spec hy
+    rw [capE_eq] at hy1
+    refine gpow_inj_lt (by omega) (by omega) ?_
+    rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul']
 
-/-- **A heap index's exponent is its bound's value** (where its cell holds its slot's word). -/
+/-- **A heap index's exponent, at least its offset, is its bound's value** (where its cell holds its slot's word). -/
 theorem rep_idxVal {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX i = some ci)
-    (hc : SlotGet s ws (idxB i)) {x : ℕ} (h : rep ((idxC ci).valW (slotW ws)) = some x) : IdxVal s i x := by
-  rcases idxX_spec hi with ⟨n, rfl, hn, rfl⟩ | ⟨o, rfl, h2, rfl⟩
+    (hc : SlotGet s ws (idxB i)) {x : ℕ} (h : rep ((idxC ci).valW (slotW ws)) = some x) (hx : (idxC ci).off ≤ x) :
+    IdxVal s i x := by
+  rcases idxX_spec hi with ⟨n, rfl, hn, rfl⟩ | ⟨o, c, rfl, h2, hc28, rfl⟩
   · rw [idxC, rep_const (by rw [capE_eq]; exact hn), Option.some.injEq] at h
     exact h.symm
   · obtain ⟨o', ho', -, hget⟩ := hc _ List.mem_cons_self
     simp only [Mode.Base.fr.injEq] at ho'
     subst ho'
-    rw [idxC, valW_baseC] at h
-    obtain ⟨hx, hw⟩ := rep_spec h
-    exact ⟨_, x, hget, hw, by rw [capE_eq] at hx; exact hx, rfl⟩
+    rw [idxC_idxO] at hx
+    change c ≤ x at hx
+    rw [valW_idxO] at h
+    obtain ⟨hx1, hw⟩ := rep_spec h
+    rw [capE_eq] at hx1
+    have hw' : slotW ws (o - 2) = ofK (g ^ (x - c)) := by
+      have hne : ofK (addressOfIndex c) ≠ 0 := Mode.ofK_gpow_ne_zero c
+      refine mul_right_cancel₀ hne ?_
+      rw [hw, addressOfIndex, addressOfIndex, ← ofK_mul', ← pow_add, Nat.sub_add_cancel hx]
+    exact ⟨_, x - c, hget, hw', by omega, by omega⟩
 
 /-- A constant bound's heap index has its exponent. -/
 theorem rngX_rep_lo {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hb : idxB r.lo = []) (w : ℕ → E) :
-    ∃ y, rep ((idxC q.lo).valW w) = some y := by
+    IdxEx w q.lo := by
   obtain ⟨lo, hi, c, hlo, -, -, rfl⟩ := rngX_spec h
-  rcases idxX_spec hlo with ⟨n, hn', hn, rfl⟩ | ⟨o, ho, -, -⟩
-  · exact ⟨n, rep_const (by rw [capE_eq]; exact hn)⟩
+  rcases idxX_spec hlo with ⟨n, hn', hn, rfl⟩ | ⟨o, c', ho, -, -⟩
+  · exact idxEx_num w hn
   · rw [ho] at hb; simp [idxB] at hb
 
 theorem rngX_rep_hi {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hb : idxB r.hi = []) (w : ℕ → E) :
-    ∃ y, rep ((idxC q.hi).valW w) = some y := by
+    IdxEx w q.hi := by
   obtain ⟨lo, hi, c, -, hhi, -, rfl⟩ := rngX_spec h
-  rcases idxX_spec hhi with ⟨n, hn', hn, rfl⟩ | ⟨o, ho, -, -⟩
-  · exact ⟨n, rep_const (by rw [capE_eq]; exact hn)⟩
+  rcases idxX_spec hhi with ⟨n, hn', hn, rfl⟩ | ⟨o, c', ho, -, -⟩
+  · exact idxEx_num w hn
   · rw [ho] at hb; simp [idxB] at hb
 
 /-! ## Runs -/
@@ -137,24 +175,23 @@ theorem rw_slotX {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngX r =
   intro x hx
   obtain ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩ := runSet_iff.mp hx
   obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
-  rw [idxVal_rep hlo hc2 hil, Option.some.injEq] at h1
-  rw [idxVal_rep hhi hc3 hih, Option.some.injEq] at h2
-  subst h1 h2
+  have e1 := idxVal_rep hlo hc2 hil h1
+  have e2 := idxVal_rep hhi hc3 hih h2
+  subst e1 e2
   obtain ⟨y, hy, hw⟩ := hall j h3 h4
   rw [monoVal_slot hmc hcq hv, run_cell] at hy
   exact wrk_names hy hw
 
 /-- **A heap run written is its run written**, its bounds having exponents. -/
 theorem slot_rwX {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngX r = some q)
-    (hc : SlotGet s ws (rngM r).bs) (hlo : ∃ y, rep ((idxC q.lo).valW (slotW ws)) = some y)
-    (hhi : ∃ y, rep ((idxC q.hi).valW (slotW ws)) = some y)
+    (hc : SlotGet s ws (rngM r).bs) (hlo : IdxEx (slotW ws) q.lo) (hhi : IdxEx (slotW ws) q.hi)
     (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) : RW s r := by
   obtain ⟨lo, hi, c, hlo', hhi', hmc, rfl⟩ := rngX_spec hr
   obtain ⟨hc1, hc3⟩ := slotGet_app hc
   obtain ⟨hcq, hc2⟩ := slotGet_app hc1
-  obtain ⟨ylo, hylo⟩ := hlo
-  obtain ⟨yhi, hyhi⟩ := hhi
-  refine ⟨_, ylo, yhi, monoVal_slot' hmc hcq, rep_idxVal hlo' hc2 hylo, rep_idxVal hhi' hc3 hyhi,
+  obtain ⟨ylo, hylo, hylo'⟩ := hlo
+  obtain ⟨yhi, hyhi, hyhi'⟩ := hhi
+  refine ⟨_, ylo, yhi, monoVal_slot' hmc hcq, rep_idxVal hlo' hc2 hylo hylo', rep_idxVal hhi' hc3 hyhi hyhi',
     fun j h1 h2 ↦ ?_⟩
   have hx := h _ (runSet_iff.mpr ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩)
   rw [run_cell]
@@ -180,9 +217,9 @@ theorem pw_slotX {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s
   rintro x ⟨a, ha', w', hw', o, ho, rfl⟩
   obtain ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩ := runSet_iff.mp ha'
   obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
-  rw [idxVal_rep hlo hc2 hil, Option.some.injEq] at h1
-  rw [idxVal_rep hhi hc3 hih, Option.some.injEq] at h2
-  subst h1 h2
+  have e1 := idxVal_rep hlo hc2 hil h1
+  have e2 := idxVal_rep hhi hc3 hih h2
+  subst e1 e2
   obtain ⟨x', hx', p, hp, hpw⟩ := hall j h3 h4
   rw [monoVal_slot hmc hcq hv, run_cell] at hx'
   rw [hx'.1] at hw'
@@ -197,16 +234,15 @@ theorem pw_slotX {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s
 reference's `2 ^ κ` cells, agreeing with it, the bounds having exponents. -/
 theorem slot_pwX {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s.mem (refMem img))
     (hu : s.mem.used ≤ 2 ^ κ) {ws : List E} {r : Mode.Rng} {os : List ℕ} {q : CRun} (hr : rngX r = some q)
-    (hc : SlotGet s ws (rngM r).bs) (hlo : ∃ y, rep ((idxC q.lo).valW (slotW ws)) = some y)
-    (hhi : ∃ y, rep ((idxC q.hi).valW (slotW ws)) = some y)
+    (hc : SlotGet s ws (rngM r).bs) (hlo : IdxEx (slotW ws) q.lo) (hhi : IdxEx (slotW ws) q.hi)
     (hcells : ∀ x, q.Set (slotW ws) x → WrK s.mem x)
     (h : ∀ x, (∃ a, q.Set (slotW ws) a ∧ PtrSet img.read a os x) → WrK s.mem x) : PW s r os := by
   obtain ⟨lo, hi, c, hlo', hhi', hmc, rfl⟩ := rngX_spec hr
   obtain ⟨hc1, hc3⟩ := slotGet_app hc
   obtain ⟨hcq, hc2⟩ := slotGet_app hc1
-  obtain ⟨ylo, hylo⟩ := hlo
-  obtain ⟨yhi, hyhi⟩ := hhi
-  refine ⟨_, ylo, yhi, monoVal_slot' hmc hcq, rep_idxVal hlo' hc2 hylo, rep_idxVal hhi' hc3 hyhi,
+  obtain ⟨ylo, hylo, hylo'⟩ := hlo
+  obtain ⟨yhi, hyhi, hyhi'⟩ := hhi
+  refine ⟨_, ylo, yhi, monoVal_slot' hmc hcq, rep_idxVal hlo' hc2 hylo hylo', rep_idxVal hhi' hc3 hyhi hyhi',
     fun j h1 h2 ↦ ?_⟩
   have hset := runSet_iff.mpr ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩
   obtain ⟨x', hx', hw⟩ := names_wrk (hcells _ hset)

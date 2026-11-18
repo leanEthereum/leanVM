@@ -341,11 +341,14 @@ noncomputable def postRIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np :
 
 /-! ## Exponent bounds and pointer runs -/
 
+/-- **Slot `b`'s exponent plus `c`** as a heap index: the slot itself, or the monomial `[b]·g^c`. -/
+def idxO (b c : ℕ) : CIdx := bif Nat.beq c 0 then .val b else .mono ⟨[(b, 1)], c⟩
+
 /-- **A run bound as a heap index** over slots: a constant below `2 ^ 62`, or the exponent of the word
-of frame cell `2 + b`, slot `b` (no offset). -/
+of frame cell `2 + b`, slot `b`, plus a constant offset below `2 ^ 28` (`idxO`). -/
 def idxX : Mode.Idx → Option CIdx
   | .num n => bif decide (n < 2 ^ 62) then some (.num n) else none
-  | .ex (.fr o) c => bif decide (2 ≤ o) && Nat.beq c 0 then some (.val (o - 2)) else none
+  | .ex (.fr o) c => bif decide (2 ≤ o) && decide (c < 2 ^ 28) then some (idxO (o - 2) c) else none
   | .ex (.hp _ _) _ => none
 
 /-- A bound's base, as a product's bases. -/
@@ -353,11 +356,18 @@ def idxB : Mode.Idx → List (Mode.Base × ℕ)
   | .num _ => []
   | .ex b _ => [(b, 1)]
 
+/-- **A residual bounds slot `b`'s exponent with room for `c`**: `e(b) < m`, `m + c ≤ 2^62`. -/
+def expRes (b c : ℕ) : CRes → Bool
+  | .lt (.val b') (.num m) => Nat.beq b' b && decide (m + c ≤ 2 ^ 62)
+  | _ => false
+
 /-- **A run bound with an exponent at return**: a constant, or the exponent of the word of frame cell
-`2 + b`, `b < n`, one of the entry runs' (`expCells`). -/
-def expI (G : Mode.Sig) (n : ℕ) : Mode.Idx → Bool
+`2 + b`, `b < n`: one of the entry runs' (`expCells`, no offset), or a parameter's, `b < np`, a residual of
+`res` bounding it with room for the offset (`expRes`). -/
+def expI (G : Mode.Sig) (res : List CRes) (np n : ℕ) : Mode.Idx → Bool
   | .num _ => true
-  | .ex (.fr o) _ => decide (2 ≤ o) && decide (o - 2 < n) && (expCells G).contains o
+  | .ex (.fr o) c => decide (2 ≤ o) && decide (o - 2 < n) &&
+      ((Nat.beq c 0 && (expCells G).contains o) || (decide (o - 2 < np) && res.any (expRes (o - 2) c)))
   | .ex (.hp _ _) _ => false
 
 /-- **A run as a heap run over slots**: `rngC` with exponent bounds. -/
@@ -430,14 +440,24 @@ noncomputable def constPow (pows : Exec.PowTree) (body : List Stmt) (v : V) : Bo
     | none => false
   | none => false
 
-/-- **A callee's run bound at a call on `args` has an exponent**: a constant, or an argument
-`constPow`. -/
+/-- **A callee's run bound at a call on `args` has an exponent**: a constant, an argument `constPow`, or such
+an argument's word times `g^c` (`[b]·g^c`), its exponent plus `c` below `2 ^ 62`. -/
 noncomputable def idxPow (pows : Exec.PowTree) (body : List Stmt) (args : List V) : CIdx → Bool
   | .num n => decide (n < 2 ^ 62)
   | .val b => match args[b]? with
     | some v => constPow pows body v
     | none => false
-  | .mono _ => false
+  | .mono c => match c.bases with
+    | [(b, 1)] => match args[b]? with
+      | some v => match vnum v with
+        | some n => match constOf body n with
+          | some w => match powOf pows w with
+            | some e => decide (e + c.off < 2 ^ 62)
+            | none => false
+          | none => false
+        | none => false
+      | none => false
+    | _ => false
 
 /-- **A callee's run bound at a call on `args` is a parameter's exponent**: argument `b` the parameter
 `k < np` whose cell `2 + k` is one of `xs` (the entry runs' exponent cells, `CFun.xc`). -/
@@ -497,7 +517,8 @@ each heap cell and run it promises (over parameters and returned words) among th
 words a top-level `load` reads, among milestone 1's promised cells. -/
 noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty &&
-    (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && expI G (np + nr) r.1.lo && expI G (np + nr) r.1.hi &&
+    (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && expI G Cf.H.res np (np + nr) r.1.lo &&
+      expI G Cf.H.res np (np + nr) r.1.hi &&
       Cf.H.sig.postPR.any (prunIs r ·) && Cf.H.sig.postR.any (rngXIs r.1 ·)) && G.postLP.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.all (hpAll G np G.pre) &&
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
@@ -513,7 +534,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r ||
-      (monoR G np nr (rngM r) && expI G (np + nr) r.lo && expI G (np + nr) r.hi &&
+      (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
         Cf.H.sig.postR.any (rngXIs r ·))) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
