@@ -9,7 +9,8 @@ jumps skip the reads at the head first. Every other instruction leaves the posit
 `(O, S)` the pass finds; the kernel's check recomputes the pass and compares.
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit [--mods FILE]] [--check]
-  [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export)
+  [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export) [--all] (every function, reads by the def-use
+  designation: a measurement for the later milestones, nothing emitted)
 """
 import os, sys, glob, re, collections, json
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -252,6 +253,13 @@ def collect():
     """Each function passing `heapOk`, with what its pairing reads and the pass's result."""
     res = {k: heap.Fn(k).run() for k in heap.scope_fns()}
     ok = sorted(k for k, f in res.items() if f.fail is None)
+    reads = {k: set(res[k].wit) for k in ok}
+    if '--all' in sys.argv:
+        # every function, its reads by the def-use designation (`heap.reads_of`), a measurement only
+        for k, (params, b) in heap.CORE.items():
+            if k not in reads:
+                reads[k] = heap.reads_of(params, b)
+        ok = sorted(reads)
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
     if only:
         ok = [only]
@@ -264,20 +272,24 @@ def collect():
     entry_by_name = {F['name']: F['entry'] for F in fns.values()}
     out, fails = {}, {}
     for k in ok:
+        if k not in fns or k not in texts:
+            fails[k] = 'no compiled code'
+            continue
         F, B = fns[k], bundles[k]
         A = advice[F['entry']]
         body = body_of(texts[k])
-        ents = {}
+        callees = sorted({s[1] if s[0] == 'call' else s[2] for s in AL.walk_stmts(body) if s[0] in ('call', 'callIf')})
+        ents = {n: entry_by_name[n] for n in callees if n in entry_by_name}
         n = len(F['code'])
         cuts = list(range(0, n, WIN)) + [n] if n > WIN else []
         try:
             extra, _ = AL.align(F, AL.body_of(texts[k]), A, B['locs'], B['plumb'], pows, jt, ents)
-            O, S, states = pair(F, body, A, B['locs'], extra, pows, jt, ents, set(res[k].wit), cuts)
+            O, S, states = pair(F, body, A, B['locs'], extra, pows, jt, ents, reads[k], cuts)
         except (Fail, AL.Fail) as e:
             fails[k] = str(e)
             continue
         out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
-                      bpack=B['pack'], loads=count_loads(body), reads=len(res[k].wit))
+                      bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]))
     return out, fails
 
 
@@ -432,7 +444,7 @@ def main():
     out, fails = collect()
     print(f'pairing: {len(out)} of {len(out) + len(fails)} functions pass; {sum(len(f["O"]) for f in out.values())} read '
           f'and {sum(len(f["S"]) for f in out.values())} store DEREFs; {sum(f["loads"] for f in out.values())} loads')
-    by = collections.Counter(r.split(' at ')[0] for r in fails.values())
+    by = collections.Counter(re.sub(r' \S+$', '', r.split(' at ')[0]) for r in fails.values())
     print('  failures by cause:', dict(by.most_common()))
     for k, r in sorted(fails.items())[:20]:
         print('   ', k, r)
@@ -444,7 +456,7 @@ def main():
               f' {len([k for k in orc if k not in out])} only in it')
         for k in diff[:10]:
             print('   differ:', k, set(orc[k]['reads']) ^ set(out[k]['O']), set(orc[k]['stores']) ^ set(out[k]['S']))
-    if '--emit' in sys.argv:
+    if '--emit' in sys.argv and '--all' not in sys.argv:
         mods = emit(out, '--check' in sys.argv)
         if '--mods' in sys.argv:
             with open(sys.argv[sys.argv.index('--mods') + 1], 'w') as fh:
