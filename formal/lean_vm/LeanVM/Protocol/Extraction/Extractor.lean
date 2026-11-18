@@ -2,14 +2,12 @@ module
 
 public import Statement.LeanVm
 public import LeanVM.Protocol.Compile.RunPure
-public import CompPoly.Univariate.Roots.Shoup.Basic
+public import CompPoly.Univariate.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
 public import Mathlib.Algebra.CharP.Two
 public import Mathlib.Algebra.Polynomial.BigOperators
-public import Mathlib.Algebra.Polynomial.Roots
 public import Mathlib.FieldTheory.Finite.Basic
-public import CompPoly.Univariate.Roots.Shoup
 
 /-!
 # The knowledge extractor's pieces

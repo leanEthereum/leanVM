@@ -1,6 +1,6 @@
 # An agreement-set knowledge extractor
 
-The knowledge extractor (`lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`) list-decodes level 0's word at the Johnson threshold with Guruswami-Sudan and runs every candidate; that list decoding is the `2^max(80, 2μ+25)` term of the statement's budget. This note shows that an extractor that decodes uniquely, on agreement sets the transcript pins down, is correct with the same per-message errors, and says what proving it in Lean takes. The idea is scaraven's (github.com/scaraven), from the lvm2 write-up's "advice decoding" annex.
+Before this work, the knowledge extractor list-decoded level 0's word at the Johnson threshold with Guruswami-Sudan and ran every candidate; that list decoding was the `2^max(80, 2μ+25)` term of the statement's budget. This branch replaces it. This note shows that an extractor that decodes uniquely, on agreement sets the transcript pins down, is correct with the same per-message errors, and says what proving it in Lean takes. The idea is scaraven's (github.com/scaraven), from the lvm2 write-up's "advice decoding" annex.
 
 ## The extractor
 
@@ -34,7 +34,7 @@ The extractor reads only the adversary's queries; `romSound_log`'s extracted his
 * **Every level's root**: the same lemma per committed root (at most `6` levels): each `13708/2^256`.
 * **Every fold challenge and the seed**: without failure, the verifier's permutations are first logged in the order it makes them (a permutation entry whose answer's capacity an input carries comes before it, `lt_of_cap`), so once one of them is past the adversary's log, so is every later one, the final query's proof of work's among them (`replay_chain`, `avail_or_hit`). That answer passes the `17`-bit grind, and its challenge names the final phase's first `min(128/d, t)` positions of `d` bits, at least `110` bits at every admissible shape (`finalBits_all`; the minimum is at `μ = 29, R = 4`): a uniform answer does so with probability at most `2^-127`. A union over the verifier's queries would give `13708 · 2^-127`, more than the statement's spare `2674 · 2^-125`; but the final proof of work's input is a function of the log (`grindData`) that persists as the log grows, so it is queried fresh at most once, and a potential that starts at `2^-127` and never rises bounds the hit by `2^-127` in all (`prEvent_logged2_hit_le`).
 
-Each is at most `2^-125`. `lean_vm`'s `soundnessError` gains them, and the end statement does not change: `soundnessRpm_le_statement` uses `Q + 13708 + 2 ≤ Q + 2^14` (`ErrorBounds.lean`), leaving room for more than two thousand terms of `2^-125`.
+Each is at most `2^-125`. `lean_vm`'s error for the agreement-set extractor, `soundnessErrorAS`, gains them, and the end statement does not change: `soundnessRpmAS_le_statement` uses `Q + 13708 + 3 ≤ Q + 2^14` (`LeanVMSoundAS.lean`), leaving room for more than two thousand terms of `2^-125`.
 
 ## What it takes in Lean
 

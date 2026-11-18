@@ -24,7 +24,7 @@ Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `
   times `|E|`), `2^-125` after the `7`-bit grind;
 * `ladderOK_of_chain`: the ladder's groups (`MidOK`, `FinalOK`) within `εmsg = 2^-125` after
   their grinds;
-* `listMax₀ μ R`, level 0's list bound, at most `166` (`listMax₀_le`), with the out-of-domain and
+* `listMax₀ μ R`, level 0's list bound, with the out-of-domain and
   batching rows `ood_row`, `lambda_row`, and the candidates' count `card_candidates_le`;
 * **`deployedStackedSpec`**: `verifyStackedOpening μ R claims` from `StackedPre` at level 0's
   threshold `thr0Of μ R`, with lead `eBatch J (listMax₀ μ R)`.

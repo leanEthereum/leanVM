@@ -228,9 +228,12 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 (\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
 round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
 the verifier's $13708$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
-$13708\cdot 2^{30}$, the IV hashing a bytecode of up to $2^{30}$ instructions) and two further terms
-of at most $2^{-128}$ each: the transfer to the RPM, which pays for those calls, and the verifier's own
-$13708/2^{256}$.
+$13708\cdot 2^{30}$, the IV hashing a bytecode of up to $2^{30}$ instructions) and three further terms
+of at most $2^{-125}$ each: the transfer to the RPM, which pays for those calls; a fresh hash answer of
+the verifier equal to a Merkle root the extractor reads (at most $2^{16}$ roots per verifier query,
+$2^{-256}$ each); and a fresh permutation answer that passes the final query's proof of work
+($2^{-127}$, once), which the extractor's replay of the fold challenges needs
+(\lean{LeanVM.soundnessRpmAS_le_statement}).
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -651,7 +654,7 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $568917$)
 limits any program; it is the compiled decoder's size, $568507$ (proved
-at most that; it measures $568425$; the guest's frame-cell table is $517354$ of it), and a slack of
+at most that; it measures $568425$; the guest's frame-cell table is $517271$ of it), and a slack of
 $410$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
