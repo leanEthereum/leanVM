@@ -973,23 +973,19 @@ def hcert : CoreMode.HCert where
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
         ⟨[(1, 1)], 12⟩, ⟨[(1, 1)], 13⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 16⟩, 1, (.num 0), (.num 7)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 16⟩, 1, (.num 0), (.num 7)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 4, .run 12 [])]), (14, [(5, 5, .run 13 [])]), (24, [(16, 14, .run 16 [])]),
-    (25, [(16, 15, .run 17 [])])]
+  reads := [(13, [(5, 4, .run 5 [])]), (14, [(5, 5, .run 6 [])]), (24, [(16, 14, .run 9 [])]),
+    (25, [(16, 15, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .run 1 [], .run 2 [], .run 3 [],
-        .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []],
+        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pts, .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .pts, .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .ev 4, .ev 5, .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .ev 4, .ev 5, .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L23_L14_L4_L2»
@@ -1032,23 +1028,20 @@ def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 1)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 1)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 6, .run 12 [])]), (14, [(5, 7, .run 13 [])]), (24, [(16, 2, .run 16 [])]),
-    (25, [(16, 3, .run 17 [])])]
+  reads := [(13, [(5, 6, .run 5 [])]), (14, [(5, 7, .run 6 [])]), (24, [(16, 2, .run 9 [])]),
+    (25, [(16, 3, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []],
+        .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [],
+        .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .ev 4, .ev 5,
-        .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2»
@@ -1063,24 +1056,20 @@ def hcert : CoreMode.HCert where
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
         ⟨[(1, 1)], 12⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 4)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 4)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 6, .run 12 [])]), (14, [(5, 7, .run 13 [])]), (24, [(16, 8, .run 16 [])]),
-    (25, [(16, 9, .run 17 [])])]
+  reads := [(13, [(5, 6, .run 5 [])]), (14, [(5, 7, .run 6 [])]), (24, [(16, 8, .run 9 [])]),
+    (25, [(16, 9, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .run 8 []],
+        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pts, .run 2 [], .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [],
+        .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .ev 4, .ev 5, .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .ev 4, .ev 5, .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L13_L4_L2»
@@ -1094,23 +1083,20 @@ def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 4)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 4)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 24)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 6, .run 12 [])]), (14, [(5, 7, .run 13 [])]), (24, [(16, 8, .run 16 [])]),
-    (25, [(16, 9, .run 17 [])])]
+  reads := [(13, [(5, 6, .run 5 [])]), (14, [(5, 7, .run 6 [])]), (24, [(16, 8, .run 9 [])]),
+    (25, [(16, 9, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []],
+        .pre 11, .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [],
+        .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [],
+        .run 2 [], .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .ev 4, .ev 5, .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .ev 4, .ev 5, .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L8_L4_L2»
@@ -1125,22 +1111,17 @@ def hcert : CoreMode.HCert where
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
         ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 4)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 8, .run 11 [])]), (14, [(5, 9, .run 12 [])])]
+  reads := [(13, [(5, 8, .run 4 [])]), (14, [(5, 9, .run 5 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .run 8 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts,
+        .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts,
+        .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts,
+        .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts, .run 1 [], .run 1 [], .run 1 [], .run 1 [], .pts,
+        .run 1 [], .run 1 [], .run 1 [], .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L32_L12_L4_L2»
@@ -1257,29 +1238,25 @@ def hcert : CoreMode.HCert where
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
         ⟨[(1, 1)], 12⟩, ⟨[(1, 1)], 13⟩, ⟨[(1, 1)], 14⟩, ⟨[(1, 1)], 15⟩, ⟨[(1, 1)], 16⟩, ⟨[(1, 1)], 17⟩,
         ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 6)⟩,
-        ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 6)⟩, ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 6)⟩,
-        ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 6)⟩, ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 6)⟩,
-        ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 6)⟩, ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 6)⟩,
-        ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 6)⟩, ⟨⟨[(0, 1)], 48⟩, 1, (.num 0), (.num 7)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 48)⟩],
+      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 48⟩, 1, (.num 0), (.num 7)⟩,
+        ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 48)⟩],
       ghosts := 2 }
-  reads := [(13, [(5, 12, .run 12 [])]), (14, [(5, 13, .run 13 [])]), (24, [(16, 14, .run 16 [])]),
-    (25, [(16, 15, .run 17 [])])]
+  reads := [(13, [(5, 12, .run 5 [])]), (14, [(5, 13, .run 6 [])]), (24, [(16, 14, .run 9 [])]),
+    (25, [(16, 15, .run 10 [])])]
   res := []
   calls := [[.ev 0, .ev 1, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
-        .pre 22, .pre 23, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [],
-        .run 8 []],
+        .pre 22, .pre 23, .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts,
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [],
+        .run 2 [], .run 2 [], .run 2 [], .run 2 [], .pts, .run 2 [], .run 2 [], .run 2 [], .run 2 [],
+        .run 2 [], .run 2 []],
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22,
-        .pre 23, .ev 4, .ev 5, .run 9 []]]
-  rets := [[.pts, .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [],
-        .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+        .pre 23, .ev 4, .ev 5, .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«level_residual__L55_L18_L6_L3»

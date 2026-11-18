@@ -21,8 +21,7 @@ open LeanVM.Guest.CoreMode
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "da_expand__L6_L7" => Fn.«da_expand__L6_L7».hcert.sig
-    | _ => .empty)
+    | "da_expand__L6_L7" => Fn.«da_expand__L6_L7».hcert.sig | _ => .empty)
 
 end
 end LeanVM.Guest.Fn.«da_weights».HeapW

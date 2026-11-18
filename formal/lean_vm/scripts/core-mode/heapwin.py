@@ -45,7 +45,7 @@ ATOMS = 15000
 # end state). Fitted to the measured heartbeats of the 1532 one-piece checks and of the windows.
 W_LINE, W_ATOM, W_CERT, W_FA, W_ENT = 0.2, 15, 0.02, 0.4, 0.5
 # a check estimated above `BUDGET` is windowed, each window estimated at most `WIN` (the default limit is 200000)
-BUDGET, WIN = 50000, 55000
+BUDGET, WIN = 90000, 100000
 DEPTH = 20                      # `Exec.indexDepth`: keys past it are dropped by `setF`
 KEYMAX = 2 ** DEPTH - 1
 
@@ -110,7 +110,7 @@ def states(k, H, sigOf):
         assert len(G.term) == 1 and G.term[0][0] == ('val', 0), ('not a loop helper', G.term)
         assert not (G.retM or G.postV or G.retEq), 'loop with retM/postV/retEq'
         assert body[-1] == ('ret', []) and body[-2][0] == 'callIf', 'loop shape'
-    assert all(v < C.GB for v in C.values(params, body)), 'noGhost'
+    assert all(v < C.DB for v in C.values(params, body)), 'noGhost'
     st = C.St()
     for i in range(m):
         st.env[i] = C.baseC(i)
@@ -187,7 +187,7 @@ def cert_size(H):
 def entries(st):
     """A state's size: its tries' entries and its lists' elements."""
     return (sum(len(getattr(st, f)) for f in ('env', 'sc', 'rs', 'ad', 'sv', 'src', 'pf', 'pr')) + len(st.eqs) +
-            sum(1 + len(e[2]) + len(e[3]) + len(e[4]) + len(e[5]) for e in st.cd))
+            sum(1 + sum(1 + len(a[0]) + len(a[1]) + len(a[2]) + len(a[3]) for a in e[1]) for e in st.cd))
 
 
 def cuts(costs, na, ents, budget):
@@ -232,6 +232,21 @@ def tset(t, a, d, n):
 
 
 SHARE = 300   # characters: a subtree longer is its own `def`, shared by every later state holding it
+VSHARE = 48   # characters: an entry's value longer is its own `def`, shared likewise (long monomials recur)
+
+
+def pack(text, ind='    ', width=118):
+    """A term's text in lines of at most `width` characters, broken at spaces (the literals hold no strings)."""
+    lines, cur = [], ''
+    for tok in text.split():
+        if cur and len(cur) + 1 + len(tok) > width:
+            lines.append(cur)
+            cur = ind + tok
+        else:
+            cur = f'{cur} {tok}' if cur else tok
+    if cur:
+        lines.append(cur)
+    return '\n'.join(lines)
 
 
 class Lits:
@@ -249,21 +264,27 @@ class Lits:
         costs the kernel nothing to build, where `insL` of the entries costs about as much as a window's pass."""
         t = None
         for k in sorted(d):
-            t = tset(t, val(d[k]), DEPTH, k)
+            v = val(d[k])
+            if len(v) > VSHARE:
+                key = ('v', typ, v)
+                if key not in self.shared:
+                    self.shared[key] = f'v{self.cnt}'
+                    self.cnt += 1
+                    defs.append(f'noncomputable def {self.shared[key]} : {typ} :=\n  {pack(v)}\n')
+                v = self.shared[key]
+            t = tset(t, v, DEPTH, k)
 
         def go(t):
             if t is None:
                 return '.nil'
             v = 'none' if t[0] is None else f'(some {t[0]})'
-            l, r = go(t[1]), go(t[2])
-            sep = '\n    ' if len(l) + len(r) > 100 else ' '
-            out = f'(.node {v}{sep}{l}{sep}{r})'
+            out = f'(.node {v} {go(t[1])} {go(t[2])})'
             if len(out) > SHARE:
                 key = (typ, out)
                 if key not in self.shared:
                     self.shared[key] = f'tr{self.cnt}'
                     self.cnt += 1
-                    defs.append(f'noncomputable def {self.shared[key]} : Trie {typ} :=\n  {out}\n')
+                    defs.append(f'noncomputable def {self.shared[key]} : Trie {typ} :=\n  {pack(out)}\n')
                 return self.shared[key]
             return out
         return go(t)
@@ -287,10 +308,10 @@ class Lits:
 
     def lstate(self, st, name):
         """A state's literal: `(aux defs, text)`."""
-        cd = [f'⟨{lcell(mx)}, {j}, [{", ".join(map(lcell, cs))}], [{", ".join(map(lprun, rs))}], '
-              f'[{", ".join(f"({lcell(p[0])}, {lnums(p[1])})" for p in ps)}], '
-              f'[{", ".join(f"({lprun(p[0])}, {lnums(p[1])})" for p in prs)}]⟩'
-              for mx, j, cs, rs, ps, prs in st.cd]
+        arm = lambda a: (f'⟨[{", ".join(map(lcell, a[0]))}], [{", ".join(map(lprun, a[1]))}], '
+                         f'[{", ".join(f"({lcell(p[0])}, {lnums(p[1])})" for p in a[2])}], '
+                         f'[{", ".join(f"({lprun(p[0])}, {lnums(p[1])})" for p in a[3])}]⟩')
+        cd = [f'⟨{lcell(mx)}, [{", ".join(map(arm, arms))}]⟩' for mx, arms in st.cd]
         eqs = [f'({lcell(a)}, {lcell(b)})' for a, b in st.eqs]
         pair = lambda p: f'({lcell(p[0])}, {lcell(p[1])})'
         defs = []
@@ -320,9 +341,20 @@ module
 '''
 
 
+def repack(text):
+    """Code lines over 120 characters packed (`pack`), at their indentation plus four."""
+    out = []
+    for l in text.split('\n'):
+        if len(l) > 120 and not l.lstrip().startswith(('--', '/-')):
+            n = len(l) - len(l.lstrip())
+            out.append(' ' * n + pack(l.strip(), ' ' * (n + 4), 118 - n))
+        else:
+            out.append(l)
+    return '\n'.join(out)
+
+
 def sig_lam(k, names):
-    arms = ''.join(f'\n    | "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in sorted(names) if I.callee(n) in I.CORE)
-    return f'(fun g ↦ match g with{arms}\n    | _ => .empty)' if arms else '(fun _ ↦ .empty)'
+    return E.sig_text([f'| "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in sorted(names) if I.callee(n) in I.CORE])
 
 
 def emit_arms(k, i, a, split, blk, ns, base, imps):
@@ -379,7 +411,7 @@ def emit(k, H, sts, cs, names, po, splits={}):
         si += ''.join(f'\n{d}' for d in aux)
         si += f'\n/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := {text}\n'
         si += f'\nend\nend {ns}.HeapW\n'
-        mods.append((f'S{i}', si))
+        mods.append((f'S{i}', repack(si)))
     imps = (f'public import LeanVM.Guest.Data.Pows\npublic import LeanVM.Guest.Pack.«{pack}».{core_mod}\n')
     blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('core.body', 'winOkF')
     for i in range(nw):
