@@ -178,9 +178,9 @@ theorem monoOf_ok {env : Trie CCell} (he : EnvOk σ env) {v : V} {c : CCell} (h 
     | none => rw [Option.getD_none, val_baseC]
     | some c' => rw [Option.getD_some]; exact he k c' hk
 
-theorem setEnv_ok {env : Trie CCell} (he : EnvOk σ env) {k : ℕ} {c : CCell} (hc : σ (V.n k) = c.val σ) :
-    EnvOk σ (setEnv env k c) := by
-  unfold setEnv
+theorem envPut_ok {env : Trie CCell} (he : EnvOk σ env) {k : ℕ} {c : CCell} (hc : σ (V.n k) = c.val σ) :
+    EnvOk σ (envPut env k c) := by
+  unfold envPut
   cases getF env k with
   | some _ => exact he
   | none =>
@@ -192,7 +192,7 @@ theorem setEnv_ok {env : Trie CCell} (he : EnvOk σ env) {k : ℕ} {c : CCell} (
 
 theorem def_ok {st : HSt} (he : EnvOk σ st.env) {k : ℕ} {c : CCell} (hc : σ (V.n k) = c.val σ) :
     EnvOk σ (st.def k c).env ∧ (st.def k c).sc = st.sc :=
-  ⟨setEnv_ok he hc, rfl⟩
+  ⟨envPut_ok he hc, rfl⟩
 
 theorem push_ok {W : K → Prop} {st : HSt} (hs : ScOk W σ st.sc) {c : CCell} (hc : W (c.addr σ)) :
     (st.push c).env = st.env ∧ ScOk W σ (st.push c).sc := by

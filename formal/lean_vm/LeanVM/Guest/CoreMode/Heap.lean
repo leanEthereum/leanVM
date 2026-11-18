@@ -120,13 +120,13 @@ noncomputable def monoOf (env : Trie CCell) (v : V) : Option CCell :=
   | none => none
 
 /-- A value's first monomial: kept if it has one. -/
-noncomputable def setEnv (env : Trie CCell) (k : ℕ) (c : CCell) : Trie CCell :=
+noncomputable def envPut (env : Trie CCell) (k : ℕ) (c : CCell) : Trie CCell :=
   match getF env k with
   | some _ => env
   | none => c.seq fun c ↦ (setF c Exec.indexDepth env k).seq id
 
 /-- The state with a value's first monomial. -/
-noncomputable def HSt.def (st : HSt) (k : ℕ) (c : CCell) : HSt := ⟨setEnv st.env k c, st.sc, st.n⟩
+noncomputable def HSt.def (st : HSt) (k : ℕ) (c : CCell) : HSt := ⟨envPut st.env k c, st.sc, st.n⟩
 
 /-- A write event of the cell `c`, at the next serial. -/
 noncomputable def HSt.push (st : HSt) (c : CCell) : HSt :=
