@@ -40,6 +40,26 @@ CORE, STABLE, POWS = D['core'], D['stable'], dict(D['pows'])
 POWS[1] = 0
 ORD = 2 ** 64 - 1
 
+# The inference's rules beyond `heapOkC`'s format (`m2-format.md`), each switchable to measure what it buys:
+FEATURES = {
+    'join': 'facts of both sides of an `ite`/`match` kept after it (their meet)',
+    'hv': 'a read of a cell whose word is known (a store, a callee\'s `postV`) names that word',
+    'cond': 'facts kept under a selector\'s value (a dispatch arm), used by a later dispatch or `match` on it; an arm '
+            'checked under `x = g^j`',
+    'retM': 'a returned word\'s monomial over the arguments',
+    'ptr': 'pointer facts: `preP`/`postP` (a cell holds a pointer with these cells past it written), `postV`',
+    'callIfR': 'a loop\'s runs pushed at its conditional entry (empty when not entered: `lo = hi`)',
+    'idx': 'a read at any index of a run (`b·j^S·g^(S·k)`, facts `lo <= j + k < hi`), bounds as residuals',
+    'ptsrun': 'a run covered by its points (constant bounds, at most 64)',
+    'armblock': 'arms writing a growing block `Q·[0, j + d)`: the run `Q·[0, e(x) + d)` after the dispatch',
+    'hintrun': 'a heap hint\'s destination also a run',
+    'div': 'a division\'s quotient gets the monomial `d / o`',
+    'fa': 'a frame run\'s cells written when their values are defined (`frameAddr`)',
+    'lts': 'range checks and selectors give exponent facts without a residual',
+    'rules': 'residual rules (`rules.py`: `tabIdx`, `linSub`, ...)',
+}
+F = set(FEATURES)
+
 
 def callee(name):
     return STABLE.get(name, name)
@@ -278,10 +298,14 @@ class Pass:
         self.unc = []                    # uncovered reads: (class, cell, site)
         self.rets = []                   # (state, returned values) at each `ret`
         self.tails = []                  # (state, args, cond) at the loop's tail call
+        self.ret_wits = []               # per `ret`, the witnesses of the own guarantees
+        self.at_tail = False
         self.stats = collections.Counter()
         self.defkind = {}
         self.retvals = None
         self.adds = {}
+        self.ltprov = {}
+        self.eqs = []
         self.defs = {}
         for s in stmts(self.body):
             if s[0] == 'a' and s[1][0] in ('add', 'mul', 'const', 'copy'):
@@ -327,8 +351,9 @@ class Pass:
         return self.res.index(r)
 
     # -- exponent facts
-    def lt(self, st, a, b):
-        """`e(a) < e(b)` from the facts in scope (constants, the same bases, a fact shifted)."""
+    def lt(self, st, a, b, used=None):
+        """`e(a) < e(b)` from the facts in scope (constants, the same bases, a fact shifted); a fact that is a
+        residual (a hint's range, `ltprov`) appends its index to `used`."""
         d = ioff(a, b)
         if d is not None:
             return d > 0
@@ -337,13 +362,34 @@ class Pass:
         for x, y in st.lts:
             da, db = ioff(x, a), ioff(y, b)
             if da is not None and db is not None and da <= db:
+                k = self.ltprov.get((x, y))
+                if k is not None:
+                    if used is None:
+                        continue
+                    if isinstance(k, tuple):
+                        k = self.ltprov[(x, y)] = self.addres(('lt', x, y, k[1], k[2]))
+                    used.append(k)
                 return True
         return False
 
-    def le(self, st, a, b):
+    def le(self, st, a, b, used=None):
         if not a[0] and a[1] == 0:
             return True
-        return self.lt(st, a, shift(b, 1))
+        return self.lt(st, a, shift(b, 1), used)
+
+    def hint_bound(self, st, v, n):
+        """A hint's word `v = g^w` with `w < n` by the hint's kind (a window, a digit): a fact, a residual of the
+        hint family when used."""
+        self.fact(st, base(v), num(n), 'hint', free=False, cidx=(('val', v), ('num', n)))
+
+    def fact(self, st, a, b, fam, free=None, cidx=None):
+        """The exponent fact `e(a) < e(b)`: free (`lts`), or a residual of the family `fam`, listed where used;
+        `cidx`, the fact over value numbers (`CIdx`), when it has that form."""
+        st.lts.add((a, b))
+        if free is None:
+            free = 'lts' in F
+        if not free and (a, b) not in self.ltprov:
+            self.ltprov[(a, b)] = ('fam', fam, cidx)
 
     # -- coverage
     def idx_in(self, c, r):
@@ -369,15 +415,50 @@ class Pass:
             k = -(neg // S)
         return mk(tuple((b, e // S) for b, e in rest.items()), k)
 
-    def find_run(self, st, c, runs):
-        """A run holding `c` with its bounds known, else the first holding it by shape, with which bounds fail."""
+    def lt_fact(self, st, a, b, used):
+        """`(a, b)` is a fact (the own term, or a residual, listed in `used`)."""
+        if (a, b) not in st.lts:
+            return False
+        k = self.ltprov.get((a, b))
+        if k is not None:
+            if isinstance(k, tuple):
+                k = self.ltprov[(a, b)] = self.addres(('lt', a, b, k[1], k[2]))
+            used.append(k)
+        return True
+
+    def lean_in(self, st, j, r, u):
+        """`heapOkC`'s point rule for a run: the counter form (`j = lo`, `(lo, hi)` a fact) or the constant form."""
+        lo, hi = r[2], r[3]
+        if j == lo:
+            return self.lt_fact(st, lo, hi, u)
+        if j[0] or j[1] >= 2 ** 62 or lo[0] or lo[1] > j[1]:
+            return False
+        if not hi[0]:
+            return j[1] < hi[1]
+        for k2 in range(j[1], j[1] + 65):
+            if self.lt_fact(st, num(k2), hi, u):
+                return True
+        return False
+
+    def find_run(self, st, c, runs, used=None):
+        """A run holding `c` with its bounds known (the residuals used appended to `used`), else the first holding it
+        by shape, with which bounds fail."""
         best = None
         for r, rw in reversed(runs):
             j = self.idx_in(c, r)
             if j is None:
                 continue
-            okl, okh = self.le(st, r[2], j), self.lt(st, j, r[3])
+            u = []
+            if 'idx' not in F:
+                if self.lean_in(st, j, r, u):
+                    if used is not None:
+                        used.extend(u)
+                    return r, rw, j, True, True
+                continue
+            okl, okh = self.le(st, r[2], j, u), self.lt(st, j, r[3], u)
             if okl and okh:
+                if used is not None:
+                    used.extend(u)
                 return r, rw, j, True, True
             if best is None:
                 best = (r, rw, j, okl, okh)
@@ -395,12 +476,13 @@ class Pass:
                     self.stats['w-cond'] += 1
                     return pts[c]
         runs = st.runs + [x for cd in (conds or ()) for x in cd[1]]
-        best = self.find_run(st, c, runs)
+        used = []
+        best = self.find_run(st, c, runs, used)
         if best is not None and best[3] and best[4]:
             self.stats['w-run'] += 1
-            return ('run', best[1], [])
+            return ('run', best[1], used)
         # through a pointer loaded from a cell with a pointer fact
-        if len(c[0]) == 1 and c[0][0][1] == 1:
+        if 'ptr' in F and len(c[0]) == 1 and c[0][0][1] == 1:
             d = c[0][0][0]
             s = st.src.get(d)
             if s is not None:
@@ -411,7 +493,7 @@ class Pass:
                 if allow_pre and self.iface(s[0]) and c[1] < 2 ** 20 and not (
                         self.loop and any(b == self.sig.ctr for b, _ in s[0][0])):
                     return self.add_preP(s[0], c[1])
-        if allow_pre and self.iface(c) and c[0]:
+        if allow_pre and not self.at_tail and self.iface(c) and c[0]:
             if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
                 if c not in self.sig.pre:
                     self.sig.pre.append(c)
@@ -421,16 +503,16 @@ class Pass:
                 self.sig.pre.append(c)
             self.stats['w-pre'] += 1
             return ('pre', self.sig.pre.index(c))
-        if best is not None:
+        if best is not None and 'idx' in F:
             r, rw, j, okl, okh = best
             res = []
             if not okl:
-                res.append(self.addres(('lt', r[2], shift(j, 1))))
+                res.append(self.addres(('lt', r[2], shift(j, 1), 'idx')))
             if not okh:
-                res.append(self.addres(('lt', j, r[3])))
+                res.append(self.addres(('lt', j, r[3], 'idx')))
             self.stats['w-run-res'] += 1
             return ('run', rw, res)
-        if self.rules:
+        if 'rules' in F:
             import rules
             w = rules.read(self, st, c, site)
             if w is not None:
@@ -511,7 +593,7 @@ class Pass:
                 # a division `u = d / o`: its monomial when `o`'s divides `d`'s
                 for u, o in ((x, y), (y, x)):
                     if u not in st.D:
-                        self.define(st, u, mdiv(self.mono(st, d), self.mono(st, o)), 'mul')
+                        self.define(st, u, mdiv(self.mono(st, d), self.mono(st, o)) if 'div' in F else None, 'mul')
         elif k == 'add':
             d, x, y = a[1:]
             self.adds[d] = (x, y)
@@ -523,6 +605,8 @@ class Pass:
         elif k in ('copy', 'assertEq'):
             x, y = a[1:]
             mx, my = st.env.get(x), st.env.get(y)
+            if mx is not None and my is not None and mx != my:
+                self.eqs.append((mx, my))
             if mx is None and my is not None:
                 st.env[x] = my
             elif my is None and mx is not None:
@@ -543,19 +627,27 @@ class Pass:
             c = shift(self.mono(st, p), off)
             if d in st.D:
                 self.stats['store'] += 1
-                st.hv.setdefault(c, self.mono(st, d))
+                if 'hv' in F:
+                    st.hv.setdefault(c, self.mono(st, d))
             else:
-                self.reads[(d, p, off)] = self.read(st, c, ('load', d, p, off))
-                w = st.hv.get(c)
-                if w is None and self.armconds:
-                    for _, _, hv in self.armconds:
-                        w = w or hv.get(c)
-                if w is not None and d not in st.env:
-                    st.env[d] = w
-                    self.stats['hv-read'] += 1
+                w = self.read(st, c, ('load', d, p, off))
+                old = self.reads.get((d, p, off))
+                if old is not None and old != w:
+                    self.stats['read-twice'] += 1
+                self.reads[(d, p, off)] = w
+                if 'hv' in F:
+                    w = st.hv.get(c)
+                    if w is None and self.armconds:
+                        for _, _, hv in self.armconds:
+                            w = w or hv.get(c)
+                    if w is not None and d not in st.env:
+                        st.env[d] = w
+                        self.stats['hv-read'] += 1
                 self.define(st, d, None, 'load')
-                st.src[d] = (c, self.n)
-                st.hv.setdefault(c, self.mono(st, d))
+                if 'ptr' in F:
+                    st.src[d] = (c, self.n)
+                if 'hv' in F:
+                    st.hv.setdefault(c, self.mono(st, d))
             self.push(st, c)
         elif k == 'assertNe':
             self.define(st, a[3], None, 'assertNe')
@@ -563,7 +655,7 @@ class Pass:
             x, y, t1, t2, kk = a[1:]
             if y not in st.D:
                 self.define(st, y, None, 'rangeCheck')
-            st.lts.add((self.mono(st, x), shift(self.mono(st, kk), 1)))
+            self.fact(st, self.mono(st, x), shift(self.mono(st, kk), 1), 'rangeCheck')
         elif k == 'keccak':
             for v in a[2]:
                 self.define(st, v, None, 'keccak')
@@ -573,9 +665,12 @@ class Pass:
             mp = self.mono(st, p)
             for i, v in enumerate(run):
                 c = shift(mp, i)
+                if 'fa' not in F:
+                    continue
                 if v in st.D:
                     self.push(st, c)
-                    st.hv.setdefault(c, self.mono(st, v))
+                    if 'hv' in F:
+                        st.hv.setdefault(c, self.mono(st, v))
                 else:
                     st.alias.setdefault(v, []).append(c)
         elif k == 'hint':
@@ -586,7 +681,7 @@ class Pass:
                 mp = self.mono(st, p)
                 for j in range(n):
                     self.push(st, shift(mp, off + j))
-                if n > 1:
+                if n > 1 and 'hintrun' in F:
                     self.pushR(st, (shift(mp, off), 1, num(0), num(n)))
             if h[0] == 'log2Ceil' and h[1][0] == 'heap':
                 _, p, off, ln = h[1]
@@ -595,6 +690,11 @@ class Pass:
                     self.read(st, shift(mp, off + j), ('log2Ceil', j))
             for v in hint_stack_dests(h):
                 self.define(st, v, None, 'alloc' if h[0] in ('alloc', 'allocDyn') else 'hint')
+            bnd = {'windowsExp': lambda: 2 ** h[3], 'digitsExp': lambda: 2 ** h[4],
+                   'log2Ceil': lambda: max(h[2], h[3]) + 1}.get(h[0])
+            if bnd is not None:
+                for v in hint_stack_dests(h):
+                    self.hint_bound(st, v, bnd())
 
     # -- calls
     def tr(self, st, c, args, rets):
@@ -627,6 +727,12 @@ class Pass:
         for R, rw in reversed(st.runs + [x for cd in (conds or ()) for x in cd[1]]):
             if R[1] != S:
                 continue
+            if 'idx' not in F:
+                u = []
+                if R[0] == Q and self.lean_lower(st, lo, R, u) and self.lean_upper(st, hi, R, u):
+                    self.stats['wr-run'] += 1
+                    return ('run', rw, u)
+                continue
             j = self.idx_in(Q, R)
             if j is None:
                 continue
@@ -637,7 +743,7 @@ class Pass:
                 return ('run', rw, [])
             if best is None or (okl or okh) and not (best[2] or best[3]):
                 best = (R, rw, okl, okh, jl, jh)
-        if n is not None and n <= 64 and not lo[0]:
+        if n is not None and n <= 64 and not lo[0] and 'ptsrun' in F:
             ws = []
             for i in range(n):
                 c = shift(Q, S * (lo[1] + i))
@@ -648,25 +754,43 @@ class Pass:
             else:
                 self.stats['wr-pts'] += 1
                 return ('pts', ws)
-        if self.iface(Q) and self.iface(lo) and self.iface(hi) and Q[0] and not (
+        if not self.at_tail and self.iface(Q) and self.iface(lo) and self.iface(hi) and Q[0] and not (
                 self.loop and any(b == self.sig.ctr for b, _ in Q[0])):
             if r not in self.sig.preR:
                 self.sig.preR.append(r)
             self.stats['wr-preR'] += 1
             return ('run', ('preR', self.sig.preR.index(r)), [])
-        if best is not None:
+        if best is not None and 'idx' in F:
             R, rw, okl, okh, jl, jh = best
             res = []
             if not okl:
-                res.append(self.addres(('lt', R[2], shift(jl, 1))))
+                res.append(self.addres(('lt', R[2], shift(jl, 1), 'idx')))
             if not okh:
-                res.append(self.addres(('lt', jh, shift(R[3], 1))))
+                res.append(self.addres(('lt', jh, shift(R[3], 1), 'idx')))
             self.stats['wr-run-res'] += 1
             return ('run', rw, res)
-        if self.rules:
+        if 'rules' in F:
             import rules
             return rules.run(self, st, r, site, conds)
         return None
+
+    def lean_lower(self, st, lo, R, u):
+        lo2 = R[2]
+        if lo == lo2:
+            return True
+        if not lo[0] and not lo2[0]:
+            return lo2[1] <= lo[1] < 2 ** 62
+        return lo == shift(lo2, 1) and self.lt_fact(st, lo2, R[3], u)
+
+    def lean_upper(self, st, hi, R, u):
+        hi2 = R[3]
+        if hi == hi2:
+            return True
+        if not hi[0] and not hi2[0]:
+            return hi[1] <= hi2[1] and hi[1] < 2 ** 62
+        if not hi[0] and hi[1] < 2 ** 62:
+            return any(self.lt_fact(st, num(k), hi2, u) for k in range(max(0, hi[1] - 1), hi[1] + 64))
+        return False
 
     def cover_ptr(self, st, c, offs, site, conds=None):
         """The word at `c` is a pointer whose cells at `offs` are written: a pointer fact, or the word known and
@@ -694,7 +818,7 @@ class Pass:
             return ('preP', w[1])
         return None
 
-    def call(self, st, f, args, rets, cond=None, conditional=False, conds=None):
+    def call(self, st, f, args, rets, cond=None, conditional=False, conds=None, record=True):
         G = SIGS.get(f)
         ws = []
         site = ('call', f)
@@ -711,32 +835,20 @@ class Pass:
                 t = self.tr(st, c, args, None)
                 w = self.cover_ptr(st, t, offs, site, conds) if t is not None else None
                 ws.append(('preP', w if w is not None else self.unc_read(st, t, site, 'ptr:')))
-            for a, b in G.term:
-                ta, tb = self.tr(st, a, args, None), self.tr(st, b, args, None)
-                if ta is None or tb is None:
-                    ws.append(('term', self.unc_read(st, None, site, 'term:')))
-                elif self.lt(st, ta, tb):
-                    ws.append(('term', ('lt', [])))
-                elif conditional and cond is not None and self.cond_is(st, cond, ta, tb) and self.le(st, ta, tb):
-                    ws.append(('term', ('ne', [])))
-                else:
-                    k = None
-                    if self.rules:
-                        import rules
-                        k = rules.term(self, st, ta, tb, cond if conditional else None)
-                    if k is None:
-                        k = [self.addres(('lt', ta, tb))]
-                    ws.append(('term', ('lt', k)))
-        self.calls.append((f, ws))
+            # a callee's `term` is not met at the call: the composition proves it of every honest instance
+        self.lastws = ws
+        if record:
+            self.calls.append((f, ws))
         if G is None:
             for v in rets or ():
                 self.define(st, v, None, 'ret')
             return
-        for j, m in G.retM.items():
-            if rets and j < len(rets):
-                t = self.tr(st, m, args, None)
-                if t is not None and rets[j] not in st.env:
-                    st.env[rets[j]] = t
+        if 'retM' in F:
+            for j, m in G.retM.items():
+                if rets and j < len(rets):
+                    t = self.tr(st, m, args, None)
+                    if t is not None and rets[j] not in st.env:
+                        st.env[rets[j]] = t
         for v in rets or ():
             self.define(st, v, None, 'ret')
         if not conditional:
@@ -744,11 +856,11 @@ class Pass:
                 t = self.tr(st, c, args, rets)
                 if t is not None:
                     self.push(st, t)
-            for c, w in G.postV:
+            for c, w in (G.postV if 'ptr' in F or 'hv' in F else ()):
                 t, tw = self.tr(st, c, args, rets), self.tr(st, w, args, rets)
                 if t is not None and tw is not None:
                     st.hv.setdefault(t, tw)
-            for c, offs in G.postP:
+            for c, offs in (G.postP if 'ptr' in F else ()):
                 t = self.tr(st, c, args, rets)
                 if t is not None:
                     st.pf[t] = (frozenset(offs) | st.pf.get(t, (frozenset(), None))[0], ('ev', self.n))
@@ -758,7 +870,7 @@ class Pass:
             if t is None:
                 continue
             # a loop's run over `[lo, hi)` is empty when the loop is not entered (`lo = hi`)
-            if conditional and not (cond is not None and self.cond_is(st, cond, t[2], t[3])):
+            if conditional and not ('callIfR' in F and cond is not None and self.cond_is(st, cond, t[2], t[3])):
                 continue
             self.pushR(st, t)
 
@@ -790,32 +902,34 @@ class Pass:
             if k == 'a':
                 self.atom(st, s[1])
             elif k == 'ite':
-                st = meet([self.block(st.copy(), s[2]), self.block(st.copy(), s[3])])
+                st = self.join(st, [self.block(st.copy(), s[2]), self.block(st.copy(), s[3])])
             elif k == 'match':
                 outs = []
                 x = self.mono(st, s[1])
                 for j, arm in enumerate(s[2]):
                     t = st.copy()
-                    cd = self.conds_of(st, s[1], j)
-                    for pts, runs, hv in cd:
-                        t.pts.update({c: w for c, w in pts.items() if c not in t.pts})
-                        t.runs += runs
-                        t.hv.update({c: w for c, w in hv.items() if c not in t.hv})
                     old = self.subst
-                    self.subst = self.assume(st, s[1], j)
+                    if 'cond' in F:
+                        for pts, runs, hv in self.conds_of(st, s[1], j):
+                            t.pts.update({c: w for c, w in pts.items() if c not in t.pts})
+                            t.runs += runs
+                            t.hv.update({c: w for c, w in hv.items() if c not in t.hv})
+                        self.subst = self.assume(st, s[1], j)
                     outs.append(self.block(t, arm))
                     self.subst = old
-                st = meet(outs, (x, list(range(len(s[2])))))
+                st0 = st
+                st = self.join(st, outs, (x, list(range(len(s[2])))))
                 if st is not None:
-                    st.lts.add((x, num(len(s[2]))))
-                    self.arm_blocks(st, x, outs)
+                    self.fact(st, x, num(len(s[2])), 'selector', cidx=(('val', s[1]), ('num', len(s[2]))))
+                    if 'armblock' in F and 'join' in F:
+                        self.arm_blocks(st, x, outs)
             elif k == 'call':
                 self.call(st, callee(s[1]), s[2], s[3])
             elif k == 'callIf':
                 f = callee(s[2])
                 if f == self.key:
                     self.tails.append((st.copy(), s[3], s[1]))
-                    self.calls.append((f, None))
+                    self.calls.append((f, self.tail_wits(st, s[3])))
                 else:
                     self.call(st, f, s[3], [], cond=s[1], conditional=True)
             elif k == 'dispatch':
@@ -824,28 +938,111 @@ class Pass:
                 if self.retvals is None:
                     self.retvals = s[1]
                 self.rets.append((st, s[1]))
+                self.ret_wits.append(self.ret_wit(st, s[1]))
                 return None
         return st
+
+    def tail_wits(self, st, args):
+        """The loop's tail call: its own `pre` and `preR` at the next iteration's words (chained: written by this
+        one; the own precondition; the own run by the shifted-lower rule). Misses are the next round's runs."""
+        G, ws = self.sig, []
+        self.at_tail = True
+        for c in G.pre:
+            t = self.tr(st, c, args, None)
+            if t in G.pre:
+                w = ('pre', G.pre.index(t))
+            else:
+                w = self.cover(st, t, ('tail',), allow_pre=False)
+            ws.append(('pre', w if w is not None else ('miss', t)))
+        for r in G.preR:
+            t = self.trR(st, r, args, None)
+            w = self.cover_run(st, t, ('tail',)) if t is not None else None
+            ws.append(('preR', w if w is not None else ('miss', t)))
+        self.at_tail = False
+        return ws
+
+    def ret_wit(self, st, vs):
+        """At a `ret`: a witness of each own `post` cell and `postR` run at the parameters and the returned words (a
+        loop's run over its counter by the counter's point: accumulation)."""
+        G, ws = self.sig, []
+        self.at_tail = True
+        ps = list(range(self.m))
+        sts = [t for t, *_ in self.tails] if self.loop and self.tails else [st]
+        for c in G.post:
+            t = self.tr(st, c, ps, vs)
+            w = self.cover(sts[0], t, ('ret',), allow_pre=False) if t is not None else None
+            ws.append(('post', w if w is not None else ('miss', t)))
+        for r in G.postR:
+            if self.loop and r[2] == base(G.ctr) and G.term and r[3] == G.term[0][1]:
+                t = mmul(r[0], mpow(base(G.ctr), r[1]))
+                w = self.cover(sts[0], t, ('ret',), allow_pre=False)
+            else:
+                t = self.trR(st, r, ps, vs)
+                w = self.cover_run(sts[0], t, ('ret',)) if t is not None else None
+            ws.append(('postR', w if w is not None else ('miss', r)))
+        self.at_tail = False
+        return ws
+
+    def join(self, st, outs, sel=None):
+        """After a branch: the meet of the blocks that fall through (`join`), or the state before it with the
+        defined values met (`heapOkC`: what a block learns stays in it)."""
+        if 'join' in F:
+            return meet(outs, sel if 'cond' in F else None)
+        live = [t for t in outs if t is not None]
+        if not live:
+            return None
+        t = st.copy()
+        t.D = set.intersection(*[x.D for x in live])
+        return t
 
     def dispatch(self, st, s):
         x, fs, args, rets = s[1], [callee(f) for f in s[2]], s[3], s[4]
         xm = self.mono(st, x)
         outs = []
+        ws = []
+        n0, nr0 = self.n, self.nr
         for j, f in enumerate(fs):
+            self.n, self.nr = n0, nr0
             t = st.copy()
-            cd = self.conds_of(st, x, j)
+            cd = self.conds_of(st, x, j) if 'cond' in F else []
             self.armconds = cd
             old = self.subst
-            self.subst = self.assume(st, x, j)
-            self.call(t, f, args, rets, conds=cd)
+            if 'cond' in F:
+                self.subst = self.assume(st, x, j)
+            self.call(t, f, args, rets, conds=cd, record=False)
+            ws.extend(self.lastws)
             self.subst = old
             self.armconds = None
             outs.append(t)
-        m = meet(outs, (xm, list(range(len(fs)))))
+        self.calls.append((tuple(fs), ws))
+        m = meet(outs, (xm, list(range(len(fs)))) if 'cond' in F else None)
+        # `heapOkC`'s numbering: the arms' common guarantees, in the first arm's order, one serial each
+        self.n, self.nr = n0, nr0
+        pts, runs = dict(st.pts), list(st.runs)
+        sigs = [SIGS.get(f) for f in fs]
+        if all(sigs):
+            posts = [[self.tr(st, c, args, rets) for c in G.post] for G in sigs]
+            others = [set(p) for p in posts[1:]]
+            for t in posts[0]:
+                if t is not None and all(t in o for o in others):
+                    pts[t] = ('ev', self.n)
+                    self.n += 1
+            postRs = [[self.trR(st, r, args, rets) for r in G.postR] for G in sigs]
+            othersR = [set(p) for p in postRs[1:]]
+            for t in postRs[0]:
+                if t is not None and all(t in o for o in othersR):
+                    runs.append((t, self.nr))
+                    self.nr += 1
         for a in St.__slots__:
             setattr(st, a, getattr(m, a))
-        st.lts.add((xm, num(len(fs))))
-        self.arm_blocks(st, xm, outs)
+        if 'join' not in F or 'cond' not in F:
+            st.pts, st.runs = pts, runs
+        else:
+            st.pts.update({c: w for c, w in pts.items() if c in st.pts})
+            st.runs = runs + [x for x in st.runs if x[0] not in {r for r, _ in runs}]
+        self.fact(st, xm, num(len(fs)), 'selector', cidx=(('val', x), ('num', len(fs))))
+        if 'armblock' in F:
+            self.arm_blocks(st, xm, outs)
 
     def arm_blocks(self, st, xm, outs):
         """Arms of a selector `x` each writing a growing block `Q·g^(c..j+c)`, `c <= 0`: the run `Q·[0, e(x) + d)`
@@ -875,9 +1072,9 @@ class Pass:
         st = St()
         for v in self.params:
             st.D.add(v)
+            # a parameter is its own base: an `assert ==` relating it to a product is an equation (`eqs`)
+            st.env[v] = base(v)
         G = self.sig
-        if self.loop and G.ctr is not None and G.bnd is not None:
-            st.lts.add((base(G.ctr), base(G.bnd)))
         for i, r in enumerate(G.preR):
             st.runs.append((r, ('preR', i)))
         for a, b in G.term:
@@ -902,6 +1099,11 @@ def loop_params(key):
         for x in c[2:]:
             if x in params and x != ctr:
                 bnd = x
+        if bnd is None:
+            for x in c[2:]:
+                d = defs.get(x)
+                if d and d[0] == 'const' and d[2][1] == 0 and d[2][0] in POWS:
+                    bnd = ('num', POWS[d[2][0]])
     return ctr, bnd
 
 
@@ -915,6 +1117,7 @@ def retsig(P, G):
         return
     m = P.m
     names = {}
+    alias = []
     G.retM = {}
     for j, v in enumerate(P.retvals or ()):
         ms = {P.mono(st, v) for st, vs in P.rets}
@@ -922,6 +1125,8 @@ def retsig(P, G):
             mv = ms.pop()
             if P.iface(mv) and mv[0]:
                 G.retM[j] = mv
+                if len(mv[0]) == 1 and mv[0][0][1] == 1:
+                    alias.append((mv[0][0][0], m + j, mv[1]))
             elif len(mv[0]) == 1 and mv[0][0][1] == 1:
                 # the returned word is `b·g^k`: `b` is the word `m + j` times `g^-k`
                 names.setdefault(mv[0][0][0], (m + j, mv[1]))
@@ -972,6 +1177,12 @@ def retsig(P, G):
         postV = hv if postV is None else postV & hv
         postP = pp if postP is None else {c: o & pp[c] for c, o in postP.items() if c in pp and o & pp[c]}
     pre = set(G.pre)
+    if 'retM' not in F:
+        # a returned word `p·g^k` over a parameter: the cells past `p` also over the returned word's slot
+        G.retM = {}
+        for p_, slot, k in alias:
+            post |= {mk(((slot, 1),), c[1] - k) for c in post if c[0] == ((p_, 1),)}
+            postR |= {((((slot, 1),), r[0][1] - k), r[1], r[2], r[3]) for r in postR if r[0][0] == ((p_, 1),)}
     G.post = sorted(c for c in post if c not in pre)[:MAXPTS]
     G.postR = sorted(r for r in postR if r not in set(G.preR))
     G.postV = sorted(postV)[:MAXPTS]
@@ -985,7 +1196,7 @@ def infer(key, rules=True):
     if loop:
         G.ctr, G.bnd = loop_params(key)
         if G.bnd is not None:
-            G.term = [(base(G.ctr), base(G.bnd))]
+            G.term = [(base(G.ctr), num(G.bnd[1]) if isinstance(G.bnd, tuple) else base(G.bnd))]
     SIGS[key] = G
     prev = None
     for it in range(12):
@@ -1013,10 +1224,11 @@ def loop_finish(P, G):
       `[e(i), e(n))` (the exit gives `e(i) + 1 = e(n)`, the next iteration the rest); cells over the other
       parameters written on every path, as points.
     """
-    i, n = G.ctr, G.bnd
-    if n is None:
+    i = G.ctr
+    if not G.term:
         P.stats['loop-no-bound'] += 1
         return
+    end = G.term[0][1]
     newpre, newR = [], list(G.preR)
     tails = [st for st, *_ in P.tails]
     for c in G.pre:
@@ -1031,7 +1243,7 @@ def loop_finish(P, G):
             P.stats['chained'] += 1
         else:
             Q = mk(tuple((b, e) for b, e in c[0] if b != i), c[1])
-            r = (Q, S, base(i), base(n))
+            r = (Q, S, base(i), end)
             if r not in newR:
                 newR.append(r)
     G.pre, G.preR = newpre, newR
@@ -1047,10 +1259,10 @@ def loop_finish(P, G):
         if S:
             Q = mk(tuple((b, e) for b, e in c[0] if b != i), c[1])
             if Q[0]:
-                postR.append((Q, S, base(i), base(n)))
+                postR.append((Q, S, base(i), end))
         elif c not in G.pre:
             post.append(c)
-    G.post, G.postR = post[:MAXPTS], postR
+    G.post, G.postR = post[:MAXPTS], [r for r in postR if r not in G.preR]
 
 
 # ---- reporting
@@ -1064,8 +1276,23 @@ def run_all(rules=True):
     return out, time.time() - t
 
 
+def misses(P):
+    """Guarantees and tail preconditions without a witness at the fixpoint."""
+    n = 0
+    for f, ws in P.calls:
+        if f == P.key and ws:
+            n += sum(1 for _, w in ws if w[0] == 'miss')
+    for ws in P.ret_wits:
+        n += sum(1 for _, w in ws if w[0] == 'miss')
+    return n
+
+
+def ok(P):
+    return not P.unc and not misses(P)
+
+
 def closure(res):
-    clean = {k for k, P in res.items() if not P.unc}
+    clean = {k for k, P in res.items() if ok(P)}
     closed = set()
     for k in ORDER:
         if k in clean and all(c in closed for c in CALLS[k] if c != k and c in CORE):
@@ -1090,6 +1317,9 @@ def report(res):
     for s in ('leaf', 'calls', 'calls-loop', 'loop'):
         print(f'    {s:12s}', *by[s])
     unc = collections.Counter(c for P in res.values() for c, _, _ in P.unc)
+    ms = sum(misses(P) for P in res.values())
+    if ms:
+        unc['miss (a guarantee or tail precondition)'] = ms
     print('  uncovered', sum(unc.values()), 'in', len(res) - len(clean), 'functions:', dict(unc.most_common()))
     print('  residuals', sum(len(P.res) for P in res.values()), 'in', sum(1 for P in res.values() if P.res),
           'functions', dict(collections.Counter(r[0] for P in res.values() for r in P.res)))
@@ -1109,8 +1339,20 @@ def report(res):
     return clean, closed
 
 
+def set_features(argv):
+    if '--lean' in argv:
+        F.clear()
+    if '--with' in argv:
+        F.update(argv[argv.index('--with') + 1].split(','))
+    if '--without' in argv:
+        F.difference_update(argv[argv.index('--without') + 1].split(','))
+    assert F <= set(FEATURES), F - set(FEATURES)
+
+
 def main():
-    rules = '--no-rules' not in sys.argv
+    set_features(sys.argv)
+    print('features:', ','.join(sorted(F)) or '(none: heapOkC\'s format)')
+    rules = True
     res, dt = run_all(rules)
     print(f'inferred {len(res)} functions in {dt:.1f} s')
     report(res)
