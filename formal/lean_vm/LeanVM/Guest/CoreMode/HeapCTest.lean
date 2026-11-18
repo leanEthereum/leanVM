@@ -44,6 +44,10 @@ rejected.
   (guarantees under a selector).
 * `useM`: a run of stride `1` met by its two residue runs of stride `2` (`mrg`).
 * `mkv`, `useV`: a word stored at a guaranteed cell, named at return (`postV`) and read back by the caller.
+* `rdd`, `useD`: a callee's ghost named by the word at a cell its caller never loads (`ders`, value `DB`).
+* `catk`: a run split at a symbolic index (`catM`); `useME`: a merge whose root is given by an equation
+  (`mrgE`); `useAb`: a block every arm of a `dispatch` writes up to its index (`ab`); `pubRd`: constant
+  preconditions (the public input); `fillP`, `useFillP`: a loop's accumulated pointer run, consumed.
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
