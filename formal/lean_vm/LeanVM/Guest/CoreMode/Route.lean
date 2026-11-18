@@ -79,8 +79,8 @@ noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
-  ∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
-    (honB j Cf.fn && resOk Cf) = true
+  (∃ j, j < nFns ∧ (fnOf j).entryPc = Cf.frame.entry ∧ coreOf j = Cf.fn ∧ Bridge.ctxOf j = Cf.X ∧
+    (honB j Cf.fn && resOk Cf) = true) ∧ Cf.hc = false ∧ Cf.hcs = []
 
 
 /-- **Core data of the deployed guest**, from the tables' entries of function `j` and its checks. -/
@@ -91,11 +91,11 @@ theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P :
     (hfn : cf = Cf.fn)
     (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
       f.instructionCount = Cf.X)
-    (hb : (honB j Cf.fn && resOk Cf) = true) : CfOk Cf := by
+    (hb : (honB j Cf.fn && resOk Cf) = true) (hhc : Cf.hc = false) (hhcs : Cf.hcs = []) : CfOk Cf := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, -⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
-  refine ⟨j, hj, by rw [hf, he], by rw [hcf, hfn], ?_, hb⟩
+  refine ⟨⟨j, hj, by rw [hf, he], by rw [hcf, hfn], ?_, hb⟩, hhc, hhcs⟩
   rw [← hX, Bridge.ctxOf, hl, hex, hen, hf, hP]
 
 end

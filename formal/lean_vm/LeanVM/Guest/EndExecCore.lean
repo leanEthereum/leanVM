@@ -343,7 +343,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · exact consecutive_entry functions_consecutive f hf cf hcf h1 (by omega)
     rw [hcentry, heq, hentry]
   -- it is `Cf`'s function
-  obtain ⟨j0, hj0, he0, hc0, hx0, hb0⟩ := hCf
+  obtain ⟨⟨j0, hj0, he0, hc0, hx0, hb0⟩, hhc, -⟩ := hCf
   obtain ⟨-, -, -, -, -, -, -, -, -, hjn⟩ := fn_of_idx hj
   have hjj : j = j0 := fnOf_entry_inj hjn hj0 (by rw [← B2C.entryOf_of hj, hentK, ← hent, he0])
   subst hjj
@@ -516,6 +516,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
   · -- its residuals, of families (`resOk`), true along its path on the reference
+    rw [CoreMode.CFun.xc_of hhc]
     exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0 hparF
 
 end

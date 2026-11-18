@@ -7,7 +7,9 @@ public import LeanVM.Prover.ExecuteComplete
 # The invariant's parts
 
 The executor's stack, read from the frame headers, for any frame predicate `Q K i s` (function `K`'s
-frame `s.fp` at offset `i`: the mode walk's `AtOff`, or the core route's). An activation (`Act`) is a
+frame `s.fp` at offset `i`: the mode walk's `AtOff`, or the core route's) and any contracts `Ct` (by
+entry pc: what a caller establishes at a function's entry, `PreAt`, and what it guarantees at its
+return, `PostAt`; `none`, the mode signature's entry facts and `RetAll`). An activation (`Act`) is a
 function's certificate with its frames: the top one, and below it a loop's earlier iterations (`Iter`:
 the frame), the first one the frame its caller named. `ActOk`: the iterations chain to the first frame
 (`Chain`, `IterOk`: each iteration returns what the next one does, `Back`), each frame having its
@@ -37,26 +39,56 @@ runs. -/
 def RetAll (m : Mem) (fp : ℕ) (G : Sig) : Prop :=
   RetHolds (stOf m fp) G ∧ (∀ r ∈ G.postL, RW (stOf m fp) r) ∧ ∀ q ∈ G.postLP, PW (stOf m fp) q.1 q.2
 
+/-- **A function's contract**: what a caller establishes at its entry (`pre`, of the memory and the
+callee's frame) and what it guarantees at its return (`post`, of the memory and its frame), the latter
+kept in any larger memory. -/
+structure Ctr where
+  pre : Mem → ℕ → Prop
+  post : Mem → ℕ → Prop
+  mono : ∀ {m m' : Mem} {fp : ℕ}, m ≤ m' → post m fp → post m' fp
+
+/-- **The contracts, by entry pc**: `some c` a function's own contract, `none` its mode signature's. -/
+abbrev Cts := ℕ → Option Ctr
+
+/-- **What a caller establishes at the entry** of the function at pc `t`, of mode signature `G`: its
+contract's precondition, or the signature's entry facts. -/
+def PreAt (Ct : Cts) (E : Env) (t : ℕ) (G : Sig) (s : St) : Prop :=
+  match Ct t with
+  | some c => c.pre s.mem s.fp
+  | none => Holds s (entryAbs E G)
+
+/-- **What the function at pc `t` guarantees at its return** in frame `fp`: its contract's
+postcondition, or the signature's facts and its loop's runs. -/
+def PostAt (Ct : Cts) (t : ℕ) (G : Sig) (m : Mem) (fp : ℕ) : Prop :=
+  match Ct t with
+  | some c => c.post m fp
+  | none => RetAll m fp G
+
+/-- **Mode contracts at a function and its callees**: at its own entry and at each callee its
+environment names. -/
+def ModeCts (Ct : Cts) (K : Cert) : Prop :=
+  Ct K.F.entry = none ∧ ∀ t G, K.E.sigs.get t = some G → Ct t = none
+
 /-- A loop's iteration in frame `fp` guarantees at its return what the next one, in frame `nx`, does,
 in any memory past `m`. -/
-def Back (m : Mem) (G : Sig) (fp nx : ℕ) : Prop :=
-  ∀ m', m ≤ m' → m'.WF → m'.used ≤ maxCells → RetAll m' nx G → RetAll m' fp G
+def Back (Ct : Cts) (t : ℕ) (G : Sig) (m : Mem) (fp nx : ℕ) : Prop :=
+  ∀ m', m ≤ m' → m'.WF → m'.used ≤ maxCells → PostAt Ct t G m' nx → PostAt Ct t G m' fp
 
 /-- A loop's earlier iteration: its frame. -/
 structure Iter where
   fp : ℕ
 
 /-- Iteration `it` of a loop of `K`, its next frame `nx`. -/
-structure IterOk (m : Mem) (Kc : Cert) (it : Iter) (nx : ℕ) : Prop where
+structure IterOk (Ct : Cts) (m : Mem) (Kc : Cert) (it : Iter) (nx : ℕ) : Prop where
   fp : it.fp < maxCells
   term : TermAt m it.fp Kc.F.sig
-  back : Back m Kc.F.sig it.fp nx
+  back : Back Ct Kc.F.entry Kc.F.sig m it.fp nx
   nx : nx < maxCells
 
 /-- The iterations below frame `top` chain down to the first frame `fp0`, the latest first. -/
-def Chain (m : Mem) (K : Cert) : List Iter → ℕ → ℕ → Prop
+def Chain (Ct : Cts) (m : Mem) (K : Cert) : List Iter → ℕ → ℕ → Prop
   | [], top, fp0 => top = fp0
-  | it :: its, top, fp0 => IterOk m K it top ∧ Chain m K its it.fp fp0
+  | it :: its, top, fp0 => IterOk Ct m K it top ∧ Chain Ct m K its it.fp fp0
 
 /-- An activation: a function's certificate, its loop's earlier iterations, its top and first
 frames. -/
@@ -67,38 +99,37 @@ structure Act where
   fp0 : ℕ
 
 /-- An activation of one of `Ks`, its frames chained, its top frame's termination facts. -/
-structure ActOk (Ks : List Cert) (m : Mem) (a : Act) : Prop where
+structure ActOk (Ct : Cts) (Ks : List Cert) (m : Mem) (a : Act) : Prop where
   mem : a.K ∈ Ks
-  chain : Chain m a.K a.its a.fp a.fp0
+  chain : Chain Ct m a.K a.its a.fp a.fp0
   term : TermAt m a.fp a.K.F.sig
   fp : a.fp < maxCells
 
-/-- **A suspended caller goes on**: once the callee of signature `G` in frame `fpE` guarantees its
-facts in a memory past `m0`, the caller's frame predicate `Q`, in frame `fpC`, holds at offset `ro`. -/
-def Resume (Q : ℕ → St → Prop) (fpC ro : ℕ) (G : Sig) (fpE : ℕ) (m0 : Mem) : Prop :=
+/-- **A suspended caller goes on**: once the callee at pc `t`, of signature `G`, in frame `fpE`
+guarantees its contract (`PostAt`) in a memory past `m0`, the caller's frame predicate `Q`, in frame
+`fpC`, holds at offset `ro`. -/
+def Resume (Ct : Cts) (Q : ℕ → St → Prop) (fpC ro t : ℕ) (G : Sig) (fpE : ℕ) (m0 : Mem) : Prop :=
   ∀ m, m0 ≤ m → m.WF → m.used ≤ maxCells → fpE < maxCells → fpC < maxCells →
-    RetHolds (stOf m fpE) G → (∀ r ∈ G.postL, RW (stOf m fpE) r) →
-    (∀ q ∈ G.postLP, PW (stOf m fpE) q.1 q.2) → TermAt m fpE G →
-    Q ro (stOf m fpC)
+    PostAt Ct t G m fpE → TermAt m fpE G → Q ro (stOf m fpC)
 
-/-- Activation `b` is suspended at a call into a callee of signature `G` in frame `fpE`, which
-returns to pc `r`. -/
-def Susp (Q : Cert → ℕ → St → Prop) (m : Mem) (b : Act) (r : ℕ) (G : Sig) (fpE : ℕ) : Prop :=
-  ∃ ro m0, r = b.K.F.entry + ro ∧ ro < b.K.code.length ∧ m0 ≤ m ∧ Resume (Q b.K) b.fp ro G fpE m0
+/-- Activation `b` is suspended at a call into the callee at pc `t`, of signature `G`, in frame `fpE`,
+which returns to pc `r`. -/
+def Susp (Ct : Cts) (Q : Cert → ℕ → St → Prop) (m : Mem) (b : Act) (r t : ℕ) (G : Sig) (fpE : ℕ) : Prop :=
+  ∃ ro m0, r = b.K.F.entry + ro ∧ ro < b.K.code.length ∧ m0 ≤ m ∧ Resume Ct (Q b.K) b.fp ro t G fpE m0
 
 /-- The activations below `a`: none, `a` being `main`'s in frame `0`, or one suspended at the call
 `a`'s header returns to, and those below it. -/
-def Below (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (m : Mem) : Act → List Act → Prop
+def Below (Ct : Cts) (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (m : Mem) : Act → List Act → Prop
   | a, [] => a.K = Km ∧ a.its = [] ∧ a.fp = 0
   | a, b :: rest => a.K.F.main = false ∧ ∃ r, m.get (a.fp + 0) = some (ofK (g ^ r)) ∧
-      m.get (a.fp + 1) = some (ofK (g ^ b.fp)) ∧ Susp Q m b r a.K.F.sig a.fp0 ∧ ActOk Ks m b ∧
-      Below Q Ks Km m b rest
+      m.get (a.fp + 1) = some (ofK (g ^ b.fp)) ∧ Susp Ct Q m b r a.K.F.entry a.K.F.sig a.fp0 ∧ ActOk Ct Ks m b ∧
+      Below Ct Q Ks Km m b rest
 
 /-- **The stack**: the top activation's top frame is the executor's, its frame predicate holding at
 its offset. -/
-def StackAt (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (s : St) : Prop :=
-  ∃ a rest i, ActOk Ks s.mem a ∧ a.fp = s.fp ∧ i < a.K.code.length ∧ s.pc = a.K.F.entry + i ∧
-    Q a.K i s ∧ Below Q Ks Km s.mem a rest
+def StackAt (Ct : Cts) (Q : Cert → ℕ → St → Prop) (Ks : List Cert) (Km : Cert) (s : St) : Prop :=
+  ∃ a rest i, ActOk Ct Ks s.mem a ∧ a.fp = s.fp ∧ i < a.K.code.length ∧ s.pc = a.K.F.entry + i ∧
+    Q a.K i s ∧ Below Ct Q Ks Km s.mem a rest
 
 /-- The jump table is written: its cells, with their targets' powers. -/
 def JtMem (E0 : Env) (m : Mem) : Prop :=
@@ -183,30 +214,70 @@ theorem retAll_of {s : St} {G : Sig} (hR : RetHolds s G) (hL : ∀ r ∈ G.postL
     fun r hr ↦ RW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hL r hr),
     fun q hq ↦ PW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hLP q hq)⟩
 
-theorem Back.mono {m m' : Mem} (hle : m ≤ m') {G : Sig} {fp nx : ℕ} (h : Back m G fp nx) :
-    Back m' G fp nx :=
+theorem PostAt.mono {Ct : Cts} {t : ℕ} {G : Sig} {m m' : Mem} (hle : m ≤ m') {fp : ℕ}
+    (h : PostAt Ct t G m fp) : PostAt Ct t G m' fp := by
+  unfold PostAt at h ⊢
+  cases hc : Ct t with
+  | some c => rw [hc] at h; exact c.mono hle h
+  | none => rw [hc] at h; exact h.mono hle
+
+theorem preAt_none {Ct : Cts} {E : Env} {t : ℕ} {G : Sig} {s : St} (h : Ct t = none) :
+    PreAt Ct E t G s = Holds s (entryAbs E G) := by
+  unfold PreAt; rw [h]
+
+theorem postAt_none {Ct : Cts} {t : ℕ} {G : Sig} {m : Mem} {fp : ℕ} (h : Ct t = none) :
+    PostAt Ct t G m fp = RetAll m fp G := by
+  unfold PostAt; rw [h]
+
+/-- `PreAt` reads only the memory and the frame. -/
+theorem PreAt.congr {Ct : Cts} {E : Env} {t : ℕ} {G : Sig} {s s' : St} (hm : s'.mem = s.mem) (hfp : s'.fp = s.fp)
+    (h : PreAt Ct E t G s) : PreAt Ct E t G s' := by
+  unfold PreAt at h ⊢
+  cases hc : Ct t with
+  | some c => rw [hc] at h; rw [hm, hfp]; exact h
+  | none => rw [hc] at h; exact Holds.mono (s := s) (s' := s') (by rw [hm]; exact Mem.le_refl _) hfp h
+
+/-- `Back` for a mode contract: the signature's guarantees at the next frame give them at this one. -/
+def BackM (m : Mem) (G : Sig) (fp nx : ℕ) : Prop :=
+  ∀ m', m ≤ m' → m'.WF → m'.used ≤ maxCells → RetAll m' nx G → RetAll m' fp G
+
+theorem BackM.back {Ct : Cts} {t : ℕ} {G : Sig} {m : Mem} {fp nx : ℕ} (hC : Ct t = none) (h : BackM m G fp nx) :
+    Back Ct t G m fp nx := by
+  intro m' h1 h2 h3 hP
+  rw [postAt_none hC] at hP ⊢
+  exact h m' h1 h2 h3 hP
+
+/-- A loop's tail call stated for its mode signature, read for a mode contract. -/
+theorem tail_of_mode {Ct : Cts} {K : Cert} {s1 s' : St} {A B D : Prop} (hC : Ct K.F.entry = none)
+    (h : A ∧ B ∧ D ∧ BackM s'.mem K.F.sig s1.fp s'.fp ∧ Holds s' (entryAbs K.E K.F.sig)) :
+    A ∧ B ∧ D ∧ Back Ct K.F.entry K.F.sig s'.mem s1.fp s'.fp ∧ PreAt Ct K.E K.F.entry K.F.sig s' :=
+  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1.back hC, by rw [preAt_none hC]; exact h.2.2.2.2⟩
+
+theorem Back.mono {Ct : Cts} {t : ℕ} {m m' : Mem} (hle : m ≤ m') {G : Sig} {fp nx : ℕ}
+    (h : Back Ct t G m fp nx) : Back Ct t G m' fp nx :=
   fun m'' h2 ↦ h m'' (Mem.le_trans hle h2)
 
-theorem IterOk.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} {it : Iter} {nx : ℕ}
-    (h : IterOk m K it nx) : IterOk m' K it nx :=
+theorem IterOk.mono {Ct : Cts} {m m' : Mem} (hle : m ≤ m') {K : Cert} {it : Iter} {nx : ℕ}
+    (h : IterOk Ct m K it nx) : IterOk Ct m' K it nx :=
   ⟨h.fp, h.term.mono hle, h.back.mono hle, h.nx⟩
 
-theorem Chain.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → Chain m' K its top fp0
+theorem Chain.mono {Ct : Cts} {m m' : Mem} (hle : m ≤ m') {K : Cert} :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain Ct m K its top fp0 → Chain Ct m' K its top fp0
   | [], _, _, h => h
   | _ :: _, _, _, ⟨h1, h2⟩ => ⟨h1.mono hle, Chain.mono hle h2⟩
 
-theorem ActOk.mono {Ks : List Cert} {m m' : Mem} (hle : m ≤ m') {a : Act} (h : ActOk Ks m a) :
-    ActOk Ks m' a :=
+theorem ActOk.mono {Ct : Cts} {Ks : List Cert} {m m' : Mem} (hle : m ≤ m') {a : Act} (h : ActOk Ct Ks m a) :
+    ActOk Ct Ks m' a :=
   ⟨h.mem, h.chain.mono hle, h.term.mono hle, h.fp⟩
 
-theorem Susp.mono {Q : Cert → ℕ → St → Prop} {m m' : Mem} (hle : m ≤ m') {b : Act} {r : ℕ} {G : Sig}
-    {fpE : ℕ} (h : Susp Q m b r G fpE) : Susp Q m' b r G fpE :=
+theorem Susp.mono {Ct : Cts} {Q : Cert → ℕ → St → Prop} {m m' : Mem} (hle : m ≤ m') {b : Act} {r t : ℕ}
+    {G : Sig} {fpE : ℕ} (h : Susp Ct Q m b r t G fpE) : Susp Ct Q m' b r t G fpE :=
   let ⟨ro, m0, h1, h2, h3, h4⟩ := h
   ⟨ro, m0, h1, h2, Mem.le_trans h3 hle, h4⟩
 
-theorem Below.mono {Q : Cert → ℕ → St → Prop} {Ks : List Cert} {Km : Cert} {m m' : Mem} (hle : m ≤ m') :
-    ∀ {a : Act} {rest : List Act}, Below Q Ks Km m a rest → Below Q Ks Km m' a rest
+theorem Below.mono {Ct : Cts} {Q : Cert → ℕ → St → Prop} {Ks : List Cert} {Km : Cert} {m m' : Mem}
+    (hle : m ≤ m') :
+    ∀ {a : Act} {rest : List Act}, Below Ct Q Ks Km m a rest → Below Ct Q Ks Km m' a rest
   | _, [], h => h
   | _, _ :: _, ⟨h1, r, h2, h3, h4, h5, h6⟩ =>
     ⟨h1, r, hle.get _ _ h2, hle.get _ _ h3, h4.mono hle, h5.mono hle, Below.mono hle h6⟩
@@ -248,6 +319,15 @@ theorem entryAbs_congr {E E' : Env} (h3 : E.jtLo = E'.jtLo) (h4 : E.jtHi = E'.jt
   unfold entryAbs jtRng
   rw [h3, h4]
 
+/-- `PreAt` on an environment with the same jump table, of a state with the same memory and frame. -/
+theorem PreAt.env {Ct : Cts} {E E' : Env} {t : ℕ} {G : Sig} {s s' : St} (h3 : E.jtLo = E'.jtLo)
+    (h4 : E.jtHi = E'.jtHi) (hm : s'.mem = s.mem) (hfp : s'.fp = s.fp) (h : PreAt Ct E t G s) :
+    PreAt Ct E' t G s' := by
+  have h' := PreAt.congr hm hfp h
+  unfold PreAt at h' ⊢
+  rw [← entryAbs_congr h3 h4 G]
+  exact h'
+
 /-- A function's pcs are the executor's: below its size. -/
 theorem code_pc {C : Ctx} {K : Cert} (hK : CodeOk C K) {i : ℕ} (hi : i < K.code.length) :
     K.F.entry + i < C.ops.size := by
@@ -262,22 +342,22 @@ theorem cert_pc {C : Ctx} {K : Cert} (hK : CertOk C K) {i : ℕ} (hi : i < K.cod
 
 /-! ## The chain of a loop's iterations -/
 
-theorem Chain.fp0 {m : Mem} {K : Cert} :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → top < maxCells → fp0 < maxCells
+theorem Chain.fp0 {Ct : Cts} {m : Mem} {K : Cert} :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain Ct m K its top fp0 → top < maxCells → fp0 < maxCells
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, _ => Chain.fp0 h2 h1.fp
 
-theorem Chain.term {m : Mem} {K : Cert} :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → TermAt m top K.F.sig →
+theorem Chain.term {Ct : Cts} {m : Mem} {K : Cert} :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain Ct m K its top fp0 → TermAt m top K.F.sig →
       TermAt m fp0 K.F.sig
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, _ => Chain.term h2 h1.term
 
 /-- **A loop's guarantees at return, down its iterations**: each iteration returns what the next one
 does (`Back`). -/
-theorem Chain.back {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → RetAll m top K.F.sig →
-      RetAll m fp0 K.F.sig
+theorem Chain.back {Ct : Cts} {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain Ct m K its top fp0 → PostAt Ct K.F.entry K.F.sig m top →
+      PostAt Ct K.F.entry K.F.sig m fp0
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, ht => Chain.back hwf hu h2 (h1.back m (Mem.le_refl _) hwf hu ht)
 

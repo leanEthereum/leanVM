@@ -109,6 +109,9 @@ structure LoopOk (K : Mode.Cert) (Cf : CFun) : Prop where
   small : ∀ i (hi : i < K.code.length), SmallOps K.code[i]
   pows : Cf.pows.Ok
   fpows : Cf.frame.F.pows.Ok
+  /-- Its contract is its mode signature's, and its callees'. -/
+  hc : Cf.hc = false
+  hcs : Cf.hcs = []
 
 /-! ## The body and its path -/
 
@@ -389,7 +392,7 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
     (hT : TermAt s.mem s.fp K.F.sig) (hcs : ∀ a ∈ cs, stopL a = false) :
     s'.pc = K.F.entry ∧ (∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true) ∧
       (∀ o < 2, ∃ u, s'.mem.get (s1.fp + o) = some u ∧ s'.mem.get (s'.fp + o) = some u) ∧
-      Back s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
+      Mode.BackM s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
   have hs := sigL_of hok.sig
   have hle : s.mem ≤ s'.mem := Mem.le_trans hle1 hle'
   have hwN : ∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true := fun o ho ↦ hentry.w o (hok.fsig ▸ ho)
@@ -462,7 +465,8 @@ theorem tail_next {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {img : MemoryI
 theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Prover.Exec.Advice} {C : Ctx}
     (hC : Prover.Exec.Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) (hK : CodeOk C K)
     {img : MemoryImage κ} {Y : St → Prop} (hκ : κ ≤ 28) (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
-    (hH : CoreHon img Y K Cf) : FrameSpec C (refMem img) Y K (CoreAt img Cf K.code) := by
+    (hH : CoreHon img Y K Cf) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    FrameSpec C (refMem img) Y Ct K (CoreAt img Cf K.code) := by
   obtain ⟨as0, c0, args0, hbody, hargs⟩ := loopB_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmt s = true := by rw [hbody]; exact loopStmt_of
   obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod⟩ :=
@@ -496,8 +500,9 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
   refine ⟨fun hle hfp h ↦ h.mono hle hfp, ?_, ?_⟩
   · -- the entry
     intro s hH0 hs0
+    rw [Mode.preAt_none hCt.1] at hH0
     obtain ⟨hw, hpre, hpreR, hself⟩ := entry_facts hent' (fun o ho ↦ (hso o ho).1) hH0
-    refine coreAt_of (by rw [hok.fsig]; exact expW_entry hκ hs0.agree hH0)
+    refine coreAt_of (by rw [CFun.xc_of hok.hc, hok.fsig]; exact expW_entry hκ hs0.agree hH0)
       ⟨atF_mono (s := s) (Mem.le_refl _) rfl (atF_entry henv ⟨fun o ho ↦ hw o (hok.fsig ▸ ho),
       fun o hso' ↦ ?_⟩), fun o ho ↦ hw o (hok.fsig ▸ ho), fun σ hσ ↦ ?_⟩
     · rw [hok.fsig] at hso'
@@ -693,6 +698,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
         | call G' t hnr => exact absurd hrj hnr
         | ret hregs hretw _ =>
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret _ hci (by omega) h0 h1 ?_)
+          rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hW⟩ := hheap σ0 hσ0
           obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
           obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hself1 hpc0 hst hwp hreads
@@ -777,13 +783,13 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
             · rw [hhd i] at hpairs
               exact (flow_wrk hκ e1 hs0 hm hpairs ha hfa (fun q hq ↦ hσ0.ptr _ _ hb a q
                 (by rw [heq]; simp [hma]) hq) hwa).mono hle'
-          exact tail_next (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle' hfpS hS30
+          exact Mode.tail_of_mode hCt.1 <| tail_next (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle' hfpS hS30
             (hpc'.trans hok.fentry) hentry hr0 hr1 hTE (hjtR s' hle) hwE (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0
             (hσ0.res hxw) (by simpa using heq) hrw0 hWc (fun k hk ↦ hnargs k hk) hargs (hPs hσ0) hT hcs
 
 /-- **A leaf loop helper on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) : Mode.FnSpecC K Cf :=
-  fun _ _ hC ha hK _ _ _ hκ hY hH _ ↦ frameSpec_loop hok hC ha hK hκ hY hH
+  fun _ _ hC ha hK _ _ _ _ hκ hY hH _ hCt ↦ frameSpec_loop hok hC ha hK hκ hY hH (modeCts_of hCt hok.hc hok.hcs)
 
 end
 
