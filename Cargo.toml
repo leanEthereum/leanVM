@@ -30,6 +30,10 @@ edition = "2024"
 needless_range_loop = "allow"
 too_many_arguments = "allow"
 
+# With its `sidecar` feature, `lean_vm` still builds its prover, unused; CI's `cargo machete` finds unused dependencies.
+[workspace.lints.cargo]
+unused_dependencies = "allow"
+
 [workspace.dependencies]
 allocator = { path = "crates/allocator" }
 bench_harness = { path = "crates/bench_harness" }

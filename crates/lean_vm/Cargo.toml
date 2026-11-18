@@ -11,20 +11,15 @@ claims.workspace = true
 verifier.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-isa = { workspace = true, optional = true }
-aggregation = { workspace = true, optional = true }
-lean_da = { workspace = true, optional = true }
-stable_lean_vm_core = { path = "../stable_prover/lean_vm_core", optional = true }
+isa.workspace = true
+aggregation.workspace = true
+lean_da.workspace = true
+stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
 sidecar = { workspace = true, optional = true }
 
 [features]
-default = ["prover"]
-# The two modes, one or the other (the crate docs).
-prover = ["dep:isa", "dep:aggregation", "dep:lean_da", "dep:stable_lean_vm_core"]
-experimental_prover = ["prover", "dep:experimental_lean_vm_core"]
+# Prove with the experimental prover rather than the stable one.
+experimental_prover = ["dep:experimental_lean_vm_core"]
+# Prove and verify through the sidecar rather than in this process.
 sidecar = ["dep:sidecar"]
-
-[[test]]
-name = "api"
-required-features = ["prover"]

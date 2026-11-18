@@ -1,4 +1,4 @@
-//! What the `prover` feature brings: proving and verifying here, and LeanDA's encoding.
+//! What the library offers without the `sidecar` feature: proving and verifying here, and LeanDA's encoding.
 
 use crate::{AggregateClaims, OutputClaims};
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};

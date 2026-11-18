@@ -33,7 +33,7 @@ impl Drop for Socket {
 
 fn command(socket: &Path) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_leanvm-sidecar"));
-    command.args(["--prover", "stable", "--socket"]).arg(socket);
+    command.arg("--socket").arg(socket);
     command
 }
 
@@ -67,7 +67,14 @@ fn sidecar_end_to_end() {
     )));
     let socket = &guard.0;
     let (first, mut client) = start(socket);
-    assert_eq!(client.prover(), "stable");
+    assert_eq!(
+        client.prover(),
+        if cfg!(feature = "experimental_prover") {
+            "experimental"
+        } else {
+            "stable"
+        }
+    );
 
     let xmss = signers_cache::get_signers::<StableProver>(3);
     let sphincs = signers_cache::get_lean_sphincs_signers::<StableProver>(1);

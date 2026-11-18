@@ -5,27 +5,17 @@
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 use clap::Parser;
-use experimental_lean_vm_core::ExperimentalProver;
-use stable_lean_vm_core::StableProver;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-/// Which of the two provers runs.
-#[derive(Clone, Copy, clap::ValueEnum)]
-enum Prover {
-    /// The stable prover.
-    Stable,
-    /// The experimental prover.
-    Experimental,
-}
+#[cfg(feature = "experimental_prover")]
+type P = experimental_lean_vm_core::ExperimentalProver;
+#[cfg(not(feature = "experimental_prover"))]
+type P = stable_lean_vm_core::StableProver;
 
 #[derive(Parser)]
 #[command(name = "leanvm-sidecar")]
 struct Cli {
-    /// The prover to run.
-    #[arg(long, value_enum)]
-    prover: Prover,
-
     /// The Unix socket to listen on. It appears once the sidecar is ready.
     #[arg(long)]
     socket: PathBuf,
@@ -41,10 +31,7 @@ fn main() -> ExitCode {
         socket: cli.socket,
         threads: cli.threads,
     };
-    let Err(e) = match cli.prover {
-        Prover::Stable => sidecar::serve::<StableProver>(&config),
-        Prover::Experimental => sidecar::serve::<ExperimentalProver>(&config),
-    };
+    let Err(e) = sidecar::serve::<P>(&config);
     eprintln!("leanvm-sidecar: {}: {e}", config.socket.display());
     ExitCode::FAILURE
 }

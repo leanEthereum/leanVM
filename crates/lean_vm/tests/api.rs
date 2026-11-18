@@ -1,3 +1,5 @@
+#![cfg(not(feature = "sidecar"))]
+
 use lean_vm::*;
 
 const MSG_0: lean_xmss::Message = [0; lean_xmss::MESSAGE_LEN];

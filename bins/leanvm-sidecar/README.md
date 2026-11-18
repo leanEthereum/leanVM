@@ -6,12 +6,13 @@ Generates and verifies leanVM proofs, in a dedicated process, communicating with
 
 ```bash
 cargo build --release -p leanvm-sidecar
-target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar.sock
+target/release/leanvm-sidecar --socket /run/leanvm/sidecar.sock
 ```
+
+It runs the stable prover, or, built with `--features experimental_prover`, the experimental one (the same proofs, faster).
 
 | flag | default | meaning |
 | --- | --- | --- |
-| `--prover` | required | `stable` or `experimental` (same proofs, experimental faster) |
 | `--socket` | required | the socket to listen on |
 | `--threads` | 0 | thread count, 0 for one per core |
 
@@ -24,7 +25,7 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 
 ## Clients
 
-From Rust, `lean_vm = { default-features = false, features = ["sidecar"] }` builds no prover, and `lean_vm::sidecar::Client` proves and verifies, with the library's arguments, blobs as they are and proofs as bytes:
+From Rust, `lean_vm = { features = ["sidecar"] }` runs no prover, and `lean_vm::sidecar::Client` proves and verifies, with the library's arguments, blobs as they are and proofs as bytes:
 
 ```rust
 let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock", None)?;
