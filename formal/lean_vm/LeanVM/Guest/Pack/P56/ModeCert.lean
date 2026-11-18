@@ -433,7 +433,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«gkr_rounds__L1».cfun]
+  [Fn.«padding_weight__L3».cfun, Fn.«padding_weight__L16».cfun, Fn.«gkr_rounds__L1».cfun]
 
 end
 
@@ -597,16 +597,16 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«ring_switch_target».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«verify_bus_gkr_loop1».modeOk,
     Fn.«verify_bus_gkr_loop1».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«padding_weight__L3».modeOk,
-    Fn.«padding_weight__L3».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«padding_weight__L16».modeOk,
-    Fn.«padding_weight__L16».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L3».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«padding_weight__L3».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L16».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«padding_weight__L16».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«check_opening_terminal_loop0».modeOk,
     Fn.«check_opening_terminal_loop0».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«child_claim_list_mono_last__L6».modeOk,
     Fn.«child_claim_list_mono_last__L6».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«gkr_rounds__L1».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«gkr_rounds__L1».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«gkr_rounds__L1».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«gkr_rounds__L1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7)
     ⟨Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».modeOk,
     Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».modeHintsOk⟩)

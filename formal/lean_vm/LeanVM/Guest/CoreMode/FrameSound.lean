@@ -655,7 +655,8 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
       pre.foldlM (Prover.Exec.runHint C) s = .ok s1 → Moves (refMem img) s s1 → HintIn s1 h →
       HintOk C (refMem img) s1 h)
     (hnz : ∀ o ∈ (Fn.nzr.get i).getD [], ∃ v, Rd img s.fp o = some v ∧ v ≠ 0)
-    (hO : has Fn.O i = true → ∀ s1, Moves (refMem img) s s1 → HeapRd s1 code[i])
+    (hO : has Fn.O i = true → ∀ s1, (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
+      Moves (refMem img) s s1 → HeapRd s1 code[i])
     (htgt : TgtOk img Fn code i s.fp)
     (href : ∀ s1, Moves (refMem img) s s1 → RefOk (refMem img) s1 (opOfOff code[i]))
     (hfall : ∀ s1 s', (Mode.hintsAt Fn.hints (Fn.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
@@ -696,7 +697,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
     have e'' := e'
     obtain ⟨hw', hfp', hpc', hle3⟩ := stepF_wr hg1 hm.fine.fp (by rw [hpc1]; exact hszC) hA2.2
-      (fun ho ↦ hO ho s1 hm) h3 e'
+      (fun ho ↦ hO ho s1 e1 hm) h3 e'
     have hstw : StoreW Fn code i s' := by
       intro a o c' hci hS
       rw [List.getElem?_eq_getElem hi, Option.some.injEq] at hci

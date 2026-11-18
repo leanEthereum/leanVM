@@ -56,29 +56,6 @@ end
 
 end LeanVM.Guest.Fn.«rs_eq_run_loop0»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L18»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `padding_weight__L18`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `padding_weight__L18`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨191430, 164, Fn.«padding_weight__L18».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
-    (.stack 9) 19)]) .nil .nil)), .nil, .nil, false, .nil⟩
-
-/-- `padding_weight__L18`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L18»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -159,34 +136,6 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L24»
-
-namespace LeanVM.Guest.Fn.«claim_list_last__L16»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `claim_list_last__L16`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `claim_list_last__L16`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨237138, 166, Fn.«claim_list_last__L16».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
-    (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
-    (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4), (.witnessHeap "claims" 3 24 4),
-    (.witnessHeap "claims" 3 28 4), (.witnessHeap "claims" 3 32 4), (.witnessHeap "claims" 3 36 4),
-    (.witnessHeap "claims" 3 40 4), (.witnessHeap "claims" 3 44 4), (.witnessHeap "claims" 3 48 4),
-    (.witnessHeap "claims" 3 52 4), (.witnessHeap "claims" 3 56 4), (.witnessHeap "claims" 3 60
-    4)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `claim_list_last__L16`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L16»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L13»
 
@@ -654,3 +603,31 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«level_positions__L7_L22_L4_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop235`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node (some Fn.«level_residual__L218_L19_L6_L3_loop1».modeSig) .nil .nil)
+    .nil)) .nil) .nil) .nil) .nil))))))) .nil) .nil) .nil)) .nil) .nil), 524287⟩
+
+/-- `__loop235`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨331715, 162, Fn.«level_residual__L218_L19_L6_L3_loop1».modeSig, (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
+    [(.frameAddress 170)]) .nil .nil) .nil) .nil)) .nil)) .nil)), .nil, .nil, false, .nil⟩
+
+/-- `__loop235`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3_loop1»

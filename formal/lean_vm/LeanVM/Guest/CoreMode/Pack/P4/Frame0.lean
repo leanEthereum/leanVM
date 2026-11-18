@@ -97,10 +97,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 190154, 76,
     Fn.«padding_weight__L7».modeSig, .nil, 524287, Data.adviceFn107.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some
-    ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) .nil)))), .nil, .nil⟩
+    Fn.«padding_weight__L7».pairO, Fn.«padding_weight__L7».pairS, .nil⟩
 
 /-- `padding_weight__L7`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -120,12 +117,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 190614, 116,
     Fn.«padding_weight__L12».modeSig, .nil, 524287, Data.adviceFn112.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some
-    ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))
-    (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil
-    .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))))), .nil, .nil⟩
+    Fn.«padding_weight__L12».pairO, Fn.«padding_weight__L12».pairS, .nil⟩
 
 /-- `padding_weight__L12`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

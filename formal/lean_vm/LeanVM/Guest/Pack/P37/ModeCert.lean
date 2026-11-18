@@ -550,7 +550,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«sel_partial_nibble__L1».cfun, Fn.«squeeze_point_from__L11».cfun]
+  [Fn.«sel_partial_nibble__L1».cfun, Fn.«padding_weight__L19».cfun,
+    Fn.«squeeze_point_from__L11».cfun]
 
 end
 
@@ -776,8 +777,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«shared_selector_tables_loop0».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«sel_partial_nibble__L1».cfun, hT _ (List.mem_cons_self), rfl,
     Fn.«sel_partial_nibble__L1».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«padding_weight__L19».modeOk,
-    Fn.«padding_weight__L19».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L19».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«padding_weight__L19».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«block_selector_tab__L3».modeOk,
     Fn.«block_selector_tab__L3».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«block_selector_tab__L25».modeOk,
@@ -791,7 +792,7 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«level_positions__L4_L13_L7».modeOk,
     Fn.«level_positions__L4_L13_L7».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L11».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«squeeze_point_from__L11».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«squeeze_point_from__L11».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10) ⟨Fn.«level_residual__L32_L11_L4_L2».modeOk,
     Fn.«level_residual__L32_L11_L4_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11)

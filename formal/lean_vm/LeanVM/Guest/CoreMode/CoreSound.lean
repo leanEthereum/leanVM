@@ -169,44 +169,40 @@ theorem straight_stmts : ∀ {body : List Stmt}, straight body = true → ∀ s 
       | _ => simp at h
     · exact straight_stmts (by simpa [straight] using h.2) s hs
 
-theorem noFlow_hints {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : noFlow d = true) (k : ℕ) :
-    ((d.2.2.lookup k).getD []).filter isaFlowHint = [] := by
-  unfold noFlow at h
-  generalize d.2.2 = l at h
-  induction l with
-  | nil => rfl
-  | cons p l ih =>
-    simp only [List.all_cons, Bool.and_eq_true] at h
-    rw [List.lookup_cons]
-    split
-    · simp only [Option.getD_some, List.filter_eq_nil_iff]
-      intro x hx
-      simpa using List.all_eq_true.mp h.1 x hx
-    · exact ih h.2
+theorem forall₂_mem {α β : Type} {R : α → β → Prop} : ∀ {l1 : List α} {l2 : List β}, List.Forall₂ R l1 l2 →
+    ∀ a ∈ l1, ∃ b ∈ l2, R a b
+  | _, _, .nil, _, ha => absurd ha List.not_mem_nil
+  | _, _, .cons h t, a, ha => by
+    rcases List.mem_cons.mp ha with rfl | ha
+    · exact ⟨_, List.mem_cons_self, h⟩
+    · obtain ⟨b, hb, hr⟩ := forall₂_mem t a ha
+      exact ⟨b, List.mem_cons_of_mem _ hb, hr⟩
 
-theorem flow_nil {X : AlignCtx} {as : List Atom} {hs : List Prover.Exec.Hint}
-    (h : List.Forall₂ (Pairs X) (as.filter flowAtom) (hs.filter isaFlowHint)) (hn : hs.filter isaFlowHint = []) :
-    ∀ a ∈ as, flowAtom a = false := by
-  rw [hn, List.forall₂_nil_right_iff] at h
-  intro a ha
-  cases hfa : flowAtom a
-  · rfl
-  · have : a ∈ as.filter flowAtom := List.mem_filter.mpr ⟨ha, hfa⟩
-    rw [h] at this
-    cases this
+theorem lookupD_hintsAt (x : ℕ) : ∀ l : List (ℕ × List Prover.Exec.Hint), (l.lookup x).getD [] = Mode.hintsAt l x
+  | [] => rfl
+  | (k, v) :: l => by
+    unfold Mode.hintsAt
+    rw [List.lookup_cons, List.find?_cons]
+    by_cases h : x = k
+    · subst h; simp
+    · rw [beq_false_of_ne h, beq_false_of_ne (Ne.symm h)]
+      exact lookupD_hintsAt x l
 
 /-! ## The return -/
 
-/-- **At the return**, the events past the pairing's position write nothing new: the head statement
-the pairing jumps by, past atoms that are no stores, is the body's `ret`. -/
+/-- **At the return**, the events past the pairing's position write nothing new but what its flow
+hints' atoms write: the head statement the pairing jumps by, past atoms that are no stores, is the
+body's `ret`. -/
 theorem pair_ret {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List Stmt}
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
     (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc od of = false)
-    (hst : straight body = true) (hnf : noFlow d = true)
+    (hst : straight body = true)
     {σ : Val} {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsWritten H σ (pre ++ es)) :
-    ∀ x, Written H σ (pre ++ es) x → Written H σ pre x := by
+    ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
+      ∀ x, Written H σ (pre ++ es) x → Written H σ pre x ∨
+        ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ es ∧ Writes σ a x := by
   obtain ⟨ins, z, as, hins, -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hci] at hins
   cases hins
@@ -214,7 +210,6 @@ theorem pair_ret {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List 
   · exact absurd rfl (hnj oc od of)
   simp only [OffsetInstruction.jump.injEq] at heq
   obtain ⟨rfl, rfl, rfl⟩ := heq
-  have hfl := flow_nil hpairs (noFlow_hints hnf _)
   -- the head statement is the body's `ret`
   have hhead : ∃ vs' ss, zs.cur = .ret vs' :: ss := by
     unfold jumpStepH at hr
@@ -226,20 +221,24 @@ theorem pair_ret {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List 
       · simp [headStepH, hcur] at hr
       · exact ⟨vs', ss, rfl⟩
   obtain ⟨vs', ss, hcur⟩ := hhead
+  refine ⟨as, hpairs, ?_⟩
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hp
   obtain ⟨es', hes', rfl⟩ := walk_atoms_ret hp
   rw [Bridge.Zip.pos_head hcur, Bridge.walk_ret_cons] at hes'
   simp only [Out.ret.injEq] at hes'
   obtain ⟨rfl, -⟩ := hes'
-  obtain ⟨-, -, -, hW⟩ := atoms_written (fs := []) (ss := zs.pos) (pre := pre)
-    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (fun a ha _ ↦ by
+  obtain ⟨-, -, -, hW⟩ := atoms_written (fs := as.filter flowAtom) (ss := zs.pos) (pre := pre)
+    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (fun a ha hn ↦ by
         rcases List.mem_append.mp ha with ha | ha
-        · exact hq a ha (hfl a ha)
+        · cases hfa : flowAtom a
+          · exact hq a ha hfa
+          · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
         · exact hbs a ha)
   intro x hx
-  rcases hW x (by simpa using hx) with h | ⟨a, ha, -⟩
-  · exact h
-  · cases ha
+  rcases hW x (by simpa using hx) with h | ⟨a, ha, hwa⟩
+  · exact Or.inl h
+  · rw [List.mem_filter] at ha
+    exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
 
 
 /-! ## The signature's products, at an honest frame -/
@@ -349,6 +348,78 @@ theorem lt_maxCells_63 {x : ℕ} (h : x < maxCells) : x < 2 ^ 63 := by
   unfold maxCells at h
   omega
 
+theorem compiles_heap {loc : ℕ → ℕ} {hc : Core.Hint} {h : Prover.Exec.Hint} (hco : Bridge.compiles loc hc h = true)
+    {p : V} {off len : ℕ} (hd : hintHeap hc = some (p, off, len)) : isaHeap h = some (loc p.idx, off, len) := by
+  cases hc with
+  | witness s d =>
+    cases d with
+    | stack => simp [hintHeap] at hd
+    | heap p' off' len' =>
+      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
+      obtain ⟨rfl, rfl, rfl⟩ := hd
+      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
+      simp only [Bool.and_eq_true, beq_iff_eq] at hco
+      obtain ⟨⟨⟨-, rfl⟩, rfl⟩, rfl⟩ := hco
+      rfl
+  | bits v start nbits d =>
+    cases d with
+    | stack => simp [hintHeap] at hd
+    | heap p' off' len' =>
+      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
+      obtain ⟨rfl, rfl, rfl⟩ := hd
+      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
+      rename_i x bd n
+      cases bd <;> simp_all [Bridge.destOk, isaHeap]
+  | bitsExp v nbits d =>
+    cases d with
+    | stack => simp [hintHeap] at hd
+    | heap p' off' len' =>
+      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
+      obtain ⟨rfl, rfl, rfl⟩ := hd
+      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
+      rename_i x bd n
+      cases bd <;> simp_all [Bridge.destOk, isaHeap]
+  | digitsExp v nbits ndigits digitBits start sc d =>
+    cases d with
+    | stack => simp [hintHeap] at hd
+    | heap p' off' len' =>
+      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
+      obtain ⟨rfl, rfl, rfl⟩ := hd
+      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
+      rename_i x bd nb nd db st sc'
+      cases bd <;> simp_all [Bridge.destOk, isaHeap]
+  | windowsExp v start width count d =>
+    cases d with
+    | stack => simp [hintHeap] at hd
+    | heap p' off' len' =>
+      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
+      obtain ⟨rfl, rfl, rfl⟩ := hd
+      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
+      rename_i x bd pos st w c
+      cases bd <;> simp_all [Bridge.destOk, isaHeap]
+  | _ => simp [hintHeap] at hd
+
+/-- **A flow hint's atom wrote its cells** once the hints at the pc ran: the ISA hint it pairs with
+wrote them from its pointer's exponent, the pointer at the frame cell holding the atom's. -/
+theorem flow_wrk {img : MemoryImage κ} (hκ : κ ≤ 28) {X : AlignCtx} {C : Ctx} {hs : List Prover.Exec.Hint}
+    {s s1 : St} (e1 : hs.foldlM (Prover.Exec.runHint C) s = .ok s1) (hs0 : Fine (refMem img) s)
+    (hm : Moves (refMem img) s s1) {σ : Val} {as : List Atom}
+    (hpairs : List.Forall₂ (Pairs X) (as.filter flowAtom) (hs.filter isaFlowHint)) {a : Atom} {y : K}
+    (ha : a ∈ as) (hfa : flowAtom a = true)
+    (hr : ∀ p, ptrOf a = some p → Rd img s.fp (X.locAt p.idx) = some (σ p)) (hw : Writes σ a y) :
+    WrK s1.mem y := by
+  obtain ⟨h, hh, hc, rfl, hco⟩ := forall₂_mem hpairs a (List.mem_filter.mpr ⟨ha, hfa⟩)
+  obtain ⟨p, off, len, hd, k, hk, rfl⟩ := hw
+  obtain ⟨b, hget, hwr⟩ := hints_heap hs ⟨hs0.agree.wf, hs0.dl⟩ e1 h (List.mem_filter.mp hh).1
+    (compiles_heap hco hd)
+  have hlt := written_lt hm.fine (written_of_get hget)
+  rw [hm.fp.symm] at hget
+  have hval : ofK (g ^ b) = σ p := rd_get hκ hm.fine (by unfold maxCells at hlt; omega)
+    (by rw [hm.fp]; exact hr p (by simp [ptrOf, hd])) hget
+  refine ⟨b + off + k, ?_, written_lt hm.fine (hwr k hk), hwr k hk⟩
+  rw [cellAt, ← hval, limb_ofK]
+  simp [addressOfIndex, pow_add, mul_assoc]
+
 /-- **The core route meets the frame interface**: a function passing the kernel's checks, on the
 executor's tables for the guest's advice, its code the executor's, at states `Y` on a reference run
 where its frames have honest valuations. -/
@@ -358,7 +429,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
     (hH : CoreHon img Y K Cf) : FrameSpec C (refMem img) Y K (CoreAt img Cf K.code) := by
   have hsh := hok.shape
   simp only [shapeOk, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hst, hret⟩, hnf⟩, hfp1⟩, htgt0⟩, hnzr0⟩, hent⟩, hend⟩, hincr⟩ := hsh
+  obtain ⟨⟨⟨⟨⟨⟨⟨hst, hret⟩, hfp1⟩, htgt0⟩, hnzr0⟩, hent⟩, hend⟩, hincr⟩ := hsh
   obtain ⟨henv, harm, hacc⟩ := frameAcc_of hincr hok.frame
   have hsig := hok.sig
   simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff, List.all_eq_true] at hsig
@@ -401,8 +472,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       intro j hj
       have hpcj : K.F.entry + j < 2 ^ guestProgram.logSize := hsize ▸ Mode.code_pc hK hj
       rw [hok.fentry, Mode.ctx_hints hC (ha ▸ Mode.adviceHints_incr) hpcj, ha, hok.hints j hj]
-    have hfl : ∀ j, ((Cf.d.2.2.lookup (Cf.X.entry + j)).getD []).filter isaFlowHint = [] := fun j ↦
-      noFlow_hints hnf _
+    have hhd : ∀ j, (Cf.d.2.2.lookup (Cf.X.entry + j)).getD [] = Mode.hintsAt Cf.frame.hints (Cf.frame.entry + j) :=
+      fun j ↦ by rw [lookupD_hintsAt, hok.dhints, hok.xentry, hok.fentry]
     have hrwOf : ∀ σ, HonF img Cf s.fp σ → ∀ pre es vs, walk σ Cf.fn.body = .ret (pre ++ es) vs →
         ReadsWritten Cf.H σ (pre ++ es) ∧ ∃ rd, ∀ e ∈ pre ++ es, e.Holds rd σ := by
       intro σ hσ pre es vs hb
@@ -421,18 +492,19 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       (fun c d f _ cv dv _ _ _ _ _ _ kk hk ↦ by rw [trieNil_get htgt0] at hk; cases hk)
       (fun s1 hm ↦ refOk_fp hm.fp href) ?_ ?_
     · -- the oracle's heap cell, written
-      intro hOi s1 hm
+      intro hOi s1 e1 hm
       have main : ∀ a o c, K.code[i] = .deref a o c .cell → HeapRd s1 (.deref a o c .cell) := by
         intro a o c hci
         obtain ⟨pos, pre, es, vs, hpos, hb, hwp, hW⟩ := hheap σ0 hσ0
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_read hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) hwp
           (hrwOf σ0 hσ0 pre es vs hb).1
-        have hfa := flow_nil hpairs (hfl i)
-        have hwk : WrK s.mem (cellAt σ0 pv off) := by
-          rcases hwr with h | ⟨a', ha', hfa', -⟩
-          · exact hW _ h
-          · rw [hfa a' ha'] at hfa'; cases hfa'
+        have hwk : WrK s1.mem (cellAt σ0 pv off) := by
+          rcases hwr with h | ⟨a', ha', hfa', hma, hwa⟩
+          · exact (hW _ h).mono hm.le
+          · rw [hhd i] at hpairs
+            exact flow_wrk hκ e1 hs hm hpairs ha' hfa'
+              (fun q hq ↦ hσ0.ptr _ _ hb a' q (List.mem_append_right _ hma) hq) hwa
         simp only [cellsAt, Bool.and_eq_true, Nat.beq_eq] at hcell
         obtain ⟨⟨hloc, hoff⟩, -⟩ := hcell
         intro p x hp hx
@@ -440,9 +512,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         rw [hci] at hsm
         obtain ⟨sa, -, -⟩ := hsm
         have hrd : Rd img s1.fp a = some (σ0 pv) := by
-          rw [hm.fp, ← hloc]; exact hσ0.ptr _ _ hb dv pv off (List.mem_append_right _ hmem)
+          rw [hm.fp, ← hloc]; exact hσ0.ptr _ _ hb (.load dv pv off) pv (List.mem_append_right _ hmem) rfl
         have hpv : p = σ0 pv := rd_get hκ hm.fine sa hrd hp
-        obtain ⟨x', hx', hlt', hw'⟩ := hwk.mono hm.le
+        obtain ⟨x', hx', hlt', hw'⟩ := hwk
         have h1 := hx.1
         rw [limb0_mul_ofK, hpv, ← hoff] at h1
         have hxx : x = x' := gpow_inj (lt_maxCells_63 hx.2) (lt_maxCells_63 hlt') (h1.symm.trans hx')
@@ -475,12 +547,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       rw [hfp'] at hσ
       obtain ⟨pos, pre, es, vs, hpos, hb, hwp, hW⟩ := hheap σ hσ
       obtain ⟨pos', hpos', as, hpairs, hfallP⟩ := pair_fall hok.pair hpos hnj
-      have hfa := flow_nil hpairs (hfl i)
       obtain ⟨evs, es', rfl, hwp', hWr⟩ := hfallP hwp (hrwOf σ hσ pre _ vs hb).1
       refine ⟨pos', pre ++ evs, es', vs, hpos', by rw [List.append_assoc]; exact hb, hwp', fun y hy ↦ ?_⟩
-      rcases hWr y hy with h | ⟨a, ha', hfa', -⟩ | ⟨o1, o2, o3, dv, pv, off, hci, hS, hcell, hmem, rfl⟩
+      rcases hWr y hy with h | ⟨a, ha', hfa', hma, hwa⟩ | ⟨o1, o2, o3, dv, pv, off, hci, hS, hcell, hmem, rfl⟩
       · exact (hW y h).mono hle
-      · rw [hfa a ha'] at hfa'; cases hfa'
+      · rw [hhd i] at hpairs
+        exact (flow_wrk hκ e1 hs hm hpairs ha' hfa' (fun q hq ↦ hσ.ptr _ _ hb a q
+          (List.mem_append_right _ (List.mem_append_left _ hma)) hq) hwa).mono hle'
       · obtain ⟨p, x, hp, hx, hw⟩ := hstw o1 o2 o3 hci (by rw [has_hasP]; exact hS)
         simp only [cellsAt, Bool.and_eq_true, Nat.beq_eq] at hcell
         obtain ⟨⟨hloc, hoff⟩, -⟩ := hcell
@@ -490,7 +563,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         obtain ⟨so1, -, -⟩ := hsm
         have hrd : Rd img s'.fp o1 = some (σ pv) := by
           rw [hfp', ← hloc]
-          exact hσ.ptr _ _ hb dv pv off (List.mem_append_right _ (List.mem_append_left _ hmem))
+          exact hσ.ptr _ _ hb (.load dv pv off) pv (List.mem_append_right _ (List.mem_append_left _ hmem)) rfl
         have hpv : p = σ pv := rd_get hκ hf' so1 hrd hp
         refine ⟨x, ?_, hx.2, hw⟩
         have h1 := hx.1
@@ -510,9 +583,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret oc hci (by omega) h0 h1 ?_)
         obtain ⟨pos, pre, es, vs, hpos, hb, hwp, hW⟩ := hheap σ0 hσ0
         obtain ⟨hrw, rd, hh0⟩ := hrwOf σ0 hσ0 pre es vs hb
-        have hpr := pair_ret hok.pair hpos hci hz (by simpa using hfw) hst hnf hwp hrw
-        have hposts : ∀ p ∈ Cf.post, WrK s1.mem (p.1.addr σ0) := fun p hp ↦
-          (hW _ (hpr _ (postOk_sound hok.pows hok.post hb hh0 p hp))).mono hm.le
+        obtain ⟨as, hpairs, hpr⟩ := pair_ret hok.pair hpos hci hz (by simpa using hfw) hst hwp hrw
+        rw [hhd i] at hpairs
+        have hposts : ∀ p ∈ Cf.post, WrK s1.mem (p.1.addr σ0) := fun p hp ↦ by
+          rcases hpr _ (postOk_sound hok.pows hok.post hb hh0 p hp) with h | ⟨a, ha, hfa, hma, hwa⟩
+          · exact (hW _ h).mono hm.le
+          · exact flow_wrk hκ e1 hs hm hpairs ha hfa
+              (fun q hq ↦ hσ0.ptr _ _ hb a q (List.mem_append_right _ hma) hq) hwa
         have hw1 : ∀ o ∈ K.F.sig.entry, s1.mem.written (s1.fp + o) = true := fun o ho ↦ by
           rw [hm.fp]; exact written_mono hm.le (hentw o (hok.fsig ▸ ho))
         have hσ1 : HonF img Cf s1.fp σ0 := hm.fp ▸ hσ0

@@ -17,21 +17,6 @@ public import LeanVM.Guest.Pack.«P42».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«list_split»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `list_split`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 23) (d := Data.adviceFn23) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«list_split»
-
 namespace LeanVM.Guest.Fn.«da_column_offsets»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -46,36 +31,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«da_column_offsets»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 105) (d := Data.adviceFn105) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L5»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L10`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 110) (d := Data.adviceFn110) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L10»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 

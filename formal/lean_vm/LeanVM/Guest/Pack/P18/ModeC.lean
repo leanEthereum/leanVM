@@ -31,6 +31,44 @@ end
 
 end LeanVM.Guest.Fn.«sel_partial_nibble__L0»
 
+namespace LeanVM.Guest.Fn.«padding_weight__L18»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L18`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L18`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨191430, 164, Fn.«padding_weight__L18».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L18»
+
+namespace LeanVM.Guest.Fn.«claim_list_last__L16»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `claim_list_last__L16`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `claim_list_last__L16`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨237138, 166, Fn.«claim_list_last__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_last__L16»
+
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L10»
 
 open LeanVM.Guest LeanVM.Guest.Exec

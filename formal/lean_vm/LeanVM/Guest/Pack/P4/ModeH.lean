@@ -29,36 +29,6 @@ end
 
 end LeanVM.Guest.Fn.«aggregate_claims»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L7»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L7`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 107) (d := Data.adviceFn107) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L7»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L12»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L12`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 112) (d := Data.adviceFn112) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L12»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L8»
 
 open LeanVM.Guest LeanVM.Guest.Exec

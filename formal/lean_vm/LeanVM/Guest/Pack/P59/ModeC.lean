@@ -30,6 +30,25 @@ end
 
 end LeanVM.Guest.Fn.«eq_prefix_run__L34»
 
+namespace LeanVM.Guest.Fn.«padding_weight__L22»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L22`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L22`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨192134, 196, Fn.«padding_weight__L22».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L22»
+
 namespace LeanVM.Guest.Fn.«plus_one_run__L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -65,3 +84,22 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L25»
+
+namespace LeanVM.Guest.Fn.«claim_list_last__L8»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `claim_list_last__L8`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `claim_list_last__L8`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨236136, 94, Fn.«claim_list_last__L8».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_last__L8»

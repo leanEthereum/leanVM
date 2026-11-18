@@ -28,6 +28,15 @@ def hcert : CoreMode.HCert where
     (17, [(0, 11, .pre 11)]), (18, [(0, 12, .pre 12)])]
   res := []
 
+/-- `claim_list_last__L1`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(0, 1)], 0⟩, .ev 8), (⟨[(0, 1)], 1⟩, .ev 9), (⟨[(0, 1)], 2⟩, .ev 10), (⟨[(0, 1)], 3⟩, .ev 11),
+    (⟨[(0, 1)], 4⟩, .ev 12), (⟨[(0, 1)], 5⟩, .ev 13), (⟨[(0, 1)], 6⟩, .ev 14),
+    (⟨[(0, 1)], 7⟩, .ev 15), (⟨[(0, 1)], 8⟩, .ev 16), (⟨[(0, 1)], 9⟩, .ev 17),
+    (⟨[(0, 1)], 10⟩, .ev 18), (⟨[(0, 1)], 11⟩, .ev 19), (⟨[(0, 1)], 12⟩, .ev 20),
+    (⟨[(1, 1)], 0⟩, .ev 4), (⟨[(1, 1)], 1⟩, .ev 5), (⟨[(1, 1)], 2⟩, .ev 6), (⟨[(1, 1)], 3⟩, .ev 7),
+    (⟨[(1, 1)], 0⟩, .ev 4), (⟨[(1, 1)], 1⟩, .ev 5), (⟨[(1, 1)], 2⟩, .ev 6), (⟨[(1, 1)], 3⟩, .ev 7)]
+
 end
 end LeanVM.Guest.Fn.«claim_list_last__L1»
 

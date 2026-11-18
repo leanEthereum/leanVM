@@ -527,7 +527,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L34».cfun, Fn.«plus_one_run__L3».cfun, Fn.«index_mle__L25».cfun]
+  [Fn.«eq_prefix_run__L34».cfun, Fn.«padding_weight__L22».cfun, Fn.«plus_one_run__L3».cfun,
+    Fn.«index_mle__L25».cfun, Fn.«claim_list_last__L8».cfun]
 
 end
 
@@ -738,16 +739,18 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L34».cfun, hT _ (List.mem_cons_self), rfl,
     Fn.«eq_prefix_run__L34».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«padding_weight__L22».modeOk,
-    Fn.«padding_weight__L22».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L22».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«padding_weight__L22».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L3».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«plus_one_run__L3».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«plus_one_run__L3».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«index_mle__L25».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«index_mle__L25».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«index_mle__L25».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«column_selector__L15».modeOk,
     Fn.«column_selector__L15».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«claim_list_last__L8».modeOk,
-    Fn.«claim_list_last__L8».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«claim_list_last__L8».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«claim_list_last__L8».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«da_verify_loop0».modeOk,
     Fn.«da_verify_loop0».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«grind_check__L27».modeOk,

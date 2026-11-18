@@ -18,7 +18,7 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
 honest frames have them (`honB`): its body straight-line, its parameters `V.n k` at cells `2 + k`,
-each `load`'s pointer at its certificate cell within the frame, no hint-only cell.
+each dereferenced pointer at its certificate cell within the frame, no hint-only cell.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -27,10 +27,12 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- A `load`'s pointer at its certificate cell, within the frame, not a hint-only value. -/
+/-- A dereferenced pointer (`ptrOf`) at its certificate cell, within the frame, not a hint-only value. -/
 noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
-  | .atom (.load _ p _) => ((Bridge.extraOf j).lookup p.idx).isNone && decide (p.idx < 2 ^ 30) &&
+  | .atom a => match ptrOf a with
+    | some p => ((Bridge.extraOf j).lookup p.idx).isNone && decide (p.idx < 2 ^ 30) &&
       decide (2 ≤ B2C.cellJ j p) && decide (B2C.cellJ j p < B2C.fsN j)
+    | none => true
   | _ => true
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers at their cells. -/

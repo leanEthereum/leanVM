@@ -486,8 +486,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L35».cfun, Fn.«eq_prefix_run__L40».cfun, Fn.«plus_one_run__L2».cfun,
-    Fn.«index_mle__L24».cfun]
+  [Fn.«eq_prefix_run__L35».cfun, Fn.«eq_prefix_run__L40».cfun, Fn.«padding_weight__L23».cfun,
+    Fn.«plus_one_run__L2».cfun, Fn.«index_mle__L24».cfun, Fn.«claim_list_last__L9».cfun]
 
 end
 
@@ -680,17 +680,19 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«eq_prefix_run__L35».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L40».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_self)), rfl, Fn.«eq_prefix_run__L40».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«padding_weight__L23».modeOk,
-    Fn.«padding_weight__L23».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L23».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«padding_weight__L23».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L2».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«plus_one_run__L2».fnSpecC⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L24».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
-    Fn.«index_mle__L24».fnSpecC⟩)
+    Fn.«plus_one_run__L2».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L24».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«index_mle__L24».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5) ⟨Fn.«column_selector__L14».modeOk,
     Fn.«column_selector__L14».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«claim_list_last__L9».modeOk,
-    Fn.«claim_list_last__L9».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«claim_list_last__L9».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))), rfl, Fn.«claim_list_last__L9».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«grind_check__L26».modeOk,
     Fn.«grind_check__L26».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«level_positions__L13_L20_L2».modeOk,

@@ -15,21 +15,6 @@ public import LeanVM.Guest.Pack.«P33».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«padding_weight__L20»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L20`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 120) (d := Data.adviceFn120) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L20»
-
 namespace LeanVM.Guest.Fn.«ring_switch_target_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

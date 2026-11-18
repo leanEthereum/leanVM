@@ -33,8 +33,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `g_power_of_word`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 19245, 48,
-    Fn.«g_power_of_word».modeSig, .nil, 524287, Data.adviceFn3.2.2, .nil, .nil, .nil, .nil, .nil,
-    .nil, .nil⟩
+    Fn.«g_power_of_word».modeSig, .nil, 524287, Data.adviceFn3.2.2, .nil, .nil, .nil, .nil,
+    Fn.«g_power_of_word».pairO, Fn.«g_power_of_word».pairS, .nil⟩
 
 /-- `g_power_of_word`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

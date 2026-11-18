@@ -75,31 +75,6 @@ end
 
 end LeanVM.Guest.Fn.«column_selector__L22»
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `claim_list_last__L6`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `claim_list_last__L6`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨235974, 76, Fn.«claim_list_last__L6».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
-    (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
-    (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4)]) .nil .nil), .nil, .nil, false,
-    .nil⟩
-
-/-- `claim_list_last__L6`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L6»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

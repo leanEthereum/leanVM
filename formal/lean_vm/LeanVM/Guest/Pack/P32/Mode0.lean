@@ -154,32 +154,6 @@ end
 
 end LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `claim_list_last__L10`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `claim_list_last__L10`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨236333, 112, Fn.«claim_list_last__L10».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
-    (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
-    (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4), (.witnessHeap "claims" 3 24 4),
-    (.witnessHeap "claims" 3 28 4), (.witnessHeap "claims" 3 32 4), (.witnessHeap "claims" 3 36
-    4)]) .nil .nil), .nil, .nil, false, .nil⟩
-
-/-- `claim_list_last__L10`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L10»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L15»
 
 open LeanVM.Guest LeanVM.Guest.Exec

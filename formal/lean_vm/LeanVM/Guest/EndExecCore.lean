@@ -48,6 +48,22 @@ theorem straight_mem {σ : Val} : ∀ {body : List Stmt}, CoreMode.straight body
       cases ha
     | _ => simp at h
 
+theorem ptrOf_uses {a : Atom} {p : V} (h : CoreMode.ptrOf a = some p) : p ∈ Memory.atomUses a := by
+  cases a with
+  | load d p' off => cases h; simp [Memory.atomUses]
+  | hint hh =>
+    simp only [CoreMode.ptrOf, Option.map_eq_some_iff] at h
+    obtain ⟨⟨p', off, len⟩, hd, rfl⟩ := h
+    cases hh with
+    | witness s d => cases d <;> simp_all [CoreMode.hintHeap, Memory.atomUses, Memory.hintUses, Memory.destUses]
+    | bits v st nb d => cases d <;> simp_all [CoreMode.hintHeap, Memory.atomUses, Memory.hintUses, Memory.destUses]
+    | bitsExp v nb d => cases d <;> simp_all [CoreMode.hintHeap, Memory.atomUses, Memory.hintUses, Memory.destUses]
+    | digitsExp v nb nd db st sc d =>
+      cases d <;> simp_all [CoreMode.hintHeap, Memory.atomUses, Memory.hintUses, Memory.destUses]
+    | windowsExp v st w c d => cases d <;> simp_all [CoreMode.hintHeap, Memory.atomUses, Memory.hintUses, Memory.destUses]
+    | _ => simp [CoreMode.hintHeap] at hd
+  | _ => cases h
+
 /-- **The core route's frames are honest**, on the tracks' invariant. -/
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
@@ -93,7 +109,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨hlocs, hst0⟩, hptr⟩, hpar⟩, hcells⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
-  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 d p off hl ↦ ?_, fun k hk ↦ ?_⟩⟩
+  refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -109,7 +125,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     obtain ⟨rfl, rfl⟩ := hw0
     have hmem := straight_mem hst0 (by rw [hfn]; exact hw) hl
     have hc := hptr _ hmem
-    simp only [CoreMode.ptrCellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    simp only [CoreMode.ptrCellB, hpa, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
     have hloc : Cf.X.locAt p.idx = cellJ j p := by
       rw [← hx0]
@@ -117,7 +133,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have hnamed : p ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
       unfold namedOf
       exact List.mem_append_left _ (List.mem_append_right _
-        (List.mem_flatMap.mpr ⟨_, hl, by simp [Ev.uses, atomUses]⟩))
+        (List.mem_flatMap.mpr ⟨_, hl, by simpa [Ev.uses] using ptrOf_uses hpa⟩))
     have := hF.val p hnamed h2 h3
     rw [hloc, ← hfpL]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this

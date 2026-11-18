@@ -61,8 +61,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `list_split`: what its frame walk is told. -/
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 61181, 30,
-    Fn.«list_split».modeSig, .nil, 524287, Data.adviceFn23.2.2, .nil, .nil, .nil, .nil, .nil, .nil,
-    .nil⟩
+    Fn.«list_split».modeSig, .nil, 524287, Data.adviceFn23.2.2, .nil, .nil, .nil, .nil,
+    Fn.«list_split».pairO, Fn.«list_split».pairS, .nil⟩
 
 /-- `list_split`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -128,9 +128,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 190026, 60,
     Fn.«padding_weight__L5».modeSig, .nil, 524287, Data.adviceFn105.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some
-    ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)))), .nil, .nil⟩
+    Fn.«padding_weight__L5».pairO, Fn.«padding_weight__L5».pairS, .nil⟩
 
 /-- `padding_weight__L5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -150,11 +148,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 190406, 100,
     Fn.«padding_weight__L10».modeSig, .nil, 524287, Data.adviceFn110.2.2, .nil, .nil, .nil, .nil,
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some
-    ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))
-    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)))), .nil, .nil⟩
+    Fn.«padding_weight__L10».pairO, Fn.«padding_weight__L10».pairS, .nil⟩
 
 /-- `padding_weight__L10`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

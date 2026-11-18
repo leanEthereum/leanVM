@@ -58,21 +58,6 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L23»
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L11»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `claim_list_last__L11`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 363) (d := Data.adviceFn363) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L11»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L14»
 
 open LeanVM.Guest LeanVM.Guest.Exec

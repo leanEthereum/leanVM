@@ -49,6 +49,25 @@ end
 
 end LeanVM.Guest.Fn.«squeeze_point_from__L25»
 
+namespace LeanVM.Guest.Fn.«claim_list_last__L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `claim_list_last__L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `claim_list_last__L7`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨236050, 86, Fn.«claim_list_last__L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_last__L7»
+
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

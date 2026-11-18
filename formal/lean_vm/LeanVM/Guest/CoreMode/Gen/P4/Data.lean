@@ -68,6 +68,13 @@ def hcert : CoreMode.HCert where
     (71, [(1, 11, .pre 11)])]
   res := []
 
+/-- `padding_weight__L12`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
+    (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),
+    (⟨[(1, 1)], 8⟩, .ev 8), (⟨[(1, 1)], 9⟩, .ev 9), (⟨[(1, 1)], 10⟩, .ev 10),
+    (⟨[(1, 1)], 11⟩, .ev 11)]
+
 end
 end LeanVM.Guest.Fn.«padding_weight__L12»
 
@@ -82,6 +89,11 @@ def hcert : CoreMode.HCert where
   reads := [(12, [(1, 0, .pre 0)]), (16, [(1, 1, .pre 1)]), (21, [(1, 2, .pre 2)]), (26, [(1, 3, .pre 3)]),
     (31, [(1, 4, .pre 4)]), (36, [(1, 5, .pre 5)]), (41, [(1, 6, .pre 6)])]
   res := []
+
+/-- `padding_weight__L7`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
+    (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6)]
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L7»

@@ -12,6 +12,61 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».ModeSig
 
+namespace LeanVM.Guest.Fn.«list_split»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `list_split`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `list_split`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨61181, 30, Fn.«list_split».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«list_split»
+
+namespace LeanVM.Guest.Fn.«padding_weight__L5»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L5`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L5`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨190026, 60, Fn.«padding_weight__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L5»
+
+namespace LeanVM.Guest.Fn.«padding_weight__L10»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L10`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L10`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨190406, 100, Fn.«padding_weight__L10».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L10»
+
 namespace LeanVM.Guest.Fn.«index_mle__L31»
 
 open LeanVM.Guest LeanVM.Guest.Exec

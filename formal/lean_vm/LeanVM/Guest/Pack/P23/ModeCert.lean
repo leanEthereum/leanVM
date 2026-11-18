@@ -402,7 +402,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«index_mle__L32».cfun]
+  [Fn.«padding_weight__L6».cfun, Fn.«padding_weight__L13».cfun, Fn.«index_mle__L32».cfun]
 
 end
 
@@ -546,12 +546,12 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     -/
 theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«padding_weight__L6».modeOk,
-    Fn.«padding_weight__L6».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«padding_weight__L13».modeOk,
-    Fn.«padding_weight__L13».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L32».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«index_mle__L32».fnSpecC⟩)
+  Mode.fa_cons (.inr ⟨Fn.«padding_weight__L6».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«padding_weight__L6».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L13».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«padding_weight__L13».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L32».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«index_mle__L32».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«block_selector_tab__L9».modeOk,
     Fn.«block_selector_tab__L9».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«claim_list_digest_loop1».modeOk,

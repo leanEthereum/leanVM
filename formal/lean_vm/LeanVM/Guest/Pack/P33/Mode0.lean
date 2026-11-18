@@ -26,29 +26,6 @@ public import LeanVM.Guest.Pack.«P9».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«padding_weight__L20»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `padding_weight__L20`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `padding_weight__L20`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨191766, 180, Fn.«padding_weight__L20».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
-    (.stack 9) 21)]) .nil .nil)), .nil, .nil, false, .nil⟩
-
-/-- `padding_weight__L20`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L20»
-
 namespace LeanVM.Guest.Fn.«ring_switch_target_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

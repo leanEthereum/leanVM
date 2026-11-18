@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Gen.«P0».Route
 public import LeanVM.Guest.CoreMode.Gen.«P10».Route
+public import LeanVM.Guest.CoreMode.Gen.«P11».Route
 public import LeanVM.Guest.CoreMode.Gen.«P12».Route
 public import LeanVM.Guest.CoreMode.Gen.«P13».Route
 public import LeanVM.Guest.CoreMode.Gen.«P14».Route
@@ -29,6 +30,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P27».Route
 public import LeanVM.Guest.CoreMode.Gen.«P28».Route
 public import LeanVM.Guest.CoreMode.Gen.«P29».Route
 public import LeanVM.Guest.CoreMode.Gen.«P2».Route
+public import LeanVM.Guest.CoreMode.Gen.«P30».Route
 public import LeanVM.Guest.CoreMode.Gen.«P31».Route
 public import LeanVM.Guest.CoreMode.Gen.«P32».Route
 public import LeanVM.Guest.CoreMode.Gen.«P33».Route
@@ -93,28 +95,30 @@ public section
 /-- **The core route's data**, pack by pack. -/
 noncomputable def coreTable : List CoreMode.CFun :=
   List.flatten (List.flatten [[ModePack.«P0».coreFns, ModePack.«P1».coreFns,
-    ModePack.«P10».coreFns, ModePack.«P12».coreFns, ModePack.«P13».coreFns, ModePack.«P14».coreFns,
-    ModePack.«P15».coreFns, ModePack.«P16».coreFns, ModePack.«P17».coreFns, ModePack.«P18».coreFns,
-    ModePack.«P19».coreFns, ModePack.«P2».coreFns, ModePack.«P20».coreFns, ModePack.«P21».coreFns,
-    ModePack.«P22».coreFns, ModePack.«P23».coreFns], [ModePack.«P24».coreFns,
-    ModePack.«P25».coreFns, ModePack.«P26».coreFns, ModePack.«P27».coreFns, ModePack.«P28».coreFns,
-    ModePack.«P29».coreFns, ModePack.«P3».coreFns, ModePack.«P31».coreFns, ModePack.«P32».coreFns,
-    ModePack.«P33».coreFns, ModePack.«P34».coreFns, ModePack.«P35».coreFns, ModePack.«P36».coreFns,
-    ModePack.«P37».coreFns, ModePack.«P38».coreFns, ModePack.«P39».coreFns],
-    [ModePack.«P4».coreFns, ModePack.«P40».coreFns, ModePack.«P41».coreFns, ModePack.«P42».coreFns,
-    ModePack.«P43».coreFns, ModePack.«P44».coreFns, ModePack.«P45».coreFns, ModePack.«P46».coreFns,
-    ModePack.«P47».coreFns, ModePack.«P48».coreFns, ModePack.«P49».coreFns, ModePack.«P5».coreFns,
-    ModePack.«P50».coreFns, ModePack.«P51».coreFns, ModePack.«P52».coreFns,
-    ModePack.«P53».coreFns], [ModePack.«P54».coreFns, ModePack.«P55».coreFns,
-    ModePack.«P56».coreFns, ModePack.«P57».coreFns, ModePack.«P58».coreFns, ModePack.«P59».coreFns,
-    ModePack.«P6».coreFns, ModePack.«P60».coreFns, ModePack.«P61».coreFns, ModePack.«P62».coreFns,
-    ModePack.«P63».coreFns, ModePack.«P7».coreFns, ModePack.«P8».coreFns, ModePack.«P9».coreFns]])
+    ModePack.«P10».coreFns, ModePack.«P11».coreFns, ModePack.«P12».coreFns, ModePack.«P13».coreFns,
+    ModePack.«P14».coreFns, ModePack.«P15».coreFns, ModePack.«P16».coreFns, ModePack.«P17».coreFns,
+    ModePack.«P18».coreFns, ModePack.«P19».coreFns, ModePack.«P2».coreFns, ModePack.«P20».coreFns,
+    ModePack.«P21».coreFns, ModePack.«P22».coreFns], [ModePack.«P23».coreFns,
+    ModePack.«P24».coreFns, ModePack.«P25».coreFns, ModePack.«P26».coreFns, ModePack.«P27».coreFns,
+    ModePack.«P28».coreFns, ModePack.«P29».coreFns, ModePack.«P3».coreFns, ModePack.«P30».coreFns,
+    ModePack.«P31».coreFns, ModePack.«P32».coreFns, ModePack.«P33».coreFns, ModePack.«P34».coreFns,
+    ModePack.«P35».coreFns, ModePack.«P36».coreFns, ModePack.«P37».coreFns],
+    [ModePack.«P38».coreFns, ModePack.«P39».coreFns, ModePack.«P4».coreFns, ModePack.«P40».coreFns,
+    ModePack.«P41».coreFns, ModePack.«P42».coreFns, ModePack.«P43».coreFns, ModePack.«P44».coreFns,
+    ModePack.«P45».coreFns, ModePack.«P46».coreFns, ModePack.«P47».coreFns, ModePack.«P48».coreFns,
+    ModePack.«P49».coreFns, ModePack.«P5».coreFns, ModePack.«P50».coreFns, ModePack.«P51».coreFns],
+    [ModePack.«P52».coreFns, ModePack.«P53».coreFns, ModePack.«P54».coreFns,
+    ModePack.«P55».coreFns, ModePack.«P56».coreFns, ModePack.«P57».coreFns, ModePack.«P58».coreFns,
+    ModePack.«P59».coreFns, ModePack.«P6».coreFns, ModePack.«P60».coreFns, ModePack.«P61».coreFns,
+    ModePack.«P62».coreFns, ModePack.«P63».coreFns, ModePack.«P7».coreFns, ModePack.«P8».coreFns,
+    ModePack.«P9».coreFns]])
 
 /-- The core route's data, each the deployed guest's. -/
 theorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=
   fa_flatten (Mode.fa_cons (ModePack.«P0».coreFns_ok)
     (Mode.fa_cons (ModePack.«P1».coreFns_ok)
     (Mode.fa_cons (ModePack.«P10».coreFns_ok)
+    (Mode.fa_cons (ModePack.«P11».coreFns_ok)
     (Mode.fa_cons (ModePack.«P12».coreFns_ok)
     (Mode.fa_cons (ModePack.«P13».coreFns_ok)
     (Mode.fa_cons (ModePack.«P14».coreFns_ok)
@@ -135,6 +139,7 @@ theorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=
     (Mode.fa_cons (ModePack.«P28».coreFns_ok)
     (Mode.fa_cons (ModePack.«P29».coreFns_ok)
     (Mode.fa_cons (ModePack.«P3».coreFns_ok)
+    (Mode.fa_cons (ModePack.«P30».coreFns_ok)
     (Mode.fa_cons (ModePack.«P31».coreFns_ok)
     (Mode.fa_cons (ModePack.«P32».coreFns_ok)
     (Mode.fa_cons (ModePack.«P33».coreFns_ok)
@@ -174,7 +179,7 @@ theorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=
     (Mode.fa_cons (ModePack.«P7».coreFns_ok)
     (Mode.fa_cons (ModePack.«P8».coreFns_ok)
     (Mode.fa_cons (ModePack.«P9».coreFns_ok)
-    (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- **The frame interfaces the kernel does not check**, one per function (`FnSpec K`, for its
     frame predicate `guestQ`): a function whose walk fails or is too costly to check, or whose
@@ -187,52 +192,56 @@ theorem guestGroup_spec0 (_h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ 
     _ (List.mem_cons_self), h⟩))
     (Mode.fa_cons (ModePack.«P10».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)), h⟩))
-    (Mode.fa_cons (ModePack.«P11».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_cons (ModePack.«P12».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P11».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))), h⟩))
-    (Mode.fa_cons (ModePack.«P13».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P12».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))), h⟩))
-    (Mode.fa_cons (ModePack.«P14».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P13».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))), h⟩))
-    (Mode.fa_cons (ModePack.«P15».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P14».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))), h⟩))
-    (Mode.fa_cons (ModePack.«P16».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P15».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P17».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P16».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P18».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P17».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P19».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P18».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P2».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P19».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P20».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P2».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P21».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P20».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P22».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P21».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P22».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))), h⟩))
     (Mode.fa_nil))))))))))))))))
 
 theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, FnSpec coreTable K :=
@@ -240,54 +249,48 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P24».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P25».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P24».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P26».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P25».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P27».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P26».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P28».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P27».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P29».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P28».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P3».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P29».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P30».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_cons (ModePack.«P31».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P3».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -295,7 +298,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))))),
     h⟩))
-    (Mode.fa_cons (ModePack.«P32».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P30».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -303,7 +306,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P33».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P31».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -311,7 +314,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P34».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P32».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -319,7 +322,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P35».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P33».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -328,7 +331,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P36».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P34».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -337,7 +340,7 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P37».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P35».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -346,6 +349,25 @@ theorem guestGroup_spec1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P36».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P37».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))))))))))))))))))))))))), h⟩))
     (Mode.fa_nil))))))))))))))))
 
 theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l, FnSpec coreTable K :=
@@ -357,28 +379,9 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P39».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P4».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P40».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P39».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -388,7 +391,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P41».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P4».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -398,7 +401,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P42».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P40».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -409,7 +412,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P43».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P41».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -420,7 +423,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P44».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P42».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -431,7 +434,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P45».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P43».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -442,7 +445,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P46».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P44».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -454,7 +457,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P47».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P45».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -466,7 +469,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P48».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P46».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -478,7 +481,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P49».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P47».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -490,7 +493,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P5».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P48».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -503,7 +506,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P50».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P49».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -516,7 +519,7 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P51».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P5».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -529,6 +532,34 @@ theorem guestGroup_spec2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P50».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))),
+    h⟩))
+    (Mode.fa_cons (ModePack.«P51».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
     (Mode.fa_nil))))))))))))))))
 
 theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, FnSpec coreTable K :=
@@ -544,36 +575,9 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P53».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P54».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P55».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P53».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -587,7 +591,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P56».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P54».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -602,7 +606,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P57».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P55».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -617,7 +621,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P58».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P56».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -632,7 +636,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P59».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P57».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -647,7 +651,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P6».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P58».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -663,7 +667,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P60».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P59».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -679,7 +683,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P61».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P6».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -695,7 +699,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P62».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P60».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -711,7 +715,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P63».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P61».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -728,7 +732,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P7».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P62».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -745,7 +749,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P8».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P63».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -762,7 +766,7 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
-    (Mode.fa_cons (ModePack.«P9».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    (Mode.fa_cons (ModePack.«P7».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
@@ -779,6 +783,42 @@ theorem guestGroup_spec3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ 
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P8».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
+    (Mode.fa_cons (ModePack.«P9».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), h⟩))
     (Mode.fa_nil))))))))))))))))
 
 theorem guestGroup_spec4 (_h : ModeHyps) : ∀ l ∈ guestGroups[4]!, ∀ K ∈ l, FnSpec coreTable K :=

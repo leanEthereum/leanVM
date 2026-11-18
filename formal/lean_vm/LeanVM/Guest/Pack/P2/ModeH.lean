@@ -43,21 +43,6 @@ end
 
 end LeanVM.Guest.Fn.«column_selector__L23»
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L7»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `claim_list_last__L7`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 359) (d := Data.adviceFn359) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L7»
-
 namespace LeanVM.Guest.Fn.«da_column_offsets_loop3»
 
 open LeanVM.Guest LeanVM.Guest.Exec

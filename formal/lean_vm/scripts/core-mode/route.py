@@ -1,5 +1,5 @@
 """The core route of milestone 1 (`formal/notes/core-mode.md`, `Guest/CoreMode/Core.lean`): the functions
-passing `heapOk` and the pairing whose body is straight-line with no hint atom, whose only `JUMP` is its last
+passing `heapOk` and the pairing whose body is straight-line, whose only `JUMP` is its last
 instruction, a return the pairing takes by its head statement, and whose signature its callers know
 (`Mode.Sig`, `Pack/*/ModeSig.lean`) promises only frame cells, heap cells and runs of constant bounds over
 its parameters; each with the heap cells it promises (`CFun.post`) and their witnesses, the preconditions
@@ -123,7 +123,7 @@ def promised(G, np):
 
 
 def straight(body):
-    return all(s[0] == 'ret' or (s[0] == 'a' and s[1][0] != 'hint') for s in body)
+    return all(s[0] in ('ret', 'a') for s in body)
 
 
 def frame_nzr():

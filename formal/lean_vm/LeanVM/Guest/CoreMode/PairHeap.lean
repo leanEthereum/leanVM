@@ -363,7 +363,8 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     ∃ (as : List Atom) (dv pv : V) (off : ℕ),
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       cellsAt X o1 o2 o3 dv pv off = true ∧ (H.readWit dv pv off).isSome ∧ Ev.atom (.load dv pv off) ∈ es ∧
-      (Written H σ pre (cellAt σ pv off) ∨ ∃ a ∈ as, flowAtom a = true ∧ Writes σ a (cellAt σ pv off)) := by
+      (Written H σ pre (cellAt σ pv off) ∨
+        ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ es ∧ Writes σ a (cellAt σ pv off)) := by
   obtain ⟨ins, z, as, hins', -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hins] at hins'
   cases hins'
@@ -392,7 +393,7 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
         (by simpa [List.append_assoc] using hrw) hqa hw' with h | ⟨a, ha, hwa⟩
     · exact Or.inl h
     · rw [List.mem_filter] at ha
-      exact Or.inr ⟨a, ha.1, ha.2, hwa⟩
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
   · simp [hO] at hO'
   · cases heq
 
@@ -420,7 +421,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ {σ : Val} {pre es : List Ev} {vs : List V}, walk σ pos = .ret es vs → ReadsWritten H σ (pre ++ es) →
         ∃ evs es', es = evs ++ es' ∧ walk σ pos' = .ret es' vs ∧ ∀ x, Written H σ (pre ++ evs) x →
-          Written H σ pre x ∨ (∃ a ∈ as, flowAtom a = true ∧ Writes σ a x) ∨
+          Written H σ pre x ∨ (∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∨
           ∃ (o1 o2 o3 : ℕ) (dv pv : V) (off : ℕ), code[i]? = some (.deref o1 o2 o3 .cell) ∧ hasP S i = true ∧
             cellsAt X o1 o2 o3 dv pv off = true ∧ Ev.atom (.load dv pv off) ∈ evs ∧ x = cellAt σ pv off := by
   obtain ⟨ins, z, as, hins, -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
@@ -431,9 +432,10 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     cases hfa : flowAtom a
     · exact hq a ha hfa
     · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-  have hflow : ∀ {σ : Val} {x : K}, (∃ a ∈ as.filter flowAtom, Writes σ a x) →
-      ∃ a ∈ as, flowAtom a = true ∧ Writes σ a x := fun ⟨a, ha, hw⟩ ↦ by
-    rw [List.mem_filter] at ha; exact ⟨a, ha.1, ha.2, hw⟩
+  have hflow : ∀ {σ : Val} {x : K} {evs : List Ev}, (∀ a ∈ as, Ev.atom a ∈ evs) →
+      (∃ a ∈ as.filter flowAtom, Writes σ a x) → ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x :=
+    fun hin ⟨a, ha, hw⟩ ↦ by
+      rw [List.mem_filter] at ha; exact ⟨a, ha.1, ha.2, hin a ha.1, hw⟩
   rcases hc with ⟨o1, o2, o3, bs, dv, pv, off, cs, pos', rfl, hz, hb, hcs, hcell, hat', -, hS⟩ | ⟨hat', -, -⟩
   · refine ⟨pos', hat', as, hpairs, fun {σ pre es vs} hp hrw ↦ ?_⟩
     have hall : as ++ bs ++ .load dv pv off :: cs = as ++ bs ++ [.load dv pv off] ++ cs := by simp
@@ -451,7 +453,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       refine ⟨(as ++ bs ++ .load dv pv off :: cs).map Ev.atom, es', rfl, hes', fun x hx ↦ ?_⟩
       rcases hW x hx with h | h
       · exact Or.inl h
-      · exact Or.inr (Or.inl (hflow h))
+      · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) h))
     · obtain ⟨es', hes', rfl, hW⟩ := atoms_written (fs := as.filter flowAtom ++ [.load dv pv off]) hp' hrw
         (fun a ha hn ↦ by
           simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false, not_or] at ha hn
@@ -464,7 +466,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       rcases hW x hx with h | ⟨a, ha, hwa⟩
       · exact Or.inl h
       · rcases List.mem_append.mp ha with ha | ha
-        · exact Or.inr (Or.inl (hflow ⟨a, ha, hwa⟩))
+        · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) ⟨a, ha, hwa⟩))
         · rw [List.mem_singleton] at ha
           subst ha
           exact Or.inr (Or.inr ⟨o1, o2, o3, dv, pv, off, hins, by simpa [hr] using hS, hcell, by simp, hwa⟩)
@@ -474,7 +476,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     refine ⟨as.map Ev.atom, es', rfl, hes', fun x hx ↦ ?_⟩
     rcases hW x hx with h | h
     · exact Or.inl h
-    · exact Or.inr (Or.inl (hflow h))
+    · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) h))
 
 end
 

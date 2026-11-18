@@ -43,36 +43,6 @@ end
 
 end LeanVM.Guest.Fn.«verify_bus_gkr_loop1»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 103) (d := Data.adviceFn103) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L3»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L16»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L16`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 116) (d := Data.adviceFn116) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L16»
-
 namespace LeanVM.Guest.Fn.«check_opening_terminal_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

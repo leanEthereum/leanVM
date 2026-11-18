@@ -14,36 +14,6 @@ public import LeanVM.Guest.Pack.«P23».Mode2
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«padding_weight__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L6`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 106) (d := Data.adviceFn106) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L6»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L13»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L13`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 113) (d := Data.adviceFn113) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L13»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L9»
 
 open LeanVM.Guest LeanVM.Guest.Exec

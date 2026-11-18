@@ -79,6 +79,8 @@ def main():
                 f'  shape := by decide +kernel\n'
                 f'  fsig := rfl\n'
                 f'  fentry := rfl\n'
+                f'  xentry := by decide +kernel\n'
+                f'  dhints := rfl\n'
                 f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
                 f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
                 f'  small := Mode.smallOps_of (by decide +kernel)\n'

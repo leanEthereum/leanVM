@@ -43,21 +43,6 @@ end
 
 end LeanVM.Guest.Fn.«main_loop3»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L30»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L30`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 130) (d := Data.adviceFn130) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L30»
-
 namespace LeanVM.Guest.Fn.«block_selector_tab__L17»
 
 open LeanVM.Guest LeanVM.Guest.Exec

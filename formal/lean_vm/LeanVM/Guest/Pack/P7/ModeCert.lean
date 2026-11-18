@@ -527,8 +527,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L30».cfun, Fn.«plus_one_run__L7».cfun, Fn.«index_mle__L18».cfun,
-    Fn.«index_mle__L21».cfun]
+  [Fn.«da_verify_cell».cfun, Fn.«eq_prefix_run__L30».cfun, Fn.«padding_weight__L26».cfun,
+    Fn.«plus_one_run__L7».cfun, Fn.«index_mle__L18».cfun, Fn.«index_mle__L21».cfun]
 
 end
 
@@ -739,19 +739,21 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«rs_eq_run».modeOk,
     Fn.«rs_eq_run».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«da_verify_cell».modeOk,
-    Fn.«da_verify_cell».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L30».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«eq_prefix_run__L30».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«padding_weight__L26».modeOk,
-    Fn.«padding_weight__L26».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«da_verify_cell».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«da_verify_cell».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L30».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«eq_prefix_run__L30».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L26».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«padding_weight__L26».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L7».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«plus_one_run__L7».fnSpecC⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L18».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«index_mle__L18».fnSpecC⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L21».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
-    Fn.«index_mle__L21».fnSpecC⟩)
+    Fn.«plus_one_run__L7».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L18».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«index_mle__L18».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«index_mle__L21».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))), rfl, Fn.«index_mle__L21».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«column_selector__L11».modeOk,
     Fn.«column_selector__L11».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«column_selector__L28».modeOk,

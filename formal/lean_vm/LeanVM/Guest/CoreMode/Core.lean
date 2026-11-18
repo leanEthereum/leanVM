@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Core
 
   The core route's frame predicate (`CoreAt`) and its frame interface (`frameSpec_core`), for a
-  straight-line function with no call, no loop and no flow hint: the frame walk's facts, the entry
+  straight-line function with no call and no loop: the frame walk's facts, the entry
   cells written, and every heap cell the core path has written by the pairing's position written in
   the executor's memory.
 -/
@@ -13,6 +13,7 @@ public import LeanVM.Guest.CoreMode.FrameSound
 public import LeanVM.Guest.CoreMode.PairHeap
 public import LeanVM.Guest.CoreMode.Post
 public import LeanVM.Guest.CoreMode.Spec
+public import LeanVM.Guest.CoreMode.HintW
 public import LeanVM.Guest.Bridge.JumpCellsSound
 public import LeanVM.Guest.Bridge.AlignJump
 public import LeanVM.Guest.Mode.HintsCtx
@@ -75,10 +76,16 @@ theorem WrK.mono {m m' : Mem} (hle : m ≤ m') {y : K} (h : WrK m y) : WrK m' y 
   let ⟨x, h1, h2, h3⟩ := h
   ⟨x, h1, h2, written_mono hle h3⟩
 
+/-- The pointer an atom dereferences: a `load`'s, a heap hint destination's. -/
+def ptrOf : Atom → Option V
+  | .load _ p _ => some p
+  | .hint h => (hintHeap h).map (·.1)
+  | _ => none
+
 /-- **An honest valuation** of `Cf.fn` in frame `fp` of the reference image. -/
 structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop where
   path : ∃ es vs rd, walk σ Cf.fn.body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ
-  ptr : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ d p off, Ev.atom (.load d p off) ∈ es →
+  ptr : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ a p, Ev.atom a ∈ es → ptrOf a = some p →
     Rd img fp (Cf.X.locAt p.idx) = some (σ p)
   par : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k))
 
@@ -183,18 +190,15 @@ noncomputable def retLast (X : AlignCtx) : ℕ → List OffsetInstruction → Bo
     | [] => retIns X n ins
     | _ :: _ => !isJumpI ins && retLast X (n + 1) rest
 
-/-- No flow hint in the advice entry. -/
-def noFlow (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool := d.2.2.all fun p ↦ p.2.all fun h ↦ !isaFlowHint h
-
 /-- An empty trie. -/
 def trieNil {α : Type} : Exec.Trie α → Bool
   | .nil => true
   | _ => false
 
-/-- **The shape the core route takes**: a straight-line body, one return jump last, no flow hint,
-not `main`, no table jump, no residual, small entry cells. -/
+/-- **The shape the core route takes**: a straight-line body, one return jump last, not `main`, no
+table jump, no residual, small entry cells. -/
 noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
-  straight Cf.fn.body && retLast Cf.X 0 code && noFlow Cf.d && !Cf.frame.F.fpOne &&
+  straight Cf.fn.body && retLast Cf.X 0 code && !Cf.frame.F.fpOne &&
     trieNil Cf.frame.tgt && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
@@ -210,6 +214,8 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   shape : shapeOk Cf K.code = true
   fsig : Cf.frame.sig = K.F.sig
   fentry : Cf.frame.entry = K.F.entry
+  xentry : Cf.X.entry = K.F.entry
+  dhints : Cf.d.2.2 = Cf.frame.hints
   hints : ∀ i < K.code.length, Mode.hintsAt Data.adviceHints (K.F.entry + i) =
     Mode.hintsAt Cf.frame.hints (K.F.entry + i)
   fetch : Exec.Fetches guestProgram K.F.entry K.code

@@ -7,9 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Gen.«P11».Core
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P11».Mode1
+public import LeanVM.Guest.Pack.«P11».ModeC
 public import LeanVM.Guest.Pack.«P11».ModeH
 meta import LeanVM.Guest.KernelLit
 
@@ -438,7 +440,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  []
+  [Fn.«padding_weight__L2».cfun, Fn.«padding_weight__L17».cfun]
 
 end
 
@@ -595,14 +597,14 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
 
 /-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
     -/
-theorem certs_spec {T : List CoreMode.CFun} (_hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_bus_gkr_loop0».modeOk,
     Fn.«verify_bus_gkr_loop0».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«padding_weight__L2».modeOk,
-    Fn.«padding_weight__L2».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem2) ⟨Fn.«padding_weight__L17».modeOk,
-    Fn.«padding_weight__L17».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L2».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«padding_weight__L2».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«padding_weight__L17».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«padding_weight__L17».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«child_claim_list_mono_last__L7».modeOk,
     Fn.«child_claim_list_mono_last__L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«level_positions__L11_L18_L6».modeOk,

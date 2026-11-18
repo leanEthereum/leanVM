@@ -675,7 +675,7 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«index_mle__L15».cfun, Fn.«squeeze_point_from__L23».cfun]
+  [Fn.«index_mle__L15».cfun, Fn.«squeeze_point_from__L23».cfun, Fn.«claim_list_last__L1».cfun]
 
 end
 
@@ -990,8 +990,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«column_selector__L25».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«squeeze_point_from__L23».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_self)), rfl, Fn.«squeeze_point_from__L23».fnSpecC⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem6) ⟨Fn.«claim_list_last__L1».modeOk,
-    Fn.«claim_list_last__L1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«claim_list_last__L1».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«claim_list_last__L1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«child_claim_list_last__L6».modeOk,
     Fn.«child_claim_list_last__L6».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8) ⟨Fn.«da_column_offsets_loop5».modeOk,

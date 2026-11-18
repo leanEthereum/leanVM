@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P41».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«g_power_of_word»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `g_power_of_word`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 3) (d := Data.adviceFn3) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«g_power_of_word»
-
 namespace LeanVM.Guest.Fn.«opening_message__L8_L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

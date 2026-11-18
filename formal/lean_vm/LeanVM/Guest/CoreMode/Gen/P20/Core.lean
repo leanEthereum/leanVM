@@ -46,6 +46,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
+  xentry := by decide +kernel
+  dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 42) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code42 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (by decide +kernel)
@@ -85,6 +87,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
+  xentry := by decide +kernel
+  dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 155) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code155 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (by decide +kernel)
@@ -124,6 +128,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
+  xentry := by decide +kernel
+  dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 182) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code182 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (by decide +kernel)
@@ -163,6 +169,8 @@ theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cf
   shape := by decide +kernel
   fsig := rfl
   fentry := rfl
+  xentry := by decide +kernel
+  dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 531) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   fetch := Exec.guest_fetches (Checked.code531 ▸ End.fnOf_mem (by decide))
   small := Mode.smallOps_of (by decide +kernel)

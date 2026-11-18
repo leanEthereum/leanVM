@@ -308,7 +308,8 @@ noncomputable def certs : List Mode.Cert :=
 
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«eq_prefix_run__L14».cfun, Fn.«plus_one_run__L12».cfun, Fn.«block_selector__L18».cfun]
+  [Fn.«g_power_of_word».cfun, Fn.«eq_prefix_run__L14».cfun, Fn.«plus_one_run__L12».cfun,
+    Fn.«block_selector__L18».cfun]
 
 end
 
@@ -408,14 +409,15 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     -/
 theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«g_power_of_word».modeOk,
-    Fn.«g_power_of_word».modeHintsOk⟩)
-    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L14».cfun, hT _ (List.mem_cons_self), rfl,
-    Fn.«eq_prefix_run__L14».fnSpecC⟩)
+  Mode.fa_cons (.inr ⟨Fn.«g_power_of_word».cfun, hT _ (List.mem_cons_self), rfl,
+    Fn.«g_power_of_word».fnSpecC⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«eq_prefix_run__L14».cfun, hT _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)), rfl, Fn.«eq_prefix_run__L14».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«plus_one_run__L12».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)), rfl, Fn.«plus_one_run__L12».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«plus_one_run__L12».fnSpecC⟩)
     (Mode.fa_cons (.inr ⟨Fn.«block_selector__L18».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))), rfl, Fn.«block_selector__L18».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))), rfl,
+    Fn.«block_selector__L18».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem4) ⟨Fn.«opening_message__L8_L1».modeOk,
     Fn.«opening_message__L8_L1».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem5)

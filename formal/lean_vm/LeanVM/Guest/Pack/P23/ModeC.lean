@@ -12,6 +12,43 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P23».Bundle
 public import LeanVM.Guest.Pack.«P23».ModeSig
 
+namespace LeanVM.Guest.Fn.«padding_weight__L6»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L6`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L6`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨190086, 68, Fn.«padding_weight__L6».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L6»
+
+namespace LeanVM.Guest.Fn.«padding_weight__L13»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L13`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L13`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨190730, 124, Fn.«padding_weight__L13».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L13»
+
 namespace LeanVM.Guest.Fn.«index_mle__L32»
 
 open LeanVM.Guest LeanVM.Guest.Exec

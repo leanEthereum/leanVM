@@ -44,21 +44,6 @@ end
 
 end LeanVM.Guest.Fn.«rs_eq_rows__L4»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L28»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `padding_weight__L28`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 128) (d := Data.adviceFn128) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«padding_weight__L28»
-
 namespace LeanVM.Guest.Fn.«column_selector__L26»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -73,21 +58,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L26»
-
-namespace LeanVM.Guest.Fn.«claim_list_last__L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `claim_list_last__L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 354) (d := Data.adviceFn354) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_last__L2»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L5»
 

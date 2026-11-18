@@ -12,6 +12,24 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P7».Bundle
 public import LeanVM.Guest.Pack.«P7».ModeSig
 
+namespace LeanVM.Guest.Fn.«da_verify_cell»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_verify_cell`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `da_verify_cell`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨63193, 538, Fn.«da_verify_cell».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_verify_cell»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L30»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -29,6 +47,25 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«eq_prefix_run__L30»
+
+namespace LeanVM.Guest.Fn.«padding_weight__L26»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `padding_weight__L26`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `padding_weight__L26`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨192966, 228, Fn.«padding_weight__L26».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«padding_weight__L26»
 
 namespace LeanVM.Guest.Fn.«plus_one_run__L7»
 
