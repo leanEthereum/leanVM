@@ -434,7 +434,10 @@ def extend(out, why, S, verbose=False):
             # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'}):
+            # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
+            # residual is of no family
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
+                          FEATURES | {'dup', 'nohs'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

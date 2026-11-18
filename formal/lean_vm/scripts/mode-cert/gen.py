@@ -845,8 +845,8 @@ def coreDataFile(p, ns):
         out.append(nsOpen(n))
         out.append('/-- `%s`: the program its certificate shares. -/\nnoncomputable def modeEnv : Mode.Env :=\n  %s\n\n' % (n, env))
         out.append('/-- `%s`: its entry, length and signature; on the core route, nothing for a walk. -/\n'
-                   'noncomputable def modeFun : Mode.Fun :=\n  ⟨%d, %d, %s.modeSig, .nil, .nil, .nil, false, .nil⟩\n\n' % (
-                       n, f['entry'], f['count'], fnq(n)))
+                   'noncomputable def modeFun : Mode.Fun :=\n  ⟨%d, %d, %s.modeSig, .nil, .nil, .nil, %s, .nil⟩\n\n' % (
+                       n, f['entry'], f['count'], fnq(n), 'true' if n == 'main' else 'false'))
         out.append(nsClose(n))
     return ''.join(out)
 

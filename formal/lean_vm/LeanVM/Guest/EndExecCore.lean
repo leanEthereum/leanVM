@@ -245,11 +245,11 @@ open LeanVM.Guest.Check (getF getF_eq)
 
 public section
 
-/-- **What a frame's jumps read**, for function `j` (neither `main` nor without chained `match`es) at
+/-- **What a frame's jumps read**, for function `j` (without chained `match`es; `main`'s frame `0`) at
 frame `fp` holding what its check reads (`FrameHolds`), the jump table in memory: `jumpCells_of`'s
 fixed cells, conditions and table targets, at any state of the frame. -/
 theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V} {kfps : List ℕ}
-    {hdr : E × E} (hj1 : 1 < j) (hj2 : j < nFns) (hch : (plumbOf j).chains = [])
+    {hdr : E × E} (hj1 : 0 < j) (hroot : j = 1 → fp = 0) (hj2 : j < nFns) (hch : (plumbOf j).chains = [])
     (hlocs : (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true)
     (hF : FrameHolds L j fp σ es vs kfps hdr) (hwc : walk σ (coreOf j).body = .ret es vs)
     (hjt : Check.JTHolds glob L) (htab : End.JumpTables L)
@@ -273,7 +273,6 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     refine ⟨hF.stat _ hm hb.1.1 hb.1.2, fun a b hw' ↦ ?_⟩
     subst hw'
     simpa only [Bool.and_eq_true, Nat.blt_eq] using hb.2
-  have hmain : (j == 1) = false := by simp; omega
   refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, fun _ _ _ x arms hm ↦ hsel x arms hm,
     fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
   case zero =>
@@ -307,7 +306,12 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     · rename_i hso
       rw [(hstatB (statOf_ofData hso)).1]
       simp [PC.word, addressOfIndex]
-    · exact absurd hz (by simp [ctxOf, AlignCtx.ofData, hmain])
+    · rename_i hso
+      have h1 : j = 1 := by simpa [ctxOf, AlignCtx.ofData] using hz
+      rw [(hstatB (statOf_ofData hso)).1, hroot h1]
+      simp only [PC.word]
+      rw [(Exec.imm_of_ofBits rfl).trans Exec.ofK_one]
+      simp
     · cases hz
   case pcw =>
     intro o t hz
@@ -469,6 +473,12 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
+  -- `main`'s instance is the root, in frame `0`
+  have hroot : j = 1 → s.fp = 0 := fun h1 ↦ by
+    rw [← hfpL]
+    rcases Bridge.insts_main_or _ _ _ hH.valid e.I hI with ⟨h0, -⟩ | h0
+    · exact h0
+    · exact absurd ((B2C.idx_one_iff hj).mp h1) h0
   have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   have hparF : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img s.fp (2 + k) = some (e.σ (V.n k)) := by
@@ -515,7 +525,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_⟩
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_,
+    fun hmX ↦ hroot ?_⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -581,10 +592,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hfe, hw, Memory.Out.ret.injEq] at hw'
     obtain ⟨rfl, rfl⟩ := hw'
     rw [hfe, ← hfn] at hargs
-    have hnm : e.I.t.name = "main" → e.I.fp = 0 := fun hm ↦ by
-      rw [hm, B2C.idxOf_main, Option.some.injEq] at hj
-      subst hj
-      simp at hj1
+    have hnm : e.I.t.name = "main" → e.I.fp = 0 := fun hm ↦ hfpL.trans (hroot ((B2C.idx_one_iff hj).mpr hm))
     obtain ⟨-, -, -, -, -, hrr⟩ := B2C.inst_runs B2C.b2Hyps hr.name hH hXh.covers (e.I.t.total B2C.fs + 1) e.I hI
       (Nat.lt_succ_self _) hnm args rets (by rw [hIt]; exact hv)
     subst hargs hrets
@@ -641,7 +649,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       have := hF.val x hnamed h2 h3
       rw [hloc]
       simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
-    refine Bridge.jumpF_of hj1 hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
+    refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
       (End.jtHolds_of hJT) hJT (fun x arms hm ↦ ?_) (fun x fs args rets hm ↦ ?_)
     · have hnl : CoreMode.loopBC Cf.fn = false := by
         cases hl : CoreMode.loopBC Cf.fn
@@ -684,6 +692,9 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
+  · -- `main`'s frame
+    rw [← hx0] at hmX
+    simpa [Bridge.ctxOf, Bridge.AlignCtx.ofData] using hmX
 
 end
 

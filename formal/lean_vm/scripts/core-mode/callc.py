@@ -495,6 +495,9 @@ def own_sig(G, np, nr, gl=None):
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
+    if CORE_BODY.get('k') == 'main':
+        # `main`'s entry cells, its frame `0`: the constant cells `g^o` (`CoreMode.mainPre`)
+        h.pre = list(h.pre) + [((), o) for o in G['entry'] if ((), o) not in h.pre]
     if 'jt' in I.F:
         # the jump table's cells, which every frame's entry has written (`entryAbs`)
         if JT_RUN[0] is None:

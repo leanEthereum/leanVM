@@ -322,9 +322,9 @@ def hcert : CoreMode.HCert where
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(4, 1)], 1⟩)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 1)⟩,
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 4)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 4)⟩] }
   reads := []
-  res := [.lt (.num 0) (.mono ⟨[(4, 1)], 1⟩), .lt (.val 4) (.num 41)]
+  res := [.lt (.num 1) (.mono ⟨[(4, 1)], 2⟩), .lt (.val 4) (.num 41)]
   calls := [(call0_0 ++ call0_1)]
-  rets := [[.run 4 [], .pts, .run 4 [0], .run 2 [], .run 3 []]]
+  rets := [[.run 4 [], .run 4 [0], .run 2 [], .run 3 []]]
 
 /-- `eq_prefix_chain`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=

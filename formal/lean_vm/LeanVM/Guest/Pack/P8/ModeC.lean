@@ -12,12 +12,17 @@ public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P23».ModeSig
+public import LeanVM.Guest.Pack.«P24».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
 public import LeanVM.Guest.Pack.«P27».ModeSig
+public import LeanVM.Guest.Pack.«P29».ModeSig
 public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P3».ModeSig
+public import LeanVM.Guest.Pack.«P42».ModeSig
+public import LeanVM.Guest.Pack.«P43».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
+public import LeanVM.Guest.Pack.«P54».ModeSig
 public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P56».ModeSig
 public import LeanVM.Guest.Pack.«P59».ModeSig
@@ -25,6 +30,52 @@ public import LeanVM.Guest.Pack.«P62».ModeSig
 public import LeanVM.Guest.Pack.«P8».Bundle
 public import LeanVM.Guest.Pack.«P8».ModeSig
 public import LeanVM.Guest.Pack.«P9».ModeSig
+
+namespace LeanVM.Guest.Fn.«main»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `main`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node none .nil (.node (some Fn.«exponent_tables».modeSig) .nil .nil)))
+    .nil) .nil))) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node (some Fn.«claim_list_digest».modeSig) .nil .nil))) .nil))))) .nil) .nil)
+    .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«main_loop0».modeSig) .nil .nil))))) .nil))) .nil) .nil)
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_verify».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil))) (.node none .nil (.node
+    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«main_loop2».modeSig) .nil .nil)))))
+    .nil))) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«main_loop1».modeSig) .nil .nil))))) .nil))) .nil) .nil))
+    .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none (.node (some Fn.«main_loop4».modeSig)
+    .nil .nil) .nil)) .nil)))) .nil) .nil))) .nil) (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    (some Fn.«aggregate_claims».modeSig) .nil .nil))))) .nil)) .nil) .nil) .nil)) .nil)) (.node
+    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node (some Fn.«main_loop3».modeSig) .nil .nil) .nil)) .nil)))) .nil) .nil))
+    .nil))) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
+    Fn.«statement_digest».modeSig) .nil .nil))) .nil)))) .nil)) .nil))) .nil)) .nil)), 524287⟩
+
+/-- `main`: its entry, length and signature; on the core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨13922, 833, Fn.«main».modeSig, .nil, .nil, .nil, true, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«main»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L4»
 
