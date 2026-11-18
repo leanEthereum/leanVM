@@ -1,0 +1,22 @@
+# leanVM selects its binary-field and Keccak kernels by compile-time target feature; upstream
+# builds with `target-cpu=native`. Pin a portable baseline instead: AVX2 and PCLMULQDQ enable
+# the x86_64 carry-less multiplication kernels, and are present on every AVX2-capable CPU.
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+[target.aarch64-apple-darwin]
+# The default Apple target already enables the AES (PMULL) and SHA3 kernels.
+
+[target.aarch64-unknown-linux-gnu]
+# NEON is enabled by default on aarch64 — no override needed.
+
+# Node.js addons and Python extensions on Windows use MSVC; link the C runtime statically so they
+# load without the Visual C++ redistributable.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq,+crt-static"]

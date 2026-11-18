@@ -1,0 +1,940 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  # The release tag. Dispatching this workflow from a branch is a dry run: every build and check
+  # runs at version 0.0.0, and nothing is published or uploaded.
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.0' }}
+  # Python interpreters to build wheels against. Multi-line so
+  # actions/setup-python installs all of them; maturin-action picks
+  # them up via --find-interpreter inside the manylinux container.
+  PYTHON_VERSIONS: |
+    3.11
+    3.12
+    3.13
+    3.14
+
+permissions:
+  contents: read
+
+jobs:
+  # manylinux2014 wheels for glibc-based Linux distros (the common case)
+  # plus macOS and Windows. Linux x86_64 and aarch64 cover the realistic install base
+  # for v0.0.x; add x86/armv7/s390x/ppc64le later if anyone asks.
+  build:
+    name: ${{ matrix.platform.runner }} / ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: ubuntu-latest
+            target: aarch64
+          - runner: macos-15
+            target: aarch64
+          # x86_64-pc-windows-msvc; .cargo/config.toml links the C runtime statically.
+          - runner: windows-latest
+            target: x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSIONS }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          command: build
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
+          # manylinux: auto picks the right manylinux container per target.
+          # The container is isolated from the runner, so --find-interpreter
+          # tells maturin to discover the Pythons inside (mounted by the
+          # action) instead of the runner-installed ones on PATH.
+          manylinux: auto
+          sccache: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+          path: dist/*.whl
+
+  # musllinux wheels for Alpine / musl-based distros (Docker base images,
+  # some CI runners, etc.). Without these, musl users would fall back to
+  # building from sdist on every install — slow but functional.
+  musllinux:
+    name: musllinux / ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: ubuntu-latest
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSIONS }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          command: build
+          args: --release --out ../../dist --find-interpreter
+          working-directory: bindings/python
+          manylinux: musllinux_1_2
+          sccache: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-musllinux-${{ matrix.platform.target }}
+          path: dist/*.whl
+
+  # Source distribution as a fallback for platforms we don't ship wheels
+  # for (less-common archs, etc.). pip falls back to sdist when
+  # no compatible wheel exists; users get a from-source build.
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out ../../dist
+          working-directory: bindings/python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist/*.tar.gz
+
+  # Installs the Windows wheels into a fresh virtualenv straight from the build artifact (no index,
+  # no source builds) and signs, verifies and aggregates through them before anything is published.
+  windows-wheel-test:
+    name: windows-latest / py${{ matrix.python }} wheel
+    needs: build
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every interpreter --find-interpreter builds a Windows wheel for (the runner image adds 3.15).
+        python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-windows-latest-x64
+          path: dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check the extensions load without the Visual C++ runtime
+        run: |
+          # One matrix row per wheel, so a wheel for an interpreter missing from the matrix fails here.
+          ls dist/*.whl
+          test "$(ls dist/*.whl | wc -l)" -eq "${{ strategy.job-total }}"
+          python -m pip install pefile
+          python bindings/python/scripts/check-windows-imports.py dist/*.whl
+      - name: Install the wheel into a fresh virtualenv
+        run: |
+          venv="$(cygpath -u "$RUNNER_TEMP")/venv"
+          python -m venv "$venv"
+          "$venv/Scripts/python" -m pip install --only-binary :all: --no-index --find-links dist py-lean-pq
+          "$venv/Scripts/python" -m pip install --only-binary :all: pytest
+      - name: Sign, verify and aggregate through the installed wheel
+        working-directory: ${{ runner.temp }}
+        run: |
+          python="$(cygpath -u "$RUNNER_TEMP")/venv/Scripts/python"
+          "$python" -c "import pathlib, sys, py_lean_pq; print(py_lean_pq.__file__); assert pathlib.Path(py_lean_pq.__file__).is_relative_to(sys.prefix)"
+          "$python" -m pytest "$GITHUB_WORKSPACE/bindings/python/tests/test_lean_pq.py" -v
+
+  publish:
+    name: Publish to PyPI
+    needs: [build, musllinux, sdist, windows-wheel-test]
+    runs-on: ubuntu-latest
+    # PyPI Trusted Publishing. Pending publisher configured at
+    # https://pypi.org/manage/account/publishing/  (account-level — used
+    # before the project exists on PyPI; flips to project-level after the
+    # first successful publish). Configured publisher claims:
+    #   repo:        ethereum/lean-pq-bindings
+    #   workflow:    release.yml
+    #   environment: pypi          (must match `environment.name` below)
+    environment:
+      name: pypi
+      url: https://pypi.org/p/py-lean-pq
+    permissions:
+      id-token: write
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+  # Static native bridge per bundled Zig target; directory names match build.zig. The Go module
+  # bundles the same archives.
+  zig-native:
+    name: Zig native / ${{ matrix.platform.bundle_dir }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            rust_targets: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-gnu
+            bundle_dir: x86_64-linux-gnu
+          - runner: ubuntu-latest
+            rust_targets: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-gnu
+            bundle_dir: aarch64-linux-gnu
+          - runner: macos-15
+            rust_targets: x86_64-apple-darwin aarch64-apple-darwin
+            target: universal2-apple-darwin
+            bundle_dir: universal-macos
+          - runner: ubuntu-latest
+            rust_targets: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-gnu
+            bundle_dir: x86_64-windows-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # cargo-zigbuild needs Zig 0.15.2 for cross-target Apple builds.
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild --locked
+      - name: Add Rust target support
+        run: rustup target add ${{ matrix.platform.rust_targets }}
+      - name: Stage static native bridge
+        run: sh bindings/native/scripts/stage-static.sh ${{ matrix.platform.target }} native/${{ matrix.platform.bundle_dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zig-native-${{ matrix.platform.bundle_dir }}
+          path: native/${{ matrix.platform.bundle_dir }}/liblean_pq_native.a
+          if-no-files-found: error
+
+  # The Zig package consumers add with `zig fetch --save URL`, attached to the GitHub release.
+  zig-package:
+    name: Zig package
+    needs: zig-native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: zig-native-*
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - name: Assemble package
+        run: |
+          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
+          version=${RELEASE_TAG#v}
+          sh bindings/zig/scripts/package.sh "$version" native "dist/lean-pq-zig-$version.tar.gz" | tee package.log
+          for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
+            grep -qx "bundled $target" package.log
+          done
+      - name: Build and run a consumer against the package
+        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zig-package
+          path: dist/lean-pq-zig-*.tar.gz
+          if-no-files-found: error
+
+  # A Windows consumer of the same tarball, with Zig's native target (x86_64-windows-gnu).
+  zig-windows:
+    name: Zig package / windows-latest
+    needs: zig-package
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: zig-package
+          path: dist
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - name: Show Zig's native target
+        run: zig env
+      - name: Build and run a consumer against the package
+        run: sh bindings/zig/scripts/consumer-smoke.sh "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz"
+
+  zig-release:
+    name: Attach the Zig package
+    needs: [zig-package, zig-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: zig-package
+          path: dist
+      - name: Attach to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" "dist/lean-pq-zig-${RELEASE_TAG#v}.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
+
+  # The Go module `go get` fetches: a parentless commit holding bindings/go plus the zig-native
+  # archives, tagged bindings/go/vX.Y.Z, so building against it needs only Go and a C compiler.
+  go-module:
+    name: Go module
+    needs: zig-native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: zig-native-*
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: bindings/go/go.mod
+          cache: false
+      - name: Assemble the module
+        run: |
+          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
+          rustup component add llvm-tools
+          llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
+          LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
+            sh bindings/go/scripts/assemble-module.sh "${RELEASE_TAG#v}" native go-module
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-module
+          path: |
+            go-module/go-module.bundle
+            go-module/proxy
+          if-no-files-found: error
+
+  # Fetches the assembled module through a file:// GOPROXY and runs the README example, on runners
+  # with the preinstalled Rust toolchain removed.
+  go-consumer:
+    name: Go consumer / ${{ matrix.runner }}
+    needs: go-module
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-15, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: go-module
+          path: go-module
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: bindings/go/go.mod
+          cache: false
+      # The images ship Rust under ~/.cargo, and macOS images also put rustup's shims in Homebrew's
+      # bin. Remove both so the consumer builds with no Rust toolchain at all.
+      - name: Remove the preinstalled Rust toolchain
+        run: |
+          rm -rf "$HOME/.cargo" "$HOME/.rustup"
+          if [ "$RUNNER_OS" = macOS ]; then
+            brew uninstall --ignore-dependencies --force rustup rust 2>/dev/null || true
+          fi
+          for tool in cargo rustc rustup; do
+            while path=$(command -v "$tool"); do
+              echo "removing $path"
+              rm -f "$path"
+            done
+          done
+      - name: Build and run a consumer against the module
+        run: sh bindings/go/scripts/consumer-smoke.sh go-module/proxy "${RELEASE_TAG#v}"
+
+  # Pushes only the module tag; a dry run checks the push with --dry-run.
+  go-publish:
+    name: Publish the Go module
+    needs: [go-module, go-consumer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      MODULE: github.com/ethereum/lean-pq-bindings/bindings/go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: go-module
+          path: go-module
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: bindings/go/go.mod
+          cache: false
+      - name: Push the module tag
+        env:
+          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          tag="bindings/go/$RELEASE_TAG"
+          git fetch go-module/go-module.bundle "refs/tags/$tag:refs/tags/$tag"
+          git log -1 --format='%H %P %s' "$tag"
+          if [ "$DRY_RUN" = true ]; then
+            git push --dry-run origin "refs/tags/$tag"
+          else
+            git push origin "refs/tags/$tag"
+          fi
+      - name: Fetch the module through the public proxy
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          GOPROXY=https://proxy.golang.org go list -m "$MODULE@$RELEASE_TAG"
+          GOPROXY=https://proxy.golang.org go mod download -json "$MODULE@$RELEASE_TAG"
+
+  # The Nimble package: a parentless commit holding bindings/nim at its root plus the zig-native
+  # archives, tagged bindings/nim/vX.Y.Z, so `nimble install`, a `requires` line or a
+  # nimbus-build-system submodule needs only Nim and a C compiler.
+  nim-package:
+    name: Nim package
+    needs: zig-native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: zig-native-*
+      - name: Assemble the package
+        run: |
+          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
+          rustup component add llvm-tools
+          llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
+          LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
+            sh bindings/nim/scripts/assemble-package.sh "${RELEASE_TAG#v}" native nim-package | tee package.log
+          for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
+            grep -qx "bundled $target" package.log
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nim-package
+          path: nim-package/nim-package.bundle
+          if-no-files-found: error
+
+  # Installs the tagged package through Nimble and runs the README example, on runners with the
+  # preinstalled Rust toolchain removed.
+  nim-consumer:
+    name: Nim consumer / ${{ matrix.runner }}
+    needs: nim-package
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-15, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nim-package
+          path: nim-package
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: 2.2.12
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      # The images ship Rust under ~/.cargo, and macOS images also put rustup's shims in Homebrew's
+      # bin. Remove both so the consumer builds with no Rust toolchain at all.
+      - name: Remove the preinstalled Rust toolchain
+        run: |
+          rm -rf "$HOME/.cargo" "$HOME/.rustup"
+          if [ "$RUNNER_OS" = macOS ]; then
+            brew uninstall --ignore-dependencies --force rustup rust 2>/dev/null || true
+          fi
+          for tool in cargo rustc rustup; do
+            while path=$(command -v "$tool"); do
+              echo "removing $path"
+              rm -f "$path"
+            done
+          done
+      - name: Build and run a consumer against the package
+        run: |
+          git clone -q nim-package/nim-package.bundle "$RUNNER_TEMP/nim-package"
+          sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" "${RELEASE_TAG#v}"
+
+  # Pushes only the package tag; a dry run checks the push with --dry-run.
+  nim-publish:
+    name: Publish the Nimble package
+    needs: [nim-package, nim-consumer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nim-package
+          path: nim-package
+      - name: Push the package tag
+        env:
+          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          tag="bindings/nim/$RELEASE_TAG"
+          git fetch nim-package/nim-package.bundle "refs/tags/$tag:refs/tags/$tag"
+          git log -1 --format='%H %P %s' "$tag"
+          if [ "$DRY_RUN" = true ]; then
+            git push --dry-run origin "refs/tags/$tag"
+          else
+            git push origin "refs/tags/$tag"
+          fi
+
+  # One Node.js addon per napi target (bindings/node/package.json `napi.targets`). The version is
+  # stamped before building because the generated loader (index.js) bakes it in.
+  node-build:
+    name: Node.js build / ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # --use-napi-cross links against glibc 2.17, matching the manylinux2014 wheels.
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            build_args: --use-napi-cross
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            build_args: --use-napi-cross
+          # napi sets RUSTFLAGS for musl targets, which overrides .cargo/config.toml's target
+          # rustflags, so the x86_64 features are passed through RUSTFLAGS instead.
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            build_args: --cross-compile
+            rustflags: -C target-feature=+avx2,+pclmulqdq
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            build_args: --cross-compile
+          - runner: macos-15
+            target: x86_64-apple-darwin
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          # cargo-xwin links against the MSVC CRT and Windows SDK; .cargo/config.toml links the C
+          # runtime statically.
+          - runner: ubuntu-latest
+            target: x86_64-pc-windows-msvc
+            build_args: --cross-compile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      - if: endsWith(matrix.platform.target, '-musl')
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Install cargo-zigbuild
+        if: endsWith(matrix.platform.target, '-musl')
+        run: cargo install cargo-zigbuild --locked
+      # llvm-tools provides llvm-objdump for the import check below.
+      - name: Install cargo-xwin
+        if: endsWith(matrix.platform.target, '-msvc')
+        run: |
+          rustup component add llvm-tools
+          cargo install cargo-xwin --locked
+      - name: Build
+        working-directory: bindings/node
+        env:
+          TARGET: ${{ matrix.platform.target }}
+          BUILD_ARGS: ${{ matrix.platform.build_args }}
+          TARGET_RUSTFLAGS: ${{ matrix.platform.rustflags }}
+        run: |
+          # An empty RUSTFLAGS would still override .cargo/config.toml, so set it only when needed.
+          if [ -n "$TARGET_RUSTFLAGS" ]; then export RUSTFLAGS="$TARGET_RUSTFLAGS"; fi
+          npm version "${RELEASE_TAG#v}" --no-git-tag-version
+          npm ci
+          npx napi build --platform --release --target "$TARGET" ${BUILD_ARGS:+"$BUILD_ARGS"}
+      # Static CRT check: the addon must load without the Visual C++ redistributable, so it may
+      # import system DLLs but no VCRUNTIME*.dll or MSVCP*.dll.
+      - name: Check the addon's DLL imports
+        if: endsWith(matrix.platform.target, '-msvc')
+        working-directory: bindings/node
+        run: |
+          objdump="$(rustc --print sysroot)/lib/rustlib/$(rustc -vV | sed -n 's/^host: //p')/bin/llvm-objdump"
+          imports=$("$objdump" -p lean_pq_node.win32-x64-msvc.node | sed -n 's/^ *DLL Name: //p')
+          echo "$imports"
+          test -n "$imports"
+          if echo "$imports" | grep -i -e '^vcruntime' -e '^msvcp'; then
+            echo "lean_pq_node.win32-x64-msvc.node imports the Visual C++ runtime" >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-binding-${{ matrix.platform.target }}
+          path: bindings/node/lean_pq_node.*.node
+          if-no-files-found: error
+      # The loader is target-independent; ship the one generated alongside the x86_64 Linux build.
+      - if: matrix.platform.target == 'x86_64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-loader
+          path: |
+            bindings/node/index.js
+            bindings/node/index.d.ts
+          if-no-files-found: error
+
+  # Stamps every package with the tag's version, fills the platform packages and the root
+  # package's optionalDependencies, and packs the tarballs that node-test checks and
+  # node-publish uploads.
+  node-package:
+    name: Node.js package
+    needs: node-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          path: bindings/node/artifacts
+          pattern: node-binding-*
+      - uses: actions/download-artifact@v4
+        with:
+          name: node-loader
+          path: bindings/node
+      - name: Assemble and pack
+        working-directory: bindings/node
+        run: |
+          version=${RELEASE_TAG#v}
+          grep -q "expected $version but got" index.js
+          npm version "$version" --no-git-tag-version
+          npm ci
+          npx napi create-npm-dirs
+          npx napi artifacts --output-dir artifacts
+          npx napi pre-publish --tagstyle npm --no-gh-release --skip-optional-publish
+          mkdir dist
+          npm pack --ignore-scripts --pack-destination dist
+          for dir in npm/*/; do npm pack --ignore-scripts --pack-destination dist "./$dir"; done
+          # Every platform package must be packed and listed in the root's optionalDependencies.
+          node -e '
+            const fs = require("node:fs")
+            const root = require("./package.json")
+            const targets = fs.readdirSync("npm")
+            for (const target of targets) {
+              const name = root.name + "-" + target
+              if (root.optionalDependencies[name] !== root.version) throw new Error(name + " missing from optionalDependencies")
+              if (!fs.existsSync("dist/kevaundray-lean-pq-" + target + "-" + root.version + ".tgz")) throw new Error(name + " not packed")
+            }
+            if (Object.keys(root.optionalDependencies).length !== targets.length) throw new Error("unexpected optionalDependencies")
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-packages
+          path: bindings/node/dist/*.tgz
+          if-no-files-found: error
+      - name: Report packages missing from npm
+        working-directory: bindings/node
+        run: |
+          # Trusted publishing can only publish packages that already exist; see README "One-time npm setup".
+          for name in $(node -p 'const p = require("./package.json"); [p.name, ...Object.keys(p.optionalDependencies)].join(" ")'); do
+            if latest=$(npm view "$name" version 2>/dev/null); then
+              echo "$name exists on npm (latest $latest)"
+            else
+              echo "::warning::$name is not on npm yet; its first publish needs the NPM_TOKEN secret (bindings/node/README.md)"
+            fi
+          done
+
+  # Installs the packed root and platform package on each platform and signs, verifies and
+  # aggregates through them. Alpine runs in a plain container: GitHub's JavaScript actions do not
+  # run inside Alpine containers on arm64.
+  node-test:
+    name: Node.js test / ${{ matrix.platform.package }}
+    needs: node-package
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            package: linux-x64-gnu
+          - runner: ubuntu-24.04-arm
+            package: linux-arm64-gnu
+          - runner: ubuntu-latest
+            package: linux-x64-musl
+            container: node:22-alpine
+          - runner: ubuntu-24.04-arm
+            package: linux-arm64-musl
+            container: node:22-alpine
+          - runner: macos-15-intel
+            package: darwin-x64
+          - runner: macos-15
+            package: darwin-arm64
+          - runner: windows-latest
+            package: win32-x64-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: node-packages
+          path: dist
+      - if: matrix.platform.container == ''
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Install and run the packages
+        shell: bash
+        env:
+          PACKAGE: ${{ matrix.platform.package }}
+          CONTAINER: ${{ matrix.platform.container }}
+        run: |
+          version=${RELEASE_TAG#v}
+          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz" --aggregate
+          if [ -n "$CONTAINER" ]; then
+            docker run --rm -v "$PWD:/w" -w /w "$CONTAINER" sh "$@"
+          else
+            sh "$@"
+          fi
+
+  # npm trusted publishing (OIDC); provenance is generated automatically. Each package's trusted
+  # publisher on npmjs.com names:
+  #   repo:        ethereum/lean-pq-bindings
+  #   workflow:    release.yml
+  #   environment: npm          (must match `environment.name` below)
+  # npm can only attach a trusted publisher to a package that already exists, so the first publish
+  # of each package uses an NPM_TOKEN secret; see bindings/node/README.md. npm tries trusted
+  # publishing first and falls back to the token. Already-published versions are skipped, so a
+  # failed run can be re-dispatched on the same tag.
+  node-publish:
+    name: Publish to npm
+    needs: [node-package, node-test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@kevaundray/lean-pq
+    permissions:
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: node-packages
+          path: dist
+      # Trusted publishing needs npm 11.5.1+, which Node.js 24 ships. No registry-url: npm
+      # exchanges the OIDC token itself, and setup-node's empty token would only get in the way.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      # Only write the token when the secret exists: an empty token breaks trusted publishing.
+      - name: Configure the bootstrap token
+        if: env.NPM_TOKEN != ''
+        run: npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+      - name: Publish platform packages, then the root package
+        run: |
+          version=${RELEASE_TAG#v}
+          case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
+          # Tarball paths need ./ — npm reads dist/name.tgz as the GitHub repository dist/name.tgz.
+          root="./dist/kevaundray-lean-pq-$version.tgz"
+          publish() {
+            name=$(tar -xzOf "$1" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')
+            if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+              echo "$name@$version is already published"
+            else
+              npm publish "$1" --access public --provenance --tag "$tag"
+            fi
+          }
+          for tarball in ./dist/*.tgz; do
+            if [ "$tarball" != "$root" ]; then publish "$tarball"; fi
+          done
+          publish "$root"
+
+  # One shared library per platform bundled in the Maven jar, laid out as native/<platform>/ for
+  # -PleanPqNativeDir; the Linux builds link against glibc 2.17 and build-native.sh rejects newer
+  # symbol versions, and the Windows build must import only DLLs that ship with Windows. Each leg
+  # also runs a consumer against a jar bundling just its own library, so every library is loaded on
+  # its own platform before anything is published.
+  java-native:
+    name: Java native / ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
+    defaults:
+      run:
+        # Git Bash on Windows.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            rust_targets: x86_64-unknown-linux-gnu
+          - name: linux-aarch64
+            runner: ubuntu-24.04-arm
+            rust_targets: aarch64-unknown-linux-gnu
+          - name: macos-universal
+            runner: macos-15
+            rust_targets: x86_64-apple-darwin aarch64-apple-darwin
+          - name: windows-x86_64
+            runner: windows-latest
+            rust_targets: x86_64-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Add Rust target support
+        run: rustup target add ${{ matrix.platform.rust_targets }}
+      - if: runner.os == 'Linux'
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Install cargo-zigbuild
+        if: runner.os == 'Linux'
+        run: cargo install cargo-zigbuild --locked
+      - name: Build the native library
+        run: sh bindings/java/scripts/build-native.sh ${{ matrix.platform.name }} native
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+      - name: Run a consumer against a jar bundling this library
+        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$GITHUB_WORKSPACE/native"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: java-native-${{ matrix.platform.name }}
+          path: native/${{ matrix.platform.name }}/
+          if-no-files-found: error
+
+  # Assembles io.github.crate-crypto:lean-pq with all four libraries, runs the consumer against it
+  # and publishes it to Maven Central through the Central Portal. The plugin signs every file and
+  # releases the deployment once the Portal validates it. See bindings/java/README.md for the secrets.
+  java-publish:
+    name: Publish to Maven Central
+    needs: java-native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: java-native-*
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+      - name: Assemble the jar
+        run: |
+          for dir in native/java-native-*; do mv "$dir" "native/${dir#native/java-native-}"; done
+          version=${RELEASE_TAG#v}
+          gradle -p bindings/java jar -Pversion="$version" -PleanPqNativeDir="$PWD/native"
+          unzip -Z1 "bindings/java/build/libs/lean-pq-$version.jar" | tee jar-contents.txt
+          for library in linux-x86_64/liblean_pq_native.so linux-aarch64/liblean_pq_native.so macos-universal/liblean_pq_native.dylib windows-x86_64/lean_pq_native.dll; do
+            grep -qx "org/ethereum/leanpq/native/$library" jar-contents.txt
+          done
+          file native/macos-universal/liblean_pq_native.dylib | grep -q 'Mach-O universal binary with 2 architectures'
+          file native/windows-x86_64/lean_pq_native.dll | tee /dev/stderr | grep -q 'PE32+ executable.*DLL.*x86-64'
+      - name: Run a consumer against the jar
+        run: sh bindings/java/scripts/consumer-smoke.sh -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$PWD/native"
+      - name: Check Maven Central secrets
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          missing=0
+          for name in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD SIGNING_KEY SIGNING_PASSWORD; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "::error::repository secret $name is not set; see bindings/java/README.md"
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - name: Check the Central Portal token
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          token=$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 | tr -d '\n')
+          status=$(curl -sS -o published.json -w '%{http_code}' -H "Authorization: Bearer $token" \
+            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.github.crate-crypto&name=lean-pq&version=${RELEASE_TAG#v}")
+          if [ "$status" != 200 ]; then
+            echo "::error::the Central Portal rejected MAVEN_CENTRAL_USERNAME/MAVEN_CENTRAL_PASSWORD (HTTP $status)"
+            exit 1
+          fi
+          cat published.json
+          # Central accepts a version once; fail before signing and uploading instead of after.
+          if grep -q '"published" *: *true' published.json; then
+            echo "::error::io.github.crate-crypto:lean-pq:${RELEASE_TAG#v} is already on Maven Central"
+            exit 1
+          fi
+      - name: Sign with the release key and verify against a public keyserver
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          version=${RELEASE_TAG#v}
+          repo="$RUNNER_TEMP/m2"
+          gradle -p bindings/java publishToMavenLocal -Dmaven.repo.local="$repo" -Pversion="$version" -PleanPqNativeDir="$PWD/native"
+          dir="$repo/io/github/crate-crypto/lean-pq/$version"
+          ls -l "$dir"
+          # Central verifies signatures with the public key it finds on a keyserver, and a key without
+          # a user ID (keys.openpgp.org strips it until the address is confirmed) cannot be imported.
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          key=$(gpg --list-packets "$dir/lean-pq-$version.jar.asc" | sed -n 's/.*keyid \([0-9A-F]\{16\}\).*/\1/p' | head -n 1)
+          test -n "$key"
+          # keyserver.ubuntu.com balances across backends that sync with a delay, so retry each server.
+          for attempt in 1 2 3 4 5; do
+            for server in hkps://keys.openpgp.org hkps://keyserver.ubuntu.com; do
+              gpg --keyserver "$server" --recv-keys "$key" || true
+              if gpg --list-keys "$key" >/dev/null 2>&1; then
+                echo "public key $key found on $server (attempt $attempt)"
+                break 2
+              fi
+            done
+            sleep 5
+          done
+          if ! gpg --list-keys "$key" >/dev/null 2>&1; then
+            echo "::error::public key $key with a user ID is on neither keys.openpgp.org nor keyserver.ubuntu.com; confirm the keys.openpgp.org verification email, or run: gpg --keyserver hkps://keyserver.ubuntu.com --send-keys $key"
+            exit 1
+          fi
+          for file in "$dir"/*.jar "$dir"/*.pom; do
+            gpg --verify "$file.asc" "$file"
+          done
+      - name: Publish to Maven Central
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#v}" -PleanPqNativeDir="$PWD/native"

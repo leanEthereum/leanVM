@@ -1,0 +1,27 @@
+name: PR title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional:
+    name: Validate conventional-commit format
+    runs-on: ubuntu-latest
+    steps:
+      # Validates the PR title against the conventional-commits spec
+      # (https://www.conventionalcommits.org). When you squash-merge, the
+      # squash commit message defaults to the PR title — so enforcing a
+      # conventional title here means the resulting commit on main is also
+      # conventional, which is what Release Please needs to parse versions
+      # + changelog entries.
+      #
+      # Default accepted types: feat, fix, docs, style, refactor, perf,
+      # test, build, ci, chore, revert. `feat!:` / `fix!:` (or a
+      # `BREAKING CHANGE:` footer in the body) trigger a major bump.
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

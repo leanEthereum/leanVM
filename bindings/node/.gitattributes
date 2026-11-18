@@ -1,0 +1,2 @@
+# Git Bash runs the scripts on Windows, where checkouts default to CRLF line endings.
+*.sh text eol=lf

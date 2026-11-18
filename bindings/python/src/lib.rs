@@ -1,0 +1,317 @@
+use lean_pq::{sphincs, xmss, Message};
+use pyo3::create_exception;
+use pyo3::exceptions::{PyException, PyValueError};
+use pyo3::prelude::*;
+use pyo3::pybacked::PyBackedBytes;
+use pyo3::types::{PyBytes, PyType};
+use pyo3::wrap_pyfunction;
+
+create_exception!(py_lean_pq, LeanPqError, PyException);
+
+fn api_error(error: lean_pq::Error) -> PyErr {
+    LeanPqError::new_err(error.to_string())
+}
+
+fn fixed<const N: usize>(bytes: &[u8], name: &str) -> PyResult<[u8; N]> {
+    bytes.try_into().map_err(|_| {
+        PyValueError::new_err(format!(
+            "{name} must be exactly {N} bytes, got {}",
+            bytes.len()
+        ))
+    })
+}
+
+fn message(bytes: &[u8]) -> PyResult<Message> {
+    fixed(bytes, "message")
+}
+
+fn xmss_public_key(bytes: &[u8]) -> PyResult<xmss::PublicKey> {
+    fixed::<{ lean_pq::PUBLIC_KEY_LEN }>(bytes, "public key")?;
+    xmss::PublicKey::from_bytes(bytes).map_err(api_error)
+}
+
+fn xmss_signature(bytes: &[u8]) -> PyResult<xmss::Signature> {
+    fixed::<{ xmss::SIGNATURE_LEN }>(bytes, "leanXMSS signature")?;
+    xmss::Signature::from_bytes(bytes).map_err(api_error)
+}
+
+fn sphincs_public_key(bytes: &[u8]) -> PyResult<sphincs::PublicKey> {
+    fixed::<{ lean_pq::PUBLIC_KEY_LEN }>(bytes, "public key")?;
+    sphincs::PublicKey::from_bytes(bytes).map_err(api_error)
+}
+
+fn sphincs_signature(bytes: &[u8]) -> PyResult<sphincs::Signature> {
+    fixed::<{ sphincs::SIGNATURE_LEN }>(bytes, "leanSPHINCS signature")?;
+    sphincs::Signature::from_bytes(bytes).map_err(api_error)
+}
+
+type SignedMessage = (PyBackedBytes, PyBackedBytes, PyBackedBytes);
+type Claim = (PyBackedBytes, PyBackedBytes);
+
+#[pyclass(name = "XmssSecretKey", frozen, module = "py_lean_pq")]
+struct PyXmssSecretKey {
+    inner: xmss::SecretKey,
+}
+
+#[pymethods]
+impl PyXmssSecretKey {
+    #[classmethod]
+    fn generate(_cls: &Bound<'_, PyType>, py: Python<'_>) -> Self {
+        Self {
+            inner: py.detach(xmss::SecretKey::generate),
+        }
+    }
+
+    #[classmethod]
+    fn from_seed(_cls: &Bound<'_, PyType>, py: Python<'_>, seed: &[u8]) -> PyResult<Self> {
+        let seed = fixed(seed, "seed")?;
+        Ok(Self {
+            inner: py.detach(move || xmss::SecretKey::from_seed(seed)),
+        })
+    }
+
+    #[classmethod]
+    fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
+        Ok(Self {
+            inner: py
+                .detach(|| xmss::SecretKey::from_bytes(data))
+                .map_err(api_error)?,
+        })
+    }
+
+    fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.to_bytes())
+    }
+
+    #[getter]
+    fn public_key<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.public_key().to_bytes())
+    }
+
+    fn prepare(&self, py: Python<'_>, leaf_index: xmss::LeafIndex) {
+        py.detach(|| self.inner.prepare(leaf_index));
+    }
+
+    fn sign<'py>(
+        &self,
+        py: Python<'py>,
+        message: &[u8],
+        leaf_index: xmss::LeafIndex,
+    ) -> PyResult<Bound<'py, PyBytes>> {
+        let message = self::message(message)?;
+        let signature = py.detach(|| self.inner.sign(&message, leaf_index));
+        Ok(PyBytes::new(py, &signature.to_bytes()))
+    }
+}
+
+#[pyclass(name = "SphincsSecretKey", frozen, module = "py_lean_pq")]
+struct PySphincsSecretKey {
+    inner: sphincs::SecretKey,
+}
+
+#[pymethods]
+impl PySphincsSecretKey {
+    #[classmethod]
+    fn generate(_cls: &Bound<'_, PyType>, py: Python<'_>) -> Self {
+        Self {
+            inner: py.detach(sphincs::SecretKey::generate),
+        }
+    }
+
+    #[classmethod]
+    fn from_seed(_cls: &Bound<'_, PyType>, py: Python<'_>, seed: &[u8]) -> PyResult<Self> {
+        let seed = fixed(seed, "seed")?;
+        Ok(Self {
+            inner: py.detach(move || sphincs::SecretKey::from_seed(seed)),
+        })
+    }
+
+    #[classmethod]
+    fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
+        Ok(Self {
+            inner: py
+                .detach(|| sphincs::SecretKey::from_bytes(data))
+                .map_err(api_error)?,
+        })
+    }
+
+    fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.to_bytes())
+    }
+
+    #[getter]
+    fn public_key<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.public_key().to_bytes())
+    }
+
+    fn sign<'py>(&self, py: Python<'py>, message: &[u8]) -> PyResult<Bound<'py, PyBytes>> {
+        let message = self::message(message)?;
+        let signature = py.detach(|| self.inner.sign(&message));
+        Ok(PyBytes::new(py, &signature.to_bytes()))
+    }
+}
+
+#[pyclass(name = "Aggregate", frozen, module = "py_lean_pq")]
+struct PyAggregate {
+    inner: lean_pq::Aggregate,
+}
+
+fn claims<'py, const N: usize>(
+    py: Python<'py>,
+    claims: impl IntoIterator<Item = ([u8; N], Message)>,
+) -> Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)> {
+    claims
+        .into_iter()
+        .map(|(key, message)| (PyBytes::new(py, &key), PyBytes::new(py, &message)))
+        .collect()
+}
+
+#[pymethods]
+impl PyAggregate {
+    #[classmethod]
+    #[pyo3(
+        signature = (data, xmss_claims = Vec::new(), sphincs_claims = Vec::new()),
+        text_signature = "(data, xmss_claims=(), sphincs_claims=())"
+    )]
+    fn from_bytes(
+        _cls: &Bound<'_, PyType>,
+        py: Python<'_>,
+        data: &[u8],
+        xmss_claims: Vec<Claim>,
+        sphincs_claims: Vec<Claim>,
+    ) -> PyResult<Self> {
+        let xmss_claims = xmss_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((xmss_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let sphincs_claims = sphincs_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((sphincs_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok(Self {
+            inner: py
+                .detach(|| lean_pq::Aggregate::from_bytes(data, &xmss_claims, &sphincs_claims))
+                .map_err(api_error)?,
+        })
+    }
+
+    fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.to_bytes())
+    }
+
+    #[getter]
+    fn xmss_claims<'py>(&self, py: Python<'py>) -> Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)> {
+        claims(
+            py,
+            self.inner
+                .xmss_claims()
+                .into_iter()
+                .map(|(key, message)| (key.to_bytes(), message)),
+        )
+    }
+
+    #[getter]
+    fn sphincs_claims<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)> {
+        claims(
+            py,
+            self.inner
+                .sphincs_claims()
+                .into_iter()
+                .map(|(key, message)| (key.to_bytes(), message)),
+        )
+    }
+}
+
+#[pyfunction]
+fn setup(py: Python<'_>) {
+    py.detach(lean_pq::setup);
+}
+
+#[pyfunction]
+fn xmss_verify(
+    py: Python<'_>,
+    public_key: &[u8],
+    message: &[u8],
+    signature: &[u8],
+) -> PyResult<()> {
+    let public_key = xmss_public_key(public_key)?;
+    let message = self::message(message)?;
+    let signature = xmss_signature(signature)?;
+    py.detach(|| public_key.verify(&message, &signature))
+        .map_err(api_error)
+}
+
+#[pyfunction]
+fn sphincs_verify(
+    py: Python<'_>,
+    public_key: &[u8],
+    message: &[u8],
+    signature: &[u8],
+) -> PyResult<()> {
+    let public_key = sphincs_public_key(public_key)?;
+    let message = self::message(message)?;
+    let signature = sphincs_signature(signature)?;
+    py.detach(|| public_key.verify(&message, &signature))
+        .map_err(api_error)
+}
+
+#[pyfunction]
+#[pyo3(
+    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
+    text_signature = "(children=(), xmss=(), sphincs=())"
+)]
+fn aggregate(
+    py: Python<'_>,
+    children: Vec<Bound<'_, PyAggregate>>,
+    xmss: Vec<SignedMessage>,
+    sphincs: Vec<SignedMessage>,
+) -> PyResult<PyAggregate> {
+    let children = children
+        .iter()
+        .map(|child| &child.get().inner)
+        .collect::<Vec<_>>();
+    let xmss = xmss
+        .iter()
+        .map(|(public_key, message, signature)| {
+            Ok((
+                xmss_public_key(public_key)?,
+                self::message(message)?,
+                xmss_signature(signature)?,
+            ))
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    let sphincs = sphincs
+        .iter()
+        .map(|(public_key, message, signature)| {
+            Ok((
+                sphincs_public_key(public_key)?,
+                self::message(message)?,
+                sphincs_signature(signature)?,
+            ))
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    py.detach(|| lean_pq::aggregate(&children, &xmss, &sphincs))
+        .map(|inner| PyAggregate { inner })
+        .map_err(api_error)
+}
+
+#[pymodule]
+fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    module.add("LeanPqError", py.get_type::<LeanPqError>())?;
+    module.add_class::<PyXmssSecretKey>()?;
+    module.add_class::<PySphincsSecretKey>()?;
+    module.add_class::<PyAggregate>()?;
+    module.add_function(wrap_pyfunction!(setup, module)?)?;
+    module.add_function(wrap_pyfunction!(xmss_verify, module)?)?;
+    module.add_function(wrap_pyfunction!(sphincs_verify, module)?)?;
+    module.add_function(wrap_pyfunction!(aggregate, module)?)?;
+    Ok(())
+}

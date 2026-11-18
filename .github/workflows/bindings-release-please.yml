@@ -1,0 +1,70 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+      pr_branch: ${{ steps.rp.outputs.pr && fromJSON(steps.rp.outputs.pr).headBranchName || '' }}
+    steps:
+      # Maintains one "release PR" for the whole repository from conventional commits. It sets
+      # the workspace version in Cargo.toml, the versions in the README install instructions, and
+      # CHANGELOG.md. Merging it creates the vX.Y.Z tag that every binding is released from.
+      - id: rp
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # release-please cannot select entries in Cargo.lock, so bring the workspace crates' locked
+  # versions in line with the release PR's Cargo.toml.
+  sync-cargo-lock:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr_branch != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.pr_branch }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Update the workspace crates in Cargo.lock
+        run: |
+          cargo update --workspace
+          if git diff --quiet -- Cargo.lock; then
+            echo "Cargo.lock is already in sync"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync Cargo.lock with the release version" -- Cargo.lock
+          git push origin "HEAD:${{ needs.release-please.outputs.pr_branch }}"
+
+  # GITHUB_TOKEN-driven tag pushes do NOT trigger workflows (GitHub anti-loop
+  # protection), so we can't just rely on release.yml's `on: push: tags`
+  # trigger. Instead, when RP cuts a release, dispatch release.yml directly
+  # against the new tag.
+  trigger-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: '${{ needs.release-please.outputs.tag_name }}',
+            });

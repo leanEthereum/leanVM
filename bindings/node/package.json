@@ -1,0 +1,58 @@
+{
+  "name": "@kevaundray/lean-pq",
+  "version": "0.0.0-dev",
+  "description": "Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethereum/lean-pq-bindings.git",
+    "directory": "bindings/node"
+  },
+  "homepage": "https://github.com/ethereum/lean-pq-bindings/tree/main/bindings/node#readme",
+  "bugs": {
+    "url": "https://github.com/ethereum/lean-pq-bindings/issues"
+  },
+  "keywords": [
+    "xmss",
+    "sphincs",
+    "leanxmss",
+    "leansphincs",
+    "post-quantum",
+    "ethereum",
+    "napi-rs"
+  ],
+  "main": "facade.js",
+  "types": "facade.d.ts",
+  "files": [
+    "facade.js",
+    "facade.d.ts",
+    "index.js",
+    "index.d.ts"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "napi": {
+    "binaryName": "lean_pq_node",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-musl",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.8.6"
+  }
+}

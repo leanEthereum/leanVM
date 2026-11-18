@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LeanVM leanXMSS vs Lighthouse BLS</title>
+  <style>
+    :root {
+      --background: #f5f7fb;
+      --surface: #ffffff;
+      --surface-muted: #f0f3f8;
+      --text: #172033;
+      --muted: #667085;
+      --border: #d9dfeb;
+      --lean: #6655d9;
+      --shadow: 0 10px 32px rgb(23 32 51 / 8%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #0d1220;
+        --surface: #151c2d;
+        --surface-muted: #1c263a;
+        --text: #edf1fa;
+        --muted: #a9b4c7;
+        --border: #303b52;
+        --lean: #a99cff;
+        --shadow: 0 10px 32px rgb(0 0 0 / 20%);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 64px 0 80px;
+    }
+
+    header { margin-bottom: 40px; }
+
+    h1 {
+      max-width: 760px;
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 6vw, 4.5rem);
+      font-weight: 750;
+      letter-spacing: -0.045em;
+      line-height: 1.02;
+    }
+
+    .subtitle {
+      max-width: 700px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    section {
+      margin-top: 28px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    h2 {
+      margin: 0 0 5px;
+      font-size: 1.35rem;
+      letter-spacing: -0.015em;
+    }
+
+    .section-heading p,
+    .empty,
+    .error { margin: 0; color: var(--muted); }
+
+    .stamp {
+      flex: 0 0 auto;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin: 0 0 22px;
+    }
+
+    .fact {
+      min-width: 0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--surface-muted);
+    }
+
+    .fact dt {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .fact dd {
+      margin: 3px 0 0;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    .subtable-title {
+      margin: 26px 0 8px;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .facts + .subtable-title { margin-top: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    th,
+    td {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+
+    th:first-child,
+    td:first-child {
+      min-width: 210px;
+      text-align: left;
+      white-space: normal;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.045em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    .lean-value { color: var(--lean); }
+    .muted-value { color: var(--muted); }
+
+    section.explainer {
+      padding: 30px 0 0;
+      border-width: 1px 0 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .explainer > p {
+      max-width: 760px;
+      margin: 6px 0 22px;
+      color: var(--muted);
+    }
+
+    .definitions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px 32px;
+      margin: 0;
+    }
+
+    .definitions dt { font-weight: 700; }
+
+    .definitions dd {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    footer a { color: inherit; }
+
+    @media (max-width: 620px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 38px; }
+      section { padding: 20px 16px; border-radius: 14px; }
+      .section-heading { display: block; }
+      .stamp { display: inline-block; margin-top: 12px; }
+      .definitions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>LeanVM leanXMSS vs Lighthouse BLS</h1>
+      <p class="subtitle">Current performance of leanXMSS signatures and their leanVM proof aggregation beside the BLS implementation used by Lighthouse. Each successful run replaces its suite’s previous result.</p>
+    </header>
+
+    <section aria-labelledby="fast-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="fast-title">Fast operations</h2>
+          <p>Raw signature operations without aggregation.</p>
+        </div>
+        <span class="stamp" id="fast-stamp">Loading…</span>
+      </div>
+      <div id="fast-results"><p class="empty">Loading current fast results…</p></div>
+    </section>
+
+    <section aria-labelledby="slow-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="slow-title">Key creation and aggregate proofs</h2>
+          <p>Long-lived key generation plus full LeanVM proof generation and verification beside Lighthouse BLS.</p>
+        </div>
+        <span class="stamp" id="slow-stamp">Loading…</span>
+      </div>
+      <div id="slow-results"><p class="empty">Loading current slow results…</p></div>
+    </section>
+
+    <section class="explainer" id="explainer" aria-labelledby="explainer-title">
+      <h2 id="explainer-title">What the benchmark names mean</h2>
+      <p>For same-claim rows, size is the number of signers. For distinct-claim rows, it is the number of signer-and-message pairs. Mixed-claim rows state both the total signature count and the number of claims.</p>
+      <dl class="definitions">
+        <div>
+          <dt>Same-claim aggregation</dt>
+          <dd>Many independent signers sign the same claim: the identical message. LeanVM checks those signatures in the zkVM and produces a proof; Lighthouse combines the BLS signatures into one signature.</dd>
+        </div>
+        <div>
+          <dt>Same-claim verification</dt>
+          <dd>Decodes the LeanVM proof and verifies it against the expected signer-and-message claims, or checks the aggregate BLS signature against that one message and the complete set of signers.</dd>
+        </div>
+        <div>
+          <dt>Recursive same-claim aggregation</dt>
+          <dd>Combines 2, 4, 8, or 16 pre-built LeanVM proofs into one new proof. Every child represents 512 different signers of the same claim—the identical message—and signer sets are disjoint between children. Timing excludes creation of the child proofs but includes validating them and producing the new recursive proof.</dd>
+        </div>
+        <div>
+          <dt>Distinct-claim aggregation</dt>
+          <dd>Combines signatures when each signer signed a different message.</dd>
+        </div>
+        <div>
+          <dt>Distinct-claim verification</dt>
+          <dd>Checks the aggregate against every signer-and-message pair. The “conceptual” Lighthouse row uses its non-production aggregate-verify path.</dd>
+        </div>
+        <div>
+          <dt>Mixed-claim aggregation</dt>
+          <dd>Combines 512 signatures covering either 8 claims (64 signers per claim) or 16 claims (32 signers per claim). LeanVM proves all of them, whatever their messages, in one aggregation call.</dd>
+        </div>
+        <div>
+          <dt>Mixed-claim verification</dt>
+          <dd>Decodes one LeanVM proof and verifies it against every expected signer-and-message claim. For BLS, the benchmark groups the same public keys per claim and verifies one aggregate signature against either 8 or 16 message-and-key groups.</dd>
+        </div>
+        <div>
+          <dt>Independent signature verification</dt>
+          <dd>Checks a set of separate signer-and-message tuples. LeanVM verifies each raw leanXMSS signature; Lighthouse verifies the equivalent BLS tuples together with its production batch-verification API.</dd>
+        </div>
+        <div>
+          <dt>Proof size and signature size</dt>
+          <dd>The LeanVM proof size is the serialized zkVM proof produced by aggregation. The Lighthouse value is the serialized aggregate BLS signature.</dd>
+        </div>
+        <div>
+          <dt>Serialized artifact sizes</dt>
+          <dd>Storage or wire-encoding sizes, not in-memory object sizes. A stored LeanVM key is its 32-byte seed.</dd>
+        </div>
+        <div>
+          <dt>Key creation</dt>
+          <dd>Derives a new leanXMSS key from its seed, or generates a new Lighthouse BLS secret key. A leanXMSS key covers 2<sup>32</sup> leaf indices; key creation builds only its top tree, and each bottom tree is built when the key first signs in it.</dd>
+        </div>
+        <div>
+          <dt>Suite peak RSS</dt>
+          <dd>The maximum physical memory used by the complete slow-suite process. It is not measured separately for each row.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <footer>
+      Informational shared-runner measurements. <a href="https://github.com/ethereum/lean-pq-bindings">Source and methodology</a>.
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const dash = "—";
+
+    function node(tag, value, className) {
+      const element = document.createElement(tag);
+      if (value !== undefined) element.textContent = value;
+      if (className) element.className = className;
+      return element;
+    }
+
+    function humanLabel(value) {
+      return String(value).replaceAll("_", " ").replace(/\b\w/g, letter => letter.toUpperCase());
+    }
+
+    function operationLabel(workload, inputSize, claimCount) {
+      const label = humanLabel(workload);
+      if (workload === "key_creation") {
+        return label;
+      }
+      if (workload.startsWith("mixed_claim_") && inputSize != null && claimCount != null) {
+        return `${label} (${Number(inputSize).toLocaleString()} signatures / ${Number(claimCount).toLocaleString()} claims)`;
+      }
+      return inputSize == null ? label : `${label} (size = ${inputSize})`;
+    }
+
+    function recursiveOperationLabel(result) {
+      return `Fan-in ${Number(result.fan_in).toLocaleString()} (${Number(result.signers_per_child).toLocaleString()} signers per child, ${Number(result.total_signers).toLocaleString()} total signers)`;
+    }
+
+    function artifactLabel(artifact) {
+      if (artifact === "public_key") return "Public key";
+      if (artifact === "raw_signature") return "Raw signature";
+      return humanLabel(artifact);
+    }
+
+    function duration(nanoseconds) {
+      if (!Number.isFinite(nanoseconds)) return dash;
+      if (nanoseconds >= 1e9) return `${(nanoseconds / 1e9).toFixed(3)} s`;
+      if (nanoseconds >= 1e6) return `${(nanoseconds / 1e6).toFixed(3)} ms`;
+      if (nanoseconds >= 1e3) return `${(nanoseconds / 1e3).toFixed(3)} µs`;
+      return `${Math.round(nanoseconds).toLocaleString()} ns`;
+    }
+
+    function bytes(value) {
+      if (!Number.isFinite(value)) return dash;
+      const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+      let amount = value;
+      let unit = 0;
+      while (amount >= 1024 && unit < units.length - 1) {
+        amount /= 1024;
+        unit += 1;
+      }
+      return `${amount.toFixed(unit === 0 ? 0 : 2)} ${units[unit]}`;
+    }
+
+    function ratio(lean, lighthouse) {
+      if (!Number.isFinite(lean) || !Number.isFinite(lighthouse) || lighthouse <= 0) return dash;
+      return `${(lean / lighthouse).toLocaleString(undefined, { maximumFractionDigits: 2 })}×`;
+    }
+
+    function compactCommit(value) {
+      return value ? String(value).slice(0, 12) : dash;
+    }
+
+    function addFacts(container, entries) {
+      const list = node("dl", undefined, "facts");
+      for (const [label, value] of entries) {
+        const item = node("div", undefined, "fact");
+        item.append(node("dt", label), node("dd", value));
+        list.append(item);
+      }
+      container.append(list);
+    }
+
+    function addTable(container, headings, rows) {
+      const wrapper = node("div", undefined, "table-wrap");
+      const table = node("table");
+      const head = node("thead");
+      const headingRow = node("tr");
+      for (const heading of headings) headingRow.append(node("th", heading));
+      head.append(headingRow);
+      const body = node("tbody");
+      for (const row of rows) {
+        const tableRow = node("tr");
+        row.forEach((cell, index) => {
+          const className = index === 1 ? "lean-value" : undefined;
+          tableRow.append(node("td", cell, cell === dash ? "muted-value" : className));
+        });
+        body.append(tableRow);
+      }
+      table.append(head, body);
+      wrapper.append(table);
+      container.append(wrapper);
+    }
+
+    const groupNames = [
+      "Basic operations",
+      "Same-claim aggregation",
+      "Same-claim verification",
+      "Recursive same-claim aggregation",
+      "Mixed-claim aggregation",
+      "Mixed-claim verification",
+      "Distinct-claim aggregation",
+      "Distinct-claim verification",
+      "Independent signature verification",
+    ];
+
+    function benchmarkGroup(workload) {
+      if (workload === "same_claim_aggregate") return "Same-claim aggregation";
+      if (workload === "same_claim_verify") return "Same-claim verification";
+      if (workload === "recursive_same_claim_aggregate") return "Recursive same-claim aggregation";
+      if (workload === "mixed_claim_aggregate") return "Mixed-claim aggregation";
+      if (workload === "mixed_claim_verify_conceptual") return "Mixed-claim verification";
+      if (workload === "distinct_claim_aggregate") return "Distinct-claim aggregation";
+      if (workload === "independent_signatures_verify") return "Independent signature verification";
+      if (workload === "distinct_claim_verify"
+          || workload === "distinct_claim_verify_conceptual") {
+        return "Distinct-claim verification";
+      }
+      return "Basic operations";
+    }
+
+    function addGroupedTables(container, headings, rows) {
+      for (const groupName of groupNames) {
+        const matchingRows = rows.filter(row => benchmarkGroup(row.workload) === groupName);
+        if (matchingRows.length === 0) continue;
+        container.append(node("h3", groupName, "subtable-title"));
+        addTable(container, headings, matchingRows.map(row => row.cells));
+      }
+    }
+
+    function environmentFacts(data, extra = []) {
+      const environment = data.environment || {};
+      return [
+        ["Commit", compactCommit(environment.commit)],
+        ["CPU", environment.cpu || dash],
+        ...extra,
+        ["Lighthouse revision", compactCommit(data.lighthouse_revision || environment.lighthouse_revision)],
+      ];
+    }
+
+    function renderFast(data) {
+      if (data.schema_version !== 1 || data.suite !== "fast" || !Array.isArray(data.benchmarks)) {
+        throw new Error("unsupported fast-result format");
+      }
+      const target = document.getElementById("fast-results");
+      target.replaceChildren();
+      addFacts(target, environmentFacts(data));
+
+      const artifactGroups = new Map();
+      for (const result of data.artifacts || []) {
+        if (!artifactGroups.has(result.artifact)) artifactGroups.set(result.artifact, {});
+        artifactGroups.get(result.artifact)[result.implementation] = result.bytes;
+      }
+      if (artifactGroups.size > 0) {
+        target.append(node("h3", "Serialized artifact sizes", "subtable-title"));
+        addTable(
+          target,
+          ["Artifact", "LeanVM", "Lighthouse BLS"],
+          Array.from(artifactGroups, ([artifact, implementations]) => [
+            artifactLabel(artifact),
+            bytes(implementations.lean),
+            bytes(implementations.lighthouse),
+          ]),
+        );
+      }
+
+      const groups = new Map();
+      for (const result of data.benchmarks) {
+        const key = `${result.workload}\u0000${result.input_size ?? ""}`;
+        if (!groups.has(key)) groups.set(key, { workload: result.workload, inputSize: result.input_size, claimCount: result.claim_count });
+        groups.get(key)[result.implementation] = result;
+      }
+      const rows = Array.from(groups.values())
+        .filter(group => group.lean && group.lighthouse)
+        .map(group => {
+          const lean = group.lean.median_ns;
+          const lighthouse = group.lighthouse.median_ns;
+          return {
+            workload: group.workload,
+            cells: [
+              operationLabel(group.workload, group.inputSize, group.claimCount),
+              duration(lean),
+              duration(lighthouse),
+              ratio(lean, lighthouse),
+            ],
+          };
+        });
+      addGroupedTables(target, ["Operation", "LeanVM median", "Lighthouse median", "LeanVM / BLS"], rows);
+      document.getElementById("fast-stamp").textContent = new Date(data.measured_at).toLocaleString();
+    }
+
+    function renderSlow(data) {
+      if (data.schema_version !== 1 || data.suite !== "slow" || !Array.isArray(data.comparisons)) {
+        throw new Error("unsupported slow-result format");
+      }
+      const target = document.getElementById("slow-results");
+      target.replaceChildren();
+      addFacts(target, environmentFacts(data, [
+        ["Samples", String(data.samples)],
+        ["Suite peak RSS", bytes(data.peak_rss_bytes)],
+      ]));
+
+      const rows = data.comparisons.map(result => ({
+        workload: result.workload,
+        cells: [
+          operationLabel(result.workload, result.input_size, result.claim_count),
+          duration(result.lean?.median_ns),
+          duration(result.lighthouse?.median_ns),
+          `${Number(result.lean_over_lighthouse).toLocaleString(undefined, { maximumFractionDigits: 2 })}×`,
+          bytes(result.lean_artifact_bytes),
+          bytes(result.lighthouse_artifact_bytes),
+        ],
+      }));
+      const keyCreationRows = rows.filter(row => row.workload === "key_creation");
+      if (keyCreationRows.length > 0) {
+        target.append(node("h3", "Key creation", "subtable-title"));
+        addTable(
+          target,
+          ["Operation", "LeanVM median", "Lighthouse median", "LeanVM / BLS", "LeanVM stored key", "BLS stored key"],
+          keyCreationRows.map(row => row.cells),
+        );
+      }
+      addGroupedTables(
+        target,
+        ["Operation", "LeanVM median", "Lighthouse median", "LeanVM / BLS", "LeanVM proof size", "BLS signature size"],
+        rows.filter(row => row.workload !== "key_creation"),
+      );
+      const recursiveRows = (data.recursive_aggregations || []).map(result => [
+        recursiveOperationLabel(result),
+        duration(result.lean?.median_ns),
+        bytes(result.lean_artifact_bytes),
+      ]);
+      if (recursiveRows.length > 0) {
+        target.append(node("h3", "Recursive same-claim aggregation", "subtable-title"));
+        addTable(
+          target,
+          ["Operation", "LeanVM median", "LeanVM proof size"],
+          recursiveRows,
+        );
+      }
+      document.getElementById("slow-stamp").textContent = new Date(data.measured_at).toLocaleString();
+    }
+
+    function renderUnavailable(suite, reason) {
+      const target = document.getElementById(`${suite}-results`);
+      const message = node("p", `Current ${suite} results have not been published yet.`, "empty");
+      message.title = reason;
+      target.replaceChildren(message);
+      document.getElementById(`${suite}-stamp`).textContent = "Not run yet";
+    }
+
+    async function loadSuite(suite, renderer) {
+      try {
+        const response = await fetch(`data/${suite}.json`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        renderer(await response.json());
+      } catch (error) {
+        renderUnavailable(suite, String(error));
+      }
+    }
+
+    loadSuite("fast", renderFast);
+    loadSuite("slow", renderSlow);
+  </script>
+</body>
+</html>

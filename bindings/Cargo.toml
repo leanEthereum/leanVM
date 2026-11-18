@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "bindings/python",
+    "bindings/native",
+    "bindings/node",
+    "bindings/rust",
+    "benchmarks/comparison",
+]
+resolver = "2"
+
+[workspace.package]
+# The release version of every binding; release-please updates it.
+version = "0.11.0"
+
+[workspace.dependencies]
+# Every leanVM crate must name the same revision: `lean_xmss` and `lean_sphincs` are the signature
+# schemes, which `lean_vm` re-exports alongside the aggregation prover.
+lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
+lean_xmss = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
+lean_sphincs = { git = "https://github.com/leanEthereum/leanVM.git", rev = "283686575c4e81790591d2c6e3ed21c69c0e3bbe" }
+lean-pq = { path = "bindings/rust" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

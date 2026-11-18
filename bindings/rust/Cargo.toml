@@ -1,0 +1,36 @@
+[package]
+name = "lean-pq"
+version.workspace = true
+edition = "2021"
+publish = false
+description = "Safe Rust API for leanVM's leanXMSS and leanSPHINCS signatures and their aggregation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ethereum/lean-pq-bindings"
+readme = "README.md"
+keywords = ["cryptography", "signature", "xmss", "sphincs", "post-quantum"]
+categories = ["cryptography"]
+
+[features]
+default = ["aggregation"]
+# Recursive aggregation through the leanVM prover and verifier. Without it the crate builds only
+# leanXMSS and leanSPHINCS, from leanVM's `lean_xmss` and `lean_sphincs` crates.
+aggregation = ["dep:lean_vm"]
+
+[dependencies]
+getrandom = "0.3"
+lean_sphincs = { workspace = true }
+lean_vm = { workspace = true, optional = true }
+lean_xmss = { workspace = true }
+thiserror = "2.0.21"
+
+[dev-dependencies]
+proptest = { version = "1.12", default-features = false, features = ["std"] }
+
+[lints.rust]
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+unreachable_pub = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

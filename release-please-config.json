@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "lean-pq-bindings",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.package.version"
+        },
+        {
+          "type": "generic",
+          "path": "README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/python/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/node/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/java/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/go/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/zig/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/nim/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/nim/lean_pq.nimble"
+        },
+        {
+          "type": "generic",
+          "path": "bindings/rust/README.md"
+        }
+      ]
+    }
+  }
+}
