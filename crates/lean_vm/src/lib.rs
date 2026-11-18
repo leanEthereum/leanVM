@@ -18,13 +18,14 @@ compile_error!(
      sidecar with `--features experimental_prover` instead"
 );
 
+pub use aggregation::MAX_RECURSIONS;
 pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims};
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 #[cfg(not(feature = "sidecar"))]
 mod in_process;
 #[cfg(not(feature = "sidecar"))]
-pub use in_process::{AggregateError, AggregateProof, MAX_RECURSIONS, aggregate, lean_da, setup};
+pub use in_process::{AggregateError, AggregateProof, aggregate, lean_da, setup};
 
 pub mod lean_xmss {
     pub use lean_xmss::{

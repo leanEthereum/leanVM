@@ -3,7 +3,7 @@
 use crate::{AggregateClaims, OutputClaims};
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use ::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-pub use aggregation::{AggregateError, AggregateProof, MAX_RECURSIONS};
+pub use aggregation::{AggregateError, AggregateProof};
 use isa::Prover;
 
 #[cfg(feature = "experimental_prover")]
@@ -32,7 +32,7 @@ pub fn setup(threads: usize) {
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.
 ///
-/// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
+/// - `children`: at most [`MAX_RECURSIONS`](crate::MAX_RECURSIONS), each with its claims.
 /// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
 /// - `blobs`: the encoded blobs, if any ([`lean_da::BlobMatrix::build`]).
 /// - `output`: which covered claims the proof attests.
