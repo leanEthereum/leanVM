@@ -33,7 +33,7 @@ namespace LeanVM.Guest.CoreMode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Bridge (AlignCtx Zip ZOk fwdJ flowAtom isaFlowHint stmtsOf stmtsSub zok_stmts Pairs fwdOff_eq
-  walk_ret_cons)
+  walk_ret_cons walk_atom_cons pre_eq_ret)
 open LeanVM.Guest.Check (getF)
 open LeanVM.Prover.Exec (Hint St Ctx Fine Moves StepOk HintOk refMem maxCells runOp Mem gpow_inj
   Mem.get_of_written OpModed OnRef Agree)

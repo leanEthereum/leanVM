@@ -325,7 +325,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   have hXA : (A e.I.t.name).X = Cf.X := by rw [hAX _ _ hj, hx0]
   have hJC : Bridge.JumpCells r.img A e s.pc := hJ r hr _ _ _ _ _ (by rw [← hst]; exact htr)
   refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, fun k hk ↦ ?_,
-    fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_, ?_⟩⟩
+    fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_, ?_,
+    fun es0 vs0 hw0 e0 he0 ↦ ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -439,6 +440,20 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have := hF.val x hnamed h2 h3
     rw [hloc]
     simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
+
+  · -- the events hold on the reference: the tree is valid on it
+    rw [hfn, hw, Memory.Out.ret.injEq] at hw0
+    obtain ⟨rfl, rfl⟩ := hw0
+    rcases insts_good (P := coreProgram) _ _ _ (hXh.covers.valid hH.toHonest) e.I hI with ⟨args, rets, hv⟩ |
+      ⟨f', σ', hph⟩
+    · rw [hIt] at hv
+      obtain ⟨fn', hfind, -, es', vs', hw', -, hh', -⟩ := hv
+      rw [hE.find, Option.some.injEq] at hfind
+      subst hfind
+      rw [hw, Memory.Out.ret.injEq] at hw'
+      obtain ⟨rfl, -⟩ := hw'
+      exact hh' e0 he0
+    · rw [hIt] at hph; cases hph
 
 end
 

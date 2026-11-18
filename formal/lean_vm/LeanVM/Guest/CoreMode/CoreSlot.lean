@@ -42,7 +42,7 @@ theorem rd_getA {img : MemoryImage κ} (hκ : κ ≤ 28) {m : Mem} (ha : Agree m
 
 theorem monoC_spec {m : Mode.Mono} {c : CCell} (h : monoC m = some c) :
     m.fp = 0 ∧ ∃ cb, m.bs.mapM baseOfMono = some cb ∧ c = ⟨cb, m.k⟩ := by
-  unfold monoC at h
+  unfold monoC monoF at h
   split_ifs at h with h0
   obtain ⟨cb, hcb, rfl⟩ := Option.map_eq_some_iff.mp h
   exact ⟨h0, cb, hcb, rfl⟩

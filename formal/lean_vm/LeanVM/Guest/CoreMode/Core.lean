@@ -125,6 +125,7 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
       ∀ k (hk : k < c.rets.length), Rd img kfp (2 + c.args.length + k) = some (σ c.rets[k])
   /-- What its jumps read. -/
   jc : JumpF img Cf.X Cf.fn.body fp σ
+  holds : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ e ∈ es, e.Holds img.read σ
 
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation
@@ -174,10 +175,14 @@ def baseOfMono : Mode.Base × ℕ → Option (ℕ × ℕ)
   | (.fr o, e) => if 2 ≤ o then some (o - 2, e) else none
   | _ => none
 
+/-- **A signature's product as a cell**, its bases translated by `f` into powers of core values: no
+frame address. -/
+def monoF (f : Mode.Base × ℕ → Option (ℕ × ℕ)) (m : Mode.Mono) : Option CCell :=
+  if m.fp = 0 then (m.bs.mapM f).map fun bs ↦ ⟨bs, m.k⟩ else none
+
 /-- **A signature's product as a cell** over parameter numbers: no frame address, bases frame cells
 `2 + k`. -/
-def monoC (m : Mode.Mono) : Option CCell :=
-  if m.fp = 0 then (m.bs.mapM baseOfMono).map fun bs ↦ ⟨bs, m.k⟩ else none
+def monoC (m : Mode.Mono) : Option CCell := monoF baseOfMono m
 
 /-- **A product over the slots below `n`**: its bases frame cells `2 + b`, `b < n`, and with `ent`
 among the entry cells. -/
@@ -194,6 +199,39 @@ def monoR (G : Mode.Sig) (np nr : ℕ) (m : Mode.Mono) : Bool :=
       ((decide (o - 2 < np) && G.entry.contains o) || (decide (np ≤ o - 2) && decide (o - 2 < np + nr) &&
         G.ret.contains o))
     | .hp _ _ => false
+
+/-- The value a `load` at the body's top level reads at parameter `k`'s word past `d`, before any `ret`
+there: the first. -/
+def hpVal : List Stmt → ℕ → ℕ → Option ℕ
+  | [], _, _ => none
+  | .atom (.load v p off) :: ss, k, d => match vnum p, vnum v with
+    | some k', some n => bif Nat.beq k' k && Nat.beq off d then some n else hpVal ss k d
+    | _, _ => hpVal ss k d
+  | .ret _ :: _, _, _ => none
+  | _ :: ss, k, d => hpVal ss k d
+
+/-- The values the body's first top-level `ret` returns. -/
+def retVals : List Stmt → Option (List V)
+  | [] => none
+  | .ret vs :: _ => some vs
+  | _ :: ss => retVals ss
+
+/-- The number of the value returned at frame cell `o`. -/
+noncomputable def retAtCell (X : AlignCtx) (body : List Stmt) (o : ℕ) : Option ℕ :=
+  (retVals body).bind fun vs ↦ (vs.find? fun v ↦ Nat.beq (X.locAt v.idx) o).bind vnum
+
+/-- **A promised product's base as a power of a core value**: a parameter's frame cell `2 + k`, a
+return cell's returned value, the word a top-level `load` reads past a parameter's. -/
+noncomputable def baseOfP (X : AlignCtx) (body : List Stmt) (np : ℕ) : Mode.Base × ℕ → Option (ℕ × ℕ)
+  | (.fr o, e) => if 2 ≤ o ∧ o - 2 < np then some (o - 2, e) else (retAtCell X body o).map fun n ↦ (n, e)
+  | (.hp q d, e) => if 2 ≤ q ∧ q - 2 < np then (hpVal body (q - 2) d).map fun n ↦ (n, e) else none
+
+/-- A promised product's bases: entry cells of parameters, return cells, words past parameters'. -/
+def monoOkP (G : Mode.Sig) (np : ℕ) (m : Mode.Mono) : Bool :=
+  m.bs.all fun b ↦ match b.1 with
+    | .fr o => decide (o < 2 ^ 28) && ((G.entry.contains o && decide (2 ≤ o) && decide (o - 2 < np)) ||
+        G.ret.contains o)
+    | .hp q _ => G.entry.contains q && decide (2 ≤ q) && decide (q - 2 < np) && decide (q < 2 ^ 28)
 
 /-- A cell among cells. -/
 def cellIn (c : CCell) (l : List CCell) : Bool := l.any fun c' ↦ c'.beq c
@@ -216,6 +254,21 @@ def ptIn (c : CCell) (r : Mode.Rng) : Bool :=
   match runPts ⟨[], 0⟩ r, monoC r.q with
   | some l, some q => l.any fun p ↦ (CCell.beq ⟨q.bases, q.off + p.off⟩ c)
   | _, _ => false
+/-- A promised cell: a product of the signature, a promised cell's. -/
+noncomputable def postIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (posts : List CCell)
+    (m : Mode.Mono) : Bool :=
+  monoOkP G np m && match monoF (baseOfP X body np) m with
+    | some c => cellIn c posts
+    | none => false
+
+/-- A promised run: each of its points promised. -/
+noncomputable def postRIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (posts : List CCell)
+    (r : Mode.Rng) : Bool :=
+  monoOkP G np r.q && match monoF (baseOfP X body np) r.q with
+    | some c => match runPts c r with
+      | some l => l.all (cellIn · posts)
+      | none => false
+    | none => false
 
 /-- A product, translated, is the cell `c`. -/
 def monoIs (m : Mode.Mono) (c : CCell) : Bool :=
