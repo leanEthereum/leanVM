@@ -75,8 +75,8 @@ def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
     strided table (`cs`), an exponent bound `p·g` of a value range checked against `p` (`rcv`), a residual of a family
-    under branch conditions. (Top-level selectors, `sel`, are not emitted
-    by the solver.)"""
+    under branch conditions; a top-level selector's word times `g^c` below `n` (`sel`, the solver's run bounds, `sel_facts`).
+    (Top-level selectors' own `sel` residuals come from `callc`'s own guarantees only.)"""
     import callc
     params, body = I.CORE[k]
     if r[0] == 'under':
@@ -88,6 +88,8 @@ def res_fam(k, r, G):
         N = rc_bound(top_atoms(body), x)
         if N is not None and N <= n:
             return True
+        if any(x2 == x and m <= n for x2, m in callc.top_sels(body)):
+            return True
         return 2 ** 28 <= n and x < len(params) and 2 + x in callc.exp_cells(G) and exp_diff(top_atoms(body), x)
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'mono':
         # `rcv`: `x` range checked against the value `p`, the bound `p·g`
@@ -95,6 +97,12 @@ def res_fam(k, r, G):
         if len(c[0]) != 1 or c[0][0][1] != 1 or c[1] != 1:
             return False
         return any(a[0] == 'rangeCheck' and a[1] == r[1][1] and a[5] == c[0][0][0] for a in top_atoms(body))
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
+        # `sel` of a selector's word times `g^c`: `e(x·g^c) < n`, `x` a top-level selector of `m` arms, `m + c <= n`
+        c, n = r[1][1], r[2][1]
+        if len(c[0]) != 1 or c[0][0][1] != 1 or not n < CAPE:
+            return False
+        return any(x == c[0][0][0] and m + c[1] <= n for x, m in callc.top_sels(body))
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)
@@ -142,6 +150,27 @@ def res_ok(k, res, S):
                (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
 
 
+def sel_facts(EM):
+    """The solver's exponent facts `(x·g^c, g^n)` also from the `sel` family: `x` a top-level selector of `m` arms,
+    `m + c <= n`, stated as the residual `e(x·g^c) < n` (`CoreMode.resFam`)."""
+    import callc
+    C = EM.C
+    base = EM.Solver.fact
+
+    def fact(self, st, a, b):
+        f = base(self, st, a, b)
+        if f is not None or b[0] or not b[1] < CAPE or len(a[0]) != 1 or a[0][0][1] != 1 or a[1] == 0:
+            return f
+        x = a[0][0][0]
+        if C.idxF(st.env, ('val', x)) != (((x, 1),), 0):
+            return None
+        for x2, m in callc.top_sels(I.CORE[self.k][1]):
+            if x2 == x and m + a[1] <= b[1]:
+                return [self.use(('sel', x, a[1], b[1]), ('lt', ('mono', a), ('num', b[1])))]
+        return None
+    return base, fact
+
+
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
     its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
@@ -182,6 +211,7 @@ def extend(out, why, S, verbose=False):
     I.F.update(FEATURES)
     EM = callc._em()
     base, EM.Solver.pt = cs_reads(EM)
+    basef, EM.Solver.fact = sel_facts(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
@@ -207,6 +237,7 @@ def extend(out, why, S, verbose=False):
         I.F.clear()
         I.F.update(saved)
         EM.Solver.pt = base
+        EM.Solver.fact = basef
     for k, r in got.items():
         out[k] = r
     if verbose:

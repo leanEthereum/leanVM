@@ -86,8 +86,9 @@ def run(r, nslots, ent=None):
 
 
 def bound(b, n, ent, gl=None):
-    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent (`.val`); with `gl`
-    (`CoreMode.idxL`), the exponent of the caller's cell `d` linked to slot `b` times `g^k`."""
+    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent plus a constant below
+    `2^28` (`CoreMode.idxO`: `.val`, or the monomial `[b]·g^c`); with `gl` (`CoreMode.idxL`), the exponent of the
+    caller's cell `d` linked to slot `b` times `g^k`."""
     if gl and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and b[1][2] in gl:
         sl, k = gl[b[1][2]]
         return I.mk(((gslot(sl, n), 1),), k)
@@ -95,11 +96,11 @@ def bound(b, n, ent, gl=None):
         if not b[1] < 2 ** 62:
             raise No('run bound')
         return I.num(b[1])
-    if b[0] == 'ex' and b[1][0] == 'fr' and b[2] == 0:
+    if b[0] == 'ex' and b[1][0] == 'fr' and b[2] < 2 ** 28:
         o = b[1][1]
         if not (2 <= o and o - 2 < n and o < 2 ** 28) or (ent is not None and not ent(o)):
             raise No('run bound slot')
-        return I.base(o - 2)
+        return I.mk(((o - 2, 1),), b[2])
     raise No('run bound')
 
 
@@ -209,15 +210,16 @@ def callee_sig(G, na, nr):
     return h
 
 
-def const_pow(body, v):
-    """`CoreMode.constPow`: a value a top-level `const` atom before any `ret` sets to a power of `g` below `2^62`."""
+def const_pow(body, v, k=0):
+    """`CoreMode.constPow`: a value a top-level `const` atom before any `ret` sets to a power of `g` below `2^62`; with
+    `k`, the power times `g^k` (`CoreMode.idxPow`'s `.mono` case)."""
     for s in body:
         if s[0] == 'ret':
             return False
         if s[0] == 'a' and s[1][0] == 'const' and s[1][1] == v:
             c = s[1][2]
             e = I.POWS.get(c[0]) if c[1] == 0 else None
-            return e is not None and e < 2 ** 62
+            return e is not None and e + k < 2 ** 62
     return False
 
 
@@ -251,13 +253,31 @@ def own_sig(G, np, nr, gl=None):
     # bounds an entry run bounds too (`CoreMode.expCells`, `expB`): their cells' words have exponents (`ExpW`)
     expc = exp_cells(G)
 
+    import callcres
+    body = CORE_BODY.get('body') or []
+    sels = dict(top_sels(body))
+    tops = callcres.top_atoms(body)
+    for x in range(np):
+        if x not in sels and callcres.rc_bound(tops, x) is not None:
+            sels[x] = callcres.rc_bound(tops, x)
+    h.expRes = set()
+
     def own_run(r):
         try:
             return run(r, np + nr, ret_ok)
         except No:
             for b in (r[1], r[2]):
-                if b[0] != 'num' and not (b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] in expc and b[1][1] < 2 ** 28):
-                    raise No('run bound')
+                if b[0] == 'num' or (b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] < 2 ** 28 and
+                                     ((b[2] == 0 and b[1][1] in expc))):
+                    continue
+                # a parameter bounded by its selector's `sel` residual, or by its range check's `rc` residual, with room
+                # for the offset (`CoreMode.expRes`)
+                if b[0] == 'ex' and b[1][0] == 'fr' and b[1][1] < 2 ** 28 and 2 <= b[1][1] and \
+                        b[1][1] - 2 < np and sels.get(b[1][1] - 2) is not None and \
+                        sels[b[1][1] - 2] + b[2] <= 2 ** 62:
+                    h.expRes.add((b[1][1] - 2, sels[b[1][1] - 2]))
+                    continue
+                raise No('run bound')
             return runX(r, np + nr, ret_ok)
     h.postR = [own_run(r) for r in G['postR']]
     h.postPR = [(own_run(p[0]), tuple(p[1])) for p in G['postP']]
@@ -269,6 +289,22 @@ def own_sig(G, np, nr, gl=None):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
     return h
+
+
+CORE_BODY = {}
+
+
+def top_sels(body):
+    """`Res.topSels`: the top-level selectors (a `match`'s or `dispatch`'s value and arm count) up to the first statement
+    that may return."""
+    import callcres
+    out = []
+    for s in body:
+        if s[0] in ('match', 'dispatch'):
+            out.append((s[1], len(s[2])))
+        if callcres.has_ret(s):
+            break
+    return out
 
 
 def exp_cells(G):
@@ -285,7 +321,7 @@ def exp_bounds(h, args, body, np, expc):
             if b[0]:
                 (sl, _), = b[0]
                 a = args[sl]
-                if not (const_pow(body, a) or (a < np and 2 + a in expc)):
+                if not (const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc)):
                     raise No('callee bound not a constant power')
 
 
@@ -299,6 +335,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     G = S.get(k)
     if G is None:
         raise No('no mode signature')
+    CORE_BODY['body'] = body
     own = own_sig(G, np, len(rets), gl_of(k))
     cs = {}
     hcs = set()
@@ -350,6 +387,11 @@ def infer_one(k, S, allow=None, hcsig=None):
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+    # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
+    for x, m in sorted(own.expRes):
+        r = ('lt', ('val', x), ('num', m))
+        if r not in H.res:
+            H.res.append(r)
     if EM.check(k, H, sigOf) is not None:
         raise No('recheck')
     if H.res and not (allow and allow(k, H.res)):

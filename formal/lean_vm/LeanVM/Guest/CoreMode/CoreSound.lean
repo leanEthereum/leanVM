@@ -662,39 +662,58 @@ theorem expW_entry {img : MemoryImage κ} (hκ : κ ≤ 28) {E0 : Mode.Env} {G :
     simp only [Mode.Abs.addW, Mode.Abs.addV, Mode.Abs.addNz] at h
     exact expW_of hκ ha (fun r hr ↦ h.r r (List.mem_cons_of_mem _ hr)) h.p
 
-/-- **A run bound `expI` at return has an exponent**: its cell's word the slot's. -/
-theorem rep_expI {img : MemoryImage κ} {fp : ℕ} {G : Mode.Sig} {ws : List E} {n : ℕ}
+/-- **A run bound `expI` at return has an exponent**, at least its offset: its cell's word the slot's, a power of
+`g` by the entry runs (`ExpW`), or a parameter's bounded by a residual true of the instance `σ`. -/
+theorem rep_expI {img : MemoryImage κ} {fp : ℕ} {G : Mode.Sig} {res : List CRes} {σ : Val} {ws : List E} {np n : ℕ}
     (hws : ∀ b < n, Rd img fp (2 + b) = some (slotW ws b)) (hx : ExpW img (expCells G) fp)
-    {i : Mode.Idx} {ci : CIdx} (hi : idxX i = some ci) (he : expI G n i = true) :
-    ∃ y, rep ((idxC ci).valW (slotW ws)) = some y := by
-  rcases idxX_spec hi with ⟨m, rfl, hm, rfl⟩ | ⟨o, rfl, h2, rfl⟩
-  · exact ⟨m, rep_const (by rw [capE_eq]; exact hm)⟩
-  · simp only [expI, Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at he
-    obtain ⟨⟨-, hon⟩, hoe⟩ := he
-    obtain ⟨e, he, hr⟩ := hx o hoe
-    have h1 := hws (o - 2) hon
-    rw [show 2 + (o - 2) = o by omega, hr, Option.some.injEq] at h1
-    refine ⟨e, ?_⟩
-    rw [idxC, valW_baseC, ← h1]
-    exact rep_of (by rw [capE_eq]; exact he)
+    (hpar : ∀ k < np, Rd img fp (2 + k) = some (σ (V.n k))) (hres : ∀ r ∈ res, r.Holds σ)
+    {i : Mode.Idx} {ci : CIdx} (hi : idxX i = some ci) (he : expI G res np n i = true) :
+    IdxEx (slotW ws) ci := by
+  rcases idxX_spec hi with ⟨m, rfl, hm, rfl⟩ | ⟨o, c, rfl, h2, -, rfl⟩
+  · exact idxEx_num _ hm
+  · simp only [expI, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq, List.contains_iff_mem,
+      Nat.beq_eq, List.any_eq_true] at he
+    obtain ⟨⟨-, hon⟩, ⟨rfl, hoe⟩ | ⟨hnp, r, hr, hrr⟩⟩ := he
+    · obtain ⟨e, he, hr⟩ := hx o hoe
+      have h1 := hws (o - 2) hon
+      rw [show 2 + (o - 2) = o by omega, hr, Option.some.injEq] at h1
+      exact idxEx_idxO (by omega) h1.symm
+    · match r, hrr with
+      | .lt (.val b') (.num m), hrr =>
+        simp only [expRes, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq] at hrr
+        obtain ⟨rfl, hmc⟩ := hrr
+        obtain ⟨ya, yb, hya, hyb, hlt⟩ := hres _ hr
+        rw [idxC, valW_const] at hyb
+        obtain ⟨hyb1, hyb2⟩ := rep_spec hyb
+        rw [capE_eq] at hyb1
+        have hmb : m = yb := gpow_inj_lt (by omega) (by omega) hyb2
+        subst hmb
+        rw [idxC, valW_baseC] at hya
+        obtain ⟨-, hσa⟩ := rep_spec hya
+        have h1 := hws (o - 2) hon
+        rw [hpar (o - 2) hnp, Option.some.injEq] at h1
+        refine idxEx_idxO (e := ya) (by omega) ?_
+        rw [← h1]
+        exact hσa
 
 /-- A run's bounds `expI` at return have exponents. -/
-theorem rngX_rep_exp {img : MemoryImage κ} {fp : ℕ} {G : Mode.Sig} {ws : List E} {n : ℕ}
-    (hws : ∀ b < n, Rd img fp (2 + b) = some (slotW ws b)) (hx : ExpW img (expCells G) fp)
-    {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hlo : expI G n r.lo = true) (hhi : expI G n r.hi = true) :
-    (∃ y, rep ((idxC q.lo).valW (slotW ws)) = some y) ∧ ∃ y, rep ((idxC q.hi).valW (slotW ws)) = some y := by
+theorem rngX_rep_exp {img : MemoryImage κ} {fp : ℕ} {G : Mode.Sig} {res : List CRes} {σ : Val} {ws : List E}
+    {np n : ℕ} (hws : ∀ b < n, Rd img fp (2 + b) = some (slotW ws b)) (hx : ExpW img (expCells G) fp)
+    (hpar : ∀ k < np, Rd img fp (2 + k) = some (σ (V.n k))) (hres : ∀ r ∈ res, r.Holds σ)
+    {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hlo : expI G res np n r.lo = true)
+    (hhi : expI G res np n r.hi = true) : IdxEx (slotW ws) q.lo ∧ IdxEx (slotW ws) q.hi := by
   obtain ⟨lo, hi, c, hl, hh, -, rfl⟩ := rngX_spec h
-  exact ⟨rep_expI hws hx hl hlo, rep_expI hws hx hh hhi⟩
+  exact ⟨rep_expI hws hx hpar hres hl hlo, rep_expI hws hx hpar hres hh hhi⟩
 
 /-- **A callee's run bound at a call has an exponent** (`idxPow`), at the call's argument words. -/
 theorem idxPow_rep {pows : Exec.PowTree} (hp : pows.Ok) {body : List Stmt} (htop : body.all topOk = true)
     {σ : Val} {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs)
     (hh : ∀ e ∈ es, e.Holds rd σ) {args : List V} {ws : List E} {i : CIdx}
-    (h : idxPow pows body args i = true) : ∃ y, rep ((idxC i).valW (slotW (args.map σ ++ ws))) = some y := by
+    (h : idxPow pows body args i = true) : IdxEx (slotW (args.map σ ++ ws)) i := by
   cases i with
   | num n =>
     simp only [idxPow, decide_eq_true_eq] at h
-    exact ⟨n, rep_const (by rw [capE_eq]; exact h)⟩
+    exact idxEx_num _ h
   | val b =>
     simp only [idxPow] at h
     split at h
@@ -710,15 +729,38 @@ theorem idxPow_rep {pows : Exec.PowTree} (hp : pows.Ok) {body : List Stmt} (htop
             have hel := of_decide_eq_true h
             have hmem := constOf_mem htop hw hc
             have hσc : σ (V.n n) = c := hh _ hmem
-            refine ⟨e, ?_⟩
-            rw [idxC, valW_baseC, slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
+            refine idxEx_val hel ?_
+            rw [slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
               show args[b] = v from (List.getElem?_eq_some_iff.mp hv).2, vnum_eq hn, hσc, powOf_ok hp he]
-            exact rep_of (by rw [capE_eq]; exact hel)
           · cases h
         · cases h
       · cases h
     · cases h
-  | mono c => simp [idxPow] at h
+  | mono c =>
+    obtain ⟨bs, k⟩ := c
+    simp only [idxPow] at h
+    split at h
+    · rename_i b
+      split at h
+      · rename_i v hv
+        have hb : b < args.length := (List.getElem?_eq_some_iff.mp hv).1
+        split at h
+        · rename_i n hn
+          split at h
+          · rename_i c hc
+            split at h
+            · rename_i e he
+              have hel := of_decide_eq_true h
+              have hσc : σ (V.n n) = c := hh _ (constOf_mem htop hw hc)
+              have := idxEx_idxO (w := slotW (args.map σ ++ ws)) (b := b) (c := k) hel (by
+                rw [slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
+                  show args[b] = v from (List.getElem?_eq_some_iff.mp hv).2, vnum_eq hn, hσc, powOf_ok hp he])
+              cases k <;> exact this
+            · cases h
+          · cases h
+        · cases h
+      · cases h
+    · cases h
 
 /-- **A callee's run bound at a call has an exponent** (`idxPowC`): `idxPow`'s, or a parameter's whose
 cell is an entry run's exponent cell (`ExpW`). -/
@@ -726,7 +768,7 @@ theorem idxPowC_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop :
     {fp : ℕ} {σ : Val} {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs)
     (hh : ∀ e ∈ es, e.Holds rd σ) (hpar : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k)))
     (hx : ExpW img Cf.xc fp) {args : List V} {ws : List E} {i : CIdx}
-    (h : idxPowC Cf args i = true) : ∃ y, rep ((idxC i).valW (slotW (args.map σ ++ ws))) = some y := by
+    (h : idxPowC Cf args i = true) : IdxEx (slotW (args.map σ ++ ws)) i := by
   rcases Bool.or_eq_true_iff.mp h with h | h
   · exact idxPow_rep hp htop hw hh h
   cases i with
@@ -742,10 +784,9 @@ theorem idxPowC_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop :
         obtain ⟨e, he, hr⟩ := hx _ hke
         have h1 := hpar k hkn
         rw [hr, Option.some.injEq] at h1
-        refine ⟨e, ?_⟩
-        rw [idxC, valW_baseC, slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
+        refine idxEx_val he ?_
+        rw [slotW_lt (by simpa using hb), slotW_get (by simpa using hb), List.getElem_map,
           show args[b] = v from (List.getElem?_eq_some_iff.mp hv).2, vnum_eq hk, ← h1]
-        exact rep_of (by rw [capE_eq]; exact he)
       · cases h
     · cases h
   | num n => simp [expArg] at h
@@ -2174,7 +2215,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               split at hrq
               · rename_i q' hq'
                 obtain rfl := of_decide_eq_true hrq
-                obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) hq' hlo hhi
+                obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) (fun k hk ↦ by rw [hm.fp]; exact hσ0.par k hk) (hσ0.res hxw) hq' hlo hhi
                 exact slot_rwX hq' (hSG hmR) hl hh fun x hx ↦ W1 x (hpostRs q' hq x hx)
               · cases hrq
             rcases Bool.or_eq_true_iff.mp h with h | h
@@ -2219,7 +2260,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               subst hq2e
               have hu1 : s1.mem.used ≤ 2 ^ κ := le_trans hle'.used
                 (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e')
-              obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) hq' hlo hhi
+              obtain ⟨hl, hh⟩ := rngX_rep_exp hws (hxw1 hhc) (fun k hk ↦ by rw [hm.fp]; exact hσ0.par k hk) (hσ0.res hxw) hq' hlo hhi
               refine slot_pwX (s := Mode.stOf s1.mem s1.fp) hκ hm.fine.agree hu1 hq' (hSG hmR) hl hh
                 (fun x hx ↦ W1 x (hpostRs q' hq2 x hx)) fun x hx ↦ ?_
               obtain ⟨a, ha, hpa⟩ := hx
@@ -2423,7 +2464,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         obtain ⟨hpwR, hpwPR⟩ := callsB_spec (callsB_of hok.heap hbody hb hcallE) (body_callS hbody hb hcallE)
         have htop : Cf.fn.body.all topOk = true := (Bool.and_eq_true_iff.mp hbody).2
         have hexp : ∀ j, idxPowC Cf args j = true →
-            ∃ y, rep ((idxC j).valW (slotW (args.map σ0))) = some y := fun j h ↦ by
+            IdxEx (slotW (args.map σ0)) j := fun j h ↦ by
           simpa using idxPowC_rep (ws := []) hok.pows htop hb hh0 hσ0.par hxw h
         have hWs1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s1.mem x := by
           intro x hx
