@@ -36,8 +36,8 @@ type Job = (Request, UnixStream, Sender<Outcome>);
 
 /// Starts prover `P` on `threads` threads (0: one per core), builds the aggregation program and warms up, then listens
 /// on `socket`, replacing a stale one a sidecar that stopped left, and serves until the process ends, proving on the
-/// calling thread. The socket appears once the sidecar is ready to prove. Returns only if it cannot listen, which a
-/// second sidecar on the same socket learns before it starts anything.
+/// calling thread. The socket appears once the sidecar is ready to prove. Returns only on an error before serving,
+/// which a second sidecar on the same socket gets before it starts anything.
 ///
 /// Call it from the main thread: a panic while proving, a bug, then ends the process.
 pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible> {

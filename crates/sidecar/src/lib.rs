@@ -52,11 +52,12 @@ impl Rejection {
 pub enum SidecarError {
     /// The socket failed, or the sidecar closed it: it stopped, or crashed. Connect again.
     Io(std::io::Error),
-    /// The sidecar speaks another protocol version, or proves for another verifier.
+    /// The peer is not a leanVM sidecar, speaks another protocol version, or proves for another verifier.
     Incompatible(String),
     /// The sidecar's bytes are not the protocol. Connect again.
     Protocol(String),
-    /// The sidecar made no proof, and says why. The connection stays usable.
+    /// The request was refused, by the sidecar or, for one longer than the sidecar takes, by the client, which says
+    /// why. The connection stays usable.
     Rejected(Rejection, String),
 }
 

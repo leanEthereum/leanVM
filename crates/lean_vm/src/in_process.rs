@@ -11,7 +11,7 @@ type P = experimental_lean_vm_core::ExperimentalProver;
 #[cfg(not(feature = "experimental_prover"))]
 type P = stable_lean_vm_core::StableProver;
 
-// TODO: make leanDA a self contained dependency, so that it canmove to lib.rs
+// TODO: make leanDA a self-contained dependency, so that it can move to lib.rs
 pub mod lean_da {
     pub use ::lean_da::{
         BLOB_SYMBOLS, Blob, BlobCountError, BlobMatrix, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS,

@@ -70,11 +70,11 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `allocator`, `bench_harness`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `allocator`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude bench_harness --exclude allocator --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude allocator --target x86_64-unknown-linux-gnu
 ```
 
 `RUSTFLAGS` replaces `.cargo/config.toml`'s `target-cpu=native`; a target-specific `CARGO_TARGET_*_RUSTFLAGS` would be merged with it and hand the Apple CPU to the x86 target.
