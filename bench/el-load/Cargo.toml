@@ -1,0 +1,16 @@
+[package]
+name = "el-load"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Its own workspace: revm stays out of leanVM's.
+[workspace]
+
+[dependencies]
+revm = "43"
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
