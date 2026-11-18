@@ -60,6 +60,10 @@ leanVM is designed for security:
 
 In the short term, we provide two Rust implementations of the prover, `stable` (for readability and safety) and `experimental` (includes the latest optimizations). There will eventually be a single prover in this repo.
 
+## bindings
+
+[`bindings/`](bindings/README.md) holds language bindings for leanXMSS, leanSPHINCS and their aggregation: Python (`py-lean-pq`), Node.js (`@kevaundray/lean-pq`), Java (`io.github.crate-crypto:lean-pq`), Go, Zig, Nim and Rust, all released together as `bindings-vX.Y.Z`.
+
 ## benchmarks
 
 **machine**: M4 Max MacBook Pro (12 performance cores, 4 efficiency cores, 48GB RAM, CPU only, i.e. no metal GPU)

@@ -24,7 +24,9 @@ native_root=$(CDPATH= cd -- "$2" && pwd)
 output=$3
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
-module=github.com/ethereum/lean-pq-bindings/bindings/go
+module=github.com/leanEthereum/leanVM/bindings/go
+# The module cache spells each upper-case letter as `!` and its lower case.
+module_escaped=$(printf '%s' "$module" | sed 's/[[:upper:]]/!&/g' | tr '[:upper:]' '[:lower:]')
 tag=bindings/go/v$version
 llvm_strip=${LLVM_STRIP:-llvm-strip}
 llvm_ar=${LLVM_AR:-llvm-ar}
@@ -105,12 +107,12 @@ echo "tagged $tag at $(git -C "$tree" rev-parse HEAD)"
     GOMODCACHE="$work/modcache" GOPROXY=direct GOSUMDB=off GOFLAGS=-modcacherw \
         GIT_CONFIG_COUNT=1 \
         GIT_CONFIG_KEY_0="url.file://$tree.insteadOf" \
-        GIT_CONFIG_VALUE_0=https://github.com/ethereum/lean-pq-bindings \
+        GIT_CONFIG_VALUE_0=https://github.com/leanEthereum/leanVM \
         go mod download -json "$module@v$version"
 )
 mv "$work/modcache/cache/download" "$output/proxy"
 
-zip="$output/proxy/$module/@v/v$version.zip"
+zip="$output/proxy/$module_escaped/@v/v$version.zip"
 unzip -l "$zip"
 unpacked=$(unzip -l "$zip" | tail -n 1 | awk '{print $1}')
 echo "module zip: $(wc -c < "$zip") bytes compressed, $unpacked bytes uncompressed"

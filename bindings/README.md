@@ -1,9 +1,9 @@
-# lean-pq-bindings
+# lean-pq bindings
 
 Language bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures:
 stateful **leanXMSS**, stateless **leanSPHINCS**, and zkVM-backed recursive aggregation of both into
-one proof. Every binding wraps the safe Rust facade in [`bindings/rust`](bindings/rust/README.md),
-which pins leanVM by git revision and keeps the proving parameters internal.
+one proof. Every binding wraps the safe Rust facade in [`bindings/rust`](rust/README.md), which
+builds the leanVM crates of this repository and keeps the proving parameters internal.
 
 An encoded aggregate is leanVM's proof alone. Its claims, the (public key, message) pairs it proves,
 travel separately: a receiver decodes the proof together with the claims it expects, and decoding
@@ -11,18 +11,18 @@ fails unless the proof proves exactly those.
 
 ## Install
 
-Every package is released together from one version: each `vX.Y.Z` release publishes all of them
-at `X.Y.Z`. Prebuilt packages need no Rust toolchain.
+Every package is released together from one version: each `bindings-vX.Y.Z` release publishes all
+of them at `X.Y.Z`. Prebuilt packages need no Rust toolchain.
 
 | Language | Package | Prebuilt for |
 | --- | --- | --- |
-| [Python](bindings/python/README.md) ≥ 3.11 | `py-lean-pq` on PyPI | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
-| [Node.js](bindings/node/README.md) ≥ 18.17 | `@kevaundray/lean-pq` on npm | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
-| [Java](bindings/java/README.md) 25 | `io.github.crate-crypto:lean-pq` on Maven Central | Linux x86_64/aarch64 (glibc 2.17+), macOS x86_64/arm64, Windows x86_64 |
-| [Go](bindings/go/README.md) ≥ 1.24 | `github.com/ethereum/lean-pq-bindings/bindings/go` | Linux amd64/arm64 (glibc), macOS amd64/arm64, Windows amd64 |
-| [Zig](bindings/zig/README.md) ≥ 0.16 | package attached to each GitHub release | Linux x86_64/aarch64 (glibc), macOS x86_64/aarch64, Windows x86_64 |
-| [Nim](bindings/nim/README.md) ≥ 2.2.12 | Nimble package `lean_pq` at tag `bindings/nim/vX.Y.Z` | Linux x86_64/aarch64 (glibc), macOS x86_64/arm64, Windows x86_64 (MinGW) |
-| [Rust](bindings/rust/README.md) | `lean-pq` from this repository (git) | built from source |
+| [Python](python/README.md) ≥ 3.11 | `py-lean-pq` on PyPI | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
+| [Node.js](node/README.md) ≥ 18.17 | `@kevaundray/lean-pq` on npm | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
+| [Java](java/README.md) 25 | `io.github.crate-crypto:lean-pq` on Maven Central | Linux x86_64/aarch64 (glibc 2.17+), macOS x86_64/arm64, Windows x86_64 |
+| [Go](go/README.md) ≥ 1.24 | `github.com/leanEthereum/leanVM/bindings/go` | Linux amd64/arm64 (glibc), macOS amd64/arm64, Windows amd64 |
+| [Zig](zig/README.md) ≥ 0.16 | package attached to each GitHub release | Linux x86_64/aarch64 (glibc), macOS x86_64/aarch64, Windows x86_64 |
+| [Nim](nim/README.md) ≥ 2.2.12 | Nimble package `lean_pq` at tag `bindings/nim/vX.Y.Z` | Linux x86_64/aarch64 (glibc), macOS x86_64/arm64, Windows x86_64 (MinGW) |
+| [Rust](rust/README.md) | `lean-pq` from this repository (git) | built from source |
 
 The x86_64 builds require a CPU with AVX2 and PCLMULQDQ.
 
@@ -74,7 +74,7 @@ The jar bundles the native library for each platform. Run with
 
 <!-- x-release-please-start-version -->
 ```sh
-go get github.com/ethereum/lean-pq-bindings/bindings/go@v0.11.0
+go get github.com/leanEthereum/leanVM/bindings/go@v0.11.0
 ```
 <!-- x-release-please-end -->
 
@@ -87,7 +87,7 @@ Windows.
 <!-- x-release-please-start-version -->
 ```sh
 version=0.11.0
-zig fetch --save=lean_pq "https://github.com/ethereum/lean-pq-bindings/releases/download/v$version/lean-pq-zig-$version.tar.gz"
+zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
 
@@ -106,7 +106,7 @@ In your `.nimble` file:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/ethereum/lean-pq-bindings#bindings/nim/v0.11.0"
+requires "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
 ```
 <!-- x-release-please-end -->
 
@@ -116,29 +116,33 @@ build with `--mm:refc` and `--mm:orc`.
 
 ### Rust
 
-The crate is not on crates.io because it depends on leanVM by git revision:
+The crate is not on crates.io because the leanVM crates it builds are not published there:
 
 <!-- x-release-please-start-version -->
 ```toml
 [dependencies]
-lean-pq = { git = "https://github.com/ethereum/lean-pq-bindings.git", tag = "v0.11.0" }
+lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.0" }
 ```
 <!-- x-release-please-end -->
 
 ## Build from source
 
-Clone the repository and follow each binding's README; every binding builds against the
-repository's pinned leanVM revision. Building needs Rust, plus the language toolchain:
+Clone the repository and follow each binding's README; every binding builds against the leanVM
+crates in the same checkout. The bindings are their own Cargo workspace, `bindings/Cargo.toml`,
+excluded from the root one: run cargo from `bindings/` (or below), so that
+[`bindings/.cargo/config.toml`](.cargo/config.toml) replaces the root's `target-cpu=native` with the
+portable baseline. Commands below without a directory run from the repository root. Building needs
+Rust, plus the language toolchain:
 
 | Binding | Local build and test | Prerequisites |
 | --- | --- | --- |
-| [Python](bindings/python/README.md) | `uv run --extra dev maturin develop --release`, then `uv run --extra dev pytest tests/` in `bindings/python` | Rust, uv |
-| [Node.js](bindings/node/README.md) | `npm ci && npm run build && npm test` in `bindings/node` | Rust, Node.js 18.17+ |
-| [Java](bindings/java/README.md) | `gradle -p bindings/java test` | Rust, JDK 25, Gradle 9.1+ |
-| [Go](bindings/go/README.md) | stage the static archive (below), then `go test ./...` in `bindings/go` | Rust, Go 1.24+, cgo, Zig, `cargo-zigbuild` |
-| [Zig](bindings/zig/README.md) | stage the static archive (below), then `zig build test -Dnative-dir=…` in `bindings/zig` | Rust, Zig 0.16+, `cargo-zigbuild` |
-| [Nim](bindings/nim/README.md) | stage the static archive (below) in `bindings/nim/native/<target>`, then `nimble test` in `bindings/nim` | Rust, Nim 2.2.12+, `cargo-zigbuild` |
-| [Rust](bindings/rust/README.md) | `cargo test --release -p lean-pq` | Rust |
+| [Python](python/README.md) | `uv run --extra dev maturin develop --release`, then `uv run --extra dev pytest tests/` in `bindings/python` | Rust, uv |
+| [Node.js](node/README.md) | `npm ci && npm run build && npm test` in `bindings/node` | Rust, Node.js 18.17+ |
+| [Java](java/README.md) | `gradle -p bindings/java test` | Rust, JDK 25, Gradle 9.1+ |
+| [Go](go/README.md) | stage the static archive (below), then `go test ./...` in `bindings/go` | Rust, Go 1.24+, cgo, Zig, `cargo-zigbuild` |
+| [Zig](zig/README.md) | stage the static archive (below), then `zig build test -Dnative-dir=…` in `bindings/zig` | Rust, Zig 0.16+, `cargo-zigbuild` |
+| [Nim](nim/README.md) | stage the static archive (below) in `bindings/nim/native/<target>`, then `nimble test` in `bindings/nim` | Rust, Nim 2.2.12+, `cargo-zigbuild` |
+| [Rust](rust/README.md) | `cargo test --release -p lean-pq` in `bindings` | Rust |
 
 Go, Zig and Nim link a static archive for the build target. For Linux x86_64:
 
@@ -152,19 +156,21 @@ Zig takes the same archive's directory as `-Dnative-dir`; the Go and Nim READMEs
 for each platform.
 
 Each binding uses a language-native wrapper around the Rust implementation. The internal
-[`bindings/native`](bindings/native/README.md) crate supplies a private C-shaped Rust ABI for
+[`bindings/native`](native/README.md) crate supplies a private C-shaped Rust ABI for
 managed wrappers: Java consumes it through the Foreign Function & Memory API, while Go, Zig and
 Nim link its static archive. It is not a separate, supported C binding.
 
 ## Releases
 
 [release-please](https://github.com/googleapis/release-please) keeps a release pull request open
-from the conventional commits on `main`. Merging it bumps the version everywhere it appears,
-including the install instructions above, and tags `vX.Y.Z`. That tag runs
-`.github/workflows/release.yml`, which builds and tests every package on each platform before
-publishing it. See [CHANGELOG.md](CHANGELOG.md).
+from the conventional commits on `main` that touch `bindings/` (pull requests touching `bindings/`
+need a conventional title). Merging it bumps the version everywhere it appears, including the
+install instructions above, and tags `bindings-vX.Y.Z`. That tag runs
+`.github/workflows/bindings-release.yml`, which builds and tests every package on each platform
+before publishing it. See [CHANGELOG.md](CHANGELOG.md). Versions up to 0.11.0 were released from
+[ethereum/lean-pq-bindings](https://github.com/ethereum/lean-pq-bindings) as `vX.Y.Z`.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT)
+Licensed under either of [Apache License, Version 2.0](../LICENSE-APACHE) or [MIT license](../LICENSE-MIT)
 at your option.

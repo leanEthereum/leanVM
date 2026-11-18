@@ -33,13 +33,13 @@ nimble --version | head -n 1
 
 export GIT_CONFIG_COUNT=1
 export GIT_CONFIG_KEY_0="url.$package_url.insteadOf"
-export GIT_CONFIG_VALUE_0=https://github.com/ethereum/lean-pq-bindings
+export GIT_CONFIG_VALUE_0=https://github.com/leanEthereum/leanVM
 
 cd "$project"
 mkdir src
 # The README's install line, at the version under test (a dry run's 0.0.0 is not in the README).
-grep -q '^requires "https://github.com/ethereum/lean-pq-bindings#bindings/nim/v[0-9.]*"$' "$readme"
-requirement="https://github.com/ethereum/lean-pq-bindings#bindings/nim/v$version"
+grep -q '^requires "https://github.com/leanEthereum/leanVM#bindings/nim/v[0-9.]*"$' "$readme"
+requirement="https://github.com/leanEthereum/leanVM#bindings/nim/v$version"
 cat > consumer.nimble <<EOF
 version = "0.1.0"
 author = "consumer"

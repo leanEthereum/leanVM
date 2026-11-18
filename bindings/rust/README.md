@@ -10,12 +10,12 @@ Public keys and messages are 32 bytes in both schemes.
 
 ## Install
 
-The crate is not on crates.io: it depends on leanVM by git revision.
+The crate is not on crates.io: the leanVM crates it builds are not published there.
 
 <!-- x-release-please-start-version -->
 ```toml
 [dependencies]
-lean-pq = { git = "https://github.com/ethereum/lean-pq-bindings.git", tag = "v0.11.0" }
+lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.0" }
 ```
 <!-- x-release-please-end -->
 

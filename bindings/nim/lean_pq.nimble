@@ -2,7 +2,7 @@ mode = ScriptMode.Verbose
 
 packageName   = "lean_pq"
 version       = "0.11.0" # x-release-please-version
-author        = "The lean-pq-bindings contributors"
+author        = "The leanVM contributors"
 description   = "leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation"
 license       = "MIT or Apache License 2.0"
 # `native` holds the bundled static archives in release packages; Nimble's default file selection

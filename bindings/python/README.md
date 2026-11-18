@@ -30,7 +30,7 @@ pip install py-lean-pq==0.11.0
 The same library is published for Node.js (`@kevaundray/lean-pq` on npm), Java
 (`io.github.crate-crypto:lean-pq` on Maven Central), Go (`go get`), and Zig (a
 `zig fetch` package on each GitHub release); see the
-[repository README](https://github.com/ethereum/lean-pq-bindings#install).
+[bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#install).
 
 ## leanXMSS
 

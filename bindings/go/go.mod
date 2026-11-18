@@ -1,3 +1,3 @@
-module github.com/ethereum/lean-pq-bindings/bindings/go
+module github.com/leanEthereum/leanVM/bindings/go
 
 go 1.24

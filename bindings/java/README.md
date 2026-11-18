@@ -20,7 +20,7 @@ try-with-resources for `XmssSecretKey`, `SphincsSecretKey`, and `Aggregate`.
 ## Install
 
 Published on Maven Central as `io.github.crate-crypto:lean-pq`; its version matches the
-repository's release tag (`vX.Y.Z` is `X.Y.Z`). It needs JDK 25.
+bindings' release tag (`bindings-vX.Y.Z` is `X.Y.Z`). It needs JDK 25.
 
 Gradle (Kotlin DSL):
 
@@ -80,7 +80,7 @@ error naming the platform.
 
 To load a different build instead, set `-Dlean.pq.native.path=/path/to/liblean_pq_native.so`
 (or `.dylib`, or `lean_pq_native.dll`) before first use; the bundled libraries are then ignored. Build one with
-`cargo build --release -p lean-pq-native` from the repository root.
+`cargo build --release -p lean-pq-native` in `bindings/` (the library lands in `bindings/target/release`).
 
 ## Build and test
 
@@ -111,10 +111,10 @@ on Linux x86_64 and the release workflow on every bundled platform; set `GRADLE`
 
 ## Releasing
 
-`.github/workflows/release.yml` publishes on every `vX.Y.Z` tag: `java-native` builds and checks
-each platform's library, and `java-publish` bundles all four in the jar, runs the consumer smoke
-against it, then signs and uploads it to the Central Portal, releasing it once the Portal validates
-the deployment. A version can be published only once.
+`.github/workflows/bindings-release.yml` publishes on every `bindings-vX.Y.Z` tag: `java-native`
+builds and checks each platform's library, and `java-publish` bundles all four in the jar, runs the
+consumer smoke against it, then signs and uploads it to the Central Portal, releasing it once the
+Portal validates the deployment. A version can be published only once.
 
 One-time setup, with the `io.github.crate-crypto` namespace verified on
 [central.sonatype.com](https://central.sonatype.com/publishing/namespaces):

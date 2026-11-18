@@ -10,7 +10,7 @@ fi
 
 proxy=$(CDPATH= cd -- "$1" && pwd)
 version=$2
-module=github.com/ethereum/lean-pq-bindings/bindings/go
+module=github.com/leanEthereum/leanVM/bindings/go
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 readme="$script_dir/../README.md"
 project=$(mktemp -d)
@@ -30,7 +30,7 @@ fi
 
 export GOPROXY="$proxy_url"
 # Versions under test are not in the public checksum database yet.
-export GONOSUMDB=github.com/ethereum/lean-pq-bindings
+export GONOSUMDB=github.com/leanEthereum/leanVM
 export CGO_ENABLED=1
 go version
 echo "C compiler: $(go env CC)"

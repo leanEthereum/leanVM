@@ -85,7 +85,7 @@ mavenPublishing {
         name = "lean-pq"
         description = "Java bindings for leanVM's post-quantum signatures, leanXMSS and leanSPHINCS, " +
             "and their zkVM-backed aggregation, with bundled native libraries for Linux, macOS and Windows."
-        url = "https://github.com/ethereum/lean-pq-bindings"
+        url = "https://github.com/leanEthereum/leanVM/tree/main/bindings/java"
         licenses {
             license {
                 name = "MIT License"
@@ -108,9 +108,9 @@ mavenPublishing {
             }
         }
         scm {
-            url = "https://github.com/ethereum/lean-pq-bindings"
-            connection = "scm:git:https://github.com/ethereum/lean-pq-bindings.git"
-            developerConnection = "scm:git:ssh://git@github.com/ethereum/lean-pq-bindings.git"
+            url = "https://github.com/leanEthereum/leanVM/tree/main/bindings/java"
+            connection = "scm:git:https://github.com/leanEthereum/leanVM.git"
+            developerConnection = "scm:git:ssh://git@github.com/leanEthereum/leanVM.git"
         }
     }
 }

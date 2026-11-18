@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "py-lean-pq"
-# The version is the workspace version in the repository's root Cargo.toml, which maturin reads
-# through Cargo; release-please sets it on each release PR.
+# The version is the workspace version in the bindings' Cargo.toml (bindings/Cargo.toml), which
+# maturin reads through Cargo; release-please sets it on each release PR.
 dynamic = ["version"]
 description = "Python bindings for leanVM's leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation"
 readme = "README.md"
@@ -27,10 +27,9 @@ classifiers = [
 dev = ["maturin>=1.7,<2.0", "pytest>=8", "mypy>=1.10"]
 
 [project.urls]
-Repository = "https://github.com/ethereum/lean-pq-bindings"
-Issues = "https://github.com/ethereum/lean-pq-bindings/issues"
-Changelog = "https://github.com/ethereum/lean-pq-bindings/blob/main/CHANGELOG.md"
-Upstream = "https://github.com/leanEthereum/leanVM"
+Repository = "https://github.com/leanEthereum/leanVM/tree/main/bindings/python"
+Issues = "https://github.com/leanEthereum/leanVM/issues"
+Changelog = "https://github.com/leanEthereum/leanVM/blob/main/bindings/CHANGELOG.md"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

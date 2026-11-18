@@ -30,7 +30,7 @@ archives built in, so installing needs no Rust toolchain. Nim 2.2.12 or newer, w
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/ethereum/lean-pq-bindings#bindings/nim/v0.11.0"
+requires "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
 ```
 <!-- x-release-please-end -->
 
@@ -38,11 +38,11 @@ or, from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/ethereum/lean-pq-bindings#bindings/nim/v0.11.0"
+nimble install "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
 ```
 <!-- x-release-please-end -->
 
-Name the tag: the repository's plain `vX.Y.Z` tags are not Nimble packages.
+Name the tag: the bindings' `bindings-vX.Y.Z` release tags are not Nimble packages.
 
 With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), vendor the same tag
 as a submodule; `lean_pq.nim` sits at the package root, so the generated
@@ -50,7 +50,7 @@ as a submodule; `lean_pq.nim` sits at the package root, so the generated
 
 <!-- x-release-please-start-version -->
 ```sh
-git submodule add https://github.com/ethereum/lean-pq-bindings vendor/nim-lean-pq
+git submodule add https://github.com/leanEthereum/leanVM vendor/nim-lean-pq
 git -C vendor/nim-lean-pq checkout bindings/nim/v0.11.0
 ```
 <!-- x-release-please-end -->

@@ -106,8 +106,8 @@ npm test
 
 ## Releasing
 
-Each `vX.Y.Z` release tag publishes `@kevaundray/lean-pq` and every platform package at version
-`X.Y.Z` from `.github/workflows/release.yml`, independently of the PyPI publish:
+Each `bindings-vX.Y.Z` release tag publishes `@kevaundray/lean-pq` and every platform package at
+version `X.Y.Z` from `.github/workflows/bindings-release.yml`, independently of the PyPI publish:
 
 1. `node-build` stamps the version and builds one addon per target.
 2. `node-package` fills the platform packages, sets the root package's `optionalDependencies` with
@@ -116,7 +116,8 @@ Each `vX.Y.Z` release tag publishes `@kevaundray/lean-pq` and every platform pac
    aggregates through them (`scripts/install-check.sh`).
 4. `node-publish` publishes the platform packages, then the root package, with npm trusted
    publishing. npm adds provenance automatically. Versions already on npm are skipped, so a
-   failed run can be re-dispatched on the same tag: `gh workflow run release.yml --ref vX.Y.Z`.
+   failed run can be re-dispatched on the same tag:
+   `gh workflow run bindings-release.yml --ref bindings-vX.Y.Z`.
 
 CI checks the packaging without publishing: it packs the root and Linux x64 packages, installs both
 tarballs into a fresh project, and runs `scripts/smoke.js` against them. To run it locally after
@@ -137,7 +138,8 @@ npm can attach a trusted publisher only to a package that already exists, so the
 publishes the eight packages with a short-lived token, and later releases use trusted publishing.
 A platform package added later, such as `@kevaundray/lean-pq-win32-x64-msvc`, goes through the
 same steps on the first release that includes it; `node-package` warns about every package not
-yet on npm.
+yet on npm. The packages released up to 0.11.0 were published from `ethereum/lean-pq-bindings`;
+point their trusted publishers at this repository and workflow (step 4) before the next release.
 
 1. From the npm account that owns the `@kevaundray` scope, create a **granular access token** on
    npmjs.com (**Access Tokens → Generate New Token → Granular Access Token**) with read and write
@@ -147,7 +149,7 @@ yet on npm.
 2. Store it as a repository secret:
 
    ```sh
-   gh secret set NPM_TOKEN -R ethereum/lean-pq-bindings
+   gh secret set NPM_TOKEN -R leanEthereum/leanVM
    ```
 
 3. Cut a release. `node-publish` tries trusted publishing first, falls back to the token, and
@@ -156,15 +158,15 @@ yet on npm.
    **Settings → Trusted publishing**, or with npm 11.15 or later:
 
    ```sh
-   npm trust github <package> --repo ethereum/lean-pq-bindings --file release.yml --env npm --allow-publish --yes
+   npm trust github <package> --repo leanEthereum/leanVM --file bindings-release.yml --env npm --allow-publish --yes
    ```
 
-   The fields are repository `ethereum/lean-pq-bindings`, workflow `release.yml`, environment
+   The fields are repository `leanEthereum/leanVM`, workflow `bindings-release.yml`, environment
    `npm`, with `npm publish` allowed.
 5. Delete the secret and revoke the token, then set each package's **Settings → Publishing
    access** to "Require two-factor authentication and disallow tokens":
 
    ```sh
-   gh secret delete NPM_TOKEN -R ethereum/lean-pq-bindings
+   gh secret delete NPM_TOKEN -R leanEthereum/leanVM
    ```
 

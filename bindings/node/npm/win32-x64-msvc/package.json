@@ -18,18 +18,18 @@
     "ethereum",
     "napi-rs"
   ],
-  "homepage": "https://github.com/ethereum/lean-pq-bindings/tree/main/bindings/node#readme",
+  "homepage": "https://github.com/leanEthereum/leanVM/tree/main/bindings/node#readme",
   "license": "MIT OR Apache-2.0",
   "engines": {
     "node": ">=18.17.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ethereum/lean-pq-bindings.git",
+    "url": "git+https://github.com/leanEthereum/leanVM.git",
     "directory": "bindings/node"
   },
   "bugs": {
-    "url": "https://github.com/ethereum/lean-pq-bindings/issues"
+    "url": "https://github.com/leanEthereum/leanVM/issues"
   },
   "publishConfig": {
     "access": "public"
