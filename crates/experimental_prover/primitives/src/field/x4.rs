@@ -3,7 +3,7 @@
 //! and the halves of the eight-lane `f128x8` types.
 
 use core::arch::x86_64::*;
-use core::ops::{Add, BitXorAssign, Mul};
+use core::ops::{Add, BitXor, BitXorAssign, Mul};
 
 use super::gf2_64::F64;
 use super::gf2_64x2::x86_64::{fold, reduce_halves256 as reduce_halves, times_x256};
@@ -26,6 +26,10 @@ pub struct Mixed4 {
     odd: [__m256i; 2],
 }
 
+/// The sum over lanes of unreduced products, y-folded: per coefficient, two 128-bit partials.
+#[derive(Clone, Copy, Debug)]
+pub struct Sum4([__m256i; 2]);
+
 #[inline(always)]
 fn xor(a: __m256i, b: __m256i) -> __m256i {
     // SAFETY: the module's cfg enables avx2.
@@ -39,13 +43,26 @@ fn clmul<const I: i32>(a: __m256i, b: __m256i) -> __m256i {
     unsafe { _mm256_clmulepi64_epi128::<I>(a, b) }
 }
 
-/// The y-folded Karatsuba product of the even or the odd lanes.
+/// The y-folded Karatsuba product, its three coefficient products taken by `product`.
 #[inline(always)]
-fn karatsuba<const I: i32>(a: [__m256i; 2], b: [__m256i; 2]) -> [__m256i; 2] {
-    let (m0, m1) = (clmul::<I>(a[0], b[0]), clmul::<I>(a[1], b[1]));
-    let m01 = clmul::<I>(xor(a[0], a[1]), xor(b[0], b[1]));
+fn karatsuba(a: [__m256i; 2], b: [__m256i; 2], product: impl Fn(__m256i, __m256i) -> __m256i) -> [__m256i; 2] {
+    let (m0, m1) = (product(a[0], b[0]), product(a[1], b[1]));
+    let m01 = product(xor(a[0], a[1]), xor(b[0], b[1]));
     // SAFETY: the module's cfg enables avx2.
     fold(m0, m1, m01, xor, |p| unsafe { times_x256(p) })
+}
+
+/// The sum of the lanes of a coefficient pair, reduced once.
+#[inline(always)]
+fn reduce_lanes(c: [__m256i; 2]) -> F128 {
+    // SAFETY: the module's cfg enables avx2, and a vector and two qwords hold the same bits.
+    let coeffs = c.map(|v| unsafe {
+        std::mem::transmute::<__m128i, [u64; 2]>(_mm_xor_si128(
+            _mm256_castsi256_si128(v),
+            _mm256_extracti128_si256::<1>(v),
+        ))
+    });
+    F128Unreduced::from_coeffs(coeffs).reduce()
 }
 
 impl F64x4 {
@@ -129,9 +146,53 @@ impl F128x4 {
     #[inline(always)]
     pub fn mul_unreduced(self, rhs: Self) -> Mixed4 {
         Mixed4 {
-            even: karatsuba::<0x00>(self.0, rhs.0),
-            odd: karatsuba::<0x11>(self.0, rhs.0),
+            even: karatsuba(self.0, rhs.0, clmul::<0x00>),
+            odd: karatsuba(self.0, rhs.0, clmul::<0x11>),
         }
+    }
+
+    /// The lane-wise products, summed over the lanes and left unreduced. Karatsuba's products are summed
+    /// before their one fold.
+    #[inline(always)]
+    pub fn mul_sum(self, rhs: Self) -> Sum4 {
+        Sum4(karatsuba(self.0, rhs.0, |x, y| {
+            xor(clmul::<0x00>(x, y), clmul::<0x11>(x, y))
+        }))
+    }
+}
+
+impl Mul for F128x4 {
+    type Output = Self;
+    #[inline(always)]
+    fn mul(self, rhs: Self) -> Self {
+        self.mul_unreduced(rhs).reduce()
+    }
+}
+
+impl Sum4 {
+    // SAFETY: an all-zero bit pattern is a valid `__m256i`.
+    pub const ZERO: Self = Self(unsafe { std::mem::zeroed() });
+
+    /// The lane sum, reduced.
+    #[inline]
+    pub fn reduce(self) -> F128 {
+        reduce_lanes(self.0)
+    }
+}
+
+impl BitXorAssign for Sum4 {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.0 = std::array::from_fn(|k| xor(self.0[k], rhs.0[k]));
+    }
+}
+
+impl BitXor for Sum4 {
+    type Output = Self;
+    #[inline(always)]
+    fn bitxor(mut self, rhs: Self) -> Self {
+        self ^= rhs;
+        self
     }
 }
 
@@ -171,17 +232,7 @@ impl Mixed4 {
     /// The sum of the four lanes, reduced once.
     #[inline]
     pub fn sum(self) -> F128 {
-        let coeffs = std::array::from_fn(|i| {
-            let v = xor(self.even[i], self.odd[i]);
-            // SAFETY: the module's cfg enables avx2, and a vector and two qwords hold the same bits.
-            unsafe {
-                std::mem::transmute::<__m128i, [u64; 2]>(_mm_xor_si128(
-                    _mm256_castsi256_si128(v),
-                    _mm256_extracti128_si256::<1>(v),
-                ))
-            }
-        });
-        F128Unreduced::from_coeffs(coeffs).reduce()
+        reduce_lanes(std::array::from_fn(|i| xor(self.even[i], self.odd[i])))
     }
 
     #[inline(always)]
@@ -244,6 +295,9 @@ mod tests {
             acc ^= vb.mul_unreduced(va);
             acc ^= va.mul_unreduced(va);
             assert_eq!(acc.sum(), (0..4).map(|i| a[i] * a[i]).sum());
+            assert_eq!((va * vb).to_array(), std::array::from_fn(|i| a[i] * b[i]));
+            assert_eq!(va.mul_sum(vb).reduce(), (0..4).map(|i| a[i] * b[i]).sum());
+            assert_eq!((va.mul_sum(vb) ^ vb.mul_sum(va)).reduce(), F128::ZERO);
             let k: [F64; 4] = std::array::from_fn(|_| F64(rng.next_u64()));
             assert_eq!(F128x4::from(F64x4::new(k)).to_array(), k.map(F128::from));
         }
