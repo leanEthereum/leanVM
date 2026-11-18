@@ -22,9 +22,9 @@ pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims}
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 #[cfg(not(feature = "sidecar"))]
-mod prover;
+mod in_process;
 #[cfg(not(feature = "sidecar"))]
-pub use prover::{AggregateError, AggregateProof, MAX_RECURSIONS, aggregate, lean_da, setup};
+pub use in_process::{AggregateError, AggregateProof, MAX_RECURSIONS, aggregate, lean_da, setup};
 
 pub mod lean_xmss {
     pub use lean_xmss::{
