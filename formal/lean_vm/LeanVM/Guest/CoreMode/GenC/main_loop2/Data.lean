@@ -16,15 +16,20 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 
 @[expose] public section
 
-/-- `main_loop2`: its heap certificate (its signature only: not checked). -/
+/-- `main_loop2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[],
-    [],
-    [],
-    [],
-    [((.val 0), (.val 1))]⟩
-  reads := []
-  res := []
+  sig := 
+    { preR := [⟨⟨[(56, 1)], 0⟩, 1, (.num 0), (.val 57)⟩],
+      «term» := [((.val 0), (.val 1))],
+      ghosts := 2 }
+  reads := [(66, [(65, 1, .run 0 [0])]), (91, [(65, 2, .run 0 [0])]), (92, [(65, 3, .run 0 [0])]),
+    (120763, [(65, 0, .run 0 [0])])]
+  res := [.subR ⟨⟨[(4, 1), (56, 4)], 0⟩, 1, (.num 0), (.num 4)⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.val 1048577)⟩]
+  calls := [[.run 0 []]]
+  rets := [[]]
+  gargs := [("__loop2", [120768, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+        27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+        53, 54, 55], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 end
 end LeanVM.Guest.Fn.«main_loop2»

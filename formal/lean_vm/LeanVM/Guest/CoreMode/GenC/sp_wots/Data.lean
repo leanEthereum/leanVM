@@ -18,14 +18,9 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 
 /-- `sp_wots`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := ⟨[],
-    [],
-    [],
-    [],
-    []⟩
+  sig := {}
   reads := []
   res := []
-  calls := []
   rets := [[]]
 
 end

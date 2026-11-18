@@ -1,0 +1,1165 @@
+"""`heapOkC` (`LeanVM/Guest/CoreMode/HeapC.lean`) in Python, step for step: the check of an emitted certificate before
+the kernel sees it, and the pass `emitc.py` solves each witness in (`Solver`: the witness is looked for in the check's
+own scope, the inference's choice a hint).
+
+Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(value, exponent)` in `CCell.mul`'s order;
+a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
+(`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
+witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`.
+"""
+import collections
+
+CAPE = 2 ** 62
+GB = 1 << 20
+
+
+# ---- monomials (`CoreMode/Heap.lean`)
+
+def baseC(k):
+    return (((k, 1),), 0)
+
+
+def C0(n):
+    return ((), n)
+
+
+def insB(k, e, l):
+    for i, (k2, e2) in enumerate(l):
+        if k == k2:
+            return l[:i] + ((k, e + e2),) + l[i + 1:]
+        if k < k2:
+            return l[:i] + ((k, e),) + l[i:]
+    return l + ((k, e),)
+
+
+def mergeB(a, l):
+    for k, e in reversed(a):
+        l = insB(k, e, l)
+    return l
+
+
+def cmul(a, b):
+    return (mergeB(a[0], b[0]), a[1] + b[1])
+
+
+def cpow(c, e):
+    return (tuple((b, x * e) for b, x in c[0]), c[1] * e)
+
+
+def cshift(c, o):
+    return (c[0], c[1] + o)
+
+
+def tsub(a, b):
+    return a - b if a > b else 0
+
+
+def ndiv(a, b):
+    return a // b if b else 0
+
+
+def nmod(a, b):
+    return a % b if b else a
+
+
+def isconst(c):
+    return not c[0]
+
+
+# ---- signatures and certificates
+
+class HSig:
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV')
+
+    def __init__(self, **kw):
+        for f in self.FIELDS:
+            setattr(self, f, list(kw.get(f, ())))
+        self.ghosts = kw.get('ghosts', 0)
+
+
+EMPTY = HSig()
+
+
+class HCert:
+    def __init__(self, sig):
+        self.sig = sig
+        self.reads = {}          # (d, p, off) -> witness
+        self.res = []
+        self.calls = []
+        self.rets = []
+        self.divs = []
+        self.hvs = []
+        self.gargs = []
+
+
+def nth(l, n):
+    return l[n] if 0 <= n < len(l) else None
+
+
+def instB(ms, bases, acc):
+    for b, e in bases:
+        m = nth(ms, b)
+        if m is None:
+            return None
+        acc = cmul(acc, cpow(m, e))
+    return acc
+
+
+def instC(ms, c):
+    return instB(ms, c[0], ((), c[1]))
+
+
+def instI(ms, i):
+    if i[0] == 'num':
+        return ((), i[1])
+    if i[0] == 'val':
+        return nth(ms, i[1])
+    return instC(ms, i[1])
+
+
+def instR(ms, r):
+    b, l, h = instC(ms, r[0]), instI(ms, r[2]), instI(ms, r[3])
+    if b is None or l is None or h is None:
+        return None
+    return (b, r[1], l, h)
+
+
+def instAll(ms, cs):
+    out = []
+    for c in cs:
+        x = instC(ms, c)
+        if x is None:
+            return None
+        out.append(x)
+    return out
+
+
+def instAllR(ms, rs):
+    out = []
+    for r in rs:
+        x = instR(ms, r)
+        if x is None:
+            return None
+        out.append(x)
+    return out
+
+
+def instPP(ms, ps):
+    out = []
+    for c, offs in ps:
+        x = instC(ms, c)
+        if x is None:
+            return None
+        out.append((x, tuple(offs)))
+    return out
+
+
+def instPRL(ms, ps):
+    out = []
+    for r, offs in ps:
+        x = instR(ms, r)
+        if x is None:
+            return None
+        out.append((x, tuple(offs)))
+    return out
+
+
+def instRM(ms, l):
+    out = []
+    for k, c in l:
+        x = instC(ms, c)
+        if x is not None:
+            out.append((k, x))
+    return out
+
+
+# ---- the state
+
+class St:
+    __slots__ = ('env', 'sc', 'c2s', 'rs', 'ad', 'sv', 'src', 'pf', 'pr', 'n', 'nr', 'nc', 'nt', 'cd')
+
+    def __init__(self):
+        self.env, self.sc, self.c2s, self.rs, self.ad, self.sv = {}, {}, {}, {}, {}, {}
+        self.src, self.pf, self.pr = {}, {}, {}
+        self.n = self.nr = self.nc = self.nt = 0
+        self.cd = ()
+
+    def copy(self):
+        s = St()
+        s.env, s.sc, s.c2s, s.rs, s.ad, s.sv = dict(self.env), dict(self.sc), dict(self.c2s), dict(self.rs), \
+            dict(self.ad), dict(self.sv)
+        s.src, s.pf, s.pr = dict(self.src), dict(self.pf), dict(self.pr)
+        s.n, s.nr, s.nc, s.nt, s.cd = self.n, self.nr, self.nc, self.nt, self.cd
+        return s
+
+    def cnt(self, o):
+        s = self.copy()
+        s.n, s.nr, s.nc, s.nt = o.n, o.nr, o.nc, o.nt
+        return s
+
+    def define(self, k, c):
+        if k not in self.env:
+            self.env[k] = c
+
+    def put_sc(self, n, c):
+        self.sc[n] = c
+        self.c2s[c] = self.c2s.get(c, ()) + (n,)
+
+    def push(self, c):
+        self.put_sc(self.n, c)
+        self.n += 1
+
+    def pushP(self, p):
+        self.pf[self.n] = p
+        self.n += 1
+
+    def pushR(self, r):
+        self.rs[self.nr] = r
+        self.nr += 1
+
+    def pushPR(self, p):
+        self.pr[self.nr] = p
+        self.nr += 1
+
+
+def mono(env, v):
+    return env.get(v, baseC(v))
+
+
+def monos(env, vs):
+    return [mono(env, v) for v in vs]
+
+
+def idxF(env, i):
+    if i[0] == 'num':
+        return ((), i[1])
+    if i[0] == 'val':
+        return env.get(i[1], baseC(i[1]))
+    return i[1]
+
+
+def runF(env, r):
+    return (r[0], r[1], idxF(env, r[2]), idxF(env, r[3]))
+
+
+# ---- coverage
+
+def hasF(F, a, b):
+    return any(p[0] == a and p[1] == b for p in F)
+
+
+def hasFC(F, k, b):
+    return any(not p[0][0] and k <= p[0][1] < CAPE and p[1] == b for p in F)
+
+
+def hasFU(F, a, j):
+    return any(p[0] == a and not p[1][0] and p[1][1] <= j and p[1][1] < CAPE for p in F)
+
+
+def expOf(bs, k):
+    for k2, e in bs:
+        if k2 == k:
+            return e
+    return 0
+
+
+def divB(b, S, l):
+    return tuple((k, ndiv(e - expOf(b, k), S)) for k, e in l if expOf(b, k) < e)
+
+
+def idxOf(b, c, S):
+    return (divB(b[0], S, c[0]), ndiv(tsub(c[1], b[1]), S))
+
+
+def ptIdx(F, R, c, J):
+    base, S, lo, hi = R
+    return c == cmul(base, cpow(J, S)) and hasF(F, J, hi) and (lo == ((), 0) or lo == J or hasF(F, lo, cshift(J, 1)))
+
+
+def ptConst(F, R, c):
+    base, S, lo, hi = R
+    if not (c[0] == base[0] and base[1] <= c[1] and S != 0 and (c[1] - base[1]) % S == 0 and not lo[0]
+            and lo[1] < CAPE):
+        return False
+    k = (c[1] - base[1]) // S
+    return lo[1] <= k and ((not hi[0] and hi[1] < CAPE and k < hi[1]) or hasFC(F, k, hi))
+
+
+def ptRun(F, R, c):
+    base, S, lo, hi = R
+    return (c == cmul(base, cpow(lo, S)) and hasF(F, lo, hi)) or ptIdx(F, R, c, idxOf(base, c, S)) or \
+        ptConst(F, R, c)
+
+
+def loOk(F, Q, R):
+    return Q[2] == R[2] or (not Q[2][0] and not R[2][0] and R[2][1] <= Q[2][1] < CAPE) or \
+        (Q[2] == cshift(R[2], 1) and hasF(F, R[2], R[3]))
+
+
+def hiOk(F, Q, R):
+    return Q[3] == R[3] or (not Q[3][0] and not R[3][0] and Q[3][1] <= R[3][1] < CAPE) or \
+        (not Q[3][0] and Q[3][1] < CAPE and hasFC(F, tsub(Q[3][1], 1), R[3]))
+
+
+def runRun(F, Q, R):
+    return Q[0] == R[0] and Q[1] == R[1] and loOk(F, Q, R) and hiOk(F, Q, R)
+
+
+def emptyR(Q):
+    return not Q[2][0] and not Q[3][0] and Q[3][1] <= Q[2][1] and Q[2][1] < CAPE
+
+
+def constR(Q):
+    return not Q[2][0] and not Q[3][0] and Q[2][1] < CAPE and Q[3][1] < CAPE
+
+
+def rootC(c, S):
+    return (tuple((b, ndiv(e, S)) for b, e in c[0]), ndiv(c[1], S))
+
+
+def mrgPart(Q, S, r, lo, hi):
+    return (cshift(Q[0], Q[1] * r), Q[1] * S, lo, hi)
+
+
+def hasExp(F, m):
+    return (not m[0] and m[1] < CAPE) or any(p[0] == m or p[1] == m for p in F)
+
+
+def subL(offs, o):
+    return all(x in o for x in offs)
+
+
+def keyOk(args, ks):
+    return len(args) == len(ks) and all(a == k for a, k in zip(args, ks))
+
+
+def gargsOf(ga, g, args):
+    for g2, ks, ms in ga:
+        if g2 == g and keyOk(args, ks):
+            return list(ms)
+    return []
+
+
+def boundsOf(p, q):
+    return (q[2] == p[0] and q[3] == p[1]) or (q[2] == p[1] and q[3] == p[0])
+
+
+def noSlot0(c):
+    return all(b != 0 for b, _ in c[0])
+
+
+def noSlot0I(i):
+    if i[0] == 'val':
+        return i[1] != 0
+    if i[0] == 'num':
+        return True
+    return noSlot0(i[1])
+
+
+def noSlot0R(r):
+    return noSlot0(r[0]) and noSlot0I(r[2]) and noSlot0I(r[3])
+
+
+def setNth(l, n, b):
+    l = list(l)
+    if 0 <= n < len(l):
+        l[n] = b
+    return l
+
+
+class Fail(Exception):
+    pass
+
+
+# ---- the check (and, with a solver, the pass that finds the witnesses)
+
+class X:
+    """What the pass reads (`CX`), and the solver if the witnesses are being found."""
+
+    def __init__(self, pows, H, sigOf, params, solver=None):
+        self.pows, self.H, self.sigOf, self.params = pows, H, sigOf, params
+        self.sig = H.sig
+        self.dv, self.hv = set(H.divs), set(H.hvs)
+        self.solver = solver
+
+    def facts(self, env, res):
+        F = [(idxF(env, a), idxF(env, b)) for a, b in self.sig.term]
+        for i in res:
+            r = nth(self.H.res, i)
+            if r is not None and r[0] == 'lt':
+                F.append((idxF(env, r[1]), idxF(env, r[2])))
+        return F
+
+    def subPt(self, F, env, res, R, c):
+        for i in res:
+            r = nth(self.H.res, i)
+            if r is None:
+                continue
+            if r[0] == 'sub' and r[1] == c and runF(env, r[2]) == R:
+                return True
+            if r[0] == 'subR' and runF(env, r[2]) == R and ptRun(F, runF(env, r[1]), c):
+                return True
+        return False
+
+    def subRun(self, env, res, Q, R):
+        for i in res:
+            r = nth(self.H.res, i)
+            if r is not None and r[0] == 'subR' and runF(env, r[1]) == Q and runF(env, r[2]) == R:
+                return True
+        return False
+
+
+def srcOf(st, c):
+    if len(c[0]) == 1 and c[0][0][1] == 1:
+        return st.src.get(c[0][0][0])
+    return None
+
+
+def ptOk(X, st, c, w):
+    k = w[0]
+    if k == 'ev':
+        return st.sc.get(w[1]) == c
+    if k == 'pre':
+        return nth(X.sig.pre, w[1]) == c
+    if k == 'run':
+        R = st.rs.get(w[1])
+        if R is None:
+            return False
+        F = X.facts(st.env, w[2])
+        return ptRun(F, R, c) or X.subPt(F, st.env, w[2], R, c)
+    if k == 'pf':
+        p, a = st.pf.get(w[1]), srcOf(st, c)
+        return p is not None and a is not None and a == p[0] and c[1] in p[1]
+    if k == 'pfr':
+        p, a = st.pr.get(w[1]), srcOf(st, c)
+        return p is not None and a is not None and ptRun(X.facts(st.env, w[2]), p[0], a) and c[1] in p[1]
+    return False
+
+
+def rnOk(X, st, Q, w):
+    if w[0] == 'run':
+        R = st.rs.get(w[1])
+        return R is not None and (runRun(X.facts(st.env, w[2]), Q, R) or X.subRun(st.env, w[2], Q, R))
+    if w[0] == 'empty':
+        return emptyR(Q)
+    return False
+
+
+# Each requirement consumes witnesses from the front of `ws` (a list, read from index `i`): the index after them, or
+# `None`.
+
+def ptsW(X, st, m, offs, ws, i):
+    for o in offs:
+        if i >= len(ws) or not ptOk(X, st, cshift(m, o), ws[i]):
+            return None
+        i += 1
+    return i
+
+
+def ptrOk(X, st, c, offs, ws, i):
+    if i >= len(ws):
+        return None
+    w = ws[i]
+    if w[0] == 'pf':
+        p = st.pf.get(w[1])
+        return i + 1 if p is not None and p[0] == c and subL(offs, p[1]) else None
+    if w[0] == 'pfr':
+        p = st.pr.get(w[1])
+        return i + 1 if p is not None and ptRun(X.facts(st.env, w[2]), p[0], c) and subL(offs, p[1]) else None
+    if w[0] == 'word':
+        p = st.sv.get(w[1])
+        return ptsW(X, st, p[1], offs, ws, i + 1) if p is not None and p[0] == c else None
+    return None
+
+
+def ptrPts(X, st, b, S, offs, j, n, ws, i):
+    for t in range(n):
+        i = ptrOk(X, st, cshift(b, S * (j + t)), offs, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def ptrROk(X, st, Q, offs, ws, i):
+    if i >= len(ws):
+        return None
+    w = ws[i]
+    if w[0] == 'pfr':
+        p = st.pr.get(w[1])
+        return i + 1 if p is not None and runRun(X.facts(st.env, w[2]), Q, p[0]) and subL(offs, p[1]) else None
+    if w[0] == 'empty':
+        return i + 1 if emptyR(Q) else None
+    if w[0] == 'pts':
+        return ptrPts(X, st, Q[0], Q[1], offs, Q[2][1], tsub(Q[3][1], Q[2][1]), ws, i + 1) if constR(Q) else None
+    return None
+
+
+def reqP(X, st, ms, cs, ws, i):
+    for c in cs:
+        c2 = instC(ms, c)
+        if c2 is None or i >= len(ws) or not ptOk(X, st, c2, ws[i]):
+            return None
+        i += 1
+    return i
+
+
+def ptsRun(X, st, b, S, j, n, ws, i):
+    for t in range(n):
+        if i >= len(ws) or not ptOk(X, st, cshift(b, S * (j + t)), ws[i]):
+            return None
+        i += 1
+    return i
+
+
+def runOk1(X, st, Q, ws, i):
+    if i >= len(ws):
+        return None
+    if ws[i][0] == 'pts':
+        return ptsRun(X, st, Q[0], Q[1], Q[2][1], tsub(Q[3][1], Q[2][1]), ws, i + 1) if constR(Q) else None
+    return i + 1 if rnOk(X, st, Q, ws[i]) else None
+
+
+def runOk(X, st, Q, ws, i):
+    if i < len(ws) and ws[i][0] == 'cat':
+        k = ws[i][1]
+        if k >= CAPE:
+            return None
+        j = runOk1(X, st, (Q[0], Q[1], Q[2], ((), k)), ws, i + 1)
+        return None if j is None else runOk1(X, st, (Q[0], Q[1], ((), k), Q[3]), ws, j)
+    if i < len(ws) and ws[i][0] == 'mrg':
+        S, res = ws[i][1], ws[i][2]
+        lo, hi = Q[2], Q[3]
+        rt = rootC(hi, S)
+        if not (0 < S and not lo[0] and lo[1] % S == 0 and lo[1] < CAPE and cpow(rt, S) == hi
+                and hasExp(X.facts(st.env, res), rt)):
+            return None
+        j = i + 1
+        for r in range(S):
+            j = runOk1(X, st, mrgPart(Q, S, r, ((), lo[1] // S), rt), ws, j)
+            if j is None:
+                return None
+        return j
+    return runOk1(X, st, Q, ws, i)
+
+
+def reqR(X, st, ms, rs, ws, i):
+    for r in rs:
+        q = instR(ms, r)
+        if q is None:
+            return None
+        i = runOk(X, st, q, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def reqPP(X, st, ms, ps, ws, i):
+    for c, offs in ps:
+        c2 = instC(ms, c)
+        if c2 is None:
+            return None
+        i = ptrOk(X, st, c2, offs, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def reqPR(X, st, ms, ps, ws, i):
+    for r, offs in ps:
+        q = instR(ms, r)
+        if q is None:
+            return None
+        i = ptrROk(X, st, q, offs, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def reqS(X, st, ms, G, ws, i):
+    for f, k in ((reqP, G.pre), (reqR, G.preR), (reqPP, G.preP), (reqPR, G.prePR)):
+        i = f(X, st, ms, k, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def reqG(X, st, ma, g, args, ws, i):
+    ga = gargsOf(X.H.gargs, g, args)
+    if len(ga) != X.sigOf(g).ghosts:
+        return None
+    return reqS(X, st, ma + ga, X.sigOf(g), ws, i)
+
+
+def armSkip(X, st, mx, j, ws, i):
+    if i < len(ws) and ws[i][0] == 'skip' and j < CAPE and hasFU(X.facts(st.env, ws[i][1]), mx, j):
+        return i + 1
+    return None
+
+
+def pushL(st, cs):
+    for c in cs:
+        st.push(c)
+
+
+def condSt(mx, j, cd, st):
+    st = st.copy()
+    for e in cd:
+        if e[0] == mx and e[1] == j:
+            for c in e[2]:
+                st.push(c)
+            for p in e[4]:
+                st.pushP(p)
+            for r in e[3]:
+                st.pushR(r)
+            for p in e[5]:
+                st.pushPR(p)
+    return st
+
+
+def pushPost(G, ms, st):
+    ps, pps, rs, prs = instAll(ms, G.post), instPP(ms, G.postP), instAllR(ms, G.postR), instPRL(ms, G.postPR)
+    if ps is None or pps is None or rs is None or prs is None:
+        return False
+    for c in ps:
+        st.push(c)
+    for p in pps:
+        st.pushP(p)
+    for r in rs:
+        st.pushR(r)
+    for p in prs:
+        st.pushPR(p)
+    return True
+
+
+def postVE(G, ms, n0):
+    out = []
+    for i, m in G.postV:
+        c = nth(G.post, i)
+        if c is None:
+            continue
+        c2, m2 = instC(ms, c), instC(ms, m)
+        if c2 is not None and m2 is not None:
+            out.append((n0 + i, c2, m2))
+    return out
+
+
+def retDefs(st, rets, l):
+    for k, m in l:
+        r = nth(rets, k)
+        if r is not None:
+            st.define(r, m)
+
+
+def endsRet(ss):
+    return any(s[0] == 'ret' for s in ss)
+
+
+def joinE(ls):
+    ls = [l for ret, l in ls if not ret]
+    if not ls:
+        return []
+    return [(k, a) for k, a in ls[0] if all(any(b == a for _, b in l) for l in ls[1:])]
+
+
+def joinSt(bs, st, s):
+    """`bs`: (returns, start, end) per block."""
+    out = st.copy()
+    for fld, cnt in (('sc', 'n'), ('rs', 'nr'), ('pf', 'n'), ('pr', 'nr')):
+        ent = []
+        for ret, b0, b1 in bs:
+            lo, hi = getattr(b0, cnt), getattr(b1, cnt)
+            d = getattr(b1, fld)
+            ent.append((ret, [(k, d[k]) for k in range(lo, hi) if k in d]))
+        for k, a in joinE(ent):
+            if fld == 'sc':
+                out.put_sc(k, a)
+            else:
+                getattr(out, fld)[k] = a
+    out.n, out.nr, out.nc, out.nt = s.n, s.nr, s.nc, s.nt
+    return out
+
+
+def condE(sigOf, ms, mx, fs):
+    out = []
+    for j, g in enumerate(fs):
+        G = sigOf(g)
+        cs, rs, ps, prs = instAll(ms, G.post), instAllR(ms, G.postR), instPP(ms, G.postP), instPRL(ms, G.postPR)
+        if None not in (cs, rs, ps, prs):
+            out.append((mx, j, tuple(cs), tuple(rs), tuple(ps), tuple(prs)))
+    return out
+
+
+class Pass:
+    """`chkC` and the loop's tail. `X.solver`, when set, supplies the witnesses (`need_*`) as the pass reaches them
+    and records them in the certificate; failures are recorded and the pass goes on as if the witness were found."""
+
+    def __init__(self, X, callee, body):
+        self.X = X
+        self.callee = callee        # a statement's name -> the `sigOf` key
+        self.body = body
+        self.fails = []
+
+    def fail(self, what, *info):
+        if self.X.solver is None:
+            raise Fail((what,) + info)
+        self.fails.append((what,) + info)
+
+    # -- atoms
+    def divOf(self, st, d, q, b):
+        if q not in self.X.dv:
+            return None
+        md = st.env.get(d)
+        mb = mono(st.env, b)
+        if md is None or mb[0] or mb[1] > md[1]:
+            return None
+        return (md[0], md[1] - mb[1])
+
+    def atom(self, st, a):
+        k = a[0]
+        X = self.X
+        if k == 'load':
+            d, p, off = a[1:]
+            c = cshift(mono(st.env, p), off)
+            key = (d, p, off)
+            S = X.solver
+            if S is not None and S.is_read(key):
+                w = S.read(self, st, c, d, key)
+                if w is None:
+                    self.fail('read', key, c)
+            else:
+                w = X.H.reads.get(key)
+            if w is not None and w[0] != 'fail':
+                if not ptOk(X, st, c, w):
+                    self.fail('read-check', key, c, w)
+                elif w[0] == 'ev' and d in X.hv:
+                    p2 = st.sv.get(w[1])
+                    if p2 is not None and p2[0] == c:
+                        st.define(d, p2[1])
+            # loadPush
+            st.sv[st.n] = (c, mono(st.env, d))
+            st.push(c)
+            if d not in st.src:
+                st.src[d] = c
+        elif k == 'mul':
+            d, x, y = a[1:]
+            S = X.solver
+            if S is not None:
+                S.div(self, st, d, x, y)
+            q = self.divOf(st, d, x, y)
+            if q is not None:
+                st.define(x, q)
+            else:
+                q = self.divOf(st, d, y, x)
+                if q is not None:
+                    st.define(y, q)
+                else:
+                    st.define(d, cmul(mono(st.env, x), mono(st.env, y)))
+        elif k == 'add':
+            d, x, y = a[1:]
+            if d not in st.ad:
+                st.ad[d] = (mono(st.env, x), mono(st.env, y))
+        elif k == 'const':
+            d, (l0, l1) = a[1], a[2]
+            e = (0 if l0 == 1 else X.pows.get(l0)) if l1 == 0 else None
+            if e is not None:
+                st.define(d, ((), e))
+        elif k in ('copy', 'assertEq'):
+            x, y = a[1], a[2]
+            if x not in st.env:
+                st.define(x, mono(st.env, y))
+            elif y not in st.env:
+                st.define(y, st.env[x])
+        elif k == 'hint':
+            h = a[1]
+            hd = hint_heap(h)
+            if hd is not None:
+                p, off, n = hd
+                m = mono(st.env, p)
+                for j in range(n):
+                    st.push(cshift(m, off + j))
+            elif h[0] == 'log2Ceil' and h[1][0] == 'heap':
+                self.fail('log2Ceil-heap')
+
+    # -- calls
+    def call(self, st, g, args, rets):
+        X = self.X
+        ma = monos(st.env, args)
+        G = X.sigOf(g)
+        ws = self.call_ws(st, ('call', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i), g, args, ma)
+        st.nc += 1
+        retDefs(st, rets, instRM(ma, G.retM))
+        ms = ma + monos(st.env, rets)
+        n0 = st.n
+        if not pushPost(G, ms, st):
+            self.fail('post-inst', g)
+            return
+        for n, c, m in postVE(G, ms, n0):
+            st.sv[n] = (c, m)
+
+    def call_ws(self, st, site, check, g, args, ma):
+        X = self.X
+        if X.solver is not None:
+            ws = X.solver.call(self, st, site, g, args, ma)
+            if ws is None:
+                self.fail('call', site)
+                return None
+            if check(ws, 0) != len(ws):
+                self.fail('call-check', site, ws)
+            return ws
+        else:
+            ws = nth(X.H.calls, st.nc)
+            if ws is None:
+                raise Fail(('no-call-wits', st.nc))
+        if check(ws, 0) != len(ws):
+            self.fail('call-check', site, ws)
+        return ws
+
+    def callIf(self, st, c, g, args):
+        X = self.X
+        ma = monos(st.env, args)
+        G = X.sigOf(g)
+        self.call_ws(st, ('callIf', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i), g, args, ma)
+        st.nc += 1
+        p = st.ad.get(c)
+        qs, prs = instAllR(ma, G.postR), instPRL(ma, G.postPR)
+        if p is not None and qs is not None and prs is not None:
+            for q in qs:
+                if boundsOf(p, q):
+                    st.pushR(q)
+            for q in prs:
+                if boundsOf(p, q[0]):
+                    st.pushPR(q)
+
+    def dispatch(self, st, x, fs, args, rets):
+        X = self.X
+        ma = monos(st.env, args)
+        mx = mono(st.env, x)
+        if X.solver is not None:
+            ws = X.solver.dispatch(self, st, fs, args, ma, mx)
+            if ws is None:
+                self.fail('dispatch', fs)
+        else:
+            ws = nth(X.H.calls, st.nc)
+            if ws is None:
+                raise Fail(('no-call-wits', st.nc))
+        kept = []
+        i = 0
+        if ws is not None:
+            for j, g in enumerate(fs):
+                i2 = armSkip(X, st, mx, j, ws, i)
+                if i2 is not None:
+                    i = i2
+                    continue
+                i2 = reqG(X, condSt(mx, j, st.cd, st), ma, g, args, ws, i)
+                if i2 is None:
+                    self.fail('dispatch-check', fs, j, ws)
+                    i = None
+                    break
+                i = i2
+                kept.append(g)
+            if i is not None and i != len(ws):
+                self.fail('dispatch-check-left', fs)
+        if ws is None or i is None:
+            kept = [g for j, g in enumerate(fs) if not (ws and armSkip(X, st, mx, j, ws, 0))] or list(fs)
+        st.nc += 1
+        if not kept:
+            return
+        g0, gs = kept[0], kept[1:]
+        rms = [instRM(ma, X.sigOf(g).retM) for g in gs]
+        retDefs(st, rets, [p for p in instRM(ma, X.sigOf(g0).retM)
+                           if all(any(q[0] == p[0] and q[1] == p[1] for q in l) for l in rms)])
+        ms = ma + monos(st.env, rets)
+        arms = []
+        for g in kept:
+            G = X.sigOf(g)
+            p, r = instAll(ms, G.post), instAllR(ms, G.postR)
+            if p is None or r is None:
+                self.fail('post-inst', g)
+                return
+            arms.append((p, r))
+        for c in arms[0][0]:
+            if all(any(c2 == c for c2 in a[0]) for a in arms[1:]):
+                st.push(c)
+        for q in arms[0][1]:
+            if all(any(q2 == q for q2 in a[1]) for a in arms[1:]):
+                st.pushR(q)
+        ptr = []
+        for g in kept:
+            G = X.sigOf(g)
+            p, r = instPP(ms, G.postP), instPRL(ms, G.postPR)
+            if p is None or r is None:
+                ptr = None
+                break
+            ptr.append((p, r))
+        if ptr:
+            for q in ptr[0][0]:
+                if all(any(q2 == q for q2 in a[0]) for a in ptr[1:]):
+                    st.pushP(q)
+            for q in ptr[0][1]:
+                if all(any(q2 == q for q2 in a[1]) for a in ptr[1:]):
+                    st.pushPR(q)
+        if len(fs) < CAPE:
+            st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
+
+    def ret(self, st, vs):
+        X = self.X
+        G = X.sig
+        mp, mv = monos(st.env, X.params), monos(st.env, vs)
+        ms = mp + mv
+        if X.solver is not None:
+            ws = X.solver.ret(self, st, ms)
+            if ws is None:
+                self.fail('ret')
+        else:
+            ws = nth(X.H.rets, st.nt)
+            if ws is None:
+                raise Fail(('no-ret-wits', st.nt))
+        if ws is not None:
+            i = 0
+            for f, l in ((reqP, G.post), (reqR, G.postR), (reqPP, G.postP), (reqPR, G.postPR)):
+                i = f(X, st, ms, l, ws, i)
+                if i is None:
+                    break
+            if i != len(ws):
+                self.fail('ret-check', ws)
+            elif not retVC(st, ms, G.post, ws, G.postV):
+                self.fail('postV', ws)
+        for k, c in G.retM:
+            m, c2 = nth(mv, k), instC(mp, c)
+            if m is None or c2 is None or m != c2:
+                self.fail('retM', k, c, m, c2)
+        st.nt += 1
+
+    # -- statements
+    def block(self, ss, st):
+        for s in ss:
+            k = s[0]
+            if k == 'a':
+                self.atom(st, s[1])
+            elif k == 'ite':
+                s1 = self.block(s[2], st.copy())
+                s2 = self.block(s[3], st.cnt(s1))
+                st = joinSt([(endsRet(s[2]), st, s1), (endsRet(s[3]), st.cnt(s1), s2)], st, s2)
+            elif k == 'match':
+                bs = []
+                cur = st
+                for arm in s[2]:
+                    s1 = self.block(arm, cur.copy())
+                    bs.append((endsRet(arm), cur, s1))
+                    cur = st.cnt(s1)
+                st = joinSt(bs, st, bs[-1][2] if bs else st)
+            elif k == 'call':
+                self.call(st, s[1], s[2], s[3])
+            elif k == 'callIf':
+                self.callIf(st, s[1], s[2], s[3])
+            elif k == 'dispatch':
+                self.dispatch(st, s[1], s[2], s[3], s[4])
+            elif k == 'ret':
+                self.ret(st, s[1])
+                return st
+        return st
+
+    # -- a loop's tail
+    def tail(self, st, args, ei):
+        X = self.X
+        G = X.sig
+        mp = monos(st.env, X.params)
+        mi = mono(st.env, args[0])
+        mx = setNth(mp, 1, mi)
+        ex = ei == ('val', 1)
+        if X.solver is not None:
+            ws = X.solver.tail(self, st, mp, mx, ex, ei)
+            if ws is None:
+                self.fail('tail')
+                return
+        else:
+            ws = nth(X.H.rets, st.nt)
+            if ws is None:
+                raise Fail(('no-ret-wits', st.nt))
+        i = tail_check(X, st, mp, mx, ex, ei, ws)
+        if i != len(ws):
+            self.fail('tail-check', ws)
+
+
+def retVC(st, ms, post, ws, l):
+    for i, m in l:
+        w, c = nth(ws, i), nth(post, i)
+        if w is None or c is None or w[0] != 'ev':
+            return False
+        q, c2, m2 = st.sv.get(w[1]), instC(ms, c), instC(ms, m)
+        if q is None or c2 is None or m2 is None or q[0] != c2 or q[1] != m2:
+            return False
+    return True
+
+
+def tailP1(X, st, mp, mx, ex, c, w):
+    c1 = instC(mp, c)
+    if c1 is not None and ptOk(X, st, c1, w):
+        return True
+    c2 = instC(mx, c) if ex and noSlot0(c) else None
+    return c2 is not None and ptOk(X, st, c2, w)
+
+
+def tailR1(X, st, mp, mx, ex, ei, r, w):
+    q = instR(mp, r)
+    if q is not None and rnOk(X, st, q, w):
+        return True
+    q = instR(mx, r) if ex and noSlot0R(r) else None
+    if q is not None and rnOk(X, st, q, w):
+        return True
+    if r[2] == ('val', 0) and r[3] == ei and noSlot0(r[0]):
+        b, m0 = instC(mp, r[0]), nth(mp, 0)
+        return b is not None and m0 is not None and ptOk(X, st, cmul(b, cpow(m0, r[1])), w)
+    return False
+
+
+def tailPP1(X, st, mp, mx, ex, p, ws, i):
+    c = instC(mp, p[0])
+    j = ptrOk(X, st, c, p[1], ws, i) if c is not None else None
+    if j is not None:
+        return j
+    if ex and noSlot0(p[0]):
+        c = instC(mx, p[0])
+        return ptrOk(X, st, c, p[1], ws, i) if c is not None else None
+    return None
+
+
+def tailPR1(X, st, mp, mx, ex, ei, p, ws, i):
+    q = instR(mp, p[0])
+    j = ptrROk(X, st, q, p[1], ws, i) if q is not None else None
+    if j is not None:
+        return j
+    if ex and noSlot0R(p[0]):
+        q = instR(mx, p[0])
+        j = ptrROk(X, st, q, p[1], ws, i) if q is not None else None
+        if j is not None:
+            return j
+    if p[0][2] == ('val', 0) and p[0][3] == ei and noSlot0(p[0][0]):
+        b, m0 = instC(mp, p[0][0]), nth(mp, 0)
+        if b is not None and m0 is not None:
+            return ptrOk(X, st, cmul(b, cpow(m0, p[0][1])), p[1], ws, i)
+    return None
+
+
+def tail_check(X, st, mp, mx, ex, ei, ws):
+    G = X.sig
+    i = 0
+    for c in G.post:
+        if i >= len(ws) or not tailP1(X, st, mp, mx, ex, c, ws[i]):
+            return None
+        i += 1
+    for r in G.postR:
+        if i >= len(ws) or not tailR1(X, st, mp, mx, ex, ei, r, ws[i]):
+            return None
+        i += 1
+    for p in G.postP:
+        i = tailPP1(X, st, mp, mx, ex, p, ws, i)
+        if i is None:
+            return None
+    for p in G.postPR:
+        i = tailPR1(X, st, mp, mx, ex, ei, p, ws, i)
+        if i is None:
+            return None
+    return i
+
+
+def hint_heap(h):
+    idx = {'witness': 2, 'bits': 4, 'bitsExp': 3, 'digitsExp': 7, 'windowsExp': 5}.get(h[0])
+    if idx is None:
+        return None
+    d = h[idx]
+    return (d[1], d[2], d[3]) if d[0] == 'heap' else None
+
+
+def stmts(ss):
+    for s in ss:
+        yield s
+        if s[0] == 'ite':
+            yield from stmts(s[2])
+            yield from stmts(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from stmts(a)
+
+
+def values(params, body):
+    out = set(params)
+    for s in stmts(body):
+        k = s[0]
+        if k == 'a':
+            a = s[1]
+            n = {'const': 1, 'add': 3, 'mul': 3, 'copy': 2, 'load': 2, 'assertEq': 2, 'assertNe': 3, 'rangeCheck': 5,
+                 'assertInK': 2, 'touch': 2, 'frameAddr': 1}.get(a[0], 0)
+            out.update(a[1:1 + n])
+            if a[0] == 'keccak':
+                out.update(a[1]); out.update(a[2])
+            elif a[0] == 'frameAddr':
+                out.update(a[2])
+        elif k in ('ite', 'match'):
+            out.add(s[1])
+        elif k == 'call':
+            out.update(s[2]); out.update(s[3])
+        elif k == 'callIf':
+            out.add(s[1]); out.update(s[3])
+        elif k == 'dispatch':
+            out.add(s[1]); out.update(s[3]); out.update(s[4])
+        elif k == 'ret':
+            out.update(s[1])
+    return out
+
+
+def idxOver(m, i):
+    if i[0] == 'val':
+        return i[1] < m
+    if i[0] == 'num':
+        return True
+    return all(b < m for b, _ in i[1][0])
+
+
+def heapOkC(pows, sigOf, name, params, body, H, solver=None):
+    """The check; with a `solver`, the pass finding the witnesses (into `H`). Returns the `Pass` (its `fails`), or
+    raises `Fail` (check mode)."""
+    G = H.sig
+    m = len(params)
+    X_ = X(pows, H, sigOf, params, solver)
+    P = Pass(X_, sigOf, body)
+    if list(params) != list(range(m)):
+        P.fail('params')
+    if not all(b < m for c in G.pre for b, _ in c[0]):
+        P.fail('preOver')
+    if not all(idxOver(m, a) and idxOver(m, b) for a, b in G.term):
+        P.fail('term-over')
+    if any(v >= GB for v in values(params, body)):
+        P.fail('noGhost')
+    st = St()
+    for i in range(m):
+        st.env[i] = baseC(i)
+    ms = monos(st.env, params) + [baseC(GB + j) for j in range(G.ghosts)]
+    pps, rs, prs = instPP(ms, G.preP), instAllR(ms, G.preR), instPRL(ms, G.prePR)
+    if pps is None or rs is None or prs is None:
+        P.fail('init-inst')
+        return P
+    for p in pps:
+        st.pushP(p)
+    for r in rs:
+        st.pushR(r)
+    for p in prs:
+        st.pushPR(p)
+    if not G.term:
+        P.block(body, st)
+    elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and G.term[0][1][0] in ('val', 'num') and (
+            G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
+        if G.retM or G.postV:
+            P.fail('loop-retM-postV')
+        ei = G.term[0][1]
+        if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf':
+            P.fail('loop-shape')
+            return P
+        _, c, g, args = body[-2]
+        st1 = P.block(body[:-2], st)
+        P.callIf(st1, c, g, args)
+        P.tail(st1, args, ei)
+    else:
+        P.fail('term-shape', G.term)
+    return P
