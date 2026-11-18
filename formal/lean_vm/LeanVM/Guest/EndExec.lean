@@ -297,7 +297,9 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
     (Q := guestQ T r.img) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
     (fun C hC ↦ progOk_of G.certs hC)
     (fun C hC K hK ↦ frameSpec_guest (hspec K hK) hC rfl ((progOk_of G.certs hC).ok K hK) r.img (OnRun X r) hκ
-      (fun s h ↦ ⟨r.n, h.2.2⟩) fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
+      (fun s h ↦ ⟨r.n, h.2.2⟩) (fun Cf hCf he ↦ G.core r hr K hK Cf (hT Cf hCf) he)
+      fun s op s1 s' hY hop e1 hm e ↦ G.used r hr { s' with steps := s'.steps + 1 }
+        (G.keepOp r hr C hC s op s1 s' hY hop e1 hm e))
     (fun C hC ↦
       { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
           have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp

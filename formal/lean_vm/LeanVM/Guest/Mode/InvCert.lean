@@ -187,7 +187,8 @@ image within `2^28` words, at states on its run where its frames have honest val
 def FnSpecC (K : Cert) (Cf : CoreMode.CFun) : Prop :=
   ∀ adv C, Ctx.of guestProgram adv = .ok C → adv.hints = Data.adviceHints → CodeOk C K →
     ∀ {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop), κ ≤ 28 → (∀ s, Y s → ∃ n, OnRef guestProgram img n s) →
-      CoreMode.CoreHon img Y K Cf → FrameSpec C (refMem img) Y K (CoreMode.CoreAt img Cf K.code)
+      CoreMode.CoreHon img Y K Cf → CoreMode.UsedNext C img Y →
+        FrameSpec C (refMem img) Y K (CoreMode.CoreAt img Cf K.code)
 
 /-- **A guest function's frame interface**: the walk's, or the core route's with core data among
 `T` at its entry. -/
@@ -225,7 +226,7 @@ theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {ad
     (hC : Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints) (hK : CodeOk C K)
     {κ : ℕ} (img : MemoryImage κ) (Y : St → Prop) (hκ : κ ≤ 28)
     (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
-    (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) :
+    (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) (hU : CoreMode.UsedNext C img Y) :
     FrameSpec C (refMem img) Y K (guestQ T img K) := by
   by_cases hc : ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf
   · have hq : guestQ T img K = fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧
@@ -234,7 +235,7 @@ theorem frameSpec_guest {T : List CoreMode.CFun} {K : Cert} (h : FnSpec T K) {ad
     rw [hq]
     have hS : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → FnSpecC K Cf →
         FrameSpec C (refMem img) Y K (CoreMode.CoreAt img Cf K.code) := fun Cf hCf he hs ↦
-      hs adv C hC ha hK img Y hκ hY (hH Cf hCf he)
+      hs adv C hC ha hK img Y hκ hY (hH Cf hCf he) hU
     obtain ⟨Cf0, hCf0, he0, hs0⟩ := hc
     refine ⟨fun hle hfp ⟨Cf, hCf, he, hs, hq⟩ ↦ ⟨Cf, hCf, he, hs, (hS Cf hCf he hs).mono hle hfp hq⟩,
       fun hA hf ↦ ⟨Cf0, hCf0, he0, hs0, (hS Cf0 hCf0 he0 hs0).entry hA hf⟩, ?_⟩
@@ -286,7 +287,7 @@ theorem hintsEq_of_fn {K : Cert} {Fh : List (ℕ × List Hint)} {j : ℕ} {d : �
 
 /-- **A function on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of {K : Cert} {Cf : CoreMode.CFun} (hok : CoreMode.CoreOk K Cf) : FnSpecC K Cf :=
-  fun _ _ hC ha hK _ _ _ hκ hY hH ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH
+  fun _ _ hC ha hK _ _ _ hκ hY hH hU ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH hU
 
 /-! ## On the guest -/
 

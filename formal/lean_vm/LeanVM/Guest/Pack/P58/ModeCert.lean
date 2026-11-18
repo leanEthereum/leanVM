@@ -401,7 +401,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L2».cfun, Fn.«eq_prefix_run__L19».cfun, Fn.«plus_one_run__L26».cfun,
-    Fn.«block_selector__L15».cfun, Fn.«walk_path__L24_L3».cfun]
+    Fn.«block_selector__L15».cfun, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cfun,
+    Fn.«walk_path__L24_L3».cfun]
 
 end
 
@@ -560,9 +561,9 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_positions__L16_L17_L5».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem7) ⟨Fn.«level_residual__L37_L11_L4_L2».modeOk,
     Fn.«level_residual__L37_L11_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem8)
-    ⟨Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeOk,
-    Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9) ⟨Fn.«level_positions__L32_L18_L6».modeOk,
     Fn.«level_positions__L32_L18_L6».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10) ⟨Fn.«level_residual__L32_L18_L4_L2».modeOk,
@@ -593,8 +594,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     ⟨Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«walk_path__L24_L3».cfun, hT _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self))))), rfl, Fn.«walk_path__L24_L3».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))), rfl, Fn.«walk_path__L24_L3».fnSpecC⟩)
     (Mode.fa_nil)))))))))))))))))))))
 
 end

@@ -260,7 +260,7 @@ def collect():
     import callc
     CR, _ = callc.results()
     for k, r in CR.items():
-        reads[k] = set(r['pass_'].reads)
+        reads[k] = set(r['cert'].reads)
     ok = sorted(set(ok) | set(CR))
     if '--all' in sys.argv:
         # every function, its reads by the def-use designation (`heap.reads_of`), a measurement only

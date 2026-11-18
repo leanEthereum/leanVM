@@ -439,7 +439,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L23».cfun, Fn.«plus_one_run__L32».cfun, Fn.«block_selector__L1».cfun,
-    Fn.«block_selector__L27».cfun, Fn.«bus_grind_check__L2».cfun]
+    Fn.«block_selector__L27».cfun, Fn.«bus_grind_check__L2».cfun,
+    Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».cfun]
 
 end
 
@@ -623,9 +624,10 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_positions__L4_L17_L5».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10) ⟨Fn.«level_residual__L109_L15_L6_L3».modeOk,
     Fn.«level_residual__L109_L15_L6_L3».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11)
-    ⟨Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeOk,
-    Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self)))))), rfl,
+    Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem12) ⟨Fn.«level_positions__L3_L20_L2».modeOk,
     Fn.«level_positions__L3_L20_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13) ⟨Fn.«level_positions__L5_L21_L3».modeOk,

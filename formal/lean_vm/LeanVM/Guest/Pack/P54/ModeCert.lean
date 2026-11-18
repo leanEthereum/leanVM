@@ -547,7 +547,7 @@ noncomputable def certs : List Mode.Cert :=
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«rs_eq_rows__L5».cfun, Fn.«padding_weight__L29».cfun, Fn.«plus_one_run__L8».cfun,
     Fn.«index_mle__L17».cfun, Fn.«squeeze_point_from__L21».cfun, Fn.«claim_list_last__L3».cfun,
-    Fn.«walk_path__L12_L2».cfun]
+    Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».cfun, Fn.«walk_path__L12_L2».cfun]
 
 end
 
@@ -797,9 +797,10 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_residual__L21_L10_L4_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13) ⟨Fn.«level_residual__L18_L10_L4_L2».modeOk,
     Fn.«level_residual__L18_L10_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem14)
-    ⟨Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeOk,
-    Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl,
+    Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem15) ⟨Fn.«level_positions__L4_L25_L7».modeOk,
     Fn.«level_positions__L4_L25_L7».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem16)
@@ -840,7 +841,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«walk_path__L12_L2».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl, Fn.«walk_path__L12_L2».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))), rfl,
+    Fn.«walk_path__L12_L2».fnSpecC⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 end

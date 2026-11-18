@@ -486,7 +486,8 @@ noncomputable def certs : List Mode.Cert :=
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«eq_prefix_run__L35».cfun, Fn.«eq_prefix_run__L40».cfun, Fn.«padding_weight__L23».cfun,
     Fn.«plus_one_run__L2».cfun, Fn.«index_mle__L24».cfun, Fn.«claim_list_last__L9».cfun,
-    Fn.«walk_path__L18_L2».cfun, Fn.«walk_path__L12_L8».cfun]
+    Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».cfun, Fn.«walk_path__L18_L2».cfun,
+    Fn.«walk_path__L12_L8».cfun]
 
 end
 
@@ -698,9 +699,10 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_positions__L13_L20_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9) ⟨Fn.«level_positions__L6_L21_L3».modeOk,
     Fn.«level_positions__L6_L21_L3».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10)
-    ⟨Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».modeOk,
-    Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl,
+    Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11) ⟨Fn.«level_positions__L6_L23_L5».modeOk,
     Fn.«level_positions__L6_L23_L5».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem12)
@@ -735,7 +737,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_residual__L18_L10_L4_L2_loop1».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«walk_path__L18_L2».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))))))), rfl, Fn.«walk_path__L18_L2».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))), rfl,
+    Fn.«walk_path__L18_L2».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem23)
     ⟨Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».modeHintsOk⟩)
@@ -744,8 +747,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».modeHintsOk⟩)
     (Mode.fa_cons (.inr ⟨Fn.«walk_path__L12_L8».cfun, hT _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))), rfl,
-    Fn.«walk_path__L12_L8».fnSpecC⟩)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))), rfl, Fn.«walk_path__L12_L8».fnSpecC⟩)
     (Mode.fa_nil))))))))))))))))))))))))))
 
 end

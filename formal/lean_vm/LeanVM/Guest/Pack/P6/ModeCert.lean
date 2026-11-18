@@ -418,7 +418,8 @@ noncomputable def certs : List Mode.Cert :=
 /-- The core data of the pack's functions on the core route. -/
 noncomputable def coreFns : List CoreMode.CFun :=
   [Fn.«padding_weight__L9».cfun, Fn.«block_selector__L33».cfun, Fn.«claim_list_last__L12».cfun,
-    Fn.«squeeze_point_from__L14».cfun]
+    Fn.«squeeze_point_from__L14».cfun, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».cfun,
+    Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».cfun]
 
 end
 
@@ -591,14 +592,15 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«level_positions__L6_L20_L2».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9) ⟨Fn.«level_residual__L25_L9_L4_L2».modeOk,
     Fn.«level_residual__L25_L9_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem10)
-    ⟨Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeOk,
-    Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))), rfl, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem11) ⟨Fn.«level_residual__L37_L15_L4_L2».modeOk,
     Fn.«level_residual__L37_L15_L4_L2».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem12)
-    ⟨Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeOk,
-    Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeHintsOk⟩)
+    (Mode.fa_cons (.inr ⟨Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».cfun, hT _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self)))))), rfl,
+    Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».fnSpecC⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem13) ⟨Fn.«decode_query_windows__L15_L3».modeOk,
     Fn.«decode_query_windows__L15_L3».modeHintsOk⟩)
     (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem14)

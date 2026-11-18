@@ -13,6 +13,8 @@ public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P11».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P15».ModeSig
 public import LeanVM.Guest.Pack.«P26».ModeSig
@@ -296,9 +298,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1».modeSig) .nil .nil) .nil) .nil))
     .nil))) .nil) .nil) .nil))))) .nil)) .nil) .nil)), 524287, Data.adviceFn613.2.2, .nil, .nil,
-    .nil, .nil, (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil))), .nil, .nil⟩
+    .nil, .nil, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».pairO,
+    Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».pairS, .nil⟩
 
 /-- `level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
@@ -327,9 +328,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none (.node none (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil)))
     .nil)) .nil))) .nil) .nil) .nil)) .nil)) .nil))), 524287, Data.adviceFn645.2.2, .nil, .nil,
-    .nil, .nil, (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
-    ()) .nil .nil) .nil))), .nil, .nil⟩
+    .nil, .nil, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».pairO,
+    Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».pairS, .nil⟩
 
 /-- `level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

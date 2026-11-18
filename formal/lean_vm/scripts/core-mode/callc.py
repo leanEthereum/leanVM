@@ -8,6 +8,7 @@ not grow.
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
 import os, sys, collections
+ARGV = list(sys.argv)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
@@ -43,6 +44,14 @@ class No(Exception):
     pass
 
 
+def _em():
+    """`emitc` (whose import takes `sys.argv` over), the caller's arguments kept."""
+    saved = list(sys.argv)
+    import emitc
+    sys.argv[:] = saved
+    return emitc
+
+
 def cell(m, nslots, ent=None, G=None, ret_ok=None):
     """A mode product `(fp, k, bs)` as a heap cell over slots (frame cell `2 + b` is slot `b`), or `No`."""
     fp, k, bs = m
@@ -71,18 +80,45 @@ def run(r, nslots, ent=None):
     return (I.shift(c, d), S, I.num(lo[1]), I.num(hi[1]))
 
 
+def bound(b, n, ent):
+    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent (`.val`)."""
+    if b[0] == 'num':
+        if not b[1] < 2 ** 62:
+            raise No('run bound')
+        return I.num(b[1])
+    if b[0] == 'ex' and b[1][0] == 'fr' and b[2] == 0:
+        o = b[1][1]
+        if not (2 <= o and o - 2 < n and o < 2 ** 28) or (ent is not None and not ent(o)):
+            raise No('run bound slot')
+        return I.base(o - 2)
+    raise No('run bound')
+
+
+def runX(r, n, ent=None):
+    """`CoreMode.rngX`: a run with exponent bounds."""
+    q, lo, hi, S, d = r
+    c = cell(q, n, ent)
+    return (I.shift(c, d), S, bound(lo, n, ent), bound(hi, n, ent))
+
+
+def prun(p, n, ent=None, const=False):
+    """`CoreMode.prunIs`: a pointer run, its offsets as they are."""
+    return ((run if const else runX)(p[0], n, ent), tuple(p[1]))
+
+
 def callee_sig(G, na, nr):
     """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words."""
     if G['self'] != ('id', 'none'):
         raise No('callee self')
-    if G['preP']:
-        raise No('callee preP')
     if 0 not in G['entry'] or 1 not in G['entry']:
         raise No('callee header')
     h = I.Sig(na)
     ent = lambda o: o in G['entry']
     h.pre = [cell(m, na, ent) for m in G['pre']]
-    h.preR = [run(r, na, ent) for r in G['preR']]
+    h.preR = [runX(r, na, ent) for r in G['preR']]
+    h.prePR = [prun(p, na, ent) for p in G['preP']]
+    if any(p[0] not in h.preR for p in h.prePR):
+        raise No('callee preP cells')
     for m in G['post']:
         try:
             h.post.append(cell(m, na + nr))
@@ -90,25 +126,46 @@ def callee_sig(G, na, nr):
             pass
     for r in G['postR']:
         try:
-            h.postR.append(run(r, na + nr))
+            h.postR.append(runX(r, na + nr))
+        except No:
+            pass
+    for p in G['postP']:
+        try:
+            h.postPR.append(prun(p, na + nr))
         except No:
             pass
     return h
+
+
+def const_pow(body, v):
+    """`CoreMode.constPow`: a value a top-level `const` atom before any `ret` sets to a power of `g` below `2^62`."""
+    for s in body:
+        if s[0] == 'ret':
+            return False
+        if s[0] == 'a' and s[1][0] == 'const' and s[1][1] == v:
+            c = s[1][2]
+            e = I.POWS.get(c[0]) if c[1] == 0 else None
+            return e is not None and e < 2 ** 62
+    return False
 
 
 def own_sig(G, np, nr):
     """`sigOk`: the function's heap signature, its mode signature's translated."""
     if G['self'] != ('id', 'none'):
         raise No('self')
-    for f in ('term', 'postL', 'postP', 'postLP', 'postT', 'postC'):
+    for f in ('term', 'postL', 'postLP', 'postT', 'postC'):
         if G[f]:
             raise No('own ' + f)
     h = I.Sig(np)
     h.pre = [cell(m, np) for m in G['pre']]
-    h.preR = [run(r, np) for r in G['preR']]
+    h.preR = [runX(r, np) for r in G['preR']]
+    h.prePR = [prun(p, np) for p in G['preP']]
     ret_ok = lambda o: (o - 2 < np and o in G['entry']) or (np <= o - 2 < np + nr and o in G['ret'])
     h.post = [cell(m, np + nr, ret_ok) for m in G['post']]
     h.postR = [run(r, np + nr, ret_ok) for r in G['postR']]
+    h.postPR = [prun(p, np + nr, ret_ok, const=True) for p in G['postP']]
+    if any(p[0] not in h.postR for p in h.postPR):
+        raise No('own postP cells')
     h.retM = {}
     for o, m in G['retV']:
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
@@ -117,7 +174,19 @@ def own_sig(G, np, nr):
     return h
 
 
+def exp_bounds(h, args, body):
+    """`CoreMode.callsB`'s exponents: each bound `.val b` of the callee's runs an argument a top-level `const` sets
+    to a power of `g`."""
+    for r in h.preR + [p[0] for p in h.prePR]:
+        for b in (r[2], r[3]):
+            if b[0]:
+                (sl, _), = b[0]
+                if not const_pow(body, args[sl]):
+                    raise No('callee bound not a constant power')
+
+
 def infer_one(k, S):
+    EM = _em()
     params, body = CORE[k]
     np = len(params)
     rets = [s[1] for s in body if s[0] == 'ret'][0]
@@ -136,6 +205,7 @@ def infer_one(k, S):
         if f == k:
             raise No('recursive')
         h = callee_sig(Gf, len(s[2]), len(s[3]))
+        exp_bounds(h, s[2], body)
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h
@@ -145,35 +215,42 @@ def infer_one(k, S):
     G0 = own.clone()
     I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
-    if G0.pre != own.pre or G0.preR != own.preR:
+    if G0.pre != own.pre or G0.preR != own.preR or G0.prePR != own.prePR or G0.preP != own.preP:
         raise No('own precondition grows')
-    if P.unc:
-        raise No('uncovered: ' + ','.join(sorted({u[0] for u in P.unc})))
-    if I.misses(P):
-        raise No('unwitnessed guarantee')
-    for f, ws in P.calls:
-        if any(w[0] == 'miss' or w[1] is None for _, w in ws):
-            raise No('unwitnessed precondition')
-    # own `retM`: each returned word's monomial at the `ret`
-    for st, vs in P.rets:
-        for j, c in own.retM.items():
-            if j >= len(vs) or P.mono(st, vs[j]) != c:
-                raise No('retM')
-    if P.res:
+    # the witnesses: the emitter's solver, in `heapOkC`'s own pass, at these signatures
+    sigs, hs = {}, {}
+    for f, h in cs.items():
+        dr = []
+        hs[f] = sigs[I.callee(f)] = EM.sig_of(h, len(CORE[I.callee(f)][0]), dr)
+        if dr:
+            raise No('callee signature dropped')
+    dr = []
+    sigs[k] = EM.sig_of(own, np, dr)
+    if dr:
+        raise No('own signature dropped')
+    sigOf = lambda g: sigs.get(I.callee(g), EM.C.EMPTY)
+    H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+    if pas.fails or Sv.miss:
+        raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+    if EM.check(k, H, sigOf) is not None:
+        raise No('recheck')
+    if H.res:
         raise No('residuals')
-    return dict(pass_=P, sig=own, cs=cs)
+    return dict(cert=H, cs=hs)
 
 
 def results(verbose=False):
     I.F.clear()
+    I.F.update({'ptr', 'pfr'})
     S = route.sigs()
     out, why = {}, collections.Counter()
     for k in candidates():
         try:
             out[k] = infer_one(k, S)
+            out[k]['text'] = ldata(k, out[k])
         except No as e:
             why[str(e).split(':')[0]] += 1
-            if verbose and '--fn' in sys.argv:
+            if verbose and '--why' in ARGV:
                 print(k, e)
     if verbose:
         print('calls: %d of %d candidates' % (len(out), len(candidates())), dict(why.most_common()))
@@ -201,83 +278,25 @@ set_option linter.all false
 
 
 
-# ---- Lean text (the printing of `emitc.py` before its rewrite: witnesses from `infer.py`'s pass)
-
-def lcell(c):
-    if any(e < 0 for _, e in c[0]) or c[1] < 0:
-        raise No('cell')
-    return '⟨[' + ', '.join(f'({b}, {e})' for b, e in c[0]) + f'], {c[1]}⟩'
-
-
-def lidx(i):
-    """A signature run's bound: `.num n` or `.val slot`."""
-    if not i[0]:
-        if i[1] >= 2 ** 62 or i[1] < 0:
-            raise No('idx')
-        return f'(.num {i[1]})'
-    if len(i[0]) == 1 and i[0][0][1] == 1 and i[1] == 0:
-        return f'(.val {i[0][0][0]})'
-    raise No('idx')
+def lcsig(h):
+    """A callee's heap signature as Lean, no auxiliary declaration."""
+    EM = _em()
+    ax = EM.Aux()
+    t = EM.lsig(h, ax)
+    if ax.defs:
+        raise No('callee signature too long')
+    return t
 
 
-def lrun(r):
-    Q, S, lo, hi = r
-    return f'⟨{lcell(Q)}, {S}, {lidx(lo)}, {lidx(hi)}⟩'
-
-
-def lwit(P, w):
-    k = w[0]
-    if k == 'ev':
-        return f'.ev {w[1]}'
-    if k == 'pre':
-        return f'.pre {w[1]}'
-    if k == 'run':
-        rw = w[1]
-        r = rw[1] if isinstance(rw, tuple) and rw[0] == 'preR' else (len(P.sig.preR) + rw if isinstance(rw, int) else None)
-        if r is None:
-            raise No('wit')
-        return f'.run {r} [{", ".join(str(P.wren[i]) for i in w[2])}]'
-    raise No('wit')
-
-
-def wrap(items, ind='    ', width=110):
-    lines, cur = [], ''
-    for it in items:
-        if cur and len(ind) + len(cur) + len(it) + 2 > width:
-            lines.append(cur + ',')
-            cur = ''
-        cur = f'{cur}, {it}' if cur else it
-    if cur:
-        lines.append(cur)
-    return ('\n' + ind).join(lines)
-
-
-def lsig(G, ind='    '):
-    f = []
-    if G.pre:
-        f.append(f'pre := [{wrap(map(lcell, G.pre), ind + "  ")}]')
-    if G.post:
-        f.append(f'post := [{wrap(map(lcell, G.post), ind + "  ")}]')
-    if G.preR:
-        f.append(f'preR := [{wrap(map(lrun, G.preR), ind + "  ")}]')
-    if G.postR:
-        f.append(f'postR := [{wrap(map(lrun, G.postR), ind + "  ")}]')
-    if G.retM:
-        f.append(f'retM := [{wrap((f"({j}, {lcell(c)})" for j, c in sorted(G.retM.items())), ind + "  ")}]')
-    return '{ ' + (',\n' + ind + '  ').join(f) + ' }' if f else '{}'
-
-
-def lcert(r):
-    P = r['pass_']
-    P.wren = {}
-    by_d = collections.defaultdict(list)
-    for (d, p, off), w in sorted(P.reads.items()):
-        by_d[d].append(f'({p}, {off}, {lwit(P, w)})')
-    reads = wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
-    calls = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for f, ws in P.calls)
-    rets = wrap('[' + ', '.join(lwit(P, w) for _, w in ws) + ']' for ws in P.ret_wits)
-    return (f'  sig :=\n    {lsig(r["sig"])}\n  reads := [{reads}]\n  res := []\n  calls := [{calls}]\n'
-            f'  rets := [{rets}]\n')
+def ldata(k, r):
+    """A function's certificate and its callees' signatures as Lean, its auxiliary declarations first."""
+    EM = _em()
+    aux, body = EM.lcert(r['cert'])
+    auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
+    cs = ',\n    '.join(f'("{f}", {lcsig(h)})' for f, h in sorted(r['cs'].items()))
+    return (f'{auxt}/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n{body}\n'
+            f'/-- `{k}`: its callees\' heap signatures, their mode signatures\' translated. -/\n'
+            f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n')
 
 
 def emit(R, check):
@@ -290,12 +309,8 @@ def emit(R, check):
     for pack, ks in sorted(packs.items()):
         out = [HEADER.format(pack=pack, first=ks[0], more=len(ks) - 1)]
         for k in ks:
-            r = R[k]
-            cs = ',\n    '.join(f'("{f}",\n      {lsig(h, "      ")})' for f, h in sorted(r['cs'].items()))
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                       f'/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n{lcert(r)}\n'
-                       f'/-- `{k}`: its callees\' heap signatures, their mode signatures\' translated. -/\n'
-                       f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{R[k]["text"]}'
+                       f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files[os.path.join(GEN, pack, 'DataC.lean')] = ''.join(out)
     import glob
     stale = []
@@ -317,16 +332,16 @@ def emit(R, check):
 
 
 if __name__ == '__main__':
-    if '--emit' in sys.argv:
+    if '--emit' in ARGV:
         R, _ = results(True)
-        emit(R, '--check' in sys.argv)
-    elif '--fn' in sys.argv:
-        k = sys.argv[sys.argv.index('--fn') + 1]
+        emit(R, '--check' in ARGV)
+    elif '--fn' in ARGV:
+        k = ARGV[ARGV.index('--fn') + 1]
         I.F.clear()
+        I.F.update({'ptr', 'pfr'})
         try:
             r = infer_one(k, route.sigs())
-            P = r['pass_']
-            print('ok', k, 'reads', len(P.reads), 'calls', P.calls, 'rets', P.ret_wits)
+            print('ok', k, ldata(k, r))
         except No as e:
             print('no', k, e)
     else:
