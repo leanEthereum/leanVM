@@ -30,12 +30,12 @@ def kinds(body, acc):
 
 
 def candidates():
-    """Bodies of atoms, calls (at least one) and one final `ret`, not loop helpers."""
+    """Bodies of atoms, calls and conditional calls (at least one) and one final `ret`, not loop helpers."""
     out = []
     for k, (params, body) in sorted(CORE.items()):
         acc = kinds(body, collections.Counter())
-        if set(acc) <= {'a', 'ret', 'call'} and acc['call'] and acc['ret'] == 1 and body[-1][0] == 'ret' and \
-                k not in I.IS_LOOP:
+        if set(acc) <= {'a', 'ret', 'call', 'callIf'} and (acc['call'] or acc['callIf']) and acc['ret'] == 1 and \
+                body[-1][0] == 'ret' and k not in I.IS_LOOP:
             out.append(k)
     return out
 
@@ -126,8 +126,9 @@ def hp_facts(ms, n, ent=None):
 
 
 def callee_sig(G, na, nr):
-    """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words."""
-    if G['self'] != ('id', 'none'):
+    """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words; a loop's
+    runs (`postL`, `postLP`) among its guarantees."""
+    if G['self'] != ('id', 'none') and not (G['self'][0] == 'some' and G['self'][1] < 2 ** 28):
         raise No('callee self')
     if 0 not in G['entry'] or 1 not in G['entry']:
         raise No('callee header')
@@ -151,12 +152,12 @@ def callee_sig(G, na, nr):
         h.postP = hp_facts([m for m in G['post'] if hp_of(m)], na + nr)
     except No:
         h.postP = []
-    for r in G['postR']:
+    for r in G['postR'] + G['postL']:
         try:
             h.postR.append(runX(r, na + nr))
         except No:
             pass
-    for p in G['postP']:
+    for p in G['postP'] + G['postLP']:
         try:
             h.postPR.append(prun(p, na + nr))
         except No:
@@ -195,8 +196,8 @@ def own_sig(G, np, nr):
         raise No('own pointer cell')
     h.postR = [run(r, np + nr, ret_ok) for r in G['postR']]
     h.postPR = [prun(p, np + nr, ret_ok, const=True) for p in G['postP']]
-    if any(p[0] not in h.postR for p in h.postPR):
-        raise No('own postP cells')
+    # a pointer run's cells among the runs guaranteed (`sigOk`'s `postP` case asks both)
+    h.postR += [p[0] for p in h.postPR if p[0] not in h.postR]
     h.retM = {}
     for o, m in G['retV']:
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
@@ -227,16 +228,19 @@ def infer_one(k, S):
     own = own_sig(G, np, len(rets))
     cs = {}
     for s in body:
-        if s[0] != 'call':
+        if s[0] == 'call':
+            f, args, nr = s[1], s[2], len(s[3])
+        elif s[0] == 'callIf':
+            f, args, nr = s[2], s[3], 0
+        else:
             continue
-        f = s[1]
         Gf = S.get(STABLE.get(f, f)) or S.get(f)
         if Gf is None:
             raise No('callee without mode signature')
         if f == k:
             raise No('recursive')
-        h = callee_sig(Gf, len(s[2]), len(s[3]))
-        exp_bounds(h, s[2], body)
+        h = callee_sig(Gf, len(args), nr)
+        exp_bounds(h, args, body)
         if f in cs and cs[f].key() != h.key():
             raise No('callee arity')
         cs[f] = h

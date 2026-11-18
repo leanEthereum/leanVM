@@ -109,7 +109,14 @@ theorem selGo_sound {j : ℕ} {σ : Val} : ∀ (seen : List Atom) (ss : List Stm
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
     obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
     exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
-  | _, .callIf .. :: _, _, _, h, _, _, _, _, _ => by simp [CoreMode.selGo] at h
+  | seen, .callIf c f args :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    simp only [CoreMode.selGo] at h
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    rw [walk_callIf_cons] at hw
+    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
+    obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
+    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
   | _, .dispatch .. :: _, _, _, h, _, _, _, _, _ => by simp [CoreMode.selGo] at h
 
 end Walk

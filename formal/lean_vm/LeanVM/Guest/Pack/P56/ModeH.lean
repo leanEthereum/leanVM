@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P56».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«ring_switch_target»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `ring_switch_target`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 14) (d := Data.adviceFn14) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«ring_switch_target»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L6»
 
 open LeanVM.Guest LeanVM.Guest.Exec
@@ -41,51 +26,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L6»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L55_L13_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 622) (d := Data.adviceFn622) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L44_L19_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 878) (d := Data.adviceFn878) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L44_L20_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 924) (d := Data.adviceFn924) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2»
 
 namespace LeanVM.Guest.Fn.«verify_merkle_cap__L2»
 

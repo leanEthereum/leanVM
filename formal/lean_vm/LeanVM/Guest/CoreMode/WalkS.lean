@@ -149,7 +149,7 @@ theorem pick_callS {x : V} {args rets : List V} {f : String} {a r : List V} : �
 /-- What made a call event: a `call`, a `callIf` or a `dispatch` naming its callee. -/
 @[expose] def CallS (f : String) (a r : List V) : Stmt → Prop
   | .call g a' r' => g = f ∧ a' = a ∧ r' = r
-  | .callIf _ g _ => g = f
+  | .callIf _ g a' => g = f ∧ a' = a ∧ r = []
   | .dispatch _ fs _ _ => f ∈ fs
   | _ => False
 
@@ -178,7 +178,7 @@ theorem walk1_callS {f : String} {a r : List V} : ∀ (s : Stmt), Ev.call f a r 
     · simp [hc] at h
     · simp only [hc, ↓reduceIte, List.mem_cons, Ev.call.injEq, List.not_mem_nil, or_false, reduceCtorEq,
         false_or] at h
-      exact ⟨_, List.mem_cons_self, h.1.symm⟩
+      exact ⟨_, List.mem_cons_self, h.1.symm, h.2.1.symm, h.2.2⟩
   | .dispatch x fs args rets, h => ⟨_, List.mem_cons_self, pick_callS fs 0 h⟩
   | .ret _, h => by simp [walk1, evsC] at h
 

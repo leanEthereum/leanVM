@@ -72,21 +72,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L14»
 
-namespace LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L17_L7_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 887) (d := Data.adviceFn887) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L17_L7_L4_L2»
-
 namespace LeanVM.Guest.Fn.«level_positions__L7_L14_L2_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

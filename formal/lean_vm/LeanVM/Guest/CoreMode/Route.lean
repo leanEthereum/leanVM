@@ -63,6 +63,7 @@ noncomputable def selGo (j : ℕ) : List Atom → List Stmt → Bool
   | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selGo j seen ss
   | _, .ret _ :: ss => noMatch (Bridge.stmtsOf ss)
   | seen, .call .. :: ss => selGo j seen ss
+  | seen, .callIf .. :: ss => selGo j seen ss
   | _, _ :: _ => false
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values

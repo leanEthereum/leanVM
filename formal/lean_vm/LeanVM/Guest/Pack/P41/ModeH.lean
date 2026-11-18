@@ -12,51 +12,6 @@ public import LeanVM.Guest.Pack.«P41».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«level_residual__L32_L8_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L32_L8_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 583) (d := Data.adviceFn583) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L32_L8_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_positions__L10_L21_L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_positions__L10_L21_L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 591) (d := Data.adviceFn591) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L10_L21_L3»
-
-namespace LeanVM.Guest.Fn.«level_residual__L16_L6_L4_L2»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L16_L6_L4_L2`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 841) (d := Data.adviceFn841) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L16_L6_L4_L2»
-
 namespace LeanVM.Guest.Fn.«level_positions__L4_L22_L4_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

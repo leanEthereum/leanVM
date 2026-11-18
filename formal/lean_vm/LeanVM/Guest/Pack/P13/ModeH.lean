@@ -27,36 +27,6 @@ end
 
 end LeanVM.Guest.Fn.«aggregate_claims_loop0»
 
-namespace LeanVM.Guest.Fn.«level_residual__L55_L17_L6_L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_residual__L55_L17_L6_L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 621) (d := Data.adviceFn621) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L55_L17_L6_L3»
-
-namespace LeanVM.Guest.Fn.«level_positions__L7_L21_L3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_positions__L7_L21_L3`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 682) (d := Data.adviceFn682) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L7_L21_L3»
-
 namespace LeanVM.Guest.Fn.«level_positions__L10_L19_L7_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

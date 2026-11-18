@@ -408,15 +408,17 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       | _, _ => false)) || postRIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) r) && Nat.beq Cf.H.sig.ghosts 0
 
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
-and `nr` returned words: no self frame pointer or pointer precondition, its header cells entry cells;
+and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells); each guarantee of `h` one of `G`'s (cells or points over the arguments and
-returned words, runs `G`'s); `h` with no pointer guarantee, returned word's monomial or ghost slot. -/
+returned words, runs `G`'s or its loop's); `h` with no returned word's monomial or ghost slot. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
-  G.self.isNone &&
+  (match G.self with
+    | some o => decide (o < 2 ^ 28)
+    | none => true) &&
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
-    (h.postPR.all fun p ↦ G.postP.any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
+    (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
     h.retM.isEmpty &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
@@ -427,16 +429,17 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
       | _, _ => false)) || (monoS G na true (rngM r) && h.preR.any (rngXIs r ·))) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
-    (h.postR.all fun q ↦ G.postR.any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
+    (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
       (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts 0
 
 /-- **A call's `JUMP`**, its target a callee's entry (`ents`): that entry outside the function, and the
-callee's mode signature there holding of its heap signature at the call's site. -/
+callee's mode signature there holding of its heap signature at the call's site, through a cell neither
+the own frame's nor a next frame's. -/
 noncomputable def jumpCallOk (Cf : CFun) : OffsetInstruction → Bool
   | .jump _ od of => match Cf.X.pcAt od with
     | some t => match getF Cf.X.ents t with
       | some f => !(decide (Cf.frame.entry ≤ t) && decide (t < Cf.frame.entry + Cf.frame.len)) &&
-        decide (t < 2 ^ 30) && !Cf.X.selfAt of && match Cf.frame.sigs.get t, getF Cf.X.sites of with
+        decide (t < 2 ^ 30) && !Cf.X.selfAt of && !Cf.X.nextAt of && match Cf.frame.sigs.get t, getF Cf.X.sites of with
         | some G, some s => decide (s.r < 2 ^ 30) && fitB G (Cf.sigOf f) s.args.length s.rets.length
         | _, _ => false
       | none => true
@@ -455,15 +458,20 @@ def retsN (n : ℕ) (body : List Stmt) : Bool :=
     | .ret vs => vs.length == n
     | _ => true
 
-/-- No call of the body is to `f`, and each callee's heap signature names no returned word's
-monomial, word at return, equation or ghost, its runs' bounds having exponents at the call (`idxPow`). -/
+/-- A call of `g` on `args`: not of `f`, the callee's heap signature naming no returned word's monomial,
+word at return, equation or ghost, its runs' bounds having exponents at the call (`idxPow`). -/
+noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
+  !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
+    (Cf.sigOf g).retEq.isEmpty && Nat.beq (Cf.sigOf g).ghosts 0 &&
+    ((Cf.sigOf g).preR.all fun q ↦ idxPow Cf.pows Cf.fn.body args q.lo && idxPow Cf.pows Cf.fn.body args q.hi) &&
+    (Cf.sigOf g).prePR.all fun p ↦ idxPow Cf.pows Cf.fn.body args p.1.lo &&
+      idxPow Cf.pows Cf.fn.body args p.1.hi
+
+/-- **Each call of the body** (`call`, `callIf`) checked by `callChk`. -/
 noncomputable def callsB (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
-    | .call g args _ => !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
-        (Cf.sigOf g).retEq.isEmpty && Nat.beq (Cf.sigOf g).ghosts 0 &&
-        ((Cf.sigOf g).preR.all fun q ↦ idxPow Cf.pows Cf.fn.body args q.lo && idxPow Cf.pows Cf.fn.body args q.hi) &&
-        (Cf.sigOf g).prePR.all fun p ↦ idxPow Cf.pows Cf.fn.body args p.1.lo &&
-          idxPow Cf.pows Cf.fn.body args p.1.hi
+    | .call g args _ => callChk Cf g args
+    | .callIf _ g args => callChk Cf g args
     | _ => true
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
@@ -507,17 +515,19 @@ def straight (body : List Stmt) : Bool :=
     | .ret _ => true
     | _ => false
 
-/-- A statement the core route takes: an atom, a branch, a `match`, a return or a call. -/
+/-- A statement the core route takes: an atom, a branch, a `match`, a return, a call or a conditional
+call. -/
 def ctrlOk : Stmt → Bool
-  | .atom _ | .ite .. | .match_ .. | .ret _ | .call .. => true
+  | .atom _ | .ite .. | .match_ .. | .ret _ | .call .. | .callIf .. => true
   | _ => false
 
-/-- A call. -/
+/-- A call or a conditional call. -/
 def isCall : Stmt → Bool
-  | .call .. => true
+  | .call .. | .callIf .. => true
   | _ => false
 
-/-- A top-level statement: a return, a call, or one with no `ret` and no call in it. -/
+/-- A top-level statement: a return, a call, or one with no `ret` and no call in it (a conditional
+call included). -/
 def topOk : Stmt → Bool
   | .ret _ => true
   | .call .. => true
