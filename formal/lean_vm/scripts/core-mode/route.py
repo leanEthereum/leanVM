@@ -262,7 +262,7 @@ def route(verbose=False):
             why['returned product'] += 1; continue
         post = []
         for c in cells:
-            w = f.witness(stf[1], c)
+            w = f.witness(stf[1], subst(f, stf[0], c))
             if w is None: break
             post.append((c, w))
         else:
@@ -275,6 +275,19 @@ def route(verbose=False):
     if verbose:
         print('route', len(out), 'of', len(P), dict(why))
     return out
+
+
+def subst(f, env, c):
+    """A cell's monomial in the heap pass's environment (`CoreMode.substC`)."""
+    bs, off = c
+    acc = ((), off)
+    for k, e in reversed(bs):
+        m = f.mono(env, k)
+        p = ((), 0)
+        for _ in range(e):
+            p = (heap.merge(p[0], m[0]), p[1] + m[1])
+        acc = (heap.merge(p[0], acc[0]), p[1] + acc[1])
+    return acc
 
 
 def _cell(c):

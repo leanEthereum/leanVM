@@ -15,6 +15,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P61».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P61».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P61».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P61».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P61».Pair
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P14».ModeSig
 public import LeanVM.Guest.Pack.«P2».ModeSig
@@ -207,9 +208,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 noncomputable def frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 249941, 504,
     Fn.«da_factors__L6_L7_L128».modeSig, .nil, 524287, Data.adviceFn415.2.2, .nil, .nil, .nil, .nil,
-    (.node (some ()) .nil (.node none .nil (.node (some ()) .nil (.node (some ()) .nil (.node (some
-    ()) .nil (.node (some ()) .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))))))), .nil,
-    .nil⟩
+    Fn.«da_factors__L6_L7_L128».pairO, Fn.«da_factors__L6_L7_L128».pairS, .nil⟩
 
 /-- `da_factors__L6_L7_L128`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by

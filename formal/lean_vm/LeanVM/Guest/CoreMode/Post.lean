@@ -30,6 +30,15 @@ open LeanVM.Guest.Check (getF)
 
 @[expose] public section
 
+/-- A monomial's power. -/
+def powC (c : CCell) : ℕ → CCell
+  | 0 => ⟨[], 0⟩
+  | e + 1 => (powC c e).mul c
+
+/-- **A cell's monomial in the environment**: each base value replaced by its monomial. -/
+noncomputable def substC (env : Trie CCell) (c : CCell) : CCell :=
+  c.bases.foldr (fun b acc ↦ (powC ((getF env b.1).getD (baseC b.1)) b.2).mul acc) ⟨[], c.off⟩
+
 /-- The pass over a block to its `ret`, where each promised cell has its witness; a branch or a
 `match` on the way, with no `ret` in it, passed as the heap check does. -/
 noncomputable def postGo (X : HX) (post : List (CCell × Wit)) : List Stmt → HSt → Bool
@@ -44,7 +53,7 @@ noncomputable def postGo (X : HX) (post : List (CCell × Wit)) : List Stmt → H
   | .match_ _ arms :: ss, st => Stmt.noRetArms arms && match chkArms X arms st with
     | some n => (st.withN n).seq fun st' ↦ postGo X post ss st'
     | none => false
-  | .ret _ :: _, st => post.all fun p ↦ witOk X.pre st.sc p.1 p.2
+  | .ret _ :: _, st => post.all fun p ↦ witOk X.pre st.sc (substC st.env p.1) p.2
   | _, _ => false
 
 /-- **The heap guarantees' check** of a function: the heap check's pass to its `ret`, each promised cell
@@ -141,7 +150,29 @@ theorem walk_cons_noRet {s : Stmt} (hn : Stmt.noRet s = true) {ss : List Stmt} {
   · exact ⟨es1, es2, h2, rfl⟩
   · exact absurd h1 (walk1_noRetP s hn es vs)
 
-theorem postGo_sound (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c ∈ H.sig.pre)
+theorem val_powC (c : CCell) : ∀ e, (powC c e).val σ = c.val σ ^ e
+  | 0 => by
+    simp only [powC, CCell.val, prodB, addressOfIndex, pow_zero, one_mul]
+    exact map_one (algebraMap K E)
+  | e + 1 => by rw [powC, val_mul, val_powC c e, pow_succ]
+
+theorem val_foldrC {env : Trie CCell} (he : EnvOk σ env) (off : ℕ) : ∀ bs : List (ℕ × ℕ),
+    (bs.foldr (fun b acc ↦ (powC ((getF env b.1).getD (baseC b.1)) b.2).mul acc) ⟨[], off⟩).val σ =
+      prodB σ bs * ofK (addressOfIndex off)
+  | [] => rfl
+  | b :: bs => by
+    have hb : ((getF env b.1).getD (baseC b.1)).val σ = σ (V.n b.1) := by
+      cases h : getF env b.1 with
+      | none => exact val_baseC (σ := σ) b.1
+      | some c' => exact (he b.1 c' h).symm
+    rw [List.foldr_cons, val_mul, val_powC, val_foldrC he off bs, hb]
+    simp only [prodB]
+    ring
+
+theorem val_substC {env : Trie CCell} (he : EnvOk σ env) (c : CCell) : (substC env c).val σ = c.val σ :=
+  val_foldrC he c.off c.bases
+
+theorem postGo_sound (hR: X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c ∈ H.sig.pre)
     (hpows : X.pows.Ok) {post : List (CCell × Wit)} :
     ∀ (ss : List Stmt) {st : HSt} {W : K → Prop} {es : List Ev} {vs : List V},
       (∀ c ∈ H.sig.pre, W (c.addr σ)) → postGo X post ss st = true → EnvOk σ st.env → ScOk W σ st.sc →
@@ -164,9 +195,12 @@ theorem postGo_sound (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c �
       · exact Or.inr ⟨a, List.mem_cons_self, hw1⟩
       · obtain ⟨b, hb, hx⟩ := (hw1 : ∃ b, Ev.atom b ∈ es' ∧ Writes σ b (p.1.addr σ))
         exact Or.inr ⟨b, List.mem_cons_of_mem _ hb, hx⟩
-  | .ret _ :: _, st, W, es, vs, hpre, h, _, hs, _, _ => by
+  | .ret _ :: _, st, W, es, vs, hpre, h, he, hs, _, _ => by
     simp only [postGo, List.all_eq_true] at h
-    exact fun p hp ↦ Or.inl (witOk_sound hpre hP hs (h p hp))
+    intro p hp
+    have := witOk_sound hpre hP hs (h p hp)
+    rw [CCell.addr, val_substC he] at this
+    exact Or.inl this
   | .ite c z n :: ss, st, W, es, vs, hpre, h, he, hs, hw, hh => by
     simp only [postGo, Bool.and_eq_true] at h
     obtain ⟨⟨hz, hn⟩, h⟩ := h

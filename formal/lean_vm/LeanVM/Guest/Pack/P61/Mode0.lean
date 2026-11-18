@@ -218,29 +218,6 @@ end
 
 end LeanVM.Guest.Fn.«da_verify_blob_loop0»
 
-namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `da_factors__L6_L7_L128`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `da_factors__L6_L7_L128`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨249941, 504, Fn.«da_factors__L6_L7_L128».modeSig, (.node (some [(.alloc 4 128)]) .nil .nil),
-    .nil, .nil, false, .nil⟩
-
-/-- `da_factors__L6_L7_L128`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
-
 namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec

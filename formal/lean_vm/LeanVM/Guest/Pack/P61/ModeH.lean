@@ -60,21 +60,6 @@ end
 
 end LeanVM.Guest.Fn.«da_verify_blob_loop0»
 
-namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_factors__L6_L7_L128`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 415) (d := Data.adviceFn415) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
-
 namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec
