@@ -83,7 +83,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{LeanVmGuestCompleteness.lean}: the deployed limits, honest children, the guest's completeness and \lean{BatchingSound}.
 \item \lean{Corollaries.lean}, optional: \lean{AggregateSound}.
 \end{enumerate}
-\lean{Statement/Data/} needs no review beyond its provenance check: \lean{lean_vm/scripts/guest-export --check}, which CI runs on every change to \lean{formal/}, \lean{crates/} or the Cargo manifests, fails when it differs from leanVM's sources. \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
+\lean{Statement/Data/} needs no review beyond its provenance: it is not committed, and \lean{lean_vm/scripts/guest-export} writes it from leanVM's sources before every build, in CI and in \lean{check-all.sh}. \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
 
 \section{The setting}
 

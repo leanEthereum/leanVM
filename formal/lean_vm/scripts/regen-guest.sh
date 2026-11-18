@@ -15,7 +15,7 @@
 # The `changes` step (`scripts/guest-changes`) lists the functions whose bodies changed, were added or
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
-# after a protocol change) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
+# before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
 # WHIR's folding).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -68,10 +68,14 @@ parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.G
 part_export() {
   step "export: bytecode, source, programs (guest-export, from leanVM's sources)"
   # The core IR before the change, for the `changes` step.
+  # None on a fresh checkout, where the generated files are not there yet.
   if [ ${#check[@]} -eq 0 ]; then
-    rm -rf .lake/guest-before && mkdir -p .lake/guest-before/Data && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/Data/
-    if [ -d LeanVM/Guest/Fn ]; then cp -R LeanVM/Guest/Fn .lake/guest-before/Fn; fi
-    if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
+    rm -rf .lake/guest-before
+    if compgen -G "LeanVM/Guest/Data/Core*.lean" > /dev/null; then
+      mkdir -p .lake/guest-before/Data && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/Data/
+      if [ -d LeanVM/Guest/Fn ]; then cp -R LeanVM/Guest/Fn .lake/guest-before/Fn; fi
+      if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
+    fi
   fi
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"
