@@ -74,7 +74,8 @@ def exp_diff(atoms, x):
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
-    strided table (`cs`), a residual of a family under branch conditions. (Top-level selectors, `sel`, are not emitted
+    strided table (`cs`), an exponent bound `p·g` of a value range checked against `p` (`rcv`), a residual of a family
+    under branch conditions. (Top-level selectors, `sel`, are not emitted
     by the solver.)"""
     import callc
     params, body = I.CORE[k]
@@ -88,6 +89,12 @@ def res_fam(k, r, G):
         if N is not None and N <= n:
             return True
         return 2 ** 28 <= n and x < len(params) and 2 + x in callc.exp_cells(G) and exp_diff(top_atoms(body), x)
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'mono':
+        # `rcv`: `x` range checked against the value `p`, the bound `p·g`
+        c = r[2][1]
+        if len(c[0]) != 1 or c[0][0][1] != 1 or c[1] != 1:
+            return False
+        return any(a[0] == 'rangeCheck' and a[1] == r[1][1] and a[5] == c[0][0][0] for a in top_atoms(body))
     if r[0] == 'sub':
         kap = cs_kappa(k)
         return kap is not None and r == cs_sub(kap)

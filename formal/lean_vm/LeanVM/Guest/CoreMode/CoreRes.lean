@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
+public import LeanVM.Guest.Res.AnyData
 
 /-!
 # Residual families on core names
@@ -28,6 +29,8 @@ function's own code whose soundness at its honest instances is proved once, in `
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
 * `cs`: `column_selector__L{κ}`'s read of its lowest digit's entry lies in the strided table its
   callers write (`csSub κ`), from the offset its callers hand it (the old route's F3 on names);
+* `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
+  `p` among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
 
 `resOk Cf`: every residual of `Cf`'s heap certificate of a family. `CfOk` asks it, so the core
@@ -73,6 +76,11 @@ noncomputable def resFam (fn : Fn) (G : Mode.Sig) : CRes → Bool
         ((Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n)) ||
         (decide (2 ^ 28 ≤ n) && decide (x < fn.params.length) && (expCells G).contains (2 + x) &&
           expDiff (Res.topAtoms fn.body) (V.n x)))
+  | .lt (.val x) (.mono c) => match c.bases, c.off with
+    | [(p, 1)], 1 => (Res.topAtoms fn.body).any fun
+        | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
+        | _ => false
+    | _, _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
   | .under _ r => resFam fn G r
@@ -80,6 +88,12 @@ noncomputable def resFam (fn : Fn) (G : Mode.Sig) : CRes → Bool
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFam Cf.fn Cf.frame.sig)
+
+/-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
+its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
+parameter times `g`. -/
+noncomputable def glOk (Cf : CFun) : Bool :=
+  Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)])
 
 theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
   simp [resOk, h]

@@ -27,21 +27,6 @@ end
 
 end LeanVM.Guest.Fn.«da_verify»
 
-namespace LeanVM.Guest.Fn.«child_claim_list_last__L4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `child_claim_list_last__L4`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 375) (d := Data.adviceFn375) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«child_claim_list_last__L4»
-
 namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

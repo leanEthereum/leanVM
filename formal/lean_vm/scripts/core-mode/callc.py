@@ -53,13 +53,17 @@ def _em():
     return emitc
 
 
-def cell(m, nslots, ent=None, G=None, ret_ok=None):
-    """A mode product `(fp, k, bs)` as a heap cell over slots (frame cell `2 + b` is slot `b`), or `No`."""
+def cell(m, nslots, ent=None, G=None, ret_ok=None, gl=None):
+    """A mode product `(fp, k, bs)` as a heap cell over slots (frame cell `2 + b` is slot `b`; with `gl`, the caller's
+    cell `d` linked to slot `b` with no power of `g`, `CoreMode.baseOfL`), or `No`."""
     fp, k, bs = m
     if fp != 0:
         raise No('frame address')
     out = []
     for b, e in bs:
+        if gl and b[0] == 'hp' and b[1] == 1 and b[2] in gl and gl[b[2]][1] == 0 and gl[b[2]][0] < nslots:
+            out.append((gl[b[2]][0], e))
+            continue
         if b[0] != 'fr':
             raise No('pointer base')
         o = b[1]
@@ -81,8 +85,14 @@ def run(r, nslots, ent=None):
     return (I.shift(c, d), S, I.num(lo[1]), I.num(hi[1]))
 
 
-def bound(b, n, ent):
-    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent (`.val`)."""
+def bound(b, n, ent, gl=None):
+    """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent (`.val`); with `gl`
+    (`CoreMode.idxL`), the exponent of the caller's cell `d` linked to slot `b` times `g^k`."""
+    if gl and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and b[1][2] in gl:
+        sl, k = gl[b[1][2]]
+        if sl >= n:
+            raise No('run bound slot')
+        return I.mk(((sl, 1),), k)
     if b[0] == 'num':
         if not b[1] < 2 ** 62:
             raise No('run bound')
@@ -95,11 +105,31 @@ def bound(b, n, ent):
     raise No('run bound')
 
 
-def runX(r, n, ent=None):
-    """`CoreMode.rngX`: a run with exponent bounds."""
+def runX(r, n, ent=None, gl=None):
+    """`CoreMode.rngX`: a run with exponent bounds (`CoreMode.rngL` with the caller's cells `gl` linked)."""
     q, lo, hi, S, d = r
-    c = cell(q, n, ent)
-    return (I.shift(c, d), S, bound(lo, n, ent), bound(hi, n, ent))
+    c = cell(q, n, ent, gl=gl)
+    return (I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl))
+
+
+_LINKS = {}
+
+
+def gl_of(k):
+    """`CFun.gl`, of `CoreMode.glOk`'s family: for a callee of `anyLink` (`Res/AnyData.lean`, its entries and bound
+    parameters `pE`, `pL`), the caller's cell `2` linked to `pE` and cell `5` to `pL·g`; else none. As `{d: (b, k)}`."""
+    if not _LINKS:
+        import re
+        t = open(os.path.join(GUEST, 'Res', 'AnyData.lean'), encoding='utf-8').read()
+        for f, e, b in re.findall(r'\(name% «([^»]+)», (\d+), (\d+)\)', t):
+            _LINKS[f] = {2: (int(e), 0), 5: (int(b), 1)}
+        _LINKS.setdefault(None, None)
+    return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
+
+
+def gl_lean(k):
+    """`CFun.gl` as Lean."""
+    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in sorted(gl_of(k).items())) + ']'
 
 
 def prun(p, n, ent=None, const=False):
@@ -178,8 +208,9 @@ def const_pow(body, v):
     return False
 
 
-def own_sig(G, np, nr):
-    """`sigOk`: the function's heap signature, its mode signature's translated."""
+def own_sig(G, np, nr, gl=None):
+    """`sigOk`: the function's heap signature, its mode signature's translated (its `preR` with the caller's cells
+    `gl` linked, `CoreMode.rngLIs`)."""
     if G['self'] != ('id', 'none'):
         raise No('self')
     for f in ('term', 'postL', 'postLP', 'postT', 'postC'):
@@ -188,7 +219,14 @@ def own_sig(G, np, nr):
     h = I.Sig(np)
     h.pre = [cell(m, np) for m in G['pre'] if not hp_of(m)]
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], np)
-    h.preR = [runX(r, np) for r in G['preR']]
+    def own_pre_run(r):
+        try:
+            return runX(r, np)
+        except No:
+            if not gl:
+                raise
+            return runX(r, np, gl=gl)
+    h.preR = [own_pre_run(r) for r in G['preR']]
     h.prePR = [prun(p, np) for p in G['preP']]
     ret_ok = lambda o: (o - 2 < np and o in G['entry']) or (np <= o - 2 < np + nr and o in G['ret'])
     h.post = [cell(m, np + nr, ret_ok) for m in G['post'] if not hp_of(m)]
@@ -244,7 +282,7 @@ def infer_one(k, S, allow=None):
     G = S.get(k)
     if G is None:
         raise No('no mode signature')
-    own = own_sig(G, np, len(rets))
+    own = own_sig(G, np, len(rets), gl_of(k))
     cs = {}
     for s in body:
         if s[0] == 'call':

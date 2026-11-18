@@ -119,6 +119,43 @@ theorem resLt_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn}
     have := exp_lt hμ Lm hall he hσx hd
     exact ltF_of_pow (e := e) hn (by omega) hσx
 
+/-- **The `rcv` family holds** (`e(x) < e(p·g)`, `x` range checked against `p`) at a valuation along a returning
+path of the function whose events hold on a memory of at most `2^28` words. -/
+theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {G : Mode.Sig} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {x : ℕ} {c : CoreMode.CCell}
+    (h : resFam fn G (.lt (.val x) (.mono c)) = true) : (CRes.lt (.val x) (.mono c)).Holds σ := by
+  simp only [resFam] at h
+  split at h
+  · rename_i p hb ho
+    obtain ⟨a, ha, hm⟩ := List.any_eq_true.mp h
+    have hal : a.Holds Lm.read σ := hh _ (topAtoms_on_path hw ha)
+    cases a with
+    | rangeCheck x' y t1 t2 k =>
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hm
+      obtain ⟨rfl, rfl⟩ := hm
+      obtain ⟨⟨hxK, hxr⟩, hk, ⟨hyK, hyr⟩⟩ := hal
+      obtain ⟨i, hi, hσx⟩ := Exec.deref0_addr (by omega) hxK hxr
+      obtain ⟨j, hj, hσy⟩ := Exec.deref0_addr (by omega) hyK hyr
+      have h28 : (2 : ℕ) ^ μ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hμ
+      have hcap : (2 : ℕ) ^ 28 + 2 ^ 28 + 1 < capE := by unfold capE; norm_num
+      refine ⟨i, i + j + 1, ?_, ?_, by omega⟩
+      · simp only [idxC, CoreMode.valW_baseC, vw, hσx]
+        exact rep_of (by omega)
+      · obtain ⟨cb, co⟩ := c
+        simp only at hb ho
+        subst hb ho
+        have : CoreMode.CCell.valW (vw σ) ⟨[(p, 1)], 1⟩ = ofK (addressOfIndex (i + j + 1)) := by
+          have e1 : CoreMode.CCell.valW (vw σ) ⟨[(p, 1)], 1⟩ = σ (V.n p) * ofK (addressOfIndex 1) := by
+            simp [CoreMode.CCell.valW, CoreMode.prodW, vw]
+          rw [e1, hk, hσx, hσy, ← ofK_mul, ← ofK_mul]
+          congr 1
+          simp only [addressOfIndex, ← pow_add]
+        simp only [idxC]
+        rw [this]
+        exact rep_of (by omega)
+    | _ => simp at hm
+  · cases h
+
 theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
   unfold Program.find? at h
   have := List.find?_some h
@@ -184,8 +221,12 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨κ, hκ, hname, heq⟩ := h
     rw [heq]
     exact cs_holds hr hI ht hf hκ hname
+  | .lt (.val x) (.mono c), h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    exact resLtM_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
   | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
-  | .lt (.val _) (.val _), h | .lt (.val _) (.mono _), h | .lt (.num _) _, h | .lt (.mono _) _, h
+  | .lt (.val _) (.val _), h | .lt (.num _) _, h | .lt (.mono _) _, h
   | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [resFam] at h
 
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in

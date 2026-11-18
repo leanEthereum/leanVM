@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreSlot
 public import LeanVM.Guest.CoreMode.CorePtr
+public import LeanVM.Guest.CoreMode.CoreLink
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.CoreMode.PairJumpC
 public import LeanVM.Guest.CoreMode.PairCallIf
@@ -1769,21 +1770,34 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         exact ptIn_slot hrc.2 (hSE hrc.1) (hH0.r r (List.mem_cons_of_mem _ hr))
     · obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp (hpreR r hr)
       rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
-      · rw [Bool.and_eq_true] at hrq
-        obtain ⟨hmS, hrq⟩ := hrq
-        unfold rngIs at hrq
+      · rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
+        · rw [Bool.and_eq_true] at hrq
+          obtain ⟨hmS, hrq⟩ := hrq
+          unfold rngIs at hrq
+          split at hrq
+          · rename_i q hq
+            obtain rfl := of_decide_eq_true hrq
+            exact rw_slot hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+          · cases hrq
+        · rw [Bool.and_eq_true] at hrq
+          obtain ⟨hmS, hrq⟩ := hrq
+          unfold rngXIs at hrq
+          split at hrq
+          · rename_i q hq
+            obtain rfl := of_decide_eq_true hrq
+            exact rw_slotX hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+          · cases hrq
+      · -- a run over the caller's linked cells
+        rw [Bool.and_eq_true] at hrq
+        obtain ⟨hbs, hrq⟩ := hrq
+        unfold rngLIs at hrq
         split at hrq
         · rename_i q hq
           obtain rfl := of_decide_eq_true hrq
-          exact rw_slot hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
-        · cases hrq
-      · rw [Bool.and_eq_true] at hrq
-        obtain ⟨hmS, hrq⟩ := hrq
-        unfold rngXIs at hrq
-        split at hrq
-        · rename_i q hq
-          obtain rfl := of_decide_eq_true hrq
-          exact rw_slotX hq (hSE hmS) (hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
+          have hgl := hσ.gl
+          rw [hog, List.append_nil] at hgl
+          exact rw_slotL hq (slotEqL_of hκ hs.agree hs.fp (hws0 hσ) hgl hbs) (hH0.r r' (List.mem_cons_of_mem _ hr'))
+            y hx
         · cases hrq
     · obtain ⟨w', hw', o, ho, rfl⟩ := hps
       have hall := hpreP p hp

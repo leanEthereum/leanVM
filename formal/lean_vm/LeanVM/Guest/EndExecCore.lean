@@ -13,6 +13,7 @@ public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.JumpCellsDeployed
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecCoreRes
+public import LeanVM.Guest.EndExecCoreLink
 
 /-!
 # The core route's honest frames
@@ -311,7 +312,8 @@ theorem ctxOf_ent {j t : ℕ} {g : String} (h : (Bridge.ctxOf j).entOk t g = tru
 theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
     (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = End.mainEntry) (hJ : JumpCellsAt A)
-    (hL : AlLayout A) (hAX : ∀ f j, B2C.idxOf f = some j → (A f).X = Bridge.ctxOf j) : CoreHonAll Ks (XOf Y) := by
+    (hL : AlLayout A) (hAX : ∀ f j, B2C.idxOf f = some j → (A f).X = Bridge.ctxOf j) (hLk : LinkOk Res.anyLink) :
+    CoreHonAll Ks (XOf Y) := by
   intro r hr K hK Cf hCf hent s i hon' hi hpc
   obtain ⟨f, hf, hcode, hentry, -⟩ := certs.fn K hK
   have hif : i < f.instructionCount := by
@@ -349,8 +351,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   subst hjj
   rw [hc0] at hfn
   -- the honest valuation
-  rw [Bool.and_eq_true] at hb0
-  obtain ⟨hb0, hres0⟩ := hb0
+  rw [Bool.and_eq_true, Bool.and_eq_true] at hb0
+  obtain ⟨⟨hb0, hres0⟩, hgl0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
@@ -374,7 +376,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   refine ⟨e.σ, ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_, ?_⟩⟩
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_, ?_,
+    ?_⟩⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
     · rw [hIt] at hv
@@ -518,6 +521,11 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   · -- its residuals, of families (`resOk`), true along its path on the reference
     rw [CoreMode.CFun.xc_of hhc]
     exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0 hparF
+  · -- the caller's linked cells, of a family (`glOk`)
+    rw [← hfpL]
+    have hpN : Cf.fn.params = (List.range Cf.fn.params.length).map V.n := by
+      rw [List.range_eq_range']; exact CoreMode.paramsN_eq _ 0 hpar
+    exact glF_inst hr hI hIt (by rw [hfn]; exact hE.find) hpN hLk hgl0 hF.hdr1 _
 
 end
 
