@@ -116,19 +116,25 @@ impl FlushBuilder {
     /// whatever the form says, with no value column and no identity to tie one
     /// (§sec:m3).
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 2]) {
-        self.memory_pushing(GCol(count, 1), addr, count, vals);
+        self.memory_pushing(GCol(count, 1), Col(count), addr, vals);
     }
 
     /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
     /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
     pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 2]) {
         let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
-        self.memory_pushing(counter, addr, count, vals);
+        self.memory_pushing(counter, Col(count), addr, vals);
     }
 
-    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 2]) {
+    /// [`Self::memory_coords_if`] at the cell's first access, whose count is `1`: a constant, so no count column.
+    pub(crate) fn memory_fresh_if(&mut self, flag: usize, addr: Coord, vals: [Coord; 2]) {
+        let counter = Coord::Sum(vec![Const(F64::ONE), GCol(flag, 1), Col(flag)]);
+        self.memory_pushing(counter, Const(F64::ONE), addr, vals);
+    }
+
+    fn memory_pushing(&mut self, counter: Coord, count: Coord, addr: Coord, vals: [Coord; 2]) {
         let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
-        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
+        let mut pull = vec![Const(SEP_MEM), addr, count];
         push.extend_from_slice(&vals);
         pull.extend(vals);
         self.pair(push, pull);
@@ -776,7 +782,7 @@ impl Table for JumpTable {
 struct KeccakTable;
 
 pub(crate) mod keccakt {
-    use crate::keccak::ROW_CELLS;
+    use crate::keccak::STATE_CELLS;
     use primitives::hash::STATE_LANES;
 
     pub const PC: usize = 0;
@@ -789,8 +795,8 @@ pub(crate) mod keccakt {
     pub const FREE: usize = OUT_ALL + 1; // the read limb that holds no lane
     pub const V_IN: usize = FREE + 1; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
-    pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
-    pub const RBC: usize = R0 + ROW_CELLS;
+    pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell read, in flush order, then output cells 0, 1
+    pub const RBC: usize = R0 + STATE_CELLS + 2;
     pub const N: usize = RBC + 1;
 }
 
@@ -836,7 +842,8 @@ impl Table for KeccakTable {
         let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
         f.bytecode(PC, RBC, OP_KECCAK, &operands);
         // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
-        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
+        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power. The cells `OUT_ALL` gates
+        // are fresh (`ProveError::StaleKeccakOutput`), so their count is the constant 1.
         let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
         for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
             let (s, values, flag, free) = if c < STATE_CELLS {
@@ -850,7 +857,7 @@ impl Table for KeccakTable {
             match c.checked_sub(STATE_CELLS) {
                 None | Some(0) => f.memory_coords(addr, R0 + c, vals),
                 Some(1) => f.memory_coords_if(OUT_TWO, addr, R0 + c, vals),
-                Some(_) => f.memory_coords_if(OUT_ALL, addr, R0 + c, vals),
+                Some(_) => f.memory_fresh_if(OUT_ALL, addr, vals),
             }
         }
     }
@@ -899,7 +906,9 @@ impl Table for KeccakTable {
         })
         .into_flattened();
         ctx.cols_at(out, rows.len(), V_OUT, |i| outputs[i].map(F64));
-        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
+        ctx.cols(out, rows, R0, |r| -> [F64; crate::keccak::STATE_CELLS + 2] {
+            std::array::from_fn(|c| ctx.g_at(r.r[c]))
+        });
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }

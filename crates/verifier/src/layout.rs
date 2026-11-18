@@ -182,6 +182,12 @@ impl Flushes {
         self.counted(&[constant(SEP_MEM), address], counter, count, values);
     }
 
+    /// `memory_if` at the cell's first access, whose count is `1`: a constant, so no column.
+    fn fresh_if(&mut self, flag: usize, address: Form, values: &[Form; 2]) {
+        let side = |counter: Form| [vec![constant(SEP_MEM), address.clone(), counter], values.to_vec()].concat();
+        self.pair(side(constant(ONE) + col(flag, 1) + col(flag, 0)), side(constant(ONE)));
+    }
+
     /// The cell's limbs are the named columns, a missing high one zero.
     fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
         let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
@@ -347,7 +353,8 @@ fn flushes_keccak() -> Flushes {
     flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).collect());
     // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
     // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
-    // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1.
+    // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1. Those last
+    // eleven are fresh, so their count is 1: only the reads and output cells 0 and 1 have count columns.
     let address = |cell: usize| match cell {
         0..4 => prod(fp, o_m[cell], 0),
         4..8 => prod(fp, o_tail, cell as u64 - 4),
@@ -364,10 +371,8 @@ fn flushes_keccak() -> Flushes {
             match (side, cell) {
                 (0, _) => flushes.memory(address(cell), count, &values),
                 (_, 0) => flushes.memory(prod(fp, o_out, 0), count, &values),
-                _ => {
-                    let flag = if cell == 1 { out_two } else { out_all };
-                    flushes.memory_if(flag, prod(fp, o_out, cell as u64), count, &values);
-                }
+                (_, 1) => flushes.memory_if(out_two, prod(fp, o_out, 1), count, &values),
+                _ => flushes.fresh_if(out_all, prod(fp, o_out, cell as u64), &values),
             }
         }
     }
@@ -390,15 +395,15 @@ const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 // KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
-// read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
-// q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
+// read and for output cells 0 and 1, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane
+// is one of q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
 #[rustfmt::skip]
 const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
 const KECCAK_CELLS: usize = 13; // a sponge state, read then written
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 pub const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
-const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
+const KECCAK_CNT_BC: usize = KECCAK_CNT + KECCAK_CELLS + 2;
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
 /// committed columns in local order, the ones before the value lanes then the read counts
@@ -437,7 +442,7 @@ pub fn qkeccak_slot(column: usize) -> Option<usize> {
 
 fn keccak_columns() -> Vec<String> {
     let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
-    let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
+    let counts = (0..KECCAK_CELLS + 2).map(|cell| format!("cnt_{cell}"));
     let head = KECCAK_HEAD.iter().map(|name| name.to_string());
     head.chain(lanes("in"))
         .chain(lanes("out"))
