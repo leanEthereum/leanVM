@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.AS.Within
 public import LeanVM.Cost.AS.ProgramSize
+public import LeanVM.Cost.AS.Glue
 import all LeanVM.Protocol.Extraction.AS.Lite
 
 /-!

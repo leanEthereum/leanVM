@@ -18,9 +18,9 @@ import all Statement.LeanVmVerifier
 /-!
 # The agreement-set extractor's replay, compiled
 
-The transcript's first forward answers (`fwdIndex`), Keccak-256 through them, the seed, the
-skeletons' replay (`skelReplay`) and the decoders of the announced sizes and of the opening's
-trace.
+The transcript's first forward answers (`fwdIndex`), the lookup through them (`fwdF`), and
+Keccak-256 through them (`hashM`, whose closure the extractor's seed and replays use); the
+skeletons' replay and the decoders are compiled on demand by the top (`Cost/AS/Top.lean`).
 -/
 
 namespace LeanVM.Cost.AS
@@ -42,16 +42,6 @@ cost_compile fwdFC := fwdF
 def hashM (M : SortedMap (List UInt64) KeccakState) (m : Bytes) : Option Digest :=
   KeccakHash.keccak256With (fwdF M) m
 
-/-- The seed through the index. -/
-def seedM (M : SortedMap (List UInt64) KeccakState) (bytecode : List K) (pd : Digest) :
-    Option KeccakState :=
-  seedWithHash (hashM M) (fwdF M) bytecode pd
-
-/-- The skeleton's replay through the index. -/
-def replayM (M : SortedMap (List UInt64) KeccakState) (sk : List Op) (s : VerifierProgramState) :
-    Option (List EvP × VerifierProgramState) :=
-  skelReplayP (fwdF M) sk s
-
 cost_compile hashMC := hashM
 
 /-- The version tag's bytes, `"leanvm-v1"`. -/
@@ -71,10 +61,6 @@ theorem versionTag_eq : versionTag = [108, 101, 97, 110, 118, 109, 45, 118, 49] 
   decide +kernel
 
 cost_rewrite versionTag_eq
-
-cost_compile seedMC := seedM
-
-cost_compile replayMC := replayM
 
 end
 

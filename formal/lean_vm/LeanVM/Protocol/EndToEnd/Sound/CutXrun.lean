@@ -18,14 +18,14 @@ public import LeanVM.Protocol.Verifier.Cost
 
 `XCut H F p q`: wherever the extracted run of `p` (`xrun`, with the hash and permutation answers
 `H`, `F`) returns a value, the extracted run of `q` from the same state and history returns it
-too, with a history the first one extends by no commitment. Like `CutRel` it passes through a
+too, with a history the first one extends by no commitment. It passes through a
 common prefix program (`XCut.bind`) and a final return (`XCut.mapRet`), so the cut levels
 (`xcut_whirLevelsGF`; the final level's rest opens rows but commits nothing, `NoCommitQ`) give
 the cut verifier (`xcut_leanVmProgramG`).
 
 `replayU_cut`: so the replay of the cut (`Rom.replayU`) on permutation answers agreeing with the
 run's on its inputs returns the ghost verifier's value, at the extracted run's state, whose roots
-hold the commitments of the ghost's whole history (`commits_cut`).
+hold the commitments of the ghost's whole history.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -207,14 +207,6 @@ theorem returns_midTailPre {logN index : ℕ} {level next : Whir.Level} {s : Whi
   rw [VerifierProgram.returns_ret h]
   rfl
 
-theorem returns_liftOption {α : Type} {o : Option α} {a : α}
-    (h : VerifierProgram.Returns (liftOption o) a) : o = some a := by
-  cases o with
-  | none => cases h
-  | some b =>
-    have h' : VerifierProgram.Returns (VerifierProgram.ret b) a := h
-    rw [VerifierProgram.returns_ret h']
-
 /-! ## The final proof of work -/
 
 /-- The positions a challenge names first: `n` of `depth` bits (`sample_queries`'s first chunk). -/
@@ -390,7 +382,7 @@ theorem xcut_fin (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level
   have hr1 : r.1 = a := by
     have := hafter
     obtain ⟨u, m₁, m₂, -, -, hret⟩ := after_bind_ret this
-    exact (after_ret_eq' hret).2
+    exact (after_ret_eq hret).2
   subst hr1
   refine ⟨r.2.1, r.2.2, hr, ⟨l, hl, (noCommitQ_finRest logN laneFolds eb index level s rounds
     r.1).commits_nil hafter⟩, ?_⟩

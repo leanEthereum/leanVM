@@ -256,10 +256,6 @@ theorem squeezeI_some (F : KeccakState → KeccakState) {sp : Sponge} {c : E}
     (hg : sp.ground = some c) : squeezeI F sp = (c, { sp with ground := none }) := by
   simp [squeezeI, squeeze, hg]
 
-/-- The capacity of a permutation's input is the sponge's. -/
-theorem capOf_duplexInput (sp : Sponge) : capOf (duplexInput sp) = capOf sp.state := by
-  rw [duplexInput_eq, capOf_duplexOf]
-
 theorem lookF_none_of_cap {ℓ : Log} {s : KeccakState} (h : ∀ y ∈ fIns ℓ, capOf y ≠ capOf s) :
     lookF ℓ s = none :=
   (lookR_eq_none_iff ℓ s).mpr fun hs ↦ h s hs rfl

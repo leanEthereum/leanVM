@@ -210,13 +210,20 @@ theorem findLane_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.findLane.c194
 section Generic
 variable {α β : Type} [MachineEncoding α] [MachineEncoding β]
 
+/-- `Option.bind` (`bind.c47`): the closure's price on the value bound, `+ 6`. -/
+theorem bind_le (hP : Includes P Auto.Option.bind.c47.costDeps) (f : α → Option β) (fVal : MachineValue)
+    (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (o : Option α) (B : ℕ)
+    (hB : ∀ a, o = some a → appCost P fVal [encodeValue a] ≤ B) :
+    machineCost P Auto.Option.bind.c47.costIdx [encodeValue o, fVal] ≤ B + 6 := by
+  cases o with
+  | none => rw [Auto.Option.bind.c47.costEq_none P hP f fVal hf]; omega
+  | some a => rw [Auto.Option.bind.c47.costEq_some P hP a f fVal hf]; have := hB a rfl; omega
+
 /-- `Option.bind` (`bind.c47`): the closure's price and `6` at most. -/
 theorem bind_cost (hP : Includes P Auto.Option.bind.c47.costDeps) (f : α → Option β) (fVal : MachineValue)
     (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) (hB : ∀ a : α, appCost P fVal [encodeValue a] ≤ B)
-    (o : Option α) : machineCost P Auto.Option.bind.c47.costIdx [encodeValue o, fVal] ≤ B + 6 := by
-  cases o with
-  | none => rw [Auto.Option.bind.c47.costEq_none P hP f fVal hf]; omega
-  | some a => rw [Auto.Option.bind.c47.costEq_some P hP a f fVal hf]; have := hB a; omega
+    (o : Option α) : machineCost P Auto.Option.bind.c47.costIdx [encodeValue o, fVal] ≤ B + 6 :=
+  bind_le P hP f fVal hf o B fun a _ ↦ hB a
 
 /-- `List.finRange` from `i` (`finRangeFrom.c170`): `13` per element, `5` at the end. -/
 theorem finRangeFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.finRangeFrom.c170.costDeps)

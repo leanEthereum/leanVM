@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.GaoDecoder
+public import LeanVM.Protocol.Whir.Sound.Descent
 public import LeanVM.Protocol.Whir.Sound.LowMsgC
 
 /-!
@@ -16,8 +16,8 @@ public import LeanVM.Protocol.Whir.Sound.LowMsgC
 
 The descent (`descendTrace`) carries polynomial tuples, but reads them only through their values
 on the level's domain: the agreement set of a round is where the values agree with the fold
-(`agreeV_valsT`), a round's near tuple is the decoder's, evaluated (`ValsDecoder`: Gao's is
-`gaoValsDecoder`), the next level up is
+(`agreeV_valsT`), a round's near tuple is the decoder's, evaluated (`ValsDecoder`), the next
+level up is
 read through its low part, which is the inverse transform of its values on `U_κ`
 (`lowMsg_eq_novelInvE`), and its high part and the final polynomial are sums over the novel basis
 at the point. So the descent over values (`descendRoundsV`, `descendTraceV`), which is computable,
@@ -28,7 +28,6 @@ is the descent with the decoder, evaluated (`descendRoundsV_eq`,
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.Whir Polynomial
-  CompPoly CompPoly.ReedSolomon
 
 @[expose] public section
 
@@ -49,60 +48,6 @@ theorem agreeV_valsT (dom : Fin n ↪ E) {m : ℕ} (U : (Fin m → Bool) → E[X
   rw [mem_agreeT, agreeV, Finset.mem_filter]
   exact ⟨fun h ↦ h.2, fun h ↦ ⟨Finset.mem_univ x, h⟩⟩
 
-/-! ## Gao's decoding, evaluated -/
-
-/-- **Gao's near-tuple decoding over values**: every lane decoded, the tuple's values kept if it
-disagrees with the word on at most one column of `S`. -/
-def gaoDecV {m : ℕ} (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
-    (S : Finset (Fin n)) : Option ((Fin (m + 1) → Bool) → Fin n → E) :=
-  if h : ∀ v, (gaoLane dom d Q S v).isSome then
-    if (S.filter fun x ↦ ∃ v, ((gaoLane dom d Q S v).get (h v)).eval (dom x) ≠ Q v x).card ≤ 1
-    then some fun v x ↦ ((gaoLane dom d Q S v).get (h v)).eval (dom x)
-    else none
-  else none
-
-/-- Gao's output has degree below the message length. -/
-theorem natDegree_of_gaoLane {m : ℕ} {dom : Fin n ↪ E} {d : ℕ}
-    {Q : (Fin (m + 1) → Bool) → Fin n → E} {S : Finset (Fin n)} {v : Fin (m + 1) → Bool}
-    {f : CPolynomial E} (h : gaoLane dom d Q S v = some f) : f.toPoly.natDegree ≤ d := by
-  unfold gaoLane Gao.decode at h
-  rcases hp : Gao.partialGcd (d + 1) (setDomain dom S) (recvLane dom Q S v) with ⟨g, u, w⟩
-  rw [hp] at h
-  simp only at h
-  split_ifs at h with h1 h2
-  rw [Option.some.injEq] at h
-  subst h
-  rw [CPolynomial.degree_toPoly] at h2
-  by_cases hz : (g / w).toPoly = 0
-  · rw [hz, natDegree_zero]; exact Nat.zero_le _
-  · have := (natDegree_lt_iff_degree_lt hz).mpr h2
-    omega
-
-/-- **Gao's decoding over values is Gao's near-tuple decoding, evaluated.** -/
-theorem gaoDecV_eq {m : ℕ} (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
-    (S : Finset (Fin n)) : gaoDecV dom d Q S = (gaoDec dom d Q S).map (valsT dom) := by
-  unfold gaoDecV gaoDec
-  by_cases h : ∀ v, (gaoLane dom d Q S v).isSome
-  · rw [dite_eq_left h, dite_eq_left h]
-    have hfilt : (S.filter fun x ↦ ∃ v, ((gaoLane dom d Q S v).get (h v)).eval (dom x) ≠ Q v x) =
-        S.filter fun x ↦ ∃ v, ((gaoLane dom d Q S v).get (h v)).toPoly.eval (dom x) ≠ Q v x := by
-      ext x
-      simp only [Finset.mem_filter, CPolynomial.eval_toPoly]
-    have hnear : NearT dom Q d S (fun v ↦ ((gaoLane dom d Q S v).get (h v)).toPoly) ↔
-        (S.filter fun x ↦ ∃ v, ((gaoLane dom d Q S v).get (h v)).toPoly.eval (dom x) ≠
-          Q v x).card ≤ 1 := by
-      refine ⟨fun hn ↦ hn.2, fun hc ↦ ⟨fun v ↦ natDegree_of_gaoLane (Option.some_get (h v)).symm, hc⟩⟩
-    by_cases hc : (S.filter fun x ↦ ∃ v, ((gaoLane dom d Q S v).get (h v)).toPoly.eval (dom x) ≠
-        Q v x).card ≤ 1
-    · rw [hfilt]
-      simp only [hc, ↓reduceIte, hnear.mpr hc, Option.map_some]
-      congr 1
-      funext v x
-      rw [valsT, CPolynomial.eval_toPoly]
-    · rw [hfilt]
-      simp only [hc, ↓reduceIte, mt hnear.mp hc, Option.map_none]
-  · simp only [h, ↓reduceDIte, Option.map_none]
-
 /-! ## Decoders over values -/
 
 /-- **A near-tuple decoder over values**: the decoder `D`'s output, evaluated on the domain. -/
@@ -113,9 +58,6 @@ structure ValsDecoder (D : NearDecoder) where
   /-- It is `D`'s, evaluated. -/
   eq : ∀ {n m : ℕ} (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
     (S : Finset (Fin n)), decV dom d Q S = (D.dec dom d Q S).map (valsT dom)
-
-/-- Gao's decoding over values. -/
-def gaoValsDecoder : ValsDecoder gaoNearDecoder := ⟨gaoDecV, gaoDecV_eq⟩
 
 /-! ## Within a level -/
 
@@ -166,7 +108,7 @@ noncomputable def valsS (dom : Fin n ↪ E) (T : Σ k, (Fin k → Bool) → E[X]
     Σ k, (Fin k → Bool) → Fin n → E :=
   ⟨T.1, valsT dom T.2⟩
 
-/-- **The descent within a level over values is Gao's, evaluated.** -/
+/-- **The descent within a level over values is the decoder's, evaluated.** -/
 theorem descendRoundsV_eq (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ → Fin n → E) :
     ∀ (rs : List FoldRound) (m : ℕ) (U : (Fin m → Bool) → E[X]),
       descendRoundsV W dom d thr O rs m (valsT dom U) =
@@ -234,7 +176,7 @@ theorem upAt_eq (P' : LevelCode) (m : ℕ) {κ : ℕ} (hκ : κ = m + P'.κ) (hm
   simp only [joinMsg, msgT, hv]
   rw [lowMsg_eq_novelInvE (by have := P'.h64; omega)]
 
-/-- **The descent across levels over values is Gao's, evaluated.** -/
+/-- **The descent across levels over values is the decoder's, evaluated.** -/
 theorem descendTraceV_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) :
     ∀ (tr : WhirTrace) (i : ℕ), descendTraceV W codes cs tr i =
       (descendTrace D codes cs tr i).map (valsS (codes i).dom)

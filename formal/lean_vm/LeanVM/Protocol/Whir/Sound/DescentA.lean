@@ -41,9 +41,6 @@ theorem bitsEquiv_symm_bitsToNat {m : ℕ} (u : Fin m → Bool) (h : bitsToNat u
   rw [Equiv.symm_apply_eq]
   exact Fin.ext (bitsEquiv_val u).symm
 
-theorem bitsToNat_lt {m : ℕ} (u : Fin m → Bool) : bitsToNat u < 2 ^ m := by
-  rw [← bitsEquiv_val]; exact (bitsEquiv m u).isLt
-
 theorem rep_toAV {n m : ℕ} (f : (Fin m → Bool) → Fin n → E) : Rep (toAV n m f) f := by
   intro u x
   simp only [toAV, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, Fin.is_lt, ↓reduceDIte,

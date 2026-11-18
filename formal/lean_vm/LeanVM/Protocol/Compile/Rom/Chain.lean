@@ -63,25 +63,6 @@ theorem FirstAt.lookF_take {ℓ : Log} {j : ℕ} {x : KeccakState} (h : FirstAt 
   rw [h1, lookF_eq_some_iff]
   exact ⟨j, by simp; omega, by simpa using hej, by rwa [List.take_take, min_eq_left hm.le]⟩
 
-/-- A first answer at `j` is no answer in a prefix up to `j`. -/
-theorem FirstAt.lookF_take_none {ℓ : Log} {j : ℕ} {x : KeccakState} (h : FirstAt ℓ j x) {m : ℕ}
-    (hm : m ≤ j) : lookF (ℓ.take m) x = none := by
-  obtain ⟨-, -, -, hn⟩ := h
-  rcases hl : lookF (ℓ.take m) x with _ | w
-  · rfl
-  · have hp : ℓ.take m <+: ℓ.take j := by
-      rw [show ℓ.take m = (ℓ.take j).take m by rw [List.take_take, min_eq_left hm]]
-      exact List.take_prefix _ _
-    rw [lookF_of_prefix hp hl] at hn
-    cases hn
-
-/-- A permutation input keeps the capacity of the state. -/
-theorem capOf_duplexInput (sp : Sponge) : capOf (duplexInput sp) = capOf sp.state := by
-  funext i
-  simp only [capOf, duplexInput]
-  rw [lane_ofFn _ _ (by omega)]
-  simp
-
 variable {X : Type} {σ : Seeds X} {ℓ : Log}
 
 /-- **One link of the chain**: without failure, an input carrying the capacity of the answer of

@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
-public import LeanVM.Protocol.EndToEnd.Complete.BusTables
+public import LeanVM.Protocol.Verifier.Claims
 
 /-!
 # The bus phase's skeleton
@@ -106,21 +106,6 @@ def skBus (depth : ℕ) : List Op :=
 /-- The claims are on no `KECCAK` output column. -/
 def OffKeccak (claims : List Verifier.ColumnClaim) : Prop := ∀ c ∈ claims, c.column ∉ keccakOutputColumns
 
-theorem length_accFold (side : ℕ) (w : List E) (β : E) :
-    ∀ (l : List (E × BusBlock)) (forms : List (List Form)),
-      (EndToEnd.Complete.accFold side w β l forms).length = forms.length
-  | [], _ => rfl
-  | x :: l, forms => by
-    unfold EndToEnd.Complete.accFold
-    rw [List.foldl_cons]
-    exact (length_accFold side w β l _).trans (List.length_modify _ _ _)
-
-theorem length_accumulateSide (forms : List (List Form)) (side : ℕ) (fw : List ℕ)
-    (blocks : List BusBlock) (fps w : List E) (β : E) (p : List E) (tv : E) :
-    (accumulateSide forms side blocks (busLayout fw blocks) fps w β p tv).1.length =
-      forms.length := by
-  rw [EndToEnd.Complete.accumulateSide_fst, length_accFold]
-
 theorem bus_columns_off : memory0 ∉ keccakOutputColumns ∧ memory1 ∉ keccakOutputColumns ∧
     memoryFinalCounters ∉ keccakOutputColumns ∧ bytecodeFinalCounters ∉ keccakOutputColumns := by
   decide
@@ -140,7 +125,7 @@ theorem skel_verifyBusBalance (layout : Verifier.Layout) :
     skel_readScalar.bind fun _ _ ↦ skel_readScalar.bind fun _ _ ↦
     (skel_bytecodeShare _ _).bind fun r' _ ↦ (skel_require _).bind fun _ _ ↦
     SkelP.ret (Q := fun r : BusResult ↦ r.forms.length = tables.length ∧ OffKeccak r.claims)
-      ⟨by simp only [length_accumulateSide, List.length_map], by
+      ⟨by simp only [Claims.accumulateSide_length, List.length_map], by
         obtain ⟨h0, h1, h2, h3⟩ := bus_columns_off
         intro c hc
         simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc

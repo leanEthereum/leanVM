@@ -151,15 +151,6 @@ theorem upAtA_eq' {κ κ' m R : ℕ} {n' : ℕ} (hn' : 2 ^ κ' ≤ n') (hκ : κ
 
 /-! ## Across levels -/
 
-/-- The word of commitment `i`, column by column. -/
-def wordArr (i : ℕ) (cs : List (ℕ × ℕ × Word)) (n : ℕ) : AV :=
-  Array.ofFn fun v : Fin n ↦ (lanesOf i (wordOf cs i v)).toArray
-
-theorem laneO_wordArr (i : ℕ) (cs : List (ℕ × ℕ × Word)) (n j : ℕ) (v : Fin n) :
-    laneO i cs n j v = ((wordArr i cs n).getD v #[]).getD j 0 := by
-  rw [wordArr, Enc.getD_ofFn _ _ _ v.isLt, laneO]
-  simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-
 /-- **The descent across levels, over arrays.** -/
 def descendTraceA (codes : ℕ → LevelCode) (OAs : List AV) :
     WhirTrace → ℕ → Option (ℕ × AV)

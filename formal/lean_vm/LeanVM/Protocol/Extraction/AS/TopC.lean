@@ -14,8 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.SkelPairs
 # The extractor, compiled form
 
 `extractC`: `extractA` with the descent in its compiled form (`descendTraceC`) and the levels'
-shapes as numbers (`lvC`). It is `extractA` (`extractC_eq`), so knowledge soundness holds for it
-(`knowledgeSoundnessC_holds`).
+shapes as numbers (`lvC`). It is `extractA` (`extractC_eq`).
 -/
 
 namespace LeanVM.Extraction.AS
@@ -101,15 +100,6 @@ theorem extractP_eq (prog : LeanIsaProgram) (input : PublicInput)
     extractP prog input qs π = extractC prog input qs π := by
   unfold extractP extractC
   simp only [skelReplayP_eq, Option.bind_map, Function.comp_def, ← decSizes_eq, ← decBody_eq]
-
-/-- **The agreement-set extractor, compiled form**, on the adversary's transcript. -/
-def transcriptExtractorC : StraightLineExtractor :=
-  fun prog input T π ↦ extractP prog input (permutationQueries T) π
-
-/-- **Knowledge soundness holds for the compiled form**, with the end statement's bound. -/
-theorem knowledgeSoundnessC_holds : KnowledgeSoundness transcriptExtractorC :=
-  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ ((extractP_eq _ _ _ _).trans
-    (extractC_eq _ _ _ _)).trans h) knowledgeSoundnessA_holds
 
 end
 end LeanVM.Extraction.AS

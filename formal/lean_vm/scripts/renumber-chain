@@ -135,7 +135,7 @@ def fix_literals(text, after):
     return re.sub(r"([\w.?!']+)\.costIdx = (\d+) := rfl", repl, text)
 
 
-CHAIN_PREFIXES = ("LeanVM.Cost.Extractor.", "LeanVM.Cost.Decoder.")
+CHAIN_PREFIXES = ("LeanVM.Cost.Extractor.", "LeanVM.Cost.Decoder.", "LeanVM.Cost.AS.")
 
 def fix_imports(text, after, order):
     """Make the file's import of the chain reach the module that compiles every function it names

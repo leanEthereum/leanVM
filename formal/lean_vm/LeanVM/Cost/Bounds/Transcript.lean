@@ -13,8 +13,8 @@ public import LeanVM.Cost.Prices
 * **`leafAt_cost`**: reading a position of the committed word (`leafAt leaves h w v`, the leaf
   `v mod 2^h`, or `w` zeros) costs at most `15·w + 15`, for `h < 64` and word-sized `v`, `w`.
 
-The committed leaves themselves are bounded in `Bounds/Top.lean` (`leavesOfC_cost`, a lookup in
-the transcript's index `preimageLookup_cost`).
+The committed leaves themselves are bounded in `AS/Bounds/StepUp.lean` (`leavesOfC_cost_w`, a
+lookup in the transcript's index `preimageLookup_cost`).
 -/
 
 namespace LeanVM.Cost.Bounds

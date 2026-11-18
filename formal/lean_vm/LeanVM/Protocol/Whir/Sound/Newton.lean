@@ -52,10 +52,6 @@ def nStep (st : List F × List F) (p : F × F) : List F × List F :=
 /-- **The Newton coefficients** of the points, with their nodes. -/
 def nForm (pts : List (F × F)) : List F × List F := pts.foldl nStep ([], [])
 
-theorem eval_prod_take (xs : List F) (k : ℕ) (z : F) :
-    (((xs.take k).map fun x ↦ X - C x).prod).eval z = nodal (xs.take k) z := by
-  simp [nodal, eval_list_prod, List.map_map, Function.comp_def]
-
 theorem nEval_eq : ∀ (xs as : List F) (z : F), xs.length + 1 ≥ as.length →
     (nP xs as).eval z = nEval xs as z
   | x :: xs, a :: as, z, h => by

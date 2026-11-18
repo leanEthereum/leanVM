@@ -40,11 +40,7 @@ cost_compile laneRowsC := laneRows
 
 cost_compile leavesAtC := leavesAt
 
-cost_compile lvCC := lvC
-
 cost_compile wordArrOfC := wordArrOf
-
-cost_compile wordsGoC := wordsGo
 
 cost_compile finishLC := finishL
 

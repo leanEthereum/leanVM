@@ -129,9 +129,6 @@ theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {sk₁ sk�
   rw [List.map_append, hp h₁ a ha,
     hf a (returns_of_after ha) h₂ b hfa]
 
-theorem mono_eq {p : VerifierProgram α} {sk sk' : List Op} (hp : Skel p sk) (e : sk = sk') :
-    Skel p sk' := e ▸ hp
-
 end Skel
 
 section Replay

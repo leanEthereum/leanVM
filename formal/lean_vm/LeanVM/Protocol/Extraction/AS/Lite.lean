@@ -275,10 +275,5 @@ theorem extractL_eq (prog : LeanIsaProgram) (input : PublicInput)
 def transcriptExtractorL : StraightLineExtractor :=
   fun prog input T π ↦ extractL prog input (permutationQueries T) π
 
-/-- **Knowledge soundness holds for it**, with the end statement's bound. -/
-theorem knowledgeSoundnessL_holds : KnowledgeSoundness transcriptExtractorL :=
-  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ (extractL_eq _ _ _ _).trans h)
-    knowledgeSoundnessC_holds
-
 end
 end LeanVM.Extraction.AS

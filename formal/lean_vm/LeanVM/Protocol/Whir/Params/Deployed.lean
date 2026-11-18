@@ -454,12 +454,6 @@ theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
 
 /-! ## Level 0's list -/
 
-/-- **Level 0's list bound is at most `166`.** -/
-theorem listMax₀_le {μ R : ℕ} (h : Whir.Admissible μ R) : listMax₀ μ R ≤ 166 := by
-  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, h166, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
-  rw [listMax₀, hl]
-  exact h166
-
 /-- The commitment's out-of-domain row: `C(L₀, 2)·μ ≤ 2^(countBits oodGrindingBits)`. -/
 theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) :
     (listMax₀ μ R).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by

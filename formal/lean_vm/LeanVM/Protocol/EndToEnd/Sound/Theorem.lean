@@ -254,14 +254,6 @@ theorem mem_candidates_castColumn {a b : ℕ} (e : a = b) (R : ℕ) (A : ℕ →
   subst e
   simp [castColumn]
 
-/-- `ret` reaches only itself. -/
-theorem after_ret_eq {α : Type} {a b : α} {l : List Ev}
-    (h : (VerifierProgram.ret a).after l = some (.ret b)) : l = [] ∧ a = b := by
-  rcases l with _ | ⟨e, l⟩
-  · simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.ret.injEq] at h
-    exact ⟨rfl, h⟩
-  · simp [VerifierProgram.after] at h
-
 /-- **A good run's announced sizes and good candidate**: on a history along which the verifier
 accepts and which is a good run, the sizes announced are admissible and some candidate of the
 stack's word at level 0's threshold satisfies the relation. -/

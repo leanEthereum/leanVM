@@ -118,14 +118,5 @@ theorem extractA_eq (prog : LeanIsaProgram) (input : PublicInput)
   unfold extractA extractM
   simp only [finishA_eq]
 
-/-- **The agreement-set extractor over arrays**, on the adversary's transcript. -/
-def transcriptExtractorA : StraightLineExtractor :=
-  fun prog input T π ↦ extractA prog input (permutationQueries T) π
-
-/-- **Knowledge soundness holds for the extractor over arrays**, with the end statement's bound. -/
-theorem knowledgeSoundnessA_holds : KnowledgeSoundness transcriptExtractorA :=
-  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ (extractA_eq _ _ _ _).trans
-    (extractM_of_ASF newtonValsDecoder h)) (knowledgeSoundnessASF_holds newtonValsDecoder)
-
 end
 end LeanVM.Extraction.AS

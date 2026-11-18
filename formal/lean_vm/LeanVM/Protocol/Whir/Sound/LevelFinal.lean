@@ -185,12 +185,6 @@ theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.�
 
 /-! ## The specification -/
 
-/-- A specification whose program never returns in doom admits any follower's allowance. -/
-def anyT {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {εmax L T : ENNReal}
-    (S : Spec p Pre (fun _ _ ↦ False) εmax L T) (T' : ENNReal) :
-    Spec p Pre (fun _ _ ↦ False) εmax L T' :=
-  { S with retDoom := fun hl ha hD ↦ (S.post hl ha hD).elim }
-
 /-- A claim on no message bits is a sum over the lanes. -/
 theorem claimSum_msg0 {n : ℕ} (Φ : List E → E) (g : (Fin n → Bool) → (Fin 0 → Bool) → E) :
     claimSum Φ g = ∑ u, Φ (bitsL u) * g u Fin.elim0 := by

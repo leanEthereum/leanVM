@@ -141,7 +141,7 @@ theorem asPrice_le (N ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
   have e5 : 6 * (N * idxPerQuery 0 D W + idxFixed 0 D W) =
       6 * (N * idxPerQuery 0 D W) + 6 * idxFixed 0 D W := by ring
   rw [e2]
-  unfold headPrice finishPrice lookPrice bytecodeWordsPrice at *
+  unfold headPrice finishPrice bytecodeWordsPrice at *
   have hwc : wordConst ≤ 70000000000000 := by unfold wordConst; norm_num
   linarith
 

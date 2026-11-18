@@ -203,6 +203,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
+/-- A lifted option that may return `a` is `some a`. -/
+theorem returns_liftOption {α : Type} {o : Option α} {a : α} (h : VerifierProgram.Returns
+    (liftOption o) a) :
+    o = some a := by
+  unfold liftOption at h
+  split at h
+  · cases h
+  · rw [VerifierProgram.returns_ret h]
+
 /-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point and value, `ev`'s check
 passes only where `ev'`'s does. -/
 def Evaluations.Le (bytecode : List K) (ev ev' : List K → List E → E → VerifierProgram Unit) :

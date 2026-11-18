@@ -160,9 +160,6 @@ noncomputable def toCertG (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false �
     exact esc_le S p hl ha
   final hl ha hD := by simpa using S.post (reach_nil_iff.2 hl) ha hD
 
-theorem toCertG_D (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false ∨ G h) εmax L 0) :
-    S.toCertG.D = S.D [] := rfl
-
 /-- **The certificate's bound** of `toCertG`, given the bound of the start group. -/
 theorem toCertG_bound (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false ∨ G h) εmax L 0)
     (hstart : S.D [] [] → S.V [] [] ≤ εmax) (h : List Ev) :
@@ -175,21 +172,6 @@ theorem toCertG_bound (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false ∨ G
     · simpa [grindBits] using hstart hD
     · exact S.bound (reach_nil_iff.2 hl) hne ((endsMove_iff_boundary hne).2 hb) hD
   · simp
-
-/-- `toCertG` of a specification from the empty history. -/
-noncomputable def toCertOfLeadG
-    (S : Spec P (fun h ↦ h = []) (fun b h ↦ b = false ∨ G h) εmax L 0) : CertG P G :=
-  (S.mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).toCertG
-
-theorem toCertOfLeadG_D (S : Spec P (fun h ↦ h = []) (fun b h ↦ b = false ∨ G h) εmax L 0) :
-    S.toCertOfLeadG.D = S.D [] := rfl
-
-/-- **The certificate's bound** of `toCertOfLeadG` from a lead at most `εmax`. -/
-theorem toCertOfLeadG_bound (S : Spec P (fun h ↦ h = []) (fun b h ↦ b = false ∨ G h) εmax L 0)
-    (hL : L ≤ εmax) (h : List Ev) :
-    (2 : ENNReal)⁻¹ ^ grindBits h * S.toCertOfLeadG.ε h ≤ εmax :=
-  (S.mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).toCertG_bound
-    (fun _ ↦ (S.start_V [] rfl).trans hL) h
 
 end G
 

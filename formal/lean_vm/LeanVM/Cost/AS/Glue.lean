@@ -68,8 +68,6 @@ theorem replay_reads (F : KeccakState → Option KeccakState) :
       rfl
     · simp at h
 
-theorem stackLog_layoutLite (L : Layout) : (layoutLite L).stackLog = L.stackLog := rfl
-
 /-- **The stack size the decoded announced sizes give is the one the budget reads.** -/
 theorem announced_of_decSizesL (F : KeccakState → Option KeccakState) (prog : LeanIsaProgram)
     (π : Proof) (seed : KeccakState) {r₁ : List EvP × VerifierProgramState} {lay : LayoutLite} {ρ : ℕ}

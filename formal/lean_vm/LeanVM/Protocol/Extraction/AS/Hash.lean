@@ -80,11 +80,9 @@ theorem littleEndianLane_blockBytes (s x : KeccakState) {i : ℕ} (hi : i < 17) 
     rw [Fast.blockBytes, hr, List.flatMap_append, List.drop_left' hlen, List.flatMap_cons]
   rw [hd, Wire.littleEndianLane_wordBytes_append]
 
-theorem length_wordBytes (w : UInt64) : (wordBytes w).length = 8 := by simp [wordBytes]
-
 theorem length_blockBytes (s x : KeccakState) : (Fast.blockBytes s x).length = rate := by
   rw [Fast.blockBytes, List.length_flatMap]
-  simp [length_wordBytes, rate]
+  simp [wordBytes_length, rate]
 
 /-- Absorbing the block from `s` to `x` into `s` gives `x`, when their capacities agree. -/
 theorem absorb_blockBytes {s x : KeccakState} (hcap : s.toList.drop 17 = x.toList.drop 17) :

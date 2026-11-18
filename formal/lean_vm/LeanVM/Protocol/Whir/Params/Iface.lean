@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Whir.Params.Deployed
-public import LeanVM.Protocol.Whir.Params.Threshold
+public import LeanVM.Protocol.Whir.Params.Check
 public import LeanVM.Protocol.EndToEnd.Sound.Assemble
 public import LeanVM.Protocol.EndToEnd.Sound.Runs
 
@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Runs
 # The opening's interface
 
 `openingIface` fills `EndToEnd.Sound.OpeningIface` with the deployed WHIR opening: level 0's
-threshold `thr0Of` (the extractor's, `johnsonThreshold_eq_thr0Of`), its list bound `listMax₀`, the
+threshold `thr0Of`, its list bound `listMax₀`, the
 shape `ShapeOK₀` of the stack's commitment (`shape_commitStack`), and `deployedStackedSpec`.
 -/
 
@@ -71,7 +71,6 @@ noncomputable def openingIface : EndToEnd.Sound.OpeningIface where
   ShapeOK₀ := ShapeOK₀
   word₀ cs := wordOf cs 0
   shape_word h := shape_word h
-  thr₀_eq h := (johnsonThreshold_eq_thr0Of h).symm
   shape_commitStack h := shape_commitStack h
   candidates_finite W h := (candidates_facts h W).1
   card_candidates_le W h := (candidates_facts h W).2

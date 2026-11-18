@@ -18,7 +18,7 @@ public import LeanVM.Protocol.LeanVMRpmASC
 `extractM prog input qs π`: `extractASF` on the transcript's permutation queries `qs`, the
 permutation answered by the index of first forward answers (`fwdIndex`), the bytecode's digest
 computed through it (`keccak256_of_lookupEvaluation`), and every root's committed word read
-through the preimage index of the list decoder's extractor (`leavesOf`, `leavesOf_eq`).
+through the transcript's preimage index (`leavesOf`, `leavesOf_eq`).
 Wherever the skeleton's extractor returns an execution, it returns it (`extractM_of_ASF`).
 -/
 

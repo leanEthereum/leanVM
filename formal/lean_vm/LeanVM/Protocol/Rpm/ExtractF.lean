@@ -59,13 +59,6 @@ theorem firstFwdB_append_self {log : RLog} {x y : Common.KState}
   rw [List.find?_append, hn]
   simp
 
-theorem not_mem_of_firstFwdB_none {log : RLog} {x : Common.KState} (h : firstFwdB log x = none)
-    (y : Common.KState) : (Common.PermutationQuery.forward x, y) ∉ log := by
-  intro hm
-  unfold firstFwdB at h
-  rw [Option.map_eq_none_iff, List.find?_eq_none] at h
-  exact h _ hm (by simp)
-
 theorem isSome_forwardLookup_cons {E : Common.PermutationEdges Common.KState} {x : Common.KState}
     (h : (Common.forwardLookup E x).isSome) (a b : Common.KState) :
     (Common.forwardLookup ((a, b) :: E) x).isSome := by

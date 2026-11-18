@@ -49,13 +49,6 @@ open scoped ENNReal
 def verify (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : Bool :=
   Id.run (verifierWithHash (m := Id) keccak256 keccakF1600 prog input proof)
 
-/-- `verify` is the transcription of the deployed verifier, run with Keccak-256 and
-Keccak-f[1600] (`LeanVM.Protocol.Verifier.verify`, what `lake exe leanvm-verify` runs). -/
-theorem verify_eq (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
-    verify prog input proof =
-      LeanVM.Protocol.Verifier.verify (bytecodeWords prog) (publicInputDigest input) proof :=
-  rfl
-
 /-- The verifier of the experiment, on a statement and a proof. -/
 abbrev expVerifier : ProgramAndInput × Proof → OracleComp KeccakCalls Bool :=
   fun z ↦ verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2
@@ -78,13 +71,6 @@ theorem experiment_eq (A : Adversary) :
   simp [map_eq_bind_pure_comp]
 
 /-! ## Knowledge soundness -/
-
-/-- **The extractor's list is short**: at every admissible stack size and rate, the candidates of
-any word at the Johnson threshold are at most level 0's list bound. -/
-theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤
-      Protocol.Whir.Params.listMax₀ μ R :=
-  Sound.spec_candidates_ncard_le LeanVM.Protocol.Whir.Params.openingIface h W
 
 end
 end LeanVM

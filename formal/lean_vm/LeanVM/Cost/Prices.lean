@@ -57,11 +57,6 @@ def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
     (N + 1) * ((firstAnswersStepPrice L D W + 11) + (preimageStepPrice L D W + 11) +
       D * (20 + (40 + 26 * L + 9 * W) * (D + 2)) + 67) + 44
 
-/-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
-binary searches. -/
-def committedLeavesPrice (D h W : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h)
-
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
 

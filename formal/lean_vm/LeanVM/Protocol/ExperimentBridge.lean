@@ -23,8 +23,8 @@ recorded (`Rpm.runAdversaryThen`).
 * `logged_run`: the adversary run with its queries recorded (`Common.loggedOracles`), then against
   the lazy permutation, is its run with its permutation queries recorded, the coins left out.
 * `map_soundnessExperiment`: so the statement's soundness experiment, its transcript's coins left
-  out, is the two-call experiment; `knowledgeSoundness_of_withHash` and
-  `completeness_of_withHash` give the end statements from the two-call ones.
+  out, is the two-call experiment; `completeness_of_withHash` gives the end statement from the
+  two-call one.
 -/
 
 open OracleComp OracleSpec

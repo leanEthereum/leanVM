@@ -76,10 +76,6 @@ def whirLevelsG (logN laneFolds : ℕ) (eb : List E → E) :
         whirLevelsG logN laneFolds eb (index + 1) (next :: rest) s' >>= fun tr ↦
           VerifierProgram.ret (.mid r.2 high tr)) r.1 r.2
 
-theorem bind_unit_ret (p : VerifierProgram Unit) : p >>= (fun _ ↦ VerifierProgram.ret ()) = p := by
-  rw [VerifierProgram.bind_eq]
-  conv_rhs => rw [← VerifierProgram.bind_ret p]
-
 theorem midTailC_bind {α β : Type} (logN index : ℕ) (level next : Whir.Level)
     (k : List E → WhirState → VerifierProgram α) (g : α → VerifierProgram β) (s : WhirState)
     (rounds : List FoldRound) :
@@ -161,13 +157,6 @@ noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ)
       (fun _ hp ↦ ⟨hp.1, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 /-! ## The opening -/
-
-/-- `verifyWhir` on an admissible shape: the levels from the initial state. -/
-theorem verifyWhir_eq {R : ℕ} {t : E} {level : Whir.Level} {rest : List Whir.Level}
-    (hc : Whir.ladder μ R = some (level :: rest)) :
-    verifyWhir μ R t w = whirLevels μ level.fold w 0 (level :: rest) ⟨t, [], []⟩ := by
-  rw [verifyWhir, hc]
-  rfl
 
 /-- `verifyWhir`, returning its trace. -/
 def verifyWhirG (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :

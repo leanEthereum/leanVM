@@ -17,8 +17,6 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Protocol.Whir.Sound.Newton
 
 public section
 
-cost_compile nEvalKC := nEvalK
-
 cost_compile nodalKC := nodalK
 
 cost_compile nStepKC := nStepK

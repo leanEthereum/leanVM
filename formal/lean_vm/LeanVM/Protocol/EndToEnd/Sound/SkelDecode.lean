@@ -102,7 +102,7 @@ theorem dec_readScalars : ∀ n, DecP (VerifierProgram.readScalars n) id fun h �
         VerifierProgram.after, reduceCtorEq] at ha
       rename_i x
       obtain ⟨xs, h₁, h₂, rfl, hxs, hret⟩ := after_bind_ret ha
-      obtain ⟨rfl, rfl⟩ := after_ret_eq' hret
+      obtain ⟨rfl, rfl⟩ := after_ret_eq hret
       rw [List.append_nil]
       have := dec_readScalars n h₁ xs hxs
       simp only [id] at this
@@ -116,7 +116,7 @@ theorem dec_sampleChallenge : DecP VerifierProgram.sampleChallenge id fun h ↦
   · cases e <;> simp only [VerifierProgram.sampleChallenge, VerifierProgram.after,
       reduceCtorEq] at ha
     rename_i c
-    obtain ⟨rfl, rfl⟩ := after_ret_eq' ha
+    obtain ⟨rfl, rfl⟩ := after_ret_eq ha
     rfl
 
 /-! ## The opening's trace -/
@@ -177,7 +177,7 @@ theorem dec_liftOption {α : Type} (o : Option α) : DecP (Verifier.liftOption o
     rcases h with _ | ⟨e, h⟩ <;> simp [Verifier.liftOption, VerifierProgram.after] at ha
   | some b =>
     have hb : (VerifierProgram.ret b : VerifierProgram α).after h = some (.ret a) := ha
-    obtain ⟨-, rfl⟩ := after_ret_eq' hb
+    obtain ⟨-, rfl⟩ := after_ret_eq hb
     rfl
 
 /-- A level's high part read off its rest's history: after the commitment. -/

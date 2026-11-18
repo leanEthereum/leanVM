@@ -47,7 +47,7 @@ theorem size_laneRows (n i : ℕ) (lv : Array (List K)) (h w y : ℕ) (hlv : ∀
 theorem size_wordArrOf (μ R : ℕ) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
     (i : ℕ) (x : LeanVM.Protocol.Digest × ℕ × ℕ) (y : ℕ) :
     ((wordArrOf μ R qs i x).getD y #[]).size ≤ x.2.2 :=
-  size_laneRows _ i (leavesAt qs x) x.2.1 x.2.2 y fun l hl ↦ (length_subtreeLeavesWith _ _ _ _ l hl).le
+  size_laneRows _ i (leavesAt qs x) x.2.1 x.2.2 y fun l hl ↦ (subtreeLeavesWith_mem_length _ _ _ _ l hl).le
 
 theorem size_wordsGo (μ R : ℕ) (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (Wd : ℕ) :
     ∀ (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) (a : ℕ), (∀ x ∈ roots, x.2.2 ≤ Wd) →

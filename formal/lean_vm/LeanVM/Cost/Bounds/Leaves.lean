@@ -17,8 +17,7 @@ public import LeanVM.Cost.Prices
   word), `leafOfWithC_cost`, `bytesDigestC_cost` (`7428`: its four words each through
   `bytesLanes 4`), `subtreeLeavesWithC_cost` (by doubling), a lookup in the transcript's index
   `preimageLookup_cost` (`D·(20 + (162 + 9W)·(D + 2)) + 42`, its keys `PreKey`:
-  `transcriptIndex_keys`), **`leavesOfC_cost`** (`transcriptIndexPrice` and
-  `committedLeavesPrice`);
+  `transcriptIndex_keys`);
 * the bytecode's words: `bytecodeWords_length` (`16·2^ℓ`), **`bytecodeWordsC_cost`**
   (`bytecodeWordsPrice ℓ = 5712·2^ℓ + 947`).
 -/
@@ -238,31 +237,6 @@ theorem preimageLookup_cost (hP : Includes P leavesOfC.lam0.costDeps)
   generalize (transcriptIndex qs L).get? (d.toList, len) = o1
   generalize (transcriptIndex qs L).getD (d.toList, len) Hits.none = o2
   cases o1 <;> cases o2 <;> dsimp only <;> omega
-
-/-- **The committed leaves** (`leavesOfC`, width `64`): the transcript's index, then the subtree. -/
-theorem leavesOfC_cost (hP : Includes P leavesOfC.costDeps)
-    (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (D W : ℕ)
-    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
-    (hN : qs.length + 2 ≤ 2 ^ D) (h : ℕ) (root : LeanVM.Protocol.Digest) :
-    machineCost P leavesOfC.costIdx [encodeValue qs, encodeValue 64, encodeValue h, encodeValue root] ≤
-      19 + transcriptIndexPrice D 512 qs.length W + committedLeavesPrice D h W := by
-  rw [leavesOfC.costEq P hP]
-  rw [show max 64 (8 * 64) = 512 by norm_num]
-  have hT := transcriptIndex_cost P (by includes) D 512 W hW (by norm_num) qs hN
-  have hS := subtreeLeavesWithC_cost P (by includes) _
-    (.closure leavesOfC.lam0.costIdx [encodeValue (transcriptIndex qs 512)])
-    (fun d n ↦ RunsApp.of_spec (leavesOfC.lam0.costSpec P (by includes) _ d n))
-    (D * (20 + (162 + 9 * W) * (D + 2)) + 42)
-    (fun d n hn ↦ preimageLookup_cost P (by includes) qs 512 D W (by norm_num) hW hN d n hn)
-    64 (by norm_num) h root
-  rw [limbs_of_lt (by norm_num : (64 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 8 * 64 < 2 ^ 64)]
-  have e : D * (20 + (162 + 9 * W) * (D + 2)) + 42 + 15 * 64 + 30725 +
-      (D * (20 + (162 + 9 * W) * (D + 2)) + 42 + 453 * 64 + 35) + 5 * h =
-      2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h := by ring
-  rw [e] at hS
-  unfold transcriptIndexPrice committedLeavesPrice
-  simp only [show (64 : ℕ) ≤ 8 * 64 from by norm_num, ↓reduceIte]
-  omega
 
 /-! ## The bytecode's words -/
 

@@ -112,11 +112,11 @@ theorem replay_cut_skel (F : KeccakState → Option KeccakState) (bytecode : Lis
   have hafter' := hafter
   unfold leanVmProgramCut at hafter'
   obtain ⟨d, h₁, h₂, rfl, hd, hret⟩ := after_bind_ret hafter'
-  obtain ⟨rfl, rfl⟩ := after_ret_eq' hret
+  obtain ⟨rfl, rfl⟩ := after_ret_eq hret
   unfold verifyExecutionClaimsCut at hd
   obtain ⟨a', h₃, h₄, rfl, ha', hbody⟩ := after_bind_ret hd
   obtain ⟨tr, h₅, h₆, rfl, htr, hret'⟩ := after_bind_ret hbody
-  obtain ⟨rfl, rfl⟩ := after_ret_eq' hret'
+  obtain ⟨rfl, rfl⟩ := after_ret_eq hret'
   have hs₁ := (skel_readAnnouncedSizes bytecode).1 h₃ a' ha'
   have hs₂ := (skel_veBodyCut pd a'.1 a'.2).1 h₅ tr htr
   rw [List.append_nil, List.append_nil] at hrep
