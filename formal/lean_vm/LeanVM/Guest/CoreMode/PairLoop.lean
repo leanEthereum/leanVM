@@ -46,11 +46,11 @@ theorem pair_tailL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
         (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
-        walk σ pos = .ret es vs → ReadsOkC sigOf H rd σ ws0 (pre ++ es) →
+        walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
           es = evs ++ Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es') ∧
           walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-          ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
+          (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
             ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x := by
   obtain ⟨as, bs, z, zs, tabs, r, hpos, hzpos, hq, hbs, hpairs, -, hzsok, hr, h1, -, -⟩ := pair_jump hok hat hci
   have hf : fwdJ X i oc od of = false := by simp [fwdJ, hsf]
@@ -82,7 +82,7 @@ theorem pair_tailL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   rw [walk_callIf_cons] at hes1
   obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
   obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
-  refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], fun x hx ↦ ?_⟩
+  refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
   have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
     intro a ha hn
     rcases List.mem_append.mp ha with ha | ha
@@ -106,7 +106,7 @@ theorem pair_retL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hci : code[i]? = some (.jump oc 0 1)) (hz : X.zeroAt oc = false) (hsf : X.selfAt 1 = false)
     (h0 : X.pcAt 0 = none) (hst : ∀ s ∈ stmtsOf body, loopStmt s = true)
     {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val}
-    {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
+    {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsAt sigOf H rd σ ws0 pre es) :
     ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ es) x → WrittenC sigOf H rd σ ws0 pre x ∨
         ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ es ∧ Writes σ a x := by

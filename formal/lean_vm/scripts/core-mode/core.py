@@ -276,7 +276,7 @@ def main():
                 f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, hpost, [], [], false, []⟩\n\nend\n\npublic section\n\nattribute [local irreducible] pairO pairS\n\n'
                 f'/-- `{k}`: its promised cells witnessed. -/\n'
                 f'theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by\n  decide +kernel\n\n'
-                + checks(k, j, K, frame_term(frames[k]), '.m1 heap_ok core_post (by decide +kernel) rfl'))
+                + checks(k, j, K, frame_term(frames[k]), '.m1 heap_ok core_post (by decide +kernel) rfl rfl rfl'))
         mod = 'LeanVM.Guest.CoreMode.Gen.«%s».Core' % p
         files[os.path.join(GEN, p, 'Core.lean')] = (
             HEADER.format(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +

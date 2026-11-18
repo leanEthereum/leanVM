@@ -176,13 +176,14 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
 
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation
-of the frame, its path splits at the pairing's position at `i` (`pairAt`), every cell written by the
-events before it (`WrittenC`, pointer facts read on the reference) being written in `m` (`WrK`). -/
+of the frame, its path splits at the pairing's position at `i` (`pairAt`), the calls before it having their
+callees' returned words (`EvM`), every cell written by the events before it (`WrittenC`, pointer facts read on
+the reference) being written in `m` (`WrK`). -/
 def CoreIn (img : MemoryImage κ) (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) (m : Mem) (fp : ℕ) : Prop :=
   AtF img Cf.frame code i (Mode.stOf m fp) ∧ (∀ o ∈ Cf.frame.sig.entry, m.written (fp + o) = true) ∧
     ∀ σ, HonF img Cf fp σ → ∃ pos pre es vs rd, rd = img.read ∧ pairAt Cf.P Cf.fn.body code Cf.d i = some pos ∧
       walk σ Cf.fn.body = .ret (pre ++ es) vs ∧ walk σ pos = .ret es vs ∧ (∀ e ∈ pre ++ es, e.Holds rd σ) ∧
-      ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK m y
+      (∀ e ∈ pre, EvM Cf.sigOf rd σ e) ∧ ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK m y
 
 /-- **The core route's frame predicate**: the entry runs' exponent cells powers of `g` (`ExpW`, from
 entry, `CFun.xc`), and `CoreIn` in every memory past the state's agreeing with the reference (so a caller resumes
@@ -209,8 +210,8 @@ theorem CoreIn.mono {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstru
     {fp : ℕ} (hle : m ≤ m') (h : CoreIn img Cf code i m fp) : CoreIn img Cf code i m' fp := by
   obtain ⟨h1, h2, h3⟩ := h
   refine ⟨atF_mono (s := Mode.stOf m fp) hle rfl h1, fun o ho ↦ written_mono hle (h2 o ho), fun σ hσ ↦ ?_⟩
-  obtain ⟨pos, pre, es, vs, rd, hrd, h4, h5, h6, h8, h7⟩ := h3 σ hσ
-  exact ⟨pos, pre, es, vs, rd, hrd, h4, h5, h6, h8, fun y hy ↦ (h7 y hy).mono hle⟩
+  obtain ⟨pos, pre, es, vs, rd, hrd, h4, h5, h6, h8, h9, h7⟩ := h3 σ hσ
+  exact ⟨pos, pre, es, vs, rd, hrd, h4, h5, h6, h8, h9, fun y hy ↦ (h7 y hy).mono hle⟩
 
 theorem CoreAt.mono {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction} {i : ℕ} {s s' : St}
     (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) (h : CoreAt img Cf code i s) : CoreAt img Cf code i s' :=
@@ -533,13 +534,24 @@ def retsN (n : ℕ) (body : List Stmt) : Bool :=
     | .ret vs => vs.length == n
     | _ => true
 
-/-- A call of `g` on `args`: not of `f`, the callee's heap signature naming no returned word's monomial,
-word at return, equation or ghost, its runs' bounds having exponents at the call (`idxPowC`). -/
+/-- A call of `g` on `args`: not of `f`, the callee's heap signature naming no ghost, and no returned word's
+monomial, word at return or equation unless its contract is its heap signature's (`hcs`: its guarantees then
+give them at the call's resumption), its runs' bounds having exponents at the call (`idxPowC`). -/
 noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
-  !(g == Cf.fn.name) && (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
-    (Cf.sigOf g).retEq.isEmpty && Nat.beq (Cf.sigOf g).ghosts 0 &&
+  !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).retM.isEmpty && (Cf.sigOf g).postV.isEmpty &&
+    (Cf.sigOf g).retEq.isEmpty) && Nat.beq (Cf.sigOf g).ghosts 0 &&
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
+
+/-- A checked call of a callee on a mode contract gives nothing beyond its writes. -/
+theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk Cf g args = true)
+    (hl : Cf.hcs.lookup g = none) (rd : Reader) (σ : Val) : EvM Cf.sigOf rd σ (.call g args rets) := by
+  simp only [callChk, hl, Option.isSome_none, Bool.false_or, Bool.and_eq_true, List.isEmpty_iff] at h
+  obtain ⟨⟨⟨⟨-, ⟨⟨h1, h2⟩, h3⟩⟩, -⟩, -⟩, -⟩ := h
+  refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
+  · rw [h1] at hkc; cases hkc
+  · rw [h2] at him; cases him
+  · rw [h3] at hp; cases hp
 
 /-- **Each call of the body** (`call`, `callIf`, each callee of a `dispatch`) checked by `callChk`; a
 dispatch's callees those `dsp` lists at each of its sites. -/
@@ -727,7 +739,7 @@ the honest valuations, `HonF.res`). -/
 inductive HeapK (Cf : CFun) : Prop
   | m1 : heapOk Cf.pows (fun _ ↦ .empty) Cf.fn Cf.H = true → postOk Cf.pows Cf.H Cf.post Cf.fn.body = true →
       ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty) = true →
-      Cf.H.sig.retM = [] → HeapK Cf
+      Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
       Cf.post = [] → Cf.H.ders = [] → noFA Cf.fn.body = true → HeapK Cf
 
@@ -748,13 +760,14 @@ noncomputable def wsAt (img : MemoryImage κ) (fp n : ℕ) : List E := (List.ran
 /-- **A core function's heap contract**: its heap signature `h` at the words of its frame's slots in the
 reference (`np` parameters, `nr` returned words), its entry and return frame cells `ent`, `ret`: at entry, its
 entry cells written and its preconditions; at return, its return cells written, its guarantees and its
-returned words' monomials. -/
+returned words' monomials, words and equations. -/
 noncomputable def heapCtrL (img : MemoryImage κ) (h : HSig) (ent ret : List ℕ) (np nr : ℕ) : Mode.Ctr where
   pre m fp := (∀ o ∈ ent, m.written (fp + o) = true) ∧
     ∀ y, PreSet img.read h (wsAt img fp np) y → WrK m y
   post m fp := (∀ o ∈ ret, m.written (fp + o) = true) ∧
     (∀ y, PostSet img.read h (wsAt img fp (np + nr)) y → WrK m y) ∧
-    RetMOk h (wsAt img fp np) ((wsAt img fp (np + nr)).drop np)
+    RetMOk h (wsAt img fp np) ((wsAt img fp (np + nr)).drop np) ∧ RetVOk img.read h (wsAt img fp (np + nr)) ∧
+    RetEqOk h (wsAt img fp (np + nr))
   mono hle h := ⟨fun o ho ↦ written_mono hle (h.1 o ho), fun y hy ↦ (h.2.1 y hy).mono hle, h.2.2⟩
 
 /-- `heapCtrL` at the frame cells of the mode signature `G`. -/

@@ -302,6 +302,80 @@ def EvM (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → Prop
       RetEqOk (sigOf f) ((args ++ rets).map σ)
   | _ => True
 
+/-- **Every event's needs are written before it, once the calls before it have their callees' returned words**
+(`EvM`, a property of the calls already made). -/
+def ReadsOkP (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 es1) e
+
+/-- **The needs of the events `es` after `pre` are written before each**, once the calls before it among `es`
+have their callees' returned words. -/
+def ReadsAt (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (pre es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 (pre ++ es1)) e
+
+section ReadsAt
+
+variable {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E}
+
+theorem readsOkC_of_P {es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 es) (hM : ∀ e ∈ es, EvM sigOf rd σ e) :
+    ReadsOkC sigOf H rd σ ws0 es := fun es1 e es2 he ↦
+  h es1 e es2 he fun e' he' ↦ hM e' (by rw [he]; exact List.mem_append_left _ he')
+
+/-- The events after `pre`, the calls of `pre` having their callees' returned words. -/
+theorem readsAt_of_P {pre es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 (pre ++ es))
+    (hm : ∀ e ∈ pre, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he hm1 ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hm e' h'
+    · exact hm1 e' h'
+
+/-- The events after `pre`, every call's returned words given. -/
+theorem readsAt_of_C {pre es : List Ev} (h : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
+    ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he _ ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc])
+
+theorem ReadsAt.shift {pre X es : List Ev} (h : ReadsAt sigOf H rd σ ws0 pre (X ++ es))
+    (hX : ∀ e ∈ X, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 (pre ++ X) es := fun es1 e es2 he hm ↦ by
+  have := h (X ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hX e' h'
+    · exact hm e' h'
+  rwa [← List.append_assoc] at this
+
+theorem ReadsAt.head {pre es : List Ev} {e : Ev} (h : ReadsAt sigOf H rd σ ws0 pre (e :: es)) :
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 pre) e := by
+  have := h [] e es rfl (by simp)
+  rwa [List.append_nil] at this
+
+/-- Atoms give nothing beyond their writes. -/
+theorem evM_atoms (as : List Atom) : ∀ e ∈ as.map Ev.atom, EvM sigOf rd σ e := fun e he ↦ by
+  obtain ⟨a, -, rfl⟩ := List.mem_map.mp he
+  trivial
+
+theorem evM_app {a b : List Ev} (ha : ∀ e ∈ a, EvM sigOf rd σ e) (hb : ∀ e ∈ b, EvM sigOf rd σ e) :
+    ∀ e ∈ a ++ b, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_append.mp he with h | h
+  · exact ha e h
+  · exact hb e h
+
+/-- A branch's condition, a skipped call: nothing beyond their writes. -/
+theorem evM_inK_cons {c : V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) : ∀ e ∈ Ev.inK c :: l, EvM sigOf rd σ e :=
+  fun e he ↦ by
+    rcases List.mem_cons.mp he with rfl | h'
+    · trivial
+    · exact h e h'
+
+theorem evM_skip_cons {f : String} {args : List V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) :
+    ∀ e ∈ Ev.skip f args :: l, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_cons.mp he with rfl | h'
+  · trivial
+  · exact h e h'
+
+theorem evM_nil : ∀ e ∈ ([] : List Ev), EvM sigOf rd σ e := fun _ h ↦ by cases h
+
+end ReadsAt
+
 /-- **What an instance is given at entry**: its termination facts. -/
 def EntryF (H : HCert) (ws0 : List E) : Prop := ∀ p ∈ H.sig.term, LtF (slotW ws0) (idxC p.1) (idxC p.2)
 

@@ -32,12 +32,12 @@ theorem writtenC_prefix {l l' : List Ev} {x : K} (h : WrittenC sigOf H rd σ ws0
 /-- **A normalization's skipped atoms** write nothing: what is written after them was before. -/
 theorem succ_normC {z0 c : Zip} (hn : (PairCtx.ofH X H O S).nL z0 = some c) {es : List Ev} {vs : List V}
     (hp : walk σ z0.pos = .ret es vs) :
-    ∃ evs es', es = evs ++ es' ∧ walk σ c.pos = .ret es' vs ∧
+    ∃ evs es', es = evs ++ es' ∧ walk σ c.pos = .ret es' vs ∧ (∀ e ∈ evs, EvM sigOf rd σ e) ∧
       ∀ pre x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x := by
   obtain ⟨as, has, hpos, -⟩ := normG_pos _ _ hn
   rw [hpos] at hp
   obtain ⟨es', hes', rfl⟩ := walk_atoms_ret hp
-  refine ⟨as.map Ev.atom, es', rfl, hes', fun pre x hx ↦ ?_⟩
+  refine ⟨as.map Ev.atom, es', rfl, hes', evM_atoms _, fun pre x hx ↦ ?_⟩
   rcases writtenC_append hx with h | ⟨e, he, hw⟩
   · exact h
   · obtain ⟨b, hb, rfl⟩ := List.mem_map.mp he
