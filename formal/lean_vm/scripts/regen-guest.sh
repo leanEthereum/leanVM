@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode core-mode bridge memory res whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge core-mode memory res whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert mode core-mode bridge memory res whir count tables decoder)
+steps=(export core changes vt cert mode bridge core-mode memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -128,6 +128,7 @@ part_mode() {
 # The core route (`formal/notes/core-mode.md`): its functions' heap certificates, pairings, frame walks
 # and route data. Its frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
 # changes which functions the mode walk checks, so the mode certificates are written again after it.
+# After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
   if [ ! -f "$MODE_CERT_CACHE" ]; then
     case " ${selected[*]} " in
