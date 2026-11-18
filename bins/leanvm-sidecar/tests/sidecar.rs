@@ -3,7 +3,7 @@
 //! another language's client would, and the socket's life across a second sidecar and a restart.
 
 use aggregation::signers_cache;
-use lean_vm::{AggregateClaims, AggregateProof, OutputClaims, lean_da};
+use lean_vm::{AggregateClaims, OutputClaims, lean_da};
 use sidecar::{Client, Rejection, SidecarError};
 use stable_lean_vm_core::StableProver;
 use std::io::{Read, Write};
@@ -82,7 +82,7 @@ fn sidecar_end_to_end() {
     let leaf = client
         .aggregate(&[], &xmss[..2], &sphincs, &blobs, OutputClaims::All, 2)
         .unwrap();
-    assert!(AggregateProof::from_bytes(&leaf.1).unwrap().verify(&leaf.0));
+    assert!(client.verify(&leaf.0, &leaf.1).unwrap());
     assert_eq!(leaf.0.num_signature_claims(), 3);
     assert_eq!(
         leaf.0.da_commitment,
@@ -102,10 +102,8 @@ fn sidecar_end_to_end() {
         .aggregate(&[leaf], &xmss[2..], &[], &[], OutputClaims::Only(&only), 1)
         .unwrap();
     assert_eq!(node.0, only);
-    assert!(AggregateProof::from_bytes(&node.1).unwrap().verify(&only));
-
-    // Verifying, from either connection, while nothing proves.
-    assert!(client.verify(&node.0, &node.1).unwrap());
+    assert!(client.verify(&only, &node.1).unwrap());
+    // Not against other claims.
     assert!(!other.verify(&AggregateClaims::default(), &node.1).unwrap());
 
     // Refusals leave the connection in step: two in a row.
