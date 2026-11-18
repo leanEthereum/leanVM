@@ -423,7 +423,7 @@ stack (each fold round's lanes decoded with at most one error on the columns of 
 set, level 0's descent dominating), level 0's stack, the candidate run and every other price
 independent of the transcript; the second bounds, per query, the transcript's indexes (its first
 forward answers, and one preimage index per committed root, at most six) and, per committed leaf
-or hashed block (`2^30` at most), their lookups. It passes `2^128` at about `N = 2^97.5`, where the
+or hashed block (`2^30` at most), their lookups. It passes `2^128` at about `N = 2^97.7`, where the
 soundness bound is still about `2^-27` (`statement.tex`, *What is not proved*, says what the regime
 leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
