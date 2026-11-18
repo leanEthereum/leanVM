@@ -1,6 +1,6 @@
 """A mirror of `LeanVM/Guest/CoreMode/Frame.lean`, rule for rule: the frame walk (`frameOk`) over
 the executor's instructions, with `ExecCore`'s symbolic step (`stepI`) for what is known of the
-frame's words. Used by `gen.py` to choose the data (the oracle, residual divisors, table targets,
+frame's words. Used by `frame_gen.py` to choose the data (the oracle, residual divisors, table targets,
 windows) and to report which functions pass."""
 import collections
 

@@ -1,5 +1,5 @@
 """Run the frame walk (`frame.py`) on every guest function and report: functions passing, failures
-by cause, oracle loads, residual divisors. `MODE_CERT_CACHE` names `gen.py`'s cache of today's walk
+by cause, oracle loads, residual divisors. `MODE_CERT_CACHE` names `mode-cert/gen.py`'s cache of today's walk
 (for the oracle); `FRAME_CACHE` caches the oracle run."""
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))

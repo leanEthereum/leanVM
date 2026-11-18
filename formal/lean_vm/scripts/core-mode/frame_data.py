@@ -2,7 +2,7 @@
 (`Check.Cert.facts` in its `Bundle`), callee frame signatures and table targets, and, until the core
 heap certificate's pairing gives it, the oracle: the offsets whose `DEREF` today's mode walk
 (`scripts/mode-cert`) treats as a load of a heap cell it knows written, read off a run of that walk
-with its inferred signatures (`MODE_CERT_CACHE`, as `gen.py` writes it)."""
+with its inferred signatures (`MODE_CERT_CACHE`, as `mode-cert/gen.py` writes it)."""
 import os, re, sys, glob, pickle, collections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
