@@ -1,7 +1,7 @@
 //! leanSPHINCS: a stateless hash-based signature.
 //!
-//! Normative source: the leanSPHINCS specification in leanVM's `crates/lean_sphincs`, which
-//! follows the layout of FIPS 205 (SLH-DSA) with Keccak-256 as the hash.
+//! Normative source: the leanSPHINCS specification, `doc/lean_sphincs/`, which follows the
+//! layout of FIPS 205 (SLH-DSA) with Keccak-256 as the hash.
 //!
 //! ```text
 //!     hash         Keccak-256, truncated to n = 16 bytes
@@ -51,7 +51,7 @@ pub const SIGNATURE_LEN: usize = 7740;
 /// The seed a key is derived from.
 pub type Seed = [u8; SEED_LEN];
 
-// Invariant: the sizes and types above are the upstream ones, checked at compile time.
+// The sizes and types above are `lean_sphincs`'s.
 const _: () = assert!(SEED_LEN == UPSTREAM_SECRET_KEY_LEN);
 const _: () = assert!(SIGNATURE_LEN == SIG_SIZE);
 const _: () = assert!(PUBLIC_KEY_LEN == PUB_KEY_SIZE);
@@ -73,7 +73,6 @@ impl PublicKey {
     ///
     /// Fails when the input is not 32 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the array only when its length is exactly 32.
         let array = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::SphincsPublicKey,
             expected: PUBLIC_KEY_LEN,
@@ -138,7 +137,6 @@ impl SecretKey {
     ///
     /// Fails when the input is not 32 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the seed only when its length is exactly 32.
         let seed = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::SphincsSecretKey,
             expected: SECRET_KEY_LEN,
@@ -197,7 +195,6 @@ impl Signature {
     ///
     /// Fails when the input is not 7740 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the array only when its length is exactly 7740.
         let array = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::SphincsSignature,
             expected: SIGNATURE_LEN,

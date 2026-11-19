@@ -2,9 +2,8 @@
 # Add the two files outside its crates that a py-lean-pq source distribution built by
 # `maturin sdist` needs:
 #
-# - guests/lean_ethereum.py: the sdist carries the leanVM crates as path dependencies, and maturin
-#   packages each one's crate directory, but the `aggregation` crate also compiles in the guest
-#   from the repository root, so a wheel built from the sdist fails without it.
+# - guests/lean_ethereum.py: maturin packages each path dependency's crate directory, but the
+#   `aggregation` crate also compiles in the guest from the repository root.
 # - .cargo/config.toml, a copy of bindings/.cargo/config.toml: the portable x86_64 baseline with
 #   AVX2 and PCLMULQDQ, without which a wheel built from the sdist has neither and proves slowly.
 #   At the sdist's root, it applies to the build that pip runs there.

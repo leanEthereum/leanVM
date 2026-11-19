@@ -1,8 +1,8 @@
 /*
  * Internal ABI between managed-language wrappers and the Rust implementation.
  *
- * This header documents this internal ABI; it is not a supported public C binding. Every
- * non-empty input range must point to readable memory. Every output pointer must be writable.
+ * It is not a supported public C API. Every non-empty input range must point to readable
+ * memory. Every output pointer must be writable.
  * Handles are opaque and must be destroyed exactly once with their matching destroy function.
  * Buffers returned through lpq_buffer must be released with lpq_buffer_free exactly once.
  *

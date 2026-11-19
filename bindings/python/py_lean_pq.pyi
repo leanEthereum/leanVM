@@ -1,4 +1,4 @@
-"""Python bindings for leanVM's leanXMSS and leanSPHINCS signatures and their aggregation."""
+"""Python bindings for leanXMSS and leanSPHINCS signatures and their aggregation."""
 
 from collections.abc import Sequence
 from typing import final

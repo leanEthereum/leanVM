@@ -3,7 +3,7 @@ name = "lean-pq"
 version.workspace = true
 edition = "2021"
 publish = false
-description = "Safe Rust API for leanVM's leanXMSS and leanSPHINCS signatures and their aggregation"
+description = "Safe Rust API for leanXMSS and leanSPHINCS signatures and their aggregation"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/leanEthereum/leanVM"
 readme = "README.md"
@@ -12,15 +12,13 @@ categories = ["cryptography"]
 
 [features]
 default = ["aggregation"]
-# Recursive aggregation through the leanVM prover and verifier. Without it the crate builds only
-# leanXMSS and leanSPHINCS, from leanVM's `lean_xmss` and `lean_sphincs` crates.
+# Recursive aggregation. Without it the crate builds only `lean_xmss` and `lean_sphincs`.
 aggregation = ["dep:lean_vm"]
 
 [dependencies]
 getrandom = "0.3"
 lean_sphincs = { workspace = true }
-# leanVM's experimental prover, which makes the same proofs as its stable reference prover
-# (bench/tests/identical_proofs.rs), faster.
+# The experimental prover: the stable one's proofs (bench/tests/identical_proofs.rs), faster.
 lean_vm = { workspace = true, optional = true, features = ["experimental_prover"] }
 lean_xmss = { workspace = true }
 thiserror = "2.0.21"

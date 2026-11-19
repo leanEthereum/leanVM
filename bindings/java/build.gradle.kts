@@ -41,15 +41,13 @@ tasks.test {
     dependsOn(buildNative)
     useJUnitPlatform()
     systemProperty("lean.pq.native.path", nativeLibrary.absolutePath)
-    // Gradle executes JUnit tests on the class path. Published consumers use the narrower named
-    // module permission documented in README.md.
+    // JUnit runs on the class path; consumers grant the named module (README.md).
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 // The jar carries native libraries as org/ethereum/leanpq/native/<platform>/<library>, which
-// Native.java extracts and loads. Releases pass -PleanPqNativeDir=DIR, a directory already laid out
-// as DIR/<platform>/<library> for every bundled platform (see scripts/build-native.sh); local builds
-// bundle only the host library that buildNative produces.
+// Native.java extracts and loads. Releases pass -PleanPqNativeDir=DIR, laid out as
+// DIR/<platform>/<library> (scripts/build-native.sh); local builds bundle only the host library.
 val prebuiltNativeDir = providers.gradleProperty("leanPqNativeDir").map { file(it) }
 val hostArch = System.getProperty("os.arch")
 val hostPlatform = when {
@@ -83,8 +81,7 @@ mavenPublishing {
     coordinates(group.toString(), "lean-pq", version.toString())
     pom {
         name = "lean-pq"
-        description = "Java bindings for leanVM's post-quantum signatures, leanXMSS and leanSPHINCS, " +
-            "and their zkVM-backed aggregation, with bundled native libraries for Linux, macOS and Windows."
+        description = "Java bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation"
         url = "https://github.com/leanEthereum/leanVM/tree/main/bindings/java"
         licenses {
             license {

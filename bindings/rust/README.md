@@ -1,6 +1,6 @@
 # lean-pq
 
-Safe Rust bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures and their aggregation.
+Safe Rust bindings for post-quantum signatures and their aggregation.
 
 - **leanXMSS** is synchronized: a key signs at `2^32` leaf indices, one message per leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, with no state kept between them.
@@ -10,7 +10,7 @@ Public keys and messages are 32 bytes in both schemes.
 
 ## Install
 
-The crate is not on crates.io: the leanVM crates it builds are not published there.
+The crate is not on crates.io, as the crates it builds on are not.
 
 <!-- x-release-please-start-version -->
 ```toml
@@ -19,9 +19,9 @@ lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-
 ```
 <!-- x-release-please-end -->
 
-Build in release mode: debug builds of leanVM prove far slower.
+Build in release mode: debug builds prove far slower.
 
-Aggregation is the default `aggregation` feature, which pulls in leanVM's prover and verifier. It proves with leanVM's experimental prover, which makes the same proofs as its stable reference prover, faster. To only sign and verify, add `default-features = false` to the dependency: the crate then builds from leanVM's `lean_xmss` and `lean_sphincs` crates alone, and `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN` are not compiled.
+Aggregation is the default `aggregation` feature, which pulls in the verifier and the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds from `lean_xmss` and `lean_sphincs` alone, without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
 
 ## Sign and verify
 
@@ -40,11 +40,7 @@ sphincs_key.public_key().verify(&message, &signature)?;
 # Ok::<(), lean_pq::Error>(())
 ```
 
-A leanXMSS key keeps no record of the leaf indices it used.
-
-Persist a durable high-water leaf index next to the key's bytes, and advance it before publishing a signature.
-
-Secret key bytes are secret material: in both schemes they are the key's 32-byte seed.
+A leanXMSS key keeps no record of the leaf indices it used: persist a durable high-water leaf index next to the key's bytes, and advance it before publishing a signature. Secret key bytes are secret material, the key's 32-byte seed in both schemes.
 
 ## Aggregate
 
@@ -73,9 +69,9 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 ```
 
 - Aggregation verifies every raw signature before proving, and runs one proof at a time per process.
-- An encoded aggregate is the proof alone, as leanVM encodes it. Send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
+- An encoded aggregate is the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
 - `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven.
-- The first proof starts leanVM's prover pool and builds the aggregation guest; call `setup()` to pay that earlier.
+- The first proof starts the prover pool and builds the aggregation guest; call `setup()` to pay that earlier.
 
 ## License
 

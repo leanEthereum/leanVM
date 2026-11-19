@@ -1,4 +1,4 @@
-//! Safe Zig bindings for leanVM's post-quantum signatures and their recursive aggregation.
+//! Safe Zig bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
 //!
 //! leanXMSS is stateful: a key signs at `2^32` leaf indices, and must never sign two different
 //! messages at the same leaf index. leanSPHINCS is stateless: a key signs at most `2^30` messages.

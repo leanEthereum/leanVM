@@ -1,7 +1,5 @@
-//! A deliberately small internal C ABI for managed-language bindings.
-//!
-//! This is not a language-neutral public API. Its opaque handles and owned buffers let language
-//! wrappers (Java FFM, Go cgo, Zig) offer normal managed objects over the `lean_pq` facade.
+//! The internal C ABI of the Java, Go, Zig and Nim bindings over the `lean_pq` facade: opaque
+//! handles and owned buffers, not a public API.
 #![allow(clippy::missing_safety_doc)] // Safety contract is documented in include/lean_pq_native.h.
 
 use lean_pq::{sphincs, xmss, Aggregate, Message, MESSAGE_LEN, PUBLIC_KEY_LEN};

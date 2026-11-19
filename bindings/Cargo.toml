@@ -14,8 +14,7 @@ resolver = "2"
 version = "0.11.1"
 
 [workspace.dependencies]
-# The leanVM crates of this repository: `lean_xmss` and `lean_sphincs` are the signature schemes,
-# which `lean_vm` re-exports alongside the aggregation prover.
+# The signature schemes, and `lean_vm`, which re-exports them beside the aggregation prover.
 lean_vm = { path = "../crates/lean_vm" }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }

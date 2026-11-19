@@ -62,7 +62,7 @@ In the short term, we provide two Rust implementations of the prover, `stable` (
 
 ## bindings
 
-[`bindings/`](bindings/README.md) holds language bindings for leanXMSS, leanSPHINCS and their aggregation: Python (`py-lean-pq`), Node.js (`@kevaundray/lean-pq`), Java (`io.github.crate-crypto:lean-pq`), Go, Zig, Nim and Rust, all released together as `bindings-vX.Y.Z`.
+[`bindings/`](bindings/README.md) holds Python, Node.js, Java, Go, Zig, Nim and Rust bindings for leanXMSS, leanSPHINCS and their aggregation, released together as `bindings-vX.Y.Z`.
 
 ## benchmarks
 

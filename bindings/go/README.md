@@ -1,10 +1,10 @@
 # lean-pq Go bindings
 
-Go bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation from [leanVM](https://github.com/leanEthereum/leanVM), backed by a native Rust static archive linked into the final program through cgo. The Go API uses normal Go values and `Close` methods; it does not expose C pointers or the internal bridge ABI.
+Go bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation, over a Rust static archive that cgo links into the program. The API exposes Go values with `Close` methods, never C pointers.
 
 ## Install
 
-The module is `leanvm.org/go`. Each release publishes it with the native archives built in, served from leanvm.org rather than from git, so `go get` needs no Rust toolchain:
+Each release publishes `leanvm.org/go` with the native archives built in, so `go get` needs no Rust toolchain:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -26,11 +26,11 @@ Supported platforms:
 | `darwin/amd64`, `darwin/arm64` | `internal/native/darwin_universal` |
 | `windows/amd64` | `internal/native/windows_amd64` (MinGW-w64) |
 
-Build tags select the archive and cgo links it into the final Go binary, so the program has no runtime dependency on the bridge. The archives are never committed: building from a checkout of this repository needs the source build below.
+Build tags select the archive, which cgo links statically. The archives are never committed: a checkout needs the source build below.
 
 ## Source build and test
 
-From the repository root, install [Zig](https://ziglang.org/) 0.15.2 and [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild), then stage the local Linux amd64 archive in the layout used by the Go package:
+From the repository root, with [Zig](https://ziglang.org/) 0.15.2 installed, stage the Linux amd64 archive and test:
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
@@ -40,7 +40,7 @@ cd bindings/go
 go test ./...
 ```
 
-The aggregation test proves recursively: expect seconds per proof and about 1.6 GB of memory.
+The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory.
 
 Each platform stages its archive from one Rust target:
 

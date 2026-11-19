@@ -1,13 +1,13 @@
 # lean-pq Zig bindings
 
-Safe Zig bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures and their zkVM-backed recursive aggregation:
+Safe Zig bindings for post-quantum signatures and their recursive aggregation:
 
 - **leanXMSS**: stateful. A key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS**: stateless. A key signs at most `2^30` messages; signing is deterministic.
 
 Public keys and messages are `[32]u8`; signatures are `[2404]u8` (leanXMSS) and `[7740]u8` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey`, and `Aggregate` own native handles: call `deinit` exactly once on each. Slices returned by `Aggregate.toBytes`, `xmssClaims`, and `sphincsClaims` belong to the caller's allocator.
 
-The binding links a target-matched static `liblean_pq_native.a` produced by the shared Rust bridge. Release packages bundle it for Linux x86_64 and aarch64 (glibc), macOS (universal), and Windows x86_64 (MinGW). The archive is an implementation detail of this binding, not a public C API.
+The binding links the Rust bridge's static `liblean_pq_native.a` for the target, which release packages bundle for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW).
 
 ## Install
 
@@ -31,9 +31,9 @@ The package picks the bundled archive for the build target. For any other target
 
 On Windows the bundled archive targets the GNU ABI, `x86_64-windows-gnu`, which is Zig's native target there, so a plain `zig build` works; Zig supplies the MinGW-w64 libc. The MSVC ABI (`-Dtarget=x86_64-windows-msvc`) is not bundled.
 
-## Build from this repository
+## Build from source
 
-Install Zig 0.15.2 and `cargo-zigbuild` to stage the native archive; `cargo-zigbuild` currently requires this version for cross-target Apple builds. Then use Zig 0.16 or newer to build and test the binding. On Linux x86_64:
+Staging the archive needs Zig 0.15.2 (for `cargo-zigbuild`'s Apple cross builds); building the binding needs Zig 0.16 or newer. On Linux x86_64:
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
@@ -99,4 +99,4 @@ Verification failures return `error.InvalidSignature`; other native errors retur
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material: the leanXMSS or leanSPHINCS seed.
 
-`Aggregate.create` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and about 1.6 GB of memory. `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, xmss_claims, sphincs_claims)` verifies that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `fromBytes` takes. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+`Aggregate.create` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, xmss_claims, sphincs_claims)` verifies that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `fromBytes` takes. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.

@@ -4,7 +4,7 @@
 //!
 //! - Paper: "Hash-Based Multi-Signatures for Post-Quantum Ethereum".
 //! - Venue: IACR Communications in Cryptology 2(1), 2025.
-//! - Normative source: the leanXMSS specification in leanVM's `crates/lean_xmss`.
+//! - Normative source: the leanXMSS specification, `doc/lean_xmss/`.
 //!
 //! ```text
 //!     hash         Keccak-256, truncated to n = 16 bytes
@@ -70,7 +70,7 @@ pub type Seed = [u8; SEED_LEN];
 /// Every key has this lifetime: it is fixed by the scheme, not chosen at key generation.
 pub const LOG_LIFETIME: usize = 32;
 
-// Invariant: the sizes and types above are the upstream ones, checked at compile time.
+// The sizes and types above are `lean_xmss`'s.
 const _: () = assert!(SEED_LEN == UPSTREAM_SECRET_KEY_LEN);
 const _: () = assert!(SIGNATURE_LEN == SIG_SIZE);
 const _: () = assert!(PUBLIC_KEY_LEN == PUB_KEY_SIZE);
@@ -96,7 +96,6 @@ impl PublicKey {
     ///
     /// Fails when the input is not 32 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the array only when its length is exactly 32.
         let array = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::XmssPublicKey,
             expected: PUBLIC_KEY_LEN,
@@ -170,7 +169,6 @@ impl SecretKey {
     ///
     /// Fails when the input is not 32 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the seed only when its length is exactly 32.
         let seed = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::XmssSecretKey,
             expected: SECRET_KEY_LEN,
@@ -236,7 +234,6 @@ impl Signature {
     ///
     /// Fails when the input is not 2404 bytes long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        // A slice converts into the array only when its length is exactly 2404.
         let array = bytes.try_into().map_err(|_| Error::InvalidLength {
             encoding: Encoding::XmssSignature,
             expected: SIGNATURE_LEN,

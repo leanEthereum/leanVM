@@ -1,6 +1,6 @@
 # lean-pq Node.js bindings
 
-Node.js bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures, leanXMSS and leanSPHINCS, and their recursive aggregation. Implemented with Rust and `napi-rs` over the safe `lean-pq` Rust crate; they do not use the repository's C bridge.
+Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation, built with `napi-rs` over the Rust facade `lean-pq`.
 
 - **leanXMSS** is stateful: a key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, and signing is deterministic.
@@ -68,7 +68,7 @@ received.xmssClaims // [{ publicKey: xmssKey.publicKey, message }]
 received.sphincsClaims // [{ publicKey: sphincsKey.publicKey, message }]
 ```
 
-One aggregation takes seconds and about 1.6 GB of memory.
+One aggregation takes seconds and over a gigabyte of memory.
 
 ## Development
 
@@ -81,13 +81,11 @@ npm run build
 npm test
 ```
 
-`npm run build` compiles in release mode; debug builds of leanVM prove far slower.
-
 `npm/` holds the per-platform package manifests. `napi create-npm-dirs` generates them from `package.json`'s `napi.targets`; rerun it and commit the result after changing the targets.
 
 ## Releasing
 
-Each `bindings-vX.Y.Z` release tag publishes `@kevaundray/lean-pq` and every platform package at version `X.Y.Z` from `.github/workflows/bindings-release.yml`, independently of the PyPI publish:
+Each `bindings-vX.Y.Z` tag publishes `@kevaundray/lean-pq` and every platform package at `X.Y.Z` through `.github/workflows/bindings-release.yml`:
 
 1. `node-build` stamps the version and builds one addon per target.
 2. `node-package` fills the platform packages, sets the root package's `optionalDependencies` with `napi pre-publish --skip-optional-publish`, and packs every tarball.
@@ -107,7 +105,7 @@ sh scripts/install-check.sh "$pack/kevaundray-lean-pq-0.0.0-dev.tgz" \
 
 ### One-time npm setup
 
-npm can attach a trusted publisher only to a package that already exists, so the first release publishes the eight packages with a short-lived token, and later releases use trusted publishing. A platform package added later, such as `@kevaundray/lean-pq-win32-x64-msvc`, goes through the same steps on the first release that includes it; `node-package` warns about every package not yet on npm. The packages released up to 0.11.1 were published from `ethereum/lean-pq-bindings`; point their trusted publishers at this repository and workflow (step 4) before the next release.
+npm can attach a trusted publisher only to a package that already exists, so the first release publishes the eight packages with a short-lived token, and later releases use trusted publishing. A platform package added later, such as `@kevaundray/lean-pq-win32-x64-msvc`, goes through the same steps on the first release that includes it; `node-package` warns about every package not yet on npm. Packages up to 0.11.1 were published from `ethereum/lean-pq-bindings`: point their trusted publishers at `leanEthereum/leanVM` (step 4) before the next release.
 
 1. From the npm account that owns the `@kevaundray` scope, create a **granular access token** on npmjs.com (**Access Tokens → Generate New Token → Granular Access Token**) with read and write access to packages, a short expiry such as 7 days, and no other permissions. If your account requires two-factor authentication for publishing, allow the token to bypass it; CI cannot answer a 2FA prompt.
 2. Store it as a repository secret:

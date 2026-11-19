@@ -1,17 +1,17 @@
 # lean-pq Java bindings
 
-Java 25 bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures and their zkVM-backed aggregation:
+Java 25 bindings for post-quantum signatures and their aggregation:
 
 - **leanXMSS**: stateful. A key signs at unsigned 32-bit leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS**: stateless. A key is its 32-byte seed, signs at most 2^30 messages, and signs deterministically.
 
-Both schemes use 32-byte public keys and sign 32-byte messages. Signatures are plain `byte[]` values: 2404 bytes for leanXMSS and 7740 bytes for leanSPHINCS. An `Aggregate` proves that each listed public key signed its message, across both schemes, and can absorb earlier aggregates recursively.
+Public keys and messages are 32 bytes; signatures are `byte[]` of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. An `Aggregate` proves that each listed public key signed its message, across both schemes, and can absorb earlier aggregates.
 
-The public API is a named Java module, `org.ethereum.leanpq`, built on Java's finalized Foreign Function & Memory API (FFM/Panama). Native objects are wrapped in `AutoCloseable` types; use try-with-resources for `XmssSecretKey`, `SphincsSecretKey`, and `Aggregate`.
+The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
 
 ## Install
 
-Published on Maven Central as `io.github.crate-crypto:lean-pq`; its version matches the bindings' release tag (`bindings-vX.Y.Z` is `X.Y.Z`). It needs JDK 25.
+Published on Maven Central as `io.github.crate-crypto:lean-pq`; it needs JDK 25.
 
 Gradle (Kotlin DSL):
 
@@ -37,13 +37,13 @@ Maven:
 
 ## Native-access permission
 
-The library is a named module, `org.ethereum.leanpq`. A modular application grants it native access narrowly:
+A modular application grants the module native access:
 
 ```sh
 java --enable-native-access=org.ethereum.leanpq ...
 ```
 
-On the class path the library is part of the unnamed module, so the flag becomes `--enable-native-access=ALL-UNNAMED`. Gradle's JUnit runner executes on the class path, so the repository test task uses that broader form.
+On the class path, use `--enable-native-access=ALL-UNNAMED`.
 
 ## Native library
 
@@ -68,11 +68,11 @@ Requirements: JDK 25, Gradle 9.1 or newer, and Rust (stable toolchain). From the
 gradle -p bindings/java test
 ```
 
-The test task builds the shared `lean_pq_native` library in release mode (debug builds of leanVM prove far slower) and supplies its path through `-Dlean.pq.native.path`. One aggregation takes seconds and roughly 1.6 GB of memory.
+The test task builds the shared `lean_pq_native` library in release mode and passes its path as `-Dlean.pq.native.path`. One aggregation takes seconds and over a gigabyte of memory.
 
 `gradle -p bindings/java jar` bundles the freshly built host library only. To bundle prebuilt libraries instead, pass `-PleanPqNativeDir=DIR`, where `DIR/<platform>/` holds the library for each platform in the table above; `scripts/build-native.sh <platform> DIR` builds one (the Linux builds need [Zig 0.15.2](https://ziglang.org/download/) and `cargo install cargo-zigbuild`, the macOS build needs a Mac, and the Windows build needs Windows with Git Bash, the `x86_64-pc-windows-gnu` Rust target and MinGW-w64's `gcc` and `objdump` on `PATH`). Local builds have version `0.0.0-SNAPSHOT`; `-Pversion=X.Y.Z` overrides it.
 
-`scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the artifact to a throwaway Maven repository, builds a fresh modular project depending on `io.github.crate-crypto:lean-pq` from it, and runs that project with `--enable-native-access=org.ethereum.leanpq` and no `lean.pq.native.path`, signing, verifying and aggregating with both schemes; on Windows (under Git Bash) it runs the consumer twice and checks that both runs use the single cached DLL. CI runs it on Linux x86_64 and the release workflow on every bundled platform; set `GRADLE` if Gradle is not on `PATH`.
+`scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway Maven repository and signs, verifies and aggregates through it from a fresh modular project, with the bundled library (set `GRADLE` if Gradle is not on `PATH`). CI runs it on Linux x86_64, the release workflow on every bundled platform.
 
 ## Releasing
 
@@ -80,9 +80,7 @@ The test task builds the shared `lean_pq_native` library in release mode (debug 
 
 One-time setup, with the `io.github.crate-crypto` namespace verified on [central.sonatype.com](https://central.sonatype.com/publishing/namespaces):
 
-1. Generate a Portal user token: sign in to the Central Portal, open
-   <https://central.sonatype.com/usertoken>, press **Generate User Token**, and copy the username
-   and password it shows once.
+1. Generate a Portal user token: sign in to the Central Portal, open <https://central.sonatype.com/usertoken>, press **Generate User Token**, and copy the username and password it shows once.
 2. Generate a signing key and publish its public half:
 
    ```sh
@@ -124,11 +122,11 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 }
 ```
 
-leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` precomputes signing state ahead of time. Secret-key bytes are secret material: the 32-byte leanXMSS seed or the 32-byte leanSPHINCS seed.
+leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` builds the signing state ahead of time. Secret-key bytes are secret material: the key's 32-byte seed.
 
 ## Aggregation
 
-`LeanPq.aggregate(children, xmss, sphincs)` verifies every raw signature before proving, accepts at most 16 children, and runs one proof at a time per process. `toBytes()` encodes the proof alone, as leanVM encodes it: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields. `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven. `LeanPq.setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+`LeanPq.aggregate(children, xmss, sphincs)` verifies every raw signature before proving, accepts at most 16 children, and runs one proof at a time per process. `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields. `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven. `LeanPq.setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
 
 ```java
 import java.util.List;
@@ -148,5 +146,3 @@ try (Aggregate leaf = LeanPq.aggregate(
     List<SignatureClaim> sphincsClaims = received.sphincsClaims();
 }
 ```
-
-The native ABI in [`../native`](../native) is an internal implementation detail shared by managed-language bindings, not a stable C API.

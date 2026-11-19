@@ -1,6 +1,6 @@
 # py-lean-pq
 
-Python bindings for leanVM's post-quantum signatures, built on the safe Rust facade `lean-pq`:
+Python bindings for post-quantum signatures and their aggregation, over the Rust facade `lean-pq`:
 
 - **leanXMSS**: stateful hash-based signatures, `2^32` leaf indices per key.
 - **leanSPHINCS**: stateless hash-based signatures.
@@ -18,7 +18,7 @@ pip install py-lean-pq==0.11.1
 ```
 <!-- x-release-please-end -->
 
-The same library is published for Node.js (`@kevaundray/lean-pq` on npm), Java (`io.github.crate-crypto:lean-pq` on Maven Central), Go (`go get`), and Zig (a `zig fetch` package on each GitHub release); see the [bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#install).
+Other languages: see the [bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#install).
 
 ## leanXMSS
 
@@ -73,19 +73,16 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 assert received.sphincs_claims == [(sphincs_key.public_key, second)]
 ```
 
-Every `Aggregate` value has been proven or verified. `to_bytes()` encodes only the proof, not the claims. `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` takes the `(public_key, message)` pairs the receiver expects and verifies the proof against exactly them: they may come in any order and a duplicate counts once, but a proof of any other claim set raises `LeanPqError`. `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
+Every `Aggregate` value has been proven or verified. `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` takes the `(public_key, message)` pairs the receiver expects and verifies the proof against exactly them: they may come in any order and a duplicate counts once, but a proof of any other claim set raises `LeanPqError`. `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
 
-`aggregate` and `Aggregate.from_bytes` build the aggregation guest on first use; call `setup()` to pay that cost earlier. It is safe to call repeatedly. Proving is serialized process-wide and takes seconds and over a gigabyte of memory. They also start the prover's threads, which a forked child does not inherit: in a child forked after that, `aggregate` raises `LeanPqError`, so give `multiprocessing` the `spawn` or `forkserver` start method.
+`aggregate` and `Aggregate.from_bytes` build the aggregation guest on first use; call `setup()`, which is idempotent, to pay that cost earlier. Proving is serialized process-wide and takes seconds and over a gigabyte of memory. `setup()` and the first `aggregate` also start the prover's threads, which a forked child does not inherit: in a child forked after that, `aggregate` raises `LeanPqError`, so give `multiprocessing` the `spawn` or `forkserver` start method.
 
 ## Development
 
 ```bash
-uv run --extra dev maturin develop --release
 uv run --extra dev pytest tests/ -v
 uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
 ```
-
-Always build in release: debug builds of leanVM prove far slower.
 
 ## License
 

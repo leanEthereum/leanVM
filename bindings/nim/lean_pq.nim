@@ -1,4 +1,4 @@
-## Nim bindings for leanVM's post-quantum signatures and their zkVM-backed recursive aggregation.
+## Nim bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
 ##
 ## - **leanXMSS** is stateful: a key signs at `2^32` leaf indices, and must never sign two
 ##   different messages at the same leaf index.
@@ -325,7 +325,7 @@ proc init*(
 ): Result[LeanPqAggregate, string] =
   ## Verifies the raw signatures, then proves the union of their claims and the children's. At
   ## least one input is required. Children are neither consumed nor closed. Runs one proof at a
-  ## time per process; one aggregation takes seconds and about 1.6 GB of memory.
+  ## time per process.
   if children.len > MaxAggregateChildren:
     return err("at most " & $MaxAggregateChildren & " child aggregates, got " & $children.len)
   var handles: array[MaxAggregateChildren, ptr LpqAggregate]

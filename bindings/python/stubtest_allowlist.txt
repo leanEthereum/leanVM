@@ -1,5 +1,2 @@
-# maturin auto-generates `__init__.py` that does
-# `from .py_lean_pq import *`, exposing the compiled .so as a submodule
-# of the same name. We don't separately stub that submodule because all of
-# its symbols are already covered by the top-level stub via the re-export.
+# maturin's `__init__.py` re-exports the compiled submodule, which the top-level stub covers.
 py_lean_pq\.py_lean_pq

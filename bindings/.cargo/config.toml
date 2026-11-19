@@ -1,5 +1,5 @@
-# leanVM selects its binary-field and Keccak kernels by compile-time target feature, and the
-# repository's root .cargo/config.toml builds it with `target-cpu=native`. Released bindings
+# The binary-field and Keccak kernels are selected by compile-time target feature, and the root
+# .cargo/config.toml builds with `target-cpu=native`. Released bindings
 # (wheels, addons, archives, libraries) must run on any machine of their target, so they pin a
 # portable baseline instead: AVX2 and PCLMULQDQ enable the x86_64 carry-less multiplication
 # kernels and are present on every AVX2-capable CPU; the aarch64 targets keep their defaults.

@@ -4,10 +4,9 @@ build-backend = "maturin"
 
 [project]
 name = "py-lean-pq"
-# The version is the workspace version in the bindings' Cargo.toml (bindings/Cargo.toml), which
-# maturin reads through Cargo; release-please sets it on each release PR.
+# The version is bindings/Cargo.toml's workspace version, which release-please sets.
 dynamic = ["version"]
-description = "Python bindings for leanVM's leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation"
+description = "Python bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = [{ name = "Kevaundray Wedderburn" }]
@@ -34,11 +33,9 @@ Changelog = "https://github.com/leanEthereum/leanVM/blob/main/bindings/CHANGELOG
 [tool.maturin]
 features = ["pyo3/extension-module"]
 include = ["py.typed", "py_lean_pq.pyi"]
-# Debug builds of leanVM prove far slower, so the
-# editable install `uv run` performs must be a release build as well.
+# `uv run`'s editable install builds in release too: debug builds prove far slower.
 profile = "release"
 
 [tool.uv]
-# Rebuild the editable install when the Rust sources change, not only when
-# pyproject.toml does; otherwise `uv run` reinstalls a stale cached build.
+# Rebuild the editable install when the Rust sources change, not only pyproject.toml.
 cache-keys = [{ file = "pyproject.toml" }, { file = "Cargo.toml" }, { file = "src/**/*.rs" }]

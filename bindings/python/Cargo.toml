@@ -9,8 +9,6 @@ name = "py_lean_pq"
 crate-type = ["cdylib"]
 
 [dependencies]
-# pyo3/extension-module is enabled by maturin via [tool.maturin].features
-# in pyproject.toml. Keeping it out of the dependency line lets cargo
-# build/check work normally without the extension-module link rules.
+# maturin enables pyo3/extension-module (pyproject.toml), so plain cargo builds link normally.
 pyo3 = { version = "0.28.3" }
 lean-pq = { workspace = true }

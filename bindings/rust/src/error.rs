@@ -9,9 +9,7 @@ use crate::xmss::LeafIndex;
 
 /// Why a lean-pq operation failed.
 ///
-/// Every variant carries the values a caller needs to log or act on the failure.
-///
-/// Each message is self-contained: it already includes the upstream reason.
+/// Each message is self-contained: it includes the underlying reason.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -71,7 +69,7 @@ pub enum Error {
     #[error("aggregation failed: {reason}")]
     #[cfg(feature = "aggregation")]
     Aggregation {
-        /// The upstream failure.
+        /// The prover's failure.
         reason: AggregateError,
     },
 

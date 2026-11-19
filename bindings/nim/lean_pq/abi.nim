@@ -1,6 +1,6 @@
 ## Declarations of the internal `lpq_*` bridge ABI and the link flags for its static archive.
 ##
-## The ABI is private to this repository's language bindings: it is not a supported C API.
+## The ABI is private to the bindings: it is not a supported C API.
 ## `include/lean_pq_native.h` documents it and must match `bindings/native/include`.
 ##
 ## The archive is `native/<target>/liblean_pq_native.a` inside this package. The first build
