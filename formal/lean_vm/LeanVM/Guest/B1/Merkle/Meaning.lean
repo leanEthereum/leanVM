@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Guest.B1.Common.HashPair
 
 /-!
 # Merkle caps: meanings (TRIAGE G #33, #34)
@@ -21,8 +22,8 @@ the cap, and the root always; an unflagged internal node pins its children's fla
 every flagged node's ancestors are hashed. Together they are `climb` to the root, the
 root being what `openOne` compares (`B1/Merkle/Climb.lean`).
 
-* `HashesPair l0 l1 r0 r1 p0 p1`: the four child cells are canonical and the parent's cells are
-  the digest of their 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
+* `HashesPair l0 l1 r0 r1 p0 p1` (`B1/Common/HashPair.lean`): the parent's cells are the digest of
+  the four child cells' 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
   digests' cells is `hashPair` (`LeanVM/Protocol/KeccakHash.lean`).
 * `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `2 ≤ D ≤ 8`.
 -/
@@ -33,10 +34,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- A node's two cells hash its children's: the node's cells are the digest of their 64 bytes. -/
-def HashesPair (l0 l1 r0 r1 p0 p1 : E) : Prop :=
-  (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
 
 /-- **`verify_merkle_cap(cap, flags, D)`** (TRIAGE #34): the cap's cells `cell k`,
 `2 ≤ k < 2^(D+2)` (node `k / 2`'s cell `k % 2`), are in memory; the flags `fl k` of the internal
