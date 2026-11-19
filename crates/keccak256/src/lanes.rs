@@ -364,7 +364,11 @@ mod x86 {
             }
             // SAFETY: the module's cfg enables avx2.
             unsafe {
-                let l = _mm256_sll_epi64(self.0, _mm_cvtsi32_si128(N));
+                let l = if N == 1 {
+                    _mm256_add_epi64(self.0, self.0)
+                } else {
+                    _mm256_sll_epi64(self.0, _mm_cvtsi32_si128(N))
+                };
                 let r = _mm256_srl_epi64(self.0, _mm_cvtsi32_si128(64 - N));
                 Self(_mm256_or_si256(l, r))
             }
