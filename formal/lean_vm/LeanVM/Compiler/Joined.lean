@@ -59,6 +59,8 @@ structure SInfo where
   blk : Nat
   idx : Nat
   emit : Nat := 0
+  /-- The index of the first event of the flush before it. -/
+  start : Nat := 0
   atom : Option Atom
   deriving Inhabited
 
@@ -76,8 +78,6 @@ structure WSt where
   blkStmts : Array (Array Nat) := #[#[]]
   /-- The statements naming each value, in order. -/
   names : Std.HashMap V (Array Nat) := {}
-  /-- The values a `use` or `shift` event names. -/
-  evNamed : Std.HashSet V := {}
 
 abbrev W := StateM WSt
 
@@ -104,11 +104,7 @@ def flushW (evs : Array Event) : Nat → W Unit
     match evs[st.pos]? with
     | some e =>
       if isFlushEv e then
-        let named := match e with
-          | .use v => [v]
-          | .shift v _ => [v]
-          | _ => []
-        set { st with pos := st.pos + 1, evNamed := named.foldl (·.insert ·) st.evNamed }
+        set { st with pos := st.pos + 1 }
         flushW evs fuel
       else pure ()
     | none => pure ()
@@ -142,7 +138,7 @@ def newStmt (b : Nat) (s : Stmt) : W Nat := modifyGet fun st =>
     | .atom a => some a
     | _ => none
   let names := (ownVals s).foldl (fun m v => m.insert v ((m.getD v #[]).push sid)) st.names
-  let stmts := st.stmts.push { blk := b, idx, atom }
+  let stmts := st.stmts.push { blk := b, idx, start := st.pos, atom }
   let blkStmts := st.blkStmts.modify b (·.push sid)
   (sid, { st with stmts, blkStmts, names })
 
@@ -293,11 +289,13 @@ def segments (n : Nat) (cut : Option (Array Bool)) : List (Nat × Nat) :=
 
 /-! ## The plan -/
 
-/-- Where a value's cell is, as far as the pass predicts it: the parameters' cells, or a
-segment (an allocation and the start of the segment in it) and the offset in it; `loose` for a
-value a pool may place anywhere. -/
+/-- Where a value's cell is, as far as the pass predicts it: the parameters' cells, an
+allocation that keeps its place (its values' cells stay consecutive but for segments moved out,
+and partners are never moved), or a moved segment (an allocation and the start of the segment in
+it); with the offset in it, and `loose` for a value a pool may place anywhere. -/
 inductive Grp where
   | param
+  | ev (i : Nat)
   | seg (i start : Nat)
   deriving BEq, Hashable, Inhabited
 
@@ -369,9 +367,14 @@ def predict (I : Info) (P : PSt) (v : V) : Option (Grp × Nat × Key × Bool) :=
   | some k => some (.param, k, (0, 0), false)
   | none => do
     let (i, s, _, off, k) ← I.segOf v
+    let (_, p) ← I.am[v]?
+    let key := keyOf I P i s k
     match k with
     | .addr | .unnamed => none
-    | _ => some (.seg i s, off, keyOf I P i s k, k == .pooled && !P.moved.contains (i, s))
+    | _ =>
+      if P.moved.contains (i, s) then some (.seg i s, off, key, false)
+      else if k == .pooled then some (.ev i, p, key, true)
+      else some (.ev i, p, key, false)
 
 /-- Whether a value placement takes from a pool may be made in a cell given instead: the result
 of a `const`, an `add`, a `load`, or a `mul` with no shifted factor, made by statement `a`. -/
@@ -386,7 +389,7 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
   let (i, s, n, _, k) ← I.segOf m
   if !(k == .cell || k == .pooled) || P.moved.contains (i, s) then none
   let S := I.segVals i s n
-  if S.isEmpty || S.any (fun v => P.fixed.contains v || I.w.evNamed.contains v || I.params.contains v)
+  if S.isEmpty || S.any (fun v => P.fixed.contains v || I.params.contains v)
   then none
   -- The statements naming the segment: all in `A`'s block or inside it, the first in it.
   let nm := S.flatMap fun v => ((I.w.names[v]?).getD #[]).toList
@@ -419,7 +422,7 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
         if let some u := eqPartner v a then
           if !S.contains u then
             if let some (g, off, key, loose) := predict I P u then
-              if Key.lt key (2 * F.emit + 2, 0) then
+              if Key.lt key (2 * F.start + 2, 0) then
                 found := some (g, off, loose)
                 us := us.push u
               else if o.reserve then
@@ -429,8 +432,8 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
                   let R := I.segVals j t len
                   let upTo := (I.w.stmts[aid']?).any (j < ·.emit)
                   if (kind == .cell || kind == .ret) && !P.moved.contains (j, t) &&
-                      F.emit < j && upTo && !R.any (fun r => P.fixed.contains r) then
-                    let moved := P.moved.insert (j, t) (F.emit, P.seq, kind)
+                      F.start ≤ j && upTo && !R.any (fun r => P.fixed.contains r) then
+                    let moved := P.moved.insert (j, t) (F.start, P.seq, kind)
                     P := { P with moved, seq := P.seq + 1, fixed := R.foldl (·.insert ·) P.fixed }
                     found := some (.seg j t, off', false)
                     us := us.push u
@@ -443,7 +446,7 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
     if !(parts.toList.zipIdx.all fun ((g, off, loose), q) => g == g0 && off == o0 + q && !loose)
     then none
   let fixed := (S ++ us.toList).foldl (·.insert ·) P.fixed
-  some { P with moved := P.moved.insert (i, s) (F.emit, P.seq, .joined), seq := P.seq + 1, fixed }
+  some { P with moved := P.moved.insert (i, s) (F.start, P.seq, .joined), seq := P.seq + 1, fixed }
 
 /-- The partners of a statement's anchors: the two values of a copy, or of an `assert ==`. -/
 def anchor (o : Opts) : Atom → Option (V × V)
@@ -490,7 +493,7 @@ def plan (o : Opts) (f : Fn) (evs : Array Event) : Option (Info × PSt) := do
 
 /-- What replaces each event of the trace under the plan. -/
 def parts (I : Info) (P : PSt) : List (List Event) := Id.run do
-  -- The allocations moved before each `emit`, in order.
+  -- The allocations moved to the start of each statement's flush, in order.
   let mut before : Std.HashMap Nat (Array (Nat × Event)) := {}
   for ((i, s), (e, q, kind)) in P.moved.toList do
     if let some (.alloc vs k) := I.evs[i]? then
@@ -500,17 +503,15 @@ def parts (I : Info) (P : PSt) : List (List Event) := Id.run do
       before := before.insert e (((before[e]?).getD #[]).push (q, .alloc ((vs.drop s).take n) kind))
   let mut out : Array (List Event) := #[]
   for i in [0:I.evs.size] do
+    let mv := (((before[i]?).getD #[]).qsort (fun a b => a.1 < b.1)).toList.map (·.2)
     match I.evs[i]? with
     | some (.alloc vs k) =>
       let segs := if k == .cell then segments vs.length I.cut[i]? else [(0, vs.length)]
       if segs.any fun (s, _) => P.moved.contains (i, s) then
-        out := out.push (segs.filterMap fun (s, n) =>
+        out := out.push (mv ++ segs.filterMap fun (s, n) =>
           if P.moved.contains (i, s) then none else some (.alloc ((vs.drop s).take n) k))
-      else out := out.push [.alloc vs k]
-    | some .emit =>
-      let mv := ((before[i]?).getD #[]).qsort (fun a b => a.1 < b.1)
-      out := out.push (mv.toList.map (·.2) ++ [.emit])
-    | some e => out := out.push [e]
+      else out := out.push (mv ++ [.alloc vs k])
+    | some e => out := out.push (mv ++ [e])
     | none => pure ()
   return out.toList
 
