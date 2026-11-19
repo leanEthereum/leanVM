@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Guest.B1.Sumcheck.Run
-public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.CoreFind
 public import LeanVM.Guest.B1.Common.Vc
 public import LeanVM.Guest.Pack.P45.Core

@@ -16,10 +16,10 @@ public import LeanVM.Guest.Pack.P41.Core
 
 `g_power_of_word(value)` hints the six bits of `value`, pins each by booleanity (`b = b·b`),
 accumulates the word `Σ b_j·2^j` and the product `Π (1 + b_j·(1 + g^(2^j)))`, the constants
-folded (`1 + g^(2^j)` the word `2^(2^j) + 1`), and asserts the word is `value`. So `value = E(n)`, `n < 2^6`, and the function
-returns `g^n` (`g_power_of_word_spec`, from the condition `vc` computes). `g_power_of_word_holdsP`
-holds for any program that finds the function (`Finds`); `GPower.lean` instantiates it at
-`coreProgram`.
+folded (`1 + g^(2^j)` the word `2^(2^j) + 1`), and asserts the word is `value`. So
+`value = E(n)`, `n < 2^6`, and the function returns `g^n` (`g_power_of_word_spec`, from the
+condition `vc` computes). `g_power_of_word_holdsP` holds for any program that finds the function
+(`Finds`); `GPower.lean` instantiates it at `coreProgram`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -38,15 +38,13 @@ theorem word_gpow_one (j : ℕ) (hj : 2 ^ j < 64) (c : ℕ) (hc : c = 2 ^ 2 ^ j 
 theorem g_power_of_word_holdsP (P : Program) [Finds P "g_power_of_word" Fn.«g_power_of_word».core] :
     g_power_of_word_SpecP P := by
   intro rd args rets
-  have w3 := word_gpow_one 0 (by norm_num) 3 (by decide)
-  have w5 := word_gpow_one 1 (by norm_num) 5 (by decide)
-  have w17 := word_gpow_one 2 (by norm_num) 17 (by decide)
-  have w257 := word_gpow_one 3 (by norm_num) 257 (by decide)
-  have w65537 := word_gpow_one 4 (by norm_num) 65537 (by decide)
-  have w4294967297 := word_gpow_one 5 (by norm_num) 4294967297 (by decide)
   rw [rel_iff_fnSem (Finds.find (P := P) (fn := Fn.«g_power_of_word».core))]
   rcases args with _ | ⟨v, _ | ⟨_, _⟩⟩ <;>
-    vc [word_one, w3, w5, w17, w257, w65537, w4294967297] <;> simp only [MeaningGPowerOfWord]
+    vc [word_one, word_gpow_one 0 (by norm_num) 3 (by decide),
+      word_gpow_one 1 (by norm_num) 5 (by decide), word_gpow_one 2 (by norm_num) 17 (by decide),
+      word_gpow_one 3 (by norm_num) 257 (by decide), word_gpow_one 4 (by norm_num) 65537 (by decide),
+      word_gpow_one 5 (by norm_num) 4294967297 (by decide)] <;>
+    simp only [MeaningGPowerOfWord]
   have hw (b : ℕ → E) : ∑ j ∈ Finset.range 6, b j * eOfNat (2 ^ j) =
       b 0 + b 1 * word 2 0 + b 2 * word 4 0 + b 3 * word 8 0 + b 4 * word 16 0 + b 5 * word 32 0 := by
     simp [Finset.sum_range_succ, word_eOfNat, eOfNat_one]

@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Sumcheck.Meaning
-public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.B1.Common.Vc
@@ -66,8 +65,7 @@ theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
   rw [rel_iff_fnSem (coreProgram_find?_at (j := idx% «sumcheck_round4») rfl)]
   rcases args with _ | ⟨rec, _ | ⟨cur, _ | ⟨claim, _ | ⟨tabs, _ | ⟨_, _⟩⟩⟩⟩⟩ <;>
     vc [keccakF_cells, word_zero, word_one, word_eight] <;>
-    simp only [MeaningSumcheckRound4, exists_and_left]
-  simp only [exists_capAt]
+    simp only [MeaningSumcheckRound4, exists_and_left, exists_capAt]
   simp only [capAt5, ReadsAt, round4_sponge, Fs.squeeze, capOf, perm_eq_cells, pendCells,
     List.flatMap_cons, List.flatMap_nil, List.replicate, scalarCells_eq, word_dsObserve,
     Keccak.challengeOf_cells, loadHolds_mul_gen_pow, List.length_cons, List.length_nil,
