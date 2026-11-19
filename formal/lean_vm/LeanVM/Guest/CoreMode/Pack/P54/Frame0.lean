@@ -39,6 +39,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P12»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -166,16 +167,16 @@ noncomputable def Fn.«child_claim_list_last__L4».frameFun : CoreMode.FFun :=
 theorem Fn.«child_claim_list_last__L4».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by
   decide +kernel
+noncomputable def Fn.«verify_bus_gkr_loop0_loop0».envC : Mode.Env := CoreMode.envOf
+    [Fn.«verify_bus_gkr_loop0_loop0».csig]
+noncomputable def Fn.«verify_bus_gkr_loop0_loop0».funC : Mode.Fun :=
+    ⟨Fn.«verify_bus_gkr_loop0_loop0».entry, 94, Fn.«verify_bus_gkr_loop0_loop0».csig, .nil, .nil,
+    .nil, false, .nil⟩
 noncomputable def Fn.«verify_bus_gkr_loop0_loop0».frameFun : CoreMode.FFun :=
   ⟨{ env := [(7, (.fpg 0))], fpOne := false, pows := fpows, scaled := [7] },
-    Fn.«verify_bus_gkr_loop0_loop0».entry, 94, Fn.«verify_bus_gkr_loop0_loop0».csig, .nil, 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node none (.node (some ()) (.node (some ())
-    .nil .nil) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
-    (.node (some ()) (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    .nil)) (.node none (.node (some ()) (.node (some ()) .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ())
-    .nil .nil) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node
-    (some ()) .nil .nil) .nil))))), .nil, .nil⟩
+    Fn.«verify_bus_gkr_loop0_loop0».entry, 94, Fn.«verify_bus_gkr_loop0_loop0».csig,
+    (CoreMode.sigTrie [Fn.«verify_bus_gkr_loop0_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«verify_bus_gkr_loop0_loop0».pairO, Fn.«verify_bus_gkr_loop0_loop0».pairS, .nil⟩
 
 theorem Fn.«verify_bus_gkr_loop0_loop0».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by

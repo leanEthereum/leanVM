@@ -42,6 +42,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
 public import LeanVM.Guest.CoreMode.Sig.«P28»
@@ -174,24 +175,15 @@ noncomputable def Fn.«rs_eq_rows__L8».frameFun : CoreMode.FFun :=
 
 theorem Fn.«rs_eq_rows__L8».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
+noncomputable def Fn.«keccak_layer__L1_loop0».envC : Mode.Env := CoreMode.envOf
+    [Fn.«keccak_layer__L1_loop0».csig]
+noncomputable def Fn.«keccak_layer__L1_loop0».funC : Mode.Fun := ⟨Fn.«keccak_layer__L1_loop0».entry,
+    181, Fn.«keccak_layer__L1_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«keccak_layer__L1_loop0».frameFun : CoreMode.FFun :=
   ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := fpows, scaled := [8] },
-    Fn.«keccak_layer__L1_loop0».entry, 181, Fn.«keccak_layer__L1_loop0».csig, .nil, 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node none (.node none (.node (some ()) .nil
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node (some ()) .nil (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ())
-    .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node
-    (some ()) .nil .nil)))) (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node (some
-    ()) .nil .nil)) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none
-    (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node (some ())
-    .nil .nil) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))) (.node (some
-    ()) (.node (some ()) (.node (some ()) .nil .nil) (.node none (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))))), .nil,
-    .nil⟩
+    Fn.«keccak_layer__L1_loop0».entry, 181, Fn.«keccak_layer__L1_loop0».csig, (CoreMode.sigTrie
+    [Fn.«keccak_layer__L1_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«keccak_layer__L1_loop0».pairO, Fn.«keccak_layer__L1_loop0».pairS, .nil⟩
 
 theorem Fn.«keccak_layer__L1_loop0».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
     := by

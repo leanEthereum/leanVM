@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«verify_sig_lean_sphincs».S0
-public import LeanVM.Guest.CoreMode.GenW.«verify_sig_lean_sphincs».S1
 public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
 

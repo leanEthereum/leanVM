@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«exponent_tables».S0
-public import LeanVM.Guest.CoreMode.GenW.«exponent_tables».S1
 public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 

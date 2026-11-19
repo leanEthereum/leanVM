@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.EndExecRA
-public import LeanVM.Guest.Res.MonoReplay
+public import LeanVM.Guest.CoreMode.Fam.MonoReplay
 public import LeanVM.Guest.Res.MonoDefs
 public import LeanVM.Guest.B1.Digest.ChildDigest
 

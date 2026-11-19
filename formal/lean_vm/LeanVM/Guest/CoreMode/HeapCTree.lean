@@ -47,7 +47,7 @@ mutual
 (`FAW`), or a callee's subtree's. -/
 @[expose] def treeWr (P : Program) : Tree → K → Prop
   | .node f σ _ kids, x => (∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧
-      ((∃ a, Ev.atom a ∈ es ∧ Writes σ a x) ∨ FAW σ es x)) ∨ kidsWr P kids x
+      ((∃ a, Ev.atom a ∈ es ∧ Writes σ a x) ∨ ∃ fas, FAW σ fas es x)) ∨ kidsWr P kids x
   | .phantom .., _ => False
 
 /-- The addresses the callees' subtrees write. -/
@@ -397,16 +397,18 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
     rw [hvs'] at hpost
     refine ⟨fun hlen x hx ↦ ?_, hrm, hrv, hre⟩
     have hW' : WrittenC (fun g ↦ (cert g).sig) (cert f) rd (instV rd (cert f) σ gw) (fn.params.map σ) es x ∨
-        FAW (instV rd (cert f) σ gw) es x := by
+        FAW (instV rd (cert f) σ gw) (cert f).fas es x := by
       rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx | hx
       · exact hpost.1.1 c hc
       · exact hpost.1.2 r hr x hx
       · exact hpost.2.1 x hx
       · exact hpost.2.2.1 x hx
-    rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩
+    rcases hW' with hW | ⟨p, run, i, v, hfa, hv, hd, rfl⟩ | ⟨kp, i, run, hm, hfa, hne, hle, rfl⟩
     rotate_left
-    · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩)
+    · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨(cert f).fas, Or.inl ⟨p, run, i, v, hfa, hv, hd, ?_⟩⟩⟩)
       rw [cellAt, cellAt, hag _ hfa p (by simp [Ev.uses, atomUses])]
+    · refine Or.inr (Or.inl ⟨fn, es, vs, hf, hw, Or.inr ⟨(cert f).fas, Or.inr ⟨kp, i, run, hm, hfa, hne, hle, ?_⟩⟩⟩)
+      rw [cellAt, cellAt, hag _ hfa (V.n kp) (by simp [Ev.uses, atomUses])]
     have := written_tree hreads (ht.2 fn es vs hf hw).1 (T := treeWr P (.node f σ bufs kids))
       (fun a x ha hx ↦ Or.inl ⟨fn, es, vs, hf, hw, Or.inl ⟨a, ha, (writes_congr (fun v hv ↦ hag _ ha v hv) x).mp hx⟩⟩)
       (fun g a r hg x hx ↦ ?_) es.length es [] le_rfl (by simp) x hW

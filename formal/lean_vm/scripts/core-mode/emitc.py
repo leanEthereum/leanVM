@@ -222,6 +222,10 @@ def conds_of(paths):
 
 # ---- the solver: each witness found in the check's scope
 
+# `callcres`: the residuals its families take (`None`: any)
+RES_FILTER = [None]
+
+
 class Solver:
     def __init__(self, k, P, H, sigs):
         self.k, self.P, self.H = k, P, H
@@ -297,6 +301,8 @@ class Solver:
                 by_a[p[0]].append((p[1], None))
                 by_b[p[1]].append((p[0], None))
             for i, r, wr in self.on(self.pool_lt, st):
+                if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                    continue
                 a, b = C.idxF(st.env, r[1]), C.idxF(st.env, r[2])
                 by_a[a].append((b, (i, wr)))
                 by_b[b].append((a, (i, wr)))
@@ -397,6 +403,8 @@ class Solver:
             if m in p:
                 return []
         for i, r, wr in self.on(self.pool_lt, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                continue
             if C.idxF(st.env, r[1]) == m or C.idxF(st.env, r[2]) == m:
                 return [self.use(i, wr)]
         # none: the inference's `merge` takes the root's exponent for granted; stated as a residual of its own
@@ -437,6 +445,9 @@ class Solver:
                 if K >= k:
                     # the largest bound the source gives, so one residual serves every cell below it
                     return self.derive(st, ((), K), hi, None)
+                if 'lastres' in I.F and hi[0]:
+                    # none: the bound stated under the site's path, for a family to prove
+                    return self.derive(st, ((), k), hi, None)
         k = C.backK(R, c)
         if 0 < k and C.cshift(c, S * k) == C.cmul(base, C.cpow(hi, S)) and not lo[0] and lo[1] < C.CAPE:
             f = self.factC(st, k - 1 + lo[1], hi)
@@ -555,6 +566,9 @@ class Solver:
                         return ('pfr', r, f)
         # residuals placing the cell in a run in scope (`sub`, `subR`), among cells (`subP`)
         for i, res, wr in self.on(self.pool_sub, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                # a residual no family takes: not used
+                continue
             if res[0] == 'subP' and res[1] == c:
                 ns = [st.c2s.get(x, (None,))[-1] for x in res[2]]
                 if None not in ns:
@@ -662,6 +676,8 @@ class Solver:
         is one of them, stated under the site's path), its witness `perm`."""
         cands = list(self.X.facts(st.env, []))
         for i, r, wr in self.on(self.pool_lt, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                continue
             cands.append((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])))
         for a, b in cands:
             if b[0] or not a[0] or not 0 < b[1] <= 64:
@@ -685,6 +701,21 @@ class Solver:
             r = ('subP', c, tuple(cells))
             self.stats['pts-idx'] += 1
             return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
+        if 'lastres' in I.F and len(c[0]) == 2 and all(e == 1 for _, e in c[0]):
+            # `c = [B]·[J]·g^o`, the points `[B]·g^(o + t)` written, `t < n`, and a fact `e(J) < n` (the solver's)
+            B, J = c[0][0][0], c[0][1][0]
+            Q = (((B, 1),), c[1])
+            n = 0
+            while n < 64 and st.c2s.get(C.cshift(Q, n)):
+                n += 1
+            f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+            if f is not None:
+                cells = [C.cshift(Q, t) for t in range(n)]
+                ns = [st.c2s[x][-1] for x in cells]
+                g = tuple(dict.fromkeys(self.X.path))
+                r = ('subP', c, tuple(cells))
+                self.stats['pts-idx'] += 1
+                return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
         return None
 
     def prep(self, st, c, depth=0):
@@ -696,8 +727,18 @@ class Solver:
                 continue
             Q = C.prepQ(R)
             J = C.idxOf(Q, c, S)
-            if c != C.cmul(Q, C.cpow(J, S)) or J[0] != hi[0] or J[1] > hi[1]:
+            if c != C.cmul(Q, C.cpow(J, S)):
                 continue
+            if J[0] != hi[0] or J[1] > hi[1]:
+                # an index of other bases: below the bound's next by a fact (`prepIdx`'s second form)
+                if lo != ((), 0) or 'lastres' not in I.F:
+                    continue
+                f = self.fact(st, J, C.cshift(hi, 1))
+                q = self.pt(st, Q, depth=depth + 1) if f is not None else None
+                if q is None:
+                    continue
+                self.stats['prepF'] += 1
+                return ('prep', r, q, sorted(set(f)))
             q = self.pt(st, Q, depth=depth + 1)
             if q is None:
                 continue
@@ -744,9 +785,17 @@ class Solver:
             for j in range(Q[2][1], Q[3][1]):
                 w = self.pt(st, C.cshift(Q[0], Q[1] * j))
                 if w is None:
-                    return None
+                    break
                 ws.append(w)
-            return ws
+            else:
+                return ws
+        # last, a run in scope rebased onto this base (`runRunS`)
+        for r in sorted(st.rs, reverse=True):
+            R2 = C.shiftR(Q, st.rs[r])
+            f = self.run_in(st, Q, R2) if R2 is not None else None
+            if f is not None:
+                self.stats['shift'] += 1
+                return [('run', r, f)]
         return None
 
     def negshift(self, st, Q):
@@ -1184,8 +1233,9 @@ class Solver:
         arms_j = [None] * len(fs)
         armj = []
         ok = True
+        lastj = None
         for j, g in enumerate(fs):
-            f = self.factU(st, mx, j)
+            f = self.factU(st, mx, j) if lastj is None else None
             if f is None:
                 f = self.factU_eq(st, mx, j)
             if f is not None:
@@ -1194,10 +1244,27 @@ class Solver:
                 armj.append(j)
                 self.stats['skip'] += 1
                 continue
+            if lastj is not None:
+                # past the first arm whose preconditions fail: skipped by the bound stated there
+                arms.append(('skip', lastj))
+                arms_j[j] = arms[-1]
+                armj.append(j)
+                self.stats['skip'] += 1
+                continue
             self.ghosts(g, args, st)
             ga = C.gargsOf(self.H.gargs, g, args)
             sj = C.condSt(mx, j, st.cd, st)
+            nm = len(self.miss)
             w = pas.under(('arm', x, j), lambda: self.reqs(sj, ma + ga, self.X.sigOf(g), ('dispatch', g, j)))
+            if w is None and 'lastres' in I.F and j > 0:
+                # none: the selector's bound below `j` stated (for a family to prove), this arm and the rest skipped
+                del self.miss[nm:]
+                lastj = self.derive(st, mx, ((), j), None)
+                arms.append(('skip', lastj))
+                arms_j[j] = arms[-1]
+                armj.append(j)
+                self.stats['skip'] += 1
+                continue
             if w is None:
                 ok = False
                 continue
@@ -1437,7 +1504,7 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body)
+    H.fas = C.fa_pairs(body) + C.FA_EXTRA.get(k, [])
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []
@@ -1466,10 +1533,10 @@ def wit_res(w, f):
         return (k, f(w[1]), w[2])
     if k in ('prep', 'app'):
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
-    if k in ('evs', 'back'):
-        return (k, w[1], w[2], [f(i) for i in w[3]])
     if k == 'prep2':
         return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
+    if k in ('evs', 'back'):
+        return (k, w[1], w[2], [f(i) for i in w[3]])
     return w
 
 
@@ -1945,10 +2012,10 @@ def emit(out, res, check_only, only=None):
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
-            aux, body = lcert(certs[k], sig_only=k not in off or k not in passing or k in nokernel)
+            aux, body = lcert(certs[k], sig_only=k not in passing or k in nokernel)
             auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
             data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                     f'/-- `{k}`: its heap certificate{"" if k in off and k in passing and k not in nokernel else " (its signature only: not checked here)"}. -/\n'
+                     f'/-- `{k}`: its heap certificate{"" if k in passing and k not in nokernel else " (its signature only: not checked)"}. -/\n'
                      f'def hcert : CoreMode.HCert where\n{body}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for k in oks:
             names = sorted(stmt_names[k])

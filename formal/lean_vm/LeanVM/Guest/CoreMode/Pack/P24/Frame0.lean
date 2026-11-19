@@ -33,6 +33,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P20»
@@ -72,10 +73,15 @@ noncomputable def Fn.«da_vector».frameFun : CoreMode.FFun :=
 
 theorem Fn.«da_vector».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
+noncomputable def Fn.«main_loop3».envC : Mode.Env := CoreMode.envOf [Fn.«main_loop3».csig,
+    Fn.«verify_sig_lean_sphincs».csig]
+noncomputable def Fn.«main_loop3».funC : Mode.Fun := ⟨Fn.«main_loop3».entry, 36,
+    Fn.«main_loop3».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«main_loop3».frameFun : CoreMode.FFun :=
   ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, Fn.«main_loop3».entry,
-    36, Fn.«main_loop3».csig, (CoreMode.sigTrie [Fn.«verify_sig_lean_sphincs».csig]), 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    36, Fn.«main_loop3».csig, (CoreMode.sigTrie [Fn.«main_loop3».csig,
+    Fn.«verify_sig_lean_sphincs».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«main_loop3».pairO, Fn.«main_loop3».pairS, .nil⟩
 
 theorem Fn.«main_loop3».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

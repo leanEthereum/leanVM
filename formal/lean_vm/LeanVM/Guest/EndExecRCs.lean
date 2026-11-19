@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecRE
-public import LeanVM.Guest.Res.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
 
 /-!
 # `column_selector`'s lowest digit

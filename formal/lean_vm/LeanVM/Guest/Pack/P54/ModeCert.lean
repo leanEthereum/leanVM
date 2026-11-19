@@ -168,8 +168,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop0___loop0_verify_bus_gkr`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `__loop0___loop0_verify_bus_gkr`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -805,8 +805,14 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     Fn.«claim_list_last__L3».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl
     Fn.«child_claim_list_last__L4».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem9) ⟨Fn.«verify_bus_gkr_loop0_loop0».modeOk,
-    Fn.«verify_bus_gkr_loop0_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))))))))))) rfl Fn.«verify_bus_gkr_loop0_loop0».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
@@ -907,7 +913,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)))))))))))))))))))))))))))) rfl Fn.«walk_path__L12_L2».fnSpecC)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))))))))))) rfl
+    Fn.«walk_path__L12_L2».fnSpecC)
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 end

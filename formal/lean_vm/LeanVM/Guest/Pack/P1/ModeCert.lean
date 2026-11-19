@@ -10,8 +10,6 @@ module
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«P1».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«P1».Mode0
-public import LeanVM.Guest.Pack.«P1».ModeH
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -70,8 +68,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop0_verify_tables`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `__loop0_verify_tables`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -552,8 +550,13 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_self))))))))))))))))))) rfl Fn.«plus_one_run__L23».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl
     Fn.«block_selector__L10».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem3) ⟨Fn.«verify_tables_loop0».modeOk,
-    Fn.«verify_tables_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))) rfl
+    Fn.«verify_tables_loop0».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _

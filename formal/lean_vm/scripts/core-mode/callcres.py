@@ -12,6 +12,9 @@ sys.modules.setdefault('infer', I)
 
 CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
+# `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
+# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
+VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},)}
 
 
 def top_atoms(body):
@@ -76,9 +79,14 @@ def exp_diff(atoms, x):
 # `(k, c)` (`busPairs`, `tabPairs`: `CLAIM_KAPPA_SRC` with `CLAIM_KAPPA_ADJ`, a subset suffices here)
 EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
     [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
-    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)]
+    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)] + \
+    [('verify_tables', 10, j + 1, 31) for j in range(6)]
 DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
              ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
+
+
+# `verify_tables`' value `g_zc_n` (`EndExec.VtQ`)
+VT_ZC = 2545
 
 
 def _consts(atoms):
@@ -163,22 +171,35 @@ def addr_bound(k, x):
     return M + 1 if M is not None else None
 
 
-def expq_bound(k, x):
-    """`CoreMode.expQB`: `expq1`, or a top-level product `x = a·w` of such a value `a` and a constant `g^c`: bound
-    plus `c`."""
+def expq0(k, x):
+    """`CoreMode.expQ0`: `expq1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`' `g_zc_n` (`vtZc`)."""
     b = expq1(k, x)
     if b is not None:
         return b
     # `check_opening_terminal`'s `gmv = g^sl`, `sl <= 30` (`CoreMode.termGm`)
     if k == 'check_opening_terminal' and len(I.CORE[k][0]) > 19 and x == I.CORE[k][0][19]:
         return 31
+    # `verify_tables`' `g_zc_n = g^n`, `n < 34` (`CoreMode.vtZc`)
+    if k == 'verify_tables' and x == VT_ZC:
+        return 34
+    return None
+
+
+def expq_bound(k, x):
+    """`CoreMode.expQB`: `expq0`, or the first top-level atom defining `x` of a product `x = a·w` of such a value `a`
+    and a constant `g^c` (bound plus `c`) or a copy of such a value."""
+    b = expq0(k, x)
+    if b is not None:
+        return b
     atoms = top_atoms(I.CORE[k][1])
     cs = _consts(atoms)
     for a in atoms:
         if a[0] == 'mul' and a[1] == x:
-            b1, c = expq1(k, a[2]), cs.get(a[3])
+            b1, c = expq0(k, a[2]), cs.get(a[3])
             e = I.POWS.get(c[0]) if c is not None and c[1] == 0 else None
             return b1 + e if b1 is not None and e is not None else None
+        if a[0] == 'copy' and a[1] == x:
+            return expq0(k, a[2])
     return None
 
 
@@ -365,11 +386,21 @@ def res_fam(k, r, G):
         a, c = r[1][1], r[2][1]
         return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
             dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'val':
+        # `rcn`: `x` range checked against `k = p·w`, `w` the constant `g⁻¹`
+        x, p = r[1][1], r[2][1]
+        top = top_atoms(body)
+
+        def inv(w):
+            c = const_of(top, w)
+            return c is not None and c[1] == 0 and I.gf_mulx(c[0], 1) == 1
+        return any(a[0] == 'rangeCheck' and a[1] == x and
+                   any(b[0] == 'mul' and b[1] == a[5] and b[2] == p and inv(b[3]) for b in top) for a in top)
     if r[0] == 'subR':
         return sub_rc(r[1], r[2])
     if r[0] == 'sub':
         kap = cs_kappa(k)
-        return kap is not None and r == cs_sub(kap)
+        return (kap is not None and r == cs_sub(kap)) or r == vt_st_sub(k, r[1])
     return False
 
 
@@ -408,10 +439,68 @@ def ml_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
 
 
+# `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
+# the stream, the cursor value `v`, the words `S` read past it an iteration)
+ST_LOOPS = {
+    'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
+    'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
+    'verify_bus_gkr_loop0_loop0': (11, 13, 8), 'verify_tables_loop0': (22, 11, 3),
+}
+
+
+def st_sub(k, c):
+    """`CoreMode.stSub`: a stream-cursor loop's read `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)`, or
+    None."""
+    p = ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)
+    if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
+        return None
+    return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
+
+
+# `CoreMode.splitsC`: a function's `g`-power `n = q^S·r` split from hinted bits, on every returning path `q` (a
+# monomial) names `g^a`, the selector `rv` and the monomial `r` name `g^b`, `a < A`, `b < S`
+SPLITS = {
+    'rs_eq_run': (((27, 1), (31, 1), (36, 1)), ((13, 1), (17, 1), (22, 1)), 23, 3, 8, 8),
+    'shared_selector_tables': (((24, 1), (28, 1), (33, 1), (38, 1)), ((15, 1), (19, 1)), 20, 5, 4, 16),
+}
+
+
+def pow_b(k, bs):
+    return tuple((b, k * e) for b, e in bs)
+
+
+def split_res(sp, cs, r):
+    """`CoreMode.splitRes`: under the branch conditions `cs`, an exponent bound of `q^k·g^c` (`k` one or `S`) or of
+    `r·g^c` below a constant; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run `[b·g^i]` over
+    `[0, e(q))`, `i < S`, inside `[b]·[0, e(n))`."""
+    q, rb, rv, n, S, A = sp
+    if r[0] == 'under':
+        return split_res(sp, cs + list(r[1]), r[2])
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
+        (bs, off), N = r[1][1], r[2][1]
+        return N < CAPE and ((bs == q and A - 1 + off < N) or (bs == pow_b(S, q) and S * (A - 1) + off < N) or
+                             (bs == rb and S - 1 + off < N))
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2] == ('val', n):
+        bs, off = r[1][1]
+        return bs == pow_b(S, q) and any(c[0] == 'arm' and c[1] == rv and off < c[2] < CAPE for c in cs)
+    if r[0] == 'subR':
+        (Q, S1, lo, hi), (R, S2, lo2, hi2) = r[1], r[2]
+        return S1 == S and lo == ('num', 0) and hi == ('mono', (q, 0)) and Q[1] < S and R == (Q[0], 0) and \
+            S2 == 1 and lo2 == ('num', 0) and hi2 == ('val', n)
+    return False
+
+
+def split_fam(k, r):
+    """`CoreMode.splitFam`."""
+    sp = SPLITS.get(k)
+    return sp is not None and split_res(sp, [], r)
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
+    import vtexp
+    return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r)) and all(v < I.GB for v in vals(r))) or
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -435,9 +524,43 @@ def sel_facts(EM):
     return base, fact
 
 
+# `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
+VT_ST, VT_STREAM = 2652, 20
+
+
+def vt_st_sub(k, c):
+    """`CoreMode.vtStC`: `verify_tables`' read `c` words past its table sumcheck's last cursor, `c < 153`, one of its
+    stream's `[20]·[0, 8192)`."""
+    if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
+        return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
+def vt_facts(EM):
+    """The solver's exponent facts also from `verify_tables`' exponent family (`vtexp`, `CoreMode.vtExp`): `e(a) <
+    e(b)` stated under the site's path when the family proves it there."""
+    import vtexp
+    base = EM.Solver.fact
+    EM.RES_FILTER[0] = lambda k, r: k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or \
+        vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)
+
+    def fact(self, st, a, b):
+        f = base(self, st, a, b)
+        if f is not None or self.k != 'verify_tables':
+            return f
+        g = tuple(dict.fromkeys(self.X.path))
+        r = ('lt', self.idx(st, a), self.idx(st, b))
+        wr = ('under', g, r) if g else r
+        if not vtexp.vt_exp(self.k, wr):
+            return None
+        return [self.use(('vtexp', a, b, g), wr)]
+    return base, fact
+
+
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
+    its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
+    (`st_sub`)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
@@ -445,7 +568,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else ml_sub(self.k, c)
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
@@ -466,8 +589,9 @@ def leaf_candidates():
     pointer runs (`postP`), which milestone 1's does not state."""
     import heap, route
     S = route.sigs()
+    import callc
     return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and
-                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP'])))
+                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP']) or callc.has_fa(I.CORE[k][1])))
 
 
 def extend(out, why, S, verbose=False):
@@ -480,6 +604,7 @@ def extend(out, why, S, verbose=False):
     base, EM.Solver.pt = cs_reads(EM)
     basef, EM.Solver.fact = sel_facts(EM)
     _, EM.Solver.fact = expq_facts(EM)
+    _, EM.Solver.fact = vt_facts(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
@@ -488,9 +613,10 @@ def extend(out, why, S, verbose=False):
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
             # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
-            # residual is of no family
+            # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
+            # conditional entry (`callIfR`)
             for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                          FEATURES | {'dup', 'nohs'}):
+                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ()):
                 I.F.clear()
                 I.F.update(feats)
                 try:

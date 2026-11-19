@@ -10,8 +10,6 @@ module
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«P7».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«P7».ModeH
-public import LeanVM.Guest.Pack.«P7».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -22,8 +20,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `rs_eq_run`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `rs_eq_run`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -735,8 +733,14 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     -/
 theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«rs_eq_run».modeOk,
-    Fn.«rs_eq_run».modeHintsOk⟩)
+  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))))))))))) rfl Fn.«rs_eq_run».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))) rfl Fn.«da_verify_cell».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
@@ -876,7 +880,8 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)))))))))))))))))))))))))))) rfl Fn.«walk_path__L18_L7».fnSpecC)
+    (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))))))))))) rfl
+    Fn.«walk_path__L18_L7».fnSpecC)
     (Mode.fa_nil))))))))))))))))))))))))))))
 
 end

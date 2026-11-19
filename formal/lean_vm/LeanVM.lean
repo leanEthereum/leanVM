@@ -1,32 +1,38 @@
-import LeanVM.Protocol.LeanVM
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Guest.Batch.Children
-import LeanVM.Guest.Batch.Rpm
-import LeanVM.Guest.EndRpm
-import LeanVM.Guest.Budget.ClosedN
-import LeanVM.Guest.Budget.Fits
-import LeanVM.Prover.End
-import LeanVM.Prover.EndChild
-import LeanVM.Prover.ExecuteSound
-import LeanVM.Prover.ExecuteComplete
-import LeanVM.Prover.ExecuteCompleteX
-import LeanVM.Guest.HonestChildren
-import LeanVM.Guest.EndExecHonest
-import LeanVM.Guest.EndExecFinal
-import XmssSecurity.Rpm
-import Sphincs.Security
-import LeanDa
-import Statement.Theorems
-import Statement.Corollaries
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.WithHash
-import LeanVM.Cost.Efficient
-import LeanVM.Guest.DecoderProgram
-import LeanVM.Cost.DecoderSpec
-import LeanVM.Cost.Bounds.Guest.Budget
-import LeanVM.Cost.GuestDecoding
-import LeanVM.Wire.OneEncoding
-import LeanVM.Wire.Honest
+module
+
+public import LeanVM.Protocol.LeanVM
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Guest.Batch.Children
+public import LeanVM.Guest.Batch.Rpm
+public import LeanVM.Guest.EndRpm
+public import LeanVM.Guest.Budget.ClosedN
+public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Prover.End
+public import LeanVM.Prover.EndChild
+public import LeanVM.Prover.ExecuteSound
+public import LeanVM.Prover.ExecuteComplete
+public import LeanVM.Prover.ExecuteCompleteX
+public import LeanVM.Guest.HonestChildren
+public import LeanVM.Guest.EndExecHonest
+public import LeanVM.Guest.EndExecFinal
+public import XmssSecurity.Rpm
+public import Sphincs.Security
+public import LeanDa.RpmComplete
+public import LeanDa.PiOnly
+public import LeanDa.RpmArg
+public import Statement.Theorems
+public import Statement.Corollaries
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHash
+public import LeanVM.Cost.Efficient
+public import LeanVM.Guest.DecoderProgram
+public import LeanVM.Cost.DecoderSpec
+public import LeanVM.Cost.Bounds.Guest.Budget
+public import LeanVM.Cost.GuestDecoding
+public import LeanVM.Wire.OneEncoding
+public import LeanVM.Wire.Honest
+
+public section
 
 /-! # The end theorems of leanVM
 
@@ -471,3 +477,5 @@ theorem LeanVM.corollaries_hold :
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.corollaries_hold
+
+end

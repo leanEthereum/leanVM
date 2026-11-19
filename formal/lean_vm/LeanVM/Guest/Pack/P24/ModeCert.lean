@@ -40,8 +40,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop3_main`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `__loop3_main`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -591,8 +591,12 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
   Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))) rfl Fn.«da_vector».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«main_loop3».modeOk,
-    Fn.«main_loop3».modeHintsOk⟩)
+    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))) rfl Fn.«main_loop3».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))) rfl Fn.«eq_prefix_run__L22».fnSpecC)
@@ -601,15 +605,15 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))) rfl
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))) rfl
     Fn.«padding_weight__L30».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))) rfl
-    Fn.«plus_one_run__L33».fnSpecC)
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self))))))))))))))))))))))) rfl Fn.«plus_one_run__L33».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«block_selector__L0».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_self))) rfl
     Fn.«block_selector__L26».fnSpecC)
@@ -665,7 +669,7 @@ theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) 
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)))))))))))))))))))) rfl
+    (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))) rfl
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».fnSpecC)
     (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _

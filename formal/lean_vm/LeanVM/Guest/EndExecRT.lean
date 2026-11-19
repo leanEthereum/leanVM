@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.EndExecR
 public import LeanVM.Guest.Res.LoopTree
-public import LeanVM.Guest.Res.LoopCheck
+public import LeanVM.Guest.CoreMode.Gen.LoopCheck
 public import LeanVM.Guest.EndExecEntry
 
 /-!

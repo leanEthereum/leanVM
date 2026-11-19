@@ -39,6 +39,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P18»
@@ -66,15 +67,20 @@ open LeanVM.Guest.Exec
 def Fn.«shared_selector_tables».frameCallee0 : List ℕ := [Fn.«sel_partial_nibble__L0».entry,
     Fn.«sel_partial_nibble__L1».entry, Fn.«sel_partial_nibble__L2».entry,
     Fn.«sel_partial_nibble__L3».entry]
+noncomputable def Fn.«shared_selector_tables».envC : Mode.Env := CoreMode.envOf
+    [Fn.«sel_partial_nibble__L0».csig, Fn.«sel_partial_nibble__L1».csig,
+    Fn.«sel_partial_nibble__L2».csig, Fn.«sel_partial_nibble__L3».csig,
+    Fn.«shared_selector_tables_loop0».csig]
+noncomputable def Fn.«shared_selector_tables».funC : Mode.Fun := ⟨Fn.«shared_selector_tables».entry,
+    64, Fn.«shared_selector_tables».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«shared_selector_tables».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«shared_selector_tables».entry,
     64, Fn.«shared_selector_tables».csig, (CoreMode.sigTrie [Fn.«sel_partial_nibble__L0».csig,
     Fn.«sel_partial_nibble__L1».csig, Fn.«sel_partial_nibble__L2».csig,
     Fn.«sel_partial_nibble__L3».csig, Fn.«shared_selector_tables_loop0».csig]), 524287, advice.2.2,
     .nil, (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some 0) .nil .nil))))) .nil), .nil, (.node (some frameCallee0) .nil .nil), (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))
-    (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))), .nil, .nil⟩
+    (some 0) .nil .nil))))) .nil), .nil, (.node (some frameCallee0) .nil .nil),
+    Fn.«shared_selector_tables».pairO, Fn.«shared_selector_tables».pairS, .nil⟩
 
 theorem Fn.«shared_selector_tables».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
     := by

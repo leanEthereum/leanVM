@@ -5,16 +5,18 @@ The certificate is `emitc.py`'s (`GenC/<pack>/Data.lean`, its `hcert`); `emitc.p
 function whose check `fn_cost` estimates above `BUDGET` thousand heartbeats. The statements are cut between top-level
 statements, each window estimated at most `WIN` and at most `ATOMS` atoms; a window that is one `match` and still over
 `WIN` is checked by windows of its arms (`HeapCWinM.lean`). `heapc.py`'s pass (the check in Python, step for step)
-gives the state at each cut, written as a literal (`Lits`: the tries as `.node`s, long subtrees and the lists'
-unchanged parts shared with the previous state). The windows cover a loop helper's body without its tail
-(`loopBody`), or a function's body before a last part that holds its first top-level `ret`. Per function, in
+gives the state at each cut, written as data over the previous state (`Lits.lstate`: each trie `insL` of its new
+entries over the previous state's trie, the pass only adding entries; the lists the previous state's plus what is new;
+values, runs, arms and cells' bases that recur shared as `def`s). The windows cover a loop helper's body without its
+tail (`loopBody`), or a function's body before a last part that holds its first top-level `ret`. Per function, in
 `GenCW/<fn>/` (not under `GenC/`, whose files `emitc.py` owns):
 
-* `St.lean`: `sigW` (the callees' signatures, as `emitc.py` writes them); `Cx<field>.lean` (parts `Cx<field>D<j>`):
-  each trie `cxOf` builds from the certificate as a literal, `hcx<field>` its equation (one `decide +kernel`);
-  `Cx.lean`: the context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each
-  window's proof rewrites `withCx` by `withCx_cx hcx`); `S<i>.lean`: the state `st<i>` (importing `S<i-1>`, `S0`
-  `Cx`), whose subtrees it shares;
+* `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures, as `emitc.py` writes
+  them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
+  certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
+  context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
+  rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at most `SPART` characters
+  (each importing the last, the first `Cx`);
 * `W<i>.lean`: `win<i> : winOk Fn.«{k}».pows sigW core hcert (((loopBody core).drop a).take (b - a)) st<i> st<i+1> =
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
@@ -26,7 +28,7 @@ unchanged parts shared with the previous state). The windows cover a loop helper
 
 The core route's certificates (`callc.py`, `Gen/<pack>/DataC.lean`) are windowed the same way (`one`, with `gen`):
 `GenW/<fn>/`, at the callees' signatures `csigs` as `CFun.sigOf` reads them, the windows' namespace `HeapWG`, the
-check `Fn.«fn».heap_okW`, long witness lists of the context's literals in declarations of their own.
+check `Fn.«fn».heap_okW`.
 
 usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/heapwin.py [--fn NAME,..]
   [--budget N] [--out DIR] [--check] [--mods FILE]. `emitc.py` runs it for the functions it windows (`run`), so its
@@ -57,6 +59,12 @@ BUDGET, WIN = 90000, 100000
 FIXW = 40000
 # characters of a context literal's definitions in one module (`Cx<field>D<j>`): elaborating them takes memory
 CXPART = 250000
+# characters of the certificate's lists the equations of one module read (`fl_cost`, `CxH<j>`)
+CXDEC = 150000
+# entries a context trie's reference walks at most (`lrefs`)
+BLK = 32
+# characters of state literals in one module (`S<j>`)
+SPART = 250000
 DEPTH = 20                      # `Exec.indexDepth`: keys past it are dropped by `setF`
 KEYMAX = 2 ** DEPTH - 1
 
@@ -221,12 +229,46 @@ def lcell(c):
     return E.lcell(c)
 
 
-def lprun(r):
-    return f'⟨{lcell(r[0])}, {r[1]}, {lcell(r[2])}, {lcell(r[3])}⟩'
+def lprun(r, lc=None):
+    lc = lc or lcell
+    return f'⟨{lc(r[0])}, {r[1]}, {lc(r[2])}, {lc(r[3])}⟩'
+
+
+def lbases(c):
+    """A cell's bases (`CCell.bases`) as Lean."""
+    return '[' + ', '.join(f'({b}, {e})' for b, e in c[0]) + ']'
 
 
 def lnums(l):
     return '[' + ', '.join(map(str, l)) + ']'
+
+
+def ldef(name, typ, text):
+    """A `def` of a literal, on one line if it fits."""
+    one = f'noncomputable def {name} : {typ} := {text}'
+    return one + '\n' if len(one) <= 120 else f'noncomputable def {name} : {typ} :=\n  {pack(text)}\n'
+
+
+def larm(a, lc=None, lr=None):
+    """A `CdA` (an arm's guarantees under its selector) as Lean, its cells by `lc` and runs by `lr`."""
+    lc = lc or lcell
+    lr = lr or (lambda r: lprun(r, lc))
+    return (f'⟨[{", ".join(map(lc, a[0]))}], [{", ".join(map(lr, a[1]))}], '
+            f'[{", ".join(f"({lc(p[0])}, {lnums(p[1])})" for p in a[2])}], '
+            f'[{", ".join(f"({lprun(p[0], lc)}, {lnums(p[1])})" for p in a[3])}]⟩')
+
+
+def larms(arms):
+    return '[' + ', '.join(map(larm, arms)) + ']'
+
+
+# a state's tries: their fields, how their values print, their types
+TVAL = {'env': lambda c, lc: lc(c), 'sc': lambda c, lc: lc(c), 'rs': lprun,
+        'ad': lambda p, lc: f'({lc(p[0])}, {lc(p[1])})', 'sv': lambda p, lc: f'({lc(p[0])}, {lc(p[1])})',
+        'src': lambda c, lc: lc(c), 'pf': lambda p, lc: f"({lc(p[0])}, {lnums(p[1])})",
+        'pr': lambda p, lc: f"({lprun(p[0], lc)}, {lnums(p[1])})"}
+TTYP = {'env': 'CCell', 'sc': 'CCell', 'rs': 'PRun', 'ad': '(CCell × CCell)', 'sv': '(CCell × CCell)', 'src': 'CCell',
+        'pf': '(CCell × List ℕ)', 'pr': '(PRun × List ℕ)'}
 
 
 def tset(t, a, d, n):
@@ -242,8 +284,8 @@ def tset(t, a, d, n):
     return [v, l, tset(r, a, d - 1, m // 2)]
 
 
-SHARE = 300   # characters: a subtree longer is its own `def`, shared by every later state holding it
-VSHARE = 48   # characters: an entry's value longer is its own `def`, shared likewise (long monomials recur)
+CXSHARE = 6000  # characters: a context trie's subtree longer is its own `def` (a bound on a declaration)
+VSHARE = 48   # characters: a state entry's value at most this long is never a shared `def`
 
 
 def pack(text, ind='    ', width=118):
@@ -261,43 +303,96 @@ def pack(text, ind='    ', width=118):
 
 
 class Lits:
-    """The literals of one function's states: subtrees and list tails shared across states (a state differs from
-    the previous one in a few entries, so each `S<i>` elaborates only what is new; `S<i>` imports `S<i-1>`)."""
+    """The literals of one function's states, each over the previous one (`lstate`), or of a context trie
+    (`ltrie`)."""
 
     def __init__(self, prefix=''):
         self.shared = {}
         self.cnt = 0
         self.prev = {}
         self.prefix = prefix
+        self.prevst = None
+        self.counts = collections.Counter()
 
-    def ltrie(self, d, val, typ, defs):
-        """The trie the pass holds for the entries `d` (`setF` at `Exec.indexDepth`; its shape depends only on the
-        keys), as `.node`s, a subtree longer than `SHARE` a `def` (into `defs`, or an earlier state's). A literal
-        costs the kernel nothing to build, where `insL` of the entries costs about as much as a window's pass."""
+    def count(self, st):
+        """Occurrences of each value, run, arm, arms list and cell's bases in `st` (the last state: the pass only
+        adds), which the state literals share as `def`s where they recur (`want`)."""
+        c = self.counts
+
+        def lc(x):
+            c[lbases(x)] += 1
+            return lcell(x)
+        for f, val in TVAL.items():
+            for v in getattr(st, f).values():
+                c[val(v, lcell)] += 1
+                val(v, lc)
+        for mx, arms in st.cd:
+            c[larms(arms)] += 1
+            lc(mx)
+            for a in arms:
+                c[larm(a)] += 1
+                larm(a, lc)
+                for r in a[1]:
+                    c[lprun(r)] += 1
+        for a, b in st.eqs:
+            lc(a), lc(b)
+
+    def want(self, text, typ, least=0):
+        """Whether `text` is (to be) a shared `def`: already one, or longer than `least` and recurring often enough
+        that the `def` takes less room than the copies (by the counts of `count`)."""
+        n = self.counts[text]
+        return ('v', typ, text) in self.shared or (len(text) > least and n >= 2 and
+                                                   n * (len(text) - 6) > len(text) + 130)
+
+    def sh(self, text, typ, defs, least=0, body=None):
+        """`text`, or the name of its shared `def` (`want`; written into `defs` at its first use, as `body` if
+        given: the same term with its own parts shared)."""
+        if not self.want(text, typ, least):
+            return body() if body else text
+        key = ('v', typ, text)
+        if key not in self.shared:
+            b = body() if body else text
+            self.shared[key] = f'{self.prefix}v{self.cnt}'
+            self.cnt += 1
+            defs.append(ldef(self.shared[key], typ, b))
+        return self.shared[key]
+
+    def lc(self, defs):
+        """The cell printer: a cell's bases (a monomial's, often long and recurring at many offsets) shared."""
+        def go(c):
+            b = lbases(c)
+            n = self.sh(b, 'List (ℕ × ℕ)', defs, 16)
+            return f'⟨{n}, {c[1]}⟩'
+        return go
+
+    def lcd(self, mx, arms, defs):
+        """A `CdE`, its runs, arms and arms list shared where they recur."""
+        lc = self.lc(defs)
+
+        def arm(a):
+            return self.sh(larm(a), 'CdA', defs, body=lambda: larm(a, lc, lambda r: self.sh(
+                lprun(r), 'PRun', defs, body=lambda: lprun(r, lc))))
+        al = self.sh(larms(arms), 'List CdA', defs, body=lambda: '[' + ', '.join(map(arm, arms)) + ']')
+        return f'⟨{lc(mx)}, {al}⟩'
+
+    def ltrie(self, d, typ, defs):
+        """The trie the check builds for the entries `d` (`setF` at `Exec.indexDepth`; its shape depends only on the
+        keys), as `.node`s whose entries are the texts `d` maps keys to (terms of `Option typ`), a subtree longer
+        than `CXSHARE` a `def` (into `defs`). A literal costs the kernel nothing to build, where building the trie
+        costs about as much as a window's pass."""
         t = None
         for k in sorted(d):
-            v = val(d[k])
-            if len(v) > VSHARE:
-                key = ('v', typ, v)
-                if key not in self.shared:
-                    self.shared[key] = f'{self.prefix}v{self.cnt}'
-                    self.cnt += 1
-                    defs.append(f'noncomputable def {self.shared[key]} : {typ} :=\n  {pack(v)}\n')
-                v = self.shared[key]
-            t = tset(t, v, DEPTH, k)
+            t = tset(t, d[k], DEPTH, k)
 
         def go(t):
             if t is None:
                 return '.nil'
-            v = 'none' if t[0] is None else f'(some {t[0]})'
-            out = f'(.node {v} {go(t[1])} {go(t[2])})'
-            if len(out) > SHARE:
-                key = (typ, out)
-                if key not in self.shared:
-                    self.shared[key] = f'{self.prefix}tr{self.cnt}'
-                    self.cnt += 1
-                    defs.append(f'noncomputable def {self.shared[key]} : Trie {typ} :=\n  {pack(out)}\n')
-                return self.shared[key]
+            out = f'(.node {"none" if t[0] is None else t[0]} {go(t[1])} {go(t[2])})'
+            if len(out) > CXSHARE:
+                name = f'{self.prefix}tr{self.cnt}'
+                self.cnt += 1
+                defs.append(ldef(name, f'Trie {typ}', out))
+                return name
             return out
         return go(t)
 
@@ -313,32 +408,44 @@ class Lits:
             text = f'{p[1]} ++ {nl}' if not front else f'{nl} ++ {p[1]}'
         else:
             text = ax.lst(f'{name}_', typ, items)
-        defs += ax.defs
+        defs += [d.replace('def ', 'noncomputable def ', 1) for d in ax.defs]
         defs.append(f'noncomputable def {name} : List {typ} := {text}\n')
         self.prev[field] = (items, name)
         return name
 
+    def ldelta(self, d, val, typ, defs, name, field):
+        """The trie the pass holds for the entries `d`, as `insL` of the entries new since the previous state over
+        its trie (`<prev>.<field>`; the pass only adds entries, and a trie's shape depends only on its keys), or of
+        all of them over `.nil`, values that recur shared (`sh`, longer than `VSHARE`)."""
+        prev = self.prevst
+        pd = getattr(prev[1], field) if prev else None
+        if pd is not None and all(k in d and d[k] == v for k, v in pd.items() if k < KEYMAX):
+            items, base = sorted((k, v) for k, v in d.items() if k < KEYMAX and k not in pd), f'{prev[0]}.{field}'
+        else:
+            items, base = sorted((k, v) for k, v in d.items() if k < KEYMAX), '.nil'
+        if not items:
+            return base
+        lc = self.lc(defs)
+        out = [f'({k}, {self.sh(val(v, lcell), typ, defs, VSHARE, body=lambda v=v: val(v, lc))})' for k, v in items]
+        ax = E.Aux()
+        lst = ax.lst(f'{name}_{field}_', f'(ℕ × {typ})', out)
+        defs += [d.replace('def ', 'noncomputable def ', 1) for d in ax.defs]
+        return f'insL {lst} {base}'
+
     def lstate(self, st, name):
-        """A state's literal: `(aux defs, text)`."""
-        arm = lambda a: (f'⟨[{", ".join(map(lcell, a[0]))}], [{", ".join(map(lprun, a[1]))}], '
-                         f'[{", ".join(f"({lcell(p[0])}, {lnums(p[1])})" for p in a[2])}], '
-                         f'[{", ".join(f"({lprun(p[0])}, {lnums(p[1])})" for p in a[3])}]⟩')
-        cd = [f'⟨{lcell(mx)}, [{", ".join(map(arm, arms))}]⟩' for mx, arms in st.cd]
-        eqs = [f'({lcell(a)}, {lcell(b)})' for a, b in st.eqs]
-        pair = lambda p: f'({lcell(p[0])}, {lcell(p[1])})'
+        """A state's literal, `(aux defs, text)`: each trie `insL` of its new entries over the previous state's
+        (`ldelta`), the lists the previous state's plus what is new (`llist`), recurring values, runs, arms and
+        cells' bases shared (`sh`, `lcd`, `lc`)."""
         defs = []
-        fs = [self.ltrie(st.env, lcell, 'CCell', defs),
-              self.ltrie(st.sc, lcell, 'CCell', defs),
-              self.ltrie(st.rs, lprun, 'PRun', defs),
-              self.ltrie(st.ad, pair, '(CCell × CCell)', defs),
-              self.ltrie(st.sv, pair, '(CCell × CCell)', defs),
-              self.ltrie(st.src, lcell, 'CCell', defs),
-              self.ltrie(st.pf, lambda p: f"({lcell(p[0])}, {lnums(p[1])})", '(CCell × List ℕ)', defs),
-              self.ltrie(st.pr, lambda p: f"({lprun(p[0])}, {lnums(p[1])})", '(PRun × List ℕ)', defs),
-              f'{st.n}, {st.nr}, {st.nc}, {st.nt}',
+        lc = self.lc(defs)
+        cd = [self.lcd(mx, arms, defs) for mx, arms in st.cd]
+        eqs = [f'({lc(a)}, {lc(b)})' for a, b in st.eqs]
+        fs = [self.ldelta(getattr(st, f), val, TTYP[f], defs, name, f) for f, val in TVAL.items()]
+        fs += [f'{st.n}, {st.nr}, {st.nc}, {st.nt}',
               self.llist('cd', cd, 'CdE', f'{name}_cd', defs, False),
               self.llist('eqs', eqs, '(CCell × CCell)', f'{name}_eqs', defs, True),
-              '[' + ', '.join(f'({lcell(c)}, {lprun(q)})' for c, q in st.dq) + ']']
+              '[' + ', '.join(f'({lc(c)}, {lprun(q, lc)})' for c, q in st.dq) + ']']
+        self.prevst = (name, st)
         return defs, '⟨' + ',\n    '.join(fs) + '⟩'
 
 
@@ -370,7 +477,7 @@ def sig_lam(k, names):
     return E.sig_text([f'| "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in sorted(names) if I.callee(n) in I.CORE])
 
 
-def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW'):
+def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW', smod=None):
     """The arm windows of window `i`, the `match` at statement `a`: `[(name, text)]`, module `W<i>A<t>` holding the
     summaries `sum<i>_<t>` of its arms and `arms<i>_<t> : armsOkW ..`."""
     bl, ac = split
@@ -381,7 +488,7 @@ def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW'):
         ax = E.Aux()
         sums = ax.lst(f'sum{i}_{t}_', 'BlkSum', [lblk(b) for b in bl[j:j2]])
         x = HEADER.format(base=base, fn=k, mod=f'W{i}A{t}', what=f'Arms {j} to {j2 - 1} of statement {a} of `{k}`\'s heap check.')
-        x += f'public import {base}.S{i}\npublic import LeanVM.Guest.CoreMode.HeapCWinM\n' + imps
+        x += f'public import {base}.{smod or "S" + str(i)}\npublic import LeanVM.Guest.CoreMode.HeapCWinM\n' + imps
         x += f'\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n'
         x += f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
         x += ''.join(f'/-- Part of `sum{i}_{t}`. -/\n{d}\n' for d in ax.defs)
@@ -394,34 +501,78 @@ def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW'):
     return out
 
 
-def lcx(H, chunk=False):
-    """The context's tries (`cxOf`) as literals: `[(field, its expression, type, defs, literal)]`; `chunk`: a long
-    witness list in parts of declarations of their own."""
-    reads = collections.defaultdict(list)
+def chunks(items):
+    """`emitc.Aux.lst`'s parts of a list of `items` (texts): `None` if it stays inline, else each part's first
+    position."""
+    if sum(len(x) + 2 for x in items) <= E.LIM:
+        return None
+    starts, n = [0], 0
+    for i, x in enumerate(items):
+        if i > starts[-1] and n + len(x) > E.LIM:
+            starts.append(i)
+            n = 0
+        n += len(x) + 2
+    return starts
+
+
+def lrefs(items, name, whole, f):
+    """Each position of a certificate's list as `Option` of its entry: `nthO` of the part of the list `emitc.lcert`
+    wrote it in (`name<j>`, or the list `whole` if it is one piece), or of that part without its first `BLK * q`
+    entries, a `def` (`cx<f>d<t>`) so that no reading walks more than `BLK` entries. `(refs, defs)`."""
+    st = chunks(items) or [0]
+    out, defs = [], []
+    for j, a in enumerate(st):
+        b = st[j + 1] if j + 1 < len(st) else len(items)
+        part = whole if len(st) == 1 else f'{name}{j}'
+        for q in range(0, b - a, BLK):
+            src = part
+            if q:
+                src = f'cx{f}d{len(defs)}'
+                defs.append(f'noncomputable def {src} := dropO {part} {q}\n')
+            out += [f'(nthO {src} {i})' for i in range(min(BLK, b - a - q))]
+    return out, defs
+
+
+def fl_cost(H, f):
+    """The characters of the certificate's list a context trie is built from: what its equation's evaluation
+    grows with."""
+    if f == 'R':
+        return sum(len(E.lwit(w)) + 12 for w in H.reads.values())
+    if f == 'P':
+        return sum(len(E.lcell(c)) for c in H.sig.pre)
+    if f in ('C', 'T'):
+        return sum(len(E.lwit(w)) + 2 for ws in (H.calls if f == 'C' else H.rets) for w in ws)
+    if f == 'RS':
+        return sum(len(E.lres(r)) for r in H.res)
+    return 8 * len(H.divs if f == 'DV' else H.hvs if f == 'HV' else H.eqs)
+
+
+def lcx(H, pre='sig_pre'):
+    """The context's tries (`cxOf`) as literals: `[(field, its expression, type, defs, literal)]`, each of
+    `hcert.readT` and of `trieFrom` a list of the certificate a literal of the trie's shape whose entries are positions
+    of the certificate's lists (`lrefs`: the data is not restated), the key sets (`keysT`) plain literals. `pre` names
+    the parts of the signature's `pre` (`emitc.lsig`'s, in the signature module for a signature callers name)."""
+    by_d = collections.defaultdict(list)
     for (d, p, off), w in sorted(H.reads.items()):
-        reads[d].append(f'({p}, {off}, {E.lwit(w)})')
-    wl = lambda ws: '[' + ', '.join(map(E.lwit, ws)) + ']'
-    fields = [('R', 'hcert.readT', '(List (ℕ × ℕ × CoreMode.Wit))', reads, lambda rs: '[' + ', '.join(rs) + ']'),
-              ('P', 'trieFrom hcert.sig.pre 0 .nil', 'CCell', dict(enumerate(H.sig.pre)), E.lcell),
-              ('C', 'trieFrom hcert.calls 0 .nil', '(List CoreMode.Wit)', dict(enumerate(H.calls)), wl),
-              ('T', 'trieFrom hcert.rets 0 .nil', '(List CoreMode.Wit)', dict(enumerate(H.rets)), wl),
-              ('RS', 'trieFrom hcert.res 0 .nil', 'CoreMode.CRes', dict(enumerate(H.res)), lambda r: f'({E.lres(r)})'),
-              ('DV', 'keysT hcert.divs .nil', 'Unit', dict.fromkeys(H.divs), lambda _: '()'),
-              ('HV', 'keysT hcert.hvs .nil', 'Unit', dict.fromkeys(H.hvs), lambda _: '()'),
-              ('EQ', 'keysT hcert.eqs .nil', 'Unit', dict.fromkeys(H.eqs), lambda _: '()')]
+        by_d[d].append(f'({p}, {off}, {E.lwit(w)})')
+    ritems = [f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items())]
+    rref, rdefs = lrefs(ritems, 'reads', 'hcert.reads', 'R')
+    rref = [f'(Option.map Prod.snd {r})' for r in rref]
+    ax = E.Aux()
+    citems = [E.lwits(ax, f'call{i}_', ws) for i, ws in enumerate(H.calls)]
+    titems = [E.lwits(ax, f'ret{i}_', ws) for i, ws in enumerate(H.rets)]
+    ref = lambda items, name, whole, f: (lambda r: (dict(enumerate(r[0])), r[1]))(lrefs(items, name, whole, f))
+    fields = [('R', 'hcert.readT', '(List (ℕ × ℕ × CoreMode.Wit))', (dict(zip(sorted(by_d), rref)), rdefs)),
+              ('P', 'trieFrom hcert.sig.pre 0 .nil', 'CCell', ref(list(map(E.lcell, H.sig.pre)), pre, 'hcert.sig.pre', 'P')),
+              ('C', 'trieFrom hcert.calls 0 .nil', '(List CoreMode.Wit)', ref(citems, 'calls', 'hcert.calls', 'C')),
+              ('T', 'trieFrom hcert.rets 0 .nil', '(List CoreMode.Wit)', ref(titems, 'rets', 'hcert.rets', 'T')),
+              ('RS', 'trieFrom hcert.res 0 .nil', 'CoreMode.CRes', ref(list(map(E.lres, H.res)), 'res', 'hcert.res', 'RS')),
+              ('DV', 'keysT hcert.divs .nil', 'Unit', (dict.fromkeys(H.divs, '(some ())'), [])),
+              ('HV', 'keysT hcert.hvs .nil', 'Unit', (dict.fromkeys(H.hvs, '(some ())'), [])),
+              ('EQ', 'keysT hcert.eqs .nil', 'Unit', (dict.fromkeys(H.eqs, '(some ())'), []))]
     out = []
-    for f, lhs, typ, d, val in fields:
-        defs = []
-        if chunk and f in ('C', 'T'):
-            def val(ws, f=f, defs=defs, n=[0]):
-                if sum(len(E.lwit(w)) + 2 for w in ws) <= E.LIM:
-                    return wl(ws)
-                n[0] += 1
-                ax = E.Aux()
-                t = ax.lst(f'cx{f}w{n[0]}_', 'CoreMode.Wit', list(map(E.lwit, ws)))
-                defs.extend(ax.defs)
-                return t
-        lit = Lits(f'cx{f}').ltrie({k: v for k, v in d.items() if k < KEYMAX}, val, typ, defs)
+    for f, lhs, typ, (d, defs) in fields:
+        lit = Lits(f'cx{f}').ltrie({k: v for k, v in d.items() if k < KEYMAX}, typ, defs)
         out.append((f, lhs, typ, defs, lit))
     return out
 
@@ -447,71 +598,92 @@ def emit(k, H, sts, cs, names, po, splits={}, gen=None):
     mods = []
     loop = is_loop(H)
     nw = len(cs) - 1 if loop else len(cs) - 2      # a function's last chunk is `lastOkF`'s
-    st = HEADER.format(base=base, fn=k, mod='St', what=f'The callees\' signatures for `{k}`\'s windowed heap check.')
-    st += (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
-           ''.join(f'public import {m}\n' for m in data))
-    st += f'\nset_option linter.all false\n\nnamespace {ns}.{sub}\n\n'
-    st += 'open LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
-    st += f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
-    st += f'\nend\nend {ns}.{sub}\n'
-    mods.append(('St', st))
     imps = (f'public import LeanVM.Guest.CoreMode.Pows.«{pack}»\npublic import LeanVM.Guest.Pack.«{pack}».{core_mod}\n')
-    # one module per trie (`Cx<field>`), each stated once; `Cx` the context
-    fl = lcx(H, chunk=bool(gen))
     opn = (f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\nopen LeanVM.Guest.Exec (Trie)\n\n'
            f'@[expose] public section\n')
+    # the context (`Cx`): the callees' signatures, each trie stated once (`lcx`), their parts in modules of at most
+    # `CXPART` characters (`CxD<j>`, each importing the last) if long
+    fl = lcx(H, pre=gen.get('pre', 'sig_pre'))
+    head = (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
+            ''.join(f'public import {m}\n' for m in data) + imps)
+    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
+    # the equations, in groups of at most `CXDEC` characters of the certificate's lists they read (`CxH<j>`, each
+    # importing the definitions) if more than one, else in `Cx`
+    groups, g = [], []
     for f, lhs, typ, defs, lit in fl:
-        # the literal's parts in modules of at most `CXPART` characters (`Cx<field>D<j>`), each importing the last
-        parts, cur = [], []
-        for d in defs:
+        if g and sum(c for *_, c in g) + fl_cost(H, f) > CXDEC:
+            groups.append(g)
+            g = []
+        g.append((f, lhs, fl_cost(H, f)))
+    groups.append(g)
+    parts, cur = [], [sigd]
+    for f, lhs, typ, defs, lit in fl:
+        for d in defs + [f'/-- `cxOf`\'s trie `{f}`. -/\nnoncomputable def cx{f} : Trie {typ} :=\n  {lit}\n']:
             if cur and sum(map(len, cur)) + len(d) > CXPART:
                 parts.append(cur)
                 cur = []
             cur.append(d)
-        prev = f'{base}.St'
-        for j, ds in enumerate(parts):
-            cd = HEADER.format(base=base, fn=k, mod=f'Cx{f}D{j}', what=f'Part {j} of the literal of the trie `{f}` of `{k}`\'s heap check context.')
-            cd += f'public import {prev}\n\nset_option maxRecDepth 100000\nset_option linter.all false\n\n' + opn
-            cd += ''.join(f'\n{d}' for d in ds) + f'\nend\nend {ns}.{sub}\n'
-            mods.append((f'Cx{f}D{j}', repack(cd)))
-            prev = f'{base}.Cx{f}D{j}'
-        cf = HEADER.format(base=base, fn=k, mod=f'Cx{f}', what=f'The trie `{f}` of `{k}`\'s heap check context, as a literal.')
-        cf += f'public import {prev}\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        cf += 'set_option Elab.async false\n\n' + opn
-        cf += ''.join(f'\n{d}' for d in cur)
-        cf += f'\n/-- `cxOf`\'s trie `{f}`. -/\nnoncomputable def cx{f} : Trie {typ} :=\n  {lit}\n'
-        cf += f'\ntheorem hcx{f} : {lhs} = cx{f} := by\n  decide +kernel\n'
-        cf += f'\nend\nend {ns}.{sub}\n'
-        mods.append((f'Cx{f}', repack(cf)))
-    cx = HEADER.format(base=base, fn=k, mod='Cx', what=f'The context of `{k}`\'s windowed heap check, its tries as literals.')
-    cx += ''.join(f'public import {base}.Cx{f[0]}\n' for f in fl) + imps + '\nset_option linter.all false\n\n'
-    cx += f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n'
+    if len(groups) > 1:
+        parts.append(cur)
+        cur = []
+    prev = None
+    for j, ds in enumerate(parts):
+        cd = HEADER.format(base=base, fn=k, mod=f'CxD{j}', what=f'Part {j} of the tries of `{k}`\'s heap check context.')
+        cd += (f'public import {prev}\n' if prev else head) + '\nset_option maxRecDepth 100000\n'
+        cd += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(ds) + f'\nend\nend {ns}.{sub}\n'
+        mods.append((f'CxD{j}', repack(cd)))
+        prev = f'{base}.CxD{j}'
+    thm = lambda g: ''.join(f'\ntheorem hcx{f} : {lhs} = cx{f} := by\n  decide +kernel\n' for f, lhs, _ in g)
+    if len(groups) > 1:
+        for j, g in enumerate(groups):
+            ch = HEADER.format(base=base, fn=k, mod=f'CxH{j}', what=f'Equations {j} of the tries of `{k}`\'s heap check '
+                               f'context.')
+            ch += f'public import {prev}\n\nset_option Elab.async false\n\n' + opn + thm(g) + f'\nend\nend {ns}.{sub}\n'
+            mods.append((f'CxH{j}', ch))
+    cx = HEADER.format(base=base, fn=k, mod='Cx', what=f'The context of `{k}`\'s windowed heap check: the callees\' '
+                       f'signatures, the tries stated.')
+    if len(groups) > 1:
+        cx += ''.join(f'public import {base}.CxH{j}\n' for j in range(len(groups)))
+    else:
+        cx += f'public import {prev}\n' if prev else head
+    cx += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
+    cx += '\n' + ''.join(cur) if cur else ''
+    cx += thm(groups[0]) if len(groups) == 1 else ''
     cx += (f'\n/-- The context, its tries stated. -/\nnoncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
            'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
     cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
            'hcxHV hcxEQ\n')
     cx += f'\nend\nend {ns}.{sub}\n'
     mods.append(('Cx', repack(cx)))
-    # one module per state, each importing the previous one, whose subtrees it shares (`Lits`)
+    # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
+    # previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
     lits = Lits()
+    lits.count(sts[cs[nw]])
+    groups, cur, smod = [], [], {}
     for i, a in enumerate(cs[:nw + 1]):
         aux, text = lits.lstate(sts[a], f'st{i}')
-        si = HEADER.format(base=base, fn=k, mod=f'S{i}', what=f'The state before statement {a} of `{k}`\'s windowed heap check.')
-        si += f'public import {base}.{"S" + str(i - 1) if i else "Cx"}\n\nset_option maxRecDepth 100000\n'
-        si += 'set_option linter.all false\n\n'
-        si += (f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\nopen LeanVM.Guest.Exec (Trie)\n\n'
-               f'@[expose] public section\n')
-        si += ''.join(f'\n{d}' for d in aux)
-        si += f'\n/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := {text}\n'
+        t = ''.join(aux) + f'/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := {text}\n'
+        if cur and sum(len(x[1]) for x in cur) + len(t) > SPART:
+            groups.append(cur)
+            cur = []
+        cur.append((i, t))
+    groups.append(cur)
+    for g, grp in enumerate(groups):
+        si = HEADER.format(base=base, fn=k, mod=f'S{g}', what=f'The states {grp[0][0]} to {grp[-1][0]} of `{k}`\'s '
+                           f'windowed heap check.')
+        si += f'public import {base}.{"S" + str(g - 1) if g else "Cx"}\n\nset_option maxRecDepth 100000\n'
+        si += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(t for _, t in grp)
         si += f'\nend\nend {ns}.{sub}\n'
-        mods.append((f'S{i}', repack(si)))
+        mods.append((f'S{g}', repack(si)))
+        for i, _ in grp:
+            smod[i] = f'S{g}'
     blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('core.body', 'winOkF')
     for i in range(nw):
         a, b = cs[i], cs[i + 1]
         w = HEADER.format(base=base, fn=k, mod=f'W{i}', what=f'Window {i} of `{k}`\'s heap check: statements {a} to {b - 1}.')
-        w += f'public import {base}.S{i}\npublic import {base}.S{i + 1}\n'
+        w += f'public import {base}.{smod[i + 1]}\n'
         if i in splits:
-            amods = emit_arms(k, i, a, splits[i], blk, ns, base, imps, sub)
+            amods = emit_arms(k, i, a, splits[i], blk, ns, base, imps, sub, smod[i])
             mods += amods
             w += ''.join(f'public import {base}.{nm}\n' for nm, _ in amods)
             w += f'public import LeanVM.Guest.CoreMode.HeapCWinM\n'

@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».S5
-public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».S6
+public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».S0
 public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 

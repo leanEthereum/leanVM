@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«verify_sub».S0
-public import LeanVM.Guest.CoreMode.GenCW.«verify_sub».S1
 public import LeanVM.Guest.CoreMode.Pows.«P33»
 public import LeanVM.Guest.Pack.«P33».Core
 

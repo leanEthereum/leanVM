@@ -570,7 +570,11 @@ class Pass:
             # a bound over the same bases is decided: one that fails is false, not a residual
             dl, dh = ioff(r[2], j), ioff(j, r[3])
             if not (not okl and dl is not None) and not (not okh and dh is not None) and (
-                    best is None or negidx(best[2]) and not negidx(j)):
+                    best is None or negidx(best[2]) and not negidx(j) or
+                    # an index over bases is no residual's below a constant bound when a run up to a bound over
+                    # bases holds it
+                    'vthi' in F and not best[4] and not best[0][3][0] and best[2][0] and r[3][0] and
+                    not negidx(j)):
                 # a run the cell has a negative constant offset in is a last resort: its index wraps below 0
                 best = (r, rw, j, okl, okh)
         return best
@@ -1134,7 +1138,10 @@ class Pass:
         ws = []
         site = ('call', f)
         self.ginst = None
-        if G is not None and G.ghosts and 'obj' in F:
+        if G is not None and G.ghosts and all(a[0] == 'hp1' for a in G.ghosts):
+            # a callee's caller cells, the caller's own parameters' words (`CoreMode.hpArgOk`)
+            self.ginst = [mk(((a[1] - 2, 1),), 0) for a in G.ghosts]
+        elif G is not None and G.ghosts and 'obj' in F:
             import objs
             self.ginst = self.gforce.get(f) if f in self.gforce else objs.inst(self, st, G, args, conds)
         ginst = self.ginst
@@ -1347,6 +1354,9 @@ class Pass:
         if G.ghosts and 'obj' in F:
             import objs
             self.ginst = objs.inst(self, st, G, args, None, tail=True)
+        elif G.ghosts and all(a[0] in ('link', 'fp') for a in G.ghosts):
+            # a loop's caller's cells and frame (`CoreMode.loopGl`): its tail call names its own ghosts (`tailG`)
+            self.ginst = [mk(((GB + j, 1),), 0) for j in range(len(G.ghosts))]
         for c in G.pre:
             t = self.tr(st, c, args, None)
             if t in G.pre:

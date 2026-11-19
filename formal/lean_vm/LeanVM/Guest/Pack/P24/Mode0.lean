@@ -10,44 +10,11 @@ module
 
 public import LeanVM.Guest.CoreMode.Sig.«P24»
 public import LeanVM.Guest.CoreMode.Sig.«P35»
-public import LeanVM.Guest.CoreMode.Sig.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P24».Bundle
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«main_loop3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop3_main`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«verify_sig_lean_sphincs».csig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop3».csig) .nil .nil) .nil))
-    .nil)))) .nil) .nil)) .nil))) .nil) .nil)) .nil)), 524287⟩
-
-/-- `__loop3_main`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨178532, 36, Fn.«main_loop3».csig, (.node (some [(.witnessStack "sp_raw_index" 10 1)]) (.node
-    none .nil (.node none .nil (.node (some [(.alloc 21 5330)]) .nil .nil))) (.node none .nil
-    (.node none .nil (.node none (.node (some [(.frameAddress 30)]) .nil .nil) .nil)))), .nil,
-    .nil, false, .nil⟩
-
-/-- `__loop3_main`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«main_loop3»
 
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 

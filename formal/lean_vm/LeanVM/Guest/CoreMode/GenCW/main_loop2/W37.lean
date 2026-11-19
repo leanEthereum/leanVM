@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S37
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S38
+public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S0
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W37A0
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W37A1
 public import LeanVM.Guest.CoreMode.HeapCWinM

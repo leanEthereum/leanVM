@@ -8,13 +8,14 @@
 module
 
 public import LeanVM.Guest.EndExecEntry
-public import LeanVM.Guest.EndExecRKid
+public import LeanVM.Guest.CoreMode.Fam.Kid
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.JumpCells
 public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreMono
+public import LeanVM.Guest.EndExecCoreSt
 
 /-!
 # The core route's honest frames
@@ -501,25 +502,85 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   have hpN : Cf.fn.params = (List.range Cf.fn.params.length).map V.n := by
     rw [List.range_eq_range']; exact CoreMode.paramsN_eq _ 0 hpar
   suffices hB : CoreMode.HonB r.img Cf s.fp e.σ by
+    cases hsk : CoreMode.stK Cf.fn with
+    | some p =>
+      -- a stream-cursor loop: its ghost words its caller's stream and frame
+      obtain ⟨D, v, S⟩ := p
+      have hgl1 := hgl0
+      simp only [CoreMode.glOk, hsk, Option.isSome_some, Bool.cond_true, CoreMode.stGl, Option.any_some,
+        Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hgl1
+      obtain ⟨⟨⟨hglv, hgh⟩, hng⟩, hgw0⟩ := hgl1
+      have hmk := stK_mlK hsk
+      obtain ⟨a, ha, haD, hsub⟩ := st_inst hr hI hIt hfind hsk
+      have hD0 : D ≠ 0 := by
+        rcases stK_cases hsk with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ <;>
+          decide
+      refine ⟨CoreMode.setG e.σ [refMem r.img (a + D), ofK (Parameters.g ^ a)], CoreMode.honB_setG hB hng,
+        fun hxw ↦ ?_, ?_, fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩
+      · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+          (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
+          (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx) hsub
+          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+      · rw [← hfpL]
+        exact stGlF hglv hgh hD0 (rd_hdr hF.hdr1 ha) haD
+    | none =>
     cases hmk : CoreMode.mlK Cf.fn with
     | none =>
-      -- no ghost: its residuals and linked cells at its valuation
       have hgl1 := hgl0
-      simp only [CoreMode.glOk, hmk, Option.isSome_none, Bool.cond_false, Bool.and_eq_true] at hgl1
-      refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_⟩
-      · exact resOk_inst hr hI hIt hfind hres0 hmk hparF hxw
-      · rw [← hfpL]
-        exact glF_inst hr hI hIt hfind hpN hLk hgl1.1 hF.hdr1 _
+      simp only [CoreMode.glOk, hsk, hmk, Option.isSome_none, Bool.cond_false] at hgl1
+      rcases Bool.or_eq_true_iff.mp hgl1 with hgl1 | hal
+      · rcases Bool.or_eq_true_iff.mp hgl1 with hgl1 | hgl1
+        · -- no ghost: its residuals and linked cells at its valuation
+          rw [Bool.and_eq_true, Bool.and_eq_true] at hgl1
+          obtain ⟨⟨hgl1, -⟩, hgw0⟩ := hgl1
+          refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_, fun c j hc ↦ ?_⟩
+          · exact resOk_inst hr hI hIt hfind hres0 hmk hsk (List.isEmpty_iff.mp hgw0) hparF hxw
+          · rw [← hfpL]
+            exact glF_inst hr hI hIt hfind hpN hLk hgl1 hF.hdr1 _
+          · rw [List.isEmpty_iff.mp hgw0] at hc; cases hc
+        · -- its ghost words its own parameter words
+          rw [Bool.and_eq_true] at hgl1
+          obtain ⟨hgle, hgs⟩ := hgl1
+          have hng : CoreMode.ngB Cf.fn = true := by
+            simp only [CoreMode.gwSlots, Bool.and_eq_true] at hgs; exact hgs.2
+          refine ⟨CoreMode.setG e.σ (Cf.H.sig.gw.map fun x ↦ (r.img.read (x.1.addrW (CoreMode.vw e.σ))).getD 0),
+            CoreMode.honB_setG hB hng, fun hxw ↦ ?_, fun d b k h ↦ ?_, CoreMode.gwR_setG hgs⟩
+          · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+              (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
+              (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
+              (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+              (fun x hx ↦ vtExp_inst hr hI hIt hfind (fun v hv ↦ CoreMode.setG_eq hv) hng (CoreMode.gwR_setG hgs) hx)
+          · rw [List.isEmpty_iff.mp hgle] at h; cases h
+      · -- a loop callee of `anyLink`: its ghost word its caller's frame address
+        simp only [CoreMode.alGl, Bool.and_eq_true, Nat.beq_eq] at hal
+        obtain ⟨⟨⟨hany, hgh⟩, hng⟩, hgw0⟩ := hal
+        have hnp : Cf.fn.params.length < CoreMode.GB := by
+          have := hng
+          simp only [CoreMode.ngB, Bool.and_eq_true, Nat.blt_eq] at this
+          exact this.1.1
+        obtain ⟨a, hglF⟩ := alGlF_inst hr hI hIt hfind hpN hLk hany hF.hdr1 hgh hnp
+        refine ⟨CoreMode.setG e.σ [ofK (Parameters.g ^ a)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_,
+          fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩
+        · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+            (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
+            (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
+            (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+            (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+        · rw [← hfpL]
+          exact hglF
     | some k =>
       -- the ghost family: its ghost word the caller's entries table
       have hgl1 := hgl0
-      simp only [CoreMode.glOk, hmk, Option.isSome_some, Bool.cond_true, CoreMode.mlGl, Bool.and_eq_true,
-        decide_eq_true_eq, Nat.beq_eq] at hgl1
-      obtain ⟨⟨⟨-, hglv⟩, hgh⟩, hng⟩ := hgl1
+      simp only [CoreMode.glOk, hsk, hmk, Option.isSome_none, Option.isSome_some, Bool.cond_false, Bool.cond_true,
+        CoreMode.mlGl, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hgl1
+      obtain ⟨⟨⟨⟨-, hglv⟩, hgh⟩, hng⟩, hgw0⟩ := hgl1
       obtain ⟨hpar4, a, ha, h5, hm5, hsub⟩ := ml_inst hr hMo hI hIt hfind hmk
-      refine ⟨CoreMode.setG e.σ [refMem r.img (a + 2)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_⟩
+      refine ⟨CoreMode.setG e.σ [refMem r.img (a + 2)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_,
+        fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩
       · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
+          (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
   refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,

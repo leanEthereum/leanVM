@@ -39,6 +39,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -70,6 +71,12 @@ open LeanVM.Guest.Exec
 def Fn.«rs_eq_run».frameCallee0 : List ℕ := [Fn.«rs_eq_rows__L0».entry, Fn.«rs_eq_rows__L1».entry,
     Fn.«rs_eq_rows__L2».entry, Fn.«rs_eq_rows__L3».entry, Fn.«rs_eq_rows__L4».entry,
     Fn.«rs_eq_rows__L5».entry, Fn.«rs_eq_rows__L6».entry, Fn.«rs_eq_rows__L7».entry]
+noncomputable def Fn.«rs_eq_run».envC : Mode.Env := CoreMode.envOf [Fn.«rs_eq_rows__L0».csig,
+    Fn.«rs_eq_rows__L1».csig, Fn.«rs_eq_rows__L2».csig, Fn.«rs_eq_rows__L3».csig,
+    Fn.«rs_eq_rows__L4».csig, Fn.«rs_eq_rows__L5».csig, Fn.«rs_eq_rows__L6».csig,
+    Fn.«rs_eq_rows__L7».csig, Fn.«rs_eq_run_loop0».csig]
+noncomputable def Fn.«rs_eq_run».funC : Mode.Fun := ⟨Fn.«rs_eq_run».entry, 59, Fn.«rs_eq_run».csig,
+    .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«rs_eq_run».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«rs_eq_run».entry, 59,
     Fn.«rs_eq_run».csig, (CoreMode.sigTrie [Fn.«rs_eq_rows__L0».csig, Fn.«rs_eq_rows__L1».csig,
@@ -77,9 +84,7 @@ noncomputable def Fn.«rs_eq_run».frameFun : CoreMode.FFun :=
     Fn.«rs_eq_rows__L5».csig, Fn.«rs_eq_rows__L6».csig, Fn.«rs_eq_rows__L7».csig,
     Fn.«rs_eq_run_loop0».csig]), 524287, advice.2.2, .nil, (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node (some 0) .nil .nil))) .nil) .nil) .nil), .nil, (.node
-    (some frameCallee0) .nil .nil), (.node none .nil (.node none (.node none (.node none .nil (.node
-    none .nil (.node (some ()) .nil .nil))) .nil) (.node none .nil (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)))), .nil, .nil⟩
+    (some frameCallee0) .nil .nil), Fn.«rs_eq_run».pairO, Fn.«rs_eq_run».pairS, .nil⟩
 
 theorem Fn.«rs_eq_run».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

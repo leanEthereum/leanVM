@@ -405,6 +405,21 @@ def runRun(F, E, Q, R):
     return Q[0] == R[0] and Q[1] == R[1] and loOk(F, E, Q, R) and hiOk(F, E, Q, R)
 
 
+def shiftR(Q, R):
+    """`CoreMode.shiftR`: `R` rebased onto `Q`'s base (its base `t` strides past, constant lower bounds,
+    `R.lo + t <= Q.lo`), its cells from `Q.lo` to its upper bound; or `None`."""
+    if not (0 < Q[1] and Q[1] == R[1] and Q[0][0] == R[0][0] and Q[0][1] <= R[0][1] and
+            (R[0][1] - Q[0][1]) % Q[1] == 0 and not Q[2][0] and not R[2][0] and
+            R[2][1] + (R[0][1] - Q[0][1]) // Q[1] <= Q[2][1] < CAPE):
+        return None
+    return (Q[0], Q[1], Q[2], R[3])
+
+
+def runRunS(F, E, Q, R):
+    R2 = shiftR(Q, R)
+    return R2 is not None and runRun(F, E, Q, R2)
+
+
 def emptyR(Q):
     return not Q[2][0] and not Q[3][0] and Q[3][1] <= Q[2][1] and Q[2][1] < CAPE
 
@@ -442,8 +457,9 @@ def prepIdx(F, R, c):
     base, S, lo, hi = R
     Q = prepQ(R)
     J = idxOf(Q, c, S)
-    return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
-        J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
+    return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and (
+        (J[0] == hi[0] and J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and
+         (J == hi or hasExp(F, J))) or hasF(F, J, cshift(hi, 1)))
 
 
 def appQ(R):
@@ -646,7 +662,8 @@ def ptOk(X, st, c, w):
 def rnOk(X, st, Q, w):
     if w[0] == 'run':
         R = st.rs.get(w[1])
-        return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R))
+        return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R) or
+                                  runRunS(X.facts(st.env, w[2]), st.eqs, Q, R))
     if w[0] == 'empty':
         return emptyE(st.eqs, Q)
     return False
@@ -1648,6 +1665,21 @@ def atomDst(a):
     return []
 
 
+# frame run cells past their runs a function's certificate also lists (`(kp, i)`, `i` at least the run's length), by
+# function: the frame walk's cells written at every return (`callc.fa_past`, `CoreMode.faRetAt`)
+FA_EXTRA = {}
+
+
+def fa_past_ok(body, kp, i):
+    """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
+    for s in body:
+        if not _noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][1] == kp and s[1][2] and len(s[1][2]) <= i:
+            return True
+    return False
+
+
 def fa_pairs(body):
     """Every `(kp, i)` `faOk` accepts: a `frameAddr kp run` and an atom defining `run[i]` among `topAtoms` (the
     top-level atoms before the first statement with a `ret` inside)."""
@@ -1709,7 +1741,8 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.fail('noGhost')
     if not dersOk(H.ders):
         P.fail('dersOk')
-    if not set(map(tuple, H.fas)) <= set(fa_pairs(body)):
+    fps = set(fa_pairs(body))
+    if not all(p in fps or fa_past_ok(body, *p) for p in map(tuple, H.fas)):
         P.fail('faOk')
     st = St()
     for i in range(m):

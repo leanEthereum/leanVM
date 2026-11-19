@@ -122,7 +122,7 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
 
 /-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
 signatures; no conditional call's condition at a nonzero constant's cell. -/
-noncomputable def loopShapeOkC (Cf : CFun) : Bool :=
+noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
   !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && tgtNone Cf.X.sites && trieNil Cf.frame.tgt &&
     !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
@@ -134,6 +134,46 @@ noncomputable def loopShapeOkC (Cf : CFun) : Bool :=
     (stmtsOf Cf.fn.body).all fun s ↦ match s with
       | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
       | _ => true
+
+/-- **Each linked upper bound of a loop's runs over its caller's cells has an exponent by a residual**: for each mode
+precondition run `rngH` translates with an upper bound other than a constant, that bound over the parameters and a
+residual `e(a) < e(hi)`. -/
+def hiRes (G : Mode.Sig) (gl : List (ℕ × ℕ × ℕ)) (np : ℕ) (res : List CRes) : Bool :=
+  G.preR.all fun r ↦ match rngH gl r with
+    | some q => match q.hi with
+      | .num _ => true
+      | hi => hi.vals.all (Nat.blt · np) && res.any fun x ↦ match x with
+        | .lt _ b => decide (b = hi)
+        | _ => false
+    | none => true
+
+/-- **The shape around a loop helper with calls** (`loopShapeOk0`), its linked upper bounds with exponents by
+residuals (`hiRes`). -/
+noncomputable def loopShapeOkC (Cf : CFun) : Bool :=
+  loopShapeOk0 Cf && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res
+
+theorem hiRes_spec {G : Mode.Sig} {gl : List (ℕ × ℕ × ℕ)} {np : ℕ} {res : List CRes} (h : hiRes G gl np res = true)
+    {r : Mode.Rng} (hr : r ∈ G.preR) {q : CRun} (hq : rngH gl r = some q) (hn : ∀ n, q.hi ≠ .num n) :
+    (∀ v ∈ q.hi.vals, v < np) ∧ ∃ a, CRes.lt a q.hi ∈ res := by
+  have h1 := List.all_eq_true.mp h r hr
+  rw [hq] at h1
+  simp only at h1
+  simp only [Bool.and_eq_true, List.all_eq_true, Nat.blt_eq, List.any_eq_true] at h1
+  obtain ⟨h2, x, hx, h3⟩ := h1
+  refine ⟨h2, ?_⟩
+  match x, h3 with
+  | .lt a b, h3 =>
+    simp only [decide_eq_true_eq] at h3
+    exact ⟨a, h3 ▸ hx⟩
+
+/-- A slot the tail call passes on unchanged has the same word at the next iteration. -/
+theorem slotW_pass {σ : Val} {ps args : List V} {G : List E} (hp : ps = (List.range ps.length).map V.n) {b : ℕ}
+    (ha : args[b]? = some (V.n b)) (hl : args.length = ps.length) :
+    slotW (args.map σ ++ G) b = slotW (ps.map σ ++ G) b := by
+  have hb : b < args.length := (List.getElem?_eq_some_iff.mp ha).1
+  rw [slotW_lt (by simpa using hb), slotW_lt (by simpa [← hl] using hb), slotW_get (by simpa using hb),
+    List.getElem_map, (List.getElem?_eq_some_iff.mp ha).2, slotW_params' hp (by omega)]
+
 
 /-- An atom whose relation reads memory only through a `load`: no range check, `touch` or `frameAddr`. -/
 def rdFree : Stmt → Bool
@@ -185,6 +225,11 @@ theorem callsBL_spec {Cf : CFun} (hcb : callsBL Cf = true) {f : String} {args re
   simp only [callChk, Bool.and_eq_true] at this
   exact ⟨List.all_eq_true.mp this.1.2, List.all_eq_true.mp this.2⟩
 
+/-- **The tail call names its own ghosts**: each ghost monomial list the certificate gives a call of the function
+itself the own ghosts' (`ghostMs`). -/
+def tailG (Cf : CFun) : Bool :=
+  Cf.H.gargs.all fun p ↦ !(p.1 == Cf.fn.name) || decide (p.2.2 = ghostMs Cf.H.sig.ghosts)
+
 /-- **The kernel's checks of a loop helper with calls on the core route**, and its ties to its mode
 certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
 signatures the environment's. -/
@@ -201,7 +246,9 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   code : loopCodeC Cf K.code = true
   pair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true
   frame : envOk Cf.frame = true ∧ armsOk Cf.frame = true ∧ FrameAcc Cf.frame K.code
-  sig : sigOkLP K.F.sig Cf.H.sig Cf.fn.params.length (tailPass Cf.fn.body) = true
+  sig : sigOkLP K.F.sig Cf.H.sig Cf.fn.params.length (tailPass Cf.fn.body) Cf.gl = true
+  /-- Its tail call names its own ghosts. -/
+  gtail : tailG Cf = true
   shape : loopShapeOkC Cf = true
   sigE : K.E.sigs.get K.F.entry = some K.F.sig
   fsig : Cf.frame.sig = K.F.sig
@@ -636,6 +683,54 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (fun c hc ↦ hWall _ (hposts.1.1 c hc)) (fun r hr x hx ↦ hWall x (hposts.1.2 r hr x hx))
     (rdM_memRd m' img.read) fun x hx ↦ hWall x (hposts.2.1 x hx)
 
+theorem slotW_app_ge {l l' G : List E} (hl : l.length = l'.length) {b : ℕ} (hb : l.length ≤ b) :
+    slotW (l ++ G) b = slotW (l' ++ G) b := by
+  simp only [slotW, List.getD_eq_getElem?_getD, List.getElem?_append_right hb,
+    List.getElem?_append_right (hl ▸ hb), hl]
+
+theorem parAt_app {G : Mode.Sig} {np : ℕ} {s : St} {ws gs : List E} (h : ParAt G np s ws) (hl : ws.length = np) :
+    ParAt G np s (ws ++ gs) := fun o ho ↦ by
+  rw [h o ho, slotW_lt (by have := (parCell_spec ho).2.1; omega)]
+
+theorem loopC_params {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) :
+    Cf.fn.params = (List.range Cf.fn.params.length).map V.n := by
+  have h := hok.heap
+  unfold heapOkC at h
+  simp only [Bool.and_eq_true] at h
+  rw [List.range_eq_range']
+  exact paramsN_eq _ 0 h.1.1.1.1.1
+
+/-- **The caller's linked cells at the next iteration**: its header names the same caller's frame, each linked slot
+the same word. -/
+theorem glF_next {img : MemoryImage κ} {gl : List (ℕ × ℕ × ℕ)} {fp fp' : ℕ} (h1 : Rd img fp' 1 = Rd img fp 1)
+    {ws ws' : List E} (hs : ∀ d b k, (d, b, k) ∈ gl → slotW ws' b = slotW ws b) (h : GlF img gl fp ws) :
+    GlF img gl fp' ws' := fun d b k hm ↦ by
+  obtain ⟨a, ha1, had, hL⟩ := h d b k hm
+  refine ⟨a, h1.trans ha1, had, ?_⟩
+  rwa [hs d b k hm]
+
+/-- **The tail call's ghost words are the own ghosts'** (`tailG`), as many as the function has. -/
+theorem gargsW_tail {Cf : CFun} (hg : tailG Cf = true) {σ : Val} {args : List V}
+    (hn : (gargsOf Cf.H.gargs Cf.fn.name args).length = Cf.H.sig.ghosts) :
+    gargsW Cf.H σ Cf.fn.name args = ownG Cf.H.sig σ := by
+  have hms : gargsOf Cf.H.gargs Cf.fn.name args = ghostMs Cf.H.sig.ghosts := by
+    unfold gargsOf at hn ⊢
+    split
+    · rename_i p hp
+      have hpm := List.mem_of_find?_eq_some hp
+      have hpn := List.find?_some hp
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hpn
+      have := List.all_eq_true.mp hg p hpm
+      simp only [Bool.or_eq_true, Bool.not_eq_true', beq_eq_false_iff_ne, decide_eq_true_eq] at this
+      exact this.resolve_left (fun h ↦ h hpn.1)
+    · rename_i hp
+      rw [hp] at hn
+      simp only [List.length_nil] at hn
+      simp [ghostMs, ← hn]
+  unfold gargsW ownG
+  rw [hms]
+  simp [ghostMs, valW_baseC, vw]
+
 /-- **A loop's tail call taken**, into frame `s.fp + S` of the honest tree: `tail_next` for a loop
 helper with calls, pointer runs included. -/
 theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : MemoryImage κ} (hκ : κ ≤ 28)
@@ -649,14 +744,16 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     (hent0 : 0 ∈ Cf.frame.sig.entry) (hent1 : 1 ∈ Cf.frame.sig.entry)
     {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
-    (hR0 : ResF Cf.H σ0) (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
+    (hR0 : ResF Cf.H σ0) (hgl0 : GlF img Cf.gl s.fp (Cf.fn.params.map σ0 ++ ownG Cf.H.sig σ0))
+    (heq : es = evs ++ Ev.inK c :: Ev.call Cf.fn.name args [] :: cs.map Ev.atom)
     (hrw0 : ReadsOkC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es))
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x)
     (hnargs : ∀ k (hk : k < args.length), Rd img (s.fp + S) (2 + k) = some (σ0 args[k]))
     (hargs : args.length = Cf.fn.params.length)
     (hP0 : ParAt K.F.sig Cf.fn.params.length (stOf s.mem s.fp) (Cf.fn.params.map σ0))
     (hT : TermAt s.mem s.fp K.F.sig) (hX : ExpM K.F.sig (expCells K.F.sig) (stOf s'.mem s.fp))
-    (hXN : ExpM K.F.sig (tailPass Cf.fn.body) (stOf s'.mem s'.fp)) (hcs : ∀ a ∈ cs, stopL a = false) :
+    (hXN : ExpM K.F.sig (tailPass Cf.fn.body) (stOf s'.mem s'.fp)) (hcs : ∀ a ∈ cs, stopL a = false)
+    (hpass : ∀ b, 2 + b ∈ tailPass Cf.fn.body → args[b]? = some (V.n b)) :
     s'.pc = K.F.entry ∧ (∀ o ∈ K.F.sig.entry, s'.mem.written (s'.fp + o) = true) ∧
       (∀ o < 2, ∃ u, s'.mem.get (s1.fp + o) = some u ∧ s'.mem.get (s'.fp + o) = some u) ∧
       Mode.BackM s'.mem K.F.sig s1.fp s'.fp ∧ Mode.Holds s' (entryAbs K.E K.F.sig) := by
@@ -687,14 +784,44 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     have hreq := callReq_pre hok.ders hreq
     have hreqS := hreq.2.1
     have hreqP := hreq.2.2
-    have hga : gargsW Cf.H σ0 Cf.fn.name args = [] := by
-      rw [← List.length_eq_zero_iff]
-      simp only [gargsW, List.length_map, hreq.1, hsigf, hs.hghost]
-    rw [hsigf, hga, List.append_nil] at hreqS hreqP
-    obtain ⟨hpreN, hpreRN, hprePN⟩ := entry_of_preP hs hPN hTN hXN
+    have hga : gargsW Cf.H σ0 Cf.fn.name args = ownG Cf.H.sig σ0 :=
+      gargsW_tail hok.gtail (by rw [hreq.1, hsigf])
+    rw [hsigf, hga] at hreqS hreqP
+    have hw1 : s'.mem.written (s'.fp + 1) = true := hwN 1 (hok.fsig ▸ hent1)
+    have hpN := loopC_params hok
+    -- a linked slot: a ghost's, copied, or a parameter's the tail call passes on
+    have hsl : ∀ d b k, (d, b, k) ∈ Cf.gl →
+        slotW (args.map σ0 ++ ownG Cf.H.sig σ0) b = slotW (Cf.fn.params.map σ0 ++ ownG Cf.H.sig σ0) b := by
+      intro d b k hm
+      rcases hs.pass _ hm with hb | hb
+      · exact slotW_app_ge (by simp [hargs]) (by simpa [hargs] using hb)
+      · exact slotW_pass hpN (hpass b hb) hargs
+    have hLN : LinkM (stOf s'.mem s'.fp) Cf.gl (args.map σ0 ++ ownG Cf.H.sig σ0) :=
+      linkM_of hκ hf'.agree hf'.fp hw1 (glF_next (by rw [hr1, hfp1]) hsl hgl0)
+    -- a linked upper bound's exponent, by its residual
+    have hE : ∀ r ∈ K.F.sig.preR, ∀ q, rngH Cf.gl r = some q →
+        ∃ y, rep ((idxC q.hi).valW (slotW (args.map σ0 ++ ownG Cf.H.sig σ0))) = some y := by
+      intro r hr q hq
+      obtain ⟨d0, b0, lo0, hi, -, -, hhi, -, -, -, hqe⟩ := rngH_spec hq
+      have hqh : q.hi = hi := by rw [hqe]
+      rw [hqh]
+      rcases hiH_spec hhi with ⟨n, -, rfl, hn⟩ | ⟨d', b', k', -, -, hl', hvw, hvals⟩
+      · exact ⟨n, by rw [idxC]; exact rep_const (by rw [capE_eq]; exact hn)⟩
+      · have hsh := ((Bool.and_eq_true _ _).mp hok.shape).2
+        rw [hok.fsig] at hsh
+        obtain ⟨hlt, a, ha⟩ := hiRes_spec hsh hr hq (fun n hn ↦ by
+          rw [hqh] at hn; rw [hn] at hvals; simp [CIdx.vals] at hvals)
+        rw [hqh] at hlt ha
+        have hb' : b' < Cf.fn.params.length := hlt b' (by rw [hvals]; exact List.mem_singleton_self _)
+        obtain ⟨ya, yb, -, hyb, -⟩ := hR0 _ ha
+        refine ⟨yb, ?_⟩
+        rw [hvw] at hyb
+        rw [hvw, hsl _ _ _ (lookup_memL hl'), slotW_lt (by simpa using hb'), slotW_params' hpN hb']
+        exact hyb
+    obtain ⟨hpreN, hpreRN, hprePN⟩ := entry_of_preP hs (parAt_app hPN (by simp [hargs])) hLN hTN hXN
       (W := WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs ++ [Ev.inK c]))
       (fun x hx ↦ hWc x (writtenC_noAtom (fun a h ↦ by cases h) (fun f a r h ↦ by cases h) hx)) hreqS hreqP
-      (rdM_img hκ hf'.agree hu')
+      (rdM_img hκ hf'.agree hu') hE
     refine holds_entryP hwN
       (fun m hm' ↦ Mode.HW.mono (s := stOf s'.mem s'.fp) (s' := s') (Mem.le_refl _) rfl (hpreN m hm'))
       hjt (fun r hr ↦ Mode.RW.mono (s := stOf s'.mem s'.fp) (s' := s') (Mem.le_refl _) rfl (hpreRN r hr))
@@ -725,8 +852,8 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     Out Ct K (CoreAt img Cf K.code) i s1 s' := by
   obtain ⟨-, hentw, hheap⟩ := hat
   obtain ⟨hnz, hsf', hr01, hcall⟩ := callJ_spec hcj hz
-  have hsh := hok.shape
-  simp only [loopShapeOkC, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
+  have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
+  simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, hcif0⟩ := hsh
@@ -1128,8 +1255,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
   obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod,
     htpc⟩ := loopCodeC_spec hok.code
-  have hsh := hok.shape
-  simp only [loopShapeOkC, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
+  have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
+  simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, -⟩ := hsh
@@ -1171,8 +1298,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       fun y hy ↦ ?_⟩
     have hP := parAt_of (G := K.F.sig) hκ hs0.agree hs0.fp hw (hws0 hσ)
     rcases hy with hy | ⟨e, he, -⟩
-    · rw [ownG_zero hs.hghost, List.append_nil] at hy
-      exact preSet_of_entryP hs hP (fun m hm ↦ Mode.HW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl
+    · have hw1 : s.mem.written (s.fp + 1) = true := hw 1 (hok.fsig ▸ hent1)
+      exact preSet_of_entryP hs (parAt_app hP (by simp [hnp])) (linkM_of hκ hs0.agree hs0.fp hw1 hσ.gl) (fun m hm ↦ Mode.HW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl
         (hpre m hm)) (fun r hr ↦ Mode.RW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hpreR r hr))
         (fun q hq ↦ Mode.PW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (entry_preP hH0 q hq))
         (rdW_img hκ hs0.agree) y hy
@@ -1467,7 +1594,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           .tail hok.sigE fun hTE ↦ Mode.tail_of_mode hCt.1 <| tail_nextC (c := c) (args := args) hok hκ hs0.fp hm.fp hm.le hf' hle'
             (hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e') hfpS hS30
             hpe' hentry (by rw [hfpS, hm.fp]; exact hn0) (by rw [hfpS, hm.fp]; exact hn1) hTE (hjtR s' hle) hwE
-            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (hσ0.res hxw) (by simpa using heq) hrw0C hWc (fun k hk ↦ hnargs k hk)
+            (fun o ho ↦ (hso o ho).2) hent0 hent1 hb hh0 (hσ0.res hxw) hσ0.gl (by simpa using heq) hrw0C hWc
+            (fun k hk ↦ hnargs k hk)
             hargs (hPs hσ0) hT
             (expM_of hκ hf'.agree hs0.fp (hok.fsig ▸ hxwE) (fun o ho ↦ written_mono hle (hwE o ho)) _)
             (expM_next hκ hf'.agree hf'.fp (hok.fsig ▸ hxwE) (fun o ho ↦ hentry.w o (hok.fsig ▸ ho))
@@ -1476,6 +1604,10 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
                 have hkl : k < args.length := (List.getElem?_eq_some_iff.mp hk).1
                 rw [hfpS, hnargs k hkl, show args[k] = V.n k from (List.getElem?_eq_some_iff.mp hk).2,
                   ← hσ0.par k (by omega)]) hcs
+            fun b hb ↦ by
+              obtain ⟨k, hk, hka⟩ := tailPass_spec hbody hb
+              obtain rfl : k = b := by omega
+              exact hka
         cases hjo with
         | ret _ _ hr =>
           obtain ⟨c', hc'⟩ := hr

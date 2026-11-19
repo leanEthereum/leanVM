@@ -161,9 +161,9 @@ theorem mlGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = [(2, 
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
   rcases hm with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
   · refine ⟨a, hRd, by omega, ?_⟩
-    simp [CoreMode.slotW]
+    simp [CoreMode.LinkW, CoreMode.slotW]
   · refine ⟨a, hRd, h5, ?_⟩
-    simp only [CoreMode.slotW, List.map_cons, List.map_nil, List.cons_append, List.nil_append, pow_zero]
+    simp only [CoreMode.LinkW, show (5 : ℕ) ≠ 0 by omega, ↓reduceIte, CoreMode.slotW, List.map_cons, List.map_nil, List.cons_append, List.nil_append, pow_zero]
     rw [hm5, setG_eq (show (V.n 3).idx < CoreMode.GB by show 3 < CoreMode.GB; unfold CoreMode.GB; omega)]
     simp
 

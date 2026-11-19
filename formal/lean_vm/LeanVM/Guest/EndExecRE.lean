@@ -89,12 +89,13 @@ theorem expFacts_cot {c : String × ℕ × Option ℕ × ℕ} (hc : c ∈ expFac
       ∃ k < 8, c.2.1 = 8 ∧ c.2.2.1 = some k ∧ c.2.2.2 = if k = 0 then 1 else 31) := by
   simp only [expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
     List.not_mem_nil, or_false] at hc
-  rcases hc with ((rfl | rfl) | ⟨k, hk, rfl⟩) | rfl | rfl
+  rcases hc with (((rfl | rfl) | ⟨k, hk, rfl⟩) | rfl | rfl) | ⟨k, -, rfl⟩
   · exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
   · exact ⟨rfl, Or.inr ⟨0, by omega, rfl, rfl, rfl⟩⟩
   · exact ⟨rfl, Or.inr ⟨k + 1, by omega, rfl, rfl, by simp⟩⟩
   · exact absurd hn (by decide)
   · exact absurd hn (by decide)
+  · exact absurd hn (by simp)
 
 theorem dimFacts_cot {c : String × ℕ × ℕ × List (ℕ × ℕ)} (hc : c ∈ dimFacts) :
     c.1 = name% «check_opening_terminal» ∧ c.2.1 = 8 ∧

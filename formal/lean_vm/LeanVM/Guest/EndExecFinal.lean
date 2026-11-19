@@ -5,28 +5,32 @@
   part wired into `ExecGaps`. No open fact is left (`openGaps`).
 -/
 
-import LeanVM.Guest.EndExecHonest
-import LeanVM.Guest.ProverGuest
-import LeanVM.Guest.EndExecR
-import LeanVM.Guest.EndExecCore
-import LeanVM.Guest.Mode.Certs
-import LeanVM.Guest.Res.SubCerts
-import LeanVM.Guest.Res.TermCerts
-import LeanVM.Guest.EndExecRLce
-import LeanVM.Guest.EndExecYDeployed
-import LeanVM.Guest.EndExecYWitCells
-import LeanVM.Guest.EndExecYShape
-import LeanVM.Guest.EndExecACur
-import LeanVM.Guest.EndExecAKeep
-import LeanVM.Guest.EndExecAGaps
-import LeanVM.Guest.EndExecAUsed
-import LeanVM.Guest.EndExecAExtra
-import LeanVM.Guest.EndExecCAlign
-import LeanVM.Guest.Budget.MainExact
-import LeanVM.Guest.EndExecW
-import LeanVM.Guest.EndExecRCld
-import LeanVM.Guest.EndExecRCp
-import LeanVM.Guest.EndExecRGkrC
+module
+
+public import LeanVM.Guest.EndExecHonest
+public import LeanVM.Guest.ProverGuest
+public import LeanVM.Guest.EndExecR
+public import LeanVM.Guest.EndExecCore
+public import LeanVM.Guest.Mode.Certs
+public import LeanVM.Guest.Res.SubCerts
+public import LeanVM.Guest.Res.TermCerts
+public import LeanVM.Guest.EndExecRLce
+public import LeanVM.Guest.EndExecYDeployed
+public import LeanVM.Guest.EndExecYWitCells
+public import LeanVM.Guest.EndExecYShape
+public import LeanVM.Guest.EndExecACur
+public import LeanVM.Guest.EndExecAKeep
+public import LeanVM.Guest.EndExecAGaps
+public import LeanVM.Guest.EndExecAUsed
+public import LeanVM.Guest.EndExecAExtra
+public import LeanVM.Guest.EndExecCAlign
+public import LeanVM.Guest.Budget.MainExact
+public import LeanVM.Guest.EndExecW
+public import LeanVM.Guest.EndExecRCld
+public import LeanVM.Guest.EndExecRCp
+public import LeanVM.Guest.EndExecRGkrC
+
+@[expose] public section
 
 /-!
 # The end theorem
@@ -199,3 +203,5 @@ theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : No
   exact ⟨hC _ _ t ρ hv hsz hρ, hR _ _ t ρ hv hsz hρ⟩
 
 end LeanVM.Guest.EndExec
+
+end

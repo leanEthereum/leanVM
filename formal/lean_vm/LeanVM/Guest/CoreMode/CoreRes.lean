@@ -10,11 +10,13 @@ module
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
-public import LeanVM.Guest.Res.AnyData
+public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
+public import LeanVM.Guest.CoreMode.LoopLink
 public import LeanVM.Guest.Res.SelDefs
 public import LeanVM.Guest.Res.TermDefs
+public import LeanVM.Guest.Res.ExpDefs
 import LeanVM.Guest.Data.Source
 
 /-!
@@ -39,7 +41,13 @@ function's own code whose soundness at its honest instances is proved once, in `
   addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
+* `rcn`: `e(x) < e(p)` (`.lt (.val x) (.val p)`), the value `x` range checked against `k = p·w`, `w` the constant
+  `g⁻¹`, among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `split` (`splitFam`): a function's `g`-power `n = q^S·r` split from hinted bits (`splitsC`: `rs_eq_run`,
+  `shared_selector_tables`), from the bits' booleanity on its path (`EndExecCoreSplit`): exponent bounds of `q`, `q^S`
+  and `r` times constants, of `q^S·g^c` below `n` under an arm `j > c` of the selector `r`, and the loop's strided
+  runs below `e(q)` inside `[0, e(n))`.
 * `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
   `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
@@ -48,6 +56,9 @@ ghost words (`CRes.holds_congr`). One family names a ghost:
 * `ml` (`mlSub`): `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)`
   lies in its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost
   the caller's cell `2`, `glOk`), from the old route's gap walk (`EndExecCoreMono`).
+* `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
+  `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
+  (`EndExecCoreSt`).
 
 `resOk Cf`: every residual of `Cf`'s heap certificate of a family (`resFamG`). `CfOk` asks it, so the core
 route's honest valuations (`HonF.res`) make the residuals true.
@@ -189,6 +200,14 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
         | _ => false
     | _, _ => false
+  | .lt (.val x) (.val p) => (Res.topAtoms fn.body).any fun
+      | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && (Res.topAtoms fn.body).any fun
+          | .mul k' p' w => decide (k' = k) && decide (p' = V.n p) &&
+              (match Res.constOf (Res.topAtoms fn.body) w with
+              | some w' => invG w'
+              | none => false)
+          | _ => false
+      | _ => false
   | .lt (.mono c) (.num n) => match c.bases with
     | [(x, 1)] => decide (n < capE) &&
         ((Res.topSels fn.body).any (fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)) ||
@@ -294,6 +313,31 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
   | _ => false
 
+/-! ## The proof stream's cursor loops -/
+
+/-- **The loops reading the proof stream past a cursor** (`st`): `(name, D, v, S)`, a loop whose caller's cell `D`
+holds the stream, whose body loads the cursor `v`, reading at most `S` words past it an iteration. -/
+def stLoops : List (String × ℕ × ℕ × ℕ) :=
+  [(name% «keccak_layer__L0_loop0», 17, 20, 16), (name% «keccak_layer__L1_loop0», 17, 20, 16),
+    (name% «keccak_layer__L0_loop1», 17, 14, 2), (name% «keccak_layer__L1_loop1», 17, 14, 2),
+    (name% «verify_bus_gkr_loop0_loop0», 11, 13, 8), (name% «verify_tables_loop0», 22, 11, 3)]
+
+/-- A stream-cursor loop's `(D, v, S)`. -/
+def stK (fn : Fn) : Option (ℕ × ℕ × ℕ) := stLoops.lookup fn.name
+
+/-- **A read past a stream cursor** (`st`): the cell `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)` (its
+ghost the caller's stream). -/
+def stSub (fn : Fn) : CRes → Bool
+  | .sub c q => (stK fn).any fun p ↦ decide (c.bases = [(p.2.1, 1)]) && Nat.blt c.off p.2.2 &&
+      decide (q = ⟨⟨[(GB, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | _ => false
+
+/-- **A stream-cursor loop's links**: its caller's cell `D` to its first ghost slot, the caller's frame address to its
+second (`loopGl`); it names no ghost value. -/
+def stGl (Cf : CFun) : Bool :=
+  (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1])) && Nat.beq Cf.H.sig.ghosts 2 &&
+    ngB Cf.fn
+
 /-! ## The instance's exponent and dimension facts -/
 
 /-- The pointer and offset of the first `load` of `x` among the atoms. -/
@@ -321,17 +365,29 @@ noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
 def termGm (fn : Fn) (x : V) : Bool :=
   fn.name == name% «check_opening_terminal» && decide (fn.params[19]? = some x)
 
-/-- **The exponent fact of a value or of a top-level product** `x = a·w` of a value `a` of one (`expQ1`) and a
-constant `g^c`: the bound, plus `c`. -/
-noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+/-- **`verify_tables`' word `g_zc_n = g^n`, `n < 34`** (`EndExec.VtQ`): its value `2545`. -/
+def vtZc (fn : Fn) (x : V) : Bool :=
+  fn.name == name% «verify_tables» && decide (x = V.n 2545)
+
+/-- **The exponent fact of a value**: `expQ1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`'
+`g_zc_n` (`vtZc`). -/
+noncomputable def expQ0 (fn : Fn) (x : V) : Option ℕ :=
   match expQ1 fn x with
   | some b => some b
-  | none => bif termGm fn x then some 31 else (Res.topAtoms fn.body).findSome? fun
+  | none => bif termGm fn x then some 31 else bif vtZc fn x then some 34 else none
+
+/-- **The exponent fact of a value, of a top-level product** `x = a·w` of a value `a` of one (`expQ0`) and a
+constant `g^c` (the bound, plus `c`), or of a top-level copy of such a value. -/
+noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
+  match expQ0 fn x with
+  | some b => some b
+  | none => (Res.topAtoms fn.body).findSome? fun
     | .mul d a w => if d = x then
-        match expQ1 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
+        match expQ0 fn a, (Res.constOf (Res.topAtoms fn.body) w).bind Res.powOf with
         | some b, some c => some (b + c)
         | _, _ => none
       else none
+    | .copy d a => if d = x then expQ0 fn a else none
     | _ => none
 
 /-- **A dimension fact's pair** (`Res.dimFacts`): `x` the word a top-level `load` reads at the base parameter's
@@ -363,12 +419,249 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
     | _, _ => false
   | _ => false
 
-/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
-noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
+/-! ## Split `g`-powers -/
+
+/-- **A function's `g`-power split from hinted bits** (`split`): `n = q^S·r`, on every returning path the monomial `q`
+naming `g^a`, the selector `rv` and the monomial `r` naming `g^b`, `a < A`, `b < S`. -/
+structure SplitC where
+  q : List (ℕ × ℕ)
+  r : List (ℕ × ℕ)
+  rv : ℕ
+  n : ℕ
+  S : ℕ
+  A : ℕ
+
+/-- The splits: `rs_eq_run`'s `count = q^8·r` and `shared_selector_tables`' `len = q^4·r` (`EndExecCoreSplit`). -/
+def splitsC : List (String × SplitC) :=
+  [(name% «rs_eq_run», ⟨[(27, 1), (31, 1), (36, 1)], [(13, 1), (17, 1), (22, 1)], 23, 3, 8, 8⟩),
+    (name% «shared_selector_tables», ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], [(15, 1), (19, 1)], 20, 5, 4, 16⟩)]
+
+/-- A monomial's bases to the `k`-th power. -/
+def powB (k : ℕ) (bs : List (ℕ × ℕ)) : List (ℕ × ℕ) := bs.map fun p ↦ (p.1, k * p.2)
+
+/-- **The residuals a split gives**, under the branch conditions `cs`: the exponent of `q·g^c`, `q^S·g^c` or `r·g^c`
+below a constant past its largest; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run
+`[b]·g^i·g^(S·[0, e(q)))`, `i < S`, inside `[b]·[0, e(n))`. -/
+def splitRes (sp : SplitC) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num N) => decide (N < capE) &&
+      ((decide (c.bases = sp.q) && decide (sp.A - 1 + c.off < N)) ||
+        (decide (c.bases = powB sp.S sp.q) && decide (sp.S * (sp.A - 1) + c.off < N)) ||
+        (decide (c.bases = sp.r) && decide (sp.S - 1 + c.off < N)))
+  | .lt (.mono c) (.val n) => decide (n = sp.n) && decide (c.bases = powB sp.S sp.q) &&
+      cs.any fun
+        | .arm x j => decide (x = sp.rv) && decide (c.off < j) && decide (j < capE)
+        | _ => false
+  | .subR q r => decide (q.stride = sp.S) && decide (q.lo = .num 0) && decide (q.hi = .mono ⟨sp.q, 0⟩) &&
+      decide (q.base.off < sp.S) && decide (r = ⟨⟨q.base.bases, 0⟩, 1, .num 0, .val sp.n⟩)
+  | .under cs' r => splitRes sp (cs ++ cs') r
+  | _ => false
+
+/-- **A residual of a split** of the function (`splitsC`). -/
+def splitFam (fn : Fn) (r : CRes) : Bool :=
+  splitsC.any fun p ↦ fn.name == p.1 && splitRes p.2 [] r
+
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
+core names): the cell `c` words past the cursor, the value `2652`, `c < 153`, one of its stream's, parameter `20`'s
+`[0, 8192)` (`EndExec.vtStC_inst`). -/
+def vtStC (fn : Fn) : CRes → Bool
+  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2652, 1)]) && decide (c.off < 153) &&
+      decide (q = ⟨⟨[(20, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | _ => false
+
+/-- `verify_tables`' rank `r`'s group value from the side's first `v0` (`B1.Tables.vtRv`). -/
+def vtRvC (v0 r : ℕ) : ℕ := if r = 0 then v0 else v0 + 13 + 20 * (r - 1)
+
+/-- **`verify_tables`' sides**: each side's ranks' group values and the side's groups `[lo, hi)`. -/
+def vtSides : List (List ℕ × ℕ × ℕ) :=
+  [((List.range 9).map (vtRvC 112), 0, 9), ((List.range 6).map (vtRvC 409), 18, 24)]
+
+/-- **`verify_tables`' buffers indexed by group, through its hinted order** (`vtPerm`, the old route's `vtGrpB` on
+core names): a cell `[B]·[v]` at a rank's group value `v` is one of `[B]·g^e` over the side's groups (each rank's group
+is one of the side's), and a cell `[B]·g^e` at a group of the side is one of `[B]·[v]` over its ranks' values (the
+ranks name every group of the side) (`EndExec.vtPerm_inst`). -/
+def vtPerm (fn : Fn) : CRes → Bool
+  | .subP c cs => fn.name == name% «verify_tables» && vtSides.any fun p ↦ match c.bases with
+      | [(B, 1), (v, 1)] => Nat.beq c.off 0 && p.1.contains v &&
+          (List.range' p.2.1 (p.2.2 - p.2.1)).all fun e ↦ cs.contains ⟨[(B, 1)], e⟩
+      | [(B, 1)] => Nat.ble p.2.1 c.off && Nat.blt c.off p.2.2 && p.1.all fun v ↦ cs.contains ⟨[(B, 1), (v, 1)], 0⟩
+      | _ => false
+  | _ => false
+
+/-! ## `verify_tables`' exponent family -/
+
+/-- **A linear form** over `verify_tables`' nine slacks (`a = μ - 19`, `b = μ - n`, `c_t = n - τ_t`, `d = μ - lm`): a
+constant and the coefficients. -/
+abbrev VtL := ℤ × List ℤ
+
+/-- The slacks' upper bounds. -/
+def vtUB : List ℤ := [13, 32, 32, 32, 32, 32, 32, 32, 32]
+
+/-- `k·g` entrywise. -/
+def lscale (k : ℤ) : List ℤ → List ℤ
+  | [] => []
+  | y :: ys => k * y :: lscale k ys
+
+/-- `f + k·g` entrywise (a missing entry `0`; structural in `f`, so the kernel reduces it). -/
+def ladd (k : ℤ) : List ℤ → List ℤ → List ℤ
+  | x :: xs, y :: ys => (x + k * y) :: ladd k xs ys
+  | x :: xs, [] => x :: ladd k xs []
+  | [], ys => lscale k ys
+
+/-- The least value of `Σ x_i·s_i` over the box `0 ≤ s_i ≤ u_i`. -/
+def lmin : List ℤ → List ℤ → ℤ
+  | x :: xs, u :: us => min 0 (x * u) + lmin xs us
+  | _, _ => 0
+
+/-- The largest. -/
+def lmax : List ℤ → List ℤ → ℤ
+  | x :: xs, u :: us => max 0 (x * u) + lmax xs us
+  | _, _ => 0
+
+def VtL.add (f g : VtL) (k : ℤ) : VtL := (f.1 + k * g.1, ladd k f.2 g.2)
+def VtL.minv (f : VtL) : ℤ := f.1 + lmin f.2 vtUB
+def VtL.maxv (f : VtL) : ℤ := f.1 + lmax f.2 vtUB
+
+/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` (`9`) `19 + a`, `g_zc_n` (`2545`) `19 + a - b`, `dims_g[0]` (`27`)
+`19 + a - d`, `dims_g[1 + t]` (`28 + t`) `19 + a - b - c_t`; ghost `GB + j` as `27 + j`, `j < 7`. -/
+def vtBaseN (x : ℕ) : Option VtL :=
+  let y := if GB ≤ x ∧ x < GB + 7 then x - GB + 27 else x
+  if y = 9 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, 0])
+  else if y = 2545 then some (19, [1, -1, 0, 0, 0, 0, 0, 0, 0])
+  else if y = 27 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, -1])
+  else if 28 ≤ y ∧ y < 34 then some (19, (List.range 9).map fun i ↦
+    if i = 0 then 1 else if i = 1 then -1 else if i = y - 26 then -1 else 0)
+  else none
+
+/-- **A word's form** (`vtexp.form`): a slacks' word, or what a top-level atom makes it of others' (fuel `f`): a constant
+`g^k`, a copy, a product, or a quotient `d = v·b` whose form is nonnegative on the box. -/
+noncomputable def vtF (as : List Atom) : ℕ → V → Option VtL
+  | 0, _ => none
+  | f + 1, v => match (if v.path = [] ∧ v.tag = 0 then vtBaseN v.idx else none) with
+    | some b => some b
+    | none => as.findSome? fun
+      | .const d w => if d = v then (match Res.powOf1 w with
+          | some k => some ((k : ℤ), [])
+          | none => none) else none
+      | .copy d a => if d = v then vtF as f a else none
+      | .mul d a b => if d = v then
+            (match vtF as f a, vtF as f b with
+            | some p, some q => some (p.add q 1)
+            | _, _ => none)
+          else if a = v then
+            (match vtF as f d, vtF as f b with
+            | some p, some q => if 0 ≤ (p.add q (-1)).minv then some (p.add q (-1)) else none
+            | _, _ => none)
+          else if b = v then
+            (match vtF as f d, vtF as f a with
+            | some p, some q => if 0 ≤ (p.add q (-1)).minv then some (p.add q (-1)) else none
+            | _, _ => none)
+          else none
+      | _ => none
+
+/-- The fuel `vtexp.FUEL`. -/
+def vtFuel : ℕ := 4
+
+/-- **A cell's form**: `off + Σ e·F(b)`. -/
+noncomputable def vtM (as : List Atom) : List (ℕ × ℕ) → ℤ → Option VtL
+  | [], o => some (o, [])
+  | (b, e) :: bs, o => match vtF as vtFuel (V.n b), vtM as bs o with
+    | some p, some q => some (q.add p e)
+    | _, _ => none
+
+noncomputable def vtI (as : List Atom) (i : CIdx) : Option VtL := vtM as (idxC i).bases (idxC i).off
+
+/-- **The arms' equations**: each arm `x = g^j` (`j`, `F_x` below `2^62`) whose form's first nonzero coefficient is `±1`
+removes that slack. -/
+noncomputable def vtArms (as : List Atom) : List (ℕ × ℕ) → VtL → VtL
+  | [], f => f
+  | (x, j) :: arms, f => vtArms as arms (match vtF as vtFuel (V.n x) with
+    | some F => if j < capE ∧ F.maxv < capE then (match F.2.findIdx? (· ≠ 0) with
+      | some i => if F.2.getD i 0 = 1 ∨ F.2.getD i 0 = -1 then
+          f.add (F.add ((j : ℤ), []) (-1)) (-(f.2.getD i 0 * F.2.getD i 0)) else f
+      | none => f) else f
+    | none => f)
+
+/-- The slacks' words whose forms are nonnegative (`vtexp.NNB`). -/
+def vtNNB : List ℕ := [9, 27, 28, 29, 30, 31, 32, 33, 2545]
+
+/-- **Nonnegative** once the arms' equations are used: on the box, or less a slacks' word's form on it. -/
+noncomputable def vtNN (as : List Atom) (arms : List (ℕ × ℕ)) (f : VtL) : Bool :=
+  decide (0 ≤ (vtArms as arms f).minv) || vtNNB.any fun x ↦ match vtBaseN x with
+    | some F => decide (0 ≤ ((vtArms as arms f).add F (-1)).minv)
+    | none => false
+
+/-- A form below `2^62` on the box. -/
+def vtSmall (f : VtL) : Bool := decide (f.maxv < capE)
+
+/-- `e(a) < e(b)`: `F_b - F_a - 1` nonnegative. -/
+noncomputable def vtLt (as : List Atom) (arms : List (ℕ × ℕ)) (a b : CIdx) : Bool :=
+  match vtI as a, vtI as b with
+  | some A, some B => vtSmall A && vtSmall B && vtNN as arms ((B.add A (-1)).add (1, []) (-1))
+  | _, _ => false
+
+/-- `[B]·[J]·g^o` one of `cs`, the cells `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`. -/
+noncomputable def vtSubP (as : List Atom) (arms : List (ℕ × ℕ)) (c : CCell) (cs : List CCell) : Bool :=
+  match c.bases with
+  | [(B, 1), (J, 1)] => (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], c.off + t⟩) &&
+      vtLt as arms (.val J) (.num cs.length)
+  | _ => false
+
+/-- **`verify_tables`' exponent family** (`vtexp.holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
+base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of
+`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`), under branch conditions (the arms used). -/
+noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → Bool
+  | .lt a b => vtLt as arms a b
+  | .subP c cs => vtSubP as arms c cs
+  | .subR q r => Nat.beq q.stride 1 && Nat.beq r.stride 1 &&
+      decide (q.base.bases.take r.base.bases.length = r.base.bases) &&
+      (match vtM as (q.base.bases.drop r.base.bases.length) ((q.base.off : ℤ) - r.base.off), vtI as q.lo,
+          vtI as q.hi, vtI as r.lo, vtI as r.hi with
+      | some m, some ql, some qh, some rl, some rh => vtSmall m && vtSmall ql && vtSmall qh && vtSmall rl &&
+          vtSmall rh && vtNN as arms ((m.add ql 1).add rl (-1)) && vtNN as arms (rh.add (m.add qh 1) (-1))
+      | _, _, _, _, _ => false)
+  | .under cs r => vtExpR as (arms ++ cs.filterMap fun
+      | .arm x j => some (x, j)
+      | _ => none) r
+  | _ => false
+
+/-- `verify_tables`' own parameter words as ghost slots: `dims_g[j]`, `j < 7` (`HSig.gw`). -/
+def vtGw : List (CCell × ℕ) := (List.range 7).map fun j ↦ (⟨[(10, 1)], j⟩, j)
+
+/-- **The top-level atoms of `verify_tables` its exponent family reads** (`vtexp.ATOMS`; `EndExec.vtAtoms_top`). -/
+def vtAtoms : List Atom :=
+  [.const (.n 26) (word 1 0),
+    .mul (.n 9) (.n 704) (.n 28),
+    .mul (.n 9) (.n 713) (.n 29),
+    .mul (.n 9) (.n 726) (.n 30),
+    .mul (.n 9) (.n 739) (.n 31),
+    .mul (.n 9) (.n 752) (.n 32),
+    .mul (.n 9) (.n 765) (.n 33),
+    .mul (.n 9) (.n 779) (.n 26),
+    .mul (.n 9) (.n 795) (.n 27),
+    .const (.n 821) (word 524288 0),
+    .mul (.n 822) (.n 26) (.n 821),
+    .mul (.n 9) (.n 823) (.n 822),
+    .mul (.n 2545) (.n 2547) (.n 28),
+    .mul (.n 2545) (.n 2932) (.n 28),
+    .mul (.n 2545) (.n 3221) (.n 29),
+    .mul (.n 2545) (.n 3394) (.n 30),
+    .mul (.n 2545) (.n 3692) (.n 31),
+    .mul (.n 2545) (.n 4021) (.n 32),
+    .mul (.n 2545) (.n 5945) (.n 33)]
+
+/-- **`verify_tables`' exponent family**, its ghost slots its `dims_g` words. -/
+noncomputable def vtExp (fn : Fn) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
+  fn.name == name% «verify_tables» && decide (gw = vtGw) && vtExpR vtAtoms [] r
+
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, its values below `GB`), or
+the ghost families `ml`, `st` and `verify_tables`' exponent family. -/
+noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
+  ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r) && r.vals.all (Nat.blt · GB)) ||
+    mlSub fn r ||
+    stSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
-noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)
+noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)
 
 /-- **The ghost family's links** (`ml`): `child_claim_list_mono_last__L{k}`'s caller's cell `2` (its entries
 table) its one ghost slot, after its four parameters, and cell `5` its parameter `3` (`limit`); it names no
@@ -376,13 +669,58 @@ ghost value. -/
 noncomputable def mlGl (Cf : CFun) : Bool :=
   (mlK Cf.fn).isSome && decide (Cf.gl = [(2, 4, 0), (5, 3, 0)]) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
 
+/-- **A loop callee of `anyLink`'s links**: its caller's cell `2` its entries parameter, cell `5` its bound parameter
+times `g` (`anyLink`'s), its caller's frame address its one ghost slot, after its parameters; it names no ghost
+value. -/
+noncomputable def alGl (Cf : CFun) : Bool :=
+  Res.anyLink.fams.any (fun F ↦ Cf.fn.name == F.1 &&
+    decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1), (0, Cf.fn.params.length, 0)])) &&
+    Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn && Cf.H.sig.gw.isEmpty
+
+/-- **Own parameter words as the ghost slots** (`HSig.gw`): ghost `j` the word at the `j`-th cell, one per ghost, over
+values below `GB`, and the function naming no ghost value (`ngB`). -/
+def gwSlots (Cf : CFun) : Bool :=
+  Nat.beq Cf.H.sig.ghosts Cf.H.sig.gw.length && decide (Cf.H.sig.gw.map (·.2) = List.range Cf.H.sig.gw.length) &&
+    (Cf.H.sig.gw.all fun x ↦ x.1.bases.all fun b ↦ Nat.blt b.1 GB) && ngB Cf.fn
+
+/-- **An instance's ghost words, its own parameter words** (`gwSlots`): ghost `j` the reference's word at the `j`-th
+cell's address at `σ` (`setG`), `GwR`. -/
+theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : gwSlots Cf = true) :
+    GwR img Cf.H.sig (setG σ (Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0)) := by
+  intro c j hc
+  simp only [gwSlots, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, List.all_eq_true, Nat.blt_eq] at h
+  obtain ⟨⟨⟨hgh, hix⟩, hlt⟩, -⟩ := h
+  obtain ⟨i, hi, hci⟩ := List.getElem_of_mem hc
+  have hij : j = i := by
+    have h1 := congrArg (·[i]?) hix
+    simp only [List.getElem?_map, List.getElem?_eq_getElem hi, hci, Option.map_some] at h1
+    rw [List.getElem?_range hi] at h1
+    exact Option.some.inj h1
+  subst hij
+  have haddr : c.addrW (vw (setG σ (Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0))) =
+      c.addrW (vw σ) := by
+    unfold CCell.addrW
+    rw [valW_congr fun b hb ↦ ?_]
+    exact setG_eq (show (V.n b.1).idx < GB from hlt (c, j) hc b hb)
+  rw [haddr]
+  have hO := ownG_setG (G := Cf.H.sig) (σ := σ)
+    (gw := Cf.H.sig.gw.map fun x ↦ (img.read (x.1.addrW (vw σ))).getD 0) (by rw [List.length_map, hgh])
+  have hj : j < Cf.H.sig.ghosts := by rw [hgh]; exact hi
+  have h2 := congrArg (·[j]?) hO
+  simp only [ownG, List.getElem?_map, List.getElem?_range hj, Option.map_some, List.getElem?_eq_getElem hi,
+    hci] at h2
+  exact Option.some.inj h2
+
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`). -/
+parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
+(`alGl`); for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a stream-cursor loop its caller's
+stream and frame (`stGl`); or none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
-  bif (mlK Cf.fn).isSome then mlGl Cf else
-    (Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
-      && Nat.beq Cf.H.sig.ghosts 0
+  bif (stK Cf.fn).isSome then stGl Cf && Cf.H.sig.gw.isEmpty else
+  bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
+    ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
+      && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf) || alGl Cf
 
 theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
   simp [resOk, h]

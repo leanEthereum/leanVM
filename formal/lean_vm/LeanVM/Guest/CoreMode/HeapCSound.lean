@@ -381,6 +381,49 @@ theorem hasExp_ok {F : List (CCell × CCell)} (hF : FOk w F) {m : CCell} (h : ha
     · rw [CCell.beq_eq he] at ha; exact ⟨_, ha⟩
     · rw [CCell.beq_eq he] at hb; exact ⟨_, hb⟩
 
+
+/-- **A run rebased is written** where the run is: its cells are the run's. -/
+theorem shiftR_ok {Q R R2 : PRun} (h : shiftR Q R = some R2) (hR : RunF W w R.base R.stride R.lo R.hi) :
+    RunF W w R2.base R2.stride R2.lo R2.hi := by
+  unfold shiftR at h
+  simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.blt_eq, Nat.beq_eq, Nat.ble_eq] at h
+  split_ifs at h with hc
+  cases h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hS0, hS⟩, hb⟩, hoff⟩, hmod⟩, hql⟩, hrl⟩, hle⟩, hcap⟩ := hc
+  have hb' := basesBeq_eq hb
+  have hdvd : Q.stride ∣ R.base.off - Q.base.off := Nat.dvd_of_mod_eq_zero hmod
+  obtain ⟨t, ht⟩ := hdvd
+  have htd : (R.base.off - Q.base.off) / Q.stride = t := by rw [ht, Nat.mul_div_cancel_left _ hS0]
+  rw [htd] at hle
+  rintro x ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩
+  simp only at hylo hyhi h1 h2 ⊢
+  rw [rep_nil hql hcap, Option.some.injEq] at hylo
+  subst hylo
+  apply hR
+  refine ⟨R.lo.off, yhi, j - t, rep_nil hrl (by omega), hyhi, by omega, by omega, ?_⟩
+  have htj : t ≤ j := by omega
+  have hj : Q.stride * j = Q.stride * t + Q.stride * (j - t) := by rw [← Nat.mul_add, Nat.add_sub_cancel' htj]
+  have hR' : R.base = ⟨Q.base.bases, Q.base.off + Q.stride * t⟩ := by
+    have e1 : R.base.off = Q.base.off + Q.stride * t := by omega
+    cases hRB : R.base with
+    | mk rb ro =>
+      rw [hRB] at hb' e1
+      simp only at hb' e1
+      rw [hb', e1]
+  rw [hR', ← hS]
+  simp only [CCell.valW, addressOfIndex, mul_assoc, ← ofK_mul', ← pow_add]
+  rw [hj, Nat.add_assoc]
+
+/-- **A run inside a run rebased** (`runRunS`). -/
+theorem runRunS_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell × CCell)}
+    (hE : ∀ p ∈ E, p.1.valW w = p.2.valW w) {Q R : PRun}
+    (hR : RunF W w R.base R.stride R.lo R.hi) (h : runRunS F E Q R = true) : RunF W w Q.base Q.stride Q.lo Q.hi := by
+  unfold runRunS at h
+  split at h
+  · rename_i R2 hR2
+    exact runRun_ok hF hE (shiftR_ok hR2 hR) h
+  · cases h
+
 /-- **A cell of a run extended by the point before it**: the point written, the run written, the cell
 written. -/
 theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
@@ -388,9 +431,36 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     (hq : W ((prepQ R).addrW w)) : W (c.addrW w) := by
   unfold prepIdx at h
   simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.ble_eq, Nat.blt_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hS, hlb⟩, hl0⟩, hc⟩, hbb⟩, hoff⟩, hd⟩, hexh⟩, hexj⟩ := h
+  obtain ⟨⟨⟨⟨hS, hlb⟩, hl0⟩, hc⟩, h⟩ := h
   set J := idxOf (prepQ R) c R.stride with hJ
   have hl0 := Nat.eq_of_beq_eq_true hl0
+  have hbase : R.base = (prepQ R).shift R.stride := by
+    simp only [prepQ, CCell.shift]
+    rw [Nat.sub_add_cancel hS]
+  rcases h with ⟨⟨⟨⟨hbb, hoff⟩, hd⟩, hexh⟩, hexj⟩ | hf
+  swap
+  · -- `J` below the upper bound's next: the point (`J = g^0`) or a cell of the run
+    obtain ⟨yj, yb, hyj, hyb, hlt⟩ := hasF_ok hF hf
+    obtain ⟨hyjc, hjv⟩ := rep_spec hyj
+    obtain ⟨hybc, hbv⟩ := rep_spec hyb
+    have hhv : R.hi.valW w = ofK (addressOfIndex (yb - 1)) := by
+      rw [valW_shift] at hbv
+      refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hbv.trans ?_)
+      rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
+    have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
+      rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+        mul_comm yj]
+    rcases Nat.eq_zero_or_pos yj with h0 | hpos
+    · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
+        show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one]
+      exact hq
+    · obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
+      refine hR _ ⟨0, yb - 1, k, ?_, ?_, Nat.zero_le _, by omega, ?_⟩
+      · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
+        rwa [hl0] at this
+      · rw [hhv, rep_of (by omega)]
+      · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+          addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
   obtain ⟨yh, hyh⟩ := hasExp_ok hF hexh
   -- `hi = J·g^d`
   have hhi : R.hi.valW w = J.valW w * ofK (addressOfIndex (R.hi.off - J.off)) := by
@@ -413,10 +483,7 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
       show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one]
     exact hq
-  · have hbase : R.base = (prepQ R).shift R.stride := by
-      simp only [prepQ, CCell.shift]
-      rw [Nat.sub_add_cancel hS]
-    obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
+  · obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
     refine hR _ ⟨0, yh, k, ?_, hyh, Nat.zero_le _, by omega, ?_⟩
     · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
       rwa [hl0] at this
@@ -1431,9 +1498,11 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
     | none => rw [hr] at h; cases h
     | some R =>
       rw [hr] at h
-      rcases Bool.or_eq_true_iff.mp h with h | h
+      simp only [Bool.or_eq_true] at h
+      rcases h with (h | h) | h
       · exact runRun_ok (facts_ok hX hs.env res) hs.eqs (hs.rs r R hr) h
       · exact subRun_ok hX hs.env (hs.rs r R hr) h
+      · exact runRunS_ok (facts_ok hX hs.env res) hs.eqs (hs.rs r R hr) h
   | empty =>
     simp only [rnOk] at h
     exact fun x hx ↦ absurd hx (emptyE_ok hs.eqs h)
@@ -4801,9 +4870,10 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
       · exact Or.inr (by rw [hu]; rfl)
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
-its value defined by one of them. -/
+its value defined by one of them, or past a nonempty run. -/
 theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
-    ∀ p ∈ fas, ∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a
+    ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
   | [], _, p, hp => by simp at hp
   | (kp, i) :: l, h, p, hp => by
     simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
@@ -4811,7 +4881,7 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
     · obtain ⟨a, ha, hfa⟩ := h.1
       cases a with
       | frameAddr q run =>
-        simp only [faAt, Bool.and_eq_true] at hfa
+        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
         obtain ⟨hq, hv⟩ := hfa
         cases hqn : vnum q with
         | none => rw [hqn] at hq; cases hq
@@ -4820,21 +4890,26 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
           have hk : k = kp := Nat.eq_of_beq_eq_true hq
           subst hk
           rw [vnum_eq hqn] at ha
-          cases hri : run[i]? with
-          | none => rw [hri] at hv; cases hv
-          | some v =>
-            simp only [hri] at hv
-            cases hvn : vnum v with
-            | none => simp only [hvn] at hv; cases hv
-            | some k' =>
-              simp only [hvn] at hv
-              rcases getF_keysT _ _ hv with hm | hm
-              · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-                obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-                refine ⟨run, v, ha, hri, a', ha', ?_⟩
-                rw [vnum_eq hvn, ← vnum_eq hv'n]
-                exact hva'
-              · simp [getF_nil] at hm
+          rcases hv with hv | hv
+          · left
+            cases hri : run[i]? with
+            | none => rw [hri] at hv; cases hv
+            | some v =>
+              simp only [hri] at hv
+              cases hvn : vnum v with
+              | none => simp only [hvn] at hv; cases hv
+              | some k' =>
+                simp only [hvn] at hv
+                rcases getF_keysT _ _ hv with hm | hm
+                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
+                  rw [vnum_eq hvn, ← vnum_eq hv'n]
+                  exact hva'
+                · simp [getF_nil] at hm
+          · right
+            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+            exact ⟨run, ha, hv.1, hv.2⟩
       | _ => simp [faAt] at hfa
     · exact faOk_spec h.2 p hp
 
@@ -4847,10 +4922,11 @@ theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x :
 /-- The frame run cells the certificate guarantees at return are frame run cells of the path. -/
 theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
     (hfa : faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas = true) (hw : walk σ f.body = .ret es vs)
-    {x : K} (h : FAX H σ x) : FAW σ es x := by
+    {x : K} (h : FAX H σ x) : FAW σ H.fas es x := by
   obtain ⟨p, hp, rfl⟩ := h
-  obtain ⟨run, v, hfr, hv, a, ha, hva⟩ := faOk_spec hfa p hp
-  exact ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  rcases faOk_spec hfa p hp with ⟨run, v, hfr, hv, a, ha, hva⟩ | ⟨run, hfr, hne, hle⟩
+  · exact Or.inl ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  · exact Or.inr ⟨p.1, p.2, run, hp, topAtoms_on_path hw _ hfr, hne, hle, rfl⟩
 
 /-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
 that returns, its events holding, given its entry facts and its residuals, every event's needs are written before

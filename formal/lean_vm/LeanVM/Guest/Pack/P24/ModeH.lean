@@ -12,21 +12,6 @@ public import LeanVM.Guest.Pack.«P24».Mode0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«main_loop3»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop3_main`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 40) (d := Data.adviceFn40) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«main_loop3»
-
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«open_stacked__L7».S0
-public import LeanVM.Guest.CoreMode.GenW.«open_stacked__L7».S1
 public import LeanVM.Guest.CoreMode.Pows.«P48»
 public import LeanVM.Guest.Pack.«P48».Core
 

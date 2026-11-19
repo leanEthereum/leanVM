@@ -105,7 +105,7 @@ def run(r, nslots, ent=None):
     q, lo, hi, S, d = r
     if lo[0] != 'num' or hi[0] != 'num':
         raise No('run bound')
-    if not (lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
+    if not max(0, hi[1] - lo[1]) < 2 ** 62:
         raise No('run bound')
     c = cell(q, nslots, ent)
     return norm_run((I.shift(c, d), S, I.num(lo[1]), I.num(hi[1])), c[1] + d)
@@ -113,9 +113,10 @@ def run(r, nslots, ent=None):
 
 def norm_run(R, off):
     """`CoreMode.rngC`'s normal form: a run of constant bounds `[a, b)` whose cell offset `off` is `2^62` or more
-    (a negative one, modulo the order of `g`) starts at `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
+    (a negative one, modulo the order of `g`), or a bound `2^62` or more (past the order), starts at
+    `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
     Q, S, lo, hi = R
-    if off < 2 ** 62 or lo[0] or hi[0]:
+    if lo[0] or hi[0] or (off < 2 ** 62 and lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
         return R
     return ((Q[0], (off + S * lo[1]) % I.ORD), S, I.num(0), I.num(max(0, hi[1] - lo[1])))
 
@@ -174,18 +175,31 @@ _LINKS = {}
 
 
 def gl_of(k):
-    """`CFun.gl`, of `CoreMode.glOk`'s family: for a callee of `anyLink` (`Res/AnyData.lean`, its entries and bound
+    """`CFun.gl`, of `CoreMode.glOk`'s family: for a callee of `anyLink` (`CoreMode/Gen/AnyLink.lean`, its entries and bound
     parameters `pE`, `pL`), the caller's cell `2` linked to `pE` and cell `5` to `pL·g`; else none. As `{d: (b, k)}`."""
     if not _LINKS:
         import re
-        t = open(os.path.join(GUEST, 'Res', 'AnyData.lean'), encoding='utf-8').read()
+        t = open(os.path.join(GUEST, 'CoreMode', 'Gen', 'AnyLink.lean'), encoding='utf-8').read()
         for f, e, b in re.findall(r'\(name% «([^»]+)», (\d+), (\d+)\)', t):
             _LINKS[f] = {2: (int(e), 0), 5: (int(b), 1)}
         _LINKS.setdefault(None, None)
     if ml_k(k) is not None:
         # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
         return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
-    return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
+    import callcres
+    if k in callcres.ST_LOOPS:
+        # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
+        # frame address (`0`) its second
+        np = len(CORE[k][0])
+        return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
+    if k in I.IS_LOOP:
+        if not _LINKS.get(k):
+            return {}
+        # a loop callee of `anyLink` (`CoreMode.alGl`): its links, then the caller's frame address its one ghost slot
+        g = dict(_LINKS[k])
+        g[0] = (len(CORE[k][0]), 0)
+        return g
+    return dict(_LINKS.get(k) or {})
 
 
 def ml_k(k):
@@ -197,7 +211,7 @@ def ml_k(k):
 
 def gl_lean(k):
     """`CFun.gl` as Lean."""
-    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in sorted(gl_of(k).items())) + ']'
+    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in gl_of(k).items()) + ']'
 
 
 def prun(p, n, ent=None, const=False):
@@ -224,6 +238,16 @@ def hp_facts(ms, n, ent=None):
     return [(I.mk(((q - 2, 1),), d), tuple(sorted(ks))) for (q, d), ks in sorted(by.items())]
 
 
+def hp1s(G):
+    """`CoreMode.hp1s`: the caller's cells `d` (bases `.hp 1 d`) of the entry runs' products, once each, in order."""
+    out = []
+    for r in G['preR']:
+        for b, _ in r[0][2]:
+            if b[0] == 'hp' and b[1] == 1 and b[2] not in out:
+                out.append(b[2])
+    return out
+
+
 def callee_sig(G, na, nr):
     """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words; a loop's
     runs (`postL`, `postLP`) among its guarantees."""
@@ -237,7 +261,23 @@ def callee_sig(G, na, nr):
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], na, ent)
     if any(c not in h.pre for c, _ in h.preP):
         raise No('callee pointer cell')
-    h.preR = [runX(r, na, ent) for r in G['preR']]
+    # the caller's cells its entry runs name, ghost slot `na + j` the `j`-th (`CoreMode.hp1s`, `glOfs`)
+    hp1 = hp1s(G)
+    gl = {d: (na + j, 0) for j, d in enumerate(hp1)}
+
+    def pre_run(r):
+        try:
+            return runX(r, na, ent)
+        except No:
+            # a run of constant bounds over argument entry cells and the caller's cells (`fitB`, `baseC1`, `rngLIs`)
+            if not hp1 or r[1][0] != 'num' or r[2][0] != 'num' or not all(
+                    (b[0] == 'hp' and b[1] == 1 and b[2] in gl) or
+                    (b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry'])
+                    for b, _ in r[0][2]):
+                raise
+            return runX(r, na, ent, gl=gl)
+    h.preR = [pre_run(r) for r in G['preR']]
+    h.ghosts = [('hp1', d) for d in hp1]
     h.prePR = [prun(p, na, ent) for p in G['preP']]
     if any(p[0] not in h.preR for p in h.prePR):
         raise No('callee preP cells')
@@ -362,9 +402,16 @@ def own_sig(G, np, nr, gl=None):
             h.nv.append(v)
         return h.nv.index(v)
 
+    rlocs = (I.D['comp'].get(CORE_BODY.get('k')) or {}).get('locs') or []
+    rvals = next((s[1] for s in body0 if s[0] == 'ret'), [])
+
     def base_p(b, e):
         if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np:
             return (b[1] - 2, e)
+        if b[0] == 'fr':
+            # a return cell's returned value (`CoreMode.retAtCell`)
+            v = next((v for v in rvals if v < len(rlocs) and rlocs[v] == b[1]), None)
+            return None if v is None else (v, e)
         if b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np:
             n = hp_val(body0, b[1] - 2, b[2])
             return None if n is None else (n, e)
@@ -572,9 +619,9 @@ def infer_one(k, S, allow=None, hcsig=None):
     CORE_BODY['body'] = body
     CORE_BODY['k'] = k
     own = own_sig(G, np, len(rets), gl_of(k))
-    if own.gw:
-        # own parameter words (`HSig.gw`) are not on the core route yet (`HeapK.c` asks `gw = []`)
-        raise No('own parameter words')
+    if own.gw and gl_of(k):
+        # own parameter words (`HSig.gw`) as the ghost slots only where no caller's cell is linked (`CoreMode.gwSlots`)
+        raise No('own parameter words and links')
     cs = {}
     hcs = set()
     arg_res = set()
@@ -598,6 +645,10 @@ def infer_one(k, S, allow=None, hcsig=None):
                 hcs.add((f, len(args), nr))
             else:
                 h = callee_sig(Gf, len(args), nr)
+            for a in h.ghosts:
+                # the caller's cells, its own parameters' entry cells (`CoreMode.hpArgOk`)
+                if a[0] == 'hp1' and not (2 <= a[1] and a[1] - 2 < np and a[1] < 2 ** 28 and a[1] in G['entry']):
+                    raise No('callee caller cell')
             exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
@@ -623,6 +674,10 @@ def infer_one(k, S, allow=None, hcsig=None):
         raise No('own signature dropped')
     sigOf = lambda g: sigs.get(I.callee(g), EM.C.EMPTY)
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+    if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
+        # with frame run cells past their runs, which the frame walk has written at the returns (`CoreMode.FAW`)
+        EM.C.FA_EXTRA[k] = fa_past(k)
+        H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
@@ -648,6 +703,33 @@ def infer_one(k, S, allow=None, hcsig=None):
         if EM.check(k, H, sigOf) is not None:
             H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+FA_PAST = {}
+
+
+def fa_past(k):
+    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`, which needs
+    `MODE_CERT_CACHE`), as `(kp, i)`; none without it."""
+    if k in FA_PAST:
+        return FA_PAST[k]
+    FA_PAST[k] = []
+    if not os.environ.get('MODE_CERT_CACHE'):
+        return []
+    import subprocess, json, heapc
+    body = CORE[k][1]
+    locs = I.D['comp'][k]['locs']
+    fas = []
+    for s in body:
+        if not heapc._noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
+            fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
+    if fas:
+        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps({k: fas}),
+                           capture_output=True, text=True, check=True)
+        FA_PAST[k] = [tuple(p) for p in json.loads(r.stdout).get(k, [])]
+    return FA_PAST[k]
 
 
 def has_fa(body):
@@ -749,29 +831,71 @@ def lcsig(h):
 
 
 def hcsig_ref(k):
-    """A heap-contract function's own heap signature (`Gen/HcSig.lean`)."""
+    """A function's own heap signature where its callers name it (`Gen/<pack>/Sig.lean`): a heap-contract
+    function's, or one its callers' signatures equal (`sig_shared`)."""
     return f'CoreMode.HcSig.«{k}».sig'
 
 
-def hcsig_file(R):
-    """`Gen/HcSig.lean`: each heap-contract function's own heap signature, its auxiliary declarations first."""
+def self_sig(r):
+    """A function's own heap signature as Lean, if it needs no auxiliary declaration (as a callee's copy)."""
+    try:
+        return lcsig(r['cert'].sig)
+    except No:
+        return None
+
+
+def sig_shared(R):
+    """The callees' signatures stated once (`Gen/<pack>/Sig.lean`) and named by their callers' `csigs`: `(shared,
+    refs)`, `shared` the functions whose own heap signature some caller's copy equals (their certificates name it
+    too), `refs` each callee's name for its copy (a callee's copy is the same in every caller): its own signature
+    (`sig`), or for a copy in two callers or more, the copy (`csig`)."""
+    own = {k: self_sig(r) for k, r in R.items()}
+    copies = collections.defaultdict(collections.Counter)
+    for k, r in R.items():
+        hcf = {f for f, _, _ in r.get('hcs', [])}
+        for f, h in r['cs'].items():
+            if f not in hcf:
+                copies[I.callee(f)][lcsig(h)] += 1
+    shared, refs = set(), {}
+    for c, cnt in copies.items():
+        for t, n in cnt.items():
+            if c in R and own[c] == t:
+                shared.add(c)
+                refs[(c, t)] = hcsig_ref(c)
+            elif n >= 2:
+                refs[(c, t)] = f'CoreMode.HcSig.«{c}».csig' if len(cnt) == 1 else None
+    return shared, {ct: n for ct, n in refs.items() if n}
+
+
+def in_sigs(k, r, shared):
+    """Whether `k`'s own heap signature is in its pack's signature module."""
+    return bool(r.get('hc')) or k in shared
+
+
+def sig_file(pack, ks, R, copies):
+    """`Gen/<pack>/Sig.lean`: the own heap signatures of the pack's functions `ks` that their callers name, each
+    with its auxiliary declarations, and the callees' copies `copies` (`[(callee, text)]`) that callers share."""
     EM = _em()
-    out = [HCSIG_HEADER]
-    for k in sorted(k for k, r in R.items() if r.get('hc')):
-        ax = EM.Aux()
-        t = EM.lsig(R[k]['cert'].sig, ax)
-        auxt = ''.join(f'/-- Part of `sig`. -/\n{d}\n' for d in ax.defs)
-        out.append(f'\nnamespace LeanVM.Guest.CoreMode.HcSig.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                   f'/-- `{k}`: its own heap signature, its contract. -/\ndef sig : CoreMode.HSig := {t}\n\n'
-                   f'end\nend LeanVM.Guest.CoreMode.HcSig.«{k}»\n')
+    out = [SIG_HEADER.format(pack=pack)]
+    names = sorted(set(ks) | {c for c, _ in copies})
+    cp = dict(copies)
+    for k in names:
+        if k in ks:
+            ax = EM.Aux()
+            t = EM.lsig(R[k]['cert'].sig, ax)
+            out += [d.replace('def ', f'def «{k}».', 1) for d in ax.defs] + [f'def «{k}».sig : CoreMode.HSig := {t}\n']
+        if k in cp:
+            out.append(f'def «{k}».csig : CoreMode.HSig := {cp[k]}\n')
+    out.append('\nend\nend LeanVM.Guest.CoreMode.HcSig\n')
     return ''.join(out)
 
 
-HCSIG_HEADER = """/-
-  LeanVM.Guest.CoreMode.Gen.HcSig
+SIG_HEADER = """/-
+  LeanVM.Guest.CoreMode.Gen.«{pack}».Sig
 
   Generated by `scripts/core-mode/callc.py --emit`; do not edit.
-  The heap signatures of the functions whose contract is their own (`CFun.hc`), which their callers name.
+  The heap signatures of the pack's functions that their callers name: `«f».sig`, `f`'s own, its contract
+  (`CFun.hc`) or what its callers' copies (`csigs`) equal; `«f».csig`, the copy two callers or more hold.
 -/
 
 module
@@ -780,22 +904,43 @@ public import LeanVM.Guest.CoreMode.Defs
 
 set_option maxRecDepth 100000
 set_option linter.all false
+
+namespace LeanVM.Guest.CoreMode.HcSig
+
+@[expose] public section
+
 """
 
 
-def ldata(k, r):
-    """A function's certificate and its callees' signatures as Lean, its auxiliary declarations first."""
+def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
+    """A function's certificate and its callees' signatures as Lean, its auxiliary declarations first. `shared`,
+    `refs`: `sig_shared`'s; `sigs` (if given) collects the functions whose signature module the text names."""
     EM = _em()
     aux, body = EM.lcert(r['cert'])
-    if r.get('hc'):
-        # its own signature the one its callers name (`Gen/HcSig.lean`)
+    used = set()
+    if in_sigs(k, r, shared):
+        # its own signature the one its callers name (`Gen/<pack>/Sig.lean`)
         aux = [d for d in aux if not d.startswith('def sig_')]
         assert body.startswith('  sig := ')
         rest = body[body.index('\n  reads := '):]
         body = f'  sig := {hcsig_ref(k)}' + rest
+        used.add(k)
     auxt = ''.join(f'{d}\n' for d in aux)
     hcf = {f for f, _, _ in r.get('hcs', [])}
-    cs = ',\n    '.join(f'("{f}", {hcsig_ref(I.callee(f)) if f in hcf else lcsig(h)})' for f, h in sorted(r['cs'].items()))
+
+    def entry(f, h):
+        c = I.callee(f)
+        if f in hcf:
+            used.add(c)
+            return hcsig_ref(c)
+        t = lcsig(h)
+        if (c, t) in refs:
+            used.add(c)
+            return refs[(c, t)]
+        return t
+    cs = ',\n    '.join(f'("{f}", {entry(f, h)})' for f, h in sorted(r['cs'].items()))
+    if sigs is not None:
+        sigs |= used
     return (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
             f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n' + (
                 'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (', '.join(
@@ -807,7 +952,7 @@ def ldata(k, r):
 GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
 
 
-def windows(R, po):
+def windows(R, po, shared=frozenset()):
     """The heap checks estimated past `heapwin.BUDGET` (the heartbeats, or the memory a module may take), in windows
     (`heapwin.one`): `GenW/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` as
     `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
@@ -821,6 +966,7 @@ def windows(R, po):
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue
         gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
+                   pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
                    sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
         for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
@@ -836,19 +982,34 @@ def emit(R, check):
     for k in sorted(R):
         packs[po[k][0]].append(k)
     files = {}
+    shared, refs = sig_shared(R)
     for pack, ks in sorted(packs.items()):
         out = [HEADER.format(pack=pack, first=ks[0], more=len(ks) - 1)]
-        if any(R[k].get('hc') or R[k].get('hcs') for k in ks):
-            out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n',
-                                    'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.Gen.HcSig\n')
+        used = set()
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{R[k]["text"]}'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs)}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
+        imps = sorted({po[c][0] for c in used})
+        out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n' +
+                                ''.join(f'public import LeanVM.Guest.CoreMode.Gen.«{q}».Sig\n' for q in imps))
         files[os.path.join(GEN, pack, 'DataC.lean')] = ''.join(out)
-    files[os.path.join(GEN, 'HcSig.lean')] = hcsig_file(R)
+    sigp = collections.defaultdict(lambda: ([], []))
+    for k in R:
+        if in_sigs(k, R[k], shared):
+            sigp[po[k][0]][0].append(k)
+    for (c, t), n in refs.items():
+        if n.endswith('.csig'):
+            sigp[po[c][0]][1].append((c, t))
+    for pack, (ks, cps) in sorted(sigp.items()):
+        files[os.path.join(GEN, pack, 'Sig.lean')] = sig_file(pack, ks, R, cps)
     import glob
     stale = []
-    wfiles, wdirs = windows(R, po)
+    for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'Sig.lean')) + glob.glob(os.path.join(GEN, 'HcSig.lean')))
+                       - set(files)):
+        stale.append(path)
+        if not check:
+            os.remove(path)
+    wfiles, wdirs = windows(R, po, shared)
     files.update(wfiles)
     for path in sorted(set(glob.glob(os.path.join(GENW, '*', '*.lean'))) - set(wfiles)):
         stale.append(path)
