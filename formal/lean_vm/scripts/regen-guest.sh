@@ -189,14 +189,16 @@ part_res() {
   python3 -I scripts/res-cert/sel.py "${check[@]}"
   step "res: the residuals less the claim lists' linked table reads (scripts/res-cert/link.py)"
   python3 -I scripts/res-cert/link.py "${check[@]}"
-  step "res: the monotone claim lists' table reads (scripts/res-cert/mono.py)"
+  step "res: the monotone claim lists' callers (scripts/core-mode/monocall.py)"
+  python3 -I scripts/core-mode/monocall.py "${check[@]}"
+  step "res: facts carried down to callees (scripts/core-mode/carry.py)"
+  python3 -I scripts/core-mode/carry.py "${check[@]}"
+  step "res: check_opening_terminal's callers (scripts/core-mode/termcall.py)"
+  python3 -I scripts/core-mode/termcall.py "${check[@]}"
+  step "res: the residuals less the monotone claim lists' table reads (scripts/res-cert/mono.py)"
   python3 -I scripts/res-cert/mono.py "${check[@]}"
   step "res: every sub residual in a proved family (scripts/res-cert/sub.py)"
   python3 -I scripts/res-cert/sub.py "${check[@]}"
-  step "res: facts carried down to callees (scripts/res-cert/carry.py)"
-  python3 -I scripts/res-cert/carry.py "${check[@]}"
-  step "res: check_opening_terminal's callers (scripts/res-cert/termcall.py)"
-  python3 -I scripts/res-cert/termcall.py "${check[@]}"
 }
 
 part_whir_data() {
@@ -231,8 +233,8 @@ part_count_vsos() {
 
 # After `count/gen.py`, which writes the `Memory/GuestCallees.lean` it reads.
 part_count_loops() {
-  step "count: the loop helpers' entries (scripts/res-cert/loops.py)"
-  python3 -I scripts/res-cert/loops.py "${check[@]}"
+  step "count: the loop helpers' entries (scripts/core-mode/loopcheck.py)"
+  python3 -I scripts/core-mode/loopcheck.py "${check[@]}"
 }
 
 part_tables() {

@@ -42,31 +42,11 @@ def header(mod, what):
 
 def render():
     callees(); files = {}
-    n = link.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in link.RANGES]
-    mods = []
-    for k, (a, m) in enumerate(ranges):
-        mod = 'LeanVM.Guest.Res.MonoCallers%d' % k
-        t = [header(mod, 'The callers\' check of `monoCallers`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.Res.MonoDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem monoCallers_%d : RangeOk (fun _ fn => callersG monoCallers fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
-        files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.MonoOk'
-    t = [header(mod, 'The gap walk\'s checks, and `ResTop guestCerts` less its reads.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.EndExecRMR\npublic import LeanVM.Guest.Res.AnyOk\n\n'
+    t = [header(mod, '`ResTop guestCerts` less the gap walk\'s reads.')]
+    t.append('public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk\npublic import LeanVM.Guest.Res.AnyOk\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
-    app = 'monoCallers_0'
-    for a, m in ranges[1:]: app = '(%s.append monoCallers_%d)' % (app, a)
-    t.append('/-- **The callers\' check of `monoCallers`, every function.** -/\n'
-             'theorem monoCallers_all : RangeOk (fun _ fn => callersG monoCallers fn) 0 coreProgram.length := by\n'
-             '  have h := %s\n  rw [coreProgram_length]\n  exact h\n\n' % app)
-    t.append('/-- **The gap walk\'s checks.** -/\ntheorem mono_ok : MonoOk where\n'
-             '  idx := by decide +kernel\n  origin := by decide +kernel\n  loop0 := by decide +kernel\n'
-             '  loop1 := by decide +kernel\n  ml := by decide +kernel\n  digest := by decide +kernel\n'
-             '  callers := rangeOk_all monoCallers_all\n\n')
     t.append('/-- **The residuals at the honest frames**, for the mode walk\'s certificates: from the listed\n'
              'certificates\', the `sub` residuals\' but the splits\', `anyLink`\'s and the gap walk\'s reads, and\n'
              'the listed parameters\' nonzero values. -/\n'
@@ -83,7 +63,7 @@ def render():
 def main(argv):
     files = render(); bad = []
     for p in glob.glob(os.path.join(OUT, 'MonoCallers*.lean')):
-        if p not in files:
+        if True:
             bad.append(p)
             if '--check' not in argv: os.remove(p)
     for p, text in sorted(files.items()):
@@ -92,7 +72,7 @@ def main(argv):
         bad.append(p)
         if '--check' not in argv: open(p, 'w').write(text)
     if '--check' in argv and bad: print('stale:', *bad, sep='\n  '); sys.exit(1)
-    print('MonoLink: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
+    print('MonoOk: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 
 
 if __name__ == '__main__':

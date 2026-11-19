@@ -12,7 +12,7 @@ public import LeanVM.Guest.Res.Down
 public import LeanVM.Guest.Bridge.WitDefs
 public import LeanVM.Guest.Memory.Family
 public import LeanVM.Guest.Memory.ScopeDefs
-public import LeanVM.Guest.Res.CarryNzList
+public import LeanVM.Guest.CoreMode.Gen.CarryNzList
 public meta import LeanVM.Guest.CoreRef
 
 /-!

@@ -11,14 +11,14 @@ import sys, os, re, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import coreir
+import resgen
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # the caller: its stable name, its entries and bound parameters
 ORIGIN = 'child_claim_list_any'
 UE, UL = 0, 3
-# the callers' check by ranges of functions, each a kernel check
-RANGES = [(0, 100), (100, 300), (400, 400), (800, 400), (1200, None)]
+RANGES = resgen.RANGES
 
 
 def names():

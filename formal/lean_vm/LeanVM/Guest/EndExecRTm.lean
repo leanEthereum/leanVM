@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecRCs
-public import LeanVM.Guest.Res.TermCallers
+public import LeanVM.Guest.CoreMode.Gen.TermCallers
 public import LeanVM.Guest.B1.VerifySub.SoundOf
 
 /-!
