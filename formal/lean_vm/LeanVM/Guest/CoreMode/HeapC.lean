@@ -21,7 +21,7 @@ public import LeanVM.Guest.Memory.Fresh
 
 **Events.** A path's events (`walk`) write (`EvW`): an atom its `Writes`, an entered call its callee's `post` cells and `postR` runs at its words. `WrittenC` is what the own preconditions and the events so far write. A path is sound (`ReadsOkC`): each atom's reads, and each entered call's callee preconditions at its argument words (with the runs' exponents), are written before; and it returns sound (`PostOkC`): the own guarantees at the words it returns are written by its events.
 
-**The pass** (`chkC`). Milestone 1's state, plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
+**The pass** (`chkC`). Milestone 1's state, plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). A run in scope may also be rebased onto the needed run's base, `t` strides back (`shiftR`, `runRunS`: its constant lower bound plus `t` at most the needed one's), its cells from there being its own. Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
 
 **Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
 
@@ -591,6 +591,21 @@ def hiOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : 
 def runRun (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
   Q.base.beq R.base && Nat.beq Q.stride R.stride && loOk F E Q R && hiOk F E Q R
 
+/-- **A run in scope rebased onto `Q`'s base**: its base `t` strides past `Q`'s, its lower bound a constant, `t` more
+at most `Q`'s, a constant: its cells from `Q`'s lower bound to its upper bound, which are its own. -/
+def shiftR (Q R : PRun) : Option PRun :=
+  bif Nat.blt 0 Q.stride && Nat.beq Q.stride R.stride && basesBeq Q.base.bases R.base.bases &&
+      Nat.ble Q.base.off R.base.off && Nat.beq ((R.base.off - Q.base.off) % Q.stride) 0 &&
+      Q.lo.bases.isEmpty && R.lo.bases.isEmpty &&
+      Nat.ble (R.lo.off + (R.base.off - Q.base.off) / Q.stride) Q.lo.off && Nat.blt Q.lo.off capE then
+    some ⟨Q.base, Q.stride, Q.lo, R.hi⟩ else none
+
+/-- **A run inside a run in scope**, or inside it rebased (`shiftR`). -/
+def runRunS (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
+  match shiftR Q R with
+  | some R2 => runRun F E Q R2
+  | none => false
+
 /-! ## The pass -/
 
 /-- The pass's state: milestone 1's, a run scope, the sums seen (`ad`, a value number to the
@@ -938,7 +953,8 @@ def constR (Q : PRun) : Bool :=
 /-- **A witness of the run `Q`.** -/
 noncomputable def rnOk (X : CX) (st : CSt) (Q : PRun) : Wit → Bool
   | .run r res => match getF st.rs r with
-    | some R => runRun (facts X st.env res) st.eqs Q R || subRun X st.env res Q R
+    | some R => runRun (facts X st.env res) st.eqs Q R || subRun X st.env res Q R ||
+        runRunS (facts X st.env res) st.eqs Q R
     | none => false
   | .empty => emptyE st.eqs Q
   | _ => false

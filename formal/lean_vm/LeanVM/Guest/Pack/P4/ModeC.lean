@@ -10,15 +10,54 @@ module
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P13».ModeSig
+public import LeanVM.Guest.Pack.«P14».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P21».ModeSig
 public import LeanVM.Guest.Pack.«P25».ModeSig
+public import LeanVM.Guest.Pack.«P38».ModeSig
+public import LeanVM.Guest.Pack.«P39».ModeSig
 public import LeanVM.Guest.Pack.«P42».ModeSig
 public import LeanVM.Guest.Pack.«P4».Bundle
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P54».ModeSig
 public import LeanVM.Guest.Pack.«P58».ModeSig
 public import LeanVM.Guest.Pack.«P62».ModeSig
+
+namespace LeanVM.Guest.Fn.«aggregate_claims»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `aggregate_claims`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«batch_sumcheck__L23».modeSig) .nil .nil)))) .nil)) .nil)) .nil)
+    .nil)))) .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«grind_check__L2».modeSig) .nil .nil)))) .nil)) .nil)) .nil)
+    .nil)) .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«aggregate_claims_loop0».modeSig)
+    .nil .nil)))) .nil)) .nil) .nil)))) .nil)) .nil) (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«aggregate_claims_loop1».modeSig) .nil .nil)))) .nil)) .nil)) .nil) .nil)) .nil))))) (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«aggregate_claims_loop2».modeSig) .nil .nil))))
+    .nil)) .nil))) .nil) .nil))) .nil) .nil) .nil))), 524287⟩
+
+/-- `aggregate_claims`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨64040, 233, Fn.«aggregate_claims».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«aggregate_claims»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L7»
 

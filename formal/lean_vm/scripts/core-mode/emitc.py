@@ -744,9 +744,17 @@ class Solver:
             for j in range(Q[2][1], Q[3][1]):
                 w = self.pt(st, C.cshift(Q[0], Q[1] * j))
                 if w is None:
-                    return None
+                    break
                 ws.append(w)
-            return ws
+            else:
+                return ws
+        # last, a run in scope rebased onto this base (`runRunS`)
+        for r in sorted(st.rs, reverse=True):
+            R2 = C.shiftR(Q, st.rs[r])
+            f = self.run_in(st, Q, R2) if R2 is not None else None
+            if f is not None:
+                self.stats['shift'] += 1
+                return [('run', r, f)]
         return None
 
     def negshift(self, st, Q):

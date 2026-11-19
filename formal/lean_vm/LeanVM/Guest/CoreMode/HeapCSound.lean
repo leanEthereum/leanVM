@@ -381,6 +381,49 @@ theorem hasExp_ok {F : List (CCell × CCell)} (hF : FOk w F) {m : CCell} (h : ha
     · rw [CCell.beq_eq he] at ha; exact ⟨_, ha⟩
     · rw [CCell.beq_eq he] at hb; exact ⟨_, hb⟩
 
+
+/-- **A run rebased is written** where the run is: its cells are the run's. -/
+theorem shiftR_ok {Q R R2 : PRun} (h : shiftR Q R = some R2) (hR : RunF W w R.base R.stride R.lo R.hi) :
+    RunF W w R2.base R2.stride R2.lo R2.hi := by
+  unfold shiftR at h
+  simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.blt_eq, Nat.beq_eq, Nat.ble_eq] at h
+  split_ifs at h with hc
+  cases h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hS0, hS⟩, hb⟩, hoff⟩, hmod⟩, hql⟩, hrl⟩, hle⟩, hcap⟩ := hc
+  have hb' := basesBeq_eq hb
+  have hdvd : Q.stride ∣ R.base.off - Q.base.off := Nat.dvd_of_mod_eq_zero hmod
+  obtain ⟨t, ht⟩ := hdvd
+  have htd : (R.base.off - Q.base.off) / Q.stride = t := by rw [ht, Nat.mul_div_cancel_left _ hS0]
+  rw [htd] at hle
+  rintro x ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩
+  simp only at hylo hyhi h1 h2 ⊢
+  rw [rep_nil hql hcap, Option.some.injEq] at hylo
+  subst hylo
+  apply hR
+  refine ⟨R.lo.off, yhi, j - t, rep_nil hrl (by omega), hyhi, by omega, by omega, ?_⟩
+  have htj : t ≤ j := by omega
+  have hj : Q.stride * j = Q.stride * t + Q.stride * (j - t) := by rw [← Nat.mul_add, Nat.add_sub_cancel' htj]
+  have hR' : R.base = ⟨Q.base.bases, Q.base.off + Q.stride * t⟩ := by
+    have e1 : R.base.off = Q.base.off + Q.stride * t := by omega
+    cases hRB : R.base with
+    | mk rb ro =>
+      rw [hRB] at hb' e1
+      simp only at hb' e1
+      rw [hb', e1]
+  rw [hR', ← hS]
+  simp only [CCell.valW, addressOfIndex, mul_assoc, ← ofK_mul', ← pow_add]
+  rw [hj, Nat.add_assoc]
+
+/-- **A run inside a run rebased** (`runRunS`). -/
+theorem runRunS_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell × CCell)}
+    (hE : ∀ p ∈ E, p.1.valW w = p.2.valW w) {Q R : PRun}
+    (hR : RunF W w R.base R.stride R.lo R.hi) (h : runRunS F E Q R = true) : RunF W w Q.base Q.stride Q.lo Q.hi := by
+  unfold runRunS at h
+  split at h
+  · rename_i R2 hR2
+    exact runRun_ok hF hE (shiftR_ok hR2 hR) h
+  · cases h
+
 /-- **A cell of a run extended by the point before it**: the point written, the run written, the cell
 written. -/
 theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
@@ -1431,9 +1474,11 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
     | none => rw [hr] at h; cases h
     | some R =>
       rw [hr] at h
-      rcases Bool.or_eq_true_iff.mp h with h | h
+      simp only [Bool.or_eq_true] at h
+      rcases h with (h | h) | h
       · exact runRun_ok (facts_ok hX hs.env res) hs.eqs (hs.rs r R hr) h
       · exact subRun_ok hX hs.env (hs.rs r R hr) h
+      · exact runRunS_ok (facts_ok hX hs.env res) hs.eqs (hs.rs r R hr) h
   | empty =>
     simp only [rnOk] at h
     exact fun x hx ↦ absurd hx (emptyE_ok hs.eqs h)
