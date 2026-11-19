@@ -57,7 +57,7 @@ theorem shapes_sum_le {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M : �
 /-- `verify_sub`'s instructions of each opcode at the largest opening arm. -/
 def childMax : Opcode → ℕ
   | .xor => 98091 | .mulNative => 181054 | .setConstant => 49823 | .deref => 104791
-  | .jump => 35720 | .keccak => 11209
+  | .jump => 35720 | .keccak => 11457
 
 theorem childShape_le_childMax (op : Opcode) (μ r : ℕ) :
     (Count.deployedInstrs op).childShape μ r ≤ childMax op := by
