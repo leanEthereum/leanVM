@@ -15,6 +15,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  # The compiled guest, downloaded from the `guest-artifact` job by every job that builds `aggregation`.
+  LEANVM_GUEST_ARTIFACT: ${{ github.workspace }}/guests/lean_ethereum.compiled
   RUST_BACKTRACE: 1
   # Pin the ISA, overriding `target-cpu=native` from .cargo/config.toml, so a cached build runs on any runner.
   # Haswell has no VPCLMULQDQ or AVX-512, so the tests never reach the arms that need them.
@@ -22,11 +24,61 @@ env:
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
-  test:
-    name: Test
+  # The guest the prover loads (`guests/lean_ethereum.compiled`) is not committed: the Lean back end compiles it
+  # (`crates/aggregation/build.rs` runs `formal/lean_vm/scripts/guest-artifact`). Written once here, from this
+  # tree, and handed to every job that builds `aggregation` (`LEANVM_GUEST_ARTIFACT`), which then runs no Lean.
+  guest-artifact:
+    name: The compiled guest (Lean)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # The Lean build `guest-artifact` needs, Mathlib's fetched by the script (`lake exe cache get`); only `main` saves.
+      - name: Restore the Lean build
+        id: lean-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/LeanVM/Compiler/**', 'formal/lean_vm/LeanVM/Core/**', 'formal/lean_vm/cli/GuestArtifact.lean', 'formal/Statement/**/*.lean', 'guests/lean_ethereum.py', 'crates/aggregation/src/**') }}
+          restore-keys: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formal/lean_vm/scripts/guest-export
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Compile the guest (guest-artifact)
+        run: formal/lean_vm/scripts/guest-artifact
+      - name: Save the Lean build
+        if: github.ref == 'refs/heads/main' && steps.lean-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: ${{ steps.lean-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests/lean_ethereum.compiled
+          retention-days: 3
+
+  test:
+    name: Test
+    needs: guest-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # The flags live in .cargo/config.toml's aliases
@@ -55,22 +107,32 @@ jobs:
 
   # The NEON kernels, as bench.yml's arm64 testbed builds them: the x86 job's haswell reaches none of them.
   test-arm64:
+    needs: guest-artifact
     name: Test (neoverse-n2)
     runs-on: ubuntu-24.04-arm
     env:
       RUSTFLAGS: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Test
         run: cargo testall
 
   clippy:
+    needs: guest-artifact
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -87,6 +149,7 @@ jobs:
   # With an explicit `--target`, RUSTFLAGS reach only the target's code, so build scripts still run on the runner.
   # The arm64 entries build on arm64 runners, as jemalloc's build script wants a C compiler for the target.
   isa:
+    needs: guest-artifact
     name: Clippy (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -141,6 +204,10 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -152,10 +219,15 @@ jobs:
         run: cargo clippy --release --workspace --all-targets --target ${{ matrix.target }} -- -D warnings
 
   doc:
+    needs: guest-artifact
     name: Rustdoc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Rustdoc
