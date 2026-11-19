@@ -27,6 +27,12 @@ struct Json {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let [fixtures, db, workers] = &args[..] else { panic!("usage: el-load FIXTURES DB WORKERS") };
+    // A worker's panic stops the process, not only its thread.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        default_hook(info);
+        std::process::exit(1);
+    }));
     let db = db::Db::open(db);
     let fixtures = load(fixtures);
     for f in &fixtures {

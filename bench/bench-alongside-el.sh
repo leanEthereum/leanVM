@@ -18,7 +18,9 @@ if [ "$(uname)" = Darwin ]; then
   P=$(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || sysctl -n hw.physicalcpu)
   E=$(sysctl -n hw.perflevel1.physicalcpu 2>/dev/null || echo 0)
   [ $((P + E)) -ge 8 ] || { echo "$((P + E)) physical cores, fewer than EIP-7870's 8" >&2; exit 1; }
+  [ -z "${LEAN_CPUS:-}${EL_CPUS:-}" ] || { echo "LEAN_CPUS and EL_CPUS are Linux only: macOS cannot pin" >&2; exit 1; }
   LEAN_PIN="" EL_PIN="" EL_THREADS=4
+  LEAN_CORES="4 threads, unpinned" EL_CORES="4 threads, unpinned"
   echo "$P performance and $E efficiency cores; leanVM and the execution client unpinned"
 else
   # One CPU per physical core, of those in a kernel CPU list ("0-3,8").
@@ -38,6 +40,7 @@ else
   LEAN_CPUS=${LEAN_CPUS:-$(IFS=,; echo "${LEAN[*]}")}
   EL_CPUS=${EL_CPUS:-$(IFS=,; echo "${EL[*]}")}
   LEAN_PIN="taskset -c $LEAN_CPUS" EL_PIN="taskset -c $EL_CPUS" EL_THREADS=16
+  LEAN_CORES="4 cores: CPUs $LEAN_CPUS" EL_CORES="4 cores: CPUs $EL_CPUS"
   echo "leanVM on CPUs $LEAN_CPUS, the execution client on CPUs $EL_CPUS"
 fi
 
@@ -48,7 +51,7 @@ PROVER=${1:-experimental}
 LEANVM=("${CARGO_TARGET_DIR:-target}/release/leanvm-bench" --prover "$PROVER" recursion --n 16 --xmss-per-leaf 1400 \
   --leaf-log-inv-rate 2 --log-inv-rate 1)
 lean() { $LEAN_PIN "${LEANVM[@]}" --repeat 5 --threads 4 2>&1 | tee "$1"; }
-seconds() { awk '/proving time/ {print $4}' "$1"; }
+time_of() { awk '/proving time/ {print $4 " s " $6 " " $7}' "$1"; }
 
 echo "==> 1/6 building leanvm-bench and el-load"
 cargo build --release -p leanvm-bench
@@ -69,10 +72,23 @@ echo "    all $(grep -c valid "$EL_LOG") blocks valid; the execution client now 
 
 echo "==> 5/6 leanVM beside the execution client: the same"
 lean .build/lean-with-el.log
+kill -0 $EL_PID 2>/dev/null || { echo "the execution client stopped during leanVM's run (see its error above)" >&2; exit 1; }
 
-ALONE=$(seconds .build/lean-alone.log) WITH=$(seconds .build/lean-with-el.log)
-CHANGE=$(awk -v a="$ALONE" -v w="$WITH" 'BEGIN { printf "%+.1f", 100 * (w / a - 1) }')
-echo "==> 6/6 the 16-to-1 aggregation: $ALONE s alone, $WITH s beside the execution client ($CHANGE%); \
-the execution client meanwhile: $(tail -n 1 "$EL_LOG")"
-echo "    note: the execution client's database file, 16 GiB, is kept for the next runs; to free the space, run:"
-echo "    rm $PWD/.build/el-load.db"
+ALONE=$(time_of .build/lean-alone.log) WITH=$(time_of .build/lean-with-el.log)
+CHANGE=$(awk -v a="${ALONE%% *}" -v w="${WITH%% *}" 'BEGIN { printf "%+.1f%%", 100 * (w / a - 1) }')
+EL_RATE="$(tail -n 1 "$EL_LOG" | awk '{print $(NF-1)}') Mgas/s"
+ROW="  %-14s  %-26s  %s\n"
+TIME_ROW="  %-14s  %-27s  %s\n" # printf pads by bytes, and ± takes two
+echo
+echo "==> 6/6 results: the 16-to-1 aggregation's proving time, $PROVER prover, mean of 5 passes"
+echo
+printf "$ROW" "" "leanVM" "execution client"
+printf "$ROW" "" "$LEAN_CORES" "$EL_CORES"
+printf "$ROW" "" "--------------------" "--------------------"
+printf "$TIME_ROW" "leanVM alone" "$ALONE" "not running"
+printf "$TIME_ROW" "beside the EL" "$WITH" "$EL_RATE"
+printf "$ROW" "difference" "$CHANGE" ""
+echo
+echo "The execution client's database file (16 GiB) is kept for the next runs. To free the space:"
+echo
+echo "  rm $PWD/.build/el-load.db"
