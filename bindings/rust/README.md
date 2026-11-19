@@ -21,11 +21,7 @@ lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-
 
 Build in release mode: debug builds of leanVM prove far slower.
 
-Aggregation is the default `aggregation` feature, which pulls in leanVM's prover and verifier. It
-proves with leanVM's experimental prover, which makes the same proofs as its stable reference
-prover, faster. To only sign and verify, add `default-features = false` to the dependency: the crate then builds from
-leanVM's `lean_xmss` and `lean_sphincs` crates alone, and `aggregate`, `setup`, `Aggregate` and
-`MAX_CHILDREN` are not compiled.
+Aggregation is the default `aggregation` feature, which pulls in leanVM's prover and verifier. It proves with leanVM's experimental prover, which makes the same proofs as its stable reference prover, faster. To only sign and verify, add `default-features = false` to the dependency: the crate then builds from leanVM's `lean_xmss` and `lean_sphincs` crates alone, and `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN` are not compiled.
 
 ## Sign and verify
 
@@ -77,12 +73,9 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 ```
 
 - Aggregation verifies every raw signature before proving, and runs one proof at a time per process.
-- An encoded aggregate is the proof alone, as leanVM encodes it. Send the claims alongside it, or
-  let the receiver rebuild them, as Ethereum does from its validator bitfields.
-- `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order;
-  any other set of claims fails. Every aggregate value is proven.
-- The first proof starts leanVM's prover pool and builds the aggregation guest; call `setup()` to
-  pay that earlier.
+- An encoded aggregate is the proof alone, as leanVM encodes it. Send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
+- `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven.
+- The first proof starts leanVM's prover pool and builds the aggregation guest; call `setup()` to pay that earlier.
 
 ## License
 

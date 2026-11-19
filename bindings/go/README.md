@@ -1,14 +1,10 @@
 # lean-pq Go bindings
 
-Go bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation from
-[leanVM](https://github.com/leanEthereum/leanVM), backed by a native Rust static archive linked into
-the final program through cgo. The Go API uses normal Go values and `Close` methods; it does not
-expose C pointers or the internal bridge ABI.
+Go bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation from [leanVM](https://github.com/leanEthereum/leanVM), backed by a native Rust static archive linked into the final program through cgo. The Go API uses normal Go values and `Close` methods; it does not expose C pointers or the internal bridge ABI.
 
 ## Install
 
-The module is `leanvm.org/go`. Each release publishes it with the native archives built in, served
-from leanvm.org rather than from git, so `go get` needs no Rust toolchain:
+The module is `leanvm.org/go`. Each release publishes it with the native archives built in, served from leanvm.org rather than from git, so `go get` needs no Rust toolchain:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -19,9 +15,7 @@ go get leanvm.org/go@v0.11.1
 Requirements:
 
 - Go 1.24 or newer with cgo enabled (`CGO_ENABLED=1`)
-- A C compiler for the target platform: gcc or clang on Linux, the Xcode command line tools on
-  macOS, and [MinGW-w64](https://www.mingw-w64.org/) gcc on PATH on Windows (cgo does not use
-  MSVC)
+- A C compiler for the target platform: gcc or clang on Linux, the Xcode command line tools on macOS, and [MinGW-w64](https://www.mingw-w64.org/) gcc on PATH on Windows (cgo does not use MSVC)
 
 Supported platforms:
 
@@ -32,15 +26,11 @@ Supported platforms:
 | `darwin/amd64`, `darwin/arm64` | `internal/native/darwin_universal` |
 | `windows/amd64` | `internal/native/windows_amd64` (MinGW-w64) |
 
-Build tags select the archive and cgo links it into the final Go binary, so the program has no
-runtime dependency on the bridge. The archives are never committed: building from a checkout of
-this repository needs the source build below.
+Build tags select the archive and cgo links it into the final Go binary, so the program has no runtime dependency on the bridge. The archives are never committed: building from a checkout of this repository needs the source build below.
 
 ## Source build and test
 
-From the repository root, install [Zig](https://ziglang.org/) 0.15.2 and
-[`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild), then stage the local Linux amd64
-archive in the layout used by the Go package:
+From the repository root, install [Zig](https://ziglang.org/) 0.15.2 and [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild), then stage the local Linux amd64 archive in the layout used by the Go package:
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
@@ -61,13 +51,9 @@ Each platform stages its archive from one Rust target:
 | `universal2-apple-darwin` | `darwin_universal` |
 | `x86_64-pc-windows-gnu` | `windows_amd64` |
 
-The universal macOS build requires both `x86_64-apple-darwin` and
-`aarch64-apple-darwin` Rust targets and runs on macOS so `cargo-zigbuild` can use the installed SDK.
+The universal macOS build requires both `x86_64-apple-darwin` and `aarch64-apple-darwin` Rust targets and runs on macOS so `cargo-zigbuild` can use the installed SDK.
 
-`scripts/assemble-module.sh` builds the published module's proxy files from the release archives,
-and `scripts/consumer-smoke.sh` proves it works through `go get` without Rust. A release attaches
-the files to its GitHub release, and the Website workflow serves every release's files from
-`leanvm.org/goproxy`, which `leanvm.org/go`'s `go-import` tag names.
+`scripts/assemble-module.sh` builds the published module's proxy files from the release archives, and `scripts/consumer-smoke.sh` proves it works through `go get` without Rust. A release attaches the files to its GitHub release, and the Website workflow serves every release's files from `leanvm.org/goproxy`, which `leanvm.org/go`'s `go-import` tag names.
 
 ## Example
 
@@ -151,14 +137,6 @@ func main() {
 }
 ```
 
-leanXMSS keys are stateful: persist your own durable high-water leaf index alongside
-`XmssSecretKey.Bytes()` and never sign two different messages at the same leaf index. leanSPHINCS
-keys are stateless and deterministic: `SphincsSecretKey.Bytes()` is the 32-byte seed, and a key
-signs at most 2^30 messages.
+leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.Bytes()` and never sign two different messages at the same leaf index. leanSPHINCS keys are stateless and deterministic: `SphincsSecretKey.Bytes()` is the 32-byte seed, and a key signs at most 2^30 messages.
 
-`Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and
-`SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects.
-`AggregateFromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly those
-claims, given in any order with a repeated claim counted once, and rejects any other claim set.
-`AggregateSignatures` verifies every raw signature before proving, so every `Aggregate` is proven.
-`Setup` moves the one-time setup ahead of the first proof; calling it is optional.
+`Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects. `AggregateFromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set. `AggregateSignatures` verifies every raw signature before proving, so every `Aggregate` is proven. `Setup` moves the one-time setup ahead of the first proof; calling it is optional.

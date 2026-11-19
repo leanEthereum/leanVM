@@ -34,7 +34,7 @@ Changelog = "https://github.com/leanEthereum/leanVM/blob/main/bindings/CHANGELOG
 [tool.maturin]
 features = ["pyo3/extension-module"]
 include = ["py.typed", "py_lean_pq.pyi"]
-# Debug builds of leanVM prove roughly 30x slower, so the
+# Debug builds of leanVM prove far slower, so the
 # editable install `uv run` performs must be a release build as well.
 profile = "release"
 

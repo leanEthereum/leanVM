@@ -1,18 +1,12 @@
 # lean-pq bindings
 
-Language bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures:
-stateful **leanXMSS**, stateless **leanSPHINCS**, and zkVM-backed recursive aggregation of both into
-one proof. Every binding wraps the safe Rust facade in [`bindings/rust`](rust/README.md), which
-builds the leanVM crates of this repository and keeps the proving parameters internal.
+Language bindings for [leanVM](https://github.com/leanEthereum/leanVM)'s post-quantum signatures: stateful **leanXMSS**, stateless **leanSPHINCS**, and zkVM-backed recursive aggregation of both into one proof. Every binding wraps the safe Rust facade in [`bindings/rust`](rust/README.md), which builds the leanVM crates of this repository and keeps the proving parameters internal.
 
-An encoded aggregate is leanVM's proof alone. Its claims, the (public key, message) pairs it proves,
-travel separately: a receiver decodes the proof together with the claims it expects, and decoding
-fails unless the proof proves exactly those.
+An encoded aggregate is leanVM's proof alone. Its claims, the (public key, message) pairs it proves, travel separately: a receiver decodes the proof together with the claims it expects, and decoding fails unless the proof proves exactly those.
 
 ## Install
 
-Every package is released together from one version: each `bindings-vX.Y.Z` release publishes all
-of them at `X.Y.Z`. Prebuilt packages need no Rust toolchain.
+Every package is released together from one version: each `bindings-vX.Y.Z` release publishes all of them at `X.Y.Z`. Prebuilt packages need no Rust toolchain.
 
 | Language | Package | Prebuilt for |
 | --- | --- | --- |
@@ -42,8 +36,7 @@ npm install @kevaundray/lean-pq@0.11.1
 ```
 <!-- x-release-please-end -->
 
-npm installs the binary for your platform through an optional dependency; installing with
-`--omit=optional` leaves the package unable to load.
+npm installs the binary for your platform through an optional dependency; installing with `--omit=optional` leaves the package unable to load.
 
 ### Java
 
@@ -67,8 +60,7 @@ Maven:
 ```
 <!-- x-release-please-end -->
 
-The jar bundles the native library for each platform. Run with
-`--enable-native-access=org.ethereum.leanpq`.
+The jar bundles the native library for each platform. Run with `--enable-native-access=org.ethereum.leanpq`.
 
 ### Go
 
@@ -78,9 +70,7 @@ go get leanvm.org/go@v0.11.1
 ```
 <!-- x-release-please-end -->
 
-The module, served from leanvm.org, links a bundled static library through cgo, so it needs `CGO_ENABLED=1` and a C
-compiler: gcc or clang on Linux, the Xcode command line tools on macOS, and MinGW-w64 gcc on
-Windows.
+The module, served from leanvm.org, links a bundled static library through cgo, so it needs `CGO_ENABLED=1` and a C compiler: gcc or clang on Linux, the Xcode command line tools on macOS, and MinGW-w64 gcc on Windows.
 
 ### Zig
 
@@ -110,9 +100,7 @@ requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0
 ```
 <!-- x-release-please-end -->
 
-The first build downloads the native archive for the target from the release; the tag also works
-as a nimbus-build-system `vendor/` submodule. The bindings are `Result`-based and `raises: []`, and
-build with `--mm:refc` and `--mm:orc`.
+The first build downloads the native archive for the target from the release; the tag also works as a nimbus-build-system `vendor/` submodule. The bindings are `Result`-based and `raises: []`, and build with `--mm:refc` and `--mm:orc`.
 
 ### Rust
 
@@ -127,12 +115,7 @@ lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-
 
 ## Build from source
 
-Clone the repository and follow each binding's README; every binding builds against the leanVM
-crates in the same checkout. The bindings are their own Cargo workspace, `bindings/Cargo.toml`,
-excluded from the root one: run cargo from `bindings/` (or below), so that
-[`bindings/.cargo/config.toml`](.cargo/config.toml) replaces the root's `target-cpu=native` with the
-portable baseline. Commands below without a directory run from the repository root. Building needs
-Rust, plus the language toolchain:
+Clone the repository and follow each binding's README; every binding builds against the leanVM crates in the same checkout. The bindings are their own Cargo workspace, `bindings/Cargo.toml`, excluded from the root one: run cargo from `bindings/` (or below), so that [`bindings/.cargo/config.toml`](.cargo/config.toml) replaces the root's `target-cpu=native` with the portable baseline. Commands below without a directory run from the repository root. Building needs Rust, plus the language toolchain:
 
 | Binding | Local build and test | Prerequisites |
 | --- | --- | --- |
@@ -152,25 +135,14 @@ cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/go/internal/native/linux_amd64
 ```
 
-Zig takes the same archive's directory as `-Dnative-dir`; the Go and Nim READMEs list the directory
-for each platform.
+Zig takes the same archive's directory as `-Dnative-dir`; the Go and Nim READMEs list the directory for each platform.
 
-Each binding uses a language-native wrapper around the Rust implementation. The internal
-[`bindings/native`](native/README.md) crate supplies a private C-shaped Rust ABI for
-managed wrappers: Java consumes it through the Foreign Function & Memory API, while Go, Zig and
-Nim link its static archive. It is not a separate, supported C binding.
+Each binding uses a language-native wrapper around the Rust implementation. The internal [`bindings/native`](native/README.md) crate supplies a private C-shaped Rust ABI for managed wrappers: Java consumes it through the Foreign Function & Memory API, while Go, Zig and Nim link its static archive. It is not a separate, supported C binding.
 
 ## Releases
 
-[release-please](https://github.com/googleapis/release-please) keeps a release pull request open
-from the conventional commits on `main` that touch `bindings/` (pull requests touching `bindings/`
-need a conventional title). Merging it bumps the version everywhere it appears, including the
-install instructions above, and tags `bindings-vX.Y.Z`. That tag runs
-`.github/workflows/bindings-release.yml`, which builds and tests every package on each platform
-before publishing it. See [CHANGELOG.md](CHANGELOG.md). Versions up to 0.11.1 were released from
-[ethereum/lean-pq-bindings](https://github.com/ethereum/lean-pq-bindings) as `vX.Y.Z`.
+[release-please](https://github.com/googleapis/release-please) keeps a release pull request open from the conventional commits on `main` that touch `bindings/` (pull requests touching `bindings/` need a conventional title). Merging it bumps the version everywhere it appears, including the install instructions above, and tags `bindings-vX.Y.Z`. That tag runs `.github/workflows/bindings-release.yml`, which builds and tests every package on each platform before publishing it. See [CHANGELOG.md](CHANGELOG.md). Versions up to 0.11.1 were released from [ethereum/lean-pq-bindings](https://github.com/ethereum/lean-pq-bindings) as `vX.Y.Z`.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](../LICENSE-APACHE) or [MIT license](../LICENSE-MIT)
-at your option.
+Licensed under either of [Apache License, Version 2.0](../LICENSE-APACHE) or [MIT license](../LICENSE-MIT) at your option.
