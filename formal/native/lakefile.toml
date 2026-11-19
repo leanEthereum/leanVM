@@ -13,6 +13,12 @@ relaxedAutoImplicit = false
 name = "statement"
 path = "../Statement"
 
+# The proof's wire decoding (`LeanVM.Wire.Encoding`, `Proof.fromBytes`), which the leanVM verifier's
+# end theorems decode with; only that module of `lean_vm` is imported.
+[[require]]
+name = "lean-vm"
+path = "../lean_vm"
+
 # Kraken's x86-64 semantics (AeneasVerif/kraken), which the machine code is proved in. Only
 # `Kraken.X64.Semantics`, `Kraken.X64.OmniSemantics`, `Kraken.X64.WP`, `Kraken.Mem` and
 # `Kraken.X64.PrintATT` are imported: they build on this toolchain, while Kraken's parser targets a
@@ -50,6 +56,12 @@ rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
 name = "Native"
 globs = ["Native.+"]
 
+# The leanVM verifier on the shared machine: its input in memory, its word model, its code and its
+# proofs; it imports no Kraken module.
+[[lean_lib]]
+name = "NativeVm"
+globs = ["NativeVm.+"]
+
 # The x86-64 backend: the compiler to Kraken's x86-64 and the verifiers' end theorems there.
 [[lean_lib]]
 name = "NativeX64"
@@ -74,4 +86,18 @@ srcDir = "cli"
 [[lean_exe]]
 name = "emit-arm"
 root = "EmitArm"
+srcDir = "cli"
+
+# The leanVM verifier's word model against the statement's verifier on fixture directories
+# (cli/VmModelDiff.lean); not a default target.
+[[lean_exe]]
+name = "vm-model-diff"
+root = "VmModelDiff"
+srcDir = "cli"
+
+# The wire decoder's code against `Proof.fromBytes` on fixture directories (cli/WireTest.lean); not a
+# default target.
+[[lean_exe]]
+name = "wire-test"
+root = "WireTest"
 srcDir = "cli"
