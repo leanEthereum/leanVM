@@ -7,15 +7,12 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«verify_tables»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_tables`: its entry pc. -/
-abbrev entry : Nat := 19982
+abbrev Fn.«verify_tables».entry : Nat := 19982
 
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest

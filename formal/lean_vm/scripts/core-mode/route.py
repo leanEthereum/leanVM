@@ -98,10 +98,9 @@ def sigs():
     else:
         for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Sig', '*.lean')):
             t = open(f).read()
-            for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-                nm = blk.split('\n', 1)[0].strip().strip('«»')
-                m = re.search(r'def csig : Mode.Sig :=\s*⟨(.*?)⟩\n\nend', blk, re.S)
-                texts.append((nm, m.group(1)))
+            # one section per pack: `def Fn.«k».csig : Mode.Sig := ⟨..⟩`, up to the next declaration or the end
+            for m in re.finditer(r'def Fn\.«([^»]+)»\.csig\s*:\s*Mode\.Sig\s*:=\s*⟨(.*?)⟩\n(?=noncomputable|\nend)', t, re.S):
+                texts.append((m.group(1), m.group(2)))
     out = {}
     for nm, text in texts:
         parts = split_top(text)

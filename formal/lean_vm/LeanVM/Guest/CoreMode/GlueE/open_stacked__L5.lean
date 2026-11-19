@@ -7,15 +7,12 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«open_stacked__L5»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `open_stacked__L5`: its entry pc. -/
-abbrev entry : Nat := 220944
+abbrev Fn.«open_stacked__L5».entry : Nat := 220944
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L5»
+end LeanVM.Guest

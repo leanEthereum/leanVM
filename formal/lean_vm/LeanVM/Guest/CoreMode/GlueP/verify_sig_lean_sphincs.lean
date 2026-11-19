@@ -11,12 +11,15 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `verify_sig_lean_sphincs`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«verify_sig_lean_sphincs».fpows : PowTree :=
   (.node 33554432 25 (.node 256 8 (.node 16 4 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf
     .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf)) (.node 262144 18 (.node 16384 14 (.node
     4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf
@@ -25,10 +28,9 @@ noncomputable def fpows : PowTree :=
     281474976710656 48 .leaf .leaf) .leaf)) (.node 9223372036854775808 63 (.node 288230376151711744
     58 (.node 72057594037927936 56 .leaf .leaf) (.node 1152921504606846976 60 .leaf .leaf)) (.node
     13961177240429061390 33508 (.node 9223372036854810629 255 .leaf .leaf) .leaf))))
-
-/-- `verify_sig_lean_sphincs`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«verify_sig_lean_sphincs».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+
+end LeanVM.Guest

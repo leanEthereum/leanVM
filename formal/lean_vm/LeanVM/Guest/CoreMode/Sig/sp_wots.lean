@@ -10,15 +10,16 @@ module
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.CoreMode.GlueE.«sp_wots»
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `sp_wots`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
-noncomputable def csig : Mode.Sig :=
+noncomputable def Fn.«sp_wots».csig : Mode.Sig :=
   ⟨Fn.«sp_wots».entry, [0, 1, 2, 3, 4, 5], none, [], [], [], [6], [], [], [], [], [], [], [], [],
     []⟩
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

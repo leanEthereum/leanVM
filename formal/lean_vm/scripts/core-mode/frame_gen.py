@@ -221,9 +221,8 @@ def fpowsDef(k):
             for m in PW.NS.finditer(open(path, encoding='utf-8').read()):
                 FPOWS.setdefault(m.group(1), set()).update(int(x) for x in PW.SET.findall(m.group(2)) if int(x) in G)
         FPOWS = {key: PW.tree(sorted((x, G[x]) for x in xs)) for key, xs in FPOWS.items()}
-    return ('/-- `%s`: the powers of `g` its code names. -/\nnoncomputable def fpows : PowTree :=\n  %s\n\n'
-            '/-- `%s`: its code\'s powers are powers of `g`. -/\n'
-            'theorem fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n\n' % (k, FPOWS.get(k, '.leaf'), k))
+    return ('noncomputable def Fn.«%s».fpows : PowTree :=\n  %s\n'
+            'theorem Fn.«%s».fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n' % (k, FPOWS.get(k, '.leaf'), k))
 
 
 def funDef(D, n, lit, defs):
@@ -318,8 +317,11 @@ def main(argv):
         files[os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '%s.lean' % p)] = (
             header('LeanVM.Guest.CoreMode.GlueP.«%s»' % p, 'The powers of `g` the code of each function of the pack names, '
                    'code pointers among them.') +
-            'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n' +
-            ''.join(ns(D['fns'][n]['ns'], fpowsDef(D['fns'][n]['ns'])) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])))
+            'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n'
+            'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
+            '@[expose] public section\n\n' +
+            ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
+            '\nend\n\nend LeanVM.Guest\n')
     lines = 0
     for path, text in sorted(files.items()):
         text = wrap(text)

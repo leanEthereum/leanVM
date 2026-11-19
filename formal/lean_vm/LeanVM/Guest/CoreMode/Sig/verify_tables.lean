@@ -10,13 +10,13 @@ module
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.CoreMode.GlueE.«verify_tables»
 
-namespace LeanVM.Guest.Fn.«verify_tables»
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_tables`: its entry, the cells and heap facts it needs at entry and guarantees at
-    return. -/
-noncomputable def csig : Mode.Sig :=
+noncomputable def Fn.«verify_tables».csig : Mode.Sig :=
   ⟨Fn.«verify_tables».entry, (List.flatten [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     [16, 17, 18, 19, 20, 21, 22]]), none, (List.flatten [[⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 0, [((.fr
     10), 1)]⟩, ⟨0, 0, [((.fr 12), 1)]⟩, ⟨0, 0, [((.fr 13), 1)]⟩, ⟨0, 0, [((.fr 14), 1)]⟩, ⟨0, 0,
@@ -86,4 +86,4 @@ noncomputable def csig : Mode.Sig :=
 
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest
