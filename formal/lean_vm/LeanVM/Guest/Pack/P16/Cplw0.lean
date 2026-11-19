@@ -25,11 +25,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `child_claim_list_digest`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(23, Fn.«list_split».sig), (26, Fn.«child_claim_list_any».sig), (27, Fn.«child_claim_list_mono».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«child_claim_list_any».idx, Fn.«child_claim_list_any».sig), (Fn.«child_claim_list_mono».idx, Fn.«child_claim_list_mono».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `child_claim_list_digest`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(23, Fn.«list_split».sig), (26, Fn.«child_claim_list_any».sig), (27, Fn.«child_claim_list_mono».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«child_claim_list_any».idx, Fn.«child_claim_list_any».sig), (Fn.«child_claim_list_mono».idx, Fn.«child_claim_list_mono».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

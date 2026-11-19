@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreMode.GlueE.«P6»
 public import LeanVM.Guest.CoreMode.GlueE.«verify_merkle_cap__L8»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
 
 set_option maxRecDepth 100000
 set_option linter.all false

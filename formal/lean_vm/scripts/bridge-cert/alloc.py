@@ -533,7 +533,8 @@ def run(check):
         okp = os.path.join(data.LEAN_VM, *[x.strip('«»') for x in cm.split('.')]) + '.lean'
         win = cm.endswith('».Ok') and 'theorem alignCtxEq' in open(okp, encoding='utf-8').read()
         prf = 'rw [alignCtxEq]\n  decide +kernel' if win else 'decide +kernel'
-        imps = pair.pack_imports(cm)
+        # the glue naming the functions' advice and their callees' indices
+        imps = sorted(set(pair.pack_imports(cm)) | {align.glue_a(x) for j, k in jks for x in [k] + [lk[c][0] for c in frd[j][0]]})
 
         def shape(k):
             return [(k, 'allocShapeOk', 'Bridge.allocShape core.body = true', 'decide +kernel')]
@@ -542,19 +543,20 @@ def run(check):
             return data.fn_thms(thms)
 
         def body_thm(j, k):
-            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn{j} = true', prf)]
+            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Fn.«{k}».advice = true', prf)]
 
         def fr_thm(j, k):
-            cs = '[' + ', '.join(str(c) for c in frd[j][0]) + ']'
-            return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Data.adviceFn{j} = true', prf)]
+            # the callees by their indices as the glue names them (`Fn.«k».idx`), not as numbers
+            cs = '[' + ', '.join(f'Fn.«{lk[c][0]}».idx' for c in frd[j][0]) + ']'
+            return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true', prf)]
 
         def thm(j, k):
             pre = [] if win else body_thm(j, k) + fr_thm(j, k)
             if j in failed:
-                return pre + [(k, 'curCodeOk', f'Bridge.curCode alignCtx fs core.loop plumb code.code Data.adviceFn{j} = true',
+                return pre + [(k, 'curCodeOk', f'Bridge.curCode alignCtx fs core.loop plumb code.code Fn.«{k}».advice = true',
                                prf)]
             return (shape(k) if not win else []) + pre + [
-                (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn{j} = true',
+                (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
                  prf)]
         body = data.fn_thms([t for j, k in jks for t in thm(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (

@@ -25,11 +25,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_bus_gkr`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (94, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop1».idx, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `verify_bus_gkr`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (94, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop1».idx, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -145,11 +145,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `bus_grind_check__L9`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(446, Fn.«grind_check__L26».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L9».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«grind_check__L26».idx, Fn.«grind_check__L26».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L9».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `bus_grind_check__L9`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(446, Fn.«grind_check__L26».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L9».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«grind_check__L26».idx, Fn.«grind_check__L26».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L9».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

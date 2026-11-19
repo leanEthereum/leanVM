@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.CoreMode.GlueA.«P49»
 public import LeanVM.Guest.CoreMode.GlueE.«P21»
 public import LeanVM.Guest.CoreMode.GlueE.«P24»
 public import LeanVM.Guest.CoreMode.GlueE.«P25»
@@ -65,45 +66,45 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«block_selector_tab__L29».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«block_selector_tab__L29».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn262 = true := by decide +kernel
+theorem Fn.«block_selector_tab__L29».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«block_selector_tab__L29».advice = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L5».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«child_claim_list_mono_last__L5».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn395 = true := by decide +kernel
+theorem Fn.«child_claim_list_mono_last__L5».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«child_claim_list_mono_last__L5».advice = true := by decide +kernel
 theorem Fn.«da_levels__L128_L7_loop3».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«da_levels__L128_L7_loop3».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn943 = true := by decide +kernel
+theorem Fn.«da_levels__L128_L7_loop3».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«da_levels__L128_L7_loop3».advice = true := by decide +kernel
 theorem Fn.«gkr_rounds__L2».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«gkr_rounds__L2».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn430 = true := by decide +kernel
+theorem Fn.«gkr_rounds__L2».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«gkr_rounds__L2».advice = true := by decide +kernel
 theorem Fn.«level_positions__L13_L20_L2_loop0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_positions__L13_L20_L2_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1094 = true := by decide +kernel
+theorem Fn.«level_positions__L13_L20_L2_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_positions__L13_L20_L2_loop0».advice = true := by decide +kernel
 theorem Fn.«level_positions__L4_L14_L2».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_positions__L4_L14_L2».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn473 = true := by decide +kernel
+theorem Fn.«level_positions__L4_L14_L2».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_positions__L4_L14_L2».advice = true := by decide +kernel
 theorem Fn.«level_positions__L6_L21_L3_loop0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_positions__L6_L21_L3_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1141 = true := by decide +kernel
+theorem Fn.«level_positions__L6_L21_L3_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_positions__L6_L21_L3_loop0».advice = true := by decide +kernel
 theorem Fn.«level_positions__L6_L23_L5_loop0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_positions__L6_L23_L5_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1370 = true := by decide +kernel
+theorem Fn.«level_positions__L6_L23_L5_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_positions__L6_L23_L5_loop0».advice = true := by decide +kernel
 theorem Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn775 = true := by decide +kernel
+theorem Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».advice = true := by decide +kernel
 theorem Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn864 = true := by decide +kernel
+theorem Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».advice = true := by decide +kernel
 theorem Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn648 = true := by decide +kernel
+theorem Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».advice = true := by decide +kernel
 theorem Fn.«level_residual__L109_L20_L6_L3_loop1».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L109_L20_L6_L3_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1242 = true := by decide +kernel
+theorem Fn.«level_residual__L109_L20_L6_L3_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L109_L20_L6_L3_loop1».advice = true := by decide +kernel
 theorem Fn.«level_residual__L19_L7_L4_L2».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L19_L7_L4_L2».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn712 = true := by decide +kernel
+theorem Fn.«level_residual__L19_L7_L4_L2».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L19_L7_L4_L2».advice = true := by decide +kernel
 theorem Fn.«level_residual__L23_L15_L4_L2_loop1».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L23_L15_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1396 = true := by decide +kernel
+theorem Fn.«level_residual__L23_L15_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L23_L15_L4_L2_loop1».advice = true := by decide +kernel
 theorem Fn.«level_residual__L25_L6_L4_L2_loop1».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L25_L6_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1009 = true := by decide +kernel
+theorem Fn.«level_residual__L25_L6_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L25_L6_L4_L2_loop1».advice = true := by decide +kernel
 theorem Fn.«level_residual__L28_L12_L4_L2_loop1».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L28_L12_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1255 = true := by decide +kernel
+theorem Fn.«level_residual__L28_L12_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L28_L12_L4_L2_loop1».advice = true := by decide +kernel
 theorem Fn.«level_residual__L28_L9_L4_L2_loop1».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«level_residual__L28_L9_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1127 = true := by decide +kernel
+theorem Fn.«level_residual__L28_L9_L4_L2_loop1».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«level_residual__L28_L9_L4_L2_loop1».advice = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn1516 = true := by decide +kernel
+theorem Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».advice = true := by decide +kernel
 theorem Fn.«padding_weight__L0».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«padding_weight__L0».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn100 = true := by decide +kernel
+theorem Fn.«padding_weight__L0».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«padding_weight__L0».advice = true := by decide +kernel
 theorem Fn.«padding_weight__L15».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«padding_weight__L15».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn115 = true := by decide +kernel
+theorem Fn.«padding_weight__L15».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«padding_weight__L15».advice = true := by decide +kernel
 
 end
 

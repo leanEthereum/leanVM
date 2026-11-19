@@ -10,6 +10,42 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.Align.«open_stacked__L3»
+public import LeanVM.Guest.CoreMode.GlueA.«P0»
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
+public import LeanVM.Guest.CoreMode.GlueA.«P11»
+public import LeanVM.Guest.CoreMode.GlueA.«P13»
+public import LeanVM.Guest.CoreMode.GlueA.«P18»
+public import LeanVM.Guest.CoreMode.GlueA.«P19»
+public import LeanVM.Guest.CoreMode.GlueA.«P20»
+public import LeanVM.Guest.CoreMode.GlueA.«P21»
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
+public import LeanVM.Guest.CoreMode.GlueA.«P23»
+public import LeanVM.Guest.CoreMode.GlueA.«P25»
+public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P31»
+public import LeanVM.Guest.CoreMode.GlueA.«P32»
+public import LeanVM.Guest.CoreMode.GlueA.«P33»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
+public import LeanVM.Guest.CoreMode.GlueA.«P37»
+public import LeanVM.Guest.CoreMode.GlueA.«P40»
+public import LeanVM.Guest.CoreMode.GlueA.«P41»
+public import LeanVM.Guest.CoreMode.GlueA.«P43»
+public import LeanVM.Guest.CoreMode.GlueA.«P44»
+public import LeanVM.Guest.CoreMode.GlueA.«P45»
+public import LeanVM.Guest.CoreMode.GlueA.«P46»
+public import LeanVM.Guest.CoreMode.GlueA.«P48»
+public import LeanVM.Guest.CoreMode.GlueA.«P51»
+public import LeanVM.Guest.CoreMode.GlueA.«P52»
+public import LeanVM.Guest.CoreMode.GlueA.«P53»
+public import LeanVM.Guest.CoreMode.GlueA.«P55»
+public import LeanVM.Guest.CoreMode.GlueA.«P56»
+public import LeanVM.Guest.CoreMode.GlueA.«P57»
+public import LeanVM.Guest.CoreMode.GlueA.«P58»
+public import LeanVM.Guest.CoreMode.GlueA.«P59»
+public import LeanVM.Guest.CoreMode.GlueA.«P60»
+public import LeanVM.Guest.CoreMode.GlueA.«P63»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
+public import LeanVM.Guest.CoreMode.GlueA.«P8»
 public import LeanVM.Guest.Pack.«P60».Core
 public import LeanVM.Guest.Pack.«open_stacked__L3».Bundle
 
@@ -20,9 +56,9 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«open_stacked__L3».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«open_stacked__L3».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn342 = true := by decide +kernel
-theorem Fn.«open_stacked__L3».frOk : Bridge.frChk alignCtx fs [8, 9, 311, 437, 451, 461, 475, 483, 520, 521, 563, 569, 587, 588, 589, 590, 591, 592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629] core.params core.body Data.adviceFn342 = true := by decide +kernel
-theorem Fn.«open_stacked__L3».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn342 = true := by decide +kernel
+theorem Fn.«open_stacked__L3».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«open_stacked__L3».advice = true := by decide +kernel
+theorem Fn.«open_stacked__L3».frOk : Bridge.frChk alignCtx fs [Fn.«opening_round».idx, Fn.«opening_tail_round».idx, Fn.«grind_check__L15».idx, Fn.«grind_check__L17».idx, Fn.«opening_message__L8_L1».idx, Fn.«opening_message__L6_L1».idx, Fn.«level_positions__L3_L16_L4».idx, Fn.«level_positions__L3_L15_L3».idx, Fn.«level_positions__L4_L16_L4».idx, Fn.«level_positions__L4_L17_L5».idx, Fn.«level_positions__L4_L18_L6».idx, Fn.«level_positions__L3_L17_L5».idx, Fn.«squeeze_point_from__L17».idx, Fn.«level_positions__L32_L18_L6».idx, Fn.«level_positions__L19_L19_L7».idx, Fn.«level_positions__L13_L20_L2».idx, Fn.«level_positions__L10_L21_L3».idx, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».idx, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».idx, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».idx, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».idx, Fn.«squeeze_point_from__L13».idx, Fn.«level_positions__L8_L17_L5».idx, Fn.«level_positions__L7_L18_L6».idx, Fn.«level_positions__L7_L19_L7».idx, Fn.«level_positions__L6_L20_L2».idx, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».idx, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».idx, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».idx, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».idx, Fn.«squeeze_point_from__L9».idx, Fn.«level_positions__L4_L19_L7».idx, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».idx, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».idx, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».idx, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».idx, Fn.«opening_message__L36_L1».idx, Fn.«level_positions__L3_L18_L6».idx, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».idx, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».idx, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».idx, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».idx, Fn.«fold_final_msg__L5».idx, Fn.«level_residual__L218_L17_L6_L3».idx, Fn.«level_residual__L109_L17_L6_L3».idx, Fn.«level_residual__L73_L17_L6_L3».idx, Fn.«level_residual__L55_L17_L6_L3».idx, Fn.«level_residual__L55_L13_L4_L2».idx, Fn.«level_residual__L44_L13_L4_L2».idx, Fn.«level_residual__L37_L13_L4_L2».idx, Fn.«level_residual__L32_L13_L4_L2».idx, Fn.«level_residual__L32_L9_L4_L2».idx, Fn.«level_residual__L28_L9_L4_L2».idx, Fn.«level_residual__L25_L9_L4_L2».idx, Fn.«level_residual__L23_L9_L4_L2».idx] core.params core.body Fn.«open_stacked__L3».advice = true := by decide +kernel
+theorem Fn.«open_stacked__L3».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«open_stacked__L3».advice = true := by decide +kernel
 
 end
 

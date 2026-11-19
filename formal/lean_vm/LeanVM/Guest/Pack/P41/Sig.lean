@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreMode.GlueE.«P41»
 public import LeanVM.Guest.CoreMode.GlueE.«open_stacked__L4»
+public import LeanVM.Guest.CoreMode.GlueA.«P41»
 
 set_option maxRecDepth 100000
 set_option linter.all false

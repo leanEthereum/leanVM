@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
+public import LeanVM.Guest.CoreMode.GlueA.«main_loop2»
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
@@ -18,7 +19,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«main_loop2».frOk : Bridge.frChk alignCtx fs [] core.params core.body Data.adviceFn39 = true := by rw [alignCtxEq]; decide +kernel
+theorem Fn.«main_loop2».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«main_loop2».advice = true := by rw [alignCtxEq]; decide +kernel
 
 end
 

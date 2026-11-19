@@ -22,12 +22,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`, window 24. -/
-theorem w24 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w24 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 24 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 25. -/
-theorem w25 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w25 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 25 = true := by
   decide +kernel
 

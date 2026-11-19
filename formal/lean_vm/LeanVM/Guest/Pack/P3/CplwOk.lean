@@ -21,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_keccak`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(269, Fn.«verify_keccak_loop0».sig), (270, Fn.«keccak_layer__L1».sig), (271, Fn.«keccak_layer__L0».sig), (272, Fn.«keccak_plain_rounds__L6_L0».sig), (273, Fn.«verify_keccak_loop1».sig), (274, Fn.«keccak_plain_rounds__L4_L1».sig), (275, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_keccak_loop0».idx, Fn.«verify_keccak_loop0».sig), (Fn.«keccak_layer__L1».idx, Fn.«keccak_layer__L1».sig), (Fn.«keccak_layer__L0».idx, Fn.«keccak_layer__L0».sig), (Fn.«keccak_plain_rounds__L6_L0».idx, Fn.«keccak_plain_rounds__L6_L0».sig), (Fn.«verify_keccak_loop1».idx, Fn.«verify_keccak_loop1».sig), (Fn.«keccak_plain_rounds__L4_L1».idx, Fn.«keccak_plain_rounds__L4_L1».sig), (Fn.«verify_keccak_loop2».idx, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 5 := by decide +kernel
   rw [hc] at hi
@@ -61,7 +61,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_level_residual__L55_L20_L4_L2`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1432, Fn.«level_residual__L55_L20_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L20_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«level_residual__L55_L20_L4_L2_loop0».idx, Fn.«level_residual__L55_L20_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L20_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

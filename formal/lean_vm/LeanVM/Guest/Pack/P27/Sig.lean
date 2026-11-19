@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreMode.GlueE.«P27»
+public import LeanVM.Guest.CoreMode.GlueA.«P27»
+public import LeanVM.Guest.CoreMode.GlueA.«walk_path__L24_L4»
 
 set_option maxRecDepth 100000
 set_option linter.all false

@@ -21,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 25 := by decide +kernel
   rw [hc] at hi

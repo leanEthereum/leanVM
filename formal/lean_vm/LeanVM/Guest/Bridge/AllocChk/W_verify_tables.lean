@@ -10,6 +10,71 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.AlignWin.«verify_tables».Ok
+public import LeanVM.Guest.CoreMode.GlueA.«P0»
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
+public import LeanVM.Guest.CoreMode.GlueA.«P11»
+public import LeanVM.Guest.CoreMode.GlueA.«P12»
+public import LeanVM.Guest.CoreMode.GlueA.«P13»
+public import LeanVM.Guest.CoreMode.GlueA.«P14»
+public import LeanVM.Guest.CoreMode.GlueA.«P15»
+public import LeanVM.Guest.CoreMode.GlueA.«P16»
+public import LeanVM.Guest.CoreMode.GlueA.«P17»
+public import LeanVM.Guest.CoreMode.GlueA.«P18»
+public import LeanVM.Guest.CoreMode.GlueA.«P19»
+public import LeanVM.Guest.CoreMode.GlueA.«P1»
+public import LeanVM.Guest.CoreMode.GlueA.«P20»
+public import LeanVM.Guest.CoreMode.GlueA.«P21»
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
+public import LeanVM.Guest.CoreMode.GlueA.«P23»
+public import LeanVM.Guest.CoreMode.GlueA.«P24»
+public import LeanVM.Guest.CoreMode.GlueA.«P25»
+public import LeanVM.Guest.CoreMode.GlueA.«P26»
+public import LeanVM.Guest.CoreMode.GlueA.«P27»
+public import LeanVM.Guest.CoreMode.GlueA.«P28»
+public import LeanVM.Guest.CoreMode.GlueA.«P29»
+public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P30»
+public import LeanVM.Guest.CoreMode.GlueA.«P31»
+public import LeanVM.Guest.CoreMode.GlueA.«P32»
+public import LeanVM.Guest.CoreMode.GlueA.«P33»
+public import LeanVM.Guest.CoreMode.GlueA.«P34»
+public import LeanVM.Guest.CoreMode.GlueA.«P35»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
+public import LeanVM.Guest.CoreMode.GlueA.«P37»
+public import LeanVM.Guest.CoreMode.GlueA.«P38»
+public import LeanVM.Guest.CoreMode.GlueA.«P39»
+public import LeanVM.Guest.CoreMode.GlueA.«P3»
+public import LeanVM.Guest.CoreMode.GlueA.«P40»
+public import LeanVM.Guest.CoreMode.GlueA.«P41»
+public import LeanVM.Guest.CoreMode.GlueA.«P42»
+public import LeanVM.Guest.CoreMode.GlueA.«P43»
+public import LeanVM.Guest.CoreMode.GlueA.«P44»
+public import LeanVM.Guest.CoreMode.GlueA.«P45»
+public import LeanVM.Guest.CoreMode.GlueA.«P46»
+public import LeanVM.Guest.CoreMode.GlueA.«P47»
+public import LeanVM.Guest.CoreMode.GlueA.«P48»
+public import LeanVM.Guest.CoreMode.GlueA.«P49»
+public import LeanVM.Guest.CoreMode.GlueA.«P4»
+public import LeanVM.Guest.CoreMode.GlueA.«P50»
+public import LeanVM.Guest.CoreMode.GlueA.«P51»
+public import LeanVM.Guest.CoreMode.GlueA.«P52»
+public import LeanVM.Guest.CoreMode.GlueA.«P53»
+public import LeanVM.Guest.CoreMode.GlueA.«P54»
+public import LeanVM.Guest.CoreMode.GlueA.«P55»
+public import LeanVM.Guest.CoreMode.GlueA.«P56»
+public import LeanVM.Guest.CoreMode.GlueA.«P57»
+public import LeanVM.Guest.CoreMode.GlueA.«P58»
+public import LeanVM.Guest.CoreMode.GlueA.«P59»
+public import LeanVM.Guest.CoreMode.GlueA.«P5»
+public import LeanVM.Guest.CoreMode.GlueA.«P60»
+public import LeanVM.Guest.CoreMode.GlueA.«P61»
+public import LeanVM.Guest.CoreMode.GlueA.«P62»
+public import LeanVM.Guest.CoreMode.GlueA.«P63»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
+public import LeanVM.Guest.CoreMode.GlueA.«P7»
+public import LeanVM.Guest.CoreMode.GlueA.«P8»
+public import LeanVM.Guest.CoreMode.GlueA.«P9»
+public import LeanVM.Guest.CoreMode.GlueA.«verify_tables»
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
 
@@ -20,9 +85,9 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«verify_tables».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«verify_tables».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn12 = true := by decide +kernel
-theorem Fn.«verify_tables».frOk : Bridge.frChk alignCtx fs [5, 9, 11, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268] core.params core.body Data.adviceFn12 = true := by decide +kernel
-theorem Fn.«verify_tables».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn12 = true := by decide +kernel
+theorem Fn.«verify_tables».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«verify_tables».advice = true := by decide +kernel
+theorem Fn.«verify_tables».frOk : Bridge.frChk alignCtx fs [Fn.«eq_prefix_chain».idx, Fn.«opening_tail_round».idx, Fn.«shared_selector_tables».idx, Fn.«padding_weight__L0».idx, Fn.«padding_weight__L1».idx, Fn.«padding_weight__L2».idx, Fn.«padding_weight__L3».idx, Fn.«padding_weight__L4».idx, Fn.«padding_weight__L5».idx, Fn.«padding_weight__L6».idx, Fn.«padding_weight__L7».idx, Fn.«padding_weight__L8».idx, Fn.«padding_weight__L9».idx, Fn.«padding_weight__L10».idx, Fn.«padding_weight__L11».idx, Fn.«padding_weight__L12».idx, Fn.«padding_weight__L13».idx, Fn.«padding_weight__L14».idx, Fn.«padding_weight__L15».idx, Fn.«padding_weight__L16».idx, Fn.«padding_weight__L17».idx, Fn.«padding_weight__L18».idx, Fn.«padding_weight__L19».idx, Fn.«padding_weight__L20».idx, Fn.«padding_weight__L21».idx, Fn.«padding_weight__L22».idx, Fn.«padding_weight__L23».idx, Fn.«padding_weight__L24».idx, Fn.«padding_weight__L25».idx, Fn.«padding_weight__L26».idx, Fn.«padding_weight__L27».idx, Fn.«padding_weight__L28».idx, Fn.«padding_weight__L29».idx, Fn.«padding_weight__L30».idx, Fn.«plus_one_run__L0».idx, Fn.«plus_one_run__L1».idx, Fn.«plus_one_run__L2».idx, Fn.«plus_one_run__L3».idx, Fn.«plus_one_run__L4».idx, Fn.«plus_one_run__L5».idx, Fn.«plus_one_run__L6».idx, Fn.«plus_one_run__L7».idx, Fn.«plus_one_run__L8».idx, Fn.«plus_one_run__L9».idx, Fn.«plus_one_run__L10».idx, Fn.«plus_one_run__L11».idx, Fn.«plus_one_run__L12».idx, Fn.«plus_one_run__L13».idx, Fn.«plus_one_run__L14».idx, Fn.«plus_one_run__L15».idx, Fn.«plus_one_run__L16».idx, Fn.«plus_one_run__L17».idx, Fn.«plus_one_run__L18».idx, Fn.«plus_one_run__L19».idx, Fn.«plus_one_run__L20».idx, Fn.«plus_one_run__L21».idx, Fn.«plus_one_run__L22».idx, Fn.«plus_one_run__L23».idx, Fn.«plus_one_run__L24».idx, Fn.«plus_one_run__L25».idx, Fn.«plus_one_run__L26».idx, Fn.«plus_one_run__L27».idx, Fn.«plus_one_run__L28».idx, Fn.«plus_one_run__L29».idx, Fn.«plus_one_run__L30».idx, Fn.«plus_one_run__L31».idx, Fn.«plus_one_run__L32».idx, Fn.«plus_one_run__L33».idx, Fn.«block_selector__L0».idx, Fn.«block_selector__L1».idx, Fn.«block_selector__L2».idx, Fn.«block_selector__L3».idx, Fn.«block_selector__L4».idx, Fn.«block_selector__L5».idx, Fn.«block_selector__L6».idx, Fn.«block_selector__L7».idx, Fn.«block_selector__L8».idx, Fn.«block_selector__L9».idx, Fn.«block_selector__L10».idx, Fn.«block_selector__L11».idx, Fn.«block_selector__L12».idx, Fn.«block_selector__L13».idx, Fn.«block_selector__L14».idx, Fn.«block_selector__L15».idx, Fn.«block_selector__L16».idx, Fn.«block_selector__L17».idx, Fn.«block_selector__L18».idx, Fn.«block_selector__L19».idx, Fn.«block_selector__L20».idx, Fn.«block_selector__L21».idx, Fn.«block_selector__L22».idx, Fn.«block_selector__L23».idx, Fn.«block_selector__L24».idx, Fn.«block_selector__L25».idx, Fn.«block_selector__L26».idx, Fn.«block_selector__L27».idx, Fn.«block_selector__L28».idx, Fn.«block_selector__L29».idx, Fn.«block_selector__L30».idx, Fn.«block_selector__L31».idx, Fn.«block_selector__L32».idx, Fn.«block_selector__L33».idx, Fn.«index_mle__L0».idx, Fn.«index_mle__L1».idx, Fn.«index_mle__L2».idx, Fn.«index_mle__L3».idx, Fn.«index_mle__L4».idx, Fn.«index_mle__L5».idx, Fn.«index_mle__L6».idx, Fn.«index_mle__L7».idx, Fn.«index_mle__L8».idx, Fn.«index_mle__L9».idx, Fn.«index_mle__L10».idx, Fn.«index_mle__L11».idx, Fn.«index_mle__L12».idx, Fn.«index_mle__L13».idx, Fn.«index_mle__L14».idx, Fn.«index_mle__L15».idx, Fn.«index_mle__L16».idx, Fn.«index_mle__L17».idx, Fn.«index_mle__L18».idx, Fn.«index_mle__L19».idx, Fn.«index_mle__L20».idx, Fn.«index_mle__L21».idx, Fn.«index_mle__L22».idx, Fn.«index_mle__L23».idx, Fn.«index_mle__L24».idx, Fn.«index_mle__L25».idx, Fn.«index_mle__L26».idx, Fn.«index_mle__L27».idx, Fn.«index_mle__L28».idx, Fn.«index_mle__L29».idx, Fn.«index_mle__L30».idx, Fn.«index_mle__L31».idx, Fn.«index_mle__L32».idx, Fn.«index_mle__L33».idx, Fn.«block_selector_tab__L0».idx, Fn.«block_selector_tab__L1».idx, Fn.«block_selector_tab__L2».idx, Fn.«block_selector_tab__L3».idx, Fn.«block_selector_tab__L4».idx, Fn.«block_selector_tab__L5».idx, Fn.«block_selector_tab__L6».idx, Fn.«block_selector_tab__L7».idx, Fn.«block_selector_tab__L8».idx, Fn.«block_selector_tab__L9».idx, Fn.«block_selector_tab__L10».idx, Fn.«block_selector_tab__L11».idx, Fn.«block_selector_tab__L12».idx, Fn.«block_selector_tab__L13».idx, Fn.«block_selector_tab__L14».idx, Fn.«block_selector_tab__L15».idx, Fn.«block_selector_tab__L16».idx, Fn.«block_selector_tab__L17».idx, Fn.«block_selector_tab__L18».idx, Fn.«block_selector_tab__L19».idx, Fn.«block_selector_tab__L20».idx, Fn.«block_selector_tab__L21».idx, Fn.«block_selector_tab__L22».idx, Fn.«block_selector_tab__L23».idx, Fn.«block_selector_tab__L24».idx, Fn.«block_selector_tab__L25».idx, Fn.«block_selector_tab__L26».idx, Fn.«block_selector_tab__L27».idx, Fn.«block_selector_tab__L28».idx, Fn.«block_selector_tab__L29».idx, Fn.«block_selector_tab__L30».idx, Fn.«block_selector_tab__L31».idx, Fn.«block_selector_tab__L32».idx, Fn.«block_selector_tab__L33».idx, Fn.«verify_tables_loop0».idx, Fn.«verify_tables_loop1».idx] core.params core.body Fn.«verify_tables».advice = true := by decide +kernel
+theorem Fn.«verify_tables».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«verify_tables».advice = true := by decide +kernel
 
 end
 

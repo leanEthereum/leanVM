@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.JumpCells.H20
-public import LeanVM.Guest.Bridge.JumpCells.H39
+public import LeanVM.Guest.Bridge.JumpCells.H_main_loop2
+public import LeanVM.Guest.Bridge.JumpCells.H_sp_wots
 public import LeanVM.Guest.Bridge.JumpCells.P_P0
 public import LeanVM.Guest.Bridge.JumpCells.P_P1
 public import LeanVM.Guest.Bridge.JumpCells.P_P10

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.CheckView
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P22».Core
 public import LeanVM.Guest.Pack.«open_stacked__L10».Bundle
@@ -19,7 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«open_stacked__L10».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (349 == 1) = true := by decide +kernel
+theorem Fn.«open_stacked__L10».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«open_stacked__L10».idx == 1) = true := by decide +kernel
 
 end
 

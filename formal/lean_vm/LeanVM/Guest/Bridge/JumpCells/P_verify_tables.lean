@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.CheckView
+public import LeanVM.Guest.CoreMode.GlueA.«verify_tables»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
@@ -19,7 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_tables».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (12 == 1) = true := by decide +kernel
+theorem Fn.«verify_tables».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_tables».idx == 1) = true := by decide +kernel
 
 end
 
