@@ -129,7 +129,6 @@ noncomputable def offSigs : List (ℕ × Mode.Sig) :=
   [(Fn.«claim_list_digest».entry, Fn.«claim_list_digest».csig),
     (Fn.«child_claim_list_any».entry, Fn.«child_claim_list_any».csig),
     (Fn.«child_claim_list_mono».entry, Fn.«child_claim_list_mono».csig),
-    (Fn.«verify_bus_gkr_loop0».entry, Fn.«verify_bus_gkr_loop0».csig),
     (Fn.«log2_ceil_in_the_exponent__L0_L34».entry, Fn.«log2_ceil_in_the_exponent__L0_L34».csig),
     (Fn.«log2_ceil_in_the_exponent__L16_L34».entry, Fn.«log2_ceil_in_the_exponent__L16_L34».csig)]
 
@@ -314,8 +313,10 @@ theorem «padding_weight__L17».modeCert_in : «padding_weight__L17».modeCert �
   EndExec.CertE.mem (ls := CoreMode.corePacks) «padding_weight__L17».ce (list_mem% 3) (list_mem% 19)
 theorem «padding_weight__L2».modeCert_in : «padding_weight__L2».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «padding_weight__L2».ce (list_mem% 3) (list_mem% 20)
+theorem «verify_bus_gkr_loop0».modeCert_in : «verify_bus_gkr_loop0».modeCert ∈ CoreMode.coreCerts :=
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «verify_bus_gkr_loop0».ce (list_mem% 3) (list_mem% 21)
 theorem «verify_merkle_cap__L3».modeCert_in : «verify_merkle_cap__L3».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «verify_merkle_cap__L3».ce (list_mem% 3) (list_mem% 21)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «verify_merkle_cap__L3».ce (list_mem% 3) (list_mem% 22)
 theorem «column_selector__L1».modeCert_in : «column_selector__L1».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «column_selector__L1».ce (list_mem% 4) (list_mem% 0)
 theorem «da_pad».modeCert_in : «da_pad».modeCert ∈ CoreMode.coreCerts :=

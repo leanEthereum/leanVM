@@ -103,9 +103,6 @@ def infer_one(k, S):
             raise No('recursive')
         # `CoreMode.fitBL`: `callc.py`'s `fitB`; no pointer cell guaranteed (`calleePtrOk`)
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
-        # `CoreMode.fitBL`: a callee naming no ghost
-        if h.ghosts:
-            raise No('callee ghosts')
         # `fitBL` and `callChk`: no returned word's monomial at a loop's call
         h.retM = {}
         if h.postP:

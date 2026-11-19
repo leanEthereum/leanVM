@@ -46,6 +46,7 @@ noncomputable def «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».modeCe
 noncomputable def «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «padding_weight__L17».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «padding_weight__L2».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «verify_bus_gkr_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «verify_merkle_cap__L3».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
@@ -102,6 +103,11 @@ kernel_rfl «padding_weight__L17».modeSigs : «padding_weight__L17».modeCert.E
   []
 kernel_rfl «padding_weight__L2».modeSigs : «padding_weight__L2».modeCert.E.sigs = CoreMode.sigTrie
   []
+kernel_rfl «verify_bus_gkr_loop0».modeSigs : «verify_bus_gkr_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«gkr_rounds__L1».csig,
+    «gkr_rounds__L2».csig,
+    «verify_bus_gkr_loop0_loop0».csig,
+    «verify_bus_gkr_loop0».csig]
 kernel_rfl «verify_merkle_cap__L3».modeSigs : «verify_merkle_cap__L3».modeCert.E.sigs = CoreMode.sigTrie
   []
 
@@ -170,8 +176,11 @@ noncomputable def «padding_weight__L17».ce : EndExec.CertE CoreMode.hcTab Core
 noncomputable def «padding_weight__L2».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P11».coreFns_ok _ (list_mem% 20), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «verify_merkle_cap__L3».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+noncomputable def «verify_bus_gkr_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P11».coreFns_ok _ (list_mem% 21), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «verify_merkle_cap__L3».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P11».coreFns_ok _ (list_mem% 22), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
 end
@@ -196,7 +205,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».ce,
    Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».ce, Fn.«padding_weight__L17».ce,
-   Fn.«padding_weight__L2».ce, Fn.«verify_merkle_cap__L3».ce]
+   Fn.«padding_weight__L2».ce, Fn.«verify_bus_gkr_loop0».ce, Fn.«verify_merkle_cap__L3».ce]
 
 end
 

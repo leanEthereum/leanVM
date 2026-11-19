@@ -12,20 +12,6 @@ public import LeanVM.Guest.Mode.Certs.List
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.ModePack.«P11»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_exc (by simp [resExc]))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P11»
-
 namespace LeanVM.Guest.ModePack.«P24»
 
 open LeanVM.Guest LeanVM.Guest.Res

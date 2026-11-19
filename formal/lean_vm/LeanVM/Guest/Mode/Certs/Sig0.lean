@@ -30,30 +30,6 @@ public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.ModePack.«P11»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«verify_bus_gkr_loop0».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_bus_gkr_loop0_loop0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«verify_bus_gkr_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«gkr_rounds__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«gkr_rounds__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code93 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P11»
-
 namespace LeanVM.Guest.ModePack.«P24»
 
 open LeanVM.Guest LeanVM.Guest.Mode
