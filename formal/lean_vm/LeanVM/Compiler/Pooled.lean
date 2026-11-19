@@ -8,8 +8,9 @@
 module
 
 public import LeanVM.Compiler.Trace
-public import LeanVM.Compiler.Map
 public import LeanVM.Core.Renumber
+public import Std.Data.HashMap
+public import Std.Data.HashSet
 
 /-!
 # Constants read from the pool
@@ -58,18 +59,18 @@ open LeanVM.Core
 /-- The scan of a core function for its poolable constants (`poolScan`). -/
 structure PoolScan where
   /-- The values named so far. -/
-  seen : VMap Unit := {}
+  seen : Std.HashSet V := {}
   /-- Each value whose first naming is a `const`, with the blocks around that `const`, innermost
   first. -/
-  home : VMap (List Nat) := {}
+  home : Std.HashMap V (List Nat) := {}
   /-- The values named otherwise than as one cell read, or out of their `const`'s block. -/
-  bad : VMap Unit := {}
+  bad : Std.HashSet V := {}
   /-- The blocks around the statement scanned, innermost first. -/
   blocks : List Nat := []
   /-- The blocks entered so far. -/
   count : Nat := 0
   /-- The values of the trace's sponge runs (`Kind.joined`). -/
-  sponge : VMap Unit := {}
+  sponge : Std.HashSet V := {}
 
 namespace PoolScan
 
@@ -79,19 +80,20 @@ def within (outer inner : List Nat) : Bool :=
 
 /-- A value read as one cell. -/
 def rd (s : PoolScan) (v : V) : PoolScan :=
-  let s' := { s with seen := s.seen.insert v () }
-  match s.home.get? v with
-  | some h => if within h s.blocks then s' else { s' with bad := s'.bad.insert v () }
-  | none => s'
+  let out := match s.home[v]? with
+    | some h => !within h s.blocks
+    | none => false
+  let s := { s with seen := s.seen.insert v }
+  if out then { s with bad := s.bad.insert v } else s
 
 /-- A value named otherwise. -/
 def oth (s : PoolScan) (v : V) : PoolScan :=
-  { s with seen := s.seen.insert v (), bad := s.bad.insert v () }
+  { s with seen := s.seen.insert v, bad := s.bad.insert v }
 
 /-- A value set by a `const`. -/
 def cst (s : PoolScan) (v : V) : PoolScan :=
   if s.seen.contains v then s.oth v
-  else { s with seen := s.seen.insert v (), home := s.home.insert v s.blocks }
+  else { s with seen := s.seen.insert v, home := s.home.insert v s.blocks }
 
 def rds (s : PoolScan) (vs : List V) : PoolScan := vs.foldl rd s
 def oths (s : PoolScan) (vs : List V) : PoolScan := vs.foldl oth s
@@ -100,8 +102,8 @@ def oths (s : PoolScan) (vs : List V) : PoolScan := vs.foldl oth s
 def enter (s : PoolScan) : PoolScan :=
   { s with blocks := s.count :: s.blocks, count := s.count + 1 }
 
-/-- A block ends: the blocks around are those before it. -/
-def exit (s outer : PoolScan) : PoolScan := { s with blocks := outer.blocks }
+/-- A block ends: the blocks around are `outer`, those before it. -/
+def exit (s : PoolScan) (outer : List Nat) : PoolScan := { s with blocks := outer }
 
 /-- An atom. -/
 def atom (s : PoolScan) : Atom → PoolScan
@@ -134,8 +136,9 @@ def scanStmt : PoolScan → Stmt → PoolScan
   | s, .atom a => s.atom a
   | s, .ite c z n =>
       let s := s.rd c
-      let s := (scanStmts s.enter z).exit s
-      (scanStmts s.enter n).exit s
+      let outer := s.blocks
+      let s := (scanStmts s.enter z).exit outer
+      (scanStmts s.enter n).exit outer
   | s, .match_ x arms => scanArms (s.rd x) arms
   | s, .call _ args rets => (s.rds args).oths rets
   | s, .callIf c _ args => s.rds (c :: args)
@@ -145,14 +148,16 @@ def scanStmt : PoolScan → Stmt → PoolScan
 /-- The scan of a `match`'s arms, each a block. -/
 def scanArms : PoolScan → List (List Stmt) → PoolScan
   | s, [] => s
-  | s, arm :: arms => scanArms ((scanStmts s.enter arm).exit s) arms
+  | s, arm :: arms =>
+      let outer := s.blocks
+      scanArms ((scanStmts s.enter arm).exit outer) arms
 end
 
 /-- The values of the trace's sponge runs. -/
-def spongeVals (trace : Array Event) : VMap Unit :=
+def spongeVals (trace : Array Event) : Std.HashSet V :=
   trace.foldl (init := {}) fun m e =>
     match e with
-    | .alloc vs .joined => vs.foldl (fun m v => m.insert v ()) m
+    | .alloc vs .joined => vs.foldl (·.insert ·) m
     | _ => m
 
 /-- The scan of a function: its parameters, then its body. -/
@@ -173,10 +178,10 @@ def cellVals (trace : Array Event) : List V :=
 
 /-- The values `markPooled` makes pooled: allocated as `Kind.cell` or in the padding run, set by
 the `const` naming them first, and otherwise only read as one cell in that `const`'s block. -/
-def poolable (f : Fn) (trace : Array Event) : VMap Unit :=
+def poolable (f : Fn) (trace : Array Event) : Std.HashSet V :=
   let s := poolScan f trace
   (cellVals trace).foldl (init := {}) fun m v =>
-    if s.home.contains v && !s.bad.contains v then m.insert v () else m
+    if s.home.contains v && !s.bad.contains v then m.insert v else m
 
 mutual
 /-- The statements in the order placement passes their `emit`s: a branch's or a `match`'s blocks
@@ -197,17 +202,17 @@ def postArms : List (List Stmt) → List Stmt
 end
 
 /-- The value a statement makes pooled: a `const` of a value in `K`. -/
-def poolSite (K : VMap Unit) : Stmt → Option V
+def poolSite (K : Std.HashSet V) : Stmt → Option V
   | .atom (.const d _) => if K.contains d then some d else none
   | _ => none
 
 /-- For each `emit` of the trace in order, the value made pooled right before it. -/
-def poolSites (K : VMap Unit) (f : Fn) : List (Option V) :=
+def poolSites (K : Std.HashSet V) (f : Fn) : List (Option V) :=
   (postOrder f.body).map (poolSite K)
 
 /-- An event other than an `emit`, the values of `K` taken out of an allocation of a kind that
 `Kind.splits`. -/
-def poolEvent (K : VMap Unit) : Event → List Event
+def poolEvent (K : Std.HashSet V) : Event → List Event
   | .alloc vs k =>
       if k.splits && vs.any fun v => K.contains v then
         let ws := vs.filter fun v => !K.contains v
@@ -217,7 +222,7 @@ def poolEvent (K : VMap Unit) : Event → List Event
 
 /-- The events of the trace from an `emit` on, each with what replaces it: `sites` the values
 made pooled before this `emit` and the ones after. -/
-def poolEvents (K : VMap Unit) : List (Option V) → List Event → List (List Event)
+def poolEvents (K : Std.HashSet V) : List (Option V) → List Event → List (List Event)
   | _, [] => []
   | sites, e :: es =>
       match e with
@@ -236,14 +241,15 @@ def markPooledParts (f : Fn) (trace : Array Event) : List (List Event) :=
 def markPooled (f : Fn) (trace : Array Event) : Array Event :=
   (markPooledParts f trace).flatten.toArray
 
-/-- The source lines of a function's statements, `(n, line)` with `n` the events of the trace
-before the statement, moved to the positions of `markPooled f trace`. -/
+/-- `markPooled f trace`, and the source lines of the function's statements, `(n, line)` with `n`
+the events of the trace before the statement, moved to its positions: the pass run once. -/
 def markPooledLines (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
-    Array (Nat × Nat) :=
-  let (pos, n) := (markPooledParts f trace).foldl (init := (#[], 0)) fun (pos, n) p =>
-    (pos.push n, n + p.length)
-  let pos := pos.push n
-  lines.map fun (k, line) => (pos.getD k k, line)
+    Array Event × Array (Nat × Nat) :=
+  let parts := markPooledParts f trace
+  (parts.flatten.toArray, partsLines parts lines)
+
+theorem markPooledLines_fst (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
+    (markPooledLines f trace lines).1 = markPooled f trace := rfl
 
 /-! ## What the pass does -/
 
@@ -260,7 +266,7 @@ theorem mem_of_mem_tail {l : List (Option V)} {o : Option V} (h : o ∈ l.tail) 
   | nil => simp at h
   | cons x xs => exact List.mem_cons_of_mem _ h
 
-theorem poolEvent_alloc {K : VMap Unit} {e : Event} {vs : List V} {k : Kind}
+theorem poolEvent_alloc {K : Std.HashSet V} {e : Event} {vs : List V} {k : Kind}
     (h : Event.alloc vs k ∈ poolEvent K e) : ∃ ws, e = .alloc ws k ∧ vs.Sublist ws := by
   cases e with
   | alloc ws k' =>
@@ -276,7 +282,7 @@ theorem poolEvent_alloc {K : VMap Unit} {e : Event} {vs : List V} {k : Kind}
         exact ⟨vs, rfl, List.Sublist.refl _⟩
   | _ => simp [poolEvent] at h
 
-theorem poolEvents_alloc (K : VMap Unit) :
+theorem poolEvents_alloc (K : Std.HashSet V) :
     ∀ (sites : List (Option V)) (es : List Event) (vs : List V) (k : Kind),
       Event.alloc vs k ∈ (poolEvents K sites es).flatten →
         (∃ ws, Event.alloc ws k ∈ es ∧ vs.Sublist ws) ∨

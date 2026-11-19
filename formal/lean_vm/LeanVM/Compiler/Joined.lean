@@ -137,7 +137,8 @@ def newStmt (b : Nat) (s : Stmt) : W Nat := modifyGet fun st =>
   let atom := match s with
     | .atom a => some a
     | _ => none
-  let names := (ownVals s).foldl (fun m v => m.insert v ((m.getD v #[]).push sid)) st.names
+  let names := (ownVals s).foldl (fun m v => m.alter v fun o => some ((o.getD #[]).push sid))
+    st.names
   let stmts := st.stmts.push { blk := b, idx, start := st.pos, atom }
   let blkStmts := st.blkStmts.modify b (·.push sid)
   (sid, { st with stmts, blkStmts, names })
@@ -404,9 +405,13 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
     if n != 1 || !convertible I m fa then none
   -- The run of atoms from `F`.
   let blk := (I.w.blkStmts[B]?).getD #[]
-  let win := ((blk.toList.drop F.idx).takeWhile fun sid =>
-    (I.w.stmts[sid]?).any (·.atom.isSome)).filterMap fun sid =>
-      (I.w.stmts[sid]?).bind fun x => x.atom.map (sid, ·)
+  let win := Id.run do
+    let mut win : Array (Nat × Atom) := #[]
+    for sid in blk[F.idx:] do
+      match (I.w.stmts[sid]?).bind (·.atom) with
+      | some a => win := win.push (sid, a)
+      | none => break
+    return win.toList
   if !win.any (·.1 == aid) then none
   let F' ← I.evs[F.emit]?
   if !(F' matches .emit) then none
@@ -418,25 +423,25 @@ def tryJoin (o : Opts) (I : Info) (P : PSt) (aid : Nat) (m : V) : Option PSt := 
   for v in S do
     let mut found : Option (Grp × Nat × Bool) := none
     for (aid', a) in win do
-      if found.isNone then
-        if let some u := eqPartner v a then
-          if !S.contains u then
-            if let some (g, off, key, loose) := predict I P u then
-              if Key.lt key (2 * F.start + 2, 0) then
-                found := some (g, off, loose)
-                us := us.push u
-              else if o.reserve then
-                -- A partner made in the flush of a later atom of the run, up to this one: its
-                -- segment moves before the mover.
-                if let some (j, t, len, off', kind) := I.segOf u then
-                  let R := I.segVals j t len
-                  let upTo := (I.w.stmts[aid']?).any (j < ·.emit)
-                  if (kind == .cell || kind == .ret) && !P.moved.contains (j, t) &&
-                      F.start ≤ j && upTo && !R.any (fun r => P.fixed.contains r) then
-                    let moved := P.moved.insert (j, t) (F.start, P.seq, kind)
-                    P := { P with moved, seq := P.seq + 1, fixed := R.foldl (·.insert ·) P.fixed }
-                    found := some (.seg j t, off', false)
-                    us := us.push u
+      if found.isSome then break
+      if let some u := eqPartner v a then
+        if !S.contains u then
+          if let some (g, off, key, loose) := predict I P u then
+            if Key.lt key (2 * F.start + 2, 0) then
+              found := some (g, off, loose)
+              us := us.push u
+            else if o.reserve then
+              -- A partner made in the flush of a later atom of the run, up to this one: its
+              -- segment moves before the mover.
+              if let some (j, t, len, off', kind) := I.segOf u then
+                let R := I.segVals j t len
+                let upTo := (I.w.stmts[aid']?).any (j < ·.emit)
+                if (kind == .cell || kind == .ret) && !P.moved.contains (j, t) &&
+                    F.start ≤ j && upTo && !R.any (fun r => P.fixed.contains r) then
+                  let moved := P.moved.insert (j, t) (F.start, P.seq, kind)
+                  P := { P with moved, seq := P.seq + 1, fixed := R.foldl (·.insert ·) P.fixed }
+                  found := some (.seg j t, off', false)
+                  us := us.push u
     match found with
     | some p => parts := parts.push p
     | none => none
@@ -500,7 +505,8 @@ def parts (I : Info) (P : PSt) : List (List Event) := Id.run do
       let n := if k == .cell then
           ((segments vs.length I.cut[i]?).find? (·.1 == s)).map (·.2) |>.getD 0
         else vs.length
-      before := before.insert e (((before[e]?).getD #[]).push (q, .alloc ((vs.drop s).take n) kind))
+      before := before.alter e fun o =>
+        some ((o.getD #[]).push (q, .alloc ((vs.drop s).take n) kind))
   let mut out : Array (List Event) := #[]
   for i in [0:I.evs.size] do
     let mv := (((before[i]?).getD #[]).qsort (fun a b => a.1 < b.1)).toList.map (·.2)
@@ -529,14 +535,15 @@ statement first naming them, their partners made first where needed. -/
 def markJoined (f : Fn) (trace : Array Event) : Array Event :=
   (markJoinedParts f trace).flatten.toArray
 
-/-- The source lines of a function's statements, `(n, line)` with `n` the events of the trace
-before the statement, moved to the positions of `markJoined f trace`. -/
+/-- `markJoined f trace`, and the source lines of the function's statements, `(n, line)` with `n`
+the events of the trace before the statement, moved to its positions: the pass run once. -/
 def markJoinedLines (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
-    Array (Nat × Nat) :=
-  let (pos, n) := (markJoinedParts f trace).foldl (init := (#[], 0)) fun (pos, n) p =>
-    (pos.push n, n + p.length)
-  let pos := pos.push n
-  lines.map fun (k, line) => (pos.getD k k, line)
+    Array Event × Array (Nat × Nat) :=
+  let parts := markJoinedParts f trace
+  (parts.flatten.toArray, partsLines parts lines)
+
+theorem markJoinedLines_fst (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
+    (markJoinedLines f trace lines).1 = markJoined f trace := rfl
 
 end
 end LeanVM.Compiler
