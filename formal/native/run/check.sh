@@ -9,7 +9,7 @@
 #                                           # given assembly files, exporting `xmss_verify`, `sphincs_verify` and
 #                                           # `leanvm_verify`; an absent or empty argument is printed by the
 #                                           # architecture's emitter
-#   CHECK_SCHEMES=vm run/check.sh           # some schemes (`xmss`, `sphincs`, `vm`; the default `xmss sphincs`)
+#   CHECK_SCHEMES=vm run/check.sh           # some schemes (`xmss`, `sphincs`, `vm`; the default all three)
 #   CHECK_VM_FIXTURES=DIR                   # the leanVM verifier fixtures to use, an earlier
 #                                           # `formal/lean_vm/scripts/export-verifier-fixtures-rust.sh DIR`; without
 #                                           # it, scheme `vm` exports them to the output directory first
@@ -63,7 +63,7 @@ esac
 runner=()
 [[ $(uname -m) == "$machine" ]] || runner=("$qemu")
 
-read -r -a schemes <<<"${CHECK_SCHEMES:-xmss sphincs}"
+read -r -a schemes <<<"${CHECK_SCHEMES:-xmss sphincs vm}"
 declare -A given=([xmss]=${paths[0]:-} [sphincs]=${paths[1]:-} [vm]=${paths[2]:-})
 
 out=${CHECK_OUT:-$(mktemp -d)}
