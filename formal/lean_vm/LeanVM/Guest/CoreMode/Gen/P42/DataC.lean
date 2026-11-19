@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.GlueG
 public import LeanVM.Guest.CoreMode.Defs
 public import LeanVM.Guest.CoreMode.Gen.«P11».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P23».Sig
@@ -2140,7 +2141,7 @@ def ret0_10 : List CoreMode.Wit :=
 
 def hcert : CoreMode.HCert where
   sig := 
-    { preR := [⟨⟨[], 0⟩, 1, (.num 430), (.num 14352)⟩],
+    { preR := [⟨⟨[], 0⟩, 1, (.num 430), (.num CoreMode.jtHi)⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 2284)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 9), (.num 14)⟩,
         ⟨⟨[(0, 1)], 0⟩, 1, (.num 68), (.num 82)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 83), (.num 86)⟩,
         ⟨⟨[(0, 1)], 0⟩, 1, (.num 180), (.num 212)⟩],

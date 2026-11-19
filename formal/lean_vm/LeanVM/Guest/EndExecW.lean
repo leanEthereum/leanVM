@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecYWitCells
+public import LeanVM.Guest.EndExecYPtr
 public import LeanVM.Guest.EndExecRS
 public import LeanVM.Guest.CoreMode.Gen.CarryOk
 public import LeanVM.Guest.B1.Bits.Log2

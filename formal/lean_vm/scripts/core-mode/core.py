@@ -365,7 +365,10 @@ def main():
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
-            rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
+            # the tables at `j` through the glue's `tie` (`GlueC`): the route names `k` by its key, `j` only as `Fn.«k».idx`
+            assert str(j) in codes and str(j) in tabs, k
+            rimps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
+            x = f'Fn.«{k}».idx'
             hb = '(by decide +kernel)'
             rch = res_chunks(k, po)
             rw = []
@@ -373,26 +376,26 @@ def main():
                 fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 for c in rch:
-                    hons.append(f'theorem res{j}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
-                hons.append(f'theorem res{j}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
+                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
+                hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
-                            f'  simp only [List.all_append, {", ".join(f"res{j}_{c}" for c in rch)}, Bool.and_self]\n')
-                rw.append(f'res{j}_ok')
+                            f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
+                rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if long_body(k):
                 fn = f'Fn.«{k}».cfun.fn'
                 parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
-                         ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {j})', 'its pointers\' cells'),
-                         ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {j})', 'its returned values\' cells'),
-                         ('sel', f'(CoreMode.selGo {j} {fn}.params [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
-                         ('rest', f'CoreMode.honRest {j} {fn}', 'the rest of its frame')]
+                         ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {x})', 'its pointers\' cells'),
+                         ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
+                         ('sel', f'(CoreMode.selGo {x} {fn}.params [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
+                         ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
-                    hons.append(f'theorem hon{j}_{nm} : {st} = true := by decide +kernel\n')
-                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest{"".join(", " + x for x in rw)}]; '
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by decide +kernel\n')
+                hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
-            decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of (by decide) Checked.code{j} '
-                         f'Checked.core{j} Checked.cert{j} Checked.plumbEq{j} Bridge.ProgAl.tab{j} rfl rfl rfl {hb}\n')
+            decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«{k}».tie '
+                         f'rfl rfl rfl {hb}\n')
             oks.append(f'cfOk{i}')
         chain = 'List.forall_mem_nil _'
         for q in reversed(oks):

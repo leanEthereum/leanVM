@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.EndExecRS
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.B1.Placement.Common
-public import LeanVM.Guest.EndExecYWitCells
+public import LeanVM.Guest.EndExecYPtr
 public import LeanVM.Guest.EndExecRA
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.B1.Tables.Basic

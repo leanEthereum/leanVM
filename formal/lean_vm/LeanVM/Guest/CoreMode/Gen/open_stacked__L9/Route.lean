@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab3
-public import LeanVM.Guest.Checked.Link3
 public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L9».Core
+public import LeanVM.Guest.CoreMode.GlueC.«P58»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -20,7 +19,7 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L9».cfun := CoreMode.cfOk_of (by decide) Checked.code348 Checked.core348 Checked.cert348 Checked.plumbEq348 Bridge.ProgAl.tab348 rfl rfl rfl (by decide +kernel)
+theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L9».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«open_stacked__L9».tie rfl rfl rfl (by decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

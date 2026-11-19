@@ -128,6 +128,18 @@ theorem cfOk_of {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P :
   refine ⟨j, hj, by rw [hf, he], by rw [hcf, hfn], ?_, hb⟩
   rw [← hX, Bridge.ctxOf, hl, hex, hen, hf, hP]
 
+/-- `cfOk_of` from the tables at `j` as one fact (the glue's `Fn.«k».tie`, so the route names a function by its
+key, its index only in the glue). -/
+theorem cfOk_of_tie {j : ℕ} {f : CompiledFunction} {cf : Fn} {C : Check.Cert} {P : B2C.Plumb} {ex : List (ℕ × ℕ)}
+    {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {Cf : CFun} (hj : j < nFns)
+    (ht : fnOf j = f ∧ coreOf j = cf ∧ certOf j = C.withPows Data.powTree ∧ B2C.plumbOf j = P ∧
+      (Bridge.extraOf j, Bridge.entsOf j, Bridge.adviceOf j) = (ex, en, d)) (he : f.entryPc = Cf.frame.entry)
+    (hfn : cf = Cf.fn)
+    (hX : Bridge.AlignCtx.ofData C.locs ex f.entryPc (j == 1) P Data.powTree Data.jtTrie en Bridge.alignHalt
+      f.instructionCount = Cf.X)
+    (hb : (honB j Cf.fn && resOk Cf && glOk Cf && faOkB j Cf) = true) : CfOk Cf :=
+  cfOk_of hj ht.1 ht.2.1 ht.2.2.1 ht.2.2.2.1 ht.2.2.2.2 he hfn hX hb
+
 end
 
 end LeanVM.Guest.CoreMode

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecRCld
-public import LeanVM.Guest.EndExecYWitCells
+public import LeanVM.Guest.EndExecYPtr
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Res.ResGiven
 
