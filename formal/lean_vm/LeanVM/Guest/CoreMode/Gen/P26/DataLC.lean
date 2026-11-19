@@ -33,7 +33,7 @@ def hcert : CoreMode.HCert where
     .sub ⟨[(14, 1)], 1⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.num 8192)⟩]
   calls := [[.ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 17, .run 0 [], .run 1 [], .run 2 []]]
   rets := [[.ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 17, .ev 9]]
-  gargs := [("__loop37", [55, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop1_keccak_layer__L1", [55, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
   []

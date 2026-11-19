@@ -85,6 +85,7 @@ public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L9».Route
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Route
 public import LeanVM.Guest.CoreMode.Gen.«verify_merkle_cap__L8».Route
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Route
+public import LeanVM.Guest.CoreMode.Gen.«verify_tables».Route
 public import LeanVM.Guest.Mode.CertAssemble
 public import LeanVM.Guest.Mode.Certs.Sig0
 public import LeanVM.Guest.Mode.Certs.Sig1
@@ -132,7 +133,7 @@ noncomputable def coreTable : List CoreMode.CFun :=
     ModePack.«open_stacked__L6».coreFns, ModePack.«open_stacked__L7».coreFns,
     ModePack.«open_stacked__L8».coreFns, ModePack.«open_stacked__L9».coreFns,
     ModePack.«sp_wots».coreFns, ModePack.«verify_merkle_cap__L8».coreFns,
-    ModePack.«verify_sig_lean_sphincs».coreFns]])
+    ModePack.«verify_sig_lean_sphincs».coreFns, ModePack.«verify_tables».coreFns]])
 
 /-- The core route's data, each the deployed guest's. -/
 theorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=
@@ -214,7 +215,8 @@ theorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=
     (Mode.fa_cons (ModePack.«sp_wots».coreFns_ok)
     (Mode.fa_cons (ModePack.«verify_merkle_cap__L8».coreFns_ok)
     (Mode.fa_cons (ModePack.«verify_sig_lean_sphincs».coreFns_ok)
-    (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    (Mode.fa_cons (ModePack.«verify_tables».coreFns_ok)
+    (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- **The frame interfaces the kernel does not check**, one per function (`FnSpec K`, for its
     frame predicate `guestQ`): a function whose walk fails or is too costly to check, or whose
@@ -1148,7 +1150,29 @@ theorem guestGroup_spec4 (_h : ModeHyps) : ∀ l ∈ guestGroups[4]!, ∀ K ∈ 
     (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))),
     h⟩))
-    (Mode.fa_cons (ModePack.«verify_tables».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
+    (Mode.fa_cons (ModePack.«verify_tables».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_,
+    List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))),
+    h⟩))
     (Mode.fa_nil)))))))))))))))
 
 theorem guestCerts_spec (h : ModeHyps) : ∀ K ∈ guestCerts, FnSpec CoreMode.hcTab coreTable K :=

@@ -53,7 +53,7 @@ theorem entry_ne_zero {Ks : List Cert} (hst : ∀ K ∈ Ks, CertSt K) : ∀ K �
   fun K hK ↦ Nat.pos_iff_ne_zero.1 (staticB_spec (hst K hK).b).2.2.1
 
 /-- **`main`'s certificate starts as the prologue leaves it.** -/
-theorem mainOk_guest {Km : Cert} (hsig : Km.F.sig = Fn.«main».modeSig) (hent : Km.F.entry = Data.f0.instructionCount) :
+theorem mainOk_guest {Km : Cert} (hsig : Km.F.sig = Fn.«main».csig) (hent : Km.F.entry = Data.f0.instructionCount) :
     MainOk Km guestE0 :=
   mainOk_of hsig hent rfl rfl rfl rfl
 

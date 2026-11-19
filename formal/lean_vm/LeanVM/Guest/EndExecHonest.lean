@@ -5,9 +5,13 @@
   prover's proof accepted, given `ExecGaps`.
 -/
 
-import LeanVM.Guest.EndExec
-import LeanVM.Guest.HonestChildren
-import LeanVM.Prover.End
+module
+
+public import LeanVM.Guest.EndExec
+public import LeanVM.Guest.HonestChildren
+public import LeanVM.Prover.End
+
+@[expose] public section
 
 /-!
 # The executor on honest children
@@ -83,3 +87,5 @@ theorem guest_prover_complete (G : ExecGaps Ks Km E0 X Pro) (statement : NodeSta
     honest_proof_rarely_refused _ _ t ρ hv hsz hρ⟩⟩
 
 end LeanVM.Guest.EndExec
+
+end

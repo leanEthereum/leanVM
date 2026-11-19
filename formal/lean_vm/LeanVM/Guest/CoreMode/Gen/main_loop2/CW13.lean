@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».Cfun
 public import LeanVM.Guest.Checked.Link0
-public import LeanVM.Guest.Pack.«P43».ModeC
 
 set_option Elab.async false
 
@@ -17,7 +16,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-theorem Fn.«main_loop2».cw13 : (CoreMode.tgtGo cfun mlL 106497 (CoreMode.slice code.chunks.flatten 106497 114219) && CoreMode.jtdGo cfun modeEnv mlL [] (CoreMode.slice code.chunks.flatten 106497 114219)) = true := by
+theorem Fn.«main_loop2».cw13 : (CoreMode.tgtGo cfun mlL 106497 (CoreMode.slice code.chunks.flatten 106497 114219) && CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten 106497 114219)) = true := by
   decide +kernel
 
 end

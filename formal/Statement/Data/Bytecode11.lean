@@ -1862,7 +1862,7 @@ def f82c0 : List OffsetInstruction := [
   .set 167 1 0,
   .jump 167 0 1]
 
-/-- `__loop5` from offset 0. -/
+/-- `__loop0_rs_eq_run` from offset 0. -/
 def f83c0 : List OffsetInstruction := [
   .mul 2 2 8,
   .mul 8 8 9,
@@ -8316,7 +8316,7 @@ def f92c0 : List OffsetInstruction := [
   .set 59 1 0,
   .jump 59 0 1]
 
-/-- `__loop6` from offset 0. -/
+/-- `__loop0_verify_bus_gkr` from offset 0. -/
 def f93c0 : List OffsetInstruction := [
   .mul 2 2 14,
   .mul 14 4 15,
@@ -8546,7 +8546,7 @@ def f93c0 : List OffsetInstruction := [
   .jump 294 297 296,
   .jump 53 0 1]
 
-/-- `__loop7` from offset 0. -/
+/-- `__loop1_verify_bus_gkr` from offset 0. -/
 def f94c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
@@ -8569,7 +8569,7 @@ def f94c0 : List OffsetInstruction := [
   .jump 12 15 14,
   .jump 16 0 1]
 
-/-- `__loop8` from offset 0. -/
+/-- `__loop0_shared_selector_tables` from offset 0. -/
 def f95c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 10 10 11,

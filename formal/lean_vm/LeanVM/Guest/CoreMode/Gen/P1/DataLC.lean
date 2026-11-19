@@ -105,7 +105,7 @@ def hcert : CoreMode.HCert where
   calls := [[.pre 1, .run 0 [0], .pre 2, .run 0 [1], .pre 3, .run 0 [2], .pre 4, .pre 5],
     [.ev 19, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 16, .ev 17, .run 0 [], .run 1 []]]
   rets := [[.ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 16, .ev 17, .ev 15, .ev 19]]
-  gargs := [("__loop9", [25, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0_verify_tables", [25, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("sumcheck_round4", 

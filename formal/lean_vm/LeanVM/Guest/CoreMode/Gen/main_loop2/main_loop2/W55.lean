@@ -18,7 +18,7 @@ open LeanVM.Guest
 public section
 
 /-- `main_loop2`: the pairing from offset 112640 to 114219. -/
-theorem pairWin55 : CoreMode.winOkH alignCtxP hcert pairO pairS Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn39 pairK55 pairK56 = true := by
+theorem pairWin55 : CoreMode.winOkH alignCtxP hcert pairO pairS Fn.«main_loop2».core.body Fn.«main_loop2».code.code Fn.«main_loop2».advice pairK55 pairK56 = true := by
   decide +kernel
 
 end

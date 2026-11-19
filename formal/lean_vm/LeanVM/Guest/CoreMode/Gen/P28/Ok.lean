@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P28»
 public import LeanVM.Guest.Pack.«P28».Core
 public import LeanVM.Guest.CoreMode.Gen.«P28».Data
 
@@ -20,14 +20,14 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«claim_list_last__L5».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«eq_prefix_run__L39».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«index_mle__L11».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«index_mle__L28».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«opening_message__L1_L1».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«rs_eq_rows__L3».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L27».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«walk_path__L12_L4».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«claim_list_last__L5».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L5».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L39».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L39».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L11».heap_ok : CoreMode.heapOk Fn.«index_mle__L11».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L28».heap_ok : CoreMode.heapOk Fn.«index_mle__L28».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«opening_message__L1_L1».heap_ok : CoreMode.heapOk Fn.«opening_message__L1_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«rs_eq_rows__L3».heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L3».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L27».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L27».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«walk_path__L12_L4».heap_ok : CoreMode.heapOk Fn.«walk_path__L12_L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

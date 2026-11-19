@@ -7,17 +7,17 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link3
 public import LeanVM.Guest.CoreMode.Gen.«P53».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P53».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
 public import LeanVM.Guest.CoreMode.GenW.open_stacked__L0.Ok
+public import LeanVM.Guest.CoreMode.GlueC.«P53»
 public import LeanVM.Guest.CoreMode.Pack.open_stacked__L0.Frame0
+public import LeanVM.Guest.CoreMode.Pows.«P53»
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«P53».Core
-public import LeanVM.Guest.Pack.«open_stacked__L0».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
@@ -27,7 +27,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-noncomputable def Fn.«open_stacked__L0».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Data.adviceFn339, Data.powTree, [], csigs, dsp, hcFlag, hcCallees, []⟩
+noncomputable def Fn.«open_stacked__L0».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«open_stacked__L0».advice, Fn.«open_stacked__L0».pows, [], csigs, dsp, hcFlag, hcCallees, []⟩
 
 end
 
@@ -35,15 +35,27 @@ public section
 
 attribute [local irreducible] Fn.«open_stacked__L0».pairO Fn.«open_stacked__L0».pairS
 
-theorem Fn.«open_stacked__L0».heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
-theorem Fn.«open_stacked__L0».core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := (by decide +kernel)
-theorem Fn.«open_stacked__L0».core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := (by decide +kernel)
+theorem Fn.«open_stacked__L0».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
+theorem Fn.«open_stacked__L0».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«open_stacked__L0».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
 theorem Fn.«open_stacked__L0».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«open_stacked__L0».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
-theorem Fn.«open_stacked__L0».core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := (by decide +kernel)
-theorem Fn.«open_stacked__L0».fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
-  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := 339) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches (Checked.code339 ▸ End.fnOf_mem (by decide)), small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code339 ▸ End.fnOf_mem (by decide))), pows := Exec.PowTree.ok_of_okW Checked.powTree_ok, fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
+theorem Fn.«open_stacked__L0».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«open_stacked__L0».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«open_stacked__L0».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«open_stacked__L0».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«open_stacked__L0».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«open_stacked__L0».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«open_stacked__L0».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
 end LeanVM.Guest
+
+namespace LeanVM.Guest.ModePack.«open_stacked__L0»
+
+@[expose] public section
+
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [LeanVM.Guest.Fn.«open_stacked__L0».cfun]
+
+end
+
+end LeanVM.Guest.ModePack.«open_stacked__L0»

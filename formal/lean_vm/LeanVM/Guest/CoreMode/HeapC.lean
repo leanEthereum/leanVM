@@ -873,14 +873,15 @@ def backC (F : List (CCell × CCell)) (R : PRun) (c : CCell) (ns : List ℕ) : B
 def prepQ (R : PRun) : CCell := ⟨R.base.bases, R.base.off - R.stride⟩
 
 /-- **A cell of a run extended by its point before it**: `c = Q·J^S` (`Q = prepQ R`, `S` the stride), the
-run from `g^0`, `J` the upper bound up to a constant below `2^62`, the upper bound with an exponent,
-and `J` too (it is the upper bound, or by a fact). -/
+run from `g^0`, and `J` the upper bound up to a constant below `2^62`, the upper bound with an exponent,
+and `J` too (it is the upper bound, or by a fact); or `J` below the upper bound's next by a fact. -/
 def prepIdx (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
   Nat.ble R.stride R.base.off && R.lo.bases.isEmpty && Nat.beq R.lo.off 0 &&
     c.beq ((prepQ R).mul ((idxOf (prepQ R) c R.stride).pow R.stride)) &&
-    basesBeq (idxOf (prepQ R) c R.stride).bases R.hi.bases && Nat.ble (idxOf (prepQ R) c R.stride).off R.hi.off &&
+    ((basesBeq (idxOf (prepQ R) c R.stride).bases R.hi.bases && Nat.ble (idxOf (prepQ R) c R.stride).off R.hi.off &&
     Nat.blt (R.hi.off - (idxOf (prepQ R) c R.stride).off) capE && hasExp F R.hi &&
-    ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))
+    ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))) ||
+      hasF F (idxOf (prepQ R) c R.stride) (R.hi.shift 1))
 
 /-- The point after a run: `base·hi^S`. -/
 def appQ (R : PRun) : CCell := R.base.mul (R.hi.pow R.stride)

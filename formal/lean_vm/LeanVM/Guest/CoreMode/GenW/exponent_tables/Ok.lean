@@ -20,12 +20,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«exponent_tables».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 4554 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 4554 st2 = true := by
+theorem last_ok : lastOkF Fn.«exponent_tables».pows sigW core hcert 4554 st2 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -37,7 +37,7 @@ namespace LeanVM.Guest.Fn.«exponent_tables»
 @[expose] public section
 
 /-- `exponent_tables`: the heap check, in 2 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«exponent_tables».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(2358, HeapWG.st1), (4554, HeapWG.st2)]) HeapWG.head_ok

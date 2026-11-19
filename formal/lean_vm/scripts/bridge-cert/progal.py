@@ -127,23 +127,42 @@ end LeanVM.Guest.Bridge
     for j in sorted(lk):
         groups.setdefault(lk[j][1], []).append(j)
     for mod, js in sorted(groups.items()):
-        imps = {'LeanVM.Guest.Bridge.ProgAlDefs', f'LeanVM.Guest.Checked.{mod}'} | {ctxs[lk[j][0]][2] for j in js}
-        body = []
+        # the tables' entries (`Tab*`, what the core route's data reads) apart from the alignment checks
+        tmod = 'Tab' + mod[len('Link'):]
+        imps = {f'LeanVM.Guest.Bridge.ProgAl.{tmod}'} | {ctxs[lk[j][0]][2] for j in js}
+        body, tbody = [], []
         for j in js:
             k, _, hp = lk[j]
             cells, ents, _ = ctxs[k]
             pe = f'Checked.plumbEq{j}'
             if not hp:
-                body.append(f'kernel_rfl plumbEq{j} : B2C.plumbOf {j} = Fn.«{k}».plumb\n')
+                tbody.append(f'kernel_rfl plumbEq{j} : B2C.plumbOf {j} = Fn.«{k}».plumb\n')
                 pe = f'plumbEq{j}'
-            body.append(f'kernel_rfl tab{j} : (Bridge.extraOf {j}, Bridge.entsOf {j}, Bridge.adviceOf {j}) = '
-                        f'({cells}, {ents}, Data.adviceFn{j})\n'
-                        f'theorem ok{j} : Bridge.FnAlOk {j} := Bridge.fnAlOk_of Checked.code{j} Checked.core{j} '
+            tbody.append(f'kernel_rfl tab{j} : (Bridge.extraOf {j}, Bridge.entsOf {j}, Bridge.adviceOf {j}) = '
+                         f'({cells}, {ents}, Data.adviceFn{j})\n')
+            body.append(f'theorem ok{j} : Bridge.FnAlOk {j} := Bridge.fnAlOk_of Checked.code{j} Checked.core{j} '
                         f'Checked.cert{j} {pe} tab{j} rfl Fn.«{k}».alignOk\n')
+        files[os.path.join(OUT, f'{tmod}.lean')] = (
+            HEAD.format(mod=f'LeanVM.Guest.Bridge.ProgAl.{tmod}',
+                        what=f"The alignment tables' entries of the functions of `Checked.{mod}`.")
+            + f'public import LeanVM.Guest.Bridge.ProgAlDefs\npublic import LeanVM.Guest.Checked.{mod}\n'
+            + '''meta import LeanVM.Guest.KernelLit
+
+namespace LeanVM.Guest.Bridge.ProgAl
+
+open LeanVM.Guest
+
+public section
+
+''' + ''.join(tbody) + '''
+end
+
+end LeanVM.Guest.Bridge.ProgAl
+''')
         files[os.path.join(OUT, f'{mod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.ProgAl.{mod}',
                         what=f"The functions of `Checked.{mod}` pass their alignment checks over `Bridge.ctxOf`.")
-            + ''.join(f'public import {m}\n' for m in sorted(imps)) + '''meta import LeanVM.Guest.KernelLit
+            + ''.join(f'public import {m}\n' for m in sorted(imps)) + '''
 
 namespace LeanVM.Guest.Bridge.ProgAl
 

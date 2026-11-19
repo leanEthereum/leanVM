@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 /-!
 # Flat loops
 
-A `mul_range` helper (`__loopN`, parameters `x, N, …`) whose body is a flat block `A` (atoms,
+A `mul_range` helper (`__loopN_f`, parameters `x, N, …`) whose body is a flat block `A` (atoms,
 calls), then `callIf (x·g + N) self [x·g, N, …]` and `ret []`: `loop_sound_flat`, from its call
 relation at `g^k`, the loop ends at some `g^m`, `m > k`, and the body's meaning holds at every
 `g^j`, `k ≤ j < m` (the calls inside interpreted by the program's relation, a call at a finite

@@ -8,9 +8,8 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.HcTab
+public import LeanVM.Guest.CoreMode.Gen.«verify_tables».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«verify_tables».ModeH
-public import LeanVM.Guest.Pack.«verify_tables».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -21,99 +20,99 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `verify_tables`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `verify_tables`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
 /-- `verify_tables`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(196351,
-    Fn.«block_selector__L9».modeSig), (194879, Fn.«plus_one_run__L21».modeSig), (200383,
-    Fn.«block_selector__L30».modeSig), (205919, Fn.«block_selector_tab__L31».modeSig), (202207,
-    Fn.«index_mle__L15».modeSig), (204943, Fn.«block_selector_tab__L16».modeSig), (196911,
-    Fn.«block_selector__L14».modeSig), (194351, Fn.«plus_one_run__L10».modeSig), (203887,
-    Fn.«index_mle__L30».modeSig), (199023, Fn.«block_selector__L25».modeSig), (204039,
-    Fn.«index_mle__L31».modeSig), (195975, Fn.«block_selector__L1».modeSig), (196135,
-    Fn.«block_selector__L6».modeSig), (195239, Fn.«plus_one_run__L26».modeSig), (201319,
-    Fn.«block_selector__L33».modeSig), (202135, Fn.«index_mle__L14».modeSig)], [(204855,
-    Fn.«block_selector_tab__L14».modeSig), (198327, Fn.«block_selector__L22».modeSig), (194231,
-    Fn.«plus_one_run__L5».modeSig), (205751, Fn.«block_selector_tab__L29».modeSig), (197367,
-    Fn.«block_selector__L17».modeSig), (195971, Fn.«block_selector__L0».modeSig), (197539,
-    Fn.«block_selector__L18».modeSig), (195491, Fn.«plus_one_run__L29».modeSig), (204899,
-    Fn.«block_selector_tab__L15».modeSig), (202851, Fn.«index_mle__L22».modeSig), (198115,
-    Fn.«block_selector__L21».modeSig), (194195, Fn.«plus_one_run__L2».modeSig), (195987,
-    Fn.«block_selector__L2».modeSig), (202963, Fn.«index_mle__L23».modeSig), (206003,
-    Fn.«block_selector_tab__L32».modeSig), (201651, Fn.«index_mle__L0».modeSig)], [(196083,
-    Fn.«block_selector__L5».modeSig), (204811, Fn.«block_selector_tab__L13».modeSig), (205835,
-    Fn.«block_selector_tab__L30».modeSig), (201739, Fn.«index_mle__L6».modeSig), (204555,
-    Fn.«block_selector_tab__L3».modeSig), (194699, Fn.«plus_one_run__L18».modeSig), (201771,
-    Fn.«index_mle__L7».modeSig), (196779, Fn.«block_selector__L13».modeSig), (199275,
-    Fn.«block_selector__L26».modeSig), (200091, Fn.«block_selector__L29».modeSig), (194459,
-    Fn.«plus_one_run__L13».modeSig), (196443, Fn.«block_selector__L10».modeSig), (199809,
-    Fn.«block_selector__L28».modeSig), (194945, Fn.«plus_one_run__L22».modeSig), (19521,
-    Fn.«opening_tail_round».modeSig), (203329, Fn.«index_mle__L26».modeSig)], [(196545,
-    Fn.«block_selector__L11».modeSig), (205329, Fn.«block_selector_tab__L23».modeSig), (194321,
-    Fn.«plus_one_run__L9».modeSig), (205201, Fn.«block_selector_tab__L21».modeSig), (205393,
-    Fn.«block_selector_tab__L24».modeSig), (205265, Fn.«block_selector_tab__L22».modeSig), (196657,
-    Fn.«block_selector__L12».modeSig), (202545, Fn.«index_mle__L19».modeSig), (199537,
-    Fn.«block_selector__L27».modeSig), (204529, Fn.«block_selector_tab__L1».modeSig), (194249,
-    Fn.«plus_one_run__L6».modeSig), (196041, Fn.«block_selector__L4».modeSig), (201673,
-    Fn.«index_mle__L3».modeSig), (201897, Fn.«index_mle__L10».modeSig), (196009,
-    Fn.«block_selector__L3».modeSig), (197913, Fn.«block_selector__L20».modeSig)], [(197721,
-    Fn.«block_selector__L19».modeSig), (195161, Fn.«plus_one_run__L25».modeSig), (203461,
-    Fn.«index_mle__L27».modeSig), (194501, Fn.«plus_one_run__L14».modeSig), (200997,
-    Fn.«block_selector__L32».modeSig), (204581, Fn.«block_selector_tab__L5».modeSig), (196197,
-    Fn.«block_selector__L7».modeSig), (198549, Fn.«block_selector__L23».modeSig), (194645,
-    Fn.«plus_one_run__L17».modeSig), (197205, Fn.«block_selector__L16».modeSig), (204629,
-    Fn.«block_selector_tab__L7».modeSig), (202453, Fn.«index_mle__L18».modeSig), (194189,
-    Fn.«plus_one_run__L1».modeSig), (196269, Fn.«block_selector__L8».modeSig), (204653,
-    Fn.«block_selector_tab__L8».modeSig), (204525, Fn.«block_selector_tab__L0».modeSig)], [(200685,
-    Fn.«block_selector__L31».modeSig), (195869, Fn.«plus_one_run__L33».modeSig), (201949,
-    Fn.«index_mle__L11».modeSig), (204605, Fn.«block_selector_tab__L6».modeSig), (197053,
-    Fn.«block_selector__L15».modeSig), (201661, Fn.«index_mle__L2».modeSig), (198781,
-    Fn.«block_selector__L24».modeSig), (195581, Fn.«plus_one_run__L30».modeSig), (194816,
-    Fn.«plus_one_run__L20».modeSig), (205456, Fn.«block_selector_tab__L25».modeSig), (206224,
-    Fn.«verify_tables_loop1».modeSig), (201808, Fn.«index_mle__L8».modeSig), (194384,
-    Fn.«plus_one_run__L11».modeSig), (205040, Fn.«block_selector_tab__L18».modeSig), (201712,
-    Fn.«index_mle__L5».modeSig), (203080, Fn.«index_mle__L24».modeSig)], [(189896,
-    Fn.«padding_weight__L2».modeSig), (204744, Fn.«block_selector_tab__L11».modeSig), (194216,
-    Fn.«plus_one_run__L4».modeSig), (189864, Fn.«padding_weight__L0».modeSig), (204568,
-    Fn.«block_selector_tab__L4».modeSig), (195320, Fn.«plus_one_run__L27».modeSig), (202744,
-    Fn.«index_mle__L21».modeSig), (204676, Fn.«block_selector_tab__L9».modeSig), (194756,
-    Fn.«plus_one_run__L19».modeSig), (205604, Fn.«block_selector_tab__L27».modeSig), (204196,
-    Fn.«index_mle__L32».modeSig), (206180, Fn.«verify_tables_loop0».modeSig), (202068,
-    Fn.«index_mle__L13».modeSig), (194420, Fn.«plus_one_run__L12».modeSig), (195404,
-    Fn.«plus_one_run__L28».modeSig), (202284, Fn.«index_mle__L16».modeSig)], [(194204,
-    Fn.«plus_one_run__L3».modeSig), (205148, Fn.«block_selector_tab__L20».modeSig), (203740,
-    Fn.«index_mle__L29».modeSig), (203202, Fn.«index_mle__L25».modeSig), (194594,
-    Fn.«plus_one_run__L16».modeSig), (202642, Fn.«index_mle__L20».modeSig), (189874,
-    Fn.«padding_weight__L1».modeSig), (194546, Fn.«plus_one_run__L15».modeSig), (190986,
-    Fn.«padding_weight__L15».modeSig), (190730, Fn.«padding_weight__L13».modeSig), (193674,
-    Fn.«padding_weight__L29».modeSig), (194186, Fn.«plus_one_run__L0».modeSig), (190026,
-    Fn.«padding_weight__L5».modeSig), (192330, Fn.«padding_weight__L23».modeSig), (190154,
-    Fn.«padding_weight__L7».modeSig), (191946, Fn.«padding_weight__L21».modeSig)], [(190506,
-    Fn.«padding_weight__L11».modeSig), (191274, Fn.«padding_weight__L17».modeSig), (193194,
-    Fn.«padding_weight__L27».modeSig), (191594, Fn.«padding_weight__L19».modeSig), (190314,
-    Fn.«padding_weight__L9».modeSig), (192746, Fn.«padding_weight__L25».modeSig), (189930,
-    Fn.«padding_weight__L3».modeSig), (204778, Fn.«block_selector_tab__L12».modeSig), (195674,
-    Fn.«plus_one_run__L31».modeSig), (205530, Fn.«block_selector_tab__L26».modeSig), (201690,
-    Fn.«index_mle__L4».modeSig), (204986, Fn.«block_selector_tab__L17».modeSig), (195770,
-    Fn.«plus_one_run__L32».modeSig), (201850, Fn.«index_mle__L9».modeSig), (206086,
-    Fn.«block_selector_tab__L33».modeSig), (190086, Fn.«padding_weight__L6».modeSig)], [(192134,
-    Fn.«padding_weight__L22».modeSig), (190854, Fn.«padding_weight__L14».modeSig), (193926,
-    Fn.«padding_weight__L30».modeSig), (204358, Fn.«index_mle__L33».modeSig), (192966,
-    Fn.«padding_weight__L26».modeSig), (195014, Fn.«plus_one_run__L23».modeSig), (191430,
-    Fn.«padding_weight__L18».modeSig), (190406, Fn.«padding_weight__L10».modeSig), (205094,
-    Fn.«block_selector_tab__L19».modeSig), (204710, Fn.«block_selector_tab__L10».modeSig), (192534,
-    Fn.«padding_weight__L24».modeSig), (189974, Fn.«padding_weight__L4».modeSig), (202006,
-    Fn.«index_mle__L12».modeSig), (191766, Fn.«padding_weight__L20».modeSig), (190230,
-    Fn.«padding_weight__L8».modeSig), (190614, Fn.«padding_weight__L12».modeSig)], [(191126,
-    Fn.«padding_weight__L16».modeSig), (193430, Fn.«padding_weight__L28».modeSig), (19350,
-    Fn.«eq_prefix_chain».modeSig), (201654, Fn.«index_mle__L1».modeSig), (194294,
-    Fn.«plus_one_run__L8».modeSig), (195086, Fn.«plus_one_run__L24».modeSig), (203598,
-    Fn.«index_mle__L28».modeSig), (19918, Fn.«shared_selector_tables».modeSig), (205678,
-    Fn.«block_selector_tab__L28».modeSig), (194270, Fn.«plus_one_run__L7».modeSig), (202366,
-    Fn.«index_mle__L17».modeSig), (204542, Fn.«block_selector_tab__L2».modeSig)]])
+    Fn.«block_selector__L9».csig), (194879, Fn.«plus_one_run__L21».csig), (200383,
+    Fn.«block_selector__L30».csig), (205919, Fn.«block_selector_tab__L31».csig), (202207,
+    Fn.«index_mle__L15».csig), (204943, Fn.«block_selector_tab__L16».csig), (196911,
+    Fn.«block_selector__L14».csig), (194351, Fn.«plus_one_run__L10».csig), (203887,
+    Fn.«index_mle__L30».csig), (199023, Fn.«block_selector__L25».csig), (204039,
+    Fn.«index_mle__L31».csig), (195975, Fn.«block_selector__L1».csig), (196135,
+    Fn.«block_selector__L6».csig), (195239, Fn.«plus_one_run__L26».csig), (201319,
+    Fn.«block_selector__L33».csig), (202135, Fn.«index_mle__L14».csig)], [(204855,
+    Fn.«block_selector_tab__L14».csig), (198327, Fn.«block_selector__L22».csig), (194231,
+    Fn.«plus_one_run__L5».csig), (205751, Fn.«block_selector_tab__L29».csig), (197367,
+    Fn.«block_selector__L17».csig), (195971, Fn.«block_selector__L0».csig), (197539,
+    Fn.«block_selector__L18».csig), (195491, Fn.«plus_one_run__L29».csig), (204899,
+    Fn.«block_selector_tab__L15».csig), (202851, Fn.«index_mle__L22».csig), (198115,
+    Fn.«block_selector__L21».csig), (194195, Fn.«plus_one_run__L2».csig), (195987,
+    Fn.«block_selector__L2».csig), (202963, Fn.«index_mle__L23».csig), (206003,
+    Fn.«block_selector_tab__L32».csig), (201651, Fn.«index_mle__L0».csig)], [(196083,
+    Fn.«block_selector__L5».csig), (204811, Fn.«block_selector_tab__L13».csig), (205835,
+    Fn.«block_selector_tab__L30».csig), (201739, Fn.«index_mle__L6».csig), (204555,
+    Fn.«block_selector_tab__L3».csig), (194699, Fn.«plus_one_run__L18».csig), (201771,
+    Fn.«index_mle__L7».csig), (196779, Fn.«block_selector__L13».csig), (199275,
+    Fn.«block_selector__L26».csig), (200091, Fn.«block_selector__L29».csig), (194459,
+    Fn.«plus_one_run__L13».csig), (196443, Fn.«block_selector__L10».csig), (199809,
+    Fn.«block_selector__L28».csig), (194945, Fn.«plus_one_run__L22».csig), (19521,
+    Fn.«opening_tail_round».csig), (203329, Fn.«index_mle__L26».csig)], [(196545,
+    Fn.«block_selector__L11».csig), (205329, Fn.«block_selector_tab__L23».csig), (194321,
+    Fn.«plus_one_run__L9».csig), (205201, Fn.«block_selector_tab__L21».csig), (205393,
+    Fn.«block_selector_tab__L24».csig), (205265, Fn.«block_selector_tab__L22».csig), (196657,
+    Fn.«block_selector__L12».csig), (202545, Fn.«index_mle__L19».csig), (199537,
+    Fn.«block_selector__L27».csig), (204529, Fn.«block_selector_tab__L1».csig), (194249,
+    Fn.«plus_one_run__L6».csig), (196041, Fn.«block_selector__L4».csig), (201673,
+    Fn.«index_mle__L3».csig), (201897, Fn.«index_mle__L10».csig), (196009,
+    Fn.«block_selector__L3».csig), (197913, Fn.«block_selector__L20».csig)], [(197721,
+    Fn.«block_selector__L19».csig), (195161, Fn.«plus_one_run__L25».csig), (203461,
+    Fn.«index_mle__L27».csig), (194501, Fn.«plus_one_run__L14».csig), (200997,
+    Fn.«block_selector__L32».csig), (204581, Fn.«block_selector_tab__L5».csig), (196197,
+    Fn.«block_selector__L7».csig), (198549, Fn.«block_selector__L23».csig), (194645,
+    Fn.«plus_one_run__L17».csig), (197205, Fn.«block_selector__L16».csig), (204629,
+    Fn.«block_selector_tab__L7».csig), (202453, Fn.«index_mle__L18».csig), (194189,
+    Fn.«plus_one_run__L1».csig), (196269, Fn.«block_selector__L8».csig), (204653,
+    Fn.«block_selector_tab__L8».csig), (204525, Fn.«block_selector_tab__L0».csig)], [(200685,
+    Fn.«block_selector__L31».csig), (195869, Fn.«plus_one_run__L33».csig), (201949,
+    Fn.«index_mle__L11».csig), (204605, Fn.«block_selector_tab__L6».csig), (197053,
+    Fn.«block_selector__L15».csig), (201661, Fn.«index_mle__L2».csig), (198781,
+    Fn.«block_selector__L24».csig), (195581, Fn.«plus_one_run__L30».csig), (194816,
+    Fn.«plus_one_run__L20».csig), (205456, Fn.«block_selector_tab__L25».csig), (206224,
+    Fn.«verify_tables_loop1».csig), (201808, Fn.«index_mle__L8».csig), (194384,
+    Fn.«plus_one_run__L11».csig), (205040, Fn.«block_selector_tab__L18».csig), (201712,
+    Fn.«index_mle__L5».csig), (203080, Fn.«index_mle__L24».csig)], [(189896,
+    Fn.«padding_weight__L2».csig), (204744, Fn.«block_selector_tab__L11».csig), (194216,
+    Fn.«plus_one_run__L4».csig), (189864, Fn.«padding_weight__L0».csig), (204568,
+    Fn.«block_selector_tab__L4».csig), (195320, Fn.«plus_one_run__L27».csig), (202744,
+    Fn.«index_mle__L21».csig), (204676, Fn.«block_selector_tab__L9».csig), (194756,
+    Fn.«plus_one_run__L19».csig), (205604, Fn.«block_selector_tab__L27».csig), (204196,
+    Fn.«index_mle__L32».csig), (206180, Fn.«verify_tables_loop0».csig), (202068,
+    Fn.«index_mle__L13».csig), (194420, Fn.«plus_one_run__L12».csig), (195404,
+    Fn.«plus_one_run__L28».csig), (202284, Fn.«index_mle__L16».csig)], [(194204,
+    Fn.«plus_one_run__L3».csig), (205148, Fn.«block_selector_tab__L20».csig), (203740,
+    Fn.«index_mle__L29».csig), (203202, Fn.«index_mle__L25».csig), (194594,
+    Fn.«plus_one_run__L16».csig), (202642, Fn.«index_mle__L20».csig), (189874,
+    Fn.«padding_weight__L1».csig), (194546, Fn.«plus_one_run__L15».csig), (190986,
+    Fn.«padding_weight__L15».csig), (190730, Fn.«padding_weight__L13».csig), (193674,
+    Fn.«padding_weight__L29».csig), (194186, Fn.«plus_one_run__L0».csig), (190026,
+    Fn.«padding_weight__L5».csig), (192330, Fn.«padding_weight__L23».csig), (190154,
+    Fn.«padding_weight__L7».csig), (191946, Fn.«padding_weight__L21».csig)], [(190506,
+    Fn.«padding_weight__L11».csig), (191274, Fn.«padding_weight__L17».csig), (193194,
+    Fn.«padding_weight__L27».csig), (191594, Fn.«padding_weight__L19».csig), (190314,
+    Fn.«padding_weight__L9».csig), (192746, Fn.«padding_weight__L25».csig), (189930,
+    Fn.«padding_weight__L3».csig), (204778, Fn.«block_selector_tab__L12».csig), (195674,
+    Fn.«plus_one_run__L31».csig), (205530, Fn.«block_selector_tab__L26».csig), (201690,
+    Fn.«index_mle__L4».csig), (204986, Fn.«block_selector_tab__L17».csig), (195770,
+    Fn.«plus_one_run__L32».csig), (201850, Fn.«index_mle__L9».csig), (206086,
+    Fn.«block_selector_tab__L33».csig), (190086, Fn.«padding_weight__L6».csig)], [(192134,
+    Fn.«padding_weight__L22».csig), (190854, Fn.«padding_weight__L14».csig), (193926,
+    Fn.«padding_weight__L30».csig), (204358, Fn.«index_mle__L33».csig), (192966,
+    Fn.«padding_weight__L26».csig), (195014, Fn.«plus_one_run__L23».csig), (191430,
+    Fn.«padding_weight__L18».csig), (190406, Fn.«padding_weight__L10».csig), (205094,
+    Fn.«block_selector_tab__L19».csig), (204710, Fn.«block_selector_tab__L10».csig), (192534,
+    Fn.«padding_weight__L24».csig), (189974, Fn.«padding_weight__L4».csig), (202006,
+    Fn.«index_mle__L12».csig), (191766, Fn.«padding_weight__L20».csig), (190230,
+    Fn.«padding_weight__L8».csig), (190614, Fn.«padding_weight__L12».csig)], [(191126,
+    Fn.«padding_weight__L16».csig), (193430, Fn.«padding_weight__L28».csig), (19350,
+    Fn.«eq_prefix_chain».csig), (201654, Fn.«index_mle__L1».csig), (194294,
+    Fn.«plus_one_run__L8».csig), (195086, Fn.«plus_one_run__L24».csig), (203598,
+    Fn.«index_mle__L28».csig), (19918, Fn.«shared_selector_tables».csig), (205678,
+    Fn.«block_selector_tab__L28».csig), (194270, Fn.«plus_one_run__L7».csig), (202366,
+    Fn.«index_mle__L17».csig), (204542, Fn.«block_selector_tab__L2».csig)]])
 
 end LeanVM.Guest.Fn.«verify_tables»
 
@@ -126,10 +125,6 @@ open LeanVM.Guest
 /-- The pack's certificates. -/
 noncomputable def certs : List Mode.Cert :=
   [Fn.«verify_tables».modeCert]
-
-/-- The core data of the pack's functions on the core route. -/
-noncomputable def coreFns : List CoreMode.CFun :=
-  []
 
 end
 
@@ -144,10 +139,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
 
 /-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
     -/
-theorem certs_spec {T : List CoreMode.CFun} (_hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_tables».modeOk,
-    Fn.«verify_tables».modeHintsOk⟩)
+  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«verify_tables».fnSpecC)
     (Mode.fa_nil)
 
 end

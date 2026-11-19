@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P16»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P16».Bundle
-public import LeanVM.Guest.Pack.«P16».ModeSig
 
 set_option Elab.async false
 
@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `da_padding`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨63159, 11, Fn.«da_padding».modeSig, (.node none .nil (.node (some [(.inverse 5 6)]) .nil .nil)),
+  ⟨63159, 11, Fn.«da_padding».csig, (.node none .nil (.node (some [(.inverse 5 6)]) .nil .nil)),
     .nil, .nil, false, .nil⟩
 
 /-- `da_padding`: its mode walk accepts its code. -/

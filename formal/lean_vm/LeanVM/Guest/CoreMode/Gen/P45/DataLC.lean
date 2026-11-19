@@ -63,7 +63,7 @@ def hcert : CoreMode.HCert where
         .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [], .run 9 []]]
   rets := [[.ev 39, .ev 40, .ev 41, .ev 42, .ev 43, .ev 44, .ev 45, .ev 10, .ev 14, .ev 18, .ev 22, .ev 26, .ev 30,
         .ev 34, .ev 38]]
-  gargs := [("__loop36", [257, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0_keccak_layer__L1", [257, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
   []

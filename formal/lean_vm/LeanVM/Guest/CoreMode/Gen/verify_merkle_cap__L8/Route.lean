@@ -7,10 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Link11
+public import LeanVM.Guest.Bridge.ProgAl.Tab11
 public import LeanVM.Guest.Checked.Link11
+public import LeanVM.Guest.CoreMode.Gen.«verify_merkle_cap__L8».Core
 public import LeanVM.Guest.CoreMode.Route
-public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».ModeCert
 
 set_option Elab.async false
 
@@ -24,7 +24,7 @@ theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0 (Mode.fa_nil)
+  List.forall_mem_cons.2 ⟨cfOk0, List.forall_mem_nil _⟩
 
 end
 

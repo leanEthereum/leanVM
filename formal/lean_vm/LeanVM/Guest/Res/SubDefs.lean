@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecRS
-public import LeanVM.Guest.Res.AnyData
+public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.Res.MonoDefs
 public import LeanVM.Guest.Res.ResGiven
 public import LeanVM.Guest.Res.FamDefs

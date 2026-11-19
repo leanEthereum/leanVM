@@ -28,11 +28,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop6`, window 0, part 0. -/
+/-- `__loop0_verify_bus_gkr`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (429, Fn.«verify_bus_gkr_loop0_loop0».sig), (430, Fn.«gkr_rounds__L2».sig), (431, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop6`: every part of every window. -/
+/-- `__loop0_verify_bus_gkr`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (429, Fn.«verify_bus_gkr_loop0_loop0».sig), (430, Fn.«gkr_rounds__L2».sig), (431, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel

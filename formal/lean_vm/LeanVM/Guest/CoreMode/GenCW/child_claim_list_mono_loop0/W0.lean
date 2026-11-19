@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«child_claim_list_mono_loop0».S0
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 
 set_option Elab.async false
@@ -20,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 0 to 578. -/
-theorem win0 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 0).take (579 - 0)) st0 st1 = true := by
+theorem win0 : winOk Fn.«child_claim_list_mono_loop0».pows sigW core hcert (((Memory.loopBody core).drop 0).take (579 - 0)) st0 st1 = true := by
   simp only [winOk, withCx_cx hcx]
   decide +kernel
 

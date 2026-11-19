@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.GenWL.«main_loop2».S0
 public import LeanVM.Guest.CoreMode.HeapCWinM
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option maxRecDepth 100000
@@ -51,7 +51,7 @@ def sum16_0 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
     ⟨false, [], [], [], []⟩]
 
 /-- Arms 0 to 100. -/
-theorem arms16_0 : armsOkW Data.powTree sigW core hcert ((Memory.loopBody core).drop 172) 0 (101 - 0) st16 (cntOf st16) sum16_0 (4, 4, 0, 0) = true := by
+theorem arms16_0 : armsOkW Fn.«main_loop2».pows sigW core hcert ((Memory.loopBody core).drop 172) 0 (101 - 0) st16 (cntOf st16) sum16_0 (4, 4, 0, 0) = true := by
   simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 

@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P61»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P61».Bundle
-public import LeanVM.Guest.Pack.«P61».ModeSig
 
 set_option Elab.async false
 
@@ -21,34 +21,34 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop21`: the program its walk shares. -/
+/-- `__loop1_child_claim_list_mono`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node (some Fn.«child_claim_list_mono_loop1».modeSig) .nil .nil))) .nil))))) .nil))
+    none .nil (.node (some Fn.«child_claim_list_mono_loop1».csig) .nil .nil))) .nil))))) .nil))
     .nil) .nil) .nil)) .nil) .nil)) .nil), 524287⟩
 
-/-- `__loop21`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop1_child_claim_list_mono`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨245009, 307, Fn.«child_claim_list_mono_loop1».modeSig, (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_gap" 176 1)]) .nil .nil) .nil)) (.node none (.node (some [(.witnessStack
-    "child_claim_gap" 128 1)]) .nil .nil) .nil)) (.node none (.node (some [(.witnessStack
-    "child_claim_gap" 104 1)]) .nil (.node none (.node none (.node (some [(.frameAddress 386)])
-    .nil .nil) .nil) .nil)) (.node none .nil (.node (some [(.witnessStack "child_claim_gap" 152
-    1)]) .nil .nil)))) (.node none (.node (some [(.witnessStack "child_claim_gap" 92 1)]) (.node
-    none .nil (.node (some [(.witnessStack "child_claim_gap" 140 1)]) .nil .nil)) .nil) (.node none
-    (.node none (.node none (.node (some [(.witnessStack "child_claim_gap" 164 1)]) .nil .nil)
-    .nil) .nil) (.node (some [(.witnessStack "child_claim_gap" 116 1)]) .nil .nil)))) (.node none
-    (.node (some [(.witnessStack "child_claim_gap" 86 1)]) (.node none (.node none (.node none
-    (.node (some [(.witnessStack "child_claim_gap" 158 1)]) .nil .nil) .nil) .nil) (.node (some
-    [(.witnessStack "child_claim_gap" 110 1)]) .nil .nil)) (.node none (.node none .nil (.node none
-    (.node (some [(.witnessStack "child_claim_gap" 182 1)]) .nil .nil) .nil)) (.node none (.node
-    (some [(.witnessStack "child_claim_gap" 134 1)]) .nil .nil) .nil))) (.node none (.node none
-    (.node none (.node (some [(.witnessStack "child_claim_gap" 122 1)]) .nil .nil) .nil) (.node
-    none (.node none (.node (some [(.witnessStack "child_claim_gap" 170 1)]) .nil .nil) .nil)
-    .nil)) (.node (some [(.witnessStack "child_claim_gap" 98 1)]) (.node none .nil (.node (some
+  ⟨245009, 307, Fn.«child_claim_list_mono_loop1».csig, (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_gap"
+    176 1)]) .nil .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_gap" 128 1)])
+    .nil .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_gap" 104 1)]) .nil
+    (.node none (.node none (.node (some [(.frameAddress 386)]) .nil .nil) .nil) .nil)) (.node none
+    .nil (.node (some [(.witnessStack "child_claim_gap" 152 1)]) .nil .nil)))) (.node none (.node
+    (some [(.witnessStack "child_claim_gap" 92 1)]) (.node none .nil (.node (some [(.witnessStack
+    "child_claim_gap" 140 1)]) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 164 1)]) .nil .nil) .nil) .nil) (.node (some [(.witnessStack
+    "child_claim_gap" 116 1)]) .nil .nil)))) (.node none (.node (some [(.witnessStack
+    "child_claim_gap" 86 1)]) (.node none (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_gap" 158 1)]) .nil .nil) .nil) .nil) (.node (some [(.witnessStack
+    "child_claim_gap" 110 1)]) .nil .nil)) (.node none (.node none .nil (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 182 1)]) .nil .nil) .nil)) (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 134 1)]) .nil .nil) .nil))) (.node none (.node none (.node
+    none (.node (some [(.witnessStack "child_claim_gap" 122 1)]) .nil .nil) .nil) (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_gap" 170 1)]) .nil .nil) .nil) .nil))
+    (.node (some [(.witnessStack "child_claim_gap" 98 1)]) (.node none .nil (.node (some
     [(.witnessStack "child_claim_gap" 146 1)]) .nil .nil)) .nil)))) .nil), (.node none (.node none
     (.node none (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 85), 1), ((.fr 86), 4)]⟩, (.num 0),
     (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp
@@ -143,7 +143,7 @@ noncomputable def modeFun : Mode.Fun :=
     1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩,
     (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil)))))) .nil), .nil, false, .nil⟩
 
-/-- `__loop21`: its mode walk accepts its code. -/
+/-- `__loop1_child_claim_list_mono`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 

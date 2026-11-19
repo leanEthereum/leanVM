@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -25,7 +26,7 @@ end
 
 public section
 
-theorem Fn.«verify_sig_lean_sphincs».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn21 = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 
 end
 

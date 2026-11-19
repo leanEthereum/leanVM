@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCWinF
 public import LeanVM.Guest.CoreMode.Gen.«P53».DataC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P53»
 public import LeanVM.Guest.Pack.«P53».Core
 
 set_option maxRecDepth 100000
@@ -297,10 +297,10 @@ theorem hcxEQ : keysT hcert.eqs .nil = cxEQ := by
   decide +kernel
 
 /-- The context, its tries stated. -/
-noncomputable def cxL : CX := ⟨Data.powTree, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig,
-    core.params, [], cxEQ, hcert.fas, hcert.ders⟩
+noncomputable def cxL : CX := ⟨Fn.«open_stacked__L0».pows, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW,
+    hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩
 
-theorem hcx : cxOf Data.powTree sigW core hcert = cxL :=
+theorem hcx : cxOf Fn.«open_stacked__L0».pows sigW core hcert = cxL :=
   cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ
 
 end

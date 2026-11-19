@@ -2606,7 +2606,7 @@ noncomputable def c8 : List Core.Stmt := (
   .atom (.mul (.n 2497) (.n 597) (.n 2496)) ::
   [])
 
-/-- `verify_tables`: statements 2544 to 3112 of the body. -/
+/-- `verify_tables`: statements 2544 to 3111 of the body. -/
 noncomputable def c9 : List Core.Stmt := (
   .atom (.add (.n 2498) (.n 2493) (.n 2497)) ::
   .atom (.add (.n 2499) (.n 1501) (.n 1510)) ::
@@ -2732,11 +2732,11 @@ noncomputable def c9 : List Core.Stmt := (
   .atom (.const (.n 2636) (word 1 0)) ::
   .atom (.add (.n 2637) (.n 2636) (.n 2545)) ::
   .atom (.const (.n 2638) (word 1 0)) ::
-  .callIf (.n 2637) "__loop9" [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631] ::
+  .callIf (.n 2637) "__loop0_verify_tables" [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631] ::
   .atom (.const (.n 2639) (word 1 0)) ::
   .atom (.add (.n 2640) (.n 2639) (.n 2545)) ::
   .atom (.const (.n 2641) (word 1 0)) ::
-  .callIf (.n 2640) "__loop10" [.n 2641, .n 2545, .n 16, .n 2635, .n 2545] ::
+  .callIf (.n 2640) "__loop1_verify_tables" [.n 2641, .n 2545, .n 16, .n 2635, .n 2545] ::
   .atom (.mul (.n 2642) (.n 2545) (.n 2545)) ::
   .atom (.mul (.n 2643) (.n 2642) (.n 2545)) ::
   .atom (.mul (.n 2644) (.n 2643) (.n 2643)) ::
@@ -3176,11 +3176,11 @@ noncomputable def c9 : List Core.Stmt := (
   .atom (.load (.n 3149) (.n 13) 4) ::
   .atom (.mul (.n 3150) (.n 3149) (.n 3053)) ::
   .atom (.add (.n 3151) (.n 3148) (.n 3150)) ::
-  .atom (.add (.n 3152) (.n 14) (.n 3151)) ::
   [])
 
-/-- `verify_tables`: statements 3113 to 3680 of the body. -/
+/-- `verify_tables`: statements 3112 to 3679 of the body. -/
 noncomputable def c10 : List Core.Stmt := (
+  .atom (.add (.n 3152) (.n 14) (.n 3151)) ::
   .atom (.mul (.n 3153) (.n 905) (.n 3152)) ::
   .atom (.add (.n 3154) (.n 3137) (.n 3153)) ::
   .atom (.load (.n 3155) (.n 13) 0) ::
@@ -3748,11 +3748,11 @@ noncomputable def c10 : List Core.Stmt := (
   .atom (.copy (.n 3825) (.n 3824)) ::
   .atom (.mul (.n 3826) (.n 3807) (.n 3757)) ::
   .atom (.mul (.n 3827) (.n 3807) (.n 3720)) ::
-  .atom (.add (.n 3828) (.n 3826) (.n 3827)) ::
   [])
 
-/-- `verify_tables`: statements 3681 to 4211 of the body. -/
+/-- `verify_tables`: statements 3680 to 4210 of the body. -/
 noncomputable def c11 : List Core.Stmt := (
+  .atom (.add (.n 3828) (.n 3826) (.n 3827)) ::
   .atom (.add (.n 3829) (.n 3828) (.n 3720)) ::
   .atom (.copy (.n 3830) (.n 3829)) ::
   .atom (.const (.n 3831) (word 4 0)) ::
@@ -4283,11 +4283,11 @@ noncomputable def c11 : List Core.Stmt := (
   .atom (.load (.n 4584) (.n 2652) 138) ::
   .atom (.copy (.n 4585) (.n 4584)) ::
   .atom (.const (.n 4586) (word 0 1)) ::
-  .atom (.copy (.n 4587) (.n 4584)) ::
   [])
 
-/-- `verify_tables`: statements 4212 to 4803 of the body. -/
+/-- `verify_tables`: statements 4211 to 4803 of the body. -/
 noncomputable def c12 : List Core.Stmt := (
+  .atom (.copy (.n 4587) (.n 4584)) ::
   .atom (.load (.n 4588) (.n 2652) 139) ::
   .atom (.copy (.n 4589) (.n 4588)) ::
   .atom (.const (.n 4590) (word 0 1)) ::

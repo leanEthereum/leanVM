@@ -398,7 +398,7 @@ end LeanVM.Guest.Data
 /-! ## Stable names
 
 A proof names a core function by its name, not by its index, which an added function shifts; a
-loop helper (`__loop{n}`, numbered over the whole program by the compiler) by its caller and its
+loop helper (`__loop{k}_f`, the `k`-th loop the compiler lowers in `f`) by its caller and its
 place among the caller's loops: `{caller}_loop{k}`, the `k`-th loop the caller's body names. -/
 
 /-- The functions a block names, in order. -/

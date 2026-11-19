@@ -1,6 +1,6 @@
 """Writes `Guest/Mode/ResData.lean`: the mode walk's residuals by family (`Guest/Mode/ResFam.lean`),
 read off the walk's checks `gen.py` wrote (`Pack/*/Mode{k}.lean`, `ModeD{k}.lean`, and the core route's nonzero
-residuals, `ModeC.lean`), each family's
+residuals, its functions' `funC` in `CoreMode/Pack/*/Frame*.lean`), each family's
 functions with the kernel's check that their residuals have its shape. Run after `gen.py`.
 `--check` writes nothing and fails when the file differs; `--list` prints each function's residuals.
 Usage: python3 -I scripts/mode-cert/res.py [--check] [--list]"""
@@ -98,12 +98,27 @@ def defsOf(blk):
     return out
 
 
+def core_funs(root, parse, toks):
+    """The core route's functions' `Mode.Fun` (`funC`, in their frame walks' modules `CoreMode/Pack/*/Frame*.lean`):
+    `{name: (module, literal parsed)}`."""
+    import re
+    out = {}
+    pat = re.compile(r'^noncomputable def (?:Fn\.«([^»]+)»\.)?funC\s*:\s*Mode\.Fun\s*:=[ ]?(.*(?:\n    .*)*)$', re.M)
+    for path in sorted(glob.glob(os.path.join(root, 'CoreMode', 'Pack', '*', 'Frame*.lean'))):
+        t = open(path).read()
+        mod = 'LeanVM.Guest.CoreMode.Pack.«%s».%s' % (path.split(os.sep)[-2], os.path.basename(path)[:-5])
+        for m in pat.finditer(t):
+            n = m.group(1) or re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', t[:m.start()], re.M)[-1]
+            out[n] = (mod, parse(toks(m.group(2)))[0])
+    return out
+
+
 def load():
     """Each checked function's residuals {offset: [res]} and the module defining its `modeFun`."""
     fns = {}
     for path in sorted(glob.glob(os.path.join(PACKS, '*', 'Mode*.lean'))):
         b = os.path.basename(path)[:-5]
-        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeC', b): continue
+        if not re.fullmatch(r'Mode\d+|ModeD\d+', b): continue
         p = path.split(os.sep)[-2]
         t = open(path).read()
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
@@ -112,7 +127,9 @@ def load():
             defs = defsOf(blk)
             fun = defs['modeFun'][1]
             rs = {i: [res(r, defs) for r in flat(l, defs)] for i, l in trie(fun[4], defs).items()}
-            fns[n] = dict(mod='LeanVM.Guest.Pack.«%s».%s' % (p, b), res=rs)
+            fns[n] = dict(mod='LeanVM.Guest.Pack.«%s».%s' % (p, b), res=rs, fun='modeFun')
+    for n, (mod, fun) in core_funs(data.ROOT, parse, toks).items():
+        fns[n] = dict(mod=mod, res={i: [res(r, {}) for r in flat(l, {})] for i, l in trie(fun[1][4], {}).items()}, fun='funC')
     return fns
 
 
@@ -169,7 +186,12 @@ def fnq(n): return 'Fn.«%s»' % n
 
 
 def entry(n, *extra):
-    return '(%s)' % ', '.join(['%s.modeFun' % fnq(n), '%s.code.chunks.flatten' % fnq(n)] + [str(e) for e in extra])
+    return '(%s)' % ', '.join(['%s.%s' % (fnq(n), FUN.get(n, 'modeFun')), '%s.code.chunks.flatten' % fnq(n)] +
+                              [str(e) for e in extra])
+
+
+# each function's `Mode.Fun`'s name (`load`)
+FUN = {}
 
 
 def listDef(name, typ, doc, rows):
@@ -184,6 +206,7 @@ def thm(name, doc, lst, prop):
 
 
 def render(F, D):
+    FUN.update({n: f['fun'] for n, f in F.items()})
     code = {f['ns']: f['code'] for f in D['fns'].values()}
     withRes = sorted(n for n, f in F.items() if any(f['res'].values()))
     nz = [n for n in withRes if any(r[0] == 'nz' for rs in F[n]['res'].values() for r in rs)]

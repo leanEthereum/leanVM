@@ -19,12 +19,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«decode_query_windows__L14_L2».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 171 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 171 st1 = true := by
+theorem last_ok : lastOkF Fn.«decode_query_windows__L14_L2».pows sigW core hcert 171 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -36,7 +36,7 @@ namespace LeanVM.Guest.Fn.«decode_query_windows__L14_L2»
 @[expose] public section
 
 /-- `decode_query_windows__L14_L2`: the heap check, in 1 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«decode_query_windows__L14_L2».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(171, HeapWG.st1)]) HeapWG.head_ok

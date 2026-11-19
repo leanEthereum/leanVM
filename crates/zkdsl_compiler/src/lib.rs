@@ -95,7 +95,6 @@ fn lower_all(ast: &Ast) -> (Vec<Lowered>, JumpTables) {
         .collect();
 
     let mut loop_bounds = HashMap::new();
-    let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
     let mut tables = JumpTables::default();
     let mut i = 0;
@@ -112,7 +111,6 @@ fn lower_all(ast: &Ast) -> (Vec<Lowered>, JumpTables) {
         lowered.push(lower_func(
             &f,
             &mut queue,
-            &mut loop_ctr,
             &defs,
             &const_arrays,
             &mut loop_bounds,

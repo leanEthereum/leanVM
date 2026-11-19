@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P32»
 public import LeanVM.Guest.Pack.«P32».Core
 public import LeanVM.Guest.CoreMode.Gen.«P32».Data
 
@@ -20,11 +20,11 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L31».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«claim_list_last__L10».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«keccak_plain_rounds__L4_L1».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«selector_tables».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L16».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L31».heap_ok : CoreMode.heapOk Fn.«block_selector__L31».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«claim_list_last__L10».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L10».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«keccak_plain_rounds__L4_L1».heap_ok : CoreMode.heapOk Fn.«keccak_plain_rounds__L4_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«selector_tables».heap_ok : CoreMode.heapOk Fn.«selector_tables».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L16».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L16».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P18».Data
 public import LeanVM.Guest.CoreMode.Gen.«P18».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P18».DataL
 public import LeanVM.Guest.CoreMode.Gen.«P18».DataLC
+public import LeanVM.Guest.CoreMode.GlueA.«P18»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -70,28 +71,28 @@ end
 
 public section
 
-theorem Fn.«block_selector_tab__L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn235 = true := by decide +kernel
-theorem Fn.«block_selector_tab__L24».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn257 = true := by decide +kernel
-theorem Fn.«child_claim_list_last__L13».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn384 = true := by decide +kernel
-theorem Fn.«child_claim_list_mono_last__L8».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn398 = true := by decide +kernel
-theorem Fn.«claim_list_last__L16».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn368 = true := by decide +kernel
-theorem Fn.«level_positions__L6_L22_L4».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn810 = true := by decide +kernel
-theorem Fn.«level_positions__L7_L22_L4_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1187 = true := by decide +kernel
-theorem Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn779 = true := by decide +kernel
-theorem Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn479 = true := by decide +kernel
-theorem Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn566 = true := by decide +kernel
-theorem Fn.«level_residual__L109_L24_L6_L3_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1426 = true := by decide +kernel
-theorem Fn.«level_residual__L218_L19_L6_L3_loop1».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1196 = true := by decide +kernel
-theorem Fn.«level_residual__L23_L7_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn543 = true := by decide +kernel
-theorem Fn.«level_residual__L25_L10_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn667 = true := by decide +kernel
-theorem Fn.«level_residual__L37_L16_L4_L2_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1251 = true := by decide +kernel
-theorem Fn.«level_residual__L44_L13_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn623 = true := by decide +kernel
-theorem Fn.«level_residual__L55_L19_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn877 = true := by decide +kernel
-theorem Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1484 = true := by decide +kernel
-theorem Fn.«padding_weight__L18».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn118 = true := by decide +kernel
-theorem Fn.«rs_eq_run_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn83 = true := by decide +kernel
-theorem Fn.«sel_partial_nibble__L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn96 = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L10».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn462 = true := by decide +kernel
+theorem Fn.«block_selector_tab__L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«block_selector_tab__L24».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«child_claim_list_last__L13».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«child_claim_list_mono_last__L8».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«claim_list_last__L16».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_positions__L6_L22_L4».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_positions__L7_L22_L4_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L109_L24_L6_L3_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L218_L19_L6_L3_loop1».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L23_L7_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L25_L10_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L37_L16_L4_L2_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L44_L13_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«level_residual__L55_L19_L4_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«padding_weight__L18».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«rs_eq_run_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«sel_partial_nibble__L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L10».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 
 end
 

@@ -56,12 +56,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the tail's shape, the entry state. -/
-theorem head_ok : headOk Data.powTree sigW core hcert (.val 1) 327 st0 = true := by
+theorem head_ok : headOk Fn.«main_loop2».pows sigW core hcert (.val 1) 327 st0 = true := by
   simp only [headOk, withCx_cx hcx]
   decide +kernel
 
 /-- The tail call and the guarantees at `ret []`. -/
-theorem tail_ok : tailOkW Data.powTree sigW core hcert (.val 1) st39 = true := by
+theorem tail_ok : tailOkW Fn.«main_loop2».pows sigW core hcert (.val 1) st39 = true := by
   simp only [tailOkW, withCx_cx hcx]
   decide +kernel
 
@@ -73,7 +73,7 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 @[expose] public section
 
 /-- `main_loop2`: the heap check, in 39 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«main_loop2».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_wins (l := [(79, HeapWL.st1), (80, HeapWL.st2), (81, HeapWL.st3), (82, HeapWL.st4), (83, HeapWL.st5), (84, HeapWL.st6), (85, HeapWL.st7), (86, HeapWL.st8), (87, HeapWL.st9), (88, HeapWL.st10), (89, HeapWL.st11), (90, HeapWL.st12), (91, HeapWL.st13), (92, HeapWL.st14), (93, HeapWL.st15), (172, HeapWL.st16), (173, HeapWL.st17), (176, HeapWL.st18), (177, HeapWL.st19), (222, HeapWL.st20), (223, HeapWL.st21), (224, HeapWL.st22), (225, HeapWL.st23), (226, HeapWL.st24), (227, HeapWL.st25), (228, HeapWL.st26), (229, HeapWL.st27), (230, HeapWL.st28), (231, HeapWL.st29), (232, HeapWL.st30), (233, HeapWL.st31), (234, HeapWL.st32), (235, HeapWL.st33), (236, HeapWL.st34), (315, HeapWL.st35), (316, HeapWL.st36), (319, HeapWL.st37), (320, HeapWL.st38), (327, HeapWL.st39)]) HeapWL.head_ok

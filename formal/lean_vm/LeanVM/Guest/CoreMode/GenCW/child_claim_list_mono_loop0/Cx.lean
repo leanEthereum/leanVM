@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCWin
 public import LeanVM.Guest.CoreMode.GenC.«P42».Data
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 
 set_option maxRecDepth 100000
@@ -25,7 +25,7 @@ open LeanVM.Guest.Exec (Trie)
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop20" => Fn.«child_claim_list_mono_loop0».hcert.sig | _ => .empty)
+    | "__loop0_child_claim_list_mono" => Fn.«child_claim_list_mono_loop0».hcert.sig | _ => .empty)
 noncomputable def cxRd0 := dropO reads0 32
 noncomputable def cxRd1 := dropO reads0 64
 noncomputable def cxRd2 := dropO reads0 96
@@ -456,10 +456,10 @@ theorem hcxEQ : keysT hcert.eqs .nil = cxEQ := by
   decide +kernel
 
 /-- The context, its tries stated. -/
-noncomputable def cxL : CX := ⟨Data.powTree, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig,
-    core.params, [], cxEQ, hcert.fas, hcert.ders⟩
+noncomputable def cxL : CX := ⟨Fn.«child_claim_list_mono_loop0».pows, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV,
+    hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩
 
-theorem hcx : cxOf Data.powTree sigW core hcert = cxL :=
+theorem hcx : cxOf Fn.«child_claim_list_mono_loop0».pows sigW core hcert = cxL :=
   cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ
 
 end

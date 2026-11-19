@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P51»
 public import LeanVM.Guest.Pack.«P51».Core
 public import LeanVM.Guest.CoreMode.Gen.«P51».Data
 
@@ -20,9 +20,9 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L30».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«claim_list_last__L11».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L17».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L30».heap_ok : CoreMode.heapOk Fn.«block_selector__L30».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«claim_list_last__L11».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L11».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L17».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L17».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

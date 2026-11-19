@@ -8,16 +8,16 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P12»
+public import LeanVM.Guest.CoreMode.Sig.«P16»
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P43»
+public import LeanVM.Guest.CoreMode.Sig.«P54»
+public import LeanVM.Guest.CoreMode.Sig.«P59»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P12».ModeSig
-public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P24».ModeSig
-public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P43».ModeSig
 public import LeanVM.Guest.Pack.«P54».Bundle
-public import LeanVM.Guest.Pack.«P54».ModeSig
-public import LeanVM.Guest.Pack.«P59».ModeSig
 
 set_option Elab.async false
 
@@ -32,26 +32,26 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_padding».modeSig) .nil .nil)))) .nil))) .nil)) (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_levels__L32_L5».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil)
-    .nil) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    Fn.«da_padding».csig) .nil .nil)))) .nil))) .nil)) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_levels__L32_L5».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil)
+    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_vector».modeSig) .nil .nil))))) .nil) .nil) .nil))))) (.node none
+    none .nil (.node (some Fn.«da_vector».csig) .nil .nil))))) .nil) .nil) .nil))))) (.node none
     (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_pad».csig)
+    .nil .nil)))) .nil))) .nil)) .nil)) .nil))) .nil) (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_pad».modeSig) .nil .nil)))) .nil))) .nil)) .nil)) .nil))) .nil) (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_weights».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil)) (.node none .nil
+    Fn.«da_weights».csig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil)) (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil))
+    (.node (some Fn.«da_verify_loop0».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil))
     .nil)))) .nil)), 524287⟩
 
 /-- `da_verify`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61545, 63, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
+  ⟨61545, 63, Fn.«da_verify».csig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
     (.node none (.node (some [(.witnessStack "da_challenge" 11 1)]) .nil .nil) .nil) (.node none
     (.node none (.node (some [(.alloc 19 649)]) .nil .nil) .nil) (.node none (.node none (.node
     (some [(.alloc 26 9)]) .nil .nil) .nil) .nil))) (.node (some [(.alloc 22 128), (.alloc 8 13)])

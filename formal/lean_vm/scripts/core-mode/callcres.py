@@ -12,6 +12,9 @@ sys.modules.setdefault('infer', I)
 
 CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
+# `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
+# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
+VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},)}
 
 
 def top_atoms(body):
@@ -76,9 +79,14 @@ def exp_diff(atoms, x):
 # `(k, c)` (`busPairs`, `tabPairs`: `CLAIM_KAPPA_SRC` with `CLAIM_KAPPA_ADJ`, a subset suffices here)
 EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
     [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
-    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)]
+    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)] + \
+    [('verify_tables', 10, j + 1, 31) for j in range(6)]
 DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
              ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
+
+
+# `verify_tables`' value `g_zc_n` (`EndExec.VtQ`)
+VT_ZC = 2545
 
 
 def _consts(atoms):
@@ -163,22 +171,35 @@ def addr_bound(k, x):
     return M + 1 if M is not None else None
 
 
-def expq_bound(k, x):
-    """`CoreMode.expQB`: `expq1`, or a top-level product `x = a·w` of such a value `a` and a constant `g^c`: bound
-    plus `c`."""
+def expq0(k, x):
+    """`CoreMode.expQ0`: `expq1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`' `g_zc_n` (`vtZc`)."""
     b = expq1(k, x)
     if b is not None:
         return b
     # `check_opening_terminal`'s `gmv = g^sl`, `sl <= 30` (`CoreMode.termGm`)
     if k == 'check_opening_terminal' and len(I.CORE[k][0]) > 19 and x == I.CORE[k][0][19]:
         return 31
+    # `verify_tables`' `g_zc_n = g^n`, `n < 34` (`CoreMode.vtZc`)
+    if k == 'verify_tables' and x == VT_ZC:
+        return 34
+    return None
+
+
+def expq_bound(k, x):
+    """`CoreMode.expQB`: `expq0`, or the first top-level atom defining `x` of a product `x = a·w` of such a value `a`
+    and a constant `g^c` (bound plus `c`) or a copy of such a value."""
+    b = expq0(k, x)
+    if b is not None:
+        return b
     atoms = top_atoms(I.CORE[k][1])
     cs = _consts(atoms)
     for a in atoms:
         if a[0] == 'mul' and a[1] == x:
-            b1, c = expq1(k, a[2]), cs.get(a[3])
+            b1, c = expq0(k, a[2]), cs.get(a[3])
             e = I.POWS.get(c[0]) if c is not None and c[1] == 0 else None
             return b1 + e if b1 is not None and e is not None else None
+        if a[0] == 'copy' and a[1] == x:
+            return expq0(k, a[2])
     return None
 
 
@@ -379,7 +400,7 @@ def res_fam(k, r, G):
         return sub_rc(r[1], r[2])
     if r[0] == 'sub':
         kap = cs_kappa(k)
-        return kap is not None and r == cs_sub(kap)
+        return (kap is not None and r == cs_sub(kap)) or r == vt_st_sub(k, r[1])
     return False
 
 
@@ -477,8 +498,9 @@ def split_fam(k, r):
 
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    return all(((res_fam(k, r, S[k]) or split_fam(k, r)) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
+    import vtexp
+    return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r)) and all(v < I.GB for v in vals(r))) or
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -502,6 +524,39 @@ def sel_facts(EM):
     return base, fact
 
 
+# `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
+VT_ST, VT_STREAM = 2652, 20
+
+
+def vt_st_sub(k, c):
+    """`CoreMode.vtStC`: `verify_tables`' read `c` words past its table sumcheck's last cursor, `c < 153`, one of its
+    stream's `[20]·[0, 8192)`."""
+    if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
+        return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
+def vt_facts(EM):
+    """The solver's exponent facts also from `verify_tables`' exponent family (`vtexp`, `CoreMode.vtExp`): `e(a) <
+    e(b)` stated under the site's path when the family proves it there."""
+    import vtexp
+    base = EM.Solver.fact
+    EM.RES_FILTER[0] = lambda k, r: k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or \
+        vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)
+
+    def fact(self, st, a, b):
+        f = base(self, st, a, b)
+        if f is not None or self.k != 'verify_tables':
+            return f
+        g = tuple(dict.fromkeys(self.X.path))
+        r = ('lt', self.idx(st, a), self.idx(st, b))
+        wr = ('under', g, r) if g else r
+        if not vtexp.vt_exp(self.k, wr):
+            return None
+        return [self.use(('vtexp', a, b, g), wr)]
+    return base, fact
+
+
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
     its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
@@ -513,7 +568,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c))
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
@@ -549,6 +604,7 @@ def extend(out, why, S, verbose=False):
     base, EM.Solver.pt = cs_reads(EM)
     basef, EM.Solver.fact = sel_facts(EM)
     _, EM.Solver.fact = expq_facts(EM)
+    _, EM.Solver.fact = vt_facts(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
@@ -560,7 +616,7 @@ def extend(out, why, S, verbose=False):
             # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
             # conditional entry (`callIfR`)
             for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}):
+                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ()):
                 I.F.clear()
                 I.F.update(feats)
                 try:

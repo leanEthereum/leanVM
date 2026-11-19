@@ -39,6 +39,9 @@ def residuals():
             defs = R.defsOf(blk)
             fns[n] = {i: [R.res(r, defs) for r in R.flat(l, defs)]
                       for i, l in R.trie(defs['modeFun'][1][4], defs).items()}
+    # the core route's (`funC`)
+    for n, (_, fun) in R.core_funs(data.ROOT, R.parse, R.toks).items():
+        fns[n] = {i: [R.res(r, {}) for r in R.flat(l, {})] for i, l in R.trie(fun[1][4], {}).items()}
     return fns
 
 

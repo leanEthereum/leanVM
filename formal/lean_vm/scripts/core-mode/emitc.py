@@ -9,7 +9,7 @@ taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost word
 values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
 
 Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
-`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
+`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC pows sigOf core hcert =
 true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
 (the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
 carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
@@ -222,6 +222,10 @@ def conds_of(paths):
 
 # ---- the solver: each witness found in the check's scope
 
+# `callcres`: the residuals its families take (`None`: any)
+RES_FILTER = [None]
+
+
 class Solver:
     def __init__(self, k, P, H, sigs):
         self.k, self.P, self.H = k, P, H
@@ -297,6 +301,8 @@ class Solver:
                 by_a[p[0]].append((p[1], None))
                 by_b[p[1]].append((p[0], None))
             for i, r, wr in self.on(self.pool_lt, st):
+                if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                    continue
                 a, b = C.idxF(st.env, r[1]), C.idxF(st.env, r[2])
                 by_a[a].append((b, (i, wr)))
                 by_b[b].append((a, (i, wr)))
@@ -397,6 +403,8 @@ class Solver:
             if m in p:
                 return []
         for i, r, wr in self.on(self.pool_lt, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                continue
             if C.idxF(st.env, r[1]) == m or C.idxF(st.env, r[2]) == m:
                 return [self.use(i, wr)]
         # none: the inference's `merge` takes the root's exponent for granted; stated as a residual of its own
@@ -437,6 +445,9 @@ class Solver:
                 if K >= k:
                     # the largest bound the source gives, so one residual serves every cell below it
                     return self.derive(st, ((), K), hi, None)
+                if 'lastres' in I.F and hi[0]:
+                    # none: the bound stated under the site's path, for a family to prove
+                    return self.derive(st, ((), k), hi, None)
         k = C.backK(R, c)
         if 0 < k and C.cshift(c, S * k) == C.cmul(base, C.cpow(hi, S)) and not lo[0] and lo[1] < C.CAPE:
             f = self.factC(st, k - 1 + lo[1], hi)
@@ -555,6 +566,9 @@ class Solver:
                         return ('pfr', r, f)
         # residuals placing the cell in a run in scope (`sub`, `subR`), among cells (`subP`)
         for i, res, wr in self.on(self.pool_sub, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                # a residual no family takes: not used
+                continue
             if res[0] == 'subP' and res[1] == c:
                 ns = [st.c2s.get(x, (None,))[-1] for x in res[2]]
                 if None not in ns:
@@ -662,6 +676,8 @@ class Solver:
         is one of them, stated under the site's path), its witness `perm`."""
         cands = list(self.X.facts(st.env, []))
         for i, r, wr in self.on(self.pool_lt, st):
+            if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
+                continue
             cands.append((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])))
         for a, b in cands:
             if b[0] or not a[0] or not 0 < b[1] <= 64:
@@ -685,6 +701,21 @@ class Solver:
             r = ('subP', c, tuple(cells))
             self.stats['pts-idx'] += 1
             return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
+        if 'lastres' in I.F and len(c[0]) == 2 and all(e == 1 for _, e in c[0]):
+            # `c = [B]·[J]·g^o`, the points `[B]·g^(o + t)` written, `t < n`, and a fact `e(J) < n` (the solver's)
+            B, J = c[0][0][0], c[0][1][0]
+            Q = (((B, 1),), c[1])
+            n = 0
+            while n < 64 and st.c2s.get(C.cshift(Q, n)):
+                n += 1
+            f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+            if f is not None:
+                cells = [C.cshift(Q, t) for t in range(n)]
+                ns = [st.c2s[x][-1] for x in cells]
+                g = tuple(dict.fromkeys(self.X.path))
+                r = ('subP', c, tuple(cells))
+                self.stats['pts-idx'] += 1
+                return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
         return None
 
     def prep(self, st, c, depth=0):
@@ -696,8 +727,18 @@ class Solver:
                 continue
             Q = C.prepQ(R)
             J = C.idxOf(Q, c, S)
-            if c != C.cmul(Q, C.cpow(J, S)) or J[0] != hi[0] or J[1] > hi[1]:
+            if c != C.cmul(Q, C.cpow(J, S)):
                 continue
+            if J[0] != hi[0] or J[1] > hi[1]:
+                # an index of other bases: below the bound's next by a fact (`prepIdx`'s second form)
+                if lo != ((), 0) or 'lastres' not in I.F:
+                    continue
+                f = self.fact(st, J, C.cshift(hi, 1))
+                q = self.pt(st, Q, depth=depth + 1) if f is not None else None
+                if q is None:
+                    continue
+                self.stats['prepF'] += 1
+                return ('prep', r, q, sorted(set(f)))
             q = self.pt(st, Q, depth=depth + 1)
             if q is None:
                 continue
@@ -1192,8 +1233,9 @@ class Solver:
         arms_j = [None] * len(fs)
         armj = []
         ok = True
+        lastj = None
         for j, g in enumerate(fs):
-            f = self.factU(st, mx, j)
+            f = self.factU(st, mx, j) if lastj is None else None
             if f is None:
                 f = self.factU_eq(st, mx, j)
             if f is not None:
@@ -1202,10 +1244,27 @@ class Solver:
                 armj.append(j)
                 self.stats['skip'] += 1
                 continue
+            if lastj is not None:
+                # past the first arm whose preconditions fail: skipped by the bound stated there
+                arms.append(('skip', lastj))
+                arms_j[j] = arms[-1]
+                armj.append(j)
+                self.stats['skip'] += 1
+                continue
             self.ghosts(g, args, st)
             ga = C.gargsOf(self.H.gargs, g, args)
             sj = C.condSt(mx, j, st.cd, st)
+            nm = len(self.miss)
             w = pas.under(('arm', x, j), lambda: self.reqs(sj, ma + ga, self.X.sigOf(g), ('dispatch', g, j)))
+            if w is None and 'lastres' in I.F and j > 0:
+                # none: the selector's bound below `j` stated (for a family to prove), this arm and the rest skipped
+                del self.miss[nm:]
+                lastj = self.derive(st, mx, ((), j), None)
+                arms.append(('skip', lastj))
+                arms_j[j] = arms[-1]
+                armj.append(j)
+                self.stats['skip'] += 1
+                continue
             if w is None:
                 ok = False
                 continue
@@ -1752,6 +1811,16 @@ def sig_text(arms):
     return '(fun g ↦ match g with\n    ' + wrap(arms + ['| _ => .empty)'], '    ', 118).replace(',\n', '\n').replace(', |', ' |')
 
 
+def routed():
+    """The functions on the core route: each pack's `coreFns` (`CoreMode/Gen/*/Core.lean`, as `core.py` writes them)."""
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'Core.lean')):
+        m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
+        if m:
+            out |= set(re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)))
+    return out
+
+
 def pack_of():
     out = {}
     for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
@@ -1921,20 +1990,25 @@ def emit(out, res, check_only, only=None):
         if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
             closed.add(k)
     po = pack_of()
+    # Lean only for the functions off the core route (`routed`), the kernel's checks they wait on, and their callees'
+    # certificates (signatures the checks read); the routed ones' checks are the route's own (`callc.py`, `Gen/`)
+    cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
+    off = set(certs) - routed()
+    lean = off | {c for k in off for c in cal(k)}
+    wins = [k for k in wins if k in off]
     packs = collections.defaultdict(list)
-    for k in sorted(certs):
+    for k in sorted(lean):
         packs[po[k][0]].append(k)
     stale, mods, lines = [], [], 0
     for pack, ks in sorted(packs.items()):
         d = os.path.join(out, pack)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in passing and k not in wins and k not in nokernel]
-        cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
+        oks = [k for k in ks if k in off and k in passing and k not in wins and k not in nokernel]
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of {len(oks)} functions.')
-        ok += 'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.Data.Pows\n'
+        ok += f'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
@@ -1949,7 +2023,7 @@ def emit(out, res, check_only, only=None):
             sig = sig_text(arms)
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
+                   f'theorem heap_okC : CoreMode.heapOkC Fn.«{k}».pows\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files = [('Data', data)] + ([('Ok', ok)] if oks else [])
         for name, text in files:

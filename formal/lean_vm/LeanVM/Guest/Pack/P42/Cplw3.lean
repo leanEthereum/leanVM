@@ -27,7 +27,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop20`, window 3, part 0. -/
+/-- `__loop0_child_claim_list_mono`, window 3, part 0. -/
 theorem cw3_0 : cplWinD (Glob.ofSigs ([(388, Fn.«child_claim_list_mono_loop0».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_mono_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
   decide +kernel
 

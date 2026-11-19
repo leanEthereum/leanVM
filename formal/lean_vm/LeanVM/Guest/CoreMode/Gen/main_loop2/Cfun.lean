@@ -9,9 +9,10 @@ module
 
 public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ctx
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».DataLC
+public import LeanVM.Guest.CoreMode.GlueC.«main_loop2»
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.CoreMode.RouteWin
-public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«main_loop2».Core
 public import Statement.Data.AdviceHints
 
@@ -21,7 +22,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-noncomputable def Fn.«main_loop2».cfun : CoreMode.CFun := ⟨frameFun, alignCtxP, hcert, core, Data.adviceFn39, Data.powTree, [], csigs, [], false, [], []⟩
+noncomputable def Fn.«main_loop2».cfun : CoreMode.CFun := ⟨frameFun, alignCtxP, hcert, core, Fn.«main_loop2».advice, Fn.«main_loop2».pows, [], csigs, [], false, [], []⟩
 
 /-- Its `match`es' selectors and lengths. -/
 def Fn.«main_loop2».mlL : List (ℕ × ℕ) :=

@@ -22,16 +22,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop344`, once. -/
+/-- `__loop0_level_positions__L3_L22_L4`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L3_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop344`, window 0. -/
+/-- `__loop0_level_positions__L3_L22_L4`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L3_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop344`: its static sharing check and every window's. -/
+/-- `__loop0_level_positions__L3_L22_L4`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L3_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -82,17 +82,17 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop469`, once. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, once. -/
 theorem st : shareStaticD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop469`, window 0. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, window 0. -/
 theorem sw0 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop469`, window 1. -/
+/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, window 1. -/
 theorem sw1 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 

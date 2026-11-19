@@ -16,7 +16,7 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop2`, window 39: one `match`, by 8 groups of arms. -/
+/-- `__loop2_main`, window 39: one `match`, by 8 groups of arms. -/
 theorem w39_39 : WinOk 39 39 :=
   winOk_of_split [(1, 33, [(0, 32), (32, 992)]), (33, 65, [(0, 32), (1024, 992)]), (65, 97, [(0, 32), (2016, 992)]), (97, 129, [(0, 32), (3008, 992)]), (129, 161, [(0, 32), (4000, 992)]), (161, 193, [(0, 32), (4992, 992)]), (193, 225, [(0, 32), (5984, 992)]), (225, 256, [(0, 32), (6976, 961)])]
     (1, 33, [(0, 32), (32, 992)]) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by

@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.EndExecPro
 public import LeanVM.Guest.EndExecRefOk
-public import LeanVM.Guest.Pack.P8.ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«P8»
 
 /-!
 # `ExecGaps` from its parts
@@ -29,12 +29,12 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- `main`'s signature: entered at its header alone. -/
-theorem mainSig_ok : Fn.«main».modeSig.entry = [0, 1] ∧ Fn.«main».modeSig.self = none ∧
-    Fn.«main».modeSig.pre = [] ∧ Fn.«main».modeSig.preR = [] ∧ Fn.«main».modeSig.preP = [] :=
+theorem mainSig_ok : Fn.«main».csig.entry = [0, 1] ∧ Fn.«main».csig.self = none ∧
+    Fn.«main».csig.pre = [] ∧ Fn.«main».csig.preR = [] ∧ Fn.«main».csig.preP = [] :=
   ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- **`MainOk` from `main`'s signature**, entry and the guest's table. -/
-theorem mainOk_of {Km : Mode.Cert} {E0 : Mode.Env} (hsig : Km.F.sig = Fn.«main».modeSig)
+theorem mainOk_of {Km : Mode.Cert} {E0 : Mode.Env} (hsig : Km.F.sig = Fn.«main».csig)
     (hent : Km.F.entry = Data.f0.instructionCount) (hpows : E0.pows = Data.powTree) (hjt : E0.jt = Data.jtTrie)
     (hlo : E0.jtLo = 430) (hhi : E0.jtHi = 430 + Data.f0.instructionCount) : MainOk Km E0 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := mainSig_ok

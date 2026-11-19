@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P36»
 public import LeanVM.Guest.Pack.«P36».Core
 public import LeanVM.Guest.CoreMode.Gen.«P36».Data
 
@@ -20,9 +20,9 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L22».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«block_selector__L4».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«eq_prefix_run__L26».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L22».heap_ok : CoreMode.heapOk Fn.«block_selector__L22».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L4».heap_ok : CoreMode.heapOk Fn.«block_selector__L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L26».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L26».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

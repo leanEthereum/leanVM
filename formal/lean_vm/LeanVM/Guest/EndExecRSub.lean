@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRCq
+public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.Res.SubDefs
 public import LeanVM.Guest.EndExecRStB
 public import LeanVM.Guest.EndExecRBlk
@@ -18,7 +18,7 @@ public import LeanVM.Guest.EndExecRCld
 public import LeanVM.Guest.EndExecRVtSt
 public import LeanVM.Guest.EndExecRVs
 public import LeanVM.Guest.EndExecRGkr
-public import LeanVM.Guest.EndExecRVtP
+public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.EndExecRVtG
 

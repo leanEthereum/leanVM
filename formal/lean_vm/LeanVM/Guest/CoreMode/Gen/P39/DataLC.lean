@@ -348,7 +348,7 @@ def hcert : CoreMode.HCert where
         .ev 704, .ev 705, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 []]]
   rets := [[.ev 693, .ev 694, .ev 695, .ev 696, .ev 697, .ev 698, .ev 699, .ev 700, .ev 701, .ev 702, .ev 703,
         .ev 704, .ev 705]]
-  gargs := [("__loop18", [3349, 1, 2, 3, 4, 5, 6], [⟨[(1048576, 1)], 0⟩])]
+  gargs := [("__loop0_child_claim_list_any", [3349, 1, 2, 3, 4, 5, 6], [⟨[(1048576, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
   []

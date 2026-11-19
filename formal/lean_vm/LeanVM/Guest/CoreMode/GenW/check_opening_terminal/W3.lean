@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«check_opening_terminal».S0
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P17»
 public import LeanVM.Guest.Pack.«P17».Core
 
 set_option Elab.async false
@@ -20,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 136 to 163. -/
-theorem win3 : winOkF Data.powTree sigW core hcert ((core.body.drop 136).take (164 - 136)) st3 st4 = true := by
+theorem win3 : winOkF Fn.«check_opening_terminal».pows sigW core hcert ((core.body.drop 136).take (164 - 136)) st3 st4 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

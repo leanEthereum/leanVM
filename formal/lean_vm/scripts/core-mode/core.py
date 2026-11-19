@@ -57,8 +57,11 @@ def pair_mod(g, n):
 
 
 # a body of more statements (nested ones included) than `SPLIT` has its longest passes over the body checked apart
+# (`verify_tables`' and `verify_sig_lean_sphincs`': a module's memory is its heaviest declaration's)
 # (`shapeOk_of`, `honB_of`): the kernel's memory goes by declaration, not by module
-SPLIT = 10000
+SPLIT = 5000
+# a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
+RES_SPLIT = 8
 
 
 def nstmts(body):
@@ -77,8 +80,25 @@ def long_body(k):
     return nstmts(heap.CORE[k][1]) > SPLIT
 
 
+def res_chunks(k, po):
+    """The residual lists of `k`'s heap certificate (`hcert.res`'s `res0 ++ res1 ++ ...` in its pack's `DataC`), or
+    none."""
+    f = os.path.join(GEN, po[k][0], 'DataC.lean')
+    if not os.path.exists(f):
+        return []
+    s = open(f, encoding='utf-8').read()
+    i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
+    if i < 0:
+        return []
+    j = s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)
+    m = re.search(r'\n  res := \(([^)]*)\)\n', s[i:j if j > 0 else len(s)])
+    if not m:
+        return []
+    return [x.strip() for x in m.group(1).split('++')]
+
+
 DK = '(by decide +kernel)'
-K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
+K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
 def thm(k, name, stmt, prf=DK):
@@ -97,27 +117,61 @@ def shape(k):
                 'CoreMode.shapeOk_of core_body core_tgt core_rest'))
 
 
-def common(j):
-    """The fields every route's check shares: the advice's hints, the code fetched, its operands, the powers."""
-    return (f'hints := Mode.hintsEq_of_fn (j := {j}) {DK} {DK} {DK} rfl, '
-            f'fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide)), '
-            f'small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide))), '
-            f'pows := Exec.PowTree.ok_of_okW Checked.powTree_ok, fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok')
+def common(k):
+    """The fields every route's check shares: the advice's hints, the code fetched, its operands, the powers (by key: its
+    index in the program only in the glue, `GlueA`, `GlueC`)."""
+    return (f'hints := Mode.hintsEq_of_fn (j := Fn.«{k}».idx) {DK} {DK} {DK} rfl, '
+            f'fetch := Exec.guest_fetches Fn.«{k}».code_mem, '
+            f'small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«{k}».code_mem), '
+            f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok')
 
 
-def checks(k, j, frame, heap):
+_SIGS = {}
+
+
+def sig_split(k):
+    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`), its promised
+    runs one by one; the number of runs, else None."""
+    if not long_body(k):
+        return None
+    if 'S' not in _SIGS:
+        _SIGS['S'] = route.sigs()
+    G = _SIGS['S'].get(k)
+    return None if G is None else len(G['postR'])
+
+
+def sig_check(k, split):
+    """`core_sig`: one kernel evaluation, or a long body's parts (`sig_split`, a body with calls)."""
+    a = 'funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)'
+    n = sig_split(k) if split else None
+    if n is None:
+        return thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true')
+    out = (thm(k, 'core_hc', 'cfun.hc = false') +
+           thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
+           thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
+           thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true'))
+    for i in range(n):
+        out += thm(k, f'core_sigR{i}', f'CoreMode.chunkAll (CoreMode.postRP {a}) funC.sig.postR {i} = true')
+    tail = ('fun i hi ↦ absurd hi (Nat.not_lt_zero _)' if n == 0 else
+            'fun i hi ↦ by\n    interval_cases i\n    exacts [%s]' % ', '.join(f'core_sigR{i}' for i in range(n)))
+    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true', f'\n  CoreMode.all_of_chunks {n} {DK} {tail}') +
+            thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true',
+                'CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG'))
+    return out
+
+
+def checks(k, j, frame, heap, split=False):
     """The kernel's checks of function `k` on the core route (`CoreMode.CoreOk`), each heavy one its own declaration
     (its own heartbeats), hence its frame interface."""
-    return (thm(k, 'core_sig', 'CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) '
-                '(Mode.jtRng modeEnv) = true') +
-            thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true') + shape(k) +
+    return (sig_check(k, split) +
+            thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun funC.sig) = true') + shape(k) +
             thm(k, 'core_calls', 'code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true') +
-            thm(k, 'core_jtd', 'CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true') +
+            thm(k, 'core_jtd', 'CoreMode.jtdOk cfun envC code.chunks.flatten = true') +
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                 f'Mode.fnSpecC_of\n  {{ heap := {heap}, pair := pair_ok, frame := {frame}, sig := core_sig, retv := core_retv, '
                 f'shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := {DK}, '
-                f'fhalt := {DK}, xhalt := {DK}, fentry := rfl, '
-                f'flen := {DK}, xentry := {DK}, dhints := rfl, {common(j)}, faret := {DK}, nzrc := {DK} }}'))
+                f'fhalt := {DK}, xhalt := {DK}, fentry := rfl, flen := {DK}, xentry := {DK}, dhints := rfl, {common(k)}, '
+                f'faret := {DK}, nzrc := {DK} }}'))
 
 
 def dsp_arg(k):
@@ -126,15 +180,15 @@ def dsp_arg(k):
 
 
 def cfun_def(k, j, rest):
-    return f'noncomputable def Fn.«{k}».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, {rest}⟩\n'
+    return f'noncomputable def Fn.«{k}».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«{k}».advice, Fn.«{k}».pows, {rest}⟩\n'
 
 
 def cfun_c(k, j, frame):
     """A body with calls: its core data, its heap check (`heapOkC` at its callees' heap signatures `csigs`, in windows
     past `heapwin.BUDGET`, `heap_proof`), the kernel's checks."""
     return (cfun_def(k, j, f'[], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true', heap_proof(k)) +
-            checks(k, j, frame, f'.c heap_okC rfl {DK} rfl rfl rfl'))
+            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true', heap_proof(k)) +
+            checks(k, j, frame, f'.c heap_okC rfl {DK} rfl rfl', True))
 
 
 def heap_win(k):
@@ -156,22 +210,22 @@ def heap_proof(k):
     return 'heap_okW' if heap_win(k) else DK
 
 
-def loop_tail(j, frame):
+def loop_tail(k, frame):
     return (f'pair := pair_ok, frame := {frame}, sig := loop_sig, shape := loop_shape, sigE := rfl, fsig := rfl, fentry := rfl, '
-            f'flen := {DK}, xentry := {DK}, xlen := {DK}, dhints := rfl, {common(j)}, hc := rfl, hcs := rfl')
+            f'flen := {DK}, xentry := {DK}, xlen := {DK}, dhints := rfl, {common(k)}, hc := rfl, hcs := rfl')
 
 
 def cfun_l(k, j, frame):
     """A leaf loop helper: its core data, the kernel's checks (`CoreMode.LoopOk`: `heapOkC`'s loop rules, its
     signature, code and shape)."""
     return (cfun_def(k, j, '[], [], [], false, [], []'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true') +
-            thm(k, 'loop_sig', 'CoreMode.sigOkL modeFun.sig hcert.sig core.params.length = true') +
+            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true') +
+            thm(k, 'loop_sig', 'CoreMode.sigOkL funC.sig hcert.sig core.params.length = true') +
             thm(k, 'loop_code', 'CoreMode.loopCode alignCtx code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOk cfun = true') +
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                 f'CoreMode.fnSpecC_of_loop\n  {{ heap := heap_okC, ders := rfl, gw := rfl, nofa := {DK}, cs := rfl, '
-                f'body := {DK}, code := loop_code, {loop_tail(j, frame)} }}'))
+                f'body := {DK}, code := loop_code, {loop_tail(k, frame)} }}'))
 
 
 def cfun_lc(k, j, frame):
@@ -179,15 +233,15 @@ def cfun_lc(k, j, frame):
     callees' heap signatures `csigs`, its signature, code and shape)."""
     if k in LONG:
         # its core data apart (`Gen/<pack>/Cfun.lean`), its passes in windows
-        return ('', thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true',
+        return ('', thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
                         'heap_okW' if heap_winL(k) else DK) +
-                thm(k, 'loop_sig', 'CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
+                thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                     'cfun.gl = true') +
                 thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') + LONG[k][3] + loop_long(k, j))
     return (cfun_def(k, j, f'[], csigs, [], false, [], {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true',
+            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
                 'heap_okW' if heap_winL(k) else DK) +
-            thm(k, 'loop_sig', 'CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
+            thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                 'cfun.gl = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOkC cfun = true') +
@@ -195,7 +249,7 @@ def cfun_lc(k, j, frame):
                  f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, tgt := {DK}, jtd := {DK}, calls := {DK}, top := {DK}, '
                  f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
                  f'gtail := {DK}, '
-                 f'{loop_tail(j, frame)} }}')))
+                 f'{loop_tail(k, frame)} }}')))
 
 
 # a long loop helper's passes over its body and code in windows (`CoreMode/LoopWin.lean`, `RouteWin.lean`): nested
@@ -284,10 +338,11 @@ def long_loop(k, j, hp, frame_mod, gl):
     files['Cfun'] = (hdr('Cfun', f'The core data of `{k}`, apart (its passes are checked in windows).') +
                      ''.join(f'public import {m}\n' for m in sorted({
                          'LeanVM.Guest.CoreMode.RouteWin', quote(frame_mod), f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx',
-                         f'{base}.DataLC', 'LeanVM.Guest.Pack.«%s».%s' % heap.pack_of()[k], 'LeanVM.Guest.Data.Pows',
+                         f'{base}.DataLC', 'LeanVM.Guest.Pack.«%s».%s' % heap.pack_of()[k], f'LeanVM.Guest.CoreMode.GlueC.«{hp}»',
+                         f'LeanVM.Guest.CoreMode.Pows.«{hp}»',
                          'Statement.Data.AdviceHints'})) +
                      ns(f'noncomputable def Fn.«{k}».cfun : CoreMode.CFun := ⟨frameFun, alignCtxP, hcert, core, '
-                        f'Data.adviceFn{j}, Data.powTree, [], csigs, [], false, [], {gl}⟩\n\n'
+                        f'Fn.«{k}».advice, Fn.«{k}».pows, [], csigs, [], false, [], {gl}⟩\n\n'
                         f'/-- Its `match`es\' selectors and lengths. -/\ndef Fn.«{k}».mlL : List (ℕ × ℕ) :=\n  {mlt}\n'))
     imp = f'public import {base}.Cfun\n'
     cimps, rimps = [f'{base}.Cfun'], [f'{base}.Cfun']
@@ -321,9 +376,9 @@ def long_loop(k, j, hp, frame_mod, gl):
     for i in range(len(cb) - 1):
         a, b = cb[i], cb[i + 1]
         files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') + imp +
-                           f'public import {quote(codes_mod(j))}\npublic import LeanVM.Guest.Pack.«{PACK_OF[k]}».ModeC\n' +
+                           f'public import {quote(codes_mod(j))}\n' +
                            ns(f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
-                              f'CoreMode.jtdGo cfun modeEnv mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
+                              f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
                               f'  decide +kernel\n'))
         cimps.append(f'{base}.CW{i}')
         cws.append(f'Fn.«{k}».cw{i}')
@@ -352,15 +407,15 @@ def loop_long(k, j):
     parts = [('gtail', 'CoreMode.tailG cfun = true'),
              ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
              ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
-             ('xentry', 'cfun.X.entry = modeFun.entry')]
+             ('xentry', 'cfun.X.entry = funC.entry')]
     out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
-    out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (modeFun.entry + i) = '
-               f'Mode.hintsAt cfun.frame.hints (modeFun.entry + i)',
-               f'Mode.hintsEq_of_fn (K := {K}) (j := {j}) (d := Data.adviceFn{j}) {DK} {DK} {DK} rfl')
-    out += thm(k, 'loop_fetch', f'Exec.Fetches guestProgram modeFun.entry {code}',
-               f'Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))')
+    out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (funC.entry + i) = '
+               f'Mode.hintsAt cfun.frame.hints (funC.entry + i)',
+               f'Mode.hintsEq_of_fn (K := {K}) (j := Fn.«{k}».idx) (d := Fn.«{k}».advice) {DK} {DK} {DK} rfl')
+    out += thm(k, 'loop_fetch', f'Exec.Fetches guestProgram funC.entry {code}',
+               f'Exec.guest_fetches Fn.«{k}».code_mem')
     out += thm(k, 'loop_small', f'∀ i (hi : i < {code}.length), CoreMode.SmallOps {code}[i]',
-               f'Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))')
+               f'Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«{k}».code_mem)')
     f = '(CoreMode.loopFields_of_wins loop_wins)'
     return out + thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                      'CoreMode.fnSpecC_of_loopC\n  { heap := heap_okC, '
@@ -370,7 +425,7 @@ def loop_long(k, j):
                      'frame := ⟨loop_env, loop_arms, frameAcc⟩, sig := loop_sig, sigE := rfl, fsig := rfl, '
                      'fentry := rfl, flen := loop_flen, xentry := loop_xentry, xlen := loop_xlen, dhints := rfl, '
                      'hints := loop_hints, fetch := loop_fetch, small := loop_small, '
-                     'pows := Exec.PowTree.ok_of_okW Checked.powTree_ok, fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok, '
+                     f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok, '
                      'hc := rfl, hcs := rfl }')
 
 
@@ -406,21 +461,16 @@ def hctab_file(packs):
 def main():
     R = route.route_sub()
     po = heap.pack_of()
-    # by mode pack, in the order of the pack's `coreFns` (`scripts/mode-cert/gen.py`, its functions in order); a
-    # function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
+    # by the pack of its code, by key (the pack's `coreFns`, which `scripts/mode-cert/gen.py` lists in the same order);
+    # a function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
     packs = {}
-    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
-        m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
-        if m:
-            packs[os.path.basename(os.path.dirname(f))] = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
-    packs = {p: ks for p, ks in packs.items() if ks}
-    listed = sorted(k for ks in packs.values() for k in ks)
-    assert listed == sorted(R), (set(listed) ^ set(R))
+    for k in sorted(R):
+        packs.setdefault(R[k]['bpack'], []).append(k)
     frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.)«([^»]+)»(?:$|\.frameFun\b)', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
     # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
     frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
-    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
+    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
     # a function's plumbing equation: `Checked`'s, or for a long one `Bridge.ProgAl`'s
     plumbs = index(r'^kernel_rfl plumbEq(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
     files = {}
@@ -439,12 +489,13 @@ def main():
             LONG[k] = (cimps, rimps_, hons_, thms)
     for p, ks in sorted(packs.items()):
         imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Small',
-                'LeanVM.Guest.Pack.«%s».ModeC' % p, 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
+                'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
         body = []
         for k in ks:
             j = R[k]['j']
-            imps.add(quote(frames[k])); imps.add(quote(codes[str(j)]))
+            imps.add(quote(frames[k])); imps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
             imps.add(quote(pair_mod(po[k][0], k)))
+            imps.add('LeanVM.Guest.CoreMode.Pows.«%s»' % po[k][0])
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             if R[k].get('kind') == 'l':
@@ -465,6 +516,8 @@ def main():
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
+                if sig_split(k) is not None:
+                    imps.add('LeanVM.Guest.CoreMode.SigSplit')
                 if heap_win(k):
                     imps.add(heap_win(k))
                 imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
@@ -475,18 +528,35 @@ def main():
         mod = 'LeanVM.Guest.CoreMode.Gen.«%s».Core' % p
         files[os.path.join(GEN, p, 'Core.lean')] = (
             HEADER.format(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
-            ''.join('public import %s\n' % m for m in sorted(imps)) + '\nset_option Elab.async false\n' + core_file(ks, body))
-        rimps = {'LeanVM.Guest.CoreMode.Route', 'LeanVM.Guest.Pack.«%s».ModeCert' % p}
+            ''.join('public import %s\n' % m for m in sorted(imps)) + '\nset_option Elab.async false\n' + core_file(ks, body) +
+            f'\nnamespace LeanVM.Guest.ModePack.«{p}»\n\n@[expose] public section\n\n'
+            f'/-- The core data of the pack\'s functions on the core route. -/\n'
+            f'noncomputable def coreFns : List CoreMode.CFun :=\n  [%s]\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n'
+            % ', '.join('LeanVM.Guest.Fn.«%s».cfun' % k for k in ks))
+        rimps = {'LeanVM.Guest.CoreMode.Route', mod}
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
             rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
             hb = '(by decide +kernel)'
+            rch = res_chunks(k, po)
+            rw = []
+            if len(rch) > RES_SPLIT:
+                fk = f'Fn.«{k}»'
+                fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
+                for c in rch:
+                    hons.append(f'theorem res{j}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
+                hons.append(f'theorem res{j}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
+                            f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
+                            f'  simp only [List.all_append, {", ".join(f"res{j}_{c}" for c in rch)}, Bool.and_self]\n')
+                rw.append(f'res{j}_ok')
+                hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if k in LONG:
                 rimps |= set(LONG[k][1])
                 hons.append(LONG[k][2])
                 hb = (f'(by rw [CoreMode.honB_of hon{j}_long.1 hon{j}_long.2.1 hon{j}_long.2.2.1 hon{j}_long.2.2.2 '
-                      f'hon{j}_rest, CoreMode.faOkB_of_noFA (CoreMode.loopFields_of_wins Fn.«{k}».loop_wins).2.2.2.2.2.1]; decide +kernel)')
+                      f'hon{j}_rest, CoreMode.faOkB_of_noFA (CoreMode.loopFields_of_wins Fn.«{k}».loop_wins).2.2.2.2.2.1'
+                      f'{"".join(", " + x for x in rw)}]; decide +kernel)')
             elif long_body(k):
                 fn = f'Fn.«{k}».cfun.fn'
                 parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
@@ -496,7 +566,7 @@ def main():
                          ('rest', f'CoreMode.honRest {j} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{j}_{nm} : {st} = true := by decide +kernel\n')
-                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest]; '
+                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
             hx = f'Fn.«{k}».alignCtxEq' if k in LONG else 'rfl'
@@ -504,9 +574,9 @@ def main():
                          f'Checked.core{j} Checked.cert{j} {"Checked" if str(j) in plumbs else "Bridge.ProgAl"}.plumbEq{j} '
                          f'Bridge.ProgAl.tab{j} rfl rfl {hx} {hb}\n')
             oks.append(f'cfOk{i}')
-        chain = 'Mode.fa_nil'
+        chain = 'List.forall_mem_nil _'
         for q in reversed(oks):
-            chain = 'Mode.fa_cons %s (%s)' % (q, chain)
+            chain = 'List.forall_mem_cons.2 ⟨%s, %s⟩' % (q, chain)
         rmod = 'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p
         files[os.path.join(GEN, p, 'Route.lean')] = (
             HEADER.format(mod=rmod, what='The core route\'s data of `%s` and %d more, the deployed guest\'s.' % (ks[0], len(ks) - 1)) +

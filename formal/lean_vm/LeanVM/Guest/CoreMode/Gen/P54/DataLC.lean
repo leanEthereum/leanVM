@@ -317,7 +317,7 @@ def hcert : CoreMode.HCert where
     .sub ⟨[(13, 1)], 7⟩ ⟨⟨[(1048576, 1)], 0⟩, 1, (.num 0), (.num 8192)⟩]
   calls := [[.ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .run 0 [], .run 1 [], .run 2 [], .run 3 []]]
   rets := [[.ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 12, .ev 18]]
-  gargs := [("__loop35", [101, 1, 2, 3, 4], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0___loop0_verify_bus_gkr", [101, 1, 2, 3, 4], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
   []

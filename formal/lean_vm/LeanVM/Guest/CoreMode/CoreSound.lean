@@ -244,6 +244,51 @@ theorem slotW_get {ws : List E} {b : ℕ} (hb : b < ws.length) : slotW ws b = ws
   unfold slotW
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb, Option.getD_some]
 
+/-- **The reference's word at cell `x`**, read at its address (`0` past the image). -/
+theorem readD_ref {img : MemoryImage κ} (hκ : κ ≤ 28) {x : ℕ} (hx : x < maxCells) :
+    (img.read (g ^ x)).getD 0 = refMem img x := by
+  unfold maxCells at hx
+  cases h : img.read (g ^ x) with
+  | some v =>
+    obtain ⟨i, hi, hv⟩ := (MemoryImage.read_eq_some_iff (by omega) img).mp h
+    have hi' : (i : ℕ) < 2 ^ 28 := lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) hκ)
+    have hxi : x = i := gpow_inj (by omega) (by omega) hi
+    subst hxi
+    simp [refMem, i.isLt, ← hv]
+  | none =>
+    by_cases hk : x < 2 ^ κ
+    · rw [MemoryImage.read_eq_none_iff] at h
+      exact absurd rfl (h ⟨x, hk⟩)
+    · simp [refMem, hk]
+
+/-- **An honest frame's own parameter words** (`HonF.gw`, `HonB.par`) at the bases `gpOf` names, its ghost words
+after its parameters: `GpF`. -/
+theorem gpF_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {fp : ℕ} {σ : Val} (hσ : HonF img Cf fp σ)
+    (hgw : ∀ x ∈ Cf.H.sig.gw, x.2 < Cf.H.sig.ghosts ∧ ∀ p, x.1.bases = [(p, 1)] → p < Cf.fn.params.length) :
+    GpF img (gpOf Cf.fn.params.length Cf.H.sig.gw) fp (Cf.fn.params.map σ ++ ownG Cf.H.sig σ) := by
+  intro q d b hl
+  obtain ⟨⟨c, j⟩, hx, hm⟩ := List.mem_filterMap.mp (lookup_memL hl)
+  obtain ⟨hj, hp⟩ := hgw _ hx
+  split at hm
+  · rename_i p hb
+    simp only [Option.some.injEq, Prod.mk.injEq] at hm
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hm
+    have hpl := hp p hb
+    refine ⟨σ (V.n p), hσ.par p hpl, fun x hn ↦ ?_⟩
+    rw [slotW_append]
+    split_ifs with h0
+    · simp at h0
+    rw [List.length_map, show Cf.fn.params.length + j - Cf.fn.params.length = j by omega]
+    rw [slotW_get (by simp [ownG]; exact hj)]
+    simp only [ownG, List.getElem_map, List.getElem_range]
+    rw [hσ.gw c j hx]
+    have hb' : c.bases = [(p, 1)] := hb
+    have ha : c.addrW (vw σ) = g ^ x := by
+      rw [← hn.1]
+      simp [CCell.addrW, CCell.valW, hb', prodW, vw, addressOfIndex]
+    rw [ha, readD_ref hκ hn.2]
+  · cases hm
+
 theorem rd_pow {img : MemoryImage κ} {a b : ℕ} (h : (g : K) ^ a = g ^ b) (o : ℕ) : Rd img a o = Rd img b o := by
   simp only [Rd, h]
 
@@ -315,7 +360,7 @@ every event's needs written before it; the promised cells and the signature's ru
 parameters' and returned words; the returned words' monomials, words and equations. -/
 theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCore Cf.fn.body = true) {σ : Val}
     {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
-    (hR : ResF Cf.H σ) (hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e) :
+    (hR : ResF Cf.H σ) (hG : GwOk Cf.H.sig rd σ) (hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e) :
     Cf.fn.params = (List.range Cf.fn.params.length).map V.n ∧
     ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧
     (∀ c ∈ Cf.posts, WrF Cf rd σ es (c.addrW (slotW (Cf.fn.params.map σ ++ vs.map σ)))) ∧
@@ -371,7 +416,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
       rw [List.append_nil] at ha
       rw [hv, ha]
       exact h1
-  | c hok hterm hcb hpost hders hgw =>
+  | c hok hterm hcb hpost hders =>
     have hok' := hok
     unfold heapOkC at hok'
     simp only [Bool.and_eq_true] at hok'
@@ -380,7 +425,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
       rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
     obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := heapOkC_sound hp hok hself hw hh hM
-      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) (gwOk_nil hgw rd σ)
+      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG
     have hW : SigOk (WrF Cf rd σ es) Cf.H.sig.post Cf.H.sig.postR (Cf.fn.params.map σ ++ vs.map σ) ∧
         PtrOk (WrF Cf rd σ es) rd Cf.H.sig.postP Cf.H.sig.postPR (Cf.fn.params.map σ ++ vs.map σ) ∧
         (∀ x, QSet rd Cf.H.sig.postQ (Cf.fn.params.map σ ++ vs.map σ) x → WrF Cf rd σ es x) ∧
@@ -400,7 +445,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
               fun x ⟨p, hp', _⟩ ↦ by simp [h5] at hp', fun c hc ↦ by simp [h6] at hc, fun r hr ↦ by simp [h7] at hr⟩
             simp [PtrSigSet, h3, h4] at hx
           · exact heapOkC_soundW hp hok hself hw hh hM (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR
-              (derOk_nil hders rd σ) (gwOk_nil hgw rd σ) (List.isEmpty_iff.mp h)
+              (derOk_nil hders rd σ) hG (List.isEmpty_iff.mp h)
         exact ⟨hW.1.mono fun x hx ↦ Or.inl hx, fun x hx ↦ Or.inl (hW.2.1 x hx), fun x hx ↦ Or.inl (hW.2.2.1 x hx),
           hW.2.2.2.mono fun x hx ↦ Or.inl hx⟩
       · exact ⟨hpo.1.mono fun x hx ↦ hx.imp_right fun h ↦ ⟨hn, h⟩,
@@ -417,7 +462,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
 callees' returned words. -/
 theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCore Cf.fn.body = true) {σ : Val}
     {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
-    (hR : ResF Cf.H σ) : ReadsOkP Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es := by
+    (hR : ResF Cf.H σ) (hG : GwOk Cf.H.sig rd σ) : ReadsOkP Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es := by
   cases hk with
   | m1 hok hpo hstr0 hrm hpv hre =>
     have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e he ↦ by
@@ -428,10 +473,10 @@ theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
           simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
       | _ => trivial
     exact fun es1 e es2 he _ ↦
-      (heapK_sound (.m1 hok hpo hstr0 hrm hpv hre) hp hst hw hh hR hM).2.1 es1 e es2 he
-  | c hok hterm hcb hpost hders hgw =>
+      (heapK_sound (.m1 hok hpo hstr0 hrm hpv hre) hp hst hw hh hR hG hM).2.1 es1 e es2 he
+  | c hok hterm hcb hpost hders =>
     exact (heapOkC_soundP hp hok (by simp [CFun.sigOf]) hw hh
-      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) (gwOk_nil hgw rd σ)).1
+      (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG).1
 
 /-- A path through a call: the function's heap check is the one with calls. -/
 theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true) {σ : Val} {es : List Ev}
@@ -442,7 +487,7 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true)
     simp only [Bool.and_eq_true] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
-  | c _ _ hcb _ _ _ => exact hcb
+  | c _ _ hcb _ _ => exact hcb
 
 theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
   cases hk with
@@ -451,7 +496,7 @@ theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
     refine List.all_eq_true.mpr fun s hs ↦ ?_
     have := List.all_eq_true.mp hstr0.1.1.1.1.1 s hs
     cases s <;> simp_all [isCall]
-  | c _ _ hcb _ _ _ => exact hcb
+  | c _ _ hcb _ _ => exact hcb
 
 /-- A path through a call: no word at a cell among the heap certificate's ghosts. -/
 theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true) {σ : Val} {es : List Ev}
@@ -462,7 +507,7 @@ theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true) {
     simp only [Bool.and_eq_true] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
-  | c _ _ _ _ hd _ => exact hd
+  | c _ _ _ _ hd => exact hd
 
 /-- **A call's callee runs' bounds have exponents** (`callsB`'s `idxPow`). -/
 theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets : List V}
@@ -1216,7 +1261,7 @@ theorem heapK_params {Cf : CFun} (hk : HeapK Cf) : Cf.fn.params = (List.range Cf
   have h : paramsN Cf.fn.params 0 = true := by
     cases hk with
     | m1 hok _ _ _ _ _ => unfold heapOk at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1
-    | c hok _ _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1.1
+    | c hok _ _ _ _ => unfold heapOkC at hok; simp only [Bool.and_eq_true] at hok; exact hok.1.1.1.1.1
   rw [List.range_eq_range']; exact paramsN_eq _ 0 h
 
 theorem fwdOff_spec {X : AlignCtx} {i t o : ℕ} (h : X.fwdOff i t = some o) : X.entry + i < t ∧ o = t - X.entry := by
@@ -1981,11 +2026,91 @@ theorem wsAt_eq {img : MemoryImage κ} {fp n : ℕ} {ws : List E} (hn : ws.lengt
     (h : ∀ b < n, Rd img fp (2 + b) = some (slotW ws b)) : wsAt img fp n = ws := by
   rw [wsAt_take h le_rfl (by omega), List.take_of_length_le (by omega)]
 
+/-- **A callee's ghost words, the caller's parameters** (`hpArgOk`): the call's ghost list is the parameters' words at
+the callee's caller cells (`hp1s`). -/
+theorem gargsW_hp1 {Cf : CFun} {G : Mode.Sig} {f : String} {args : List V} {σ : Val}
+    (hgl : (gargsOf Cf.H.gargs f args).length = (Cf.sigOf f).ghosts)
+    (hgh : Nat.beq (Cf.sigOf f).ghosts (hp1s G).length = true) (hpa : hpArgOk Cf G f = true) :
+    gargsW Cf.H σ f args = (hp1s G).map fun d ↦ σ (V.n (d - 2)) := by
+  rw [Nat.beq_eq] at hgh
+  simp only [hpArgOk, Bool.and_eq_true, List.all_eq_true] at hpa
+  obtain ⟨-, hpa⟩ := hpa
+  unfold gargsW
+  unfold gargsOf at hgl ⊢
+  cases hfd : Cf.H.gargs.find? (fun p ↦ decide (p.1 = f) && keyOk args p.2.1) with
+  | none =>
+    rw [hfd] at hgl
+    simp only [List.length_nil] at hgl
+    rw [hgh] at hgl
+    rw [List.eq_nil_of_length_eq_zero hgl.symm]
+    rfl
+  | some p =>
+    have hmem := List.mem_of_find?_eq_some hfd
+    have hf := List.find?_some hfd
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at hf
+    have h1 := hpa p hmem
+    simp only [hf.1, beq_self_eq_true, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h1
+    simp only [h1, List.map_map]
+    refine List.map_congr_left fun d _ ↦ ?_
+    simp [CCell.valW, prodW, vw, addressOfIndex]
+
+/-- **`(d, n + j, 0)` for the `j`-th of `ds`** (`glOfs`). -/
+theorem glOfs_lookup {d : ℕ} : ∀ {n : ℕ} {ds : List ℕ}, d ∈ ds → (glOfs n ds).lookup d = some (n + ds.idxOf d, 0)
+  | _, [], h => by cases h
+  | n, d' :: ds, h => by
+    rw [glOfs, List.lookup_cons, List.idxOf_cons]
+    by_cases hd : d = d'
+    · subst hd
+      simp only [beq_self_eq_true, ↓reduceIte, Nat.add_zero]
+    · have hm : d ∈ ds := by
+        rcases List.mem_cons.mp h with h | h
+        · exact absurd h hd
+        · exact h
+      have hb : (d == d') = false := by simpa using hd
+      have hb' : (d' == d) = false := by simpa using Ne.symm hd
+      rw [hb, hb', glOfs_lookup hm]
+      simp only [Bool.false_eq_true, ↓reduceIte, Option.some.injEq, Prod.mk.injEq, and_true]
+      omega
+
+/-- **A callee's bases at its entry** `s` (`baseC1`): its argument cells `2 + b` hold the words `ws`, the caller's
+cells `ds` (through header cell `1`, the caller's frame `fpc`) the ghost slots' after them: `SlotGetL`. -/
+theorem slotGetL_call {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (hs : Fine (refMem img) s) {G : Mode.Sig}
+    {na : ℕ} {ws : List E} {ds : List ℕ} (hws : ∀ b < na, Rd img s.fp (2 + b) = some (slotW ws b))
+    (hw : ∀ o ∈ G.entry, s.mem.written (s.fp + o) = true) {fpc : ℕ} (h1 : Rd img s.fp 1 = some (ofK (g ^ fpc)))
+    (h1w : s.mem.written (s.fp + 1) = true)
+    (hcell : ∀ d ∈ ds, s.mem.written (fpc + d) = true ∧ d < 2 ^ 28 ∧ Rd img fpc d = some (slotW ws (na + ds.idxOf d)))
+    {bs : List (Mode.Base × ℕ)} (hall : ∀ b ∈ bs, baseC1 G na ds b.1 = true) : SlotGetL (glOfs na ds) s ws bs := by
+  intro b hb
+  have h := hall b hb
+  rcases hb1 : b.1 with o | ⟨q, d⟩
+  · rw [hb1] at h
+    simp only [baseC1, Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at h
+    obtain ⟨⟨⟨h2, hn⟩, h28⟩, hent⟩ := h
+    obtain ⟨u, hu⟩ := Mem.get_of_written (hw o hent)
+    refine ⟨slotW ws (o - 2), by simp [BaseL, h2], ?_⟩
+    show s.mem.get (s.fp + o) = some _
+    rw [hu, rd_get hκ hs h28 (by have := hws (o - 2) hn; rwa [show 2 + (o - 2) = o by omega] at this) hu]
+  · rw [hb1] at h
+    simp only [baseC1, Bool.and_eq_true, Nat.beq_eq, List.contains_iff_mem] at h
+    obtain ⟨rfl, hd⟩ := h
+    obtain ⟨hwd, hd28, hrd⟩ := hcell d hd
+    refine ⟨slotW ws (na + ds.idxOf d), by simp [BaseL, glOfs_lookup hd], ?_⟩
+    obtain ⟨p, hp⟩ := Mem.get_of_written h1w
+    have hp' : p = ofK (g ^ fpc) := rd_get hκ hs (by norm_num) h1 hp
+    subst hp'
+    obtain ⟨u, hu⟩ := Mem.get_of_written hwd
+    have hlt := written_lt hs hwd
+    have hfpc : fpc < maxCells := by omega
+    refine ⟨_, fpc + d, hp, Mode.names_shift (by simp) hlt, ?_⟩
+    rw [hu, rd_getA hκ hs.agree hfpc hd28 hrd hu]
+
 /-- A call checked by `callChkM` names no callee ghost. -/
-theorem callChk_ghosts {Cf : CFun} {g : String} {args : List V} (h : callChkM Cf g args = true) :
-    (Cf.sigOf g).ghosts = 0 := by
-  simp only [callChkM, Bool.and_eq_true] at h
-  simpa using h.1.1.2
+theorem callChk_ghosts {Cf : CFun} {g : String} {args : List V} (h : callChkM Cf g args = true)
+    (hl : (Cf.hcs.lookup g).isSome = true) : (Cf.sigOf g).ghosts = 0 := by
+  simp only [callChkM, Bool.and_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none] at h
+  rcases h.1.1.2 with h1 | h1
+  · rw [h1] at hl; cases hl
+  · simpa using h1
 
 /-- **A call of a callee on a mode contract has its returned words' monomials** (`EvM`), once the callee returned
 in a memory agreeing with the reference, its frame's cells holding the call's words and its signature's
@@ -2141,7 +2266,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
     cases hc : Cf.hc
     · have hs := hsigM hc
       simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none] at hs
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hs
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hs
       exact ⟨h1, fun h ↦ by cases h⟩
     · rw [hc] at hown
       simp only [hcOwn, Bool.cond_true, Bool.and_eq_true, Option.isNone_iff_eq_none] at hown
@@ -2180,7 +2305,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
     rw [preAt_own hCt hhc] at hH0
     have hsig := hsigM hhc
     simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff, List.all_eq_true] at hsig
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, hpreP⟩, hprePR⟩, hpre⟩, hpreR⟩, -⟩, -⟩, -⟩ := hsig
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, hpreP⟩, hprePR⟩, hpre⟩, hpreR⟩, -⟩, -⟩, -⟩, hgwS⟩ := hsig
+    have hgwS' : ∀ x ∈ Cf.H.sig.gw, x.2 < Cf.H.sig.ghosts ∧ ∀ p, x.1.bases = [(p, 1)] → p < Cf.fn.params.length := by
+      intro x hx
+      obtain ⟨h1, h2⟩ := hgwS x hx
+      refine ⟨Nat.blt_eq.mp h1, fun p hp ↦ ?_⟩
+      rw [hp] at h2
+      simpa using h2
     have hA : entryAbs K.E K.F.sig = ⟨Mode.foldlT .nil K.F.sig.entry, .nil, .nil, [], K.F.sig.pre,
         Mode.jtRng K.E :: K.F.sig.preR, K.F.sig.term, [], .nil, K.F.sig.preP, []⟩ := by
       unfold entryAbs
@@ -2217,7 +2348,14 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       · obtain ⟨r, hr, hrc⟩ := List.any_eq_true.mp h
         rw [Bool.and_eq_true] at hrc
         exact ptIn_slot hrc.2 (hSE hrc.1) (hH0.r r (List.mem_cons_of_mem _ hr))
-    · rcases Bool.or_eq_true_iff.mp (hpreR r hr) with hany | hcov
+    · rcases Bool.or_eq_true_iff.mp (hpreR r hr) with hany | hpt
+      swap
+      · -- a one-point run at a precondition, over own parameter words
+        obtain ⟨m, hm, hmq⟩ := List.any_eq_true.mp hpt
+        rw [Bool.and_eq_true] at hmq
+        exact rw_ptL hmq.2 (slotEqL_of hκ hs.agree hs.fp (hws0' hσ) hσ.gl (gpF_of hκ hσ hgwS') hmq.1)
+          (hH0.h m hm) y hx
+      rcases Bool.or_eq_true_iff.mp hany with hany | hcov
       swap
       · exact rw_cov hcov (fun r' _ hm ↦ hSE hm) (fun r' hr' ↦ hH0.r r' (List.mem_cons_of_mem _ hr')) y hx
       obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp hany
@@ -2246,7 +2384,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         split at hrq
         · rename_i q hq
           obtain rfl := of_decide_eq_true hrq
-          exact rw_slotL hq (slotEqL_of hκ hs.agree hs.fp (hws0' hσ) hσ.gl hbs) (hH0.r r' hr')
+          exact rw_slotL hq (slotEqL_of hκ hs.agree hs.fp (hws0' hσ) hσ.gl (gpF_of hκ hσ hgwS') hbs)
+            (hH0.r r' hr')
             y hx
         · cases hrq
     · obtain ⟨w', hw', o, ho, rfl⟩ := hps
@@ -2288,8 +2427,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
     have hhd : ∀ j, (Cf.d.2.2.lookup (Cf.X.entry + j)).getD [] = Mode.hintsAt Cf.frame.hints (Cf.frame.entry + j) :=
       fun j ↦ by rw [lookupD_hintsAt, hok.dhints, hok.xentry, hok.fentry]
     have hrwOf : ∀ σ pre es vs rd, walk σ Cf.fn.body = .ret (pre ++ es) vs → (∀ e ∈ pre ++ es, e.Holds rd σ) →
-        ResF Cf.H σ → (∀ e ∈ pre, EvM Cf.sigOf rd σ e) → ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es :=
-      fun σ pre es vs rd hb hh0 hR hM ↦ readsAt_of_P (heapK_reads hok.heap hok.pows hbody hb hh0 hR) hM
+        ResF Cf.H σ → GwOk Cf.H.sig rd σ → (∀ e ∈ pre, EvM Cf.sigOf rd σ e) → ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es :=
+      fun σ pre es vs rd hb hh0 hR hG hM ↦ readsAt_of_P (heapK_reads hok.heap hok.pows hbody hb hh0 hR hG) hM
     have he1 : ∀ s1, (Mode.hintsAt Cf.frame.hints (Cf.frame.entry + i)).foldlM (Prover.Exec.runHint C) s = .ok s1 →
         ((C.hints[s.pc]?).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := fun s1 e1 ↦ by
       rw [hpcF, hhintsF i hi]; exact e1
@@ -2324,7 +2463,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             hpos hb hwp
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) (Bool.eq_false_iff.mpr hj) hwp
-          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) hM0)
+          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) (hrd ▸ hσ0.gw.ok) hM0)
         have hwk : WrK s1.mem (cellAt σ0 pv off) := by
           rcases hwr with h | ⟨a', ha', hfa', hma, hwa⟩
           · exact (hW _ h).mono hm.le
@@ -2378,13 +2517,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         have e1' : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := by
           rw [hhd i]; exact e1
         obtain ⟨pos', hpos', evs, es', rfl, hwp', hevs, hWr⟩ := core_jfall hκ hok.pair hctrl hci (hsm oc od of hci).1 e1'
-          hs hm (hc0 oc od of hci) hσ hpos hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) hM0) hW
+          hs hm (hc0 oc od of hci) hσ hpos hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0) hW
         exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
           by rw [List.append_assoc]; exact hh0, evM_app hM0 hevs, fun y hy ↦ (hWr y hy).mono hle'⟩
       have hnj : ∀ oc od of, K.code[i]? ≠ some (.jump oc od of) := fun oc od of h ↦ hj ⟨oc, od, of, h⟩
       obtain ⟨pos', hpos', as, hpairs, hfallP⟩ := pair_fallC (sigOf := Cf.sigOf) (rd := rd)
         (ws0 := Cf.fn.params.map σ) hok.pair hpos hnj
-      obtain ⟨evs, es', rfl, hwp', hevs, hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) hM0)
+      obtain ⟨evs, es', rfl, hwp', hevs, hWr⟩ := hfallP hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0)
       refine ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
         by rw [List.append_assoc]; exact hh0, evM_app hM0 hevs, fun y hy ↦ ?_⟩
       rcases hWr y hy with h | ⟨a, ha', hfa', hma, hwa⟩ | ⟨o1, o2, o3, dv, pv, off, hci, hS, hcell, hmem, rfl⟩
@@ -2446,7 +2585,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           exact gpow_inj (by omega) (by omega) (pow_of_ofK this)
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hM0, hW⟩ := hheap σ0 hσ0
         rcases core_jtaken hκ hok.pair hctrl hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ0 hpos hb hwp
-          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) hM0) hW with ⟨hif, -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
+          (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) (hrd ▸ hσ0.gw.ok) hM0) hW with ⟨hif, -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
         · -- `main`'s halt, in its frame `0`
           obtain ⟨hmX, hpcH⟩ := hmret hif
           have hfpS : s'.fp = s1.fp := by
@@ -2466,7 +2605,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           rw [hfp', hm.fp] at hσ
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hM0, hW⟩ := hheap σ hσ
           rcases core_jtaken hκ hok.pair hctrl hlenX hci hcj hsf hdn soc sod e1' hs hm hv hv0 h0 hpcs' hσ hpos hb
-            hwp (hrwOf σ pre es vs rd hb hh0 (hσ.res hxw) hM0) hW with ⟨hif, -⟩ |
+            hwp (hrwOf σ pre es vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0) hW with ⟨hif, -⟩ |
               ⟨-, o', pos', hpco', -, hpos', evs, es', rfl, hwp', hevs, hWr⟩
           · obtain ⟨hmX, hpcH⟩ := hmret hif
             have hmO := hmainO
@@ -2508,9 +2647,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.ret oc hci (by omega) h0 h1 ?_)
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, hM0, hW⟩ := hheap σ0 hσ0
           obtain ⟨as, hpairs, hevR, hpr⟩ := pair_retC hok.pair hpos hci hz hfw hpc0 hself1 hwp
-            (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) hM0)
+            (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) (hrd ▸ hσ0.gw.ok) hM0)
           obtain ⟨-, -, hposts, hpostRs, hretM, hpostM, hptrs, hqs, hretV, hretE, hpostN⟩ :=
-            heapK_sound hok.heap hok.pows hbody hb hh0 (hσ0.res hxw) (evM_app hM0 hevR)
+            heapK_sound hok.heap hok.pows hbody hb hh0 (hσ0.res hxw) (hrd ▸ hσ0.gw.ok) (evM_app hM0 hevR)
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
             intro x hx
@@ -2574,7 +2713,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           rw [postAt_own hCt hhc]
           have hsig := hsigM hhc
           simp only [sigOk, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff, List.all_eq_true] at hsig
-          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, hpostL⟩, hpostP⟩, hpostLP⟩, hpostT⟩, hpostC⟩, -⟩, -⟩, -⟩, -⟩, hpost⟩, hpostR⟩, -⟩ :=
+          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, hpostL⟩, hpostP⟩, hpostLP⟩, hpostT⟩, hpostC⟩, -⟩, -⟩, -⟩, -⟩, hpost⟩, hpostR⟩, -⟩, -⟩ :=
             hsig
           refine ⟨⟨fun o ho ↦ hretw o (hok.fsig ▸ ho), fun m hm' ↦ ?_, fun r hr ↦ ?_, fun q hq ↦ ?_,
             fun p hp ↦ ?_, fun p hp ↦ ?_, fun q hq ↦ ?_⟩, fun r hr ↦ ?_, fun q hq ↦ ?_⟩
@@ -2858,7 +2997,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               refine ⟨t, ht, hte, ?_⟩
               rw [← htg]
               exact honF_dsp hσ (pre := pre ++ evs) (by rw [hb', hes, List.append_assoc]) hsite (by omega) hte
-            obtain ⟨f0, hf0, evs0, cs0, es0, hes0, -⟩ := hkD hwp (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) hM0)
+            obtain ⟨f0, hf0, evs0, cs0, es0, hes0, -⟩ := hkD hwp (hrwOf σ0 pre es vs rd hb hh0 (hσ0.res hxw) (hrd ▸ hσ0.gw.ok) hM0)
             obtain ⟨t, ht, hte, hrdt⟩ := hpick hσ0 hb hes0 hf0
             have hpt := hpcs t ht
             simp only [dspPc] at hpt
@@ -2910,10 +3049,10 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           · simp only [Bool.and_eq_true, List.contains_iff_mem] at hfit
             exact ⟨hfit.1.2, hfit.2⟩
           · simp only [fitB, Bool.and_eq_true, List.contains_iff_mem] at hfit
-            obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, h0⟩, h1⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hfit
+            obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, h0⟩, h1⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hfit
             exact ⟨h0, h1⟩
         -- the walk's split at the call, the callee frame
-        have hsplit : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ →
+        have hsplit : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ → rd = img.read →
             pairAt Cf.P Cf.fn.body K.code Cf.d i = some pos → walk σ Cf.fn.body = .ret (pre ++ es) vs →
             walk σ pos = .ret es vs → (∀ e ∈ pre ++ es, e.Holds rd σ) → (∀ e ∈ pre, EvM Cf.sigOf rd σ e) →
             ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧
@@ -2926,9 +3065,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               ∃ kfp, (g : Parameters.K) ^ s'.fp = g ^ kfp ∧
                 (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
                 Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
-          intro σ pre es vs rd hσ hp hb hwp hh0 hM0
-          obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) hM0)
-          have hreq := hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) hM0 evs (.call f args rets) (cs.map Ev.atom ++ es')
+          intro σ pre es vs rd hσ hrd hp hb hwp hh0 hM0
+          obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0)
+          have hreq := hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0 evs (.call f args rets) (cs.map Ev.atom ++ es')
             rfl hevM
           obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
             ⟨f, args, rets, true⟩ of st (by rw [← List.append_assoc]; exact calls_mid) rfl hsite
@@ -2947,7 +3086,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             rw [show 2 + args.length + (b - args.length) = 2 + b by omega] at this
             simpa using this
         obtain ⟨evs, cs, es', heq, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, hwsE, hk0, hk1⟩ :=
-          hsplit hσ0 hpos hb hwp hh0 hM0
+          hsplit hσ0 hrd hpos hb hwp hh0 hM0
         have hcallE : Ev.call f args rets ∈ pre ++ es := by rw [heq]; simp
         obtain ⟨hpwR, hpwPR⟩ := callsB_spec (callsB_of hok.heap hbody hb hcallE) (body_callS hbody hb hcallE)
         have htop : Cf.fn.body.all topOk = true := (Bool.and_eq_true_iff.mp hbody).2
@@ -3024,7 +3163,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               have hga : gargsW Cf.H σ0 f args = [] := by
                 rw [← List.length_eq_zero_iff]
                 simp only [gargsW, List.length_map, hgl]
-                exact callChk_ghosts (callsB_chk (callsB_of' hok.heap) (body_callS hbody hb hcallE))
+                exact callChk_ghosts (callsB_chk (callsB_of' hok.heap) (body_callS hbody hb hcallE)) (by rw [hl]; rfl)
               rw [hga, List.append_nil] at hrpre hrpreR hrptr
               have hwsA : wsAt img s'.fp args.length = args.map σ0 := by
                 rw [wsAt_take hwsE (by omega) (by simp), List.map_append, List.take_left' (by simp)]
@@ -3055,7 +3194,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 rw [hpos, Option.some.injEq] at hpos2
                 subst hpos2
                 obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
-                  hsplit hσ hpos hb2 hwp2 hh2 hM2
+                  hsplit hσ hrd2 hpos hb2 hwp2 hh2 hM2
                 -- the callee's returned words, its contract's
                 have hEv : EvM Cf.sigOf rd2 σ (.call f args rets) := by
                   have hwF : wsAt img s'.fp (args.length + rets.length) = (args ++ rets).map σ :=
@@ -3090,8 +3229,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
           have hCn : Ct s'.pc = none := by rw [hCtt]; simp [hcAt, hl]
           simp only [callOkC, hl, fitB, Bool.and_eq_true, List.isEmpty_iff, List.contains_iff_mem,
             List.all_eq_true] at hfit
-          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, ⟨hhretM, hhpostQ⟩⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
-            hhpostR⟩, hhgh⟩ := hfit
+          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, ⟨hhretM, hhpostQ⟩⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
+            hhpostR⟩, hhgh⟩, hpa⟩ := hfit
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.call fun hTE ↦ ⟨G, o, hsigK, by omega, ?_, ?_,
             hentry.w, ?_, ?_⟩)
           · obtain ⟨u, hu⟩ := Mem.get_of_written (hentry.w 0 hG0)
@@ -3107,18 +3246,19 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               obtain ⟨hwo, hro⟩ := hentry.self o ho
               obtain ⟨u, hu⟩ := Mem.get_of_written hwo
               exact ⟨hwo, by rw [hu, rd_get hκ hf' ho28 hro hu]⟩
+            have hws1 : ∀ b < args.length, Rd img s'.fp (2 + b) =
+                some (slotW (args.map σ0 ++ (hp1s G).map fun d ↦ σ0 (V.n (d - 2))) b) := fun b hb' ↦ by
+              rw [hwsE b (by omega), List.map_append, slotW_lt (by simpa using hb'), slotW_lt (by simpa using hb')]
             have hSG : ∀ {m : Mode.Mono}, monoS G args.length true m = true →
-                SlotGet s' (args.map σ0) m.bs := fun hm' ↦
-              slotGet_of hκ hf'.agree hf'.fp (fun b hb' ↦ by
-                rw [hwsE b (by omega), List.map_append, slotW_lt (by simpa using hb')]) hentry.w hm'
+                SlotGet s' (args.map σ0 ++ (hp1s G).map fun d ↦ σ0 (V.n (d - 2))) m.bs := fun hm' ↦
+              slotGet_of hκ hf'.agree hf'.fp hws1 hentry.w hm'
+            have hexp1 : ∀ j, idxPowC Cf args j = true →
+                IdxEx (slotW (args.map σ0 ++ (hp1s G).map fun d ↦ σ0 (V.n (d - 2)))) j := fun j h ↦
+              idxPowC_rep hok.pows htop hb hh0 hσ0.par hxw (hσ0.res hxw) h
             have hW1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x :=
               fun x hx ↦ (hWs1 x hx).mono hle'
             obtain ⟨hgl, ⟨hrpre, hrpreR⟩, hrptr⟩ := callReq_pre (ders_of hok.heap hbody hb hcallE) hreq
-            have hga : gargsW Cf.H σ0 f args = [] := by
-              rw [← List.length_eq_zero_iff]
-              simp only [gargsW, List.length_map, hgl]
-              simpa using hhgh
-            rw [hga, List.append_nil] at hrpre hrpreR hrptr
+            rw [gargsW_hp1 hgl hhgh hpa] at hrpre hrpreR hrptr
             refine ⟨fun o ho ↦ hentry.w o (foldlT_nil_get ho), fun o x hx ↦ (by rw [trieNil_get rfl] at hx; cases hx),
               fun o hx ↦ (by rw [trieNil_get rfl] at hx; cases hx), fun p hp ↦ (by cases hp), fun m hm' ↦ ?_,
               fun r hr ↦ ?_, fun p hp ↦ ?_, fun p hp ↦ (by cases hp), fun c a b hx ↦ (by rw [trieNil_get rfl] at hx; cases hx),
@@ -3154,6 +3294,35 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             · rcases List.mem_cons.mp hr with rfl | hr
               · exact hjtR s' (Mem.le_trans hm.le hle')
               rcases Bool.or_eq_true_iff.mp (hGpreR r hr) with h0 | h0
+              swap
+              · -- a run of constant bounds over the caller's cells (`hp1s`), at the caller's parameters
+                rw [Bool.and_eq_true, Bool.and_eq_true] at h0
+                obtain ⟨⟨hnb, hbs⟩, h⟩ := h0
+                obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp h
+                unfold rngLIs at hrq
+                split at hrq
+                · rename_i q' hq'
+                  obtain rfl := of_decide_eq_true hrq
+                  have hcell : ∀ d ∈ hp1s G, s'.mem.written (s.fp + d) = true ∧ d < 2 ^ 28 ∧
+                      Rd img s.fp d = some (slotW (args.map σ0 ++ (hp1s G).map fun d ↦ σ0 (V.n (d - 2)))
+                        (args.length + (hp1s G).idxOf d)) := by
+                    intro d hd
+                    simp only [hpArgOk, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
+                      List.contains_iff_mem] at hpa
+                    obtain ⟨⟨⟨h2, hdn⟩, hd28⟩, hde⟩ := hpa.1 d hd
+                    refine ⟨written_mono (Mem.le_trans hm.le hle') (hentw d hde), hd28, ?_⟩
+                    rw [slotW_append]
+                    split_ifs with hlt0
+                    · simp at hlt0
+                    rw [List.length_map, Nat.add_sub_cancel_left,
+                      slotW_get (by simpa using List.idxOf_lt_length_of_mem hd)]
+                    simp only [List.getElem_map, List.getElem_idxOf]
+                    have := hσ0.par (d - 2) hdn
+                    rwa [show 2 + (d - 2) = d by omega] at this
+                  exact slot_rwL hq' hnb (slotGetL_call hκ hf' hws1 hentry.w hk1 (hentry.w 1 hG1) hcell
+                    (fun b hb ↦ List.all_eq_true.mp hbs b hb)) fun x hx ↦ hW1 x (hrpreR q' hq x hx)
+                · cases hrq
+              rcases Bool.or_eq_true_iff.mp h0 with h0 | h0
               · obtain ⟨hmS, h⟩ := Bool.and_eq_true_iff.mp h0
                 rcases Bool.or_eq_true_iff.mp h with h | h
                 · obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp h
@@ -3178,7 +3347,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                   have hqq : q' = q := of_decide_eq_true hrq
                   subst hqq
                   have hpw := Bool.and_eq_true_iff.mp (hpwR q' hq)
-                  exact slot_rwX hq' (hSG hmS) (hexp _ hpw.1) (hexp _ hpw.2) fun x hx ↦ hW1 x (hrpreR q' hq x hx)
+                  exact slot_rwX hq' (hSG hmS) (hexp1 _ hpw.1) (hexp1 _ hpw.2) fun x hx ↦ hW1 x (hrpreR q' hq x hx)
                 · cases hrq
             · exact Mode.LTF.mono (s := Mode.stOf s'.mem s'.fp) (s' := s') (Mem.le_refl _) rfl
                 (hTE G hsigK hentry.w p hp)
@@ -3198,7 +3367,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 rw [← hpq] at hpw
                 have hu' : s'.mem.used ≤ 2 ^ κ :=
                   hU s _ s1 s' hYs (by rw [hpc]; exact hK.ops i hi) (he1 s1 e1) hm e'
-                refine slot_pwX (s := s') hκ hf'.agree hu' hq' (hSG hmS) (hexp _ hpw.1) (hexp _ hpw.2)
+                refine slot_pwX (s := s') hκ hf'.agree hu' hq' (hSG hmS) (hexp1 _ hpw.1) (hexp1 _ hpw.2)
                   (fun x hx ↦ hW1 x (hrpreR q' hq2 x hx)) fun x hx ↦ ?_
                 obtain ⟨a, ha, hpa⟩ := hx
                 refine hW1 x (hrptr x (Or.inr ⟨p', hp', a, ?_⟩))
@@ -3224,7 +3393,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               rw [hpos, Option.some.injEq] at hpos2
               subst hpos2
               obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
-                hsplit hσ hpos hb2 hwp2 hh2 hM2
+                hsplit hσ hrd2 hpos hb2 hwp2 hh2 hM2
               have hEv : EvM Cf.sigOf rd2 σ (.call f args rets) :=
                 evM_mode hκ (callsB_chk (callsB_of' hok.heap) (body_callS (r := rets) hbody hb2 (by simp))) hl
                   hhretM (Mode.RetHolds.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp) hm' rfl hR) ham'

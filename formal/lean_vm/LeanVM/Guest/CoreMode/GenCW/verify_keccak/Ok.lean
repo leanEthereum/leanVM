@@ -19,12 +19,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«verify_keccak».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 1379 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 1379 st1 = true := by
+theorem last_ok : lastOkF Fn.«verify_keccak».pows sigW core hcert 1379 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -36,11 +36,12 @@ namespace LeanVM.Guest.Fn.«verify_keccak»
 @[expose] public section
 
 /-- `verify_keccak`: the heap check, in 1 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_keccak».pows
     (fun g ↦ match g with
-    | "__loop11" => Fn.«verify_keccak_loop0».hcert.sig | "__loop12" => Fn.«verify_keccak_loop1».hcert.sig
-    | "__loop13" => Fn.«verify_keccak_loop2».hcert.sig | "keccak_layer__L0" => Fn.«keccak_layer__L0».hcert.sig
-    | "keccak_layer__L1" => Fn.«keccak_layer__L1».hcert.sig
+    | "__loop0_verify_keccak" => Fn.«verify_keccak_loop0».hcert.sig
+    | "__loop1_verify_keccak" => Fn.«verify_keccak_loop1».hcert.sig
+    | "__loop2_verify_keccak" => Fn.«verify_keccak_loop2».hcert.sig
+    | "keccak_layer__L0" => Fn.«keccak_layer__L0».hcert.sig | "keccak_layer__L1" => Fn.«keccak_layer__L1».hcert.sig
     | "keccak_plain_rounds__L4_L1" => Fn.«keccak_plain_rounds__L4_L1».hcert.sig
     | "keccak_plain_rounds__L6_L0" => Fn.«keccak_plain_rounds__L6_L0».hcert.sig | _ => .empty)
     core hcert = true :=

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Core
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Data
 
@@ -20,7 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«sp_wots».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«sp_wots».heap_ok : CoreMode.heapOk Fn.«sp_wots».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

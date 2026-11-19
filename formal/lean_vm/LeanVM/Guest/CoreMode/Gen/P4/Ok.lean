@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P4»
 public import LeanVM.Guest.Pack.«P4».Core
 public import LeanVM.Guest.CoreMode.Gen.«P4».Data
 
@@ -20,9 +20,9 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«index_mle__L33».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«padding_weight__L12».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«padding_weight__L7».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L33».heap_ok : CoreMode.heapOk Fn.«index_mle__L33».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L12».heap_ok : CoreMode.heapOk Fn.«padding_weight__L12».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L7».heap_ok : CoreMode.heapOk Fn.«padding_weight__L7».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 
