@@ -2,12 +2,13 @@
 names a function by its stable key (`Fn.«k»`).
 
 * `CoreMode/GlueA/<pack>.lean`: for each function whose core the pack holds, `Fn.«k».advice`, its entry, length and
-  hints by pc (`Data.adviceFn{j}`, the statement's advice), and `idx`, its index `j`.
+  hints by pc (`Data.adviceFn{j}`, the statement's advice), `idx`, its index `j`, and with table jumps `jt0`, its first
+  jump-table slot (the pairing's states name their tables from it).
 * `CoreMode/GlueC/<pack>.lean`: for each function of the pack with a link (`Checked.code{j}`),
   `Fn.«k».code_mem`, that its code is the program's, and with its alignment tables' entries too
   (`Bridge.ProgAl.tab{j}`) `Fn.«k».tie`, the tables at its index its data (`CoreMode.cfOk_of_tie`, `Gen/*/Route`).
 
-An added or removed function renumbers `j` here only.
+An added or removed function renumbers `j` and moves the jump table's slots here only.
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/glue.py [--check]
 """
@@ -53,9 +54,18 @@ def main():
     for f in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean'))):
         for k in NSRE.findall(open(f, encoding='utf-8').read()):
             home.setdefault(k, os.path.basename(os.path.dirname(f)))
+    # each function's first jump-table slot: its plumbing's table jumps' least (`armsOf`'s)
+    jt0 = {}
     for f in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Bundle*.lean'))):
-        for k in NSRE.findall(open(f, encoding='utf-8').read()):
+        t = open(f, encoding='utf-8').read()
+        for k in NSRE.findall(t):
             bpack[k] = os.path.basename(os.path.dirname(f))
+        for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
+            bs = [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, (\d+)\)', (re.findall(r'^  arms := (.*)$', blk, re.M) or [''])[0])]
+            bs += [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, \[[^\]]*\], \d+, (\d+)\)',
+                                                        (re.findall(r'^  chains := (.*)$', blk, re.M) or [''])[0])]
+            if bs:
+                jt0[blk.split('»', 1)[0]] = min(bs)
     packs = {}
     for k, pack in home.items():
         if name.get(k) in adv and k in bpack:
@@ -79,6 +89,8 @@ def main():
         for k in ks:
             j = adv[name[k]]
             a.append(f'abbrev Fn.«{k}».advice := Data.adviceFn{j}\nabbrev Fn.«{k}».idx : ℕ := {j}\n')
+            if k in jt0:
+                a.append(f'abbrev Fn.«{k}».jt0 : ℕ := {jt0[k]}\n')
             if j in link:
                 c.append(f'theorem Fn.«{k}».code_mem : code ∈ Data.functions := Checked.code{j} ▸ End.fnOf_mem (by decide)\n')
             if tied(j):

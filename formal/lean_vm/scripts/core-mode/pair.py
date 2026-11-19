@@ -319,7 +319,7 @@ def _collect():
         except (Fail, AL.Fail) as e:
             fails[k] = str(e)
             continue
-        out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
+        out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'], jt0=jt0_of(F),
                       bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]), locs=B['locs'], extra=dict(extra),
                       kind='c' if k in CR else ('l' if k in LR else ('lc' if k in LCR else 'm1')))
     return out, fails
@@ -390,6 +390,21 @@ def render_pack(pack, fs):
         '\nend\n\npublic section\n\n', thms, '\nend\n\nend LeanVM.Guest\n'])}
 
 
+def jt0_of(F):
+    """The function's first jump-table slot (the glue's `Fn.«k».jt0`, `glue.py`), or None without table jumps."""
+    return min((b for _, b in F['arms'].values()), default=None)
+
+
+def kst(k, f, K):
+    """`AL.kst`, a registered table jump's slot from the function's first (`Fn.«k».jt0`): the states stay put when the
+    jump table moves."""
+    i, nd, cur, pend, tabs = K
+    c = 'none' if cur is None else f'some ({AL.cur_lit(cur)})'
+    pe = ', '.join(f'({o}, ({AL.cur_lit(z)}))' for o, z in pend)
+    ta = ', '.join(f'(Fn.«{k}».jt0 + {b - f["jt0"]}, ({AL.cur_lit(z)}), {m})' for b, z, m in tabs)
+    return f'⟨{i}, {nd}, {c}, [{pe}], [{ta}]⟩'
+
+
 def render_win(pack, f):
     k = f['key']
     base = f'LeanVM.Guest.CoreMode.Gen.«{pack}».«{k}»'
@@ -397,7 +412,7 @@ def render_win(pack, f):
     files = {}
     packed = packed_ctx(k)
     wctx = 'alignCtxP' if packed else 'alignCtx'
-    defs = ''.join(f"/-- `{k}`: the pairing's state at offset {K[0]}. -/\ndef pairK{n} : Bridge.KSt :=\n  {AL.kst(K)}\n\n"
+    defs = ''.join(f"/-- `{k}`: the pairing's state at offset {K[0]}. -/\ndef pairK{n} : Bridge.KSt :=\n  {kst(k, f, K)}\n\n"
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")

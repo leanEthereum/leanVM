@@ -99,8 +99,8 @@ def mode_walk(full=False):
     return I, W
 
 
-def oracle(cache):
-    """Run today's mode walk on each function with its inferred signature and residuals, and record
+def oracle(cache, only=None):
+    """Run today's mode walk on each function (of `only`, if given) with its inferred signature and residuals, and record
     each `DEREF` of mode `cell` at each offset: a store, a load of a heap cell it knows written, or
     a link. The oracle: offsets where some path loads and every path stores or loads."""
     I, W = mode_walk(True)
@@ -120,7 +120,7 @@ def oracle(cache):
     W.Walk.stepOp = stepOp
     try:
         for n, f in I.fns.items():
-            if n in fails: continue
+            if n in fails or only is not None and n not in only: continue
             dec[n] = {}
             w = I.Walk(I.E, f['entry'], f['count'], sigs[n], f['hints'], R.get(n, {}), f['tabs'], main=n == 'main')
             w._name = n
@@ -131,11 +131,14 @@ def oracle(cache):
     return O, sigs, R, Esigs
 
 
-def load(cache=None, ocache=None):
-    """The walks' inputs; with the mode walk's cache, also its oracle (`O`) and residuals (`R`), which only the
-    functions off the core route read."""
+def load(cache=None, ocache=None, only=None):
+    """The walks' inputs; with the mode walk's cache, also its oracle (`O`, of the functions `only`, if given) and
+    residuals (`R`), which only the functions off the core route read."""
     D = dict(C.code(), facts=facts(), O={}, R={})
-    if cache:
+    if cache and only is not None:
+        O, sigs, R, Esigs = oracle(cache, set(only))
+        D.update(O=O, R=R)
+    elif cache:
         if ocache and os.path.exists(ocache):
             mode_walk()  # the pickled signatures' classes
             O, sigs, R, Esigs = pickle.load(open(ocache, 'rb'))
