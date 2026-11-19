@@ -182,8 +182,9 @@ pub fn sphincsVerify(public_key: PublicKey, message: Message, signature: *const 
     try checkVerification(c.lpq_sphincs_verify(&public_key, public_key.len, &message, message.len, signature, signature.len));
 }
 
-/// A connection to a leanVM sidecar, which proves and verifies aggregates. Calls on one connection
-/// run one at a time, and a broken connection is reopened on the next call. Unix only: on Windows
+/// A connection to a leanVM sidecar, which proves and verifies aggregates. A sidecar serves at most
+/// 16 connections: share one per process. Calls on one connection run one at a time, and a broken
+/// connection is reopened on the next call. Unix only: on Windows
 /// `connect` and `start` fail with `error.NativeFailure`.
 pub const Sidecar = struct {
     handle: *c.lpq_sidecar,
@@ -218,7 +219,15 @@ pub const Sidecar = struct {
         return takeBuffer(allocator, output);
     }
 
-    /// Closes the connection, and stops the sidecar if `start` launched it.
+    /// Stops a sidecar `start` launched at once, failing a call in progress, then closes the
+    /// connection; later calls fail. Safe while another thread is in a call, and twice. `deinit`
+    /// still frees the handle.
+    pub fn close(self: *const Sidecar) Error!void {
+        try checkStatus(c.lpq_sidecar_close(self.handle));
+    }
+
+    /// Closes the connection, stops the sidecar if `start` launched it, and frees the handle. No
+    /// call may be in progress.
     pub fn deinit(self: *Sidecar) void {
         c.lpq_sidecar_destroy(self.handle);
         self.* = undefined;

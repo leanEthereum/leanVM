@@ -79,8 +79,9 @@ type
     handle: ptr LpqSidecar
 
   LeanPqSidecar* = ref LeanPqSidecarObj
-    ## A connection to a leanVM sidecar, which proves and verifies aggregates. Calls on one
-    ## connection run one at a time, and a broken connection is reopened on the next call.
+    ## A connection to a leanVM sidecar, which proves and verifies aggregates. A sidecar serves at
+    ## most 16 connections: share one per process. Calls on one connection run one at a time, and
+    ## a broken connection is reopened on the next call.
 
 # The native records are these objects' bytes, so slices of them pass to the bridge as they are.
 static:
@@ -341,11 +342,13 @@ proc connect*(T: type LeanPqSidecar, socketPath: string): Result[LeanPqSidecar, 
   ok(LeanPqSidecar(handle: handle))
 
 proc start*(
-    T: type LeanPqSidecar, binaryPath, socketPath: string, threads: Natural = 0
+    T: type LeanPqSidecar, binaryPath, socketPath: string, threads: int = 0
 ): Result[LeanPqSidecar, string] =
   ## Launches the `leanvm-sidecar` executable at `binaryPath` on `socketPath` with `threads`
   ## threads (0: one per core), waits until it listens, and connects; `close` stops it. Its log
   ## goes to `socketPath` plus `.log`. Fails when a sidecar already listens there, and on Windows.
+  if threads < 0:
+    return err("threads must be >= 0")
   var handle: ptr LpqSidecar
   ? check(lpqSidecarStart(
     pathPtr(binaryPath), csize_t(binaryPath.len),

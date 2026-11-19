@@ -2,8 +2,8 @@
 
 leanXMSS and leanSPHINCS signatures and their aggregation, for Python, Node.js, Java, Go, Zig and Nim.
 
-- Signing and verifying run in your process, on every platform.
-- Aggregating runs in the [sidecar](#sidecar), a separate process (Linux and macOS).
+- Signing and verifying signatures run in your process, on every platform.
+- Aggregating, and verifying aggregates, run in the [sidecar](#sidecar), a separate process (Linux and macOS).
 - An aggregate's bytes are the proof only: send its claims (public key, message) alongside.
 
 ## Install
@@ -45,7 +45,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 ## Sidecar
 
-`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it (needs Rust), at the same release as the bindings:
+`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it, at the same release as the bindings (a sidecar of another release is not detected, and its proofs are rejected). It needs a recent stable Rust, a C compiler and `make`:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -59,13 +59,21 @@ This installs `~/.cargo/bin/leanvm-sidecar`. Then either:
   ```sh
   mkdir -p -m 700 ~/.leanvm && leanvm-sidecar --socket ~/.leanvm/sidecar.sock
   ```
-- **Launch it from code**: `Sidecar.start("<home>/.cargo/bin/leanvm-sidecar", "/tmp/leanvm/sidecar.sock", threads)` waits until it is ready; closing the `Sidecar`, or the program exiting, stops it.
+- **Launch it from code**: `Sidecar.start("<home>/.cargo/bin/leanvm-sidecar", "<home>/.leanvm/run/sidecar.sock", threads)` waits until it is ready. Closing the `Sidecar`, dropping it, or the program exiting stops it (a forked child still running keeps it alive). Its socket directory must be private: `start` creates it with mode 0700, and refuses one others can write to.
 
-`threads` (or `--threads`) caps its threads; 0 means one per core. [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
+- `threads` (or `--threads`) caps its threads; 0 means one per core.
+- A sidecar serves at most 16 connections: share one `Sidecar` per process. Its calls run one at a time, and a forked child opens its own connection.
+- On Linux, a C or Nim program should ignore `SIGPIPE`, so a sidecar that dies fails the call instead of killing the program.
+- [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
 
 ## Build and test
 
-Needs Rust. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN` (build it with `cargo build --release -p leanvm-sidecar --features experimental_prover` at the repository root).
+Needs Rust. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN`; from the repository root, this builds and starts one and sets both:
+
+```sh
+cargo build --release -p leanvm-sidecar --features experimental_prover
+export $(sh bindings/scripts/start-sidecar.sh target/release/leanvm-sidecar ~/.leanvm/test)
+```
 
 | Binding | Command, from the repository root |
 | --- | --- |

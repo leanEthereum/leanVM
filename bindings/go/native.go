@@ -393,11 +393,17 @@ func (sidecar *Sidecar) Verify(bytes []byte, xmssClaims, sphincsClaims []Claim) 
 	return &Aggregate{handle: handle}, nil
 }
 
-// Close closes the connection, and stops the sidecar if StartSidecar launched it. It waits for
-// calls in progress and is safe to call repeatedly.
+// Close stops the sidecar StartSidecar launched at once, failing calls in progress, and closes the
+// connection; it frees the handle once those calls return. Later calls fail. It is safe to call
+// repeatedly.
 func (sidecar *Sidecar) Close() {
 	if sidecar == nil {
 		return
+	}
+	// The native close is safe beside calls in progress; freeing the handle is not.
+	if handle, release, err := sidecar.acquire(); err == nil {
+		C.lpq_sidecar_close(handle)
+		release()
 	}
 	sidecar.mu.Lock()
 	defer sidecar.mu.Unlock()

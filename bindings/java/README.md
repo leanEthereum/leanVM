@@ -56,13 +56,16 @@ Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see 
 ```java
 import java.nio.file.Path;
 import java.util.List;
+import org.ethereum.leanpq.*;
 
-try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock"));
-     // or: Sidecar.start(binary, socket, threads), which launches one
+Path socket = Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock");
+try (Sidecar sidecar = Sidecar.connect(socket); // or Sidecar.start(binary, socket, threads)
+     XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
+     SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32);
      Aggregate leaf = sidecar.aggregate(
          List.of(),
-         List.of(new SignedMessage(xmss.publicKey(), message32, xmssSig)),
-         List.of(new SignedMessage(sphincs.publicKey(), message32, sphincsSig)));
+         List.of(new SignedMessage(xmss.publicKey(), message32, xmss.sign(message32, 7))),
+         List.of(new SignedMessage(sphincs.publicKey(), message32, sphincs.sign(message32))));
      Aggregate root = sidecar.aggregate(List.of(leaf), List.of(), List.of());
      Aggregate received = sidecar.verify(root.toBytes(), root.xmssClaims(), root.sphincsClaims())) {
     List<SignatureClaim> xmssClaims = received.xmssClaims();
@@ -71,9 +74,10 @@ try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), 
 
 - `aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
-- `Sidecar.start(binary, socket)` uses one thread per core, as does `threads` 0; `close()` stops the sidecar it launched. `prover()` is `"experimental"` or `"stable"`, which make the same proofs.
-- A `Sidecar` is safe to share between threads; its calls run one at a time, and `close()` waits for calls in progress.
+- `verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise; verifying also needs the sidecar. `xmssClaims()` and `sphincsClaims()` are sorted.
+- `Sidecar.start(binary, socket)` launches a sidecar on a socket in a private directory, such as `~/.leanvm/run/sidecar.sock`, with one thread per core, as does `threads` 0. `prover()` is `"experimental"` or `"stable"`, which make the same proofs.
+- A `Sidecar` is safe to share between threads; its calls run one at a time. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
+- `close()` stops a sidecar `start` launched at once, failing calls in progress, and frees the handle once they return; later calls throw `IllegalStateException`. An unreachable started `Sidecar` is stopped when the Cleaner frees it.
 
 ## Build and test
 

@@ -107,7 +107,8 @@ jobs:
           path: dist/*.tar.gz
 
   # Installs the Windows wheels into a fresh virtualenv straight from the build artifact (no index,
-  # no source builds) and signs, verifies and aggregates through them before anything is published.
+  # no source builds) and signs and verifies through them before anything is published (aggregation
+  # needs a sidecar, which Windows lacks).
   windows-wheel-test:
     name: windows-latest / py${{ matrix.python }} wheel
     needs: build
@@ -142,7 +143,7 @@ jobs:
           python -m venv "$venv"
           "$venv/Scripts/python" -m pip install --only-binary :all: --no-index --find-links dist py-lean-pq
           "$venv/Scripts/python" -m pip install --only-binary :all: pytest
-      - name: Sign, verify and aggregate through the installed wheel
+      - name: Sign and verify through the installed wheel
         working-directory: ${{ runner.temp }}
         run: |
           python="$(cygpath -u "$RUNNER_TEMP")/venv/Scripts/python"
@@ -647,8 +648,8 @@ jobs:
             fi
           done
 
-  # Installs the packed root and platform package on each platform and signs, verifies and
-  # aggregates through them. Alpine runs in a plain container: GitHub's JavaScript actions do not
+  # Installs the packed root and platform package on each platform and signs and verifies through
+  # them. Alpine runs in a plain container: GitHub's JavaScript actions do not
   # run inside Alpine containers on arm64.
   node-test:
     name: Node.js test / ${{ matrix.platform.package }}

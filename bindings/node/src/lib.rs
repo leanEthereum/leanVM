@@ -1,6 +1,6 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::Arc;
 use std::thread;
 
 use lean_pq::{sphincs, xmss, Message};
@@ -322,20 +322,7 @@ impl Task for SphincsSignTask {
     }
 }
 
-/// A sidecar connection; `close` takes it, which stops a sidecar `start` launched.
-type Shared = Arc<Mutex<Option<lean_pq::Sidecar>>>;
-
-/// Runs `call` on the open sidecar.
-fn with_sidecar<T>(
-    sidecar: &Shared,
-    call: impl FnOnce(&lean_pq::Sidecar) -> std::result::Result<T, lean_pq::Error>,
-) -> Result<T> {
-    let sidecar = sidecar.lock().unwrap_or_else(PoisonError::into_inner);
-    match sidecar.as_ref() {
-        Some(sidecar) => call(sidecar).map_err(api_error),
-        None => Err(Error::new(Status::GenericFailure, "the sidecar is closed")),
-    }
-}
+type Shared = Arc<lean_pq::Sidecar>;
 
 /// A connection to a leanVM sidecar, which proves and verifies aggregates.
 #[napi]
@@ -387,11 +374,11 @@ impl Sidecar {
 
     /// The prover the sidecar runs: `experimental` or `stable`.
     #[napi(getter)]
-    pub fn prover(&self) -> Result<String> {
-        with_sidecar(&self.inner, |sidecar| Ok(sidecar.prover().to_owned()))
+    pub fn prover(&self) -> String {
+        self.inner.prover().to_owned()
     }
 
-    /// Closes the connection, and stops a sidecar `start` launched.
+    /// Stops a sidecar `start` launched, failing a call in progress, and closes the connection.
     #[napi(ts_return_type = "Promise<void>")]
     pub fn close<'env>(&self, env: &'env Env) -> Result<Object<'env>> {
         on_own_thread(
@@ -428,7 +415,7 @@ impl Task for SidecarTask {
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
         Ok(Sidecar {
-            inner: Arc::new(Mutex::new(Some(output))),
+            inner: Arc::new(output),
         })
     }
 }
@@ -442,12 +429,7 @@ impl Task for CloseTask {
     type JsValue = ();
 
     fn compute(&mut self) -> Result<Self::Output> {
-        drop(
-            self.sidecar
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .take(),
-        );
+        self.sidecar.close();
         Ok(())
     }
 
@@ -488,9 +470,9 @@ impl Task for VerifyTask {
                 ))
             })
             .collect::<Result<Vec<_>>>()?;
-        with_sidecar(&self.sidecar, |sidecar| {
-            sidecar.verify(&self.data, &xmss, &sphincs)
-        })
+        self.sidecar
+            .verify(&self.data, &xmss, &sphincs)
+            .map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -535,9 +517,9 @@ impl Task for AggregateTask {
             })
             .collect::<Result<Vec<_>>>()?;
         let children = self.children.iter().map(Arc::as_ref).collect::<Vec<_>>();
-        with_sidecar(&self.sidecar, |sidecar| {
-            sidecar.aggregate(&children, &xmss, &sphincs)
-        })
+        self.sidecar
+            .aggregate(&children, &xmss, &sphincs)
+            .map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -562,16 +544,13 @@ pub fn sidecar_start(
     env: &Env,
     binary: String,
     socket: String,
-    threads: Option<u32>,
+    threads: Option<f64>,
 ) -> Result<Object<'_>> {
+    let threads = uint32(threads.unwrap_or(0.0), "threads")? as usize;
     on_own_thread(
         env,
         SidecarTask {
-            source: SidecarSource::Start(
-                binary.into(),
-                socket.into(),
-                threads.unwrap_or(0) as usize,
-            ),
+            source: SidecarSource::Start(binary.into(), socket.into(), threads),
         },
     )
 }

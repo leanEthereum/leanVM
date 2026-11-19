@@ -6,7 +6,6 @@ use pyo3::pybacked::PyBackedBytes;
 use pyo3::types::{PyBytes, PyTuple, PyType};
 use pyo3::wrap_pyfunction;
 use std::path::PathBuf;
-use std::sync::{Mutex, PoisonError};
 
 create_exception!(py_lean_pq, LeanPqError, PyException);
 
@@ -229,30 +228,21 @@ fn sphincs_verify(
 
 #[pyclass(name = "Sidecar", frozen, module = "py_lean_pq")]
 struct PySidecar {
-    // `close` takes it, which stops a sidecar `start` launched.
-    inner: Mutex<Option<lean_pq::Sidecar>>,
+    inner: lean_pq::Sidecar,
 }
 
 impl PySidecar {
     fn new(inner: lean_pq::Sidecar) -> Self {
-        Self {
-            inner: Mutex::new(Some(inner)),
-        }
+        Self { inner }
     }
 
-    /// Runs `call` on the open sidecar, without the GIL.
+    /// Runs `call` on the sidecar, without the GIL.
     fn with<T: Send>(
         &self,
         py: Python<'_>,
         call: impl FnOnce(&lean_pq::Sidecar) -> Result<T, lean_pq::Error> + Send,
     ) -> PyResult<T> {
-        py.detach(|| {
-            let sidecar = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
-            match sidecar.as_ref() {
-                Some(sidecar) => call(sidecar).map_err(api_error),
-                None => Err(LeanPqError::new_err("the sidecar is closed")),
-            }
-        })
+        py.detach(|| call(&self.inner)).map_err(api_error)
     }
 }
 
@@ -348,20 +338,13 @@ impl PySidecar {
     }
 
     #[getter]
-    fn prover(&self, py: Python<'_>) -> PyResult<String> {
-        self.with(py, |sidecar| Ok(sidecar.prover().to_owned()))
+    fn prover(&self) -> &str {
+        self.inner.prover()
     }
 
-    /// Closes the connection, and stops a sidecar `start` launched.
+    /// Stops a sidecar `start` launched, failing a call in progress, and closes the connection.
     fn close(&self, py: Python<'_>) {
-        py.detach(|| {
-            drop(
-                self.inner
-                    .lock()
-                    .unwrap_or_else(PoisonError::into_inner)
-                    .take(),
-            );
-        });
+        py.detach(|| self.inner.close());
     }
 
     fn __enter__(slf: Py<Self>) -> Py<Self> {

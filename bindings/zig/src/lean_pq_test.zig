@@ -148,23 +148,30 @@ test "starts and stops its own sidecar" {
     if (builtin.os.tag == .windows) return error.SkipZigTest;
     const allocator = std.testing.allocator;
     const binary = try requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable");
-    var tmp = std.testing.tmpDir(.{});
-    defer tmp.cleanup();
-    // Relative, so short whatever the working directory: macOS limits a socket path to 104 bytes.
-    const socket = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/s.sock", .{tmp.sub_path});
+    // Short, as macOS limits a socket path to 104 bytes, and missing, so `start` creates it private.
+    var id: [4]u8 = undefined;
+    std.testing.io.random(&id);
+    const directory = try std.fmt.allocPrint(allocator, "{s}/lpq-{x}", .{
+        std.testing.environ.getPosix("TMPDIR") orelse "/tmp",
+        std.mem.readInt(u32, &id, .little),
+    });
+    defer allocator.free(directory);
+    defer std.Io.Dir.cwd().deleteTree(std.testing.io, directory) catch {};
+    const socket = try std.fs.path.join(allocator, &.{ directory, "s.sock" });
     defer allocator.free(socket);
 
     var started = try lpq.Sidecar.start(binary, socket, 2);
-    {
-        errdefer started.deinit();
-        try expectKnownProver(&started);
-        // Bytes that are no proof: the sidecar answers that they prove nothing.
-        try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
-        try expectLastError("the aggregate does not prove the given claims");
-    }
+    defer started.deinit();
+    try expectKnownProver(&started);
+    // Bytes that are no proof: the sidecar answers that they prove nothing.
+    try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
+    try expectLastError("the aggregate does not prove the given claims");
 
     // Closing it stops the sidecar.
-    started.deinit();
+    try started.close();
+    try started.close();
+    try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
+    try expectLastError("the sidecar is closed");
     try std.testing.expectError(error.NativeFailure, lpq.Sidecar.connect(socket));
 }
 

@@ -14,7 +14,7 @@ export declare class Sidecar {
   check(data: Buffer, xmss: Array<Claim>, sphincs: Array<Claim>): Promise<Aggregate>
   /** The prover the sidecar runs: `experimental` or `stable`. */
   get prover(): string
-  /** Closes the connection, and stops a sidecar `start` launched. */
+  /** Stops a sidecar `start` launched, failing a call in progress, and closes the connection. */
   close(): Promise<void>
 }
 

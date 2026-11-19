@@ -36,7 +36,7 @@ lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSig)
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
 
 ```js
 const os = require('os')
@@ -58,7 +58,8 @@ await sidecar.close()
 - `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `verify(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
-- `Sidecar.start` uses one thread per core when `threads` is 0 or omitted; `close()` stops the sidecar it launched. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
+- `Sidecar.start` uses one thread per core when `threads` is 0 or omitted. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
+- Share one `Sidecar` per process: a sidecar serves at most 16 connections.
 - Calls on one `Sidecar` run one at a time.
 
 ## Build and test

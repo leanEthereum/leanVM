@@ -56,8 +56,8 @@ with lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock")) as sideca
 - `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `verify(data, xmss_claims, sphincs_claims)` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- `Sidecar.start` uses one thread per core for `threads=0`; `close()` stops the sidecar it launched. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
-- A `Sidecar` is safe to share between threads; its calls run one at a time. In a forked child, connect again.
+- `Sidecar.start` uses one thread per core for `threads=0`. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
+- Share one `Sidecar` per process (a sidecar serves at most 16 connections); it is thread-safe, and its calls run one at a time. A forked child opens its own connection.
 
 ## Build and test
 

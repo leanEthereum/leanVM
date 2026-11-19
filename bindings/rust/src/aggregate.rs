@@ -15,8 +15,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::process::Child;
+use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(unix)]
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Mutex, MutexGuard, PoisonError};
 #[cfg(unix)]
 use std::time::Duration;
 
@@ -38,22 +39,32 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
 
 /// A connection to a leanVM sidecar, which proves and verifies aggregates.
 ///
-/// - Calls on one connection run one at a time; the sidecar proves one request at a time anyway.
-/// - After the sidecar stops or the connection breaks, the next call connects again.
-/// - Connect again in a forked child rather than sharing the parent's connection.
+/// - Calls run one at a time. After the sidecar stops or the connection breaks, the next call
+///   connects again; so does the first call in a forked child, which never shares its parent's.
+/// - The sidecar serves at most 16 connections: share one `Sidecar` per process.
 /// - Unix only: on other platforms [`Sidecar::connect`] and [`Sidecar::start`] fail.
 #[derive(Debug)]
 pub struct Sidecar {
+    /// The absolute socket path.
     #[cfg_attr(not(unix), allow(dead_code))]
     socket: PathBuf,
     /// The prover the sidecar runs, as it says on connecting.
     #[cfg_attr(not(unix), allow(dead_code))]
     prover: String,
     #[cfg(unix)]
-    client: Mutex<Option<sidecar::Client>>,
-    /// The sidecar [`Sidecar::start`] launched, stopped on drop.
+    connection: Mutex<Connection>,
+    /// The sidecar [`Sidecar::start`] launched, stopped by [`Sidecar::close`] or on drop.
     #[cfg(unix)]
-    process: Option<Owned>,
+    process: Mutex<Option<Owned>>,
+    closed: AtomicBool,
+}
+
+/// The current connection, and the process that opened it: a forked child must not share it.
+#[cfg(unix)]
+#[derive(Debug)]
+struct Connection {
+    client: Option<sidecar::Client>,
+    pid: u32,
 }
 
 /// A sidecar process this value launched, and the process that launched it: a forked child
@@ -67,16 +78,15 @@ struct Owned {
     owner: u32,
 }
 
-#[cfg(unix)]
 impl Drop for Sidecar {
     fn drop(&mut self) {
-        if let Some(owned) = &mut self.process {
-            if owned.owner == std::process::id() {
-                let _ = owned.child.kill();
-                let _ = owned.child.wait();
-            }
-        }
+        self.close();
     }
+}
+
+#[cfg(unix)]
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 impl Sidecar {
@@ -87,15 +97,19 @@ impl Sidecar {
     /// - Fails when nothing listens on `socket`, or when it is not a compatible leanVM sidecar.
     /// - Fails on platforms without Unix sockets.
     pub fn connect(socket: impl AsRef<Path>) -> Result<Self, Error> {
-        let socket = socket.as_ref().to_path_buf();
         #[cfg(unix)]
         {
+            let socket = absolute(socket.as_ref(), "socket")?;
             let client = sidecar::Client::connect(&socket).map_err(sidecar_error)?;
             Ok(Self {
                 socket,
                 prover: client.prover().to_owned(),
-                client: Mutex::new(Some(client)),
-                process: None,
+                connection: Mutex::new(Connection {
+                    client: Some(client),
+                    pid: std::process::id(),
+                }),
+                process: Mutex::new(None),
+                closed: AtomicBool::new(false),
             })
         }
         #[cfg(not(unix))]
@@ -105,17 +119,20 @@ impl Sidecar {
         }
     }
 
-    /// Launches the `leanvm-sidecar` executable at `binary` on `socket` with `threads` threads (0:
-    /// one per core), waits until it has warmed up and listens, and connects to it. Dropping the
-    /// value stops the sidecar.
+    /// Launches the `leanvm-sidecar` executable at `binary` (looked up on `PATH` when it is a bare
+    /// name) on `socket` with `threads` threads (0: one per core), waits until it has warmed up and
+    /// listens, and connects to it. [`Sidecar::close`], dropping the value, or this process
+    /// exiting stops the sidecar.
     ///
-    /// - The socket's directory is created, readable by this user only, if it does not exist.
-    /// - The sidecar's log goes to the socket's path with `.log` appended.
-    /// - The sidecar also stops when this process exits without dropping the value.
+    /// - The socket's directory is created private (mode 0700) if missing, and must be private
+    ///   otherwise: anyone who can write to it could put a fake sidecar there.
+    /// - The sidecar's log is appended to the socket's path with `.log` appended.
+    /// - The sidecar runs in a process group of its own, so a terminal's Ctrl-C does not reach it.
     ///
     /// # Errors
     ///
     /// - Fails when a sidecar already listens on `socket`: connect to it instead.
+    /// - Fails when the socket's directory is not private.
     /// - Fails when `binary` cannot run, or when the sidecar exits or does not listen within ten
     ///   minutes; the error quotes the end of its log.
     /// - Fails on platforms without Unix sockets.
@@ -142,70 +159,108 @@ impl Sidecar {
         &self.prover
     }
 
+    /// Stops the sidecar [`Sidecar::start`] launched, which fails a call in progress, then closes
+    /// the connection, waiting for a call in progress on a sidecar this value did not launch.
+    /// Later calls fail with [`Error::SidecarClosed`]. Closing twice does nothing.
+    pub fn close(&self) {
+        self.closed.store(true, Ordering::Release);
+        #[cfg(unix)]
+        {
+            if let Some(mut owned) = lock(&self.process).take() {
+                if owned.owner == std::process::id() {
+                    let _ = owned.child.kill();
+                    let _ = owned.child.wait();
+                }
+            }
+            lock(&self.connection).client = None;
+        }
+    }
+
     #[cfg(unix)]
     fn launch(binary: &Path, socket: &Path, threads: usize) -> Result<Self, Error> {
-        use std::os::unix::fs::DirBuilderExt;
+        use std::os::unix::process::CommandExt;
         use std::process::{Command, Stdio};
         use std::time::Instant;
 
         let failure = |reason: String| Error::Sidecar { reason };
-        if sidecar::Client::connect(socket).is_ok() {
+        let socket = absolute(socket, "socket")?;
+        // A bare name is looked up on PATH; a path is made absolute.
+        let binary = if binary.components().count() > 1 {
+            absolute(binary, "binary")?
+        } else {
+            binary.to_path_buf()
+        };
+        if binary.as_os_str().is_empty() {
+            return Err(failure("the binary path is empty".into()));
+        }
+        if sidecar::Client::connect(&socket).is_ok() {
             return Err(failure(format!(
                 "a sidecar already listens on {}: connect to it instead",
                 socket.display()
             )));
         }
-        if let Some(directory) = socket.parent().filter(|d| !d.as_os_str().is_empty()) {
-            std::fs::DirBuilder::new()
-                .recursive(true)
-                .mode(0o700)
-                .create(directory)
-                .map_err(|e| failure(format!("cannot create {}: {e}", directory.display())))?;
-        }
-        let mut log_path = socket.as_os_str().to_owned();
-        log_path.push(".log");
-        let log_path = PathBuf::from(log_path);
-        let log = std::fs::File::create(&log_path)
-            .map_err(|e| failure(format!("cannot create {}: {e}", log_path.display())))?;
-        let mut child = Command::new(binary)
+        let (log_path, log) = open_log(&socket)?;
+        let mut child = Command::new(&binary)
             .arg("--socket")
-            .arg(socket)
+            .arg(&socket)
             .arg("--threads")
             .arg(threads.to_string())
             .arg("--exit-with-stdin")
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(log)
+            .process_group(0)
             .spawn()
             .map_err(|e| failure(format!("cannot run {}: {e}", binary.display())))?;
         // From here on, dropping `started` on any error stops the child.
         let mut started = Self {
-            socket: socket.to_path_buf(),
+            socket,
             prover: String::new(),
-            client: Mutex::new(None),
-            process: Some(Owned {
+            connection: Mutex::new(Connection {
+                client: None,
+                pid: std::process::id(),
+            }),
+            process: Mutex::new(Some(Owned {
                 _stdin: child.stdin.take(),
                 child,
                 owner: std::process::id(),
-            }),
+            })),
+            closed: AtomicBool::new(false),
         };
         let deadline = Instant::now() + STARTUP_TIMEOUT;
+        let exited = |started: &mut Self| -> Option<String> {
+            let owned = started
+                .process
+                .get_mut()
+                .unwrap_or_else(PoisonError::into_inner);
+            let child = &mut owned.as_mut().expect("launched").child;
+            match child.try_wait() {
+                Ok(None) => None,
+                Ok(Some(status)) => Some(status.to_string()),
+                Err(error) => Some(error.to_string()),
+            }
+        };
         loop {
-            let child = &mut started.process.as_mut().expect("launched").child;
-            if let Ok(Some(status)) = child.try_wait() {
+            if let Some(status) = exited(&mut started) {
                 return Err(failure(format!(
                     "{} exited ({status}) before listening: {}",
                     binary.display(),
                     log_tail(&log_path)
                 )));
             }
-            match sidecar::Client::connect(socket) {
+            match sidecar::Client::connect(&started.socket) {
                 Ok(client) => {
+                    // Another sidecar may have taken the socket while ours failed to lock it.
+                    std::thread::sleep(Duration::from_millis(100));
+                    if let Some(status) = exited(&mut started) {
+                        return Err(failure(format!(
+                            "{} exited ({status}): another sidecar serves {}",
+                            binary.display(),
+                            started.socket.display()
+                        )));
+                    }
                     client.prover().clone_into(&mut started.prover);
-                    *started
-                        .client
-                        .get_mut()
-                        .unwrap_or_else(PoisonError::into_inner) = Some(client);
+                    lock(&started.connection).client = Some(client);
                     return Ok(started);
                 }
                 Err(sidecar::SidecarError::Io(_)) if Instant::now() < deadline => {
@@ -236,7 +291,7 @@ impl Sidecar {
     /// - Fails when more than 16 children are given.
     /// - Fails when a raw signature does not verify, naming its list and index.
     /// - Fails when the sidecar rejects the input, for example when it is empty.
-    /// - Fails when the sidecar cannot be reached.
+    /// - Fails when the sidecar cannot be reached, or after [`Sidecar::close`].
     pub fn aggregate(
         &self,
         children: &[&Aggregate],
@@ -273,7 +328,7 @@ impl Sidecar {
     /// # Errors
     ///
     /// - Fails when the bytes are not a proof of exactly these claims.
-    /// - Fails when the sidecar cannot be reached.
+    /// - Fails when the sidecar cannot be reached, or after [`Sidecar::close`].
     pub fn verify(
         &self,
         bytes: &[u8],
@@ -319,42 +374,64 @@ impl Sidecar {
             .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
             .collect();
         // No DA blobs, and keep every claim the inputs cover.
-        let (claims, proof) = self.call(|client| {
-            client.aggregate(
-                &children,
-                &xmss,
-                &sphincs,
-                &[],
-                claims::OutputClaims::All,
-                LOG_INV_RATE,
-            )
-        })?;
+        let (claims, proof) = self.call(
+            |client| {
+                client.aggregate(
+                    &children,
+                    &xmss,
+                    &sphincs,
+                    &[],
+                    claims::OutputClaims::All,
+                    LOG_INV_RATE,
+                )
+            },
+            |reason| Error::Aggregation { reason },
+        )?;
         Ok(Aggregate { claims, proof })
     }
 
     #[cfg(unix)]
     fn check(&self, claims: &AggregateClaims, proof: &[u8]) -> Result<bool, Error> {
-        self.call(|client| client.verify(claims, proof))
+        // A refused verify request, such as one too long, proves nothing.
+        self.call(
+            |client| client.verify(claims, proof),
+            |_| Error::AggregateRejected,
+        )
     }
 
-    /// Runs one request, connecting first if a broken connection was dropped.
+    /// Runs one request, connecting first if the connection broke, or was opened by another
+    /// process (this one was forked from it). `rejected` names a request the sidecar refused.
     #[cfg(unix)]
     fn call<T>(
         &self,
         request: impl FnOnce(&mut sidecar::Client) -> Result<T, sidecar::SidecarError>,
+        rejected: impl FnOnce(String) -> Error,
     ) -> Result<T, Error> {
-        let mut client = self.client.lock().unwrap_or_else(PoisonError::into_inner);
-        let connected = match client.take() {
-            Some(connected) => connected,
+        let mut connection = lock(&self.connection);
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::SidecarClosed);
+        }
+        let pid = std::process::id();
+        if connection.pid != pid {
+            // Dropping it closes only this process's copy of the parent's socket.
+            connection.client = None;
+            connection.pid = pid;
+        }
+        let client = match connection.client.take() {
+            Some(client) => client,
             None => sidecar::Client::connect(&self.socket).map_err(sidecar_error)?,
         };
-        match request(client.insert(connected)) {
+        match request(connection.client.insert(client)) {
             Ok(value) => Ok(value),
             // A refused request leaves the connection usable.
-            Err(sidecar::SidecarError::Rejected(_, reason)) => Err(Error::Aggregation { reason }),
+            Err(sidecar::SidecarError::Rejected(_, reason)) => Err(rejected(reason)),
             Err(error) => {
-                *client = None;
-                Err(sidecar_error(error))
+                connection.client = None;
+                Err(if self.closed.load(Ordering::Acquire) {
+                    Error::SidecarClosed
+                } else {
+                    sidecar_error(error)
+                })
             }
         }
     }
@@ -377,15 +454,65 @@ impl Sidecar {
     }
 }
 
+/// Makes sure the socket's directory is private, creating it if missing, and opens the sidecar's
+/// log next to the socket.
+#[cfg(unix)]
+fn open_log(socket: &Path) -> Result<(PathBuf, std::fs::File), Error> {
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+
+    let failure = |reason: String| Error::Sidecar { reason };
+    let directory = socket.parent().unwrap_or(Path::new("/"));
+    if !directory.exists() {
+        std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(directory)
+            .map_err(|e| failure(format!("cannot create {}: {e}", directory.display())))?;
+    }
+    let mode = std::fs::metadata(directory)
+        .map_err(|e| failure(format!("cannot read {}: {e}", directory.display())))?
+        .permissions()
+        .mode();
+    if mode & 0o077 != 0 {
+        return Err(failure(format!(
+            "{} is open to other users (mode {:o}): make it private (chmod 700), or anyone \
+         able to write to it could put a fake sidecar there",
+            directory.display(),
+            mode & 0o777
+        )));
+    }
+    let mut log_path = socket.as_os_str().to_owned();
+    log_path.push(".log");
+    let log_path = PathBuf::from(log_path);
+    let log = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .mode(0o600)
+        .open(&log_path)
+        .map_err(|e| failure(format!("cannot open {}: {e}", log_path.display())))?;
+    Ok((log_path, log))
+}
+
+/// `path` made absolute, so a reconnection after the process changes directory finds the same
+/// socket.
+#[cfg(unix)]
+fn absolute(path: &Path, what: &str) -> Result<PathBuf, Error> {
+    if path.as_os_str().is_empty() {
+        return Err(Error::Sidecar {
+            reason: format!("the {what} path is empty"),
+        });
+    }
+    std::path::absolute(path).map_err(|e| Error::Sidecar {
+        reason: format!("cannot resolve {}: {e}", path.display()),
+    })
+}
+
 /// The end of a sidecar's log, to quote in an error.
 #[cfg(unix)]
 fn log_tail(path: &Path) -> String {
-    let log = std::fs::read_to_string(path).unwrap_or_default();
-    let start = log.len().saturating_sub(2000);
-    let start = (start..log.len())
-        .find(|&i| log.is_char_boundary(i))
-        .unwrap_or(log.len());
-    log[start..].trim().to_owned()
+    let log = std::fs::read(path).unwrap_or_default();
+    let log = String::from_utf8_lossy(&log[log.len().saturating_sub(2000)..]);
+    log.trim().to_owned()
 }
 
 #[cfg(unix)]

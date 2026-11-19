@@ -37,8 +37,8 @@ concurrency:
 
 jobs:
   # The sidecar the aggregation tests talk to, built once per OS for a CPU baseline every runner
-  # has; the test jobs start it with bindings/scripts/start-sidecar.sh, and run (`!cancelled()`)
-  # even when the other OS's build found no runner.
+  # has; the test jobs start it with bindings/scripts/start-sidecar.sh. They run (`!cancelled()`)
+  # even when one OS's build failed, so the other OS's rows still report.
   sidecar:
     name: Sidecar / ${{ matrix.os }}
     strategy:
@@ -156,7 +156,6 @@ jobs:
         if: runner.os != 'Windows'
         run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
-      # rust-toolchain.toml pins the rustc version; this action honors it.
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -504,14 +503,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - if: runner.os != 'Windows'
+      - if: runner.os != 'Windows' && matrix.platform.go_dir != 'linux_arm64'
         uses: actions/download-artifact@v4
         with:
           name: sidecar-${{ runner.os }}
           path: ${{ runner.temp }}/sidecar-bin
 
       - name: Start a sidecar for the aggregation tests
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && matrix.platform.go_dir != 'linux_arm64'
         run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v4

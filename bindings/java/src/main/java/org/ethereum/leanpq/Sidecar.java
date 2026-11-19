@@ -93,12 +93,20 @@ public final class Sidecar implements AutoCloseable {
     }
 
     /**
-     * Closes the connection once calls in progress return, and stops the sidecar if
-     * {@link #start(Path, Path)} launched it.
+     * Stops the sidecar {@link #start(Path, Path)} launched at once, failing calls in progress, and
+     * closes the connection; the handle is freed once those calls return. Later calls throw
+     * {@link IllegalStateException}. Idempotent. An unreachable started sidecar is stopped when the
+     * Cleaner frees it.
      */
     @Override
     public void close() {
-        handle.close();
+        try (NativeHandle.Borrow borrowed = handle.borrowIfOpen()) {
+            if (borrowed != null) {
+                Native.closeSidecar(borrowed.pointer());
+            }
+        } finally {
+            handle.close();
+        }
     }
 
     private static byte[] signedRecords(List<SignedMessage> entries, int signatureLength, String scheme) {

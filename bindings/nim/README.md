@@ -29,6 +29,8 @@ git -C vendor/leanVM checkout bindings-v0.12.0
 ```
 <!-- x-release-please-end -->
 
+The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
+
 The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
@@ -69,11 +71,11 @@ main()
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above (and `import std/os`):
 
 ```nim
 let
-  sidecar = LeanPqSidecar.connect("/home/me/.leanvm/sidecar.sock").expect("sidecar")
+  sidecar = LeanPqSidecar.connect(getHomeDir() / ".leanvm" / "sidecar.sock").expect("sidecar")
   leaf = sidecar.aggregate(
     xmss = [XmssSignedMessage(
       publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
@@ -94,8 +96,9 @@ sidecar.close()
 - `aggregate` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `verify` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
-- `LeanPqSidecar.start(binaryPath, socketPath, threads = 0)` launches a sidecar instead (`threads` 0: one per core). `prover()` returns `experimental` or `stable`.
-- Calls on one `LeanPqSidecar` run one at a time. `close` disconnects and stops a sidecar `start` launched.
+- `LeanPqSidecar.start("leanvm-sidecar", getHomeDir() / ".leanvm" / "run" / "sidecar.sock", threads = 0)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover()` returns `experimental` or `stable`.
+- A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
+- On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
 
 ## Build from source
 

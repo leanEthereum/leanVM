@@ -31,7 +31,7 @@ Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see 
 use lean_pq::{sphincs, xmss, Sidecar};
 
 let sidecar = Sidecar::connect("/home/me/.leanvm/sidecar.sock")?;
-// or: Sidecar::start("leanvm-sidecar", "/tmp/leanvm/sidecar.sock", 0)?, which launches one
+// or: Sidecar::start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", 0)?, which launches one
 let message = [0x42; 32];
 let xmss_key = xmss::SecretKey::from_seed([0x01; 32]);
 let sphincs_key = sphincs::SecretKey::from_seed([0x02; 32]);
@@ -51,8 +51,8 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 - `aggregate` verifies raw signatures before proving and takes at most `MAX_CHILDREN` (16) children. The result proves the union of their claims.
 - `to_bytes` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `verify` accepts exactly the claims passed, in any order, and fails otherwise.
-- `Sidecar::start` with `threads` 0 uses one thread per core; dropping the `Sidecar` stops a sidecar it launched. `prover()` is `experimental` or `stable`, which make the same proofs.
-- Calls run one at a time; a broken connection is reopened on the next call. In a forked child, connect again.
+- `Sidecar::start` with `threads` 0 uses one thread per core; `close`, or dropping the `Sidecar`, stops a sidecar it launched, failing a call in progress. `prover()` is `experimental` or `stable`, which make the same proofs.
+- Calls run one at a time; a broken connection is reopened on the next call, and a forked child opens its own. Share one `Sidecar` per process: a sidecar serves at most 16 connections.
 
 ## Build and test
 

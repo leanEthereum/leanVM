@@ -11,6 +11,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +40,7 @@ final class Native {
     private static final Linker LINKER = Linker.nativeLinker();
     private static final Arena LIBRARY_ARENA = Arena.ofShared();
     private static final String NATIVE_PATH_PROPERTY = "lean.pq.native.path";
+    private static final Charset FILE_NAME_CHARSET = Charset.forName(System.getProperty("sun.jnu.encoding", "UTF-8"));
     private static final SymbolLookup LIBRARY = loadLibrary();
 
     private static final FunctionDescriptor HANDLE_TO_BUFFER = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
@@ -70,6 +72,7 @@ final class Native {
     private static final MethodHandle SIDECAR_CONNECT = downcall("lpq_sidecar_connect", BYTES_TO_HANDLE);
     private static final MethodHandle SIDECAR_START = downcall("lpq_sidecar_start", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle SIDECAR_PROVER = downcall("lpq_sidecar_prover", HANDLE_TO_BUFFER);
+    private static final MethodHandle SIDECAR_CLOSE = downcall("lpq_sidecar_close", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle SIDECAR_DESTROY = downcall("lpq_sidecar_destroy", DESTROY);
 
     private static final MethodHandle SIDECAR_AGGREGATE = downcall("lpq_sidecar_aggregate", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
@@ -185,6 +188,10 @@ final class Native {
 
     static String sidecarProver(MemorySegment sidecar) {
         return new String(buffer(SIDECAR_PROVER, sidecar), StandardCharsets.UTF_8);
+    }
+
+    static void closeSidecar(MemorySegment sidecar) {
+        check(status(SIDECAR_CLOSE, sidecar));
     }
 
     static void destroySidecar(MemorySegment pointer) {
@@ -423,8 +430,9 @@ final class Native {
         return message.isBlank() ? "native lean-pq operation failed" : message;
     }
 
+    /** Encodes a path as the platform encodes file names, which is how the native side reads it. */
     private static byte[] pathBytes(Path path) {
-        return path.toString().getBytes(StandardCharsets.UTF_8);
+        return path.toString().getBytes(FILE_NAME_CHARSET);
     }
 
     private static MemorySegment copy(Arena arena, byte[] bytes) {

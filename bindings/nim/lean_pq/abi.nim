@@ -140,6 +140,8 @@ proc lpqSidecarStart*(
   importc: "lpq_sidecar_start", header: lpqHeader.}
 proc lpqSidecarProver*(sidecar: ptr LpqSidecar, output: ptr LpqBuffer): int32 {.
   importc: "lpq_sidecar_prover", header: lpqHeader.}
+proc lpqSidecarClose*(sidecar: ptr LpqSidecar): int32 {.
+  importc: "lpq_sidecar_close", header: lpqHeader.}
 proc lpqSidecarDestroy*(sidecar: ptr LpqSidecar) {.
   importc: "lpq_sidecar_destroy", header: lpqHeader.}
 

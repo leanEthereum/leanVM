@@ -10,12 +10,15 @@ SphincsSecretKey.generate = native.generateSphincsSecretKey
 SphincsSecretKey.fromSeed = native.sphincsSecretKeyFromSeed
 SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
 
-Sidecar.connect = native.sidecarConnect
-Sidecar.start = native.sidecarStart
-Sidecar.prototype.aggregate = function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
+// async: an invalid argument rejects the promise rather than throwing.
+Sidecar.connect = async (socket) => native.sidecarConnect(socket)
+Sidecar.start = async (binary, socket, threads) => native.sidecarStart(binary, socket, threads)
+Sidecar.prototype.aggregate = async function aggregate(input) {
+  const { children = [], xmss = [], sphincs = [] } = input ?? {}
   return this.prove(children, xmss, sphincs)
 }
-Sidecar.prototype.verify = function verify(data, { xmss = [], sphincs = [] } = {}) {
+Sidecar.prototype.verify = async function verify(data, claims) {
+  const { xmss = [], sphincs = [] } = claims ?? {}
   return this.check(data, xmss, sphincs)
 }
 

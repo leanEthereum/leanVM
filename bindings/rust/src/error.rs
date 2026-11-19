@@ -78,6 +78,10 @@ pub enum Error {
         reason: String,
     },
 
+    /// The [`Sidecar`](crate::Sidecar) was closed.
+    #[error("the sidecar is closed")]
+    SidecarClosed,
+
     /// This platform has no Unix sockets, so it cannot reach a sidecar.
     #[error("the leanVM sidecar needs Unix sockets, which this platform lacks")]
     SidecarUnsupported,

@@ -126,14 +126,20 @@ def test_aggregating_nothing_fails(sidecar):
         sidecar.aggregate()
 
 
+@pytest.fixture
+def directory():
+    # Short: a Unix socket path holds at most 104 bytes on macOS.
+    directory = tempfile.mkdtemp(prefix="lpq")
+    yield directory
+    shutil.rmtree(directory)
+
+
 @needs_sidecar
-def test_starts_and_stops_its_own_sidecar(sidecar):
+def test_starts_and_stops_its_own_sidecar(sidecar, directory):
     key = lpq.XmssSecretKey.from_seed(b"\x07" * 32)
     message = b"\x33" * 32
     proof = sidecar.aggregate(xmss=[(key.public_key, message, key.sign(message, 0))])
 
-    # Short: a Unix socket path holds at most 104 bytes on macOS.
-    directory = tempfile.mkdtemp(prefix="lpq")
     socket = os.path.join(directory, "s.sock")
     with lpq.Sidecar.start(env("LEANVM_SIDECAR_BIN"), socket, threads=2) as started:
         assert started.prover in ("experimental", "stable")
@@ -143,10 +149,32 @@ def test_starts_and_stops_its_own_sidecar(sidecar):
         lpq.Sidecar.connect(socket)
     with pytest.raises(lpq.LeanPqError, match="closed"):
         started.verify(proof.to_bytes(), proof.xmss_claims)
-    shutil.rmtree(directory)
 
 
-def test_connecting_where_no_sidecar_listens_fails(tmp_path):
+@needs_sidecar
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded")
+def test_a_forked_child_opens_its_own_connection(sidecar):
+    key = lpq.XmssSecretKey.from_seed(b"\x08" * 32)
+    message = b"\x44" * 32
+    proof = sidecar.aggregate(xmss=[(key.public_key, message, key.sign(message, 0))])
+    pid = os.fork()
+    if pid == 0:
+        # Whatever happens, the child must not return into pytest.
+        code = 1
+        try:
+            sidecar.verify(proof.to_bytes(), proof.xmss_claims)
+            code = 0
+        finally:
+            os._exit(code)
+    # The parent's connection is untouched, and the child's verdict was its own.
+    sidecar.verify(proof.to_bytes(), proof.xmss_claims)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    with pytest.raises(lpq.LeanPqError, match="does not prove"):
+        sidecar.verify(proof.to_bytes())
+
+
+def test_connecting_where_no_sidecar_listens_fails(directory):
     match = "leanVM sidecar" if UNIX else "Unix sockets"
     with pytest.raises(lpq.LeanPqError, match=match):
-        lpq.Sidecar.connect(tmp_path / "none.sock")
+        lpq.Sidecar.connect(os.path.join(directory, "none.sock"))

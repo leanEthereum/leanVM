@@ -221,10 +221,51 @@ fn starts_and_stops_its_own_sidecar() {
 }
 
 #[test]
+fn close_stops_a_started_sidecar_and_fails_the_call_in_progress() {
+    let binary = std::env::var_os("LEANVM_SIDECAR_BIN")
+        .expect("set LEANVM_SIDECAR_BIN to a leanvm-sidecar executable");
+    let directory = std::env::temp_dir().join(format!("lpqc{}", std::process::id()));
+    let socket = directory.join("s.sock");
+    let started = Sidecar::start(&binary, &socket, 2).unwrap();
+
+    std::thread::scope(|scope| {
+        let proving = scope.spawn(|| started.aggregate(&[], &[xmss_input(SECOND, 9)], &[]));
+        // Let the proof start, then close: it stops the sidecar under the call.
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        started.close();
+        assert!(proving.join().unwrap().is_err());
+    });
+    assert_eq!(
+        started.verify(&LEAF.to_bytes(), &[], &[]).unwrap_err(),
+        Error::SidecarClosed
+    );
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn refuses_a_socket_directory_open_to_others() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = std::env::temp_dir().join(format!("lpqo{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o777)).unwrap();
+    let error = Sidecar::start("leanvm-sidecar", directory.join("s.sock"), 0).unwrap_err();
+    assert!(error.to_string().contains("open to other users"), "{error}");
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn refuses_empty_paths() {
+    assert!(Sidecar::connect("").is_err());
+    assert!(Sidecar::start("leanvm-sidecar", "", 0).is_err());
+}
+
+#[test]
 fn fails_to_start_a_missing_binary() {
-    let socket = std::env::temp_dir().join(format!("lean-pq-missing-{}.sock", std::process::id()));
-    let error = Sidecar::start("/nonexistent/leanvm-sidecar", &socket, 0).unwrap_err();
+    let directory = std::env::temp_dir().join(format!("lpqm{}", std::process::id()));
+    let error =
+        Sidecar::start("/nonexistent/leanvm-sidecar", directory.join("s.sock"), 0).unwrap_err();
     assert!(error.to_string().contains("cannot run"), "{error}");
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]

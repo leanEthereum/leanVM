@@ -187,6 +187,14 @@ pub unsafe extern "C" fn lpq_sidecar_prover(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn lpq_sidecar_close(sidecar: *mut SidecarHandle) -> c_int {
+    ffi(|| {
+        handle(sidecar, "sidecar")?.0.close();
+        Ok(())
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lpq_sidecar_destroy(sidecar: *mut SidecarHandle) {
     destroy(sidecar)
 }

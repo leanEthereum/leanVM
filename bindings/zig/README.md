@@ -50,7 +50,7 @@ pub fn main() !void {
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
 
 ```zig
 const allocator = std.heap.page_allocator;
@@ -85,8 +85,9 @@ defer received.deinit();
 - `aggregate` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `verify` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
-- `Sidecar.start(binary_path, socket_path, threads)` launches a sidecar instead (`threads` 0: one per core). `prover(allocator)` returns `experimental` or `stable`.
-- Calls on one `Sidecar` run one at a time. `deinit` disconnects and stops a sidecar `start` launched.
+- `Sidecar.start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", threads)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover(allocator)` returns `experimental` or `stable`.
+- A sidecar serves at most 16 connections: share one `Sidecar` per process. Calls on it run one at a time.
+- `close()` stops a sidecar `start` launched at once, failing a call in progress, even from another thread; `deinit` closes and frees the handle.
 
 ## Build from source
 

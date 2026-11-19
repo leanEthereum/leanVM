@@ -108,6 +108,8 @@ suite "lean_pq":
     check:
       XmssSecretKey.fromBytes([1'u8, 2, 3]).isErr()
       SphincsSecretKey.fromBytes([]).isErr()
+      LeanPqSidecar.start("leanvm-sidecar", "s.sock", threads = -1).error() ==
+        "threads must be >= 0"
 
   test "closed values return errors and close twice":
     let
@@ -203,7 +205,7 @@ suite "lean_pq":
         sidecar.aggregate([root, restored]).error() == "aggregate is closed"
 
     test "starts and stops its own sidecar":
-      # Short: macOS limits a socket path to 104 bytes.
+      # Short, as macOS limits a socket path to 104 bytes, and missing, so `start` creates it private.
       let directory = getTempDir() / ("lpq-" & $getCurrentProcessId())
       defer: removeDir(directory)
       let
@@ -211,6 +213,7 @@ suite "lean_pq":
         sidecar = LeanPqSidecar.start(
           requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable"), socket,
           threads = 2).expect("started")
+      defer: sidecar.close()
       check:
         sidecar.prover().expect("prover") in ["experimental", "stable"]
         # Bytes that are no proof: the sidecar answers that they prove nothing.

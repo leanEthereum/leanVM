@@ -112,8 +112,10 @@ defer received.Close()
 - `Aggregate` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
 - `Verify` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
-- `StartSidecar(binaryPath, socketPath, threads)` launches a sidecar instead (`threads` 0: one per core). `Prover()` returns `experimental` or `stable`; both make the same proofs.
-- A `Sidecar` is safe for concurrent use. `Close` waits for calls in progress and stops a sidecar `StartSidecar` launched.
+- Verifying an aggregate also needs the sidecar.
+- `StartSidecar(binaryPath, socketPath, threads)` launches a sidecar instead, on a socket in a private directory such as `~/.leanvm/run/sidecar.sock` (`threads` 0: one per core). `Prover()` returns `experimental` or `stable`; both make the same proofs.
+- A `Sidecar` is safe for concurrent use. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
+- `Close` stops a sidecar `StartSidecar` launched at once, failing calls in progress, then closes the connection; later calls fail.
 
 ## Build from source
 

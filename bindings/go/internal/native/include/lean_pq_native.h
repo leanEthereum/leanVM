@@ -59,7 +59,12 @@ int32_t lpq_sidecar_connect(const uint8_t *path, size_t len, lpq_sidecar **out);
 int32_t lpq_sidecar_start(const uint8_t *binary, size_t binary_len, const uint8_t *path, size_t len, size_t threads, lpq_sidecar **out);
 /* The prover the sidecar runs: "experimental" or "stable" (UTF-8, no NUL). */
 int32_t lpq_sidecar_prover(lpq_sidecar *sidecar, lpq_buffer *out);
-/* Closes the connection, and stops the sidecar if lpq_sidecar_start launched it. */
+/*
+ * Stops the sidecar lpq_sidecar_start launched, failing a call in progress, then closes the
+ * connection; later calls fail. Safe to call while another thread is in a call, and twice.
+ */
+int32_t lpq_sidecar_close(lpq_sidecar *sidecar);
+/* Closes, then frees the handle. No call may be in progress. */
 void lpq_sidecar_destroy(lpq_sidecar *sidecar);
 
 /*
