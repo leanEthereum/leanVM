@@ -11,17 +11,14 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `sp_wots`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«sp_wots».cert.locs Fn.«sp_wots».fs Fn.«sp_wots».core.body = true := by
-  decide +kernel
+theorem Fn.«sp_wots».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

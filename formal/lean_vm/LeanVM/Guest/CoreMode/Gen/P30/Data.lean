@@ -13,16 +13,12 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«padding_weight__L1»
-
 @[expose] public section
-
-/-- `padding_weight__L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩] }
   reads := [(6, [(1, 0, .pre 0)])]
   res := []
 
-/-- `padding_weight__L1`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 0)]
 
@@ -30,10 +26,7 @@ end
 end LeanVM.Guest.Fn.«padding_weight__L1»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L14»
-
 @[expose] public section
-
-/-- `padding_weight__L14`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
     ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
@@ -44,7 +37,6 @@ def hcert : CoreMode.HCert where
     (73, [(1, 11, .pre 11)]), (78, [(1, 12, .pre 12)]), (83, [(1, 13, .pre 13)])]
   res := []
 
-/-- `padding_weight__L14`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
     (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),

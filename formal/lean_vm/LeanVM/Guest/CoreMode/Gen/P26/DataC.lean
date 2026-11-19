@@ -14,10 +14,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«child_claim_list_last__L8»
-
 @[expose] public section
-
-/-- `child_claim_list_last__L8`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
@@ -49,12 +46,9 @@ def hcert : CoreMode.HCert where
   rets := [[.pts, .ev 40, .ev 41, .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51,
         .ev 52]]
 
-/-- `child_claim_list_last__L8`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `child_claim_list_last__L8`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `child_claim_list_last__L8`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -62,10 +56,7 @@ end
 end LeanVM.Guest.Fn.«child_claim_list_last__L8»
 
 namespace LeanVM.Guest.Fn.«column_selector__L12»
-
 @[expose] public section
-
-/-- `column_selector__L12`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 240⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 304⟩, 1, (.num 0), (.num 16)⟩,
@@ -88,12 +79,9 @@ def hcert : CoreMode.HCert where
         .run 9 []]]
   eqs := [55]
 
-/-- `column_selector__L12`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `column_selector__L12`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `column_selector__L12`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -101,10 +89,7 @@ end
 end LeanVM.Guest.Fn.«column_selector__L12»
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
-
 @[expose] public section
-
-/-- `decode_query_windows__L12_L6`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 2)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩,
@@ -156,12 +141,9 @@ def hcert : CoreMode.HCert where
     (278, 0), (278, 1), (278, 2), (278, 3), (278, 4), (278, 5), (278, 6), (278, 7), (278, 8), (306, 0),
     (306, 1), (306, 2), (306, 3), (306, 4), (306, 5), (334, 0), (334, 1), (334, 2)]
 
-/-- `decode_query_windows__L12_L6`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `decode_query_windows__L12_L6`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `decode_query_windows__L12_L6`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -169,10 +151,7 @@ end
 end LeanVM.Guest.Fn.«decode_query_windows__L12_L6»
 
 namespace LeanVM.Guest.Fn.«grind_check__L20»
-
 @[expose] public section
-
-/-- `grind_check__L20`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
@@ -182,12 +161,9 @@ def hcert : CoreMode.HCert where
   res := [.lt (.val 5) (.num 2048), .lt (.val 4) (.num 2048), .lt (.val 3) (.num 2048), .lt (.val 2) (.num 2048)]
   rets := [[.run 0 []]]
 
-/-- `grind_check__L20`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `grind_check__L20`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `grind_check__L20`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -195,10 +171,7 @@ end
 end LeanVM.Guest.Fn.«grind_check__L20»
 
 namespace LeanVM.Guest.Fn.«level_positions__L44_L23_L5»
-
 @[expose] public section
-
-/-- `level_positions__L44_L23_L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -226,7 +199,6 @@ def hcert : CoreMode.HCert where
         .run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .pfr 4 [], .pfr 20 [], .pfr 21 [],
         .pfr 22 [], .pfr 23 [], .pfr 24 []]]
 
-/-- `level_positions__L44_L23_L5`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop334", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
@@ -251,9 +223,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4])] })]
-/-- `level_positions__L44_L23_L5`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_positions__L44_L23_L5`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -261,10 +231,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L44_L23_L5»
 
 namespace LeanVM.Guest.Fn.«level_positions__L5_L17_L5»
-
 @[expose] public section
-
-/-- `level_positions__L5_L17_L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -298,7 +265,6 @@ def hcert : CoreMode.HCert where
         .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [], .pfr 24 [], .pfr 25 [], .pfr 26 [],
         .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]]
 
-/-- `level_positions__L5_L17_L5`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop59", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
@@ -328,9 +294,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 7)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L5_L17_L5`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_positions__L5_L17_L5`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -338,10 +302,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L5_L17_L5»
 
 namespace LeanVM.Guest.Fn.«level_positions__L7_L16_L4»
-
 @[expose] public section
-
-/-- `level_positions__L7_L16_L4`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
@@ -373,7 +334,6 @@ def hcert : CoreMode.HCert where
         .run 24 [], .run 25 [], .run 3 [], .pfr 4 [], .pfr 26 [], .pfr 27 [], .pfr 28 [], .pfr 29 [],
         .pfr 30 [], .pfr 31 [], .pfr 32 [], .pfr 33 []]]
 
-/-- `level_positions__L7_L16_L4`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop127", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
@@ -403,9 +363,7 @@ def csigs : List (String × CoreMode.HSig) :=
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
         ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L7_L16_L4`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_positions__L7_L16_L4`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -413,10 +371,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L7_L16_L4»
 
 namespace LeanVM.Guest.Fn.«level_positions__L8_L25_L7»
-
 @[expose] public section
-
-/-- `level_positions__L8_L25_L7`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -443,7 +398,6 @@ def hcert : CoreMode.HCert where
         .run 1 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .pfr 2 [], .pfr 18 [], .pfr 19 [], .pfr 20 [],
         .pfr 21 [], .pfr 22 []]]
 
-/-- `level_positions__L8_L25_L7`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop382", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
@@ -468,9 +422,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
       postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4])] })]
-/-- `level_positions__L8_L25_L7`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_positions__L8_L25_L7`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -478,10 +430,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L8_L25_L7»
 
 namespace LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1»
-
 @[expose] public section
-
-/-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
@@ -515,7 +464,6 @@ def hcert : CoreMode.HCert where
         .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .run 6 [], .pfr 7 []]]
 
-/-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(4, 1)], 2⟩,
@@ -529,9 +477,7 @@ def csigs : List (String × CoreMode.HSig) :=
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
     ("verify_merkle_cap__L5", CoreMode.HcSig.«verify_merkle_cap__L5».sig)]
-/-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L5", 2, 2)]
 
@@ -539,10 +485,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1»
 
 namespace LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
@@ -567,7 +510,6 @@ def hcert : CoreMode.HCert where
         .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 6 [], .pfr 7 []]]
   rets := [[.run 8 [], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .pfr 13 [], .pfr 14 []]]
 
-/-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -582,9 +524,7 @@ def csigs : List (String × CoreMode.HSig) :=
       postPR := [(⟨⟨[(6, 1)], 0⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
     ("verify_merkle_cap__L3", CoreMode.HcSig.«verify_merkle_cap__L3».sig)]
-/-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L3", 2, 2)]
 
@@ -592,10 +532,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
@@ -617,7 +554,6 @@ def hcert : CoreMode.HCert where
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
-/-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -628,9 +564,7 @@ def csigs : List (String × CoreMode.HSig) :=
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
     ("verify_merkle_cap__L4", CoreMode.HcSig.«verify_merkle_cap__L4».sig)]
-/-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L4", 2, 2)]
 

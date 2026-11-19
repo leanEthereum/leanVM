@@ -57,70 +57,29 @@ public import LeanVM.Guest.Pack.«open_stacked__L6».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«open_stacked__L6»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee0 : List ℕ :=
-  [265840, 265882, 265924, 265966]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee1 : List ℕ :=
-  [266008, 266049, 266089, 266127]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee2 : List ℕ :=
-  [258709, 266166, 266208, 266250]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee3 : List ℕ :=
-  [266292, 266331, 266368, 266405]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee4 : List ℕ :=
-  [259091, 264788, 266439, 266481]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee5 : List ℕ :=
-  [259246, 266523, 266559, 266595]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee6 : List ℕ :=
-  [259325, 261196, 263102, 266632]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee7 : List ℕ :=
-  [259473, 266674, 266710, 266746]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee8 : List ℕ :=
-  [259621, 261561, 263253, 264981]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee9 : List ℕ :=
-  [259769, 266781, 266816, 266850]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee10 : List ℕ :=
-  [266886, 266931, 266976, 267021]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee11 : List ℕ :=
-  [267066, 267111, 267156, 267201]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee12 : List ℕ :=
-  [260195, 267225, 267270, 267315]
-
-/-- `open_stacked__L6`: a table call's callees' pcs. -/
-def frameCallee13 : List ℕ :=
-  [260333, 267359, 267404, 267449]
-
-/-- `open_stacked__L6`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
+def Fn.«open_stacked__L6».frameCallee0 : List ℕ := [265840, 265882, 265924, 265966]
+def Fn.«open_stacked__L6».frameCallee1 : List ℕ := [266008, 266049, 266089, 266127]
+def Fn.«open_stacked__L6».frameCallee2 : List ℕ := [258709, 266166, 266208, 266250]
+def Fn.«open_stacked__L6».frameCallee3 : List ℕ := [266292, 266331, 266368, 266405]
+def Fn.«open_stacked__L6».frameCallee4 : List ℕ := [259091, 264788, 266439, 266481]
+def Fn.«open_stacked__L6».frameCallee5 : List ℕ := [259246, 266523, 266559, 266595]
+def Fn.«open_stacked__L6».frameCallee6 : List ℕ := [259325, 261196, 263102, 266632]
+def Fn.«open_stacked__L6».frameCallee7 : List ℕ := [259473, 266674, 266710, 266746]
+def Fn.«open_stacked__L6».frameCallee8 : List ℕ := [259621, 261561, 263253, 264981]
+def Fn.«open_stacked__L6».frameCallee9 : List ℕ := [259769, 266781, 266816, 266850]
+def Fn.«open_stacked__L6».frameCallee10 : List ℕ := [266886, 266931, 266976, 267021]
+def Fn.«open_stacked__L6».frameCallee11 : List ℕ := [267066, 267111, 267156, 267201]
+def Fn.«open_stacked__L6».frameCallee12 : List ℕ := [260195, 267225, 267270, 267315]
+def Fn.«open_stacked__L6».frameCallee13 : List ℕ := [260333, 267359, 267404, 267449]
+noncomputable def Fn.«open_stacked__L6».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 222881, 2022,
     Fn.«open_stacked__L6».modeSig, (.node none (.node none (.node none (.node none (.node none
     (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
@@ -355,10 +314,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     frameCallee10) .nil .nil) .nil))), Fn.«open_stacked__L6».pairO, Fn.«open_stacked__L6».pairS,
     .nil⟩
 
-/-- `open_stacked__L6`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«open_stacked__L6».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L6»
+end LeanVM.Guest

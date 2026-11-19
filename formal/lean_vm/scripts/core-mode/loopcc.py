@@ -193,7 +193,7 @@ def emit(R, check):
     for pack, ks in sorted(packs.items()):
         out = [HEADER.format(pack=pack, first=ks[0], more=len(ks) - 1)]
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{R[k]["text"]}'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{R[k]["text"]}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files[os.path.join(GEN, pack, 'DataLC.lean')] = ''.join(out)
     stale = []

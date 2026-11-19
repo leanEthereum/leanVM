@@ -14,24 +14,15 @@ public import LeanVM.Guest.CoreMode.Gen.«P19».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L9»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L9`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L9»
-
-namespace LeanVM.Guest.Fn.«index_mle__L7»
-
-@[expose] public section
-
-/-- `index_mle__L7`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L9».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L7».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«index_mle__L7»
+
+end LeanVM.Guest

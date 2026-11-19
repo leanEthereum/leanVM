@@ -13,16 +13,12 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«index_mle__L2»
-
 @[expose] public section
-
-/-- `index_mle__L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩] }
   reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)])]
   res := []
 
-/-- `index_mle__L2`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(0, 1)], 1⟩, .ev 1)]
 

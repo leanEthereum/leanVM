@@ -14,46 +14,17 @@ public import LeanVM.Guest.CoreMode.Gen.«P17».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L25»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L25`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L25»
-
-namespace LeanVM.Guest.Fn.«block_selector__L3»
-
-@[expose] public section
-
-/-- `block_selector__L3`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L25».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L3».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L21».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L30».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«block_selector__L3»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L21»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L21`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L21»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L30»
-
-@[expose] public section
-
-/-- `plus_one_run__L30`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L30»
+end LeanVM.Guest

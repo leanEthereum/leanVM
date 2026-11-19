@@ -13,33 +13,17 @@ public import LeanVM.Guest.Bridge.Align.«verify_merkle_cap__L8»
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_merkle_cap__L8`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«verify_merkle_cap__L8».core.body = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1182 = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«verify_merkle_cap__L8».fs [] Fn.«verify_merkle_cap__L8».core.params Fn.«verify_merkle_cap__L8».core.body
-      Data.adviceFn1182 = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«verify_merkle_cap__L8».fs Fn.«verify_merkle_cap__L8».core.loop Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code
-      Data.adviceFn1182 = true := by
-  decide +kernel
+theorem Fn.«verify_merkle_cap__L8».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn1182 = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».frOk : Bridge.frChk alignCtx fs [] core.params core.body Data.adviceFn1182 = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn1182 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

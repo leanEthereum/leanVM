@@ -11,302 +11,33 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«P0».Bundle
 public import LeanVM.Guest.Pack.«P0».Core
 
-namespace LeanVM.Guest.Fn.«opening_round»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
-
-public section
-
-/-- `opening_round`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«opening_round».cert.locs Fn.«opening_round».fs Fn.«opening_round».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«opening_round»
-
-namespace LeanVM.Guest.Fn.«block_selector__L8»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `block_selector__L8`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«block_selector__L8».cert.locs Fn.«block_selector__L8».fs Fn.«block_selector__L8».core.body = true := by
-  decide +kernel
+theorem Fn.«opening_round».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«block_selector__L8».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«index_mle__L6».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«column_selector__L5».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L30».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L44_L11_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L25_L12_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_positions__L19_L26_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«decode_query_windows__L16_L4».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_positions__L6_L17_L5_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L28_L7_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L25_L8_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L37_L14_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L23_L12_L4_L2_loop1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_positions__L9_L24_L6_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L218_L23_L6_L3_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«level_residual__L28_L15_L4_L2_loop1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«block_selector__L8»
-
-namespace LeanVM.Guest.Fn.«index_mle__L6»
-
-open LeanVM.Guest
-
-public section
-
-/-- `index_mle__L6`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«index_mle__L6».cert.locs Fn.«index_mle__L6».fs Fn.«index_mle__L6».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«index_mle__L6»
-
-namespace LeanVM.Guest.Fn.«column_selector__L5»
-
-open LeanVM.Guest
-
-public section
-
-/-- `column_selector__L5`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«column_selector__L5».cert.locs Fn.«column_selector__L5».fs Fn.«column_selector__L5».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L5»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L30»
-
-open LeanVM.Guest
-
-public section
-
-/-- `squeeze_point_from__L30`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«squeeze_point_from__L30».cert.locs Fn.«squeeze_point_from__L30».fs Fn.«squeeze_point_from__L30».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L30»
-
-namespace LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».cert.locs Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».fs Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L44_L11_L4_L2`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L44_L11_L4_L2».cert.locs Fn.«level_residual__L44_L11_L4_L2».fs Fn.«level_residual__L44_L11_L4_L2».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L25_L12_L4_L2`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L25_L12_L4_L2».cert.locs Fn.«level_residual__L25_L12_L4_L2».fs Fn.«level_residual__L25_L12_L4_L2».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».cert.locs Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».fs Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L19_L26_L2»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_positions__L19_L26_L2`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_positions__L19_L26_L2».cert.locs Fn.«level_positions__L19_L26_L2».fs Fn.«level_positions__L19_L26_L2».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L19_L26_L2»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L16_L4»
-
-open LeanVM.Guest
-
-public section
-
-/-- `decode_query_windows__L16_L4`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«decode_query_windows__L16_L4».cert.locs Fn.«decode_query_windows__L16_L4».fs Fn.«decode_query_windows__L16_L4».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«decode_query_windows__L16_L4»
-
-namespace LeanVM.Guest.Fn.«level_positions__L6_L17_L5_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_positions__L6_L17_L5_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_positions__L6_L17_L5_loop0».cert.locs Fn.«level_positions__L6_L17_L5_loop0».fs Fn.«level_positions__L6_L17_L5_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L6_L17_L5_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L28_L7_L4_L2_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L28_L7_L4_L2_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L28_L7_L4_L2_loop0».cert.locs Fn.«level_residual__L28_L7_L4_L2_loop0».fs Fn.«level_residual__L28_L7_L4_L2_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L28_L7_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L8_L4_L2_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L25_L8_L4_L2_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L25_L8_L4_L2_loop0».cert.locs Fn.«level_residual__L25_L8_L4_L2_loop0».fs Fn.«level_residual__L25_L8_L4_L2_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L25_L8_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L37_L14_L4_L2_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L37_L14_L4_L2_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L37_L14_L4_L2_loop0».cert.locs Fn.«level_residual__L37_L14_L4_L2_loop0».fs Fn.«level_residual__L37_L14_L4_L2_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L37_L14_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L23_L12_L4_L2_loop1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L23_L12_L4_L2_loop1`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L23_L12_L4_L2_loop1».cert.locs Fn.«level_residual__L23_L12_L4_L2_loop1».fs Fn.«level_residual__L23_L12_L4_L2_loop1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L23_L12_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_positions__L9_L24_L6_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_positions__L9_L24_L6_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_positions__L9_L24_L6_loop0».cert.locs Fn.«level_positions__L9_L24_L6_loop0».fs Fn.«level_positions__L9_L24_L6_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L9_L24_L6_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L218_L23_L6_L3_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L218_L23_L6_L3_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L218_L23_L6_L3_loop0».cert.locs Fn.«level_residual__L218_L23_L6_L3_loop0».fs Fn.«level_residual__L218_L23_L6_L3_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L218_L23_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L28_L15_L4_L2_loop1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `level_residual__L28_L15_L4_L2_loop1`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«level_residual__L28_L15_L4_L2_loop1».cert.locs Fn.«level_residual__L28_L15_L4_L2_loop1».fs Fn.«level_residual__L28_L15_L4_L2_loop1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L28_L15_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».cert.locs Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0»
+end LeanVM.Guest

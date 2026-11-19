@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P15».Core
 public import LeanVM.Guest.Pack.«open_stacked__L2».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L2»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L2`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«open_stacked__L2».plumb Fn.«open_stacked__L2».fs (Fn.«open_stacked__L2».cert.withPows Data.powTree) []
-    Fn.«open_stacked__L2».core Fn.«open_stacked__L2».code.code (341 == 1) = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (341 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L2»
+end LeanVM.Guest

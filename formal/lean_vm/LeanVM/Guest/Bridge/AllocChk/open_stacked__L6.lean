@@ -13,33 +13,17 @@ public import LeanVM.Guest.Bridge.Align.«open_stacked__L6»
 public import LeanVM.Guest.Pack.«P3».Core
 public import LeanVM.Guest.Pack.«open_stacked__L6».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L6»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L6`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L6».core.body = true := by
-  decide +kernel
-
-/-- `open_stacked__L6`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L6».plumb Fn.«open_stacked__L6».core.body Fn.«open_stacked__L6».code.code Data.adviceFn345 = true := by
-  decide +kernel
-
-/-- `open_stacked__L6`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L6».fs [8, 9, 311, 312, 437, 451, 461, 544, 548, 553, 557, 561, 562, 563, 567, 568, 569, 573, 574, 582, 586, 606, 612, 647, 651, 688, 693, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754] Fn.«open_stacked__L6».core.params Fn.«open_stacked__L6».core.body
-      Data.adviceFn345 = true := by
-  decide +kernel
-
-/-- `open_stacked__L6`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«open_stacked__L6».fs Fn.«open_stacked__L6».core.loop Fn.«open_stacked__L6».plumb Fn.«open_stacked__L6».core.body Fn.«open_stacked__L6».code.code
-      Data.adviceFn345 = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L6».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«open_stacked__L6».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn345 = true := by decide +kernel
+theorem Fn.«open_stacked__L6».frOk : Bridge.frChk alignCtx fs [8, 9, 311, 312, 437, 451, 461, 544, 548, 553, 557, 561, 562, 563, 567, 568, 569, 573, 574, 582, 586, 606, 612, 647, 651, 688, 693, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754] core.params core.body Data.adviceFn345 = true := by decide +kernel
+theorem Fn.«open_stacked__L6».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn345 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L6»
+end LeanVM.Guest

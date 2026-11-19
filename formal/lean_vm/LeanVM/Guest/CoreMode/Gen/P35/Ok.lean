@@ -14,46 +14,17 @@ public import LeanVM.Guest.CoreMode.Gen.«P35».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L0»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `claim_list_last__L0`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«claim_list_last__L0»
-
-namespace LeanVM.Guest.Fn.«index_mle__L14»
-
-@[expose] public section
-
-/-- `index_mle__L14`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«claim_list_last__L0».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L14».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«rs_eq_rows__L6».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L22».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«index_mle__L14»
 
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L6»
-
-@[expose] public section
-
-/-- `rs_eq_rows__L6`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«rs_eq_rows__L6»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L22»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L22`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L22»
+end LeanVM.Guest

@@ -11,17 +11,14 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core
 
-namespace LeanVM.Guest.Fn.«exponent_tables»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `exponent_tables`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«exponent_tables».cert.locs Fn.«exponent_tables».fs Fn.«exponent_tables».core.body = true := by
-  decide +kernel
+theorem Fn.«exponent_tables».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«exponent_tables»
+end LeanVM.Guest

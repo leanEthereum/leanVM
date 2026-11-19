@@ -224,11 +224,13 @@ def frame_nzr():
     out = set(); calls = set()
     for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')):
         t = open(f, encoding='utf-8').read()
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
-            n = blk.split('»', 1)[0]
-            m = re.search(r'def frameFun : CoreMode.FFun :=\s*⟨(.*?)⟩\n\n', blk, re.S)
-            if m and split_top(m.group(1))[7] != '.nil': out.add(n)
-            if m and split_top(m.group(1))[4] != '.nil': calls.add(n)
+        lits = [(blk.split('»', 1)[0], re.search(r'def frameFun : CoreMode.FFun :=\s*⟨(.*?)⟩\n\n', blk, re.S))
+                for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]]
+        # a pack's walks in one section (`frame_gen.qual`)
+        lits += [(m.group(1), m) for m in re.finditer(r'def Fn\.«([^»]+)»\.frameFun\s*:\s*CoreMode\.FFun\s*:=\s*⟨(.*?)⟩\n\n', t, re.S)]
+        for n, m in lits:
+            if m and split_top(m.group(m.lastindex))[7] != '.nil': out.add(n)
+            if m and split_top(m.group(m.lastindex))[4] != '.nil': calls.add(n)
     return out, calls
 
 

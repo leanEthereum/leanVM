@@ -13,16 +13,12 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«sp_wots»
-
 @[expose] public section
-
-/-- `sp_wots`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
 
-/-- `sp_wots`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   []
 
