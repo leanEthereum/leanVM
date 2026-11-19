@@ -66,7 +66,6 @@ pub fn main() !void {
     const sphincs_signature = try sphincs_key.sign(message);
     try lpq.sphincsVerify(try sphincs_key.publicKey(), message, &sphincs_signature);
 
-    // The seed and the slot range fix the VRF root: keep both. Building the key hashes every leaf of the range.
     var vrf_key = try lpq.VrfKey.init([_]u8{0x03} ** 32, 1000, 2000);
     defer vrf_key.deinit();
     const vrf_root = try vrf_key.root();
@@ -108,6 +107,6 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 `Aggregate.create` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, xmss_claims, sphincs_claims)` verifies that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `fromBytes` takes. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
 
-`VrfKey.init(seed, start, end)` is the VRF tree of `seed` with leaves for the slots `[start, end)`, and fails for an empty range or one ending past `2^31`. It hashes every leaf of the range once and keeps about `sqrt(end - start)` of the tree's nodes. `root()` is the root to register, and `proof(slot)` is the slot's leaf and its 31 siblings, hashing about `3 sqrt(end - start)` nodes; `vrfVerify(root, slot, &proof)` checks it, counting only the slot's 31 low bits. A slot outside the range has no proof.
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range fail with `error.NativeFailure`.
 
-`VrfKey.cacheToBytes(allocator)` returns the range and the cached layer, about `32 sqrt(end - start)` bytes that hold no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again, failing with `error.NativeFailure` for bytes that do not encode a range and its layer. The cache is not checked, and a wrong one gives a wrong root and proofs that do not verify: compare the loaded key's `root()` with the registered root before revealing a proof.
+`cacheToBytes(allocator)` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range. The cache is not checked: compare `root()` with the registered root before revealing a proof.

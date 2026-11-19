@@ -1,35 +1,41 @@
-//! The VRF tree of the consensus specifications' `pq` feature: a Keccak-256 Merkle tree of
-//! depth 31 with one leaf per slot, pruned to the slots a validator proposes in. Leaf `i` of the
-//! range is `Keccak-256(seed | i)`, a node `Keccak-256(left | right)`, and a subtree holding no
-//! slot of the range the surrogate `Keccak-256(seed | j | h)` at height `h` and index `j`, which
-//! nobody can open (`i` and `j` as 8 little-endian bytes, `h` as 1).
+//! The VRF tree of the consensus `pq` feature, pruned to a range of slots.
 //!
-//! A [`VrfKey`] keeps the layer at half the height of the range's subtree, about `sqrt(R)` nodes
-//! for `R` slots, so building it hashes every leaf once and a proof then costs about `3 sqrt(R)`.
+//! The tree is a Keccak-256 Merkle tree of depth 31, one leaf per slot (`i` and `j` as 8
+//! little-endian bytes, `h` as 1 byte):
+//!
+//! ```text
+//!     leaf i       Keccak-256(seed | i), for i in the range
+//!     node         Keccak-256(left | right)
+//!     surrogate    Keccak-256(seed | j | h), for a subtree at height h, index j, with no slot of
+//!                  the range; nobody can open it
+//! ```
+//!
+//! A [`VrfKey`] caches one layer of about `sqrt(R)` nodes for a range of `R` slots: building it
+//! hashes the range once, and a proof then costs about `3 sqrt(R)` hashes.
 
 use std::ops::Range;
 
 use keccak256::{Hash, hash_pair};
 
-/// Depth of a VRF tree: it has `2^31` leaves, one for each slot.
+/// Depth of the tree: `2^31` slots.
 pub const VRF_TREE_DEPTH: usize = 31;
 
-/// The leaf of a slot, then its path: the specifications' `VRFProof`.
+/// A slot's leaf, then its 31 siblings: the specifications' `VRFProof`.
 pub type VrfProof = [Hash; VRF_TREE_DEPTH + 1];
 
-/// A seed, the range of slots its tree holds leaves for, and the tree's cached layer.
+/// A seed, its range of slots, and one cached layer of its tree.
 #[derive(Clone)]
 pub struct VrfKey {
     seed: [u8; 32],
     slots: Range<u32>,
     /// Height of the cached layer.
     level: usize,
-    /// The nodes at `level` that hold a slot of the range, left to right.
+    /// The layer's nodes that hold a slot of the range, left to right.
     cache: Vec<Hash>,
     root: Hash,
 }
 
-/// The range alone: the seed is secret.
+/// Prints the range only: the seed is secret.
 impl std::fmt::Debug for VrfKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VrfKey")
@@ -39,8 +45,8 @@ impl std::fmt::Debug for VrfKey {
 }
 
 impl VrfKey {
-    /// The key of `seed` with the leaves of `slots`, hashing each of them once, or `None` for an
-    /// empty range or one past `2^31`.
+    /// Builds the key, hashing every slot of the range. `None` if the range is empty or ends past
+    /// `2^31`.
     pub fn new(seed: [u8; 32], slots: Range<u32>) -> Option<Self> {
         let (level, first, last) = layer(&slots)?;
         let uncached = Self::uncached(seed, slots);
@@ -48,22 +54,10 @@ impl VrfKey {
         Some(uncached.with_cache(level, cache))
     }
 
-    /// The range, `start` then `end` as 4 little-endian bytes each, then the cached layer. The
-    /// bytes hold no secret, and [`Self::from_cache_bytes`] loads them in place of hashing the
-    /// range again.
-    pub fn cache_to_bytes(&self) -> Vec<u8> {
-        [
-            &self.slots.start.to_le_bytes(),
-            &self.slots.end.to_le_bytes(),
-            self.cache.as_flattened(),
-        ]
-        .concat()
-    }
-
-    /// The key of `seed` and the bytes of [`Self::cache_to_bytes`], hashing about `sqrt(R)` nodes
-    /// for the root, or `None` for bytes that do not encode a range and its layer. The layer is
-    /// not checked: a wrong one gives a wrong root, so compare [`Self::root`] with the registered
-    /// root before revealing a proof.
+    /// Rebuilds a key from its seed and a cache from [`Self::cache_to_bytes`], without hashing the
+    /// range. `None` if the cache is malformed.
+    ///
+    /// The cache is not checked: compare [`Self::root`] with the registered root.
     pub fn from_cache_bytes(seed: [u8; 32], bytes: &[u8]) -> Option<Self> {
         let (start, rest) = bytes.split_first_chunk::<4>()?;
         let (end, nodes) = rest.split_first_chunk::<4>()?;
@@ -76,12 +70,33 @@ impl VrfKey {
             .then(|| Self::uncached(seed, slots).with_cache(level, nodes.to_vec()))
     }
 
-    /// The validator's VRF root.
+    /// Encodes the cache: `start` and `end` (4 little-endian bytes each), then the cached layer. It
+    /// holds no secret.
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        [
+            &self.slots.start.to_le_bytes(),
+            &self.slots.end.to_le_bytes(),
+            self.cache.as_flattened(),
+        ]
+        .concat()
+    }
+
+    /// The root, which the validator registers.
     pub fn root(&self) -> Hash {
         self.root
     }
 
-    /// A key with no layer cached yet, whose nodes are hashed from their leaves.
+    /// The proof of `slot`. `None` outside the range.
+    pub fn proof(&self, slot: u32) -> Option<VrfProof> {
+        self.slots.contains(&slot).then(|| {
+            std::array::from_fn(|i| match i {
+                0 => self.derive(slot.into(), &[]),
+                _ => self.node(i - 1, u64::from(slot >> (i - 1)) ^ 1),
+            })
+        })
+    }
+
+    /// A key with no layer cached yet: its nodes are hashed from the leaves.
     fn uncached(seed: [u8; 32], slots: Range<u32>) -> Self {
         Self {
             seed,
@@ -96,16 +111,6 @@ impl VrfKey {
         let mut key = Self { level, cache, ..self };
         key.root = key.node(VRF_TREE_DEPTH, 0);
         key
-    }
-
-    /// The proof of `slot`, or `None` outside the range.
-    pub fn proof(&self, slot: u32) -> Option<VrfProof> {
-        self.slots.contains(&slot).then(|| {
-            std::array::from_fn(|i| match i {
-                0 => self.derive(slot.into(), &[]),
-                _ => self.node(i - 1, u64::from(slot >> (i - 1)) ^ 1),
-            })
-        })
     }
 
     fn node(&self, level: usize, index: u64) -> Hash {
@@ -131,9 +136,10 @@ impl VrfKey {
     }
 }
 
-/// The height of the cached layer, at half the height of the range's subtree but at least 1, so
-/// that no leaf is cached, and the indices of its first and last node holding a slot of the
-/// range; `None` for an empty range or one past `2^31`.
+/// The cached layer's height and its first and last node index. `None` if the range is empty or
+/// ends past `2^31`.
+///
+/// The height is half that of the range's subtree, and at least 1 so that no leaf is cached.
 fn layer(slots: &Range<u32>) -> Option<(usize, u32, u32)> {
     if slots.is_empty() || slots.end > 1 << VRF_TREE_DEPTH {
         return None;
@@ -142,15 +148,13 @@ fn layer(slots: &Range<u32>) -> Option<(usize, u32, u32)> {
     Some((level, slots.start >> level, (slots.end - 1) >> level))
 }
 
-/// Whether `proof` opens the leaf of `slot` under `root`, as `is_valid_vrf_proof` of the
-/// consensus specifications does: only the 31 low bits of the slot count.
+/// Whether `proof` opens `slot` under `root`, as the specifications' `is_valid_vrf_proof`: only
+/// the 31 low bits of `slot` count.
 pub fn verify_vrf_proof(root: &Hash, slot: u64, proof: &VrfProof) -> bool {
-    let leaf = proof[0];
-    let path = &proof[1..];
     keccak256::path_fold(
-        leaf,
+        proof[0],
         slot as usize,
-        path,
+        &proof[1..],
         |_| {},
         |_, _, [left, right]| hash_pair(left, right),
     ) == *root

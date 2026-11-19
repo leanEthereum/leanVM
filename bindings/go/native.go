@@ -71,8 +71,8 @@ type SphincsSecretKey struct {
 	handle *C.lpq_sphincs_secret_key
 }
 
-// VrfKey owns a VRF key in the native bridge: a seed and the range of slots its tree has leaves
-// for. Both fix the root, so keep both. Call Close when finished.
+// VrfKey is a VRF key: a seed and its range of slots, which fix the root, so keep both. Call
+// Close when finished.
 type VrfKey struct {
 	mu     sync.Mutex
 	handle *C.lpq_vrf_key
@@ -288,8 +288,8 @@ func SphincsVerify(publicKey, message [32]byte, signature SphincsSignature) erro
 	})
 }
 
-// VrfKeyFromSeed creates the VRF key of seed with leaves for the slots [start, end), hashing every
-// leaf of the range once. It fails when the range is empty or ends past 2^31.
+// VrfKeyFromSeed builds the key of the slots [start, end), hashing every slot of the range. It
+// fails if the range is empty or ends past 2^31.
 func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
 	var handle *C.lpq_vrf_key
 	if err := call(func() C.int32_t {
@@ -300,9 +300,8 @@ func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
 	return &VrfKey{handle: handle}, nil
 }
 
-// VrfKeyFromCacheBytes loads a VRF key from its seed and the bytes returned by CacheBytes,
-// hashing about sqrt(end - start) nodes. The cache is not checked, and a wrong one gives a wrong
-// root, so compare Root with the registered root before revealing a proof.
+// VrfKeyFromCacheBytes rebuilds a key from its seed and a cache from CacheBytes, without hashing
+// the range. The cache is not checked: compare Root with the registered root.
 func VrfKeyFromCacheBytes(seed [32]byte, cache []byte) (*VrfKey, error) {
 	var handle *C.lpq_vrf_key
 	if err := call(func() C.int32_t {
@@ -313,7 +312,7 @@ func VrfKeyFromCacheBytes(seed [32]byte, cache []byte) (*VrfKey, error) {
 	return &VrfKey{handle: handle}, nil
 }
 
-// CacheBytes returns the key's range and the layer of the tree it keeps, without any secret.
+// CacheBytes saves the key without its seed.
 func (key *VrfKey) CacheBytes() ([]byte, error) {
 	key.mu.Lock()
 	defer key.mu.Unlock()
@@ -325,7 +324,7 @@ func (key *VrfKey) CacheBytes() ([]byte, error) {
 	})
 }
 
-// Root returns the key's root, the validator's registered VRF root.
+// Root returns the root, which the validator registers.
 func (key *VrfKey) Root() ([32]byte, error) {
 	var root [32]byte
 	key.mu.Lock()
@@ -339,7 +338,7 @@ func (key *VrfKey) Root() ([32]byte, error) {
 	return root, err
 }
 
-// Proof returns the proof of slot, which must be in the key's range.
+// Proof returns the proof of slot. It fails outside the range.
 func (key *VrfKey) Proof(slot uint32) (VrfProof, error) {
 	var proof VrfProof
 	key.mu.Lock()
@@ -366,8 +365,8 @@ func (key *VrfKey) Close() {
 	}
 }
 
-// VrfVerify returns nil when proof opens the leaf of slot under root. Only the 31 low bits of slot
-// count, as in the consensus specifications.
+// VrfVerify returns nil if proof opens slot under root. Only the 31 low bits of slot count, as in
+// the consensus specifications.
 func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 	return call(func() C.int32_t {
 		return C.lpq_vrf_verify(

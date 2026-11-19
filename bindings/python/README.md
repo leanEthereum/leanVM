@@ -53,8 +53,6 @@ assert restored.public_key == key.public_key
 
 ## VRF
 
-A key is a 32-byte seed and a range of slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both.
-
 ```python
 key = lpq.VrfKey.from_seed(b"\x03" * 32, 1000, 2000)  # hashes every leaf of the range
 root = key.root()  # 32 bytes, the validator's VRF root
@@ -63,9 +61,9 @@ proof = key.proof(1500)  # 1024 bytes: the leaf, then its 31 siblings
 lpq.vrf_verify(root, 1500, proof)  # raises LeanPqError if invalid
 ```
 
-`from_seed` hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots; `proof` then hashes about `3 sqrt(R)` nodes. A slot outside the key's range, an empty range, or one ending past `2^31` raises `LeanPqError`. `vrf_verify`, like the consensus specifications, checks only the 31 low bits of the slot.
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range raise `LeanPqError`.
 
-`VrfKey.cache_to_bytes()` returns the key's range and cached nodes, about `32 sqrt(R)` bytes holding no secret, and `VrfKey.from_cache_bytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again. Bytes that do not encode a range and its cached nodes raise `ValueError`. The cache is not checked, and a wrong one gives a wrong root, so compare the loaded key's `root()` with the registered root before revealing a proof.
+`cache_to_bytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.from_cache_bytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range (malformed bytes raise `ValueError`). The cache is not checked: compare `root()` with the registered root before revealing a proof.
 
 ## Aggregation
 

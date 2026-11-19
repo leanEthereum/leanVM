@@ -186,7 +186,7 @@ impl VrfKey {
         self.inner.root().to_vec().into()
     }
 
-    /// The range and the cached nodes, without any secret.
+    /// Encodes the key's cache: its range and cached layer, no secret.
     #[napi]
     pub fn cache_to_bytes(&self) -> Buffer {
         self.inner.cache_to_bytes().into()

@@ -90,7 +90,6 @@ proc main() =
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
 
-  # The seed and the slot range fix the VRF root: keep both. Building the key hashes every leaf of the range.
   seed[0] = 0x03
   let
     vrfKey = VrfKey.init(seed, 1000, 2000).expect("key")
@@ -126,8 +125,8 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 `LeanPqAggregate.init` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `LeanPqAggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `fromBytes` takes. `leanPqSetup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
 
-`VrfKey.init(seed, start, stop)` is the VRF tree of `seed` with leaves for the slots `start ..< stop`, and fails for an empty range or one ending past `2^31`. It hashes every leaf of the range once and keeps about `sqrt(stop - start)` of the tree's nodes. `root()` is the root to register, and `proof(slot)` is the slot's leaf and its 31 siblings, hashing about `3 sqrt(stop - start)` nodes; `vrfVerify(root, slot, proof)` checks it, counting only the slot's 31 low bits. A slot outside the range has no proof.
+A key is a 32-byte seed and the slots `start ..< stop`, with `stop <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range return an error.
 
-`VrfKey.cacheToBytes()` returns the range and the cached layer, about `32 sqrt(stop - start)` bytes that hold no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again, failing for bytes that do not encode a range and its layer. The cache is not checked, and a wrong one gives a wrong root and proofs that do not verify: compare the loaded key's `root()` with the registered root before revealing a proof.
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range. The cache is not checked: compare `root()` with the registered root before revealing a proof.
 
 Do not `close` a value while another thread uses it.

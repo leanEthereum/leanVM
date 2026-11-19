@@ -51,37 +51,27 @@ export declare class SphincsSecretKey {
 /** Throws if `signature` is not a valid leanSPHINCS signature of `message` under `publicKey`. */
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
 
-/**
- * The consensus `pq` VRF tree of a seed, pruned to the slots `[start, end)`, with about `sqrt(R)`
- * of its nodes cached for a range of `R` slots. The seed and the range fix the root, so keep both.
- */
+/** A VRF key: a seed and its slots `[start, end)`, which fix the root, so keep both. */
 export declare class VrfKey {
   private constructor()
-  /**
-   * Hashes every leaf of the range once. Rejects when the seed is not 32 bytes, or the range is
-   * empty or ends past `2^31`.
-   */
+  /** Builds the key, hashing every slot. Rejects a bad seed, an empty range or one past `2^31`. */
   static fromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
   /**
-   * Loads a key from its 32-byte seed and the bytes of `cacheToBytes()`, hashing about `sqrt(R)`
-   * nodes. Rejects when the bytes do not encode a range and its cached nodes. The cache is not
-   * checked, and a wrong one gives a wrong root: compare `root()` with the registered root.
+   * Rebuilds a key from its seed and a cache from `cacheToBytes()`, without hashing the range.
+   * Rejects a malformed cache. The cache is not checked: compare `root()` with the registered root.
    */
   static fromCacheBytes(seed: Buffer, cache: Buffer): Promise<VrfKey>
-  /** The 32-byte root: the validator's VRF root. */
+  /** The 32-byte root, which the validator registers. */
   root(): Buffer
-  /** The range and the cached nodes, about `32 sqrt(R)` bytes, without any secret. */
+  /** Encodes the key's cache: its range and cached layer, no secret. */
   cacheToBytes(): Buffer
-  /**
-   * The 1024-byte proof a block at `slot` reveals: its leaf, then its 31 siblings. Hashes about
-   * `3 sqrt(R)` nodes. Throws when the slot is outside the key's range.
-   */
+  /** The 1024-byte proof of `slot`: its leaf, then its 31 siblings. Throws outside the range. */
   proof(slot: number): Buffer
 }
 
 /**
- * Throws if `proof` does not open the leaf of `slot` under `root`. Only the 31 low bits of `slot`
- * count, which must be an integer up to `Number.MAX_SAFE_INTEGER`.
+ * Throws if `proof` does not open `slot` under `root`. `slot` is an integer up to
+ * `Number.MAX_SAFE_INTEGER`, and only its 31 low bits count.
  */
 export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): void
 

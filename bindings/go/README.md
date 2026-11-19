@@ -143,10 +143,7 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 ## VRF
 
-The VRF is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
-
 ```go
-// The seed and the range fix the root: keep both.
 vrfKey, err := leanpq.VrfKeyFromSeed([32]byte{0x03}, 1000, 2000)
 if err != nil {
     log.Fatal(err)
@@ -165,6 +162,6 @@ if err := leanpq.VrfVerify(root, 1500, proof); err != nil {
 }
 ```
 
-`VrfKeyFromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `Proof` is cheap: keep the key open for as long as the validator proposes from it. `VrfKeyFromSeed` rejects an empty range and one that ends past 2^31, and `Proof` rejects a slot outside the range. A proof is 1024 bytes, the leaf then its 31 siblings, and `VrfVerify` counts only the 31 low bits of the slot, as the consensus specifications do.
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range return an error.
 
-`VrfKey.CacheBytes()` returns the range and the layer of the tree a key keeps, which hold no secret, and `VrfKeyFromCacheBytes(seed, cache)` loads a key from them, hashing about sqrt(end - start) nodes in place of every leaf of the range. The cache is not checked, and a wrong one gives a wrong root, so compare `Root()` with the registered root before revealing a proof.
+`CacheBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKeyFromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range. The cache is not checked: compare `Root()` with the registered root before revealing a proof.

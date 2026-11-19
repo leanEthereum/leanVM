@@ -78,7 +78,7 @@ type
     handle: ptr LpqVrfKey
 
   VrfKey* = ref VrfKeyObj
-    ## A seed and the slot range its VRF tree has leaves for. Both fix the root: keep both.
+    ## A VRF key: a seed and its slots, which fix the root, so keep both.
 
   LeanPqAggregateObj = object
     handle: ptr LpqAggregate
@@ -342,8 +342,8 @@ proc sphincsVerify*(
 ##############################################################
 
 proc init*(T: type VrfKey, seed: LeanPqSeed, start, stop: uint32): Result[VrfKey, string] =
-  ## The key of `seed` with leaves for the slots `start ..< stop`, hashing every leaf of the range
-  ## once. Fails when the range is empty or ends past `2^31`.
+  ## Builds the key of the slots `start ..< stop`, hashing every slot. Fails if the range is empty
+  ## or ends past `2^31`.
   var handle: ptr LpqVrfKey
   ? check(lpqVrfKeyNew(addr seed[0], csize_t(seed.len), start, stop, addr handle))
   if handle.isNil:
@@ -353,10 +353,8 @@ proc init*(T: type VrfKey, seed: LeanPqSeed, start, stop: uint32): Result[VrfKey
 proc fromCacheBytes*(
     T: type VrfKey, seed: LeanPqSeed, cache: openArray[byte]
 ): Result[VrfKey, string] =
-  ## Loads a key from its seed and the bytes of `cacheToBytes`, hashing about `sqrt(stop - start)`
-  ## nodes. Fails when the bytes do not encode a range and its cached layer. The cache is not
-  ## checked, and a wrong one gives a wrong root and proofs that do not verify: compare `root()`
-  ## with the registered root before revealing a proof.
+  ## Rebuilds a key from its seed and a cache from `cacheToBytes`, without hashing the range.
+  ## Fails if the cache is malformed. The cache is not checked: compare `root()` with the registered root.
   var handle: ptr LpqVrfKey
   ? check(lpqVrfKeyFromCacheBytes(
     addr seed[0], csize_t(seed.len), bytesPtr(cache), csize_t(cache.len), addr handle))
@@ -365,7 +363,7 @@ proc fromCacheBytes*(
   ok(VrfKey(handle: handle))
 
 proc cacheToBytes*(key: VrfKey): Result[seq[byte], string] =
-  ## The range and the cached layer, without any secret.
+  ## Encodes the key's cache: its range and cached layer, no secret.
   let handle = ? key.nativeHandle()
   var buffer: LpqBuffer
   ? check(lpqVrfKeyCacheToBytes(handle, addr buffer))
@@ -378,7 +376,7 @@ proc root*(key: VrfKey): Result[VrfRoot, string] =
   takeArray[VrfRootLen](buffer, "VRF root")
 
 proc proof*(key: VrfKey, slot: uint32): Result[VrfProof, string] =
-  ## The proof at `slot`. Fails for a slot outside the range.
+  ## The proof of `slot`. Fails outside the range.
   let handle = ? key.nativeHandle()
   var buffer: LpqBuffer
   ? check(lpqVrfKeyProof(handle, slot, addr buffer))
@@ -391,7 +389,7 @@ proc close*(key: VrfKey) =
     key.handle = nil
 
 proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
-  ## Whether `proof` opens the leaf of `slot` under `root`. Only the 31 low bits of the slot count.
+  ## Whether `proof` opens `slot` under `root`. Only the 31 low bits of `slot` count.
   lpqVrfVerify(
     addr root[0], csize_t(root.len), slot, addr proof[0], csize_t(proof.len)) == LpqOk
 

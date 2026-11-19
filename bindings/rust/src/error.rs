@@ -36,7 +36,7 @@ pub enum Error {
     #[error("leanSPHINCS signature does not verify")]
     SphincsVerify,
 
-    /// A VRF key was given an empty range of slots, or one past `2^31`.
+    /// A VRF range is empty or ends past `2^31`.
     #[error("VRF range {start}..{end} is empty or ends past 2^31")]
     InvalidVrfRange {
         /// The range's first slot.
@@ -45,22 +45,21 @@ pub enum Error {
         end: Slot,
     },
 
-    /// Bytes handed to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) do not
-    /// encode a range and its cached layer.
+    /// Bytes given to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) are malformed.
     #[error("VRF cache is malformed: {actual} bytes")]
     InvalidVrfCache {
-        /// The length that was supplied.
+        /// Their length.
         actual: usize,
     },
 
-    /// A VRF proof was asked for at a slot outside the key's range.
+    /// A VRF proof was asked for outside the key's range.
     #[error("VRF slot {slot} is outside the key's range")]
     VrfSlot {
         /// The slot.
         slot: Slot,
     },
 
-    /// A VRF proof does not open under the root.
+    /// A VRF proof does not open.
     #[error("VRF proof for slot {slot} does not open under the root")]
     VrfVerify {
         /// The slot the proof was checked at.

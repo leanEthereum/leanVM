@@ -15,7 +15,7 @@ export declare class SphincsSecretKey {
 
 export declare class VrfKey {
   root(): Buffer
-  /** The range and the cached nodes, without any secret. */
+  /** Encodes the key's cache: its range and cached layer, no secret. */
   cacheToBytes(): Buffer
   proof(slot: number): Buffer
 }

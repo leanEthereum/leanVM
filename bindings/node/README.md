@@ -57,9 +57,9 @@ const root = vrfKey.root()
 lpq.vrfVerify(root, 1500, vrfKey.proof(1500)) // throws if invalid
 ```
 
-`VrfKey.fromSeed(seed, start, end)` covers the slots `[start, end)`, with `end` at most `2^31`. It returns a Promise: it hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots. `proof(slot)` then hashes about `3 sqrt(R)` nodes, and throws for a slot outside the range. A proof is 1024 bytes, its leaf then its 31 siblings. `vrfVerify` takes the slot as a number up to `Number.MAX_SAFE_INTEGER` and, like the consensus specifications, checks only its 31 low bits.
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. Building returns a Promise, which rejects for an empty range or one past `2^31`; `proof` throws for a slot outside the range. `vrfVerify` takes the slot as a number up to `Number.MAX_SAFE_INTEGER`.
 
-`cacheToBytes()` returns the key's range and cached nodes, about `32 sqrt(R)` bytes holding no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again; it rejects bytes that do not encode a range and its cached nodes. The cache is not checked, and a wrong one gives a wrong root, so compare the loaded key's `root()` with the registered root before revealing a proof.
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range (a Promise, which rejects malformed bytes). The cache is not checked: compare `root()` with the registered root before revealing a proof.
 
 ## Aggregation
 

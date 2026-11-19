@@ -130,16 +130,15 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 ```java
 import org.ethereum.leanpq.*;
 
-// The seed and the range [1000, 2000) fix the root: keep both.
 try (VrfKey key = VrfKey.fromSeed(seed32, 1000, 2000)) {
     byte[] root = key.root();
     boolean valid = LeanPq.vrfVerify(root, 1500, key.proof(1500));
 }
 ```
 
-`fromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `proof(slot)` is cheap: keep the key open for as long as the validator proposes from it. A range must be nonempty and end at most at 2^31, and a slot outside it has no proof, both failing with `LeanPqException`. A proof is 1024 bytes, the leaf then its 31 siblings, and `vrfVerify` counts only the slot's 31 low bits, as the consensus specifications do.
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range throw `LeanPqException`.
 
-`cacheToBytes()` returns the range and the layer of the tree a key keeps, which hold no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them, hashing about sqrt(end - start) nodes in place of every leaf of the range. The cache is not checked, and a wrong one gives a wrong root, so compare `root()` with the registered root before revealing a proof.
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range. The cache is not checked: compare `root()` with the registered root before revealing a proof.
 
 ## Aggregation
 

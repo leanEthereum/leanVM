@@ -9,8 +9,8 @@
  * Public keys and messages are 32 bytes. Secret keys in both schemes are their 32-byte seed.
  * leanXMSS signatures are 2404 bytes and leanSPHINCS signatures are 7740 bytes.
  *
- * A VRF key is a 32-byte seed and a slot range [start, end) with end <= 2^31. VRF roots are
- * 32 bytes and proofs 1024 bytes: the leaf, then its 31 siblings.
+ * A VRF key is a 32-byte seed and slots [start, end), end <= 2^31. VRF roots are 32 bytes and
+ * proofs 1024: the leaf, then its 31 siblings.
  */
 #ifndef LEAN_PQ_NATIVE_H
 #define LEAN_PQ_NATIVE_H
@@ -68,20 +68,17 @@ int32_t lpq_aggregate_xmss_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 int32_t lpq_aggregate_sphincs_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 void lpq_aggregate_destroy(lpq_aggregate *aggregate);
 
-/* Hashes every leaf of the range once, and keeps about sqrt(end - start) nodes of the tree. */
+/* Hashes every slot of the range. */
 int32_t lpq_vrf_key_new(const uint8_t *seed, size_t seed_len, uint32_t start, uint32_t end, lpq_vrf_key **out);
-/*
- * Loads a key from its seed and the bytes of lpq_vrf_key_cache_to_bytes, hashing about
- * sqrt(end - start) nodes. The cache is not checked: compare the root with the registered one.
- */
+/* Rebuilds a key from its seed and a cache from lpq_vrf_key_cache_to_bytes. Unchecked: compare its root with the registered one. */
 int32_t lpq_vrf_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *cache, size_t cache_len, lpq_vrf_key **out);
-/* The range and the cached layer, holding no secret. */
+/* Encodes the key's cache: its range and cached layer, no secret. */
 int32_t lpq_vrf_key_cache_to_bytes(lpq_vrf_key *key, lpq_buffer *out);
 int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);
-/* The proof at a slot of the key's range, hashing about 3 sqrt(end - start) nodes. */
+/* Fails for a slot outside the range. */
 int32_t lpq_vrf_key_proof(lpq_vrf_key *key, uint32_t slot, lpq_buffer *out);
 void lpq_vrf_key_destroy(lpq_vrf_key *key);
-/* Returns 0 when the proof opens under the root at the slot's 31 low bits and 1, with lpq_last_error set, when it does not. */
+/* Returns 0 when the proof opens and 1, with lpq_last_error set, when not. Only the slot's 31 low bits count. */
 int32_t lpq_vrf_verify(const uint8_t *root, size_t root_len, uint64_t slot, const uint8_t *proof, size_t proof_len);
 
 #endif
