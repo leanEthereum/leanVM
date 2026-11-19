@@ -12,7 +12,7 @@ assert_contains() {
 assert_contains 'uses: mlugg/setup-zig@v2'
 assert_contains 'version: 0.15.2'
 assert_contains 'version: 0.16.0'
-assert_contains 'cargo install cargo-zigbuild --locked'
+assert_contains 'cargo install cargo-zigbuild --version 0.24.1 --locked'
 assert_contains 'target: x86_64-unknown-linux-gnu'
 assert_contains 'target: aarch64-unknown-linux-gnu'
 assert_contains 'target: universal2-apple-darwin'
