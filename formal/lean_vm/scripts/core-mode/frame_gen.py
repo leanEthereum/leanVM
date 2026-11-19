@@ -19,6 +19,7 @@ from pmap import pmap  # noqa: E402
 import compiled as MG  # noqa: E402
 
 OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
+OUT_GLUE = os.path.join(FD.ROOT, 'CoreMode', 'GlueA')
 # a module's checks: at most this many instructions
 CHUNK = int(os.environ.get('FRAME_CHUNK', 12000))
 # a function longer than this is checked in windows of about this many instructions
@@ -78,11 +79,43 @@ def natTrie(d): return MG.trie(d, str)
 def hqk(q, o): return q * FR.HQ_SHIFT + o
 
 
+# the current function's jump-table reads (`DEREF`s whose word cell the next `JUMP` jumps through) and its first slot
+# as the glue names it (`Fn.«k».jt0`, `glue.py`): a cut's `hq` keys at those slots are named from it, so a cut stays
+# put when the jump table moves
+TABQ = set()
+JT0 = [None]
+
+
+def hqLit(q, o):
+    if (q, o) in TABQ and JT0[0] is not None:
+        d = o - JT0[0]
+        return '(%d * %d + (%s.jt0 %s %d))' % (q, FR.HQ_SHIFT, MG.fnq(CUR[2]), '+' if d >= 0 else '-', abs(d))
+    return str(hqk(q, o))
+
+
+def hqTrie(keys):
+    """`unitTrie` of `hq`'s pairs, a jump-table read's key named from the glue's first slot."""
+    ks = sorted(set(keys))
+    return '(CoreMode.unitOf %s)' % lst(ks, lambda p: hqLit(*p)) if ks else '.nil'
+
+
+def jt0Of(n):
+    """The glue's first jump-table slot of `n` (`CoreMode/GlueA/*.lean`), or None."""
+    if not JT0S:
+        for f in glob.glob(os.path.join(OUT_GLUE, '*.lean')):
+            for k, v in re.findall(r'^abbrev Fn\.«([^»]+)»\.jt0 : ℕ := (\d+)$', open(f, encoding='utf-8').read(), re.M):
+                JT0S[k] = int(v)
+    return JT0S.get(n)
+
+
+JT0S = {}
+
+
 def fstLit(A):
     """A state of `frame.py` as a literal `CoreMode.FSt` (its `Exec` state restarted)."""
     env = 'envOf %s' % lst(sorted(A.st.env.items()), lambda p: '(%d, %s)' % (p[0], sym(p[1])))
     return '⟨St.init (%s), %s, %s, %s, %s, %s, %s⟩' % (
-        env, unitTrie(A.w), unitTrie(A.nz), unitTrie(hqk(q, o) for q, o in A.hq),
+        env, unitTrie(A.w), unitTrie(A.nz), hqTrie(A.hq),
         unitTrie(hqk(q, o) for q, o in A.hs), natTrie(A.cp), natTrie(A.one))
 
 
@@ -121,6 +154,11 @@ def fnData(D, n, cuts):
     w.run(f['ops'])
     byentry = {g['entry']: m for m, g in D['fns'].items()}
     BYENTRY.clear(); BYENTRY.update(byentry); CUR[:] = [entry, ln, n]
+    ops = f['ops']
+    TABQ.clear()
+    TABQ.update((a[0], a[1]) for i, (op, a) in enumerate(ops[:-1])
+                if op == 'deref' and a[3] == '.cell' and ops[i + 1][0] == 'jump' and ops[i + 1][1][1] == a[2])
+    JT0[0] = jt0Of(D['fns'][n]['ns'])
     CALLEES.clear(); CALLEES.update(w.used); CALLEES.update(pc for ps in tgt[2].values() for pc in ps)
     sigs = {pc: byentry[pc] for pc in sorted(w.used)}
     if rt and rt.get('kind') == 'l':
