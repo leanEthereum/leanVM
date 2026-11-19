@@ -52,7 +52,6 @@ aggregation = { path = "crates/aggregation" }
 sidecar = { path = "crates/sidecar" }
 libc = "0.2"
 rand = "0.9"
-sha2 = "0.11"
 sha3 = "0.11"
 tikv-jemallocator = "0.7"
 tracing = "0.1.26"

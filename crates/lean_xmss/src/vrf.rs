@@ -1,11 +1,9 @@
-//! The VRF tree of the consensus specifications' `pq` feature: a SHA-256 Merkle tree
+//! The VRF tree of the consensus specifications' `pq` feature: a Keccak-256 Merkle tree
 //! of depth 31 whose root a validator registers and whose leaf for a slot a block
 //! reveals, with the leaf's path, as its RANDAO contribution. Leaf `i` is
-//! `SHA-256(seed | i as 8 little-endian bytes)` below the number of filled leaves
+//! `Keccak-256(seed | i as 8 little-endian bytes)` below the number of filled leaves
 //! and zero from there on. A [`VrfState`] is the path of one slot, so a validator
 //! holds no tree.
-
-use sha2::{Digest as _, Sha256};
 
 /// Depth of a VRF tree: it has `2^31` leaves, one for each slot.
 pub const VRF_TREE_DEPTH: usize = 31;
@@ -101,11 +99,10 @@ impl VrfKey {
         if index >= self.leaves {
             return self.zeros[0];
         }
-        Sha256::new()
-            .chain_update(self.seed)
-            .chain_update(index.to_le_bytes())
-            .finalize()
-            .into()
+        let mut input = [0; VRF_NODE_LEN + size_of::<u64>()];
+        input[..VRF_NODE_LEN].copy_from_slice(&self.seed);
+        input[VRF_NODE_LEN..].copy_from_slice(&index.to_le_bytes());
+        keccak256::hash(&input)
     }
 
     fn fold(&self, state: &VrfState, levels: usize) -> VrfNode {
@@ -177,5 +174,5 @@ fn fold(leaf: VrfNode, index: u64, path: &[VrfNode]) -> VrfNode {
 }
 
 fn node(left: &VrfNode, right: &VrfNode) -> VrfNode {
-    Sha256::new().chain_update(left).chain_update(right).finalize().into()
+    keccak256::hash_pair(left, right)
 }
