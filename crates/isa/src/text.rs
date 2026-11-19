@@ -43,6 +43,13 @@ fn hint_line(hint: &RHint) -> String {
         } => format!("frames {ptr} {size} {end} {} {tail}", start_inverse.0),
         RHint::Alloc { ptr, size } => format!("alloc {ptr} {size}"),
         RHint::AllocDyn { ptr, size } => format!("allocdyn {ptr} {size}"),
+        RHint::AllocSel { ptr, sel, sizes } => {
+            let mut line = format!("allocsel {ptr} {sel} {}", sizes.len());
+            for size in sizes {
+                write!(line, " {size}").unwrap();
+            }
+            line
+        }
         RHint::WitnessStack { name, base, len } => format!("wstack {name} {base} {len}"),
         RHint::WitnessHeap { name, ptr, lo, len } => format!("wheap {name} {ptr} {lo} {len}"),
         RHint::Log2Ceil {
@@ -180,6 +187,16 @@ impl<'a> Fields<'a> {
                 ptr: self.num()?,
                 size: self.num()?,
             },
+            "allocsel" => {
+                let ptr = self.num()?;
+                let sel = self.num()?;
+                let n: usize = self.num()?;
+                RHint::AllocSel {
+                    ptr,
+                    sel,
+                    sizes: (0..n).map(|_| self.num()).collect::<Result<_, _>>()?,
+                }
+            }
             "wstack" => RHint::WitnessStack {
                 name: self.word()?.to_string(),
                 base: self.num()?,
@@ -359,7 +376,8 @@ mod tests {
     fn text_round_trips() {
         let text = "size 16\nmain_frame 9\nF main 0 6\n\
                     X 1 2 3\nM 1 2 3\nS 4 5 6\nD 1 2 3 2\nJ 1 2 3\nK 1 2 3 4 5 6 7 8 1 0 13\n\
-                    H 0 frame 7\nH 0 frames 1 2 3 4 5\nH 1 alloc 1 2\nH 1 allocdyn 1 2\nH 2 wstack s 1 2\n\
+                    H 0 frame 7\nH 0 frames 1 2 3 4 5\nH 1 alloc 1 2\nH 1 allocdyn 1 2\nH 1 allocsel 1 2 3 4 5 6\n\
+                    H 2 wstack s 1 2\n\
                     H 2 wheap s 1 2 3\nH 3 log2 stack 1 2 3 4\nH 3 bits 1 heap 2 3\nH 3 bitsexp 1 stack 2 3\n\
                     H 4 digits 1 stack 2 3 4 5 6 -\nH 4 digits 1 heap 2 3 4 5 6 7\nH 4 windows 1 stack 2 3 4 5 6\n\
                     H 5 limbs 1 2 3\nH 5 inverse 1 2\nH 5 print 1 a label\nL 0 0\nL 2 7\nL 5 9\n";

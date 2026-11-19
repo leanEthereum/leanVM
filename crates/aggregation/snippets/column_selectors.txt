@@ -6598,7 +6598,7 @@ H 129 alloc 68 295
 H 136 alloc 71 2208
 H 140 wstack offset 73 1
 H 140 wstack kappa 74 1
-H 142 alloc 78 86
+H 142 allocsel 78 74 31 86 86 86 86 76 76 76 76 66 66 66 66 56 56 56 56 46 46 46 46 36 36 36 36 26 26 26 26 16 16 16
 H 155 alloc 3 2284
 H 4645 alloc 5 512
 H 5176 digits 2 stack 6 32 8 4 0 -

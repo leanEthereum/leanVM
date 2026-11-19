@@ -47,6 +47,8 @@ def showHint (pc : Nat) : RHint → String
   | .allocFrames ptr size bound inv tail => s!"H {pc} frames {ptr} {size} {bound} {inv} {tail}"
   | .alloc ptr size => s!"H {pc} alloc {ptr} {size}"
   | .allocDyn ptr size => s!"H {pc} allocdyn {ptr} {size}"
+  | .allocSel ptr sel sizes =>
+      s!"H {pc} allocsel {ptr} {sel} {sizes.length}" ++ String.join (sizes.map (s!" {·}"))
   | .witnessStack s base len => s!"H {pc} wstack {s} {base} {len}"
   | .witnessHeap s ptr lo len => s!"H {pc} wheap {s} {ptr} {lo} {len}"
   | .log2Ceil bits dst nbits floor => s!"H {pc} log2 {showBits bits} {dst} {nbits} {floor}"

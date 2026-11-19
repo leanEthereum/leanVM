@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Compiler.Sound.Consts
 public import LeanVM.Compiler.Sound.Cut
+public import LeanVM.Compiler.Sound.Hints
 
 /-!
 # The back end's correctness
@@ -21,6 +22,9 @@ By pass:
 
 * **assembly** (`Sound/Asm.lean`): `assemble_fetch`, the program holds at `entry + i` the
   resolved instruction `i` of each function; `layout_consecutive`; `gpowTable_spec`;
+* **hints** (`Sound/Hints.lean`): `assemble_dropHints`, `layoutOf_dropHints`, the program and the
+  layout read no hint, so every theorem here holds whatever advice the provers' executors follow
+  (`Complete/AllocSel.lean`: a dispatch's hint reserves the frame of the callee it selects);
 * **emission** (`Sound/Ops.lean`, `Fills.lean`, `Sem.lean`, `Run.lean`): `emitFn_ops`,
   `emitFn_fills`, `emitBlockSize`; `PStmt.sem_of_run`, a halting run through a placed statement's
   instructions has its meaning, calls by the callees' contracts at fewer steps; `lowered_sound`
@@ -78,6 +82,14 @@ example : ProgramSoundStmt := programSound
 /-- info: 'LeanVM.Compiler.gpowTable_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Compiler.gpowTable_spec
+
+/-- info: 'LeanVM.Compiler.assemble_dropHints' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Compiler.assemble_dropHints
+
+/-- info: 'LeanVM.Compiler.layoutOf_dropHints' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Compiler.layoutOf_dropHints
 
 /-- info: 'LeanVM.Compiler.emitBlockSize' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in

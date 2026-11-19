@@ -10967,11 +10967,11 @@ H 132 alloc 39 59
 H 158 allocdyn 20 19
 H 175 frames 24 3219 6 1 10
 H 202 frames 41 437 7 1 10
-H 224 alloc 56 401
+H 224 allocsel 56 8 17 32 51 61 100 109 144 161 192 209 239 257 287 305 334 353 382 401
 H 248 allocdyn 20 19
 H 267 frames 24 2808 6 1 7
 H 284 frames 34 386 7 1 7
-H 299 alloc 45 362
+H 299 allocsel 45 8 17 36 58 64 100 106 138 152 180 194 221 236 263 278 304 320 346 362
 H 327 wstack child_claim_index 568 1
 H 339 wstack child_claim_index 576 1
 H 353 wstack child_claim_index 586 1

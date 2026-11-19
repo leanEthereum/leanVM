@@ -69,6 +69,8 @@ inductive RHint where
   | allocFrames (ptr : Cell) (size : Nat) (bound : Cell) (startInverse : Nat) (tail : Nat)
   | alloc (ptr : Cell) (size : Nat)
   | allocDyn (ptr size : Cell)
+  /-- `sizes[j]` cells where `m[fp+sel] = g^j`: the frame of the callee a dispatch selects. -/
+  | allocSel (ptr sel : Cell) (sizes : List Nat)
   | witnessStack (stream : String) (base : Cell) (len : Nat)
   | witnessHeap (stream : String) (ptr : Cell) (lo len : Nat)
   | log2Ceil (bits : BitsDest) (dst : Cell) (nbits floor : Nat)
@@ -93,7 +95,8 @@ inductive LHint where
   | nextFrameAddress
   | allocLoopFrames (ptr : Cell) (callee : String) (count : LoopCount) (tail : Nat)
   | allocFrame (ptr : Cell) (callee : String)
-  | allocFrameMax (ptr : Cell) (callees : List String)
+  /-- The frame of the callee a dispatch selects by the word `g^j` in cell `sel`: callee `j`'s. -/
+  | allocFrameSel (ptr sel : Cell) (callees : List String)
   | resolved (h : RHint)
   deriving Repr, BEq, Inhabited
 
