@@ -19,22 +19,22 @@ namespace LeanVM.Guest.Count
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem vbgMax_eq : B1.VerifySub.vbgMax Deployed.fs vsWords.K29 vsWords.R vsWords.K8 = 32982 := by
+theorem vbgMax_eq : B1.VerifySub.vbgMax Deployed.fs vsWords.K29 vsWords.R vsWords.K8 = 32015 := by
   unfold B1.VerifySub.vbgMax
   dsimp only [vsWords, kGr]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vtMax_eq : B1.VerifySub.vtMax Deployed.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 32779 := by
+theorem vtMax_eq : B1.VerifySub.vtMax Deployed.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 32479 := by
   unfold B1.VerifySub.vtMax
   dsimp only [vsWords]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vkBound_eq : B1.VerifySub.vkBound = 56126 := by
-  show Deployed.fs "verify_keccak" + 440 + 52647 = 56126
+theorem vkBound_eq : B1.VerifySub.vkBound = 56092 := by
+  show Deployed.fs "verify_keccak" + 440 + 52647 = 56092
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
