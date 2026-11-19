@@ -79,11 +79,11 @@ theorem offCerts_sigs : ∀ K ∈ offCerts, SigsIn (CoreMode.coreCerts ++ offCer
 
 /-- The core route's callees off it, these certificates'. -/
 theorem offSigs_in : ∀ p ∈ CoreMode.offSigs, SigIn offCerts p :=
-  Mode.fa_cons (⟨_, Fn.«claim_list_digest».modeCert_in, rfl, rfl, rfl⟩)
+  Mode.fa_cons (⟨_, Fn.«verify_sub».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«claim_list_digest».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_any».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«da_verify».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«main_loop4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«verify_tables_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))
 

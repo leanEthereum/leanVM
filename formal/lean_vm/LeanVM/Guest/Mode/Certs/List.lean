@@ -230,17 +230,6 @@ end
 
 end LeanVM.Guest.Fn.«claim_list_digest»
 
-namespace LeanVM.Guest.Fn.«main_loop4»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem4 ModePack.«P29».mem1
-
-end
-
-end LeanVM.Guest.Fn.«main_loop4»
-
 namespace LeanVM.Guest.Fn.«verify_keccak»
 
 public section

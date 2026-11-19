@@ -76,8 +76,7 @@ public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
   Mode.fa_cons (subOk_exc (by simp [resExc]))
-    (Mode.fa_cons (subOk_of (j := 41) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 

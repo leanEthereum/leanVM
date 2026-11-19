@@ -76,8 +76,7 @@ public section
 
 theorem certs_term : ∀ K ∈ certs, TermOk K :=
   Mode.fa_cons (termOk_of (j := 24) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := 41) (by decide +kernel))
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 

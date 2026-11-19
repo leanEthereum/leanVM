@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeH
 public import LeanVM.Guest.Pack.«P29».ModeL0
 meta import LeanVM.Guest.KernelLit
@@ -42,24 +41,6 @@ kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(235701,
 
 end LeanVM.Guest.Fn.«claim_list_digest»
 
-namespace LeanVM.Guest.Fn.«main_loop4»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop4_main`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
-
-end
-
-/-- `__loop4_main`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(61319, Fn.«child_claim_list_digest».csig),
-    (178568, Fn.«main_loop4».csig), (61108, Fn.«statement_digest».csig), (31822,
-    Fn.«verify_sub».csig)]
-
-end LeanVM.Guest.Fn.«main_loop4»
-
 namespace LeanVM.Guest.ModePack.«P29»
 
 open LeanVM.Guest
@@ -68,7 +49,7 @@ open LeanVM.Guest
 
 /-- The pack's certificates. -/
 noncomputable def certs : List Mode.Cert :=
-  [Fn.«claim_list_digest».modeCert, Fn.«main_loop4».modeCert]
+  [Fn.«claim_list_digest».modeCert]
 
 end
 
@@ -76,13 +57,10 @@ public section
 
 theorem mem0 : Fn.«claim_list_digest».modeCert ∈ certs := List.mem_cons_self
 
-theorem mem1 : Fn.«main_loop4».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_self)
-
 /-- The certificates' static facts. -/
 theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
   Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 /-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
     -/
@@ -90,9 +68,7 @@ theorem certs_spec {T : List CoreMode.CFun} (_hT : ∀ Cf ∈ ([] : List CoreMod
     ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
   Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«claim_list_digest».modeOk,
     Fn.«claim_list_digest».modeHintsOk⟩)
-    (Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem1) ⟨Fn.«main_loop4».modeOk,
-    Fn.«main_loop4».modeHintsOk⟩)
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 

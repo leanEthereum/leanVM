@@ -38,9 +38,9 @@ variable {κ : ℕ}
 
 /-! ## The translation -/
 
-/-- **A mode pointer run as a heap pointer run**: its run translated (`rngT`), its offsets. -/
+/-- **A mode pointer run as a heap pointer run**: its run translated (`rngT0`), its offsets. -/
 def prT (G : Mode.Sig) (np : ℕ) (p : Mode.Rng × List ℕ) : Option (CRun × List ℕ) :=
-  (rngT G np p.1).map fun q ↦ (q, p.2)
+  (rngT0 G np p.1).map fun q ↦ (q, p.2)
 
 /-- A heap run among runs. -/
 def runIn (q : CRun) (l : List CRun) : Bool := l.any fun q' ↦ decide (q' = q)
@@ -199,7 +199,7 @@ theorem idxKX_val {G : Mode.Sig} {ps : List ℕ} {s : St} (hT : ∀ p ∈ G.term
   · simp at h
 
 theorem prT_spec {G : Mode.Sig} {np : ℕ} {p : Mode.Rng × List ℕ} {q : CRun × List ℕ} (h : prT G np p = some q) :
-    rngT G np p.1 = some q.1 ∧ q.2 = p.2 := by
+    rngT0 G np p.1 = some q.1 ∧ q.2 = p.2 := by
   unfold prT at h
   obtain ⟨q', hq', rfl⟩ := Option.map_eq_some_iff.mp h
   exact ⟨hq', rfl⟩
@@ -256,7 +256,7 @@ theorem memRd_le {m m' : Mem} (hle : m ≤ m') (rd : Reader) {x : ℕ} (hx : x <
 
 /-- **A mode pointer run is its heap pointer run written**, for a reader consistent with the memory. -/
 theorem pw_slotT {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt G np s ws) {r : Mode.Rng} {q : CRun}
-    (hr : rngT G np r = some q) {rd : Reader} (hrd : RdW rd s.mem) {os : List ℕ} (h : PW s r os) :
+    (hr : rngT0 G np r = some q) {rd : Reader} (hrd : RdW rd s.mem) {os : List ℕ} (h : PW s r os) :
     ∀ x, (∃ a, q.Set (slotW ws) a ∧ PtrSet rd a os x) → WrK s.mem x := by
   obtain ⟨c, lo, hi, hmS, hmc, hlo, hhi, rfl⟩ := rngT_spec hr
   rintro x ⟨a, ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩, w', hw', o, ho, rfl⟩
@@ -277,7 +277,7 @@ theorem pw_slotT {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt G 
 /-- **A heap pointer run written is its mode pointer run**, for a reader that reads the memory's
 written cells, the run's cells written, both bounds' values existing. -/
 theorem slot_pwT {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt G np s ws) {r : Mode.Rng} {q : CRun}
-    (hr : rngT G np r = some q) {rd : Reader} (hrd : RdM rd s.mem) {os : List ℕ}
+    (hr : rngT0 G np r = some q) {rd : Reader} (hrd : RdM rd s.mem) {os : List ℕ}
     (hlo : ∃ x, IdxVal s r.lo x) (hhi : ∃ x, IdxVal s r.hi x)
     (hcells : ∀ x, q.Set (slotW ws) x → WrK s.mem x)
     (h : ∀ x, (∃ a, q.Set (slotW ws) a ∧ PtrSet rd a os x) → WrK s.mem x) : PW s r os := by
