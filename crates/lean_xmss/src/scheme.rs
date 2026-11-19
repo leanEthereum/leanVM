@@ -177,6 +177,17 @@ impl LeanXmssExpandedSecretKey {
         self.bottom_tree(leaf_index);
     }
 
+    /// The compact state at `leaf_index`, building its bottom tree if it is not cached.
+    pub fn compact_state(&self, leaf_index: LeafIndex) -> LeanXmssCompactState {
+        let bottom = self.bottom_tree(leaf_index);
+        LeanXmssCompactState {
+            leaf_index,
+            path: bottom.tree.path(leaf_index),
+            root: bottom.tree.root(),
+            top: bottom.top_signature.clone(),
+        }
+    }
+
     /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
     /// the cached one, or built and cached. Built outside the lock, which is only ever
     /// held to read or update the cache.
