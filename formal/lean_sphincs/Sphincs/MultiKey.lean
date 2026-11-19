@@ -690,8 +690,12 @@ instance (publicKey : FORS.PublicKey) : DecidablePred (ownedPub publicKey) := fu
   inferInstanceAs (Decidable (Owns publicKey.parameter input))
 
 theorem keyFacts_of_mem {seed : FORS.MasterSeed} {z : KeyRec FORS.PublicKey FORS.Seeded.SecretKey}
-    (hz : z ∈ support (loggedKeygen modelScheme seed)) : KeyFacts z ∧ z.1.2.seed = seed :=
-  keyFacts_keygenFromSeed seed hz
+    (hz : z ∈ support (loggedKeygen modelScheme seed)) : KeyFacts z ∧ z.1.2.seed = seed := by
+  -- The computations are equated outside `support`: given `hz` itself, the kernel unfolds
+  -- `support` on the two sides before comparing the computations.
+  refine keyFacts_keygenFromSeed seed ?_
+  convert hz using 2
+  rfl
 
 theorem keyFacts_of_isKey {z : KeyRec FORS.PublicKey FORS.Seeded.SecretKey}
     (hz : IsKey modelScheme z) : KeyFacts z := by
