@@ -15,6 +15,7 @@ sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
 import frame_data as FD  # noqa: E402
 import frame_run as RUN  # noqa: E402
+from pmap import pmap  # noqa: E402
 import compiled as MG  # noqa: E402
 
 OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
@@ -258,13 +259,16 @@ def main(argv):
            if n not in ROUTE and (not fns_only or n in fns_only)]
     if off and not os.environ.get('MODE_CERT_CACHE'):
         raise SystemExit('frame_gen: %d functions off the core route need MODE_CERT_CACHE' % len(off))
-    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'))
+    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'), only=off)
     files = {}
     stats = collections.Counter()
-    for p, names in sorted(MG.packs().items()):
-        if only and p not in only: continue
+    def one_pack(item):
+        """A pack's frame modules and their counts."""
+        p, names = item
+        files, stats = {}, collections.Counter()
+        if only and p not in only: return files, stats
         names = [n for n in names if not fns_only or n in fns_only]
-        if not names: continue
+        if not names: return files, stats
         groups = []; cur = []; size = 0; long_ = []
         for n in names:
             c = D['fns'][n]['count']
@@ -329,6 +333,11 @@ def main(argv):
                    '  exact %s\n' % (n, n, D['fns'][n]['count'], n, lst(bounds[1:-1]),
                                     lst(pairs, lambda q: '(%d, %d)' % q), chain)))
             stats['fns'] += 1; stats['windows'] += len(bounds) - 1
+        return files, stats
+    # each pack on its own, in worker processes (`pmap.py`)
+    for fs, st in pmap(one_pack, sorted(MG.packs().items())):
+        files.update(fs)
+        stats.update(st)
     for p, names in sorted(MG.packs().items()):
         if only and p not in only: continue
         files[os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '%s.lean' % p)] = (
