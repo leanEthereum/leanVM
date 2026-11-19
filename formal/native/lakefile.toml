@@ -101,3 +101,10 @@ srcDir = "cli"
 name = "wire-test"
 root = "WireTest"
 srcDir = "cli"
+
+# The transcript gadgets and the seed against the statement's `run` on fixture directories
+# (cli/VmTranscriptTest.lean); not a default target.
+[[lean_exe]]
+name = "vm-transcript-test"
+root = "VmTranscriptTest"
+srcDir = "cli"
