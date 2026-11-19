@@ -5,17 +5,17 @@ oracle) with the kernel's check of its walk (`frameOk … = true := by decide +k
 function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
 `frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
-(`sigc.py`) and nonzero residuals). The oracle and the residual divisors are read off today's mode walk's
-inference (`frame_data.py`, `MODE_CERT_CACHE`) until the core heap certificate gives them.
-Usage: MODE_CERT_CACHE=FILE python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
+(`sigc.py`) and nonzero residuals). A function on the core route takes its oracle and stores from its pairing and its
+residual divisors from its own walk (`frame_run.own_nz`); one off the route, from the mode walk's inference
+(`frame_data.py`, `MODE_CERT_CACHE`, read only then). The frame signatures are the frame layout's (`compiled.fsig`).
+Usage: [MODE_CERT_CACHE=FILE] python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
 import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
 import frame_data as FD  # noqa: E402
 import frame_run as RUN  # noqa: E402
-sys.path.insert(0, FD.MODE)
-import gen as MG  # noqa: E402
+import compiled as MG  # noqa: E402
 
 OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
 # a module's checks: at most this many instructions
@@ -25,7 +25,7 @@ WIN = int(os.environ.get("FRAME_WIN", 7000))
 
 
 def wrap(text, width=100):
-    """`MG.wrap` in linear time: long lines broken at spaces, the rest indented."""
+    """`compiled.wrap` in linear time: long lines broken at spaces, the rest indented."""
     out = []
     for line in text.split('\n'):
         if len(line) <= width:
@@ -101,10 +101,11 @@ def cutLit(c):
 def fnData(D, n, cuts):
     """The function's `FFun` literal, its callees' packs, and the walk (with its cut states)."""
     f = D['fns'][n]
-    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n)
     rt = ROUTE.get(n)
     O_ = set(rt['O']) if rt else set(D['O'].get(n, []))
     S_ = set(rt['S']) if rt else set()
+    # a function on the core route: its own residual divisors, not the mode walk's
+    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n, RUN.own_nz(D, n, O_, S_) if rt else None)
     w = FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], nzr, tgt, O_, D['halt'], S=S_)
     w.cutAt = set(cuts)
     w.run(f['ops'])
@@ -146,7 +147,7 @@ def fnData(D, n, cuts):
     else:
         O, S = MG.bigTrie('frameO', 'Unit', {i: () for i in D['O'].get(n, [])}, lambda _: '()', defs), '.nil'
     if rt:
-        defs += envDefs(D, n)
+        defs += envDefs(D, n, nzr)
     lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
         facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints,
         MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str), MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x),
@@ -164,16 +165,15 @@ def sigTrie(ns):
     return '(CoreMode.sigTrie %s)' % lst(sorted({MG.fnq(m) for m in ns}), lambda q: '%s.csig' % q)
 
 
-def envDefs(D, n):
+def envDefs(D, n, nzr):
     """A function on the core route: its frame interface's environment (its callees' signatures) and data (its
-    entry, length, signature, nonzero residuals), `Mode.Cert`'s parts."""
+    entry, length, signature, nonzero residuals: its walk's residual divisors `nzr`), `Mode.Cert`'s parts."""
     f = D['fns'][n]
-    nz = {i: [r for r in rs if r[0] == 'nz'] for i, rs in D['R'].get(n, {}).items()}
-    nz = {i: rs for i, rs in nz.items() if rs}
+    nz = {i: [('nz', o) for o in os_] for i, os_ in nzr.items() if os_}
     return ['noncomputable def envC : Mode.Env := CoreMode.envOf %s\n' % (
                 lst(sorted({MG.fnq(m) for m in MG.calleesOf(n)}), lambda q: '%s.csig' % q)),
             'noncomputable def funC : Mode.Fun := ⟨%s.entry, %d, %s.csig, .nil, %s, .nil, %s, .nil⟩\n' % (
-                MG.fnq(n), f['count'], MG.fnq(n), MG.trie(nz, lambda l: MG.lst(l, MG.res_)) if nz else '.nil',
+                MG.fnq(n), f['count'], MG.fnq(n), MG.trie(nz, lambda l: MG.lst(l, MG.res)) if nz else '.nil',
                 'true' if n == 'main' else 'false')]
 
 
@@ -233,17 +233,22 @@ def main(argv):
     only = None; fns_only = None
     if '--only' in argv: only = argv[argv.index('--only') + 1:]
     if '--fns' in argv: fns_only = argv[argv.index('--fns') + 1:]
-    D = FD.load(os.environ['MODE_CERT_CACHE'], os.environ.get('FRAME_CACHE'))
     global ROUTE
     import route, heap
     ROUTE = route.route_sub()
     gen_pack = {k: v[0] for k, v in heap.pack_of().items()}
-    for n, f in D['fns'].items():
-        f['ns'] = f.get('ns', n)
+    fns = MG.code()['fns']
+    for n, f in fns.items():
         # a function the compiler names apart from its stable name (a loop helper `__loopN_f`): on the route by the latter
         if f['ns'] != n and f['ns'] in ROUTE:
             ROUTE[n] = ROUTE[f['ns']]
             gen_pack[n] = gen_pack[f['ns']]
+    # the mode walk's inference, only for the functions off the core route
+    off = [n for p, names in MG.packs().items() if not only or p in only for n in names
+           if n not in ROUTE and (not fns_only or n in fns_only)]
+    if off and not os.environ.get('MODE_CERT_CACHE'):
+        raise SystemExit('frame_gen: %d functions off the core route need MODE_CERT_CACHE' % len(off))
+    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'))
     files = {}
     stats = collections.Counter()
     for p, names in sorted(MG.packs().items()):

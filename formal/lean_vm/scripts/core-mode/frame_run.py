@@ -8,7 +8,8 @@ import frame as FR  # noqa: E402
 import frame_data as FD  # noqa: E402
 
 
-def inputs(D, n):
+def inputs(D, n, nzr=None):
+    """The walk's inputs; its residual divisors `nzr` if given, else the mode walk's (`D['R']`)."""
     f = D['fns'][n]
     fx = D['facts'][n]
     F = FR.Facts(fx['env'], fx['fpOne'], fx['arms'], fx['scaled'], D['pows'])
@@ -25,9 +26,26 @@ def inputs(D, n):
             tab[ids[key]] = [pc - entry for pc in pcs] if local else list(pcs)
         idx[i] = ids[key]
     tgt = (idx, arms, calls)
-    nzr = {i: [r[1] for r in rs if r[0] == 'nz'] for i, rs in D['R'].get(n, {}).items()}
-    nzr = {i: v for i, v in nzr.items() if v}
+    if nzr is None:
+        nzr = {i: [r[1] for r in rs if r[0] == 'nz'] for i, rs in D['R'].get(n, {}).items()}
+        nzr = {i: v for i, v in nzr.items() if v}
     return F, entry, ln, D['fsig'][entry], tgt, nzr
+
+
+def own_nz(D, n, O, S=frozenset()):
+    """The residual divisors the walk needs (`FFun.nzr`), by offset: each `MUL` it back-solves through a divisor it
+    cannot show nonzero, its own inference (no mode walk)."""
+    f = D['fns'][n]
+    F, entry, ln, sig, tgt, _ = inputs(D, n, {})
+    nz = collections.defaultdict(set)
+
+    def need(*why):
+        if why[0] == 'nz':
+            nz[why[1]].add(why[2])
+            return True
+        return False
+    FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], {}, tgt, set(O), D['halt'], need=need, S=set(S)).run(f['ops'])
+    return {i: sorted(xs) for i, xs in sorted(nz.items())}
 
 
 def run(D, n, O=None, need=None):

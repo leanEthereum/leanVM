@@ -126,7 +126,9 @@ part_mode() {
 }
 
 # The core route (`formal/notes/core-mode.md`): its functions' signatures, heap certificates, pairings, frame
-# walks and route data. Its signatures and frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
+# walks and route data. A routed function keeps its signature (its contract) and its frame walk takes its facts from
+# the frame layout and its own walk; only the functions off the route read the `mode` step's inference
+# (`MODE_CERT_CACHE`), signatures and frame walks alike; written, the route
 # changes which functions the mode walk checks, so the mode certificates are written again after it.
 # After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
