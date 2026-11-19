@@ -122,3 +122,10 @@ srcDir = "cli"
 name = "vm-phase1-test"
 root = "VmPhase1Test"
 srcDir = "cli"
+
+# Ring switching's kernels against the word model on pseudo-random inputs (cli/VmRingTest.lean); not
+# a default target.
+[[lean_exe]]
+name = "vm-ring-test"
+root = "VmRingTest"
+srcDir = "cli"
