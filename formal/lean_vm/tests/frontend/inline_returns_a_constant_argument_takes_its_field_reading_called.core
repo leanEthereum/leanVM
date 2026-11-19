@@ -1,0 +1,35 @@
+def main []
+  hint witness w [%0]
+  const %1 6 0
+  call scale [%0 %1] [%2]
+  const %3 5 0
+  mul %4 %2 %3
+  const %5 1 0
+  load %4 %5 0
+  const %6 5 0
+  call scale [%0 %6] [%7]
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %7 %10 0
+  ret []
+def five []
+  const %0 5 0
+  ret [%0]
+def scale [%0 %1]
+  mul %2 %0 %1
+  ret [%2]
+def prod [%0 %1]
+  mul %2 %0 %1
+  ret [%2]
+def first [%0]
+  copy %1 %0
+  ret [%1]
+def sq [%0]
+  mul %1 %0 %0
+  copy %2 %1
+  ret [%2]
+def rd [%0 %1]
+  mul %2 %0 %1
+  load %3 %2 0
+  ret [%3]

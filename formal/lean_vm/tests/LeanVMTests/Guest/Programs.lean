@@ -1309,6 +1309,24 @@ def prog_a_folded_branch_keeps_its_bindings_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_folded_if_cannot_rebind_a_loop_capture`. -/
+def prog_a_folded_if_cannot_rebind_a_loop_capture : TestProgram where
+  name := "a_folded_if_cannot_rebind_a_loop_capture"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "p" (.gpow 0)),
+        .mk 3 (.let_ "t" (.lit 7)),
+        .mk 4 (.for_ "i" 0 (.const 3) [
+          .mk 5 (.store (.var "p") (.var "i") (.var "t")),
+          .mk 6 (.ite true (.mul (.lit 2) (.lit 3)) (.lit 6) [
+            .mk 7 (.let_ "t" (.lit 9))] [] false)]),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_frame_bit_buffer_costs_no_deref_0`. -/
 def prog_a_frame_bit_buffer_costs_no_deref_0 : TestProgram where
   name := "a_frame_bit_buffer_costs_no_deref_0"
@@ -3457,6 +3475,940 @@ def prog_inline_call_in_expression_positions_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `inline_constant_arguments_and_destinations_call`. -/
+def prog_inline_constant_arguments_and_destinations_call : TestProgram where
+  name := "inline_constant_arguments_and_destinations_call"
+  program := ⟨[
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 3 (.ret [(.mul (.var "x") (.var "k"))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 7 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 10 (.let_ "public" (.lit 1)),
+        .mk 11 (.let_ "w" (.index (.var "public") (.lit 1))),
+        .mk 12 (.let_ "s" (.stackBuf 1)),
+        .mk 13 (.let_ "y" (.mul (.var "w") (.call "scale" [(.lit 2), (.lit 3)]))),
+        .mk 14 (.store (.var "s") (.lit 0) (.call "prod" [(.var "w"), (.var "w")])),
+        .mk 15 (.let_ "out" (.heapBuf 2)),
+        .mk 16 (.store (.var "out") (.lit 1) (.var "y")),
+        .mk 17 (.store (.var "out") .gen (.index (.var "s") (.lit 0))),
+        .mk 18 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_constant_arguments_and_destinations_in_place`. -/
+def prog_inline_constant_arguments_and_destinations_in_place : TestProgram where
+  name := "inline_constant_arguments_and_destinations_in_place"
+  program := ⟨[
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 3 (.ret [(.mul (.var "x") (.var "k"))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 7 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 10 (.let_ "public" (.lit 1)),
+        .mk 11 (.let_ "w" (.index (.var "public") (.lit 1))),
+        .mk 12 (.let_ "s" (.stackBuf 1)),
+        .mk 13 (.let_ "y" (.mul (.var "w") (.lit 6))),
+        .mk 14 (.store (.var "s") (.lit 0) (.mul (.var "w") (.var "w"))),
+        .mk 15 (.let_ "out" (.heapBuf 2)),
+        .mk 16 (.store (.var "out") (.lit 1) (.var "y")),
+        .mk 17 (.store (.var "out") .gen (.index (.var "s") (.lit 0))),
+        .mk 18 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_argument_called`. -/
+def prog_inline_returns_a_constant_argument_called : TestProgram where
+  name := "inline_returns_a_constant_argument_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "w" "w"),
+        .mk 41 (.let_ "y" (.call "scale" [(.var "w"), (.lit 1)])),
+        .mk 42 (.let_ "s" (.stackBuf 1)),
+        .mk 43 (.store (.var "s") (.lit 0) (.call "scale" [(.var "w"), (.lit 1)])),
+        .mk 44 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 45 (.store (.var "p") .gen (.mul (.index (.var "s") (.lit 0)) (.call "scale" [(.var "w"), .gen]))),
+        .mk 46 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_argument_inlined`. -/
+def prog_inline_returns_a_constant_argument_inlined : TestProgram where
+  name := "inline_returns_a_constant_argument_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "w" "w"),
+        .mk 50 (.let_ "y" (.call "scale" [(.var "w"), (.lit 1)])),
+        .mk 51 (.let_ "s" (.stackBuf 1)),
+        .mk 52 (.store (.var "s") (.lit 0) (.call "scale" [(.var "w"), (.lit 1)])),
+        .mk 53 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 54 (.store (.var "p") .gen (.mul (.index (.var "s") (.lit 0)) (.call "scale" [(.var "w"), .gen]))),
+        .mk 55 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_argument_takes_its_field_reading_called`. -/
+def prog_inline_returns_a_constant_argument_takes_its_field_reading_called : TestProgram where
+  name := "inline_returns_a_constant_argument_takes_its_field_reading_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "w" "w"),
+        .mk 41 (.let_ "k" (.sub (.lit 7) (.lit 2))),
+        .mk 42 (.store (.var "p") (.lit 1) (.mul (.call "scale" [(.var "w"), (.add (.lit 3) (.lit 5))]) (.var "k"))),
+        .mk 43 (.store (.var "p") .gen (.call "scale" [(.var "w"), (.mul (.lit 3) (.lit 3))])),
+        .mk 44 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_argument_takes_its_field_reading_inlined`. -/
+def prog_inline_returns_a_constant_argument_takes_its_field_reading_inlined : TestProgram where
+  name := "inline_returns_a_constant_argument_takes_its_field_reading_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "w" "w"),
+        .mk 50 (.let_ "k" (.sub (.lit 7) (.lit 2))),
+        .mk 51 (.store (.var "p") (.lit 1) (.mul (.call "scale" [(.var "w"), (.add (.lit 3) (.lit 5))]) (.var "k"))),
+        .mk 52 (.store (.var "p") .gen (.call "scale" [(.var "w"), (.mul (.lit 3) (.lit 3))])),
+        .mk 53 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_return_called`. -/
+def prog_inline_returns_a_constant_return_called : TestProgram where
+  name := "inline_returns_a_constant_return_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "w" "w"),
+        .mk 41 (.assertEq (.call "five" []) (.var "w")),
+        .mk 42 (.assertEq (.var "w") (.call "five" [])),
+        .mk 43 (.let_ "y" (.call "five" [])),
+        .mk 44 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 45 (.store (.var "p") .gen (.var "w")),
+        .mk 46 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_constant_return_inlined`. -/
+def prog_inline_returns_a_constant_return_inlined : TestProgram where
+  name := "inline_returns_a_constant_return_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "w" "w"),
+        .mk 50 (.assertEq (.call "five" []) (.var "w")),
+        .mk 51 (.assertEq (.var "w") (.call "five" [])),
+        .mk 52 (.let_ "y" (.call "five" [])),
+        .mk 53 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 54 (.store (.var "p") .gen (.var "w")),
+        .mk 55 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_g_power_and_a_constant_array_index_called`. -/
+def prog_inline_returns_a_g_power_and_a_constant_array_index_called : TestProgram where
+  name := "inline_returns_a_g_power_and_a_constant_array_index_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "w" "w"),
+        .mk 41 (.let_ "b" (.heapBuf 4)),
+        .mk 42 (.store (.var "b") (.gpow 2) (.var "w")),
+        .mk 43 (.store (.var "p") (.lit 1) (.call "rd" [(.var "b"), (.gpow 2)])),
+        .mk 44 (.store (.var "p") .gen (.call "rd" [(.var "b"), (.index (.var "C") (.lit 0))])),
+        .mk 45 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_g_power_and_a_constant_array_index_inlined`. -/
+def prog_inline_returns_a_g_power_and_a_constant_array_index_inlined : TestProgram where
+  name := "inline_returns_a_g_power_and_a_constant_array_index_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "w" "w"),
+        .mk 50 (.let_ "b" (.heapBuf 4)),
+        .mk 51 (.store (.var "b") (.gpow 2) (.var "w")),
+        .mk 52 (.store (.var "p") (.lit 1) (.call "rd" [(.var "b"), (.gpow 2)])),
+        .mk 53 (.store (.var "p") .gen (.call "rd" [(.var "b"), (.index (.var "C") (.lit 0))])),
+        .mk 54 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_nested_call_shadowing_its_argument_called`. -/
+def prog_inline_returns_a_nested_call_shadowing_its_argument_called : TestProgram where
+  name := "inline_returns_a_nested_call_shadowing_its_argument_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "x" "w"),
+        .mk 41 (.let_ "y" (.call "sq" [(.call "sq" [(.var "x")])])),
+        .mk 42 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 43 (.store (.var "p") .gen (.var "x")),
+        .mk 44 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_nested_call_shadowing_its_argument_inlined`. -/
+def prog_inline_returns_a_nested_call_shadowing_its_argument_inlined : TestProgram where
+  name := "inline_returns_a_nested_call_shadowing_its_argument_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "x" "w"),
+        .mk 50 (.let_ "y" (.call "sq" [(.call "sq" [(.var "x")])])),
+        .mk 51 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 52 (.store (.var "p") .gen (.var "x")),
+        .mk 53 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_product_the_caller_computes_too_called`. -/
+def prog_inline_returns_a_product_the_caller_computes_too_called : TestProgram where
+  name := "inline_returns_a_product_the_caller_computes_too_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "a" "w"),
+        .mk 41 (.letHintWitness "b" "w"),
+        .mk 42 (.letHintWitness "c" "w"),
+        .mk 43 (.assertEq (.call "prod" [(.var "a"), (.var "b")]) (.var "c")),
+        .mk 44 (.assertEq (.mul (.var "a") (.var "b")) (.var "c")),
+        .mk 45 (.let_ "y" (.call "prod" [(.var "a"), (.var "b")])),
+        .mk 46 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 47 (.store (.var "p") .gen (.mul (.var "a") (.var "b"))),
+        .mk 48 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_product_the_caller_computes_too_inlined`. -/
+def prog_inline_returns_a_product_the_caller_computes_too_inlined : TestProgram where
+  name := "inline_returns_a_product_the_caller_computes_too_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "a" "w"),
+        .mk 50 (.letHintWitness "b" "w"),
+        .mk 51 (.letHintWitness "c" "w"),
+        .mk 52 (.assertEq (.call "prod" [(.var "a"), (.var "b")]) (.var "c")),
+        .mk 53 (.assertEq (.mul (.var "a") (.var "b")) (.var "c")),
+        .mk 54 (.let_ "y" (.call "prod" [(.var "a"), (.var "b")])),
+        .mk 55 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 56 (.store (.var "p") .gen (.mul (.var "a") (.var "b"))),
+        .mk 57 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_returned_cell_is_still_write_once_called`. -/
+def prog_inline_returns_a_returned_cell_is_still_write_once_called : TestProgram where
+  name := "inline_returns_a_returned_cell_is_still_write_once_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "w" "w"),
+        .mk 41 (.let_ "sb" (.stackBuf 1)),
+        .mk 42 (.store (.var "sb") (.lit 0) (.var "w")),
+        .mk 43 (.let_ "y" (.call "first" [(.var "sb")])),
+        .mk 44 (.store (.var "sb") (.lit 0) (.lit 9)),
+        .mk 45 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 46 (.store (.var "p") .gen (.call "first" [(.var "sb")])),
+        .mk 47 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_a_returned_cell_is_still_write_once_inlined`. -/
+def prog_inline_returns_a_returned_cell_is_still_write_once_inlined : TestProgram where
+  name := "inline_returns_a_returned_cell_is_still_write_once_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "w" "w"),
+        .mk 50 (.let_ "sb" (.stackBuf 1)),
+        .mk 51 (.store (.var "sb") (.lit 0) (.var "w")),
+        .mk 52 (.let_ "y" (.call "first" [(.var "sb")])),
+        .mk 53 (.store (.var "sb") (.lit 0) (.lit 9)),
+        .mk 54 (.store (.var "p") (.lit 1) (.var "y")),
+        .mk 55 (.store (.var "p") .gen (.call "first" [(.var "sb")])),
+        .mk 56 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `inline_returns_advanced_cursor_0`. -/
 def prog_inline_returns_advanced_cursor_0 : TestProgram where
   name := "inline_returns_advanced_cursor_0"
@@ -3490,6 +4442,220 @@ def prog_inline_returns_advanced_cursor_0 : TestProgram where
         .mk 25 (.call "keccak" [(.var "state"), (.var "tg"), (.var "nb")]),
         .mk 26 (.ret [(.var "nb"), (.var "x"), (.mul (.var "cursor") .gen)])] }],
     []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_bind_as_lets_call`. -/
+def prog_inline_returns_bind_as_lets_call : TestProgram where
+  name := "inline_returns_bind_as_lets_call"
+  program := ⟨[
+    { name := "step", params := [⟨"cursor", (.runtime .scalar)⟩, ⟨"acc", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 3 (.let_ "x" (.index (.var "cursor") (.gpow 0))),
+        .mk 4 (.let_ "y" (.mul (.var "acc") (.var "x"))),
+        .mk 5 (.ret [(.var "y"), (.var "x"), (.mul (.var "cursor") .gen)])] }, 
+    { name := "word", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"j", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.let_ "w" (.var "a")),
+        .mk 10 (.ite true (.var "j") (.lit 1) [
+          .mk 11 (.let_ "w" (.var "b"))] [] true),
+        .mk 12 (.ret [(.var "w")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 15 (.let_ "public" (.lit 1)),
+        .mk 16 (.let_ "seed" (.index (.var "public") (.lit 1))),
+        .mk 17 (.let_ "b" (.heapBuf 2)),
+        .mk 18 (.unroll "i" (.lit 0) (.lit 2) [
+          .mk 19 (.store (.var "b") (.genPow (.var "i")) (.mul (.var "seed") (.genPow (.var "i"))))]),
+        .mk 20 (.let_ "cur" (.var "b")),
+        .mk 21 (.let_ "acc" (.var "seed")),
+        .mk 22 (.unroll "i" (.lit 0) (.lit 2) [
+          .mk 23 (.letTuple ["acc", "x", "cur"] "step" [(.var "cur"), (.var "acc")])]),
+        .mk 24 (.let_ "out" (.heapBuf 3)),
+        .mk 25 (.store (.var "out") (.lit 1) (.var "acc")),
+        .mk 26 (.store (.var "out") .gen (.var "x")),
+        .mk 27 (.store (.var "out") (.gpow 2) (.call "word" [(.var "acc"), (.var "x"), (.lit 1)])),
+        .mk 28 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_bind_as_lets_in_place`. -/
+def prog_inline_returns_bind_as_lets_in_place : TestProgram where
+  name := "inline_returns_bind_as_lets_in_place"
+  program := ⟨[
+    { name := "step", params := [⟨"cursor", (.runtime .scalar)⟩, ⟨"acc", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 3 (.let_ "x" (.index (.var "cursor") (.gpow 0))),
+        .mk 4 (.let_ "y" (.mul (.var "acc") (.var "x"))),
+        .mk 5 (.ret [(.var "y"), (.var "x"), (.mul (.var "cursor") .gen)])] }, 
+    { name := "word", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"j", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.let_ "w" (.var "a")),
+        .mk 10 (.ite true (.var "j") (.lit 1) [
+          .mk 11 (.let_ "w" (.var "b"))] [] true),
+        .mk 12 (.ret [(.var "w")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 15 (.let_ "public" (.lit 1)),
+        .mk 16 (.let_ "seed" (.index (.var "public") (.lit 1))),
+        .mk 17 (.let_ "b" (.heapBuf 2)),
+        .mk 18 (.unroll "i" (.lit 0) (.lit 2) [
+          .mk 19 (.store (.var "b") (.genPow (.var "i")) (.mul (.var "seed") (.genPow (.var "i"))))]),
+        .mk 20 (.let_ "cur" (.var "b")),
+        .mk 21 (.let_ "acc" (.var "seed")),
+        .mk 22 (.unroll "i" (.lit 0) (.lit 2) [
+          .mk 23 (.let_ "x" (.index (.var "cur") (.gpow 0))),
+          .mk 24 (.let_ "acc" (.mul (.var "acc") (.var "x"))),
+          .mk 25 (.let_ "cur" (.mul (.var "cur") .gen))]),
+        .mk 26 (.let_ "out" (.heapBuf 3)),
+        .mk 27 (.store (.var "out") (.lit 1) (.var "acc")),
+        .mk 28 (.store (.var "out") .gen (.var "x")),
+        .mk 29 (.store (.var "out") (.gpow 2) (.var "x")),
+        .mk 30 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_match_joins_called`. -/
+def prog_inline_returns_match_joins_called : TestProgram where
+  name := "inline_returns_match_joins_called"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 4 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 7 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 10 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 13 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 16 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 17 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 20 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 23 (.let_ "r" (.call "five" [])),
+        .mk 24 (.ite true (.var "k") (.lit 1) [
+          .mk 25 (.let_ "r" (.var "b"))] [] true),
+        .mk 26 (.ite true (.var "k") (.lit 2) [
+          .mk 27 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 28 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := false,
+      body := [
+        .mk 31 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := false,
+      body := [
+        .mk 34 (.ite true (.var "k") (.lit 0) [
+          .mk 35 (.let_ "t" (.var "s"))] [] true),
+        .mk 36 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 39 (.let_ "p" (.gpow 0)),
+        .mk 40 (.letHintWitness "x" "w"),
+        .mk 41 (.letHintWitness "a" "w"),
+        .mk 42 (.letHintWitness "b" "w"),
+        .mk 43 (.assertLt (.var "x") (.const 3)),
+        .mk 44 (.match_ [(.var "u"), (.var "v")] (.var "x") [(.call "pair" [(.var "a"), (.var "b"), (.lit 0)]), (.call "pair" [(.var "a"), (.var "b"), (.lit 1)]), (.call "pair" [(.var "a"), (.var "b"), (.lit 2)])]),
+        .mk 45 (.match_ [(.var "r")] (.var "x") [(.call "pick" [(.var "a"), (.var "b"), (.lit 0)]), (.call "pick" [(.var "a"), (.var "b"), (.lit 1)]), (.call "pick" [(.var "a"), (.var "b"), (.lit 2)])]),
+        .mk 46 (.let_ "s" (.list [(.var "a")])),
+        .mk 47 (.let_ "t" (.list [(.var "b")])),
+        .mk 48 (.match_ [(.var "q")] (.var "x") [(.call "run" [(.var "s"), (.var "t"), (.lit 0)]), (.call "run" [(.var "s"), (.var "t"), (.lit 1)]), (.call "run" [(.var "s"), (.var "t"), (.lit 2)])]),
+        .mk 49 (.store (.var "p") (.lit 1) (.mul (.var "u") (.var "v"))),
+        .mk 50 (.store (.var "p") .gen (.mul (.var "r") (.var "q"))),
+        .mk 51 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `inline_returns_match_joins_inlined`. -/
+def prog_inline_returns_match_joins_inlined : TestProgram where
+  name := "inline_returns_match_joins_inlined"
+  program := ⟨[
+    { name := "five", params := [], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 5 (.ret [(.lit 5)])] }, 
+    { name := "scale", params := [⟨"x", (.runtime .scalar)⟩, ⟨"k", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 9 (.ret [(.add (.mul (.var "x") (.var "k")) (.lit 0))])] }, 
+    { name := "prod", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 13 (.ret [(.mul (.var "a") (.var "b"))])] }, 
+    { name := "first", params := [⟨"s", (.runtime (.stackBuf 1))⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 17 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "sq", params := [⟨"x", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 21 (.let_ "x" (.mul (.var "x") (.var "x"))),
+        .mk 22 (.ret [(.var "x")])] }, 
+    { name := "rd", params := [⟨"b", (.runtime .scalar)⟩, ⟨"i", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 26 (.ret [(.index (.var "b") (.var "i"))])] }, 
+    { name := "pick", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 30 (.let_ "r" (.call "five" [])),
+        .mk 31 (.ite true (.var "k") (.lit 1) [
+          .mk 32 (.let_ "r" (.var "b"))] [] true),
+        .mk 33 (.ite true (.var "k") (.lit 2) [
+          .mk 34 (.let_ "r" (.call "prod" [(.var "a"), (.var "b")]))] [] true),
+        .mk 35 (.ret [(.var "r")])] }, 
+    { name := "pair", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
+      inline := true,
+      body := [
+        .mk 39 (.ret [(.call "pick" [(.var "a"), (.var "b"), (.var "k")]), (.var "a")])] }, 
+    { name := "run", params := [⟨"s", (.runtime (.stackBuf 1))⟩, ⟨"t", (.runtime (.stackBuf 1))⟩, ⟨"k", .const⟩], returnShapes := [(.stackBuf 1)],
+      inline := true,
+      body := [
+        .mk 43 (.ite true (.var "k") (.lit 0) [
+          .mk 44 (.let_ "t" (.var "s"))] [] true),
+        .mk 45 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 48 (.let_ "p" (.gpow 0)),
+        .mk 49 (.letHintWitness "x" "w"),
+        .mk 50 (.letHintWitness "a" "w"),
+        .mk 51 (.letHintWitness "b" "w"),
+        .mk 52 (.assertLt (.var "x") (.const 3)),
+        .mk 53 (.match_ [(.var "u"), (.var "v")] (.var "x") [(.call "pair" [(.var "a"), (.var "b"), (.lit 0)]), (.call "pair" [(.var "a"), (.var "b"), (.lit 1)]), (.call "pair" [(.var "a"), (.var "b"), (.lit 2)])]),
+        .mk 54 (.match_ [(.var "r")] (.var "x") [(.call "pick" [(.var "a"), (.var "b"), (.lit 0)]), (.call "pick" [(.var "a"), (.var "b"), (.lit 1)]), (.call "pick" [(.var "a"), (.var "b"), (.lit 2)])]),
+        .mk 55 (.let_ "s" (.list [(.var "a")])),
+        .mk 56 (.let_ "t" (.list [(.var "b")])),
+        .mk 57 (.match_ [(.var "q")] (.var "x") [(.call "run" [(.var "s"), (.var "t"), (.lit 0)]), (.call "run" [(.var "s"), (.var "t"), (.lit 1)]), (.call "run" [(.var "s"), (.var "t"), (.lit 2)])]),
+        .mk 58 (.store (.var "p") (.lit 1) (.mul (.var "u") (.var "v"))),
+        .mk 59 (.store (.var "p") .gen (.mul (.var "r") (.var "q"))),
+        .mk 60 (.ret [])] }],
+    [("C", [(4, 0)])]⟩
   publicInput := []
   streams := []
 
@@ -4442,6 +5608,6 @@ def chains : List TestProgram := [prog_chain4, prog_chain16, prog_chain300, prog
 def vm : List TestProgram := [prog_duplex_step, prog_empty, prog_failed_assert, prog_field_div, prog_heap_buf_runtime_size, prog_hinted_gpow_past_the_run, prog_keccak_cells_run, prog_keccak_full_final_block, prog_keccak_self_hash, prog_keccak_state_heap, prog_keccak_steps0, prog_keccak_steps1, prog_keccak_steps3, prog_keccak_steps512, prog_keccak_steps513, prog_keccak_two_blocks, prog_log2_ceil, prog_log2_ceil_floor, prog_print, prog_range_check_complement_65536, prog_range_check_complement_runtime, prog_range_check_past_the_prover, prog_range_check_unwritten, prog_unwritten_heap_read]
 
 /-- The front end's regression corpus (`tests/frontend/*.py`): `lake exe guest-backend core-text` compares the core IR `Expand` gives each with `tests/frontend/*.core`. -/
-def frontend : List TestProgram := [prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3, prog_a_bit_decomposition_writes_at_most_40_bits, prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_digit_decomposition_reads_at_most_40_bits, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_global_constant_may_be_a_g_power_0, prog_a_global_constant_may_be_a_g_power_1, prog_a_global_constant_may_be_a_g_power_2, prog_a_global_constant_may_be_a_g_power_3, prog_a_global_constant_may_be_a_g_power_4, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_0, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_1, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_loop_bound_must_be_reachable_0, prog_a_loop_cannot_carry_a_value_0, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_1, prog_a_program_cannot_reach_a_cell_it_does_not_own_2, prog_a_program_cannot_reach_a_cell_it_does_not_own_3, prog_a_program_cannot_reach_a_cell_it_does_not_own_4, prog_a_program_cannot_reach_a_cell_it_does_not_own_5, prog_a_program_names_what_it_means_0, prog_a_program_names_what_it_means_1, prog_a_program_names_what_it_means_2, prog_a_range_check_bound_may_pass_two_to_the_16, prog_a_return_in_main_is_only_its_last_statement, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_1, prog_a_stack_buf_can_be_passed_as_well_as_returned_2, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_a_value_may_ask_for_the_integer_regime_0, prog_a_value_may_ask_for_the_integer_regime_1, prog_a_value_may_ask_for_the_integer_regime_2, prog_a_value_may_ask_for_the_integer_regime_3, prog_a_value_may_ask_for_the_integer_regime_4, prog_a_value_may_ask_for_the_integer_regime_5, prog_a_value_may_ask_for_the_integer_regime_6, prog_addr_names_the_frame_run_0, prog_addr_pointers_are_bounds_checked_0, prog_an_ambiguous_compile_time_branch_must_be_declared_0, prog_an_ambiguous_compile_time_branch_must_be_declared_1, prog_an_ambiguous_compile_time_branch_must_be_declared_10, prog_an_ambiguous_compile_time_branch_must_be_declared_11, prog_an_ambiguous_compile_time_branch_must_be_declared_12, prog_an_ambiguous_compile_time_branch_must_be_declared_13, prog_an_ambiguous_compile_time_branch_must_be_declared_14, prog_an_ambiguous_compile_time_branch_must_be_declared_15, prog_an_ambiguous_compile_time_branch_must_be_declared_2, prog_an_ambiguous_compile_time_branch_must_be_declared_3, prog_an_ambiguous_compile_time_branch_must_be_declared_4, prog_an_ambiguous_compile_time_branch_must_be_declared_5, prog_an_ambiguous_compile_time_branch_must_be_declared_6, prog_an_ambiguous_compile_time_branch_must_be_declared_7, prog_an_ambiguous_compile_time_branch_must_be_declared_8, prog_an_ambiguous_compile_time_branch_must_be_declared_9, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_an_inline_stack_buf_parameter_takes_only_its_own_size, prog_an_unbound_name_is_rejected_0, prog_an_unbound_name_is_rejected_1, prog_assert_ne_compile_time_equal_rejected_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_const_chains_0, prog_const_in_literal_only_positions_0, prog_const_inlines_like_literal_0, prog_const_integer_arithmetic_derivations_0, prog_const_is_transparent_where_the_reading_is_already_integer_0, prog_const_is_transparent_where_the_reading_is_already_integer_1, prog_const_is_transparent_where_the_reading_is_already_integer_2, prog_const_is_transparent_where_the_reading_is_already_integer_3, prog_const_is_transparent_where_the_reading_is_already_integer_4, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_alias_index_oob_rejected_0, prog_heap_hint_slice_oob_rejected_0, prog_heap_index_boundary_ok_0, prog_heap_index_exponent_overflow_rejected_0, prog_heap_index_oob_rejected_0, prog_heap_keccak_slice_oob_rejected_0, prog_inline_call_in_expression_positions_0, prog_inline_returns_advanced_cursor_0, prog_inline_returns_stackbuf_and_scalar_0, prog_integer_heap_index_is_rejected_0, prog_keccak_cell_past_len_is_rejected_0, prog_keccak_cells_non_final_len_is_rejected_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_len_past_the_cells_is_rejected_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_keccak_pad_tail_of_a_list_is_rejected_0, prog_keccak_short_state_is_rejected_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_main_cannot_be_called, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_placeholder_fills_constant_0, prog_range_check_bound_too_big_rejected_0, prog_range_check_empty_bound_rejected_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_index_overflow_rejected_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_list_literal_as_value_rejected_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_the_supported_compound_assignments_desugar_0, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
+def frontend : List TestProgram := [prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3, prog_a_bit_decomposition_writes_at_most_40_bits, prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_digit_decomposition_reads_at_most_40_bits, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_folded_if_cannot_rebind_a_loop_capture, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_global_constant_may_be_a_g_power_0, prog_a_global_constant_may_be_a_g_power_1, prog_a_global_constant_may_be_a_g_power_2, prog_a_global_constant_may_be_a_g_power_3, prog_a_global_constant_may_be_a_g_power_4, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_0, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_1, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_loop_bound_must_be_reachable_0, prog_a_loop_cannot_carry_a_value_0, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_1, prog_a_program_cannot_reach_a_cell_it_does_not_own_2, prog_a_program_cannot_reach_a_cell_it_does_not_own_3, prog_a_program_cannot_reach_a_cell_it_does_not_own_4, prog_a_program_cannot_reach_a_cell_it_does_not_own_5, prog_a_program_names_what_it_means_0, prog_a_program_names_what_it_means_1, prog_a_program_names_what_it_means_2, prog_a_range_check_bound_may_pass_two_to_the_16, prog_a_return_in_main_is_only_its_last_statement, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_1, prog_a_stack_buf_can_be_passed_as_well_as_returned_2, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_a_value_may_ask_for_the_integer_regime_0, prog_a_value_may_ask_for_the_integer_regime_1, prog_a_value_may_ask_for_the_integer_regime_2, prog_a_value_may_ask_for_the_integer_regime_3, prog_a_value_may_ask_for_the_integer_regime_4, prog_a_value_may_ask_for_the_integer_regime_5, prog_a_value_may_ask_for_the_integer_regime_6, prog_addr_names_the_frame_run_0, prog_addr_pointers_are_bounds_checked_0, prog_an_ambiguous_compile_time_branch_must_be_declared_0, prog_an_ambiguous_compile_time_branch_must_be_declared_1, prog_an_ambiguous_compile_time_branch_must_be_declared_10, prog_an_ambiguous_compile_time_branch_must_be_declared_11, prog_an_ambiguous_compile_time_branch_must_be_declared_12, prog_an_ambiguous_compile_time_branch_must_be_declared_13, prog_an_ambiguous_compile_time_branch_must_be_declared_14, prog_an_ambiguous_compile_time_branch_must_be_declared_15, prog_an_ambiguous_compile_time_branch_must_be_declared_2, prog_an_ambiguous_compile_time_branch_must_be_declared_3, prog_an_ambiguous_compile_time_branch_must_be_declared_4, prog_an_ambiguous_compile_time_branch_must_be_declared_5, prog_an_ambiguous_compile_time_branch_must_be_declared_6, prog_an_ambiguous_compile_time_branch_must_be_declared_7, prog_an_ambiguous_compile_time_branch_must_be_declared_8, prog_an_ambiguous_compile_time_branch_must_be_declared_9, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_an_inline_stack_buf_parameter_takes_only_its_own_size, prog_an_unbound_name_is_rejected_0, prog_an_unbound_name_is_rejected_1, prog_assert_ne_compile_time_equal_rejected_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_const_chains_0, prog_const_in_literal_only_positions_0, prog_const_inlines_like_literal_0, prog_const_integer_arithmetic_derivations_0, prog_const_is_transparent_where_the_reading_is_already_integer_0, prog_const_is_transparent_where_the_reading_is_already_integer_1, prog_const_is_transparent_where_the_reading_is_already_integer_2, prog_const_is_transparent_where_the_reading_is_already_integer_3, prog_const_is_transparent_where_the_reading_is_already_integer_4, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_alias_index_oob_rejected_0, prog_heap_hint_slice_oob_rejected_0, prog_heap_index_boundary_ok_0, prog_heap_index_exponent_overflow_rejected_0, prog_heap_index_oob_rejected_0, prog_heap_keccak_slice_oob_rejected_0, prog_inline_call_in_expression_positions_0, prog_inline_constant_arguments_and_destinations_call, prog_inline_constant_arguments_and_destinations_in_place, prog_inline_returns_a_constant_argument_called, prog_inline_returns_a_constant_argument_inlined, prog_inline_returns_a_constant_argument_takes_its_field_reading_called, prog_inline_returns_a_constant_argument_takes_its_field_reading_inlined, prog_inline_returns_a_constant_return_called, prog_inline_returns_a_constant_return_inlined, prog_inline_returns_a_g_power_and_a_constant_array_index_called, prog_inline_returns_a_g_power_and_a_constant_array_index_inlined, prog_inline_returns_a_nested_call_shadowing_its_argument_called, prog_inline_returns_a_nested_call_shadowing_its_argument_inlined, prog_inline_returns_a_product_the_caller_computes_too_called, prog_inline_returns_a_product_the_caller_computes_too_inlined, prog_inline_returns_a_returned_cell_is_still_write_once_called, prog_inline_returns_a_returned_cell_is_still_write_once_inlined, prog_inline_returns_advanced_cursor_0, prog_inline_returns_bind_as_lets_call, prog_inline_returns_bind_as_lets_in_place, prog_inline_returns_match_joins_called, prog_inline_returns_match_joins_inlined, prog_inline_returns_stackbuf_and_scalar_0, prog_integer_heap_index_is_rejected_0, prog_keccak_cell_past_len_is_rejected_0, prog_keccak_cells_non_final_len_is_rejected_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_len_past_the_cells_is_rejected_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_keccak_pad_tail_of_a_list_is_rejected_0, prog_keccak_short_state_is_rejected_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_main_cannot_be_called, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_placeholder_fills_constant_0, prog_range_check_bound_too_big_rejected_0, prog_range_check_empty_bound_rejected_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_index_overflow_rejected_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_list_literal_as_value_rejected_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_the_supported_compound_assignments_desugar_0, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
 
 end LeanVMTests.Guest.Programs
