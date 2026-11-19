@@ -933,6 +933,7 @@ HEADER = """/-
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -70,10 +71,8 @@ def hcert : CoreMode.HCert where
     .lt (.val 185) (.mono ⟨[(6, 1)], 1⟩), .lt (.val 199) (.mono ⟨[(6, 1)], 1⟩),
     .lt (.val 213) (.mono ⟨[(6, 1)], 1⟩), .lt (.val 227) (.mono ⟨[(6, 1)], 1⟩),
     .lt (.val 241) (.mono ⟨[(6, 1)], 1⟩)]
-  calls := [[.ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105, .ev 106, .ev 107, .ev 108,
-        .ev 109, .ev 110, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 []]]
-  rets := [[.ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105, .ev 106, .ev 107, .ev 108,
-        .ev 109, .ev 110]]
+  calls := [(List.flatten [CoreMode.evR 98 13, CoreMode.runR 0 6])]
+  rets := [(List.flatten [CoreMode.evR 98 13])]
   gargs := [("__loop1_child_claim_list_any", [448, 1, 2, 3, 4, 5, 6], [⟨[(1048576, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -111,9 +110,10 @@ def hcert : CoreMode.HCert where
   reads := [(10, [(9, 0, .pre 0)]), (11, [(9, 1, .pre 1)]), (12, [(9, 2, .pre 2)]), (13, [(9, 3, .pre 3)]),
     (14, [(9, 4, .pre 4)])]
   res := []
-  calls := [[.run 0 []], [.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .run 1 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13,
-        .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]]
+  calls := [[.run 0 []], (List.flatten [CoreMode.evR 5 5, [.run 1 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 6,
+        [.ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [],
+        .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("decode_query_windows__L21_L3", 

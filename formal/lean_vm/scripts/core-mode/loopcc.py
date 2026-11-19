@@ -255,7 +255,12 @@ def emit(R, check):
         for k in ks:
             out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{R[k]["text"]}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
-        files[os.path.join(GEN, pack, 'DataLC.lean')] = ''.join(out)
+        text = ''.join(out)
+        if 'CoreMode.evR ' in text or 'CoreMode.runR ' in text:
+            # runs of witnesses (`emitc.lwits`)
+            text = text.replace('public import LeanVM.Guest.CoreMode.Defs\n',
+                                'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.WitOf\n', 1)
+        files[os.path.join(GEN, pack, 'DataLC.lean')] = text
     stale = []
     for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataLC.lean'))) - set(files)):
         stale.append(path)

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -27,7 +28,7 @@ def hcert : CoreMode.HCert where
     (100, [(6, 6, .pre 7)]), (101, [(6, 7, .pre 8)]), (107, [(106, 0, .pre 0)])]
   res := []
   calls := [[.pfr 2 [], .pfr 2 [], .pfr 2 [], .pfr 2 []],
-    [.ev 15, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .run 0 [], .run 1 [], .pfr 2 []]]
+    (List.flatten [[.ev 15], CoreMode.evR 6 8, [.run 0 [], .run 1 [], .pfr 2 []]])]
   rets := [[.ev 15]]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -65,8 +66,7 @@ def hcert : CoreMode.HCert where
   res := []
   calls := [[.pfr 4 [], .pfr 4 [], .pfr 4 [], .pfr 4 [], .pfr 4 []],
     [.pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 []],
-    [.ev 39, .ev 26, .ev 27, .ev 28, .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37,
-        .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pfr 4 [], .pfr 5 []]]
+    (List.flatten [[.ev 39], CoreMode.evR 26 12, CoreMode.runR 0 4, [.pfr 4 [], .pfr 5 []]])]
   rets := [[.ev 39]]
 
 def csigs : List (String × CoreMode.HSig) :=

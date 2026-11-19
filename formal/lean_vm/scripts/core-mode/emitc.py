@@ -1773,8 +1773,39 @@ def lsig(G, ax):
     return '\n    { ' + ',\n      '.join(fs) + ' }'
 
 
+# a run of at least this many consecutive write events, or runs with no residual, is written as one
+# (`CoreMode.evR`, `runR`, `CoreMode/WitOf.lean`)
+RANGE = 4
+
+
 def lwits(ax, name, ws):
-    return ax.lst(name, 'CoreMode.Wit', map(lwit, ws), '        ')
+    ws = list(ws)
+    segs, lit, i = [], [], 0
+    while i < len(ws):
+        w = ws[i]
+        k = 'ev' if w[0] == 'ev' else 'run' if w[0] == 'run' and not w[2] else None
+        j = i + 1
+        if k is not None:
+            nxt = (lambda x, n: x[0] == 'ev' and x[1] == n) if k == 'ev' else \
+                (lambda x, n: x[0] == 'run' and x[1] == n and not x[2])
+            while j < len(ws) and nxt(ws[j], w[1] + j - i):
+                j += 1
+        if k is not None and j - i >= RANGE:
+            if lit:
+                segs.append(lit)
+                lit = []
+            segs.append(f'CoreMode.{k}R {w[1]} {j - i}')
+            i = j
+        else:
+            lit.append(lwit(w))
+            i += 1
+    if lit:
+        segs.append(lit)
+    if all(isinstance(g, list) for g in segs):
+        return ax.lst(name, 'CoreMode.Wit', [x for g in segs for x in g], '        ')
+    # a list of the segments, not a chain of `++`: the elaborator takes a long chain of binary operators slowly
+    return '(List.flatten [' + wrap([g if isinstance(g, str) else ax.lst(f'{name}{n}_', 'CoreMode.Wit', g, '        ')
+                                     for n, g in enumerate(segs)], '        ') + '])'
 
 
 def lcert(H, sig_only=False):

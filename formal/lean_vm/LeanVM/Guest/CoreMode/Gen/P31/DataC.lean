@@ -20,6 +20,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P39».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P4».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P42».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P56».Sig
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -36,8 +37,7 @@ def hcert : CoreMode.HCert where
     (87, [(86, 112, .run 15 [7])])]
   res := [.lt (.val 3) (.num 16), .lt (.val 4) (.num 16), .lt (.val 5) (.num 16), .lt (.val 6) (.num 16),
     .lt (.val 7) (.num 16), .lt (.val 8) (.num 16), .lt (.val 9) (.num 16), .lt (.val 10) (.num 16)]
-  rets := [[.run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 [],
-        .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [], .run 15 []]]
+  rets := [(List.flatten [CoreMode.runR 0 16])]
   eqs := [88]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -77,12 +77,10 @@ def hcert : CoreMode.HCert where
   reads := [(18, [(17, 0, .run 5 [])]), (19, [(17, 1, .run 6 [])]), (20, [(17, 2, .run 7 [])]),
     (21, [(17, 3, .run 8 [])]), (22, [(17, 4, .run 9 [])])]
   res := []
-  calls := [[.run 1 [], .run 1 []], [.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .run 3 [], .run 3 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16, .ev 17,
-        .ev 18, .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [], .run 15 [], .run 16 [], .run 17 [],
-        .run 18 [], .run 19 [], .run 20 [], .run 21 [], .run 22 [], .run 23 [], .run 3 [], .run 3 [], .pts,
-        .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [], .pfr 24 [], .pfr 25 [], .pfr 26 [],
-        .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]]
+  calls := [[.run 1 [], .run 1 []], (List.flatten [CoreMode.evR 0 5, [.run 3 [], .run 3 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 14, CoreMode.runR 10 14,
+        [.run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [],
+        .pfr 24 [], .pfr 25 [], .pfr 26 [], .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_positions__L8_L17_L5", 
@@ -120,34 +118,7 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
-        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
-        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
-        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67,
-        .ev 68, .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80,
-        .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93,
-        .ev 94, .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105,
-        .ev 106, .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116,
-        .ev 117, .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127,
-        .ev 128, .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138,
-        .ev 139, .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149,
-        .ev 150, .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160,
-        .ev 161, .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171,
-        .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182,
-        .ev 183, .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193,
-        .ev 194, .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204,
-        .ev 205, .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215,
-        .ev 216, .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226,
-        .ev 227, .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237,
-        .ev 238, .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248,
-        .ev 249, .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 258, .ev 259, .ev 260, .ev 261,
-        .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270, .ev 271, .ev 272,
-        .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281, .ev 282, .ev 283,
-        .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292, .ev 293, .ev 294,
-        .ev 295, .ev 296, .ev 297, .ev 298, .ev 299, .ev 300, .ev 301, .ev 302, .ev 303, .ev 304, .ev 305,
-        .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314, .ev 315, .ev 316,
-        .ev 317, .ev 318, .ev 319],
+  calls := [(List.flatten [CoreMode.evR 2 254, CoreMode.evR 258 62]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
@@ -167,12 +138,11 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 18, .ev 19],
+  calls := [(List.flatten [CoreMode.evR 2 14, [.ev 18, .ev 19]]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .run 0 [], .run 1 [],
         .pfr 2 []]]
-  rets := [[.run 3 [], .run 4 [], .run 5 [], .run 6 [], .pfr 7 []]]
+  rets := [(List.flatten [CoreMode.runR 3 4, [.pfr 7 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».sig),
@@ -190,8 +160,7 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 18, .ev 19],
+  calls := [(List.flatten [CoreMode.evR 2 14, [.ev 18, .ev 19]]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
@@ -211,12 +180,7 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
-        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
-        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
-        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 66, .ev 67, .ev 68, .ev 69,
-        .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79],
+  calls := [(List.flatten [CoreMode.evR 2 62, CoreMode.evR 66 14]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
@@ -236,66 +200,10 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
-        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
-        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
-        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67,
-        .ev 68, .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80,
-        .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93,
-        .ev 94, .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105,
-        .ev 106, .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116,
-        .ev 117, .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127,
-        .ev 128, .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138,
-        .ev 139, .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149,
-        .ev 150, .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160,
-        .ev 161, .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171,
-        .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182,
-        .ev 183, .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193,
-        .ev 194, .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204,
-        .ev 205, .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215,
-        .ev 216, .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226,
-        .ev 227, .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237,
-        .ev 238, .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248,
-        .ev 249, .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 256, .ev 257, .ev 258, .ev 259,
-        .ev 260, .ev 261, .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270,
-        .ev 271, .ev 272, .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281,
-        .ev 282, .ev 283, .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292,
-        .ev 293, .ev 294, .ev 295, .ev 296, .ev 297, .ev 298, .ev 299, .ev 300, .ev 301, .ev 302, .ev 303,
-        .ev 304, .ev 305, .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314,
-        .ev 315, .ev 316, .ev 317, .ev 318, .ev 319, .ev 320, .ev 321, .ev 322, .ev 323, .ev 324, .ev 325,
-        .ev 326, .ev 327, .ev 328, .ev 329, .ev 330, .ev 331, .ev 332, .ev 333, .ev 334, .ev 335, .ev 336,
-        .ev 337, .ev 338, .ev 339, .ev 340, .ev 341, .ev 342, .ev 343, .ev 344, .ev 345, .ev 346, .ev 347,
-        .ev 348, .ev 349, .ev 350, .ev 351, .ev 352, .ev 353, .ev 354, .ev 355, .ev 356, .ev 357, .ev 358,
-        .ev 359, .ev 360, .ev 361, .ev 362, .ev 363, .ev 364, .ev 365, .ev 366, .ev 367, .ev 368, .ev 369,
-        .ev 370, .ev 371, .ev 372, .ev 373, .ev 374, .ev 375, .ev 376, .ev 377, .ev 378, .ev 379, .ev 380,
-        .ev 381, .ev 382, .ev 383, .ev 384, .ev 385, .ev 386, .ev 387, .ev 388, .ev 389, .ev 390, .ev 391,
-        .ev 392, .ev 393, .ev 394, .ev 395, .ev 396, .ev 397, .ev 398, .ev 399, .ev 400, .ev 401, .ev 402,
-        .ev 403, .ev 404, .ev 405, .ev 406, .ev 407, .ev 408, .ev 409, .ev 410, .ev 411, .ev 412, .ev 413,
-        .ev 414, .ev 415, .ev 416, .ev 417, .ev 418, .ev 419, .ev 420, .ev 421, .ev 422, .ev 423, .ev 424,
-        .ev 425, .ev 426, .ev 427, .ev 428, .ev 429, .ev 430, .ev 431, .ev 432, .ev 433, .ev 434, .ev 435,
-        .ev 436, .ev 437, .ev 438, .ev 439, .ev 440, .ev 441, .ev 442, .ev 443, .ev 444, .ev 445, .ev 446,
-        .ev 447, .ev 448, .ev 449, .ev 450, .ev 451, .ev 452, .ev 453, .ev 454, .ev 455, .ev 456, .ev 457,
-        .ev 458, .ev 459, .ev 460, .ev 461, .ev 462, .ev 463, .ev 464, .ev 465, .ev 466, .ev 467, .ev 468,
-        .ev 469, .ev 470, .ev 471, .ev 472, .ev 473, .ev 474, .ev 475, .ev 476, .ev 477, .ev 478, .ev 479,
-        .ev 480, .ev 481, .ev 482, .ev 483, .ev 484, .ev 485, .ev 486, .ev 487, .ev 488, .ev 489, .ev 490,
-        .ev 491, .ev 492, .ev 493, .ev 494, .ev 495, .ev 496, .ev 497, .ev 498, .ev 499, .ev 500, .ev 501,
-        .ev 502, .ev 503, .ev 504, .ev 505, .ev 506, .ev 507, .ev 508, .ev 509, .ev 510, .ev 511, .ev 514,
-        .ev 515, .ev 516, .ev 517, .ev 518, .ev 519, .ev 520, .ev 521, .ev 522, .ev 523, .ev 524, .ev 525,
-        .ev 526, .ev 527, .ev 528, .ev 529, .ev 530, .ev 531, .ev 532, .ev 533, .ev 534, .ev 535, .ev 536,
-        .ev 537, .ev 538, .ev 539, .ev 540, .ev 541, .ev 542, .ev 543, .ev 544, .ev 545, .ev 546, .ev 547,
-        .ev 548, .ev 549, .ev 550, .ev 551, .ev 552, .ev 553, .ev 554, .ev 555, .ev 556, .ev 557, .ev 558,
-        .ev 559, .ev 560, .ev 561, .ev 562, .ev 563, .ev 564, .ev 565, .ev 566, .ev 567, .ev 568, .ev 569,
-        .ev 570, .ev 571, .ev 572, .ev 573, .ev 574, .ev 575, .ev 576, .ev 577, .ev 578, .ev 579, .ev 580,
-        .ev 581, .ev 582, .ev 583, .ev 584, .ev 585, .ev 586, .ev 587, .ev 588, .ev 589, .ev 590, .ev 591,
-        .ev 592, .ev 593, .ev 594, .ev 595, .ev 596, .ev 597, .ev 598, .ev 599, .ev 600, .ev 601, .ev 602,
-        .ev 603, .ev 604, .ev 605, .ev 606, .ev 607, .ev 608, .ev 609, .ev 610, .ev 611, .ev 612, .ev 613,
-        .ev 614, .ev 615, .ev 616, .ev 617, .ev 618, .ev 619, .ev 620, .ev 621, .ev 622, .ev 623, .ev 624,
-        .ev 625, .ev 626, .ev 627, .ev 628, .ev 629, .ev 630, .ev 631, .ev 632, .ev 633, .ev 634, .ev 635,
-        .ev 636, .ev 637, .ev 638, .ev 639],
+  calls := [(List.flatten [CoreMode.evR 2 510, CoreMode.evR 514 126]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
         .pre 12, .pre 13, .pre 14, .pre 15, .run 0 [], .run 1 [], .pfr 2 []]]
-  rets := [[.run 3 [], .run 4 [], .run 5 [], .run 6 [], .pfr 7 []]]
+  rets := [(List.flatten [CoreMode.runR 3 4, [.pfr 7 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».sig),
@@ -313,63 +221,7 @@ def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig
   reads := []
   res := []
-  calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
-        .ev 29, .ev 30, .ev 31, .ev 32, .ev 33, .ev 34, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40, .ev 41,
-        .ev 42, .ev 43, .ev 44, .ev 45, .ev 46, .ev 47, .ev 48, .ev 49, .ev 50, .ev 51, .ev 52, .ev 53, .ev 54,
-        .ev 55, .ev 56, .ev 57, .ev 58, .ev 59, .ev 60, .ev 61, .ev 62, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67,
-        .ev 68, .ev 69, .ev 70, .ev 71, .ev 72, .ev 73, .ev 74, .ev 75, .ev 76, .ev 77, .ev 78, .ev 79, .ev 80,
-        .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91, .ev 92, .ev 93,
-        .ev 94, .ev 95, .ev 96, .ev 97, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .ev 103, .ev 104, .ev 105,
-        .ev 106, .ev 107, .ev 108, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115, .ev 116,
-        .ev 117, .ev 118, .ev 119, .ev 120, .ev 121, .ev 122, .ev 123, .ev 124, .ev 125, .ev 126, .ev 127,
-        .ev 128, .ev 129, .ev 130, .ev 131, .ev 132, .ev 133, .ev 134, .ev 135, .ev 136, .ev 137, .ev 138,
-        .ev 139, .ev 140, .ev 141, .ev 142, .ev 143, .ev 144, .ev 145, .ev 146, .ev 147, .ev 148, .ev 149,
-        .ev 150, .ev 151, .ev 152, .ev 153, .ev 154, .ev 155, .ev 156, .ev 157, .ev 158, .ev 159, .ev 160,
-        .ev 161, .ev 162, .ev 163, .ev 164, .ev 165, .ev 166, .ev 167, .ev 168, .ev 169, .ev 170, .ev 171,
-        .ev 172, .ev 173, .ev 174, .ev 175, .ev 176, .ev 177, .ev 178, .ev 179, .ev 180, .ev 181, .ev 182,
-        .ev 183, .ev 184, .ev 185, .ev 186, .ev 187, .ev 188, .ev 189, .ev 190, .ev 191, .ev 192, .ev 193,
-        .ev 194, .ev 195, .ev 196, .ev 197, .ev 198, .ev 199, .ev 200, .ev 201, .ev 202, .ev 203, .ev 204,
-        .ev 205, .ev 206, .ev 207, .ev 208, .ev 209, .ev 210, .ev 211, .ev 212, .ev 213, .ev 214, .ev 215,
-        .ev 216, .ev 217, .ev 218, .ev 219, .ev 220, .ev 221, .ev 222, .ev 223, .ev 224, .ev 225, .ev 226,
-        .ev 227, .ev 228, .ev 229, .ev 230, .ev 231, .ev 232, .ev 233, .ev 234, .ev 235, .ev 236, .ev 237,
-        .ev 238, .ev 239, .ev 240, .ev 241, .ev 242, .ev 243, .ev 244, .ev 245, .ev 246, .ev 247, .ev 248,
-        .ev 249, .ev 250, .ev 251, .ev 252, .ev 253, .ev 254, .ev 255, .ev 256, .ev 257, .ev 258, .ev 259,
-        .ev 260, .ev 261, .ev 262, .ev 263, .ev 264, .ev 265, .ev 266, .ev 267, .ev 268, .ev 269, .ev 270,
-        .ev 271, .ev 272, .ev 273, .ev 274, .ev 275, .ev 276, .ev 277, .ev 278, .ev 279, .ev 280, .ev 281,
-        .ev 282, .ev 283, .ev 284, .ev 285, .ev 286, .ev 287, .ev 288, .ev 289, .ev 290, .ev 291, .ev 292,
-        .ev 293, .ev 294, .ev 295, .ev 296, .ev 297, .ev 298, .ev 299, .ev 300, .ev 301, .ev 302, .ev 303,
-        .ev 304, .ev 305, .ev 306, .ev 307, .ev 308, .ev 309, .ev 310, .ev 311, .ev 312, .ev 313, .ev 314,
-        .ev 315, .ev 316, .ev 317, .ev 318, .ev 319, .ev 320, .ev 321, .ev 322, .ev 323, .ev 324, .ev 325,
-        .ev 326, .ev 327, .ev 328, .ev 329, .ev 330, .ev 331, .ev 332, .ev 333, .ev 334, .ev 335, .ev 336,
-        .ev 337, .ev 338, .ev 339, .ev 340, .ev 341, .ev 342, .ev 343, .ev 344, .ev 345, .ev 346, .ev 347,
-        .ev 348, .ev 349, .ev 350, .ev 351, .ev 352, .ev 353, .ev 354, .ev 355, .ev 356, .ev 357, .ev 358,
-        .ev 359, .ev 360, .ev 361, .ev 362, .ev 363, .ev 364, .ev 365, .ev 366, .ev 367, .ev 368, .ev 369,
-        .ev 370, .ev 371, .ev 372, .ev 373, .ev 374, .ev 375, .ev 376, .ev 377, .ev 378, .ev 379, .ev 380,
-        .ev 381, .ev 382, .ev 383, .ev 384, .ev 385, .ev 386, .ev 387, .ev 388, .ev 389, .ev 390, .ev 391,
-        .ev 392, .ev 393, .ev 394, .ev 395, .ev 396, .ev 397, .ev 398, .ev 399, .ev 400, .ev 401, .ev 402,
-        .ev 403, .ev 404, .ev 405, .ev 406, .ev 407, .ev 408, .ev 409, .ev 410, .ev 411, .ev 412, .ev 413,
-        .ev 414, .ev 415, .ev 416, .ev 417, .ev 418, .ev 419, .ev 420, .ev 421, .ev 422, .ev 423, .ev 424,
-        .ev 425, .ev 426, .ev 427, .ev 428, .ev 429, .ev 430, .ev 431, .ev 432, .ev 433, .ev 434, .ev 435,
-        .ev 436, .ev 437, .ev 438, .ev 439, .ev 440, .ev 441, .ev 442, .ev 443, .ev 444, .ev 445, .ev 446,
-        .ev 447, .ev 448, .ev 449, .ev 450, .ev 451, .ev 452, .ev 453, .ev 454, .ev 455, .ev 456, .ev 457,
-        .ev 458, .ev 459, .ev 460, .ev 461, .ev 462, .ev 463, .ev 464, .ev 465, .ev 466, .ev 467, .ev 468,
-        .ev 469, .ev 470, .ev 471, .ev 472, .ev 473, .ev 474, .ev 475, .ev 476, .ev 477, .ev 478, .ev 479,
-        .ev 480, .ev 481, .ev 482, .ev 483, .ev 484, .ev 485, .ev 486, .ev 487, .ev 488, .ev 489, .ev 490,
-        .ev 491, .ev 492, .ev 493, .ev 494, .ev 495, .ev 496, .ev 497, .ev 498, .ev 499, .ev 500, .ev 501,
-        .ev 502, .ev 503, .ev 504, .ev 505, .ev 506, .ev 507, .ev 508, .ev 509, .ev 510, .ev 511, .ev 514,
-        .ev 515, .ev 516, .ev 517, .ev 518, .ev 519, .ev 520, .ev 521, .ev 522, .ev 523, .ev 524, .ev 525,
-        .ev 526, .ev 527, .ev 528, .ev 529, .ev 530, .ev 531, .ev 532, .ev 533, .ev 534, .ev 535, .ev 536,
-        .ev 537, .ev 538, .ev 539, .ev 540, .ev 541, .ev 542, .ev 543, .ev 544, .ev 545, .ev 546, .ev 547,
-        .ev 548, .ev 549, .ev 550, .ev 551, .ev 552, .ev 553, .ev 554, .ev 555, .ev 556, .ev 557, .ev 558,
-        .ev 559, .ev 560, .ev 561, .ev 562, .ev 563, .ev 564, .ev 565, .ev 566, .ev 567, .ev 568, .ev 569,
-        .ev 570, .ev 571, .ev 572, .ev 573, .ev 574, .ev 575, .ev 576, .ev 577, .ev 578, .ev 579, .ev 580,
-        .ev 581, .ev 582, .ev 583, .ev 584, .ev 585, .ev 586, .ev 587, .ev 588, .ev 589, .ev 590, .ev 591,
-        .ev 592, .ev 593, .ev 594, .ev 595, .ev 596, .ev 597, .ev 598, .ev 599, .ev 600, .ev 601, .ev 602,
-        .ev 603, .ev 604, .ev 605, .ev 606, .ev 607, .ev 608, .ev 609, .ev 610, .ev 611, .ev 612, .ev 613,
-        .ev 614, .ev 615, .ev 616, .ev 617, .ev 618, .ev 619, .ev 620, .ev 621, .ev 622, .ev 623, .ev 624,
-        .ev 625, .ev 626, .ev 627, .ev 628, .ev 629, .ev 630, .ev 631, .ev 632, .ev 633, .ev 634, .ev 635,
-        .ev 636, .ev 637, .ev 638, .ev 639],
+  calls := [(List.flatten [CoreMode.evR 2 510, CoreMode.evR 514 126]),
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
@@ -406,17 +258,16 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 12, .run 10 [])]), (14, [(5, 13, .run 11 [])]), (24, [(16, 14, .run 12 [])]),
     (25, [(16, 15, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
-        .pre 22, .pre 23, .pre 24, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [],
-        .run 7 []],
+        .pre 22, .pre 23, .pre 24],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
         .pre 22, .pre 23, .pre 24, .run 8 []]]
-  rets := [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12,
-        .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23,
-        .pre 24, .run 8 []]]
+  rets := [(List.flatten [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11], CoreMode.runR 0 8,
+        [.pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16,
+        .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23, .pre 24, .run 8 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L55_L19_L6_L3", 
@@ -468,17 +319,17 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 18, .run 10 [])]), (14, [(5, 19, .run 11 [])]), (24, [(16, 2, .run 12 [])]),
     (25, [(16, 3, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
-        .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .pre 29, .run 0 [], .run 1 [],
-        .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 []],
+        .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .pre 29],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
         .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .pre 29, .run 8 []]]
-  rets := [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12,
-        .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23,
-        .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .pre 29, .run 8 []]]
+  rets := [(List.flatten [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11], CoreMode.runR 0 8,
+        [.pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16,
+        .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27,
+        .pre 28, .pre 29, .run 8 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L73_L24_L6_L3", 

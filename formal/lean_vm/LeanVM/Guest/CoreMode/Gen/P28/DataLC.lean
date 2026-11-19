@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -34,9 +35,9 @@ def hcert : CoreMode.HCert where
     (155, [(7, 18, .pre 26)]), (156, [(7, 19, .pre 27)])]
   res := []
   calls := [[.pfr 2 [], .pfr 2 [], .pfr 2 [], .pfr 2 []],
-    [.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
-        .ev 20, .ev 13, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28, .ev 29, .ev 30, .ev 31,
-        .ev 32, .ev 33, .run 0 [], .run 1 [], .pfr 2 []]]
+    (List.flatten [[.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
+        .ev 20, .ev 13],
+        CoreMode.evR 21 13, [.run 0 [], .run 1 [], .pfr 2 []]])]
   rets := [[]]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -69,8 +70,9 @@ def hcert : CoreMode.HCert where
     (136, [(7, 10, .pre 18)]), (137, [(7, 11, .pre 19)])]
   res := []
   calls := [[.pfr 2 [], .pfr 2 [], .pfr 2 [], .pfr 2 []],
-    [.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
-        .ev 20, .ev 13, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .run 0 [], .run 1 [], .pfr 2 []]]
+    (List.flatten [[.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
+        .ev 20, .ev 13],
+        CoreMode.evR 21 5, [.run 0 [], .run 1 [], .pfr 2 []]])]
   rets := [[]]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -106,9 +108,9 @@ def hcert : CoreMode.HCert where
     (155, [(7, 18, .pre 26)]), (156, [(7, 19, .pre 27)])]
   res := []
   calls := [[.pfr 2 [], .pfr 2 [], .pfr 2 [], .pfr 2 []],
-    [.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
-        .ev 20, .ev 13, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28, .ev 29, .ev 30, .ev 31,
-        .ev 32, .ev 33, .run 0 [], .run 1 [], .pfr 2 []]]
+    (List.flatten [[.ev 6, .ev 14, .ev 7, .ev 15, .ev 8, .ev 16, .ev 9, .ev 17, .ev 10, .ev 18, .ev 11, .ev 19, .ev 12,
+        .ev 20, .ev 13],
+        CoreMode.evR 21 13, [.run 0 [], .run 1 [], .pfr 2 []]])]
   rets := [[]]
 
 def csigs : List (String × CoreMode.HSig) :=

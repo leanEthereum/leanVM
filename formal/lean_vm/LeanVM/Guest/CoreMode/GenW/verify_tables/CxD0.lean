@@ -672,39 +672,38 @@ noncomputable def cxP : Trie CCell :=
 /-- `cxOf`'s trie `C`. -/
 noncomputable def cxC : Trie (List CoreMode.Wit) :=
   (.node (nthO calls0 0) (.node (nthO calls0 1) (.node (nthO calls1 0) (.node (nthO calls2 1) (.node (nthO calls2 9)
-      (.node (nthO calls10 0) (.node (nthO calls26 0) .nil .nil) (.node (nthO calls42 0) .nil .nil)) (.node (nthO
-      calls18 0) (.node (nthO calls34 0) .nil .nil) (.node (nthO calls50 0) .nil .nil))) (.node (nthO calls6 0)
-      (.node (nthO calls14 0) (.node (nthO calls30 0) .nil .nil) (.node (nthO calls46 0) .nil .nil)) (.node (nthO
-      calls22 0) (.node (nthO calls38 0) .nil .nil) (.node (nthO calls51 6) .nil .nil)))) (.node (nthO calls2 5)
-      (.node (nthO calls4 0) (.node (nthO calls12 0) (.node (nthO calls28 0) .nil .nil) (.node (nthO calls44 0) .nil
-      .nil)) (.node (nthO calls20 0) (.node (nthO calls36 0) .nil .nil) (.node (nthO calls51 2) .nil .nil))) (.node
-      (nthO calls8 0) (.node (nthO calls16 0) (.node (nthO calls32 0) .nil .nil) (.node (nthO calls48 0) .nil .nil))
-      (.node (nthO calls24 0) (.node (nthO calls40 0) .nil .nil) .nil)))) (.node (nthO calls1 2) (.node (nthO calls2
-      3) (.node (nthO calls3 1) (.node (nthO calls11 0) (.node (nthO calls27 0) .nil .nil) (.node (nthO calls43 0)
-      .nil .nil)) (.node (nthO calls19 0) (.node (nthO calls35 0) .nil .nil) (.node (nthO calls51 0) .nil .nil)))
-      (.node (nthO calls7 0) (.node (nthO calls15 0) (.node (nthO calls31 0) .nil .nil) (.node (nthO calls47 0) .nil
-      .nil)) (.node (nthO calls23 0) (.node (nthO calls39 0) .nil .nil) .nil))) (.node (nthO calls2 7) (.node (nthO
-      calls5 0) (.node (nthO calls13 0) (.node (nthO calls29 0) .nil .nil) (.node (nthO calls45 0) .nil .nil))
-      (.node (nthO calls21 0) (.node (nthO calls37 0) .nil .nil) (.node (nthO calls51 4) .nil .nil))) (.node (nthO
-      calls9 0) (.node (nthO calls17 0) (.node (nthO calls33 0) .nil .nil) (.node (nthO calls49 0) .nil .nil))
-      (.node (nthO calls25 0) (.node (nthO calls41 0) .nil .nil) .nil))))) (.node (nthO calls0 2) (.node (nthO
-      calls1 1) (.node (nthO calls2 2) (.node (nthO calls3 0) (.node (nthO calls10 1) (.node (nthO calls26 1) .nil
-      .nil) (.node (nthO calls42 1) .nil .nil)) (.node (nthO calls18 1) (.node (nthO calls34 1) .nil .nil) (.node
-      (nthO calls50 1) .nil .nil))) (.node (nthO calls6 1) (.node (nthO calls14 1) (.node (nthO calls30 1) .nil
-      .nil) (.node (nthO calls46 1) .nil .nil)) (.node (nthO calls22 1) (.node (nthO calls38 1) .nil .nil) .nil)))
-      (.node (nthO calls2 6) (.node (nthO calls4 1) (.node (nthO calls12 1) (.node (nthO calls28 1) .nil .nil)
-      (.node (nthO calls44 1) .nil .nil)) (.node (nthO calls20 1) (.node (nthO calls36 1) .nil .nil) (.node (nthO
-      calls51 3) .nil .nil))) (.node (nthO calls8 1) (.node (nthO calls16 1) (.node (nthO calls32 1) .nil .nil)
-      (.node (nthO calls48 1) .nil .nil)) (.node (nthO calls24 1) (.node (nthO calls40 1) .nil .nil) .nil)))) (.node
-      (nthO calls2 0) (.node (nthO calls2 4) (.node (nthO calls3 2) (.node (nthO calls11 1) (.node (nthO calls27 1)
-      .nil .nil) (.node (nthO calls43 1) .nil .nil)) (.node (nthO calls19 1) (.node (nthO calls35 1) .nil .nil)
-      (.node (nthO calls51 1) .nil .nil))) (.node (nthO calls7 1) (.node (nthO calls15 1) (.node (nthO calls31 1)
-      .nil .nil) (.node (nthO calls47 1) .nil .nil)) (.node (nthO calls23 1) (.node (nthO calls39 1) .nil .nil)
-      .nil))) (.node (nthO calls2 8) (.node (nthO calls5 1) (.node (nthO calls13 1) (.node (nthO calls29 1) .nil
-      .nil) (.node (nthO calls45 1) .nil .nil)) (.node (nthO calls21 1) (.node (nthO calls37 1) .nil .nil) (.node
-      (nthO calls51 5) .nil .nil))) (.node (nthO calls9 1) (.node (nthO calls17 1) (.node (nthO calls33 1) .nil
-      .nil) (.node (nthO calls49 1) .nil .nil)) (.node (nthO calls25 1) (.node (nthO calls41 1) .nil .nil)
-      .nil))))))
+      (.node (nthO calls4 7) (.node (nthO calls7 9) .nil .nil) (.node (nthO calls11 1) .nil .nil)) (.node (nthO
+      calls6 3) (.node (nthO calls9 5) .nil .nil) (.node (nthO calls12 7) .nil .nil))) (.node (nthO calls3 7) (.node
+      (nthO calls5 5) (.node (nthO calls8 7) .nil .nil) (.node (nthO calls11 9) .nil .nil)) (.node (nthO calls7 1)
+      (.node (nthO calls10 3) .nil .nil) (.node (nthO calls12 15) .nil .nil)))) (.node (nthO calls2 5) (.node (nthO
+      calls3 3) (.node (nthO calls5 1) (.node (nthO calls8 3) .nil .nil) (.node (nthO calls11 5) .nil .nil)) (.node
+      (nthO calls6 7) (.node (nthO calls9 9) .nil .nil) (.node (nthO calls12 11) .nil .nil))) (.node (nthO calls4 3)
+      (.node (nthO calls5 9) (.node (nthO calls9 1) .nil .nil) (.node (nthO calls12 3) .nil .nil)) (.node (nthO
+      calls7 5) (.node (nthO calls10 7) .nil .nil) .nil)))) (.node (nthO calls1 2) (.node (nthO calls2 3) (.node
+      (nthO calls3 1) (.node (nthO calls4 9) (.node (nthO calls8 1) .nil .nil) (.node (nthO calls11 3) .nil .nil))
+      (.node (nthO calls6 5) (.node (nthO calls9 7) .nil .nil) (.node (nthO calls12 9) .nil .nil))) (.node (nthO
+      calls4 1) (.node (nthO calls5 7) (.node (nthO calls8 9) .nil .nil) (.node (nthO calls12 1) .nil .nil)) (.node
+      (nthO calls7 3) (.node (nthO calls10 5) .nil .nil) .nil))) (.node (nthO calls2 7) (.node (nthO calls3 5)
+      (.node (nthO calls5 3) (.node (nthO calls8 5) .nil .nil) (.node (nthO calls11 7) .nil .nil)) (.node (nthO
+      calls6 9) (.node (nthO calls10 1) .nil .nil) (.node (nthO calls12 13) .nil .nil))) (.node (nthO calls4 5)
+      (.node (nthO calls6 1) (.node (nthO calls9 3) .nil .nil) (.node (nthO calls12 5) .nil .nil)) (.node (nthO
+      calls7 7) (.node (nthO calls10 9) .nil .nil) .nil))))) (.node (nthO calls0 2) (.node (nthO calls1 1) (.node
+      (nthO calls2 2) (.node (nthO calls3 0) (.node (nthO calls4 8) (.node (nthO calls8 0) .nil .nil) (.node (nthO
+      calls11 2) .nil .nil)) (.node (nthO calls6 4) (.node (nthO calls9 6) .nil .nil) (.node (nthO calls12 8) .nil
+      .nil))) (.node (nthO calls4 0) (.node (nthO calls5 6) (.node (nthO calls8 8) .nil .nil) (.node (nthO calls12
+      0) .nil .nil)) (.node (nthO calls7 2) (.node (nthO calls10 4) .nil .nil) .nil))) (.node (nthO calls2 6) (.node
+      (nthO calls3 4) (.node (nthO calls5 2) (.node (nthO calls8 4) .nil .nil) (.node (nthO calls11 6) .nil .nil))
+      (.node (nthO calls6 8) (.node (nthO calls10 0) .nil .nil) (.node (nthO calls12 12) .nil .nil))) (.node (nthO
+      calls4 4) (.node (nthO calls6 0) (.node (nthO calls9 2) .nil .nil) (.node (nthO calls12 4) .nil .nil)) (.node
+      (nthO calls7 6) (.node (nthO calls10 8) .nil .nil) .nil)))) (.node (nthO calls2 0) (.node (nthO calls2 4)
+      (.node (nthO calls3 2) (.node (nthO calls5 0) (.node (nthO calls8 2) .nil .nil) (.node (nthO calls11 4) .nil
+      .nil)) (.node (nthO calls6 6) (.node (nthO calls9 8) .nil .nil) (.node (nthO calls12 10) .nil .nil))) (.node
+      (nthO calls4 2) (.node (nthO calls5 8) (.node (nthO calls9 0) .nil .nil) (.node (nthO calls12 2) .nil .nil))
+      (.node (nthO calls7 4) (.node (nthO calls10 6) .nil .nil) .nil))) (.node (nthO calls2 8) (.node (nthO calls3
+      6) (.node (nthO calls5 4) (.node (nthO calls8 6) .nil .nil) (.node (nthO calls11 8) .nil .nil)) (.node (nthO
+      calls7 0) (.node (nthO calls10 2) .nil .nil) (.node (nthO calls12 14) .nil .nil))) (.node (nthO calls4 6)
+      (.node (nthO calls6 2) (.node (nthO calls9 4) .nil .nil) (.node (nthO calls12 6) .nil .nil)) (.node (nthO
+      calls7 8) (.node (nthO calls11 0) .nil .nil) .nil))))))
 /-- `cxOf`'s trie `T`. -/
 noncomputable def cxT : Trie (List CoreMode.Wit) :=
   (.node (nthO hcert.rets 0) .nil .nil)

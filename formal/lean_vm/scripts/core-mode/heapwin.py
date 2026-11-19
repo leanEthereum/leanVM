@@ -199,7 +199,12 @@ def fixed_cost(k, H):
 
 
 def cert_size(H):
-    aux, body = E.lcert(H)
+    """The certificate's size, its witnesses written one by one (as the kernel's check reads them, `E.RANGE` aside)."""
+    rng, E.RANGE = E.RANGE, float('inf')
+    try:
+        aux, body = E.lcert(H)
+    finally:
+        E.RANGE = rng
     return len(body) + sum(map(len, aux))
 
 

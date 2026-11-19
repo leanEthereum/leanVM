@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -34,7 +35,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 5408) (.num 256), .lt (.val 5407) (.num 256), .lt (.val 5565) (.num 256),
     .lt (.val 5564) (.num 256), .lt (.val 5563) (.num 256), .lt (.val 5562) (.num 256)]
   calls := [[], [], []]
-  rets := [[.ev 0, .ev 1, .ev 2, .ev 3, .run 0 []]]
+  rets := [(List.flatten [CoreMode.evR 0 4, [.run 0 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("sp_wots", {})]

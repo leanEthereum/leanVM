@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P1».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P11».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P14».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P25».Sig
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -123,8 +124,7 @@ def hcert : CoreMode.HCert where
     .lt (.val 143) (.mono ⟨[(4, 1)], 1⟩), .lt (.val 157) (.mono ⟨[(4, 1)], 1⟩),
     .lt (.val 171) (.mono ⟨[(4, 1)], 1⟩), .lt (.val 185) (.mono ⟨[(4, 1)], 1⟩),
     .lt (.val 199) (.mono ⟨[(4, 1)], 1⟩), .lt (.val 213) (.mono ⟨[(4, 1)], 1⟩)]
-  rets := [[.pts, .ev 80, .ev 81, .ev 82, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87, .ev 88, .ev 89, .ev 90, .ev 91,
-        .ev 92]]
+  rets := [(List.flatten [[.pts], CoreMode.evR 80 13])]
 
 def csigs : List (String × CoreMode.HSig) :=
   []
@@ -162,11 +162,10 @@ def hcert : CoreMode.HCert where
     .lt (.val 20) (.num 64), .lt (.val 21) (.num 64), .lt (.val 22) (.num 64), .lt (.val 23) (.num 64),
     .lt (.val 24) (.num 64), .lt (.val 25) (.num 64), .lt (.val 26) (.num 64), .lt (.val 27) (.num 64),
     .lt (.val 28) (.num 64), .lt (.val 29) (.num 64), .lt (.val 285) (.num 128), .lt (.val 295) (.num 64)]
-  rets := [[.ev 5, .ev 6, .ev 12, .ev 13, .ev 20, .ev 21, .ev 27, .ev 28, .ev 34, .ev 35, .run 1 [], .run 1 [],
-        .pts, .ev 6, .ev 13, .ev 21, .ev 28, .ev 35, .pts, .word 6, .ev 38, .ev 39, .ev 40, .ev 41, .ev 42,
-        .word 13, .ev 63, .ev 64, .ev 65, .ev 66, .ev 67, .word 21, .ev 83, .ev 84, .ev 85, .ev 86, .ev 87,
-        .word 28, .ev 98, .ev 99, .ev 100, .ev 101, .ev 102, .word 35, .ev 108, .ev 109, .ev 110, .ev 111,
-        .ev 112]]
+  rets := [(List.flatten [[.ev 5, .ev 6, .ev 12, .ev 13, .ev 20, .ev 21, .ev 27, .ev 28, .ev 34, .ev 35, .run 1 [], .run 1 [],
+        .pts, .ev 6, .ev 13, .ev 21, .ev 28, .ev 35, .pts, .word 6],
+        CoreMode.evR 38 5, [.word 13], CoreMode.evR 63 5, [.word 21], CoreMode.evR 83 5, [.word 28],
+        CoreMode.evR 98 5, [.word 35], CoreMode.evR 108 5])]
   fas := [(4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (4, 12),
     (4, 13), (4, 14), (4, 15), (4, 16), (4, 17), (4, 18), (4, 19), (4, 20), (4, 21), (4, 22), (4, 23), (4, 24),
     (128, 0), (128, 1), (128, 2), (128, 3), (128, 4), (128, 5), (128, 6), (128, 7), (128, 8), (128, 9),
@@ -213,12 +212,10 @@ def hcert : CoreMode.HCert where
   reads := [(18, [(17, 0, .run 5 [])]), (19, [(17, 1, .run 6 [])]), (20, [(17, 2, .run 7 [])]),
     (21, [(17, 3, .run 8 [])]), (22, [(17, 4, .run 9 [])])]
   res := []
-  calls := [[.run 1 [], .run 1 []], [.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .run 3 [], .run 3 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15, .ev 16, .ev 17,
-        .ev 18, .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [], .run 15 [], .run 16 [], .run 17 [],
-        .run 18 [], .run 19 [], .run 20 [], .run 21 [], .run 22 [], .run 23 [], .run 3 [], .run 3 [], .pts,
-        .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [], .pfr 24 [], .pfr 25 [], .pfr 26 [],
-        .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]]
+  calls := [[.run 1 [], .run 1 []], (List.flatten [CoreMode.evR 0 5, [.run 3 [], .run 3 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 14, CoreMode.runR 10 14,
+        [.run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [],
+        .pfr 24 [], .pfr 25 [], .pfr 26 [], .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_positions__L6_L17_L5", 
@@ -273,11 +270,10 @@ def hcert : CoreMode.HCert where
   reads := [(18, [(17, 0, .run 5 [])]), (19, [(17, 1, .run 6 [])]), (20, [(17, 2, .run 7 [])]),
     (21, [(17, 3, .run 8 [])]), (22, [(17, 4, .run 9 [])])]
   res := []
-  calls := [[.run 1 [], .run 1 []], [.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .run 3 [], .run 3 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .run 10 [], .run 11 [],
-        .run 12 [], .run 13 [], .run 14 [], .run 15 [], .run 16 [], .run 17 [], .run 18 [], .run 19 [],
-        .run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .pfr 4 [], .pfr 20 [], .pfr 21 [],
-        .pfr 22 [], .pfr 23 [], .pfr 24 []]]
+  calls := [[.run 1 [], .run 1 []], (List.flatten [CoreMode.evR 0 5, [.run 3 [], .run 3 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 10, CoreMode.runR 10 10,
+        [.run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .pfr 4 [], .pfr 20 [], .pfr 21 [],
+        .pfr 22 [], .pfr 23 [], .pfr 24 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_positions__L9_L24_L6", 
@@ -329,11 +325,10 @@ def hcert : CoreMode.HCert where
         (⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 27)⟩, [0, 1, 2, 3, 4])] }
   reads := []
   res := []
-  calls := [[.ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
-        .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26, .ev 27, .ev 28,
-        .ev 29, .ev 30, .ev 31, .ev 32, .ev 35, .ev 36, .ev 37, .ev 38, .ev 39, .ev 40],
-    [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
-        .pre 12, .pre 13, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 6 [], .pfr 7 []]]
+  calls := [(List.flatten [CoreMode.evR 3 30, CoreMode.evR 35 6]),
+    (List.flatten [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .pre 11,
+        .pre 12, .pre 13],
+        CoreMode.runR 0 4, [.pf 0, .pfr 6 [], .pfr 7 []]])]
   rets := [[.ev 41, .ev 42, .run 8 [], .run 9 [], .run 10 [], .pts, .ev 41, .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
         .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [], .run 10 [],
@@ -376,17 +371,17 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 54, .run 10 [])]), (14, [(5, 55, .run 11 [])]), (24, [(16, 4, .run 12 [])]),
     (25, [(16, 5, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
-        .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .run 0 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 []],
+        .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21,
         .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .run 8 []]]
-  rets := [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [],
-        .run 5 [], .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12,
-        .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23,
-        .pre 24, .pre 25, .pre 26, .pre 27, .pre 28, .run 8 []]]
+  rets := [(List.flatten [[.pre 1, .pre 3, .pre 5, .pre 7, .pre 9, .pre 11], CoreMode.runR 0 8,
+        [.pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 10, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16,
+        .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23, .pre 24, .pre 25, .pre 26, .pre 27,
+        .pre 28, .run 8 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L218_L23_L6_L3", 
@@ -437,13 +432,13 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 6, .run 10 [])]), (14, [(5, 7, .run 11 [])]), (24, [(16, 2, .run 12 [])]),
     (25, [(16, 3, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 []],
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
+        .pre 11],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .run 8 []]]
-  rets := [[.pre 1, .pre 3, .pre 5, .pre 7, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11,
-        .run 8 []]]
+  rets := [(List.flatten [[.pre 1, .pre 3, .pre 5, .pre 7], CoreMode.runR 0 8,
+        [.pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .run 8 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L25_L8_L4_L2", 
@@ -489,12 +484,12 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 6, .run 10 [])]), (14, [(5, 7, .run 11 [])]), (24, [(16, 8, .run 12 [])]),
     (25, [(16, 9, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 []],
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .run 8 []]]
-  rets := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10, .run 0 [],
-        .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
+  rets := [(List.flatten [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10],
+        CoreMode.runR 0 9])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L28_L7_L4_L2", 
@@ -540,14 +535,14 @@ def hcert : CoreMode.HCert where
   reads := [(13, [(5, 8, .run 10 [])]), (14, [(5, 9, .run 11 [])]), (24, [(16, 10, .run 12 [])]),
     (25, [(16, 11, .run 13 [])])]
   res := []
-  calls := [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
-        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .run 0 [], .run 1 [], .run 2 [],
-        .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 []],
+  calls := [(List.flatten [[.ev 0, .pre 0, .pre 1, .ev 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
+        .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17],
+        CoreMode.runR 0 8]),
     [.ev 4, .pre 0, .pre 1, .ev 5, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .pre 10,
         .pre 11, .pre 12, .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .run 8 []]]
-  rets := [[.pre 1, .pre 3, .pre 5, .pre 7, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 [],
-        .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .pre 12,
-        .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .run 8 []]]
+  rets := [(List.flatten [[.pre 1, .pre 3, .pre 5, .pre 7], CoreMode.runR 0 8,
+        [.pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .pre 12, .pre 13, .pre 14,
+        .pre 15, .pre 16, .pre 17, .run 8 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L37_L14_L4_L2", 

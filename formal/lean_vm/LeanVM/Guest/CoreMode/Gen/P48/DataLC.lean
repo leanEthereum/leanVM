@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -38,9 +39,10 @@ def hcert : CoreMode.HCert where
   reads := [(10, [(9, 0, .pre 0)]), (11, [(9, 1, .pre 1)]), (12, [(9, 2, .pre 2)]), (13, [(9, 3, .pre 3)]),
     (14, [(9, 4, .pre 4)])]
   res := []
-  calls := [[.run 0 []], [.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .run 1 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13,
-        .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]]
+  calls := [[.run 0 []], (List.flatten [CoreMode.evR 5 5, [.run 1 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 6,
+        [.ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [],
+        .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("decode_query_windows__L21_L3", 

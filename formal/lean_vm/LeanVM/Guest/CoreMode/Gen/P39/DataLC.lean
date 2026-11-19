@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -344,10 +345,8 @@ def hcert : CoreMode.HCert where
     .lt (.val 1840) (.mono ⟨[(6, 1)], 1⟩), .lt (.val 1854) (.mono ⟨[(6, 1)], 1⟩),
     .lt (.val 1868) (.mono ⟨[(6, 1)], 1⟩), .lt (.val 1882) (.mono ⟨[(6, 1)], 1⟩),
     .lt (.val 1896) (.mono ⟨[(6, 1)], 1⟩), .lt (.val 1910) (.mono ⟨[(6, 1)], 1⟩)]
-  calls := [[.ev 693, .ev 694, .ev 695, .ev 696, .ev 697, .ev 698, .ev 699, .ev 700, .ev 701, .ev 702, .ev 703,
-        .ev 704, .ev 705, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .run 4 [], .run 5 []]]
-  rets := [[.ev 693, .ev 694, .ev 695, .ev 696, .ev 697, .ev 698, .ev 699, .ev 700, .ev 701, .ev 702, .ev 703,
-        .ev 704, .ev 705]]
+  calls := [(List.flatten [CoreMode.evR 693 13, CoreMode.runR 0 6])]
+  rets := [(List.flatten [CoreMode.evR 693 13])]
   gargs := [("__loop0_child_claim_list_any", [3349, 1, 2, 3, 4, 5, 6], [⟨[(1048576, 1)], 0⟩])]
 
 def csigs : List (String × CoreMode.HSig) :=
@@ -385,9 +384,10 @@ def hcert : CoreMode.HCert where
   reads := [(10, [(9, 0, .pre 0)]), (11, [(9, 1, .pre 1)]), (12, [(9, 2, .pre 2)]), (13, [(9, 3, .pre 3)]),
     (14, [(9, 4, .pre 4)])]
   res := []
-  calls := [[.run 0 []], [.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .run 1 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13,
-        .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]]
+  calls := [[.run 0 []], (List.flatten [CoreMode.evR 5 5, [.run 1 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 6,
+        [.ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .pfr 3 [],
+        .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 [], .pfr 3 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("decode_query_windows__L21_L3", 
@@ -429,9 +429,10 @@ def hcert : CoreMode.HCert where
   reads := [(10, [(9, 0, .pre 0)]), (11, [(9, 1, .pre 1)]), (12, [(9, 2, .pre 2)]), (13, [(9, 3, .pre 3)]),
     (14, [(9, 4, .pre 4)])]
   res := []
-  calls := [[.run 1 [], .run 1 []], [.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .run 3 [], .run 3 []]]
-  rets := [[.ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13,
-        .ev 15, .ev 17, .ev 19, .ev 21, .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 []]]
+  calls := [[.run 1 [], .run 1 []], (List.flatten [CoreMode.evR 5 5, [.run 3 [], .run 3 []]])]
+  rets := [(List.flatten [CoreMode.evR 5 6,
+        [.ev 12, .ev 14, .ev 16, .ev 18, .ev 20, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .pfr 5 [],
+        .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 [], .pfr 5 []]])]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("decode_query_windows__L19_L7", 
