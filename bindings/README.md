@@ -1,21 +1,23 @@
 # Bindings
 
-leanXMSS and leanSPHINCS signatures, and their aggregation into one proof, for Python, Node.js, Java, Go, Zig and Nim.
+leanXMSS and leanSPHINCS signatures and their aggregation, for Python, Node.js, Java, Go, Zig and Nim.
 
-Signing and verifying signatures run in your process. Aggregating runs in a [sidecar](#sidecar), a separate process the bindings start or connect to. An aggregate's bytes are the proof only: send its claims (public key, message) alongside it.
+- Signing and verifying run in your process, on every platform.
+- Aggregating runs in the [sidecar](#sidecar), a separate process (Linux and macOS).
+- An aggregate's bytes are the proof only: send its claims (public key, message) alongside.
 
 ## Install
 
 | Language | Package | Prebuilt for |
 | --- | --- | --- |
-| [Python](python/README.md) ≥ 3.11 | `py-lean-pq` on PyPI | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
-| [Node.js](node/README.md) ≥ 18.17 | `@kevaundray/lean-pq` on npm | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
-| [Java](java/README.md) 25 | `io.github.crate-crypto:lean-pq` on Maven Central | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
-| [Go](go/README.md) ≥ 1.24 | `leanvm.org/go` | Linux amd64/arm64, macOS amd64/arm64, Windows amd64 |
-| [Zig](zig/README.md) ≥ 0.16 | tarball on each GitHub release | Linux x86_64/aarch64, macOS x86_64/aarch64, Windows x86_64 |
-| [Nim](nim/README.md) ≥ 2.2.12 | `bindings/nim` at tag `bindings-vX.Y.Z` | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
+| [Python](python/README.md) 3.11+ | `py-lean-pq` (PyPI) | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
+| [Node.js](node/README.md) 18.17+ | `@kevaundray/lean-pq` (npm) | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
+| [Java](java/README.md) 25 | `io.github.crate-crypto:lean-pq` (Maven Central) | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
+| [Go](go/README.md) 1.24+ | `leanvm.org/go` | Linux amd64/arm64, macOS amd64/arm64, Windows amd64 |
+| [Zig](zig/README.md) 0.16+ | tarball on each GitHub release | Linux x86_64/aarch64, macOS x86_64/aarch64, Windows x86_64 |
+| [Nim](nim/README.md) 2.2.12+ | `bindings/nim` at tag `bindings-vX.Y.Z` | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
 
-On x86_64, the CPU needs AVX2 and PCLMULQDQ.
+x86_64 needs AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -26,79 +28,57 @@ version=0.12.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 
-Java (Gradle):
-
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.12.0")
+implementation("io.github.crate-crypto:lean-pq:0.12.0") // Java, Gradle
 ```
 
-Nim (`.nimble`):
-
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0" # Nim, .nimble
 ```
 <!-- x-release-please-end -->
 
-Each language's README has the details (Go needs cgo, Java needs `--enable-native-access`).
-
-### Rust
-
-Use `lean_vm` directly, and build in release with `RUSTFLAGS="-C target-cpu=native"`:
+Rust: depend on `lean_vm` directly and build with `RUSTFLAGS="-C target-cpu=native"`:
 
 ```toml
-[dependencies]
 lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["experimental_prover"] }
 ```
 
 ## Sidecar
 
-`leanvm-sidecar` proves and verifies aggregates in a process of its own; the bindings talk to it over a Unix socket, so aggregation works on Linux and macOS, not on Windows. Use the sidecar of the same release as the bindings.
-
-Install it as `~/.leanvm/bin/leanvm-sidecar`, the release binary for this platform (Linux x86_64 or arm64 with glibc 2.35 or newer, macOS arm64):
+`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it (needs Rust), at the same release as the bindings:
 
 <!-- x-release-please-start-version -->
 ```sh
-curl -fsSL https://raw.githubusercontent.com/leanEthereum/leanVM/main/bindings/scripts/install-sidecar.sh | sh -s -- --version 0.12.0
+RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com/leanEthereum/leanVM --tag bindings-v0.12.0 leanvm-sidecar --features experimental_prover
 ```
 <!-- x-release-please-end -->
 
-Or built from source for this machine's CPU, which proves faster (needs Rust):
+This installs `~/.cargo/bin/leanvm-sidecar`. Then either:
 
-<!-- x-release-please-start-version -->
-```sh
-curl -fsSL https://raw.githubusercontent.com/leanEthereum/leanVM/main/bindings/scripts/install-sidecar.sh | sh -s -- --version 0.12.0 --build
-```
-<!-- x-release-please-end -->
+- **Run it** (for example as a service) and `Sidecar.connect("<home>/.leanvm/sidecar.sock")`:
+  ```sh
+  mkdir -p -m 700 ~/.leanvm && leanvm-sidecar --socket ~/.leanvm/sidecar.sock
+  ```
+- **Launch it from code**: `Sidecar.start("<home>/.cargo/bin/leanvm-sidecar", "/tmp/leanvm/sidecar.sock", threads)` waits until it is ready; closing the `Sidecar`, or the program exiting, stops it.
 
-Then either run it yourself and connect to it:
+`threads` (or `--threads`) caps its threads; 0 means one per core. [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
 
-```sh
-mkdir -p -m 700 ~/.leanvm
-~/.leanvm/bin/leanvm-sidecar --socket ~/.leanvm/sidecar.sock
-```
+## Build and test
 
-It warms up, then creates the socket and serves; connect with `Sidecar.connect("<home>/.leanvm/sidecar.sock")`. Keep it running, for example as a service; `--threads N` caps its threads.
+Needs Rust. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN` (build it with `cargo build --release -p leanvm-sidecar --features experimental_prover` at the repository root).
 
-Or let your program launch it: `Sidecar.start("<home>/.leanvm/bin/leanvm-sidecar", "/tmp/leanvm/sidecar.sock")` starts it, waits until it listens, and stops it when the `Sidecar` is closed or the program exits. An optional third argument caps its threads.
-
-[`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
-
-## Build from source
-
-Needs Rust. The aggregation tests need a running sidecar (`cargo build --release -p leanvm-sidecar --features experimental_prover` from the repository root, then run it as above) in `LEANVM_SIDECAR_SOCKET`, and its binary in `LEANVM_SIDECAR_BIN`. From the repository root:
-
-| Binding | Build and test |
+| Binding | Command, from the repository root |
 | --- | --- |
 | [Python](python/README.md) | `cd bindings/python && uv run --extra dev pytest tests/` |
 | [Node.js](node/README.md) | `cd bindings/node && npm ci && npm run build && npm test` |
 | [Java](java/README.md) | `gradle -p bindings/java test` |
-| [Go](go/README.md), [Zig](zig/README.md), [Nim](nim/README.md) | build the static library first, as each README shows |
+| [Go](go/README.md), [Zig](zig/README.md), [Nim](nim/README.md) | stage the static library first (see each README) |
 | [`lean-pq`](rust/README.md), the Rust core all of them wrap | `cd bindings && cargo test --release -p lean-pq` |
 
 ## Releases
 
-Merging the release pull request that release-please keeps open tags `bindings-vX.Y.Z` and publishes every package. See [CHANGELOG.md](CHANGELOG.md).
+Merging the release pull request that release-please keeps open tags `bindings-vX.Y.Z` and publishes every package: see [CHANGELOG.md](CHANGELOG.md) and [RELEASING.md](RELEASING.md).
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](../LICENSE-APACHE) or [MIT license](../LICENSE-MIT) at your option.
+MIT or Apache-2.0, at your option: [LICENSE-MIT](../LICENSE-MIT), [LICENSE-APACHE](../LICENSE-APACHE).

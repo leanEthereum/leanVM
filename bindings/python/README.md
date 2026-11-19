@@ -1,14 +1,6 @@
 # py-lean-pq
 
-Python bindings for post-quantum signatures and their aggregation, over the Rust facade `lean-pq`:
-
-- **leanXMSS**: stateful hash-based signatures, `2^32` leaf indices per key.
-- **leanSPHINCS**: stateless hash-based signatures.
-- **Aggregation**: a recursive proof that every listed public key signed its message. Aggregates can be combined into larger aggregates.
-
-Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification and sidecar calls release the GIL.
-
-Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc + musl), macOS arm64, and Windows x86_64. The Windows wheels link the C runtime statically, so they need no Visual C++ redistributable. x86_64 wheels require a CPU with AVX2 and PCLMULQDQ.
+Python bindings for the leanXMSS and leanSPHINCS post-quantum signatures and their aggregation into one proof.
 
 ## Install
 
@@ -18,79 +10,65 @@ pip install py-lean-pq==0.12.0
 ```
 <!-- x-release-please-end -->
 
-Other languages: see the [bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#install).
+Python 3.11 or newer. Wheels for Linux x86_64 and aarch64 (glibc, musl), macOS arm64 and Windows x86_64; x86_64 needs AVX2 and PCLMULQDQ.
 
-## leanXMSS
+## Sign and verify
 
 ```python
 import py_lean_pq as lpq
 
-key = lpq.XmssSecretKey.from_seed(b"\x01" * 32)  # or XmssSecretKey.generate()
 message = b"\x42" * 32
 
-key.prepare(5)  # optional: build the bottom tree for leaf 5 ahead of time
-signature = key.sign(message, 5)
-lpq.xmss_verify(key.public_key, message, signature)  # raises LeanPqError if invalid
+xmss_key = lpq.XmssSecretKey.from_seed(b"\x01" * 32)  # or XmssSecretKey.generate()
+xmss_sig = xmss_key.sign(message, 7)  # at leaf index 7
+lpq.xmss_verify(xmss_key.public_key, message, xmss_sig)  # raises LeanPqError if invalid
 
-restored = lpq.XmssSecretKey.from_bytes(key.to_bytes())
+sphincs_key = lpq.SphincsSecretKey.from_seed(b"\x02" * 32)
+sphincs_sig = sphincs_key.sign(message)
+lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 ```
 
-leanXMSS keys are stateful: never sign two different messages at the same leaf index. Persist your own durable high-water leaf index alongside `XmssSecretKey.to_bytes()` (the key's seed, secret material) and advance it before publishing a signature.
+- Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leaf_index)` builds a leaf's signing state ahead of time.
+- leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
+- `to_bytes()` is the key's 32-byte seed, which is secret; `from_bytes` restores the key.
+- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or reaches the sidecar releases the GIL.
 
-## leanSPHINCS
+## Aggregate
 
-A key is its 32-byte seed and signs at most `2^30` messages. Signing is deterministic.
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
 
 ```python
-key = lpq.SphincsSecretKey.from_seed(b"\x02" * 32)  # or SphincsSecretKey.generate()
-signature = key.sign(message)
-lpq.sphincs_verify(key.public_key, message, signature)
+import os
 
-restored = lpq.SphincsSecretKey.from_bytes(key.to_bytes())
-assert restored.public_key == key.public_key
+with lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock")) as sidecar:
+    # or: lpq.Sidecar.start(binary, socket, threads=0), which launches one
+    leaf = sidecar.aggregate(
+        xmss=[(xmss_key.public_key, message, xmss_sig)],
+        sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
+    )
+    root = sidecar.aggregate(children=[leaf])
+    proof = root.to_bytes()
+
+    received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
 ```
 
-## Aggregation
+- `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `verify(data, xmss_claims, sphincs_claims)` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
+- `Sidecar.start` uses one thread per core for `threads=0`; `close()` stops the sidecar it launched. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
+- A `Sidecar` is safe to share between threads; its calls run one at a time. In a forked child, connect again.
 
-Aggregation runs in a leanVM sidecar, a separate process that proves and verifies (Linux and macOS). [The bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar) says how to get and run it. Then connect to its socket, or let `Sidecar.start` launch it:
+## Build and test
 
-```python
-sidecar = lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock"))
-# or: sidecar = lpq.Sidecar.start("./leanvm-sidecar", "/tmp/leanvm/sidecar.sock"), stopped by close()
-
-xmss_key = lpq.XmssSecretKey.from_seed(b"\x05" * 32)
-sphincs_key = lpq.SphincsSecretKey.from_seed(b"\x06" * 32)
-first, second = b"\x11" * 32, b"\x22" * 32
-
-left = sidecar.aggregate(xmss=[(xmss_key.public_key, first, xmss_key.sign(first, 0))])
-right = sidecar.aggregate(sphincs=[(sphincs_key.public_key, second, sphincs_key.sign(second))])
-root = sidecar.aggregate(
-    children=[left, right],
-    xmss=[(xmss_key.public_key, second, xmss_key.sign(second, 1))],
-)
-
-# The encoding is the proof alone: send the claims alongside it, or let the
-# receiver rebuild the claims it expects.
-proof = root.to_bytes()
-received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
-assert received.sphincs_claims == [(sphincs_key.public_key, second)]
-sidecar.close()
-```
-
-- `aggregate` proves raw `(public_key, message, signature)` tuples of either scheme together with up to 16 child aggregates; the result's claims are the union of its inputs' claims. Raw signatures are verified before proving.
-- `verify(data, xmss_claims=(), sphincs_claims=())` checks the proof against exactly the `(public_key, message)` pairs the receiver expects, in any order, a duplicate counting once; any other claim set raises `LeanPqError`. Every `Aggregate` value has been proven or verified.
-- `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
-- `Sidecar.start(binary, socket, threads=0)` caps the sidecar's threads (0: one per core); `sidecar.prover` says which prover it runs, `experimental` or `stable` (the same proofs, the experimental one faster).
-- A `Sidecar` is a context manager, safe to share between threads; its calls run one at a time. In a forked child, connect again.
-
-## Development
+Needs Rust and [uv](https://docs.astral.sh/uv/). From `bindings/python`:
 
 ```bash
 uv run --extra dev pytest tests/ -v
 uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
 ```
 
-The aggregation tests need a running sidecar's socket in `LEANVM_SIDECAR_SOCKET` and its binary in `LEANVM_SIDECAR_BIN`.
+The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
 
 ## License
 

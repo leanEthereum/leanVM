@@ -1,25 +1,14 @@
-# lean-pq Java bindings
+# lean-pq for Java
 
-Java 25 bindings for post-quantum signatures and their aggregation:
-
-- **leanXMSS**: stateful. A key signs at unsigned 32-bit leaf indices; never sign two different messages at the same leaf index.
-- **leanSPHINCS**: stateless. A key is its 32-byte seed, signs at most 2^30 messages, and signs deterministically.
-
-Public keys and messages are 32 bytes; signatures are `byte[]` of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. An `Aggregate` proves that each listed public key signed its message, across both schemes, and can absorb earlier aggregates.
-
-The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+Java bindings for the leanXMSS and leanSPHINCS post-quantum signatures and their aggregation into one proof.
 
 ## Install
 
-Published on Maven Central as `io.github.crate-crypto:lean-pq`; it needs JDK 25.
-
-Gradle (Kotlin DSL):
+Maven Central, `io.github.crate-crypto:lean-pq`, JDK 25. Gradle (Kotlin DSL):
 
 <!-- x-release-please-start-version -->
 ```kotlin
-dependencies {
-    implementation("io.github.crate-crypto:lean-pq:0.12.0")
-}
+implementation("io.github.crate-crypto:lean-pq:0.12.0")
 ```
 <!-- x-release-please-end -->
 
@@ -35,77 +24,9 @@ Maven:
 ```
 <!-- x-release-please-end -->
 
-## Native-access permission
-
-A modular application grants the module native access:
-
-```sh
-java --enable-native-access=org.ethereum.leanpq ...
-```
-
-On the class path, use `--enable-native-access=ALL-UNNAMED`.
-
-## Native library
-
-The jar bundles the native library for:
-
-| Platform | Resource in the jar |
-| --- | --- |
-| Linux x86_64, glibc 2.17 or newer (CPU with AVX2 and PCLMULQDQ) | `org/ethereum/leanpq/native/linux-x86_64/liblean_pq_native.so` |
-| Linux aarch64, glibc 2.17 or newer | `org/ethereum/leanpq/native/linux-aarch64/liblean_pq_native.so` |
-| macOS arm64 and x86_64 (one universal library; x86_64 needs AVX2 and PCLMULQDQ) | `org/ethereum/leanpq/native/macos-universal/liblean_pq_native.dylib` |
-| Windows x86_64 (Windows 10 or newer; CPU with AVX2 and PCLMULQDQ) | `org/ethereum/leanpq/native/windows-x86_64/lean_pq_native.dll` |
-
-On Linux and macOS, first use copies the library into a new owner-only directory under `java.io.tmpdir`, loads it, and deletes the copy; that directory must allow executable mappings. Windows cannot delete a loaded DLL, so there the library is installed once per build as `%LOCALAPPDATA%\lean-pq\native\<SHA-256 of the DLL>\lean_pq_native.dll` and reused by later JVMs only while its bytes match the jar's copy; a missing or different file is rewritten atomically. Each release adds one directory there, which can be deleted while no JVM uses it. The DLL is built for `x86_64-pc-windows-gnu` and imports only DLLs that ship with Windows, so it needs no Visual C++ or MinGW runtime. Other platforms, including musl-based Linux and Windows on arm64, fail with an error naming the platform.
-
-To load a different build instead, set `-Dlean.pq.native.path=/path/to/liblean_pq_native.so` (or `.dylib`, or `lean_pq_native.dll`) before first use; the bundled libraries are then ignored. Build one with `cargo build --release -p lean-pq-native` in `bindings/` (the library lands in `bindings/target/release`).
-
-## Build and test
-
-Requirements: JDK 25, Gradle 9.1 or newer, and Rust (stable toolchain). From the repository root:
-
-```sh
-LEANVM_SIDECAR_SOCKET=~/.leanvm/sidecar.sock LEANVM_SIDECAR_BIN=/path/to/leanvm-sidecar gradle -p bindings/java test
-```
-
-The test task builds the shared `lean_pq_native` library in release mode and passes its path as `-Dlean.pq.native.path`. The aggregation tests prove through the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and one of them starts its own from `LEANVM_SIDECAR_BIN`; on Windows they only check that connecting fails.
-
-`gradle -p bindings/java jar` bundles the freshly built host library only. To bundle prebuilt libraries instead, pass `-PleanPqNativeDir=DIR`, where `DIR/<platform>/` holds the library for each platform in the table above; `scripts/build-native.sh <platform> DIR` builds one (the Linux builds need [Zig 0.15.2](https://ziglang.org/download/) and `cargo install cargo-zigbuild`, the macOS build needs a Mac, and the Windows build needs Windows with Git Bash, the `x86_64-pc-windows-gnu` Rust target and MinGW-w64's `gcc` and `objdump` on `PATH`). Local builds have version `0.0.0-SNAPSHOT`; `-Pversion=X.Y.Z` overrides it.
-
-`scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway Maven repository and signs and verifies through it from a fresh modular project, with the bundled library (set `GRADLE` if Gradle is not on `PATH`). CI runs it on Linux x86_64, the release workflow on every bundled platform.
-
-## Releasing
-
-`.github/workflows/bindings-release.yml` publishes on every `bindings-vX.Y.Z` tag: `java-native` builds and checks each platform's library, and `java-publish` bundles all four in the jar, runs the consumer smoke against it, then signs and uploads it to the Central Portal, releasing it once the Portal validates the deployment. A version can be published only once.
-
-One-time setup, with the `io.github.crate-crypto` namespace verified on [central.sonatype.com](https://central.sonatype.com/publishing/namespaces):
-
-1. Generate a Portal user token: sign in to the Central Portal, open <https://central.sonatype.com/usertoken>, press **Generate User Token**, and copy the username and password it shows once.
-2. Generate a signing key and publish its public half:
-
-   ```sh
-   gpg --quick-generate-key "lean-pq release signing <maintainer@example.org>" rsa4096 sign 2y
-   gpg --list-secret-keys --keyid-format long    # note the 40-hex-digit fingerprint
-   gpg --armor --export FINGERPRINT > lean-pq-signing.asc
-   ```
-
-   Upload `lean-pq-signing.asc` at <https://keys.openpgp.org/upload> and confirm the verification e-mail so the key is published with its identity (or `gpg --keyserver keys.openpgp.org --send-keys FINGERPRINT`, then request verification on that site). Central looks the key up there to check signatures.
-3. Export the private key, ASCII-armored:
-
-   ```sh
-   gpg --armor --export-secret-keys FINGERPRINT
-   ```
-
-4. Add the repository secrets (Settings → Secrets and variables → Actions):
-
-   | Secret | Value |
-   | --- | --- |
-   | `MAVEN_CENTRAL_USERNAME` | the user token's username |
-   | `MAVEN_CENTRAL_PASSWORD` | the user token's password |
-   | `SIGNING_KEY` | the whole exported private key, including the `BEGIN`/`END` lines |
-   | `SIGNING_PASSWORD` | the key's passphrase |
-
-The workflow passes them to the [`com.vanniktech.maven.publish`](https://vanniktech.github.io/gradle-maven-publish-plugin/central/) Gradle plugin as `ORG_GRADLE_PROJECT_mavenCentralUsername`, `ORG_GRADLE_PROJECT_mavenCentralPassword`, `ORG_GRADLE_PROJECT_signingInMemoryKey` and `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword`. Builds without `signingInMemoryKey` skip signing. Before the key expires, extend it with `gpg --quick-set-expire FINGERPRINT 2y`, upload the public key again, and update `SIGNING_KEY`.
+- The module is `org.ethereum.leanpq`. Grant it native access: `java --enable-native-access=org.ethereum.leanpq`, or `--enable-native-access=ALL-UNNAMED` on the class path.
+- The jar bundles the native library for Linux x86_64 and aarch64 (glibc 2.17+), macOS x86_64 and arm64, and Windows x86_64; x86_64 needs AVX2 and PCLMULQDQ.
+- It is extracted under `java.io.tmpdir`, which must allow executable mappings (on Windows, under `%LOCALAPPDATA%\lean-pq\native`). `-Dlean.pq.native.path=FILE` loads another build instead.
 
 ## Sign and verify
 
@@ -114,44 +35,56 @@ import org.ethereum.leanpq.*;
 
 try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
      SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32)) {
-    byte[] xmssSignature = xmss.sign(message32, 7);
-    boolean xmssValid = LeanPq.xmssVerify(xmss.publicKey(), message32, xmssSignature);
+    byte[] xmssSig = xmss.sign(message32, 7); // at leaf index 7
+    boolean xmssValid = LeanPq.xmssVerify(xmss.publicKey(), message32, xmssSig);
 
-    byte[] sphincsSignature = sphincs.sign(message32);
-    boolean sphincsValid = LeanPq.sphincsVerify(sphincs.publicKey(), message32, sphincsSignature);
+    byte[] sphincsSig = sphincs.sign(message32);
+    boolean sphincsValid = LeanPq.sphincsVerify(sphincs.publicKey(), message32, sphincsSig);
 }
 ```
 
-leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` builds the signing state ahead of time. Secret-key bytes are secret material: the key's 32-byte seed.
+- Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
+- `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
+- `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
 
-## Aggregation
+## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `Sidecar.connect(socket)` connects to a running sidecar; `Sidecar.start(binary, socket)` launches one, or `start(binary, socket, threads)` with that many threads (0, the default, is one per core), and `close()` stops it. A `Sidecar` is safe to share between threads.
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
 
 ```java
 import java.nio.file.Path;
 import java.util.List;
-import org.ethereum.leanpq.*;
 
 try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock"));
+     // or: Sidecar.start(binary, socket, threads), which launches one
      Aggregate leaf = sidecar.aggregate(
          List.of(),
-         List.of(new SignedMessage(xmss.publicKey(), message32, xmss.sign(message32, 7))),
-         List.of(new SignedMessage(sphincs.publicKey(), message32, sphincs.sign(message32))));
+         List.of(new SignedMessage(xmss.publicKey(), message32, xmssSig)),
+         List.of(new SignedMessage(sphincs.publicKey(), message32, sphincsSig)));
      Aggregate root = sidecar.aggregate(List.of(leaf), List.of(), List.of());
-     // The bytes are the proof alone: the receiver supplies the claims it expects.
-     Aggregate received = sidecar.verify(
-         root.toBytes(),
-         List.of(new SignatureClaim(xmss.publicKey(), message32)),
-         List.of(new SignatureClaim(sphincs.publicKey(), message32)))) {
+     Aggregate received = sidecar.verify(root.toBytes(), root.xmssClaims(), root.sphincsClaims())) {
     List<SignatureClaim> xmssClaims = received.xmssClaims();
-    List<SignatureClaim> sphincsClaims = received.sphincsClaims();
 }
 ```
 
-- `aggregate(children, xmss, sphincs)` verifies every raw signature before proving, and accepts at most 16 children.
-- `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
-- `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof.
-- `prover()` names the prover the sidecar runs, `"experimental"` or `"stable"`: both make the same proofs.
+- `aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
+- `Sidecar.start(binary, socket)` uses one thread per core, as does `threads` 0; `close()` stops the sidecar it launched. `prover()` is `"experimental"` or `"stable"`, which make the same proofs.
+- A `Sidecar` is safe to share between threads; its calls run one at a time, and `close()` waits for calls in progress.
 
-Every `Aggregate` was proven or verified by a sidecar.
+## Build and test
+
+Needs JDK 25, Gradle 9.1 or newer and Rust. From the repository root:
+
+```sh
+gradle -p bindings/java test
+```
+
+The test task builds the native library itself. The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`. Building the release jar is in [RELEASING.md](../RELEASING.md#maven-central).
+
+## License
+
+MIT OR Apache-2.0
