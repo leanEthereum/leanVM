@@ -172,6 +172,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
+          skip-existing: true
 
   # Static native bridge per bundled Zig target; directory names match build.zig. The Go module
   # bundles the same archives.
@@ -276,6 +277,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: zig-package
@@ -284,7 +286,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/bindings-v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
+        run: sh .github/scripts/attach-release-assets.sh "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz"
 
   # The Go module leanvm.org/go: bindings/go plus the zig-native archives, as module proxy files,
   # so building against it needs only Go and a C compiler. They never enter git: go-publish
@@ -383,8 +385,7 @@ jobs:
           for ext in info mod zip; do
             cp "go-module/$MODULE/@v/$version.$ext" "go-module-$version.$ext"
           done
-          gh release upload "$GITHUB_REF_NAME" go-module-"$version".info go-module-"$version".mod \
-            go-module-"$version".zip --clobber -R "$GITHUB_REPOSITORY"
+          sh .github/scripts/attach-release-assets.sh go-module-"$version".info go-module-"$version".mod go-module-"$version".zip
       - name: Deploy leanvm.org with the module
         env:
           GH_TOKEN: ${{ github.token }}
@@ -474,6 +475,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: nim-package
@@ -481,7 +483,7 @@ jobs:
       - name: Attach to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" nim-package/lean-pq-native-*.a --clobber -R "$GITHUB_REPOSITORY"
+        run: sh .github/scripts/attach-release-assets.sh nim-package/lean-pq-native-*.a
 
   # One Node.js addon per napi target (bindings/node/package.json `napi.targets`). The version is
   # stamped before building because the generated loader (index.js) bakes it in.
