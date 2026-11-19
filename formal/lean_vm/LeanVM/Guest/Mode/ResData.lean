@@ -8,23 +8,18 @@
 module
 
 public import LeanVM.Guest.Mode.ResFam
+public import LeanVM.Guest.CoreMode.Pack.«P24».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P42».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P46».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P51».Frame0
+public import LeanVM.Guest.CoreMode.Pack.«P57».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«verify_tables».Frame0
-public import LeanVM.Guest.Pack.«P11».Mode0
-public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
-public import LeanVM.Guest.Pack.«P34».Mode0
-public import LeanVM.Guest.Pack.«P42».Mode0
-public import LeanVM.Guest.Pack.«P57».Mode0
-public import LeanVM.Guest.Pack.«P61».Mode0
-public import LeanVM.Guest.Pack.«P63».Mode0
 
 /-!
 # The residuals' families, checked on the guest's data
 
-`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `claim_list_digest`, `log2_ceil_in_the_exponent__L0_L34`, `log2_ceil_in_the_exponent__L16_L34`, `verify_bus_gkr_loop0`.
+`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `claim_list_digest`.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -37,8 +32,8 @@ open LeanVM.Guest
 noncomputable def nzFns : List (Fun × List OffsetInstruction) := [
   (Fn.«certify_placement».funC, Fn.«certify_placement».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
-  (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
-  (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
+  (Fn.«log2_ceil_in_the_exponent__L0_L34».funC, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
+  (Fn.«log2_ceil_in_the_exponent__L16_L34».funC, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables».funC, Fn.«verify_tables».code.chunks.flatten),
   (Fn.«verify_tables_loop1».funC, Fn.«verify_tables_loop1».code.chunks.flatten)]
 
@@ -58,8 +53,7 @@ theorem ltWin_guest : ∀ p ∈ wpFns, ltWin p.1 p.2.1.length 4 p.2.2 64 = true 
 
 /-- The functions whose order residuals bound one frame cell's exponent: their walks' data and code, the cell and the bound. -/
 noncomputable def frFns : List (Fun × List OffsetInstruction × ℕ × ℕ) := [
-  (Fn.«child_claim_list_any».modeFun, Fn.«child_claim_list_any».code.chunks.flatten, 8, 17),
-  (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten, 8, 17)]
+  ]
 
 /-- **Every order residual of the listed functions bounds its frame cell.** -/
 theorem ltFr_guest : ∀ p ∈ frFns, ltFr p.1 p.2.1.length p.2.2.1 p.2.2.2 = true :=
@@ -69,11 +63,9 @@ theorem ltFr_guest : ∀ p ∈ frFns, ltFr p.1 p.2.1.length p.2.2.1 p.2.2.2 = tr
 /-- The kernel-checked functions with residuals all in the families. -/
 noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«certify_placement».funC, Fn.«certify_placement».code.chunks.flatten),
-  (Fn.«child_claim_list_any».modeFun, Fn.«child_claim_list_any».code.chunks.flatten),
-  (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
+  (Fn.«log2_ceil_in_the_exponent__L0_L34».funC, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
+  (Fn.«log2_ceil_in_the_exponent__L16_L34».funC, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables».funC, Fn.«verify_tables».code.chunks.flatten),
   (Fn.«verify_tables_loop1».funC, Fn.«verify_tables_loop1».code.chunks.flatten)]
 

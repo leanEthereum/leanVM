@@ -19,7 +19,7 @@ Before it (found by a dry run with the functions off the route stubbed, `--force
 * (done here) `Res/ResGiven.lean`, `res-cert/sel.py`'s, was read through `Res/SubDefs` only for its import: SubDefs
   drops it (`sub_defs`), and it goes with the rest.
 * The modules named for the old route that the end theorem still reaches (reported in 4: `EndExecR*`, `Mode/*`,
-  `Res/*Defs`, `Bridge/AlignWin` through the hint bridge) are hand modules to rename or move, `(b)`.
+  `Res/*Defs`) are hand modules to move: `move-old-route.py`, run after this script.
 * `sigc.py`, `frame_gen.py`, `frame_data.py`, `frame_run.py`, `route.py` read `MODE_CERT_CACHE` only for functions off
   the route: with none left their branches are dead and go with it.
 
@@ -34,7 +34,7 @@ RX = re.compile(r'^(?:public |meta |private )*import (?:all )?(\S+)', re.M)
 OFF_IMPORTS = ['LeanVM.Guest.Res.Off', 'LeanVM.Guest.EndExecRCld', 'LeanVM.Guest.EndExecRCp',
                'LeanVM.Guest.EndExecRGkrC', 'LeanVM.Guest.EndExecRLce']
 KEEP_IMPORTS = ['LeanVM.Guest.CoreMode.Gen.AnyLinkOk', 'LeanVM.Guest.CoreMode.Gen.MonoWalkOk']
-OLD = re.compile(r'LeanVM\.Guest\.(Pack\.[^.]+\.Mode|Mode\.|Res\.|EndExecR|Bridge\.AlignWin)')
+OLD = re.compile(r'LeanVM\.Guest\.(Pack\.[^.]+\.Mode|Mode\.|Res\.|EndExecR)')
 
 
 def text(p):

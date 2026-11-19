@@ -52,7 +52,8 @@ theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem monoPost_eq : monoPost = [.atom (.copy (.n 52) (.n 50)), .atom (.copy (.n 53) (.n 51))] :=
+theorem monoPost_eq : monoPost = [.atom (.touch (.n 52) (.n 4)), .atom (.touch (.n 53) (.n 5)),
+    .atom (.copy (.n 54) (.n 50)), .atom (.copy (.n 55) (.n 51))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem monoPost_straight : monoPost.all Main.Stmt.straight = true := by rw [monoPost_eq]; rfl
@@ -90,7 +91,7 @@ theorem mono_param (σ : Val) : (Fn.params fn% «child_claim_list_mono»).map σ
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] := rfl
 
 theorem mono_body : Fn.body fn% «child_claim_list_mono» =
-    monoP1 ++ monoDispS :: (monoPost ++ [.ret [.n 52, .n 53]]) := by
+    monoP1 ++ monoDispS :: (monoPost ++ [.ret [.n 54, .n 55]]) := by
   rw [child_claim_list_mono_shape, monoFlat_split]; simp
 
 theorem mlNames_get {r : ℕ} (hr : r < 17) : mlNames[r]! = mlNames.getD r "" := by
@@ -107,7 +108,8 @@ noncomputable def monoCOk : Bool :=
   (chk 7 monoFlat).isSome &&
   SE.all (fun a => (List.range 13).any (fun c => atomEqb a (.load (.n (17 + c)) (.n 16) c)) ||
     atomEqb a (.load (.n 1) (.n 16) 13) || atomEqb a (.load (.n 0) (.n 16) 14)) &&
-  (atomsIn monoFlat).all (fun a => !needsSide a || decide (a ∈ SE)) &&
+  (atomsIn monoFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
+    atomEqb a (.touch (.n 52) (.n 4)) || atomEqb a (.touch (.n 53) (.n 5))) &&
   (atomsIn monoFlat).any (isConstAt (.n 8) 2 0) &&
   (monoOf (atomsIn monoFlat) 40 (.n 15)).isPerm
     (List.replicate 15 (.n 4) ++ List.replicate 15 (.n 5) ++ List.replicate 15 (.n 8)) &&
@@ -140,16 +142,17 @@ structure MonoVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain :
   v49 : σ (.n 49) = chain * gen ^ (15 * (a + b))
   v50 : σ (.n 50) = (digestHalves D).1
   v51 : σ (.n 51) = (digestHalves D).2
-  v52 : σ (.n 52) = (digestHalves D).1
-  v53 : σ (.n 53) = (digestHalves D).2
+  v54 : σ (.n 54) = (digestHalves D).1
+  v55 : σ (.n 55) = (digestHalves D).2
 
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
 /-- **`child_claim_list_mono`'s valuation**: on a memory holding the first record at the chain
-buffer. -/
+buffer and defined below `2^20`, where its checks of `g^a` and `g^b` read. -/
 theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Digest)
-    (hR : MonoRecAt rd chain 0 [] region entries 0) :
+    (hR : MonoRecAt rd chain 0 [] region entries 0) (hlow : LowDef 20 rd) (ha : a < 2 ^ 20)
+    (hb20 : b < 2 ^ 20) :
     MonoVals rd (monoσ rd [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] chain D)
       [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] a b chain D := by
   obtain ⟨hz0, h13, h14⟩ := hR
@@ -159,7 +162,7 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
   have hb := monoBody_ok
   simp only [monoBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hb
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, hdis⟩, h32⟩, h31⟩, h30⟩, h42⟩, h41⟩, h40⟩, -⟩,
-    -⟩, -⟩, hm39⟩, hm49⟩, hc52⟩, hc53⟩ := hb
+    -⟩, -⟩, hm39⟩, hm49⟩, hc54⟩, hc55⟩ := hb
   set w := monow chain D with hw
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp hchk1
   let args : List E := [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c]
@@ -195,9 +198,19 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
     refine atoms_holds_stores hg (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
     · have := List.all_eq_true.mp hside x hx
       simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at this
-      rcases this with h | h
+      rcases this with ((h | h) | h) | h
       · rw [hns] at h; exact absurd h (by simp)
       · exact absurd h hnS
+      · right; rw [atomEqb_sound h]
+        obtain ⟨t, ht⟩ := Sig.load_gpow hlow ha
+        rw [← gen_pow_eq_ofK] at ht
+        show IsInK (σ (.n 4)) ∧ (rd ((σ (.n 4)).limb 0 * addressOfIndex 0)).isSome
+        rw [e4]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
+      · right; rw [atomEqb_sound h]
+        obtain ⟨t, ht⟩ := Sig.load_gpow hlow hb20
+        rw [← gen_pow_eq_ofK] at ht
+        show IsInK (σ (.n 5)) ∧ (rd ((σ (.n 5)).limb 0 * addressOfIndex 0)).isSome
+        rw [e5]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
     · have := List.all_eq_true.mp hst x hxS
       simp only [Bool.or_eq_true] at this
       rcases this with (h | h) | h
@@ -241,8 +254,8 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
   · rw [const_sound h42 hat, word_one]
   · rw [mono2Is_sound hm49 hat, v16, e4, e5, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add,
       Nat.mul_add]
-  · rw [copy_sound hc52 hat, v50]
-  · rw [copy_sound hc53 hat, v51]
+  · rw [copy_sound hc54 hat, v50]
+  · rw [copy_sound hc55 hat, v51]
 
 /-! ## The chain buffer -/
 

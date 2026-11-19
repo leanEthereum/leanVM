@@ -94,7 +94,7 @@ set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape, within its bound**:
 `n < 136 · 2^20` honest records among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their cells' digest. -/
-theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
+theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 20 ≤ κ)
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
     (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
@@ -231,7 +231,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     rw [Nat.mul_zero, pow_zero, mul_one, show clU a 0 = 0 by simp [clU]] at this
     exact this
   have hV := anyBody_core (rd := rd) (entries := gen ^ eP) (region := gen ^ rg) (base := base)
-    (limit := gen ^ L) (a := a) (b := b) (c := r) D hz0
+    (limit := gen ^ L) (a := a) (b := b) (c := r) D hz0 (hlow.mono hκ) (by omega) (by omega)
   set σ := anyσ rd [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ a, gen ^ b, gen ^ r] chain D with hσ
   have hpar := hV.par
   simp only [List.cons.injEq, and_true] at hpar
@@ -243,10 +243,10 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
   have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
   have hw : walk σ (Fn.body fn% «child_claim_list_any») =
       .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
-        [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 66, .n 67] := by
+        [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 68, .n 69] := by
     rw [any_body]
     exact walk_dispatch σ anyP1 anyPost anyP1_straight anyPost_straight (.n 6) cclNames
-      [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65] [.n 66, .n 67] (i := r)
+      [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65] [.n 68, .n 69] (i := r)
       (by simp [cclNames]; omega) (by simp [cclNames]) hx
   set es := anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
     [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ) with hes
@@ -271,11 +271,10 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     rcases List.mem_cons.mp he with rfl | he
     · trivial
     · refine slEvs_holds (fun s hs => ?_) e he
-      rw [anyPost_eq] at hs
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-      rcases hs with rfl | rfl
-      · show σ (.n 66) = σ (.n 64); rw [hV.v66, hV.v64]
-      · show σ (.n 67) = σ (.n 65); rw [hV.v67, hV.v65]
+      have hs' := hs
+      rw [anyPost_eq] at hs'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hs'
+      exact slOk_atomS (by rcases hs' with rfl | rfl | rfl | rfl <;> rfl) (hmE s (by simp [hs]))
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ anyP1_straight
   obtain ⟨hqd, hqa, hqad, hqc⟩ := Main.straight_parts σ _ anyPost_straight
   have hpostA : anyPost.filterMap Main.Stmt.allocSz = [] ∧ anyPost.filterMap Main.Stmt.addrS = [] ∧
@@ -308,7 +307,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3] i)
     coreProgram_wf find_child_claim_list_any (Or.inl any_loop)
     (by rw [any_param, e0, e1, e2, e3, e4, e5, e6]) hw
-    (by show [σ (.n 66), σ (.n 67)] = _; rw [hV.v66, hV.v67]; rfl) hev
+    (by show [σ (.n 68), σ (.n 69)] = _; rw [hV.v68, hV.v69]; rfl) hev
     (by
       rw [hal, hes, es3_allocDsts, hpd, hqd, anyP1_allocs, hpostA.1]
       simp only [List.map_cons, List.map_nil, List.append_nil, bases, hV.v17]
@@ -362,7 +361,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     exact hown _ (by omega) (by omega)
 
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape.** -/
-theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
+theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 20 ≤ κ)
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
     (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
@@ -372,7 +371,7 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
     CompleteAtDT fs cert κ "child_claim_list_any" Lin
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) (anyHonest n) :=
-  (child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3).toDT
+  (child_claim_list_any_completeAtTB fs cert hκ hn hl hL33 hLκ hrec hR2 hR3).toDT
 
 end
 end LeanVM.Guest.B1.Digest

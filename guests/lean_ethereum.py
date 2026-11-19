@@ -780,7 +780,7 @@ def log2_ceil_in_the_exponent(g_N, g_squares, floor: Const, nbits: Const):
     # N below 2^nbits, as L < SIZE_BITS = nbits. N must be known nonnegative: at the
     # floor only 2^floor - N is checked, which a small negative N passes too. Both
     # callers build g_N as a product of certified powers g^(2^kappa).
-    bits = HeapBuf(GEN ** nbits)
+    bits = StackBuf(SIZE_BITS)  # nbits = SIZE_BITS at both callers
     hint_decompose_bits_exponent(bits, g_N, nbits)
     g_log = hint_log2_ceil(bits, nbits, floor)
     assert log(g_log) < SIZE_BITS
@@ -4396,6 +4396,9 @@ def child_claim_list_any(entries_ptr, region, base, limit_g, bigs, groups, rest)
         keccak_cells(blk, nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
     last = mid * groups ** KECCAK_STATE
     d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: child_claim_list_last(last, entries_ptr, region, mid_base * groups ** CLAIM_GROUP, last_g, k))
+    # list_split's bounds on bigs and groups, checked again here, where their exponents are formed.
+    assert_gpow(bigs)
+    assert_gpow(groups)
     return d0, d1
 
 
@@ -4453,6 +4456,9 @@ def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest
         keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
     last = mid * groups ** MONO_REC
     d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: child_claim_list_mono_last(last, region, base, limit_g, k))
+    # list_split's bounds on bigs and groups, checked again here, where their exponents are formed.
+    assert_gpow(bigs)
+    assert_gpow(groups)
     return d0, d1
 
 

@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».Cfun
-public import LeanVM.Guest.Checked.Link0
 
 set_option Elab.async false
 

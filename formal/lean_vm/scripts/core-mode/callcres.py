@@ -21,7 +21,8 @@ FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
 VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},),
             'verify_keccak': (FEATURES | {'postQ', 'hv', 'der'},),
             'verify_bus_gkr': (FEATURES | {'join', 'ptsrun', 'rcpts'},),
-            'certify_placement': (FEATURES | {'rcpts', 'perm'},)}
+            'certify_placement': (FEATURES | {'rcpts', 'perm'},),
+            'da_verify': (FEATURES | {'der'},)}
 
 
 _SIGS = {}
@@ -286,10 +287,15 @@ def sub_rc(q, r):
     (rb, ro), S2, rl, rh = r
     if not (ql[0] == qh[0] == rl[0] == rh[0] == 'num'):
         return False
-    if tuple(qb) != tuple(rb) or S != S2 or not 0 < S or ro > qo or (qo - ro) % S:
+    if not all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1])):
         return False
-    k = (qo - ro) // S
-    return rl[1] <= ql[1] + k and qh[1] + k <= rh[1] and all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1]))
+    if tuple(qb) != tuple(rb) or not 0 < S2 or S % S2 or not 0 < S or ro > qo or (qo - ro) % S2:
+        return False
+    k, m = (qo - ro) // S2, S // S2
+    if m == 1:
+        return rl[1] <= ql[1] + k and qh[1] + k <= rh[1]
+    # stride a multiple: cell `j` of `q` is cell `k + m·j` of `r`
+    return rl[1] <= k + m * ql[1] and k + m * max(qh[1] - 1, 0) < rh[1]
 
 
 def nz_atoms(c, body):
@@ -458,6 +464,30 @@ def ml_sub(k, c):
     if kk is None or jj >= kk or tuple(bs) != ((5, 1),) + tuple((6 + 10 * i, 4) for i in range(jj + 1)):
         return None
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
+
+
+# `CoreMode.cmK`: `child_claim_list_mono`'s frame loops, their claims a frame
+CM_LOOPS = {'child_claim_list_mono_loop0': 136, 'child_claim_list_mono_loop1': 17}
+
+
+def cm_sub(k, c):
+    """`CoreMode.cmSub`: a frame loop's read of claim `jj`'s entry `c`, the run of its caller's table (ghost `0`, stride
+    4, below the exponent of ghost `1`, its caller's `limit`), or None."""
+    m = CM_LOOPS.get(I.callee(k))
+    if m is None:
+        return None
+    bs, off = c
+    jj = off // 4
+    if jj >= m or tuple(bs) != ((12, 1),) + tuple((13 + 10 * i, 4) for i in range(jj + 1)):
+        return None
+    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', I.GB + 1)))
+
+
+def cm_res(k, r):
+    """`CoreMode.cmSub`: a read (`cm_sub`), or ghost `1`'s exponent `0 < e(limit)`."""
+    if I.callee(k) not in CM_LOOPS:
+        return False
+    return (r[0] == 'sub' and cm_sub(k, r[1]) == r) or r == ('lt', ('num', 0), ('val', I.GB + 1))
 
 
 # `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
@@ -685,9 +715,10 @@ def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     import vtexp
     return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or
-                 rc_pts(k, r) or lay_q(k, r) or vt_cp(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r)) and
+                 rc_pts(k, r) or lay_q(k, r) or vt_cp(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r) or ly_q(k, r)) and
                 all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or cm_res(k, r) or
+               vtexp.vt_exp(k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -747,6 +778,26 @@ def lay_q(k, r):
     return r[0] == 'sub' and lay_st_sub(k, r[1]) == r
 
 
+# `verify_bus_gkr_loop0`'s cursors past its slot's (`CoreMode.lyQC`, `EndExec.ly_curs`): value, words read past it
+LY_CURS = {65: 8, 80: 12}
+
+
+def ly_st_sub(k, c):
+    """`CoreMode.lyQC`: the layer loop's read `c` words past the cursor its pairs end at (`65`, `c < 8`) or its last
+    record's (`80`, `c < 12`), one of its stream's `[9]·[0, 8192)`."""
+    if I.callee(k) == 'verify_bus_gkr_loop0' and len(c[0]) == 1 and c[0][0][1] == 1 and \
+            c[1] < LY_CURS.get(c[0][0][0], 0):
+        return ('sub', c, ((((9, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
+def ly_q(k, r):
+    """`CoreMode.lyQC`: a read past the layer loop's cursors (`ly_st_sub`), under branch conditions."""
+    if r[0] == 'under':
+        return ly_q(k, r[2])
+    return r[0] == 'sub' and ly_st_sub(k, r[1]) == r
+
+
 # leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
 LEAF_FAM = {'verify_tables_loop1'}
 
@@ -767,16 +818,23 @@ def _guest_const(name):
 
 
 def da_gap_bound(k, x):
-    """`CoreMode.daGap`: `da_pad`'s gap, its parameter `2`, below `g^DA_MAX_ROWS` (`EndExec.DaPadQ`)."""
-    return _guest_const('DA_MAX_ROWS') if I.callee(k) == 'da_pad' and x == 2 else None
+    """`CoreMode.daGap`: `da_pad`'s gap, its parameter `2`, below `g^DA_MAX_ROWS` (`EndExec.DaPadQ`); `da_verify`'s
+    blob count `1`, at most `g^DA_MAX_ROWS`, and gap `2`, below it (`EndExec.daV_inst`)."""
+    if I.callee(k) == 'da_pad' and x == 2:
+        return _guest_const('DA_MAX_ROWS')
+    if I.callee(k) == 'da_verify' and x in (1, 2):
+        return _guest_const('DA_MAX_ROWS') + (1 if x == 1 else 0)
+    return None
 
 
 def da_gap(k, r):
-    """`CoreMode.daGap`: a residual `e(2) < m`, `DA_MAX_ROWS <= m`, of `da_pad`."""
+    """`CoreMode.daGap`: a residual `e(x) < m`, `da_gap_bound(k, x) <= m`."""
     if r[0] == 'under':
         return da_gap(k, r[2])
-    B = da_gap_bound(k, 2)
-    return B is not None and r[0] == 'lt' and r[1] == ('val', 2) and r[2][0] == 'num' and B <= r[2][1] < CAPE
+    if not (r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num'):
+        return False
+    B = da_gap_bound(k, r[1][1])
+    return B is not None and B <= r[2][1] < CAPE
 
 
 def tab_of(k, x):
@@ -873,8 +931,9 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c) or
-                                                 lay_st_sub(self.k, c))
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or cm_sub(self.k, c) or st_sub(self.k, c) or
+                                                 vt_st_sub(self.k, c) or
+                                                 lay_st_sub(self.k, c) or ly_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])

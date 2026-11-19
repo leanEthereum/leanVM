@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Pre
+public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».W0
 public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».W1
 public import LeanVM.Guest.CoreMode.PairRun

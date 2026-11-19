@@ -168,6 +168,10 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«walk_path__L18_L4».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«padding_weight__L17».modeSigs fa%[],
   sigsOr_of_list Fn.«padding_weight__L2».modeSigs fa%[],
+  sigsOr_of_list Fn.«verify_bus_gkr_loop0».modeSigs fa%[.inl ⟨_, Fn.«gkr_rounds__L1».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«gkr_rounds__L2».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_bus_gkr_loop0_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_bus_gkr_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«verify_merkle_cap__L3».modeSigs fa%[]]
 
 end

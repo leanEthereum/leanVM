@@ -346,7 +346,7 @@ theorem child_claim_list_digest_completeAtTBP_any (fs : String → ℕ) (cert : 
   have hok : KidsDTBR fs cert κ (ccKidsM Lin eP rg L n base (keccak256 (cellsBytes cells)) false)
       (fun rd => ccTsP false n rd (lsPops n) (idxPops o 0 n)) [SB "list_split", anyB fs n] :=
     ⟨fun _ => list_split_nBP fs cert hκ hn hLS,
-      fun _ => child_claim_list_any_completeAtTBP fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtTBP fs cert hκ hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonemptyMP fs cert (by omega) hn (mono := false) (h := h) (fun h => absurd h (by simp))
       (fun _ => hh) fp (kidsAtR_of_kidsDTBR hok _)
@@ -384,7 +384,7 @@ theorem child_claim_list_digest_completeAtTBP_mono (fs : String → ℕ) (cert :
   have hok : KidsDTBR fs cert κ (ccKidsM Lin eP rg L n base (keccak256 (cellsBytes cells)) true)
       (fun rd => ccTsP true n rd (lsPops n) (gapPops o 0 n)) [SB "list_split", monoB fs n] :=
     ⟨fun _ => list_split_nBP fs cert hκ hn hLS,
-      fun _ => child_claim_list_mono_completeAtTBP fs cert hn hl hLκ hinc hend hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_mono_completeAtTBP fs cert hκ hn hl hLκ hinc hend hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonemptyMP fs cert (by omega) hn (mono := true) (h := gen) (fun _ => rfl)
       (fun h => absurd h (by simp)) fp (kidsAtR_of_kidsDTBR hok _)

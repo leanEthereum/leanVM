@@ -74,7 +74,7 @@ noncomputable def monoPss (o : ℕ → ℕ) (a b r : ℕ) : List (List Pop) :=
 
 set_option maxRecDepth 20000 in
 /-- **`child_claim_list_mono_completeAtTB` with its pops**: its tree pops its claims' gaps in order. -/
-theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
+theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 20 ≤ κ)
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
     (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hLκ : L < 2 ^ κ)
     (hinc : ∀ j < n, mStart o j ≤ o j) (hend : mStart o n ≤ L)
@@ -213,7 +213,7 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     rw [Nat.mul_zero, pow_zero, mul_one, show clU a 0 = 0 by simp [clU]] at this
     simpa [mStart] using this
   have hV := monoBody_core (rd := rd) (entries := gen ^ eP) (region := gen ^ rg) (base := base)
-    (limit := gen ^ L) (a := a) (b := b) (c := r) D hz0
+    (limit := gen ^ L) (a := a) (b := b) (c := r) D hz0 (hlow.mono hκ) (by omega) (by omega)
   set σ := monoσ rd [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ a, gen ^ b, gen ^ r] chain D with hσ
   have hpar := hV.par
   simp only [List.cons.injEq, and_true] at hpar
@@ -222,10 +222,10 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
   have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
   have hw : walk σ (Fn.body fn% «child_claim_list_mono») =
       .ret (monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n 49, .n 1, .n 2, .n 3]
-        [.n 50, .n 51] :: monoPost.flatMap (Main.slEvs σ)) [.n 52, .n 53] := by
+        [.n 50, .n 51] :: monoPost.flatMap (Main.slEvs σ)) [.n 54, .n 55] := by
     rw [mono_body]
     exact walk_dispatch σ monoP1 monoPost monoP1_straight monoPost_straight (.n 6) mlNames
-      [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51] [.n 52, .n 53] (i := r)
+      [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51] [.n 54, .n 55] (i := r)
       (by simp [mlNames]; omega) (by simp [mlNames]) hx
   set es := monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n 49, .n 1, .n 2, .n 3]
     [.n 50, .n 51] :: monoPost.flatMap (Main.slEvs σ) with hes
@@ -250,11 +250,10 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     rcases List.mem_cons.mp he with rfl | he
     · trivial
     · refine slEvs_holds (fun s hs => ?_) e he
-      rw [monoPost_eq] at hs
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-      rcases hs with rfl | rfl
-      · show σ (.n 52) = σ (.n 50); rw [hV.v52, hV.v50]
-      · show σ (.n 53) = σ (.n 51); rw [hV.v53, hV.v51]
+      have hs' := hs
+      rw [monoPost_eq] at hs'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hs'
+      exact slOk_atomS (by rcases hs' with rfl | rfl | rfl | rfl <;> rfl) (hmE s (by simp [hs]))
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ monoP1_straight
   obtain ⟨hqd, hqa, hqad, hqc⟩ := Main.straight_parts σ _ monoPost_straight
   have hpostA : monoPost.filterMap Main.Stmt.allocSz = [] ∧
@@ -286,7 +285,7 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3] i)
     coreProgram_wf find_child_claim_list_mono (Or.inl mono_loop)
     (by rw [mono_param, e0, e1, e2, e3, e4, e5, e6]) hw
-    (by show [σ (.n 52), σ (.n 53)] = _; rw [hV.v52, hV.v53]; rfl) hev
+    (by show [σ (.n 54), σ (.n 55)] = _; rw [hV.v54, hV.v55]; rfl) hev
     (by
       rw [hal, hes, es3_allocDsts, hpd, hqd, monoP1_allocs, hpostA.1]
       simp only [List.map_cons, List.map_nil, List.append_nil, bases, hV.v16]

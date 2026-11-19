@@ -51,14 +51,15 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       X.fwdOff i s.r = some o ∧ pairAt (PairCtx.ofH X H O S) body code d o = some pos' ∧
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
         (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
-      ((∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
+      ((Stmt.call f args rets ∈ stmtsOf body ∧
+        ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
         walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
           es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
           (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
           (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
             ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∨
-       ∃ c, X.locAt c.idx = oc ∧ rets = [] ∧
+       ∃ c, Stmt.callIf c f args ∈ stmtsOf body ∧ X.locAt c.idx = oc ∧ rets = [] ∧
         ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
         walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
         ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
@@ -108,7 +109,7 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨-, s, t, c, o, hsite, ht, he, hc, ho, rfl⟩ := headH_call hh hcur
     have hat' := h2 (o, c) List.mem_cons_self
     refine ⟨f, args, rets, s, t, o, c.pos, hsite, ht, he, ho, hat', as, hpairs,
-      Or.inl fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩
+      Or.inl ⟨hs, fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩⟩
     obtain ⟨cs, hcs, hcpos, -⟩ := normG_pos _ _ hc
     rw [hpos, hzpos, Zip.pos_head hcur, hcpos, ← List.append_assoc, ← List.map_append] at hp
     obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp
@@ -128,7 +129,7 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       · rw [hX, hnx t f ht he] at h; cases h
       · exact h
     refine ⟨f, args, [], s, t, i + 1, ca.pos, hsite, ht, he, by rw [hsr]; exact fwdOff_succ X i, h1 ca rfl, as,
-      hpairs, Or.inr ⟨c, hloc, rfl, fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩⟩
+      hpairs, Or.inr ⟨c, hs, hloc, rfl, fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩⟩
     obtain ⟨cs, hcs, hcpos, -⟩ := normG_pos _ _ hca
     rw [hpos, hzpos, Zip.pos_head hcur, hcpos, ← List.append_assoc, ← List.map_append] at hp
     obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp

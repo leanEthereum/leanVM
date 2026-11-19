@@ -200,9 +200,11 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 62) (.n 61) (.n 5)) ::
   .atom (.mul (.n 63) (.n 48) (.n 62)) ::
   .dispatch (.n 6) ["child_claim_list_last__L0", "child_claim_list_last__L1", "child_claim_list_last__L2", "child_claim_list_last__L3", "child_claim_list_last__L4", "child_claim_list_last__L5", "child_claim_list_last__L6", "child_claim_list_last__L7", "child_claim_list_last__L8", "child_claim_list_last__L9", "child_claim_list_last__L10", "child_claim_list_last__L11", "child_claim_list_last__L12", "child_claim_list_last__L13", "child_claim_list_last__L14", "child_claim_list_last__L15", "child_claim_list_last__L16"] [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65] ::
-  .atom (.copy (.n 66) (.n 64)) ::
-  .atom (.copy (.n 67) (.n 65)) ::
-  .ret [.n 66, .n 67] ::
+  .atom (.touch (.n 66) (.n 4)) ::
+  .atom (.touch (.n 67) (.n 5)) ::
+  .atom (.copy (.n 68) (.n 64)) ::
+  .atom (.copy (.n 69) (.n 65)) ::
+  .ret [.n 68, .n 69] ::
   [])
 
 end core

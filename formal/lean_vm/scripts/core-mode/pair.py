@@ -355,9 +355,9 @@ def args(k, f, ctx='alignCtx'):
 
 
 def packed_ctx(k):
-    """Whether `k`'s alignment context has its cells packed ahead (`alignCtxP`, `Bridge/AlignWin/<k>/`): its pairing
+    """Whether `k`'s alignment context has its cells packed ahead (`alignCtxP`, `Bridge/AlignCtx/<k>/`): its pairing
     windows then read that one, the check taken through `alignCtxEq`."""
-    return 'alignCtxP' in open(os.path.join(GUEST, 'Bridge', 'AlignWin', k, 'Pre.lean'), encoding='utf-8').read()
+    return 'alignCtxP' in open(os.path.join(GUEST, 'Bridge', 'AlignCtx', k, 'Ctx.lean'), encoding='utf-8').read()
 
 
 def ns(k, body):
@@ -417,7 +417,7 @@ def render_win(pack, f):
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
         + imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
-                   f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx'])
+                   f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 
 {offs_defs(k, f)}
@@ -439,7 +439,7 @@ end
         chain = f'(And.intro pairWin{n} {chain})'
     files[os.path.join(GEN, pack, k, 'Ok.lean')] = (
         HEADER.format(mod=f'{base}.Ok', what=f"`{k}`'s pairing check, by its windows.")
-        + imports(['LeanVM.Guest.CoreMode.PairRun', f'LeanVM.Guest.Bridge.AlignWin.«{k}».{"Ok" if packed else "Pre"}']
+        + imports(['LeanVM.Guest.CoreMode.PairRun', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
                   + [f'{base}.W{n}' for n in range(len(ks) - 1)])
         + ns(k, f'''public section
 
@@ -458,6 +458,46 @@ theorem pair_ok : CoreMode.pairOk {args(k, f)} = true :=
 ''' if packed else ''}
 end
 '''))
+    # the alignment pass (the hint bridge's `Bridge.alignOk`), in windows from the same states normalized as it holds
+    # them (`CoreMode.alignKOf`), the first the pass's start
+    al = lambda n: 'pairK0' if n == 0 else f'(CoreMode.alignKOf {wctx} Fn.«{k}».core.body pairK{n})'
+    aargs = f'{wctx} Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
+    for n in range(len(ks) - 1):
+        files[os.path.join(GEN, pack, k, f'AW{n}.lean')] = (
+            HEADER.format(mod=f'{base}.AW{n}', what=f"`{k}`'s alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}.")
+            + imports([f'{base}.Ctx', 'LeanVM.Guest.CoreMode.AlignK']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}. -/
+theorem alignWin{n} : Bridge.winOk {aargs} {al(n)} {al(n + 1)} = true := by
+  decide +kernel
+
+end
+'''))
+    achain = 'alignEndOk'
+    for n in reversed(range(len(ks) - 1)):
+        achain = f'(And.intro alignWin{n} {achain})'
+    files[os.path.join(GUEST, 'CoreMode', 'AlignOk', f'{k}.lean')] = (
+        HEADER.format(mod=f'LeanVM.Guest.CoreMode.AlignOk.«{k}»', what=f"`{k}` aligns with its body (the hint bridge's "
+                      "check), by windows from its pairing's states.")
+        + imports(['LeanVM.Guest.Bridge.AlignRun', 'LeanVM.Guest.CoreMode.AlignK', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
+                  + [f'{base}.AW{n}' for n in range(len(ks) - 1)])
+        + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass's last state is at the end. -/
+theorem alignEndOk : Bridge.chainEnd Fn.«{k}».code.code {al(len(ks) - 1)} = true := by
+  decide +kernel
+
+/-- `{k}` aligns with its body{" (its context " + wctx + ")" if packed else ""}. -/
+theorem alignOk{"P" if packed else ""} : Bridge.alignOk {aargs} = true :=
+  Bridge.alignOk_of_chain alignPreOk (ks := [{', '.join(al(n) for n in range(1, len(ks)))}])
+    {achain}
+{f'''
+/-- `{k}` aligns with its body. -/
+theorem alignOk : Bridge.alignOk alignCtx Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice = true :=
+  alignCtxEq ▸ alignOkP
+''' if packed else ''}
+end
+'''))
     return files
 
 
@@ -473,7 +513,8 @@ def emit(out, check):
             packs[po[k][0]].append(f)
     for pack, fs in sorted(packs.items()):
         files.update(render_pack(pack, fs))
-    existing = set(glob.glob(os.path.join(GEN, '*', 'Pair.lean'))) | set(glob.glob(os.path.join(GEN, '*', '*', '*.lean')))
+    existing = set(glob.glob(os.path.join(GEN, '*', 'Pair.lean'))) | set(glob.glob(os.path.join(GEN, '*', '*', '*.lean'))) | \
+        set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*.lean')))
     stale = []
     for path, text in sorted(files.items()):
         old = open(path, encoding='utf-8').read() if os.path.exists(path) else None

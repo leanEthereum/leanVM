@@ -17,6 +17,11 @@ namespace LeanVM.Guest.CoreMode.HcSig
 
 @[expose] public section
 
+def «child_claim_list_any».sig : CoreMode.HSig := 
+    { preR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 3)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 3)⟩],
+      postR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 3)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 3)⟩] }
 def «level_positions__L5_L19_L7».csig : CoreMode.HSig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
         ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],

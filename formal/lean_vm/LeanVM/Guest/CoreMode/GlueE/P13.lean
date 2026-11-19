@@ -11,21 +11,21 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«aggregate_claims_loop0».entry : Nat := 250788
-abbrev Fn.«block_selector__L14».entry : Nat := 196911
-abbrev Fn.«eq_prefix_run__L18».entry : Nat := 179501
-abbrev Fn.«eq_prefix_run__L3».entry : Nat := 178691
-abbrev Fn.«level_positions__L10_L19_L7_loop0».entry : Nat := 289390
-abbrev Fn.«level_positions__L22_L24_L6_loop0».entry : Nat := 364972
-abbrev Fn.«level_positions__L7_L21_L3».entry : Nat := 264556
-abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».entry : Nat := 273126
-abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».entry : Nat := 269349
-abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».entry : Nat := 340481
-abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».entry : Nat := 339583
-abbrev Fn.«level_residual__L55_L17_L6_L3».entry : Nat := 262025
-abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».entry : Nat := 283639
-abbrev Fn.«plus_one_run__L27».entry : Nat := 195320
-abbrev Fn.«walk_path__L24_L2».entry : Nat := 441861
+abbrev Fn.«aggregate_claims_loop0».entry : Nat := 250790
+abbrev Fn.«block_selector__L14».entry : Nat := 196915
+abbrev Fn.«eq_prefix_run__L18».entry : Nat := 179505
+abbrev Fn.«eq_prefix_run__L3».entry : Nat := 178695
+abbrev Fn.«level_positions__L10_L19_L7_loop0».entry : Nat := 289392
+abbrev Fn.«level_positions__L22_L24_L6_loop0».entry : Nat := 364974
+abbrev Fn.«level_positions__L7_L21_L3».entry : Nat := 264558
+abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».entry : Nat := 273128
+abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».entry : Nat := 269351
+abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».entry : Nat := 340483
+abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».entry : Nat := 339585
+abbrev Fn.«level_residual__L55_L17_L6_L3».entry : Nat := 262027
+abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».entry : Nat := 283641
+abbrev Fn.«plus_one_run__L27».entry : Nat := 195324
+abbrev Fn.«walk_path__L24_L2».entry : Nat := 441863
 
 end
 

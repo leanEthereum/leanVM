@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».Cfun
-public import LeanVM.Guest.Checked.Link0
 
 set_option Elab.async false
 
@@ -16,7 +15,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-theorem Fn.«main_loop2».sw5 : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body 89 91) && CoreMode.selGo 39 cfun.fn.params (CoreMode.seenF [] (cfun.fn.body.take 89)) (CoreMode.slice cfun.fn.body 89 91)) = true := by
+theorem Fn.«main_loop2».sw5 : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body 89 91) && CoreMode.selGo Fn.«main_loop2».idx cfun.fn.params (CoreMode.seenF [] (cfun.fn.body.take 89)) (CoreMode.slice cfun.fn.body 89 91)) = true := by
   decide +kernel
 
 end

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.WitDefs
-public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«sp_wots».Ok
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
 

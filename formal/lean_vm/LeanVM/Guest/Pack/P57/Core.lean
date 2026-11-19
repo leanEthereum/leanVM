@@ -5484,33 +5484,31 @@ namespace core
 
 /-- `log2_ceil_in_the_exponent__L0_L34`: the body. -/
 noncomputable def body : List Core.Stmt := [
-  .atom (.const (.n 2) (word 17179869184 0)),
-  .atom (.hint (.allocDyn (.n 3) (.n 2))),
-  .atom (.hint (.bitsExp (.n 0) 34 (.heap (.n 3) 0 34))),
-  .atom (.hint (.log2Ceil (.heap (.n 3) 0 34) 34 0 (.n 4))),
-  .atom (.const (.n 5) (word 8589934592 0)),
-  .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.const (.n 9) (word 8589934592 0)),
-  .atom (.const (.n 10) (word 1 0)),
-  .atom (.mul (.n 4) (.n 11) (.n 10)),
-  .atom (.rangeCheck (.n 11) (.n 12) (.n 13) (.n 14) (.n 9)),
-  .atom (.mul (.n 15) (.n 1) (.n 4)),
-  .atom (.load (.n 16) (.n 15) 0),
-  .atom (.mul (.n 16) (.n 17) (.n 0)),
-  .call "assert_small_g_power" [.n 17, .n 1] [],
-  .atom (.const (.n 18) (word 1 0)),
-  .atom (.add (.n 19) (.n 4) (.n 18)),
-  .ite (.n 19) [] [
-    .atom (.const (.n 20) (word 9223372036854775821 0)),
-    .atom (.mul (.n 21) (.n 0) (.n 20)),
-    .atom (.const (.n 22) (word 9223372036854775821 0)),
-    .atom (.mul (.n 23) (.n 4) (.n 22)),
-    .atom (.mul (.n 24) (.n 1) (.n 23)),
-    .atom (.load (.n 25) (.n 24) 0),
-    .atom (.mul (.n 21) (.n 26) (.n 25)),
-    .call "assert_small_g_power" [.n 26, .n 1] []],
-  .atom (.copy (.n 27) (.n 4)),
-  .ret [.n 27]]
+  .atom (.hint (.bitsExp (.n 0) 34 (.stack (.n 2 :: .n 3 :: .n 4 :: .n 5 :: .n 6 :: .n 7 :: .n 8 :: .n 9 :: .n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: [])))),
+  .atom (.hint (.log2Ceil (.stack (.n 2 :: .n 3 :: .n 4 :: .n 5 :: .n 6 :: .n 7 :: .n 8 :: .n 9 :: .n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: [])) 34 0 (.n 36))),
+  .atom (.const (.n 37) (word 8589934592 0)),
+  .atom (.rangeCheck (.n 36) (.n 38) (.n 39) (.n 40) (.n 37)),
+  .atom (.const (.n 41) (word 8589934592 0)),
+  .atom (.const (.n 42) (word 1 0)),
+  .atom (.mul (.n 36) (.n 43) (.n 42)),
+  .atom (.rangeCheck (.n 43) (.n 44) (.n 45) (.n 46) (.n 41)),
+  .atom (.mul (.n 47) (.n 1) (.n 36)),
+  .atom (.load (.n 48) (.n 47) 0),
+  .atom (.mul (.n 48) (.n 49) (.n 0)),
+  .call "assert_small_g_power" [.n 49, .n 1] [],
+  .atom (.const (.n 50) (word 1 0)),
+  .atom (.add (.n 51) (.n 36) (.n 50)),
+  .ite (.n 51) [] [
+    .atom (.const (.n 52) (word 9223372036854775821 0)),
+    .atom (.mul (.n 53) (.n 0) (.n 52)),
+    .atom (.const (.n 54) (word 9223372036854775821 0)),
+    .atom (.mul (.n 55) (.n 36) (.n 54)),
+    .atom (.mul (.n 56) (.n 1) (.n 55)),
+    .atom (.load (.n 57) (.n 56) 0),
+    .atom (.mul (.n 53) (.n 58) (.n 57)),
+    .call "assert_small_g_power" [.n 58, .n 1] []],
+  .atom (.copy (.n 59) (.n 36)),
+  .ret [.n 59]]
 
 end core
 

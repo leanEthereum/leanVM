@@ -34,6 +34,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P57».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P57».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P57».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P57».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P57».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
@@ -90,13 +91,19 @@ noncomputable def Fn.«column_selector__L6».frameFun : CoreMode.FFun :=
 theorem Fn.«column_selector__L6».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by
   decide +kernel
+noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».envC : Mode.Env := CoreMode.envOf
+    [Fn.«assert_small_g_power».csig]
+noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».funC : Mode.Fun :=
+    ⟨Fn.«log2_ceil_in_the_exponent__L0_L34».entry, 39, Fn.«log2_ceil_in_the_exponent__L0_L34».csig,
+    .nil, (.node none (.node none (.node none .nil (.node (some [(.nz 2)]) .nil .nil)) .nil) .nil),
+    .nil, false, .nil⟩
 noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«log2_ceil_in_the_exponent__L0_L34».entry, 40, Fn.«log2_ceil_in_the_exponent__L0_L34».csig,
-    (CoreMode.sigTrie [Fn.«assert_small_g_power».csig]), 524287, advice.2.2, (.node none .nil (.node
-    none (.node none .nil (.node (some [2]) .nil .nil)) .nil)), .nil, .nil, .nil, (.node none (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))))), .nil, .nil⟩
+    Fn.«log2_ceil_in_the_exponent__L0_L34».entry, 39, Fn.«log2_ceil_in_the_exponent__L0_L34».csig,
+    (CoreMode.sigTrie [Fn.«assert_small_g_power».csig]), 524287, advice.2.2, (.node none (.node none
+    (.node none .nil (.node (some [2]) .nil .nil)) .nil) .nil), .nil, .nil, .nil,
+    Fn.«log2_ceil_in_the_exponent__L0_L34».pairO, Fn.«log2_ceil_in_the_exponent__L0_L34».pairS,
+    .nil⟩
 
 theorem Fn.«log2_ceil_in_the_exponent__L0_L34».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by

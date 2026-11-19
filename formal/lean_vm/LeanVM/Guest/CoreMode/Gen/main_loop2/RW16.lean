@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».Cfun
-public import LeanVM.Guest.Checked.Link0
 
 set_option Elab.async false
 
@@ -16,7 +15,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-theorem Fn.«main_loop2».rw16 : CoreMode.cellsB 39 (CoreMode.slice cfun.fn.body 232 234) = true := by
+theorem Fn.«main_loop2».rw16 : CoreMode.cellsB Fn.«main_loop2».idx (CoreMode.slice cfun.fn.body 232 234) = true := by
   decide +kernel
 
 end

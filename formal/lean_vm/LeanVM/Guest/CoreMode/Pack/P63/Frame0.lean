@@ -33,6 +33,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P63».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P63».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P63».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P63».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P63».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
@@ -77,8 +78,21 @@ def Fn.«child_claim_list_mono».frameCallee0 : List ℕ := [Fn.«child_claim_li
     Fn.«child_claim_list_mono_last__L11».entry, Fn.«child_claim_list_mono_last__L12».entry,
     Fn.«child_claim_list_mono_last__L13».entry, Fn.«child_claim_list_mono_last__L14».entry,
     Fn.«child_claim_list_mono_last__L15».entry, Fn.«child_claim_list_mono_last__L16».entry]
+noncomputable def Fn.«child_claim_list_mono».envC : Mode.Env := CoreMode.envOf
+    [Fn.«child_claim_list_mono_last__L0».csig, Fn.«child_claim_list_mono_last__L10».csig,
+    Fn.«child_claim_list_mono_last__L11».csig, Fn.«child_claim_list_mono_last__L12».csig,
+    Fn.«child_claim_list_mono_last__L13».csig, Fn.«child_claim_list_mono_last__L14».csig,
+    Fn.«child_claim_list_mono_last__L15».csig, Fn.«child_claim_list_mono_last__L16».csig,
+    Fn.«child_claim_list_mono_last__L1».csig, Fn.«child_claim_list_mono_last__L2».csig,
+    Fn.«child_claim_list_mono_last__L3».csig, Fn.«child_claim_list_mono_last__L4».csig,
+    Fn.«child_claim_list_mono_last__L5».csig, Fn.«child_claim_list_mono_last__L6».csig,
+    Fn.«child_claim_list_mono_last__L7».csig, Fn.«child_claim_list_mono_last__L8».csig,
+    Fn.«child_claim_list_mono_last__L9».csig, Fn.«child_claim_list_mono_loop0».csig,
+    Fn.«child_claim_list_mono_loop1».csig]
+noncomputable def Fn.«child_claim_list_mono».funC : Mode.Fun := ⟨Fn.«child_claim_list_mono».entry,
+    76, Fn.«child_claim_list_mono».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«child_claim_list_mono».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«child_claim_list_mono».entry, 74,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«child_claim_list_mono».entry, 76,
     Fn.«child_claim_list_mono».csig, (CoreMode.sigTrie [Fn.«child_claim_list_mono_last__L0».csig,
     Fn.«child_claim_list_mono_last__L10».csig, Fn.«child_claim_list_mono_last__L11».csig,
     Fn.«child_claim_list_mono_last__L12».csig, Fn.«child_claim_list_mono_last__L13».csig,
@@ -91,10 +105,7 @@ noncomputable def Fn.«child_claim_list_mono».frameFun : CoreMode.FFun :=
     Fn.«child_claim_list_mono_loop0».csig, Fn.«child_claim_list_mono_loop1».csig]), 524287,
     advice.2.2, .nil, (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
     none (.node (some 0) .nil .nil) .nil) .nil) .nil)) .nil)), .nil, (.node (some frameCallee0) .nil
-    .nil), (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))), .nil, .nil⟩
+    .nil), Fn.«child_claim_list_mono».pairO, Fn.«child_claim_list_mono».pairS, .nil⟩
 
 theorem Fn.«child_claim_list_mono».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by

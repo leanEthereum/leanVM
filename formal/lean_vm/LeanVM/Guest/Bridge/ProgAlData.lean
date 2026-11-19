@@ -18,7 +18,7 @@ open LeanVM.Guest.Exec (Trie)
 
 /-- Each compiled function's hint-only cells, by index. -/
 def alignExtras : Trie (List (Nat × Nat)) :=
-  (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [(3, 6)]) .nil .nil) .nil) .nil))) .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [(3, 6)]) .nil .nil) .nil) .nil))) .nil))))
+  (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [(2, 5), (3, 6), (4, 7), (5, 8), (6, 9), (7, 10), (8, 11), (9, 12), (10, 13), (11, 14), (12, 15), (13, 16), (14, 17), (15, 18), (16, 19), (17, 20), (18, 21), (19, 22), (20, 23), (21, 24), (22, 25), (23, 26), (24, 27), (25, 28), (26, 29), (27, 30), (28, 31), (29, 32), (30, 33), (31, 34), (32, 35), (33, 36), (34, 37), (35, 38)]) .nil .nil) .nil) .nil))) .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [(2, 5), (3, 6), (4, 7), (5, 8), (6, 9), (7, 10), (8, 11), (9, 12), (10, 13), (11, 14), (12, 15), (13, 16), (14, 17), (15, 18), (16, 19), (17, 20), (18, 21), (19, 22), (20, 23), (21, 24), (22, 25), (23, 26), (24, 27), (25, 28), (26, 29), (27, 30), (28, 31), (29, 32), (30, 33), (31, 34), (32, 35), (33, 36), (34, 37), (35, 38)]) .nil .nil) .nil) .nil))) .nil))))
 
 /-- Each compiled function's callees its alignment check names, by index, in the order of their names (no code: a
 dispatch's lists are long). -/

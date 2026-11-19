@@ -217,8 +217,17 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     have hrd := hFH.val v (hnamed v hv) h2 hlt
     rw [hfp1, hl]
     exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd
-  have hF : ∀ v ∈ Bridge.hintFrame hc, s1.fp + loc v.idx < maxCells ∧ refMem r.img (s1.fp + loc v.idx) = e.σ v :=
-    fun v hv ↦ have hf := hframe v hv; hcell v (hintFrame_uses hv) (hlocAt _ hf.1 hf.2.1) hf.2.2.1 hf.2.2.2
+  have hevs0 : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
+  have hF : ∀ v ∈ Bridge.hintFrame hc, s1.fp + loc v.idx < maxCells ∧ refMem r.img (s1.fp + loc v.idx) = e.σ v := by
+    intro v hv
+    rcases hframe v hv with hf | ⟨c, hc', h2c, hcn⟩
+    · exact hcell v (hintFrame_uses hv) (hlocAt _ hf.1 hf.2.1) hf.2.2.1 hf.2.2.2
+    · -- a hint-only cell of the frame
+      have hlc : loc v.idx = c := by rw [hloc]; unfold Bridge.AlignCtx.locAt; rw [hc']; rfl
+      rw [hfp1, hlc]
+      refine ⟨by rw [hfs] at hwithin; unfold maxCells; omega, ?_⟩
+      exact hXR r hr e.I hI _ _ bufs kids hIt v
+        (by rw [hevs0]; exact List.mem_flatMap.mpr ⟨_, hev, hintFrame_uses hv⟩) c hc'
   -- the executor reads the reference at its written cells
   have hRd : ∀ c v, s1.mem.written c = true → refMem r.img c = v → s1.mem.peek c = v := fun c v hwc hM ↦ by
     obtain ⟨w, hw'⟩ := Mem.get_of_written hwc

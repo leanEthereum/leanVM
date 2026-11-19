@@ -68,15 +68,44 @@ def candidates(out, S):
     return res
 
 
-def infer_hc(k):
-    """`k`'s certificate at its own heap signature, inferred from no precondition."""
+def eq_candidates(out, S):
+    """Leaves of atoms and one final `ret`, not loop helpers nor `main`, not in `out`, whose mode signature has orders at
+    return (`postT`, `postC`), which no mode contract on the core route states: on a heap contract with their equations
+    at return (`retEq`) instead, joined with their callers."""
+    res = []
+    for k, (params, body) in sorted(I.CORE.items()):
+        if k in out or k in I.IS_LOOP or k == 'main' or k not in S:
+            continue
+        acc = kinds(body, collections.Counter())
+        if set(acc) <= {'a', 'ret'} and acc['ret'] == 1 and body[-1][0] == 'ret' and (S[k]['postT'] or S[k]['postC']):
+            res.append(k)
+    return res
+
+
+def infer_hc(k, eqs=False):
+    """`k`'s certificate at its own heap signature, inferred from no precondition; with `eqs`, its guarantees and
+    equations at return (`I.infer` with `div`)."""
     import callc
     EM = callc._em()
     params, body = I.CORE[k]
     np = len(params)
     I.SIGS.clear()
-    G0 = I.Sig(np)
-    I.SIGS[k] = G0
+    if eqs:
+        saved = set(I.F)
+        try:
+            I.F.add('div')
+            I.infer(k)
+        finally:
+            I.F.clear()
+            I.F.update(saved)
+        G0 = I.SIGS[k]
+        if G0.pre or G0.post or G0.postR or G0.retM or G0.postV or not G0.retEq:
+            raise callc.No('own guarantees')
+        I.SIGS.clear()
+        I.SIGS[k] = G0
+    else:
+        G0 = I.Sig(np)
+        I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
     if G0.ghosts or G0.preR or G0.prePR or G0.preP or G0.term:
         raise callc.No('own runs')
@@ -208,9 +237,15 @@ def reinfer(c, S, hcsig):
     EM = callc._em()
     base, EM.Solver.pt = callcres.cs_reads(EM)
     try:
-        I.F.clear()
-        I.F.update(callcres.FEATURES)
-        return callc.infer_one(c, S, allow=lambda k, res: callcres.res_ok(k, res, S), hcsig=hcsig)
+        err = None
+        for feats in (callcres.FEATURES,) + callcres.VT_FEATS.get(c, ()):
+            I.F.clear()
+            I.F.update(feats)
+            try:
+                return callc.infer_one(c, S, allow=lambda k, res: callcres.res_ok(k, res, S), hcsig=hcsig)
+            except callc.No as e:
+                err = err or e
+        raise err
     finally:
         I.F.clear()
         I.F.update(saved)
@@ -226,14 +261,15 @@ def extend(out, why, S, verbose=False):
     hcsig, got = {}, {}
     lost = collections.Counter()
     leaves = candidates(out, S)
-    cands = [(k, False) for k in leaves] + [(k, True) for k in call_candidates(out)]
+    eqs = eq_candidates(out, S)
+    cands = [(k, False) for k in leaves] + [(k, True) for k in call_candidates(out)] + [(k, 'eq') for k in eqs]
     for k, calls in cands:
         cs = callers.get(k, set())
-        if not cs or not all(c in out and c not in I.IS_LOOP for c in cs):
+        if not cs or not all((c in out or calls == 'eq') and c not in I.IS_LOOP for c in cs):
             lost['callers'] += 1
             continue
         try:
-            r, G0 = infer_hc_calls(k, S, hcsig) if calls else infer_hc(k)
+            r, G0 = infer_hc_calls(k, S, hcsig) if calls is True else infer_hc(k, calls == 'eq')
         except callc.No as e:
             lost[str(e)] += 1
             continue
@@ -255,7 +291,11 @@ def extend(out, why, S, verbose=False):
     # every caller's text at the final signatures
     for k, r in out.items():
         if k in got or r.get('hcs') or 'text' not in r:
-            r['text'] = callc.ldata(k, r)
+            try:
+                r['text'] = callc.ldata(k, r)
+            except callc.No:
+                # a callee's copy with auxiliary declarations: named only by the emission's shared copies
+                r['text'] = None
     if verbose:
         print('heap contracts: %d of %d candidates' % (len(got), len(cands)), dict(lost.most_common()))
     return got

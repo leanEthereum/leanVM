@@ -43,6 +43,27 @@ theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n 
     (fn% «da_pad»).loop = false := by
   decide +kernel
 
+/-- **`da_verify`'s blob count and gap at an instance**: `g^n` and `g^(DA_MAX_ROWS - n)`, `1 ≤ n ≤ DA_MAX_ROWS`, by
+`da_padding`'s meaning. -/
+theorem daV_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «da_verify» σ bufs kids) :
+    ∃ n, 1 ≤ n ∧ n ≤ guest_const% DA_MAX_ROWS ∧ σ (.n 1) = Protocol.Verifier.gen ^ n ∧
+      σ (.n 2) = Protocol.Verifier.gen ^ (guest_const% DA_MAX_ROWS - n) := by
+  obtain ⟨hbody, hflat, hpd, -⟩ := dv_shape
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
+    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv B1.Da.find_da_verify
+  rw [B1.stmtsEqb_sound hbody, holdsList_append] at hb
+  obtain ⟨hallC, -⟩ := B1.Digest.holdsList_flat B1.Da.dvP hflat _ _ hb
+  have hall : ∀ s ∈ B1.Da.dvP, Stmt.Holds (coreProgram.Rel r.img.read) r.img.read σ s True _ :=
+    fun s hs => holds_mono (fun _ _ _ h ↦ Res.KidRel.rel h) s id (fun _ h => h) (hallC s hs)
+  have hpd' := B1.Da.da_padding_holds r.img.read (ref_memOk hr) _ _ (B1.Digest.call_of_flat hall hpd)
+  simp only [List.map_cons, List.map_nil, B1.Da.MeaningDaPadding, List.cons.injEq, and_true] at hpd'
+  obtain ⟨n, hn1, hn, e1, e2⟩ := hpd'
+  rw [B1.Da.maxRows_eq] at hn e2
+  exact ⟨n, hn1, hn, e1, e2⟩
+
 /-- **`da_pad`'s gap passes down from `da_verify`**: `da_padding`'s `g^(DA_MAX_ROWS - r)`, `1 ≤ r`. -/
 theorem daPadQ_step {r : Ref} (hr : r.Ok) :
     Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) DaPadQ := by

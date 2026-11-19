@@ -378,7 +378,7 @@ def long_loop(k, j, hp, frame_mod, gl):
     mlt = lst(f'({x}, {y})' for x, y in ml)
     files['Cfun'] = (hdr('Cfun', f'The core data of `{k}`, apart (its passes are checked in windows).') +
                      ''.join(f'public import {m}\n' for m in sorted({
-                         'LeanVM.Guest.CoreMode.RouteWin', quote(frame_mod), f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx',
+                         'LeanVM.Guest.CoreMode.RouteWin', quote(frame_mod), f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx',
                          f'{base}.DataLC', 'LeanVM.Guest.Pack.«%s».%s' % heap.pack_of()[k], f'LeanVM.Guest.CoreMode.GlueC.«{hp}»',
                          f'LeanVM.Guest.CoreMode.Pows.«{hp}»',
                          'Statement.Data.AdviceHints'})) +
@@ -400,16 +400,14 @@ def long_loop(k, j, hp, frame_mod, gl):
     for i in range(len(rb) - 1):
         a, b = rb[i], rb[i + 1]
         files[f'RW{i}'] = (hdr(f'RW{i}', f'Window {i} of `{k}`\'s cells: statements {a} to {b - 1}.') + imp +
-                           f'public import {quote(codes_mod(j))}\n' +
-                           ns(f'theorem Fn.«{k}».rw{i} : CoreMode.cellsB {j} (CoreMode.slice cfun.fn.body {a} {b}) = true := by\n'
+                           ns(f'theorem Fn.«{k}».rw{i} : CoreMode.cellsB Fn.«{k}».idx (CoreMode.slice cfun.fn.body {a} {b}) = true := by\n'
                               f'  decide +kernel\n'))
         rimps.append(f'{base}.RW{i}')
         rws.append(f'Fn.«{k}».rw{i}')
         a, b = sb[i], sb[i + 1]
         files[f'SW{i}'] = (hdr(f'SW{i}', f'Window {i} of `{k}`\'s selectors: statements {a} to {b - 1}.') + imp +
-                           f'public import {quote(codes_mod(j))}\n' +
                            ns(f'theorem Fn.«{k}».sw{i} : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body {a} {b}) && '
-                              f'CoreMode.selGo {j} cfun.fn.params (CoreMode.seenF [] (cfun.fn.body.take {a})) '
+                              f'CoreMode.selGo Fn.«{k}».idx cfun.fn.params (CoreMode.seenF [] (cfun.fn.body.take {a})) '
                               f'(CoreMode.slice cfun.fn.body {a} {b})) = true := by\n  decide +kernel\n'))
         rimps.append(f'{base}.SW{i}')
         sws.append(f'Fn.«{k}».sw{i}')
@@ -417,7 +415,6 @@ def long_loop(k, j, hp, frame_mod, gl):
     for i in range(len(cb) - 1):
         a, b = cb[i], cb[i + 1]
         files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') + imp +
-                           f'public import {quote(codes_mod(j))}\n' +
                            ns(f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
                               f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
                               f'  decide +kernel\n'))

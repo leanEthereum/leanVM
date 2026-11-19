@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocDefs
-public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«main_loop2».Ok
 public import LeanVM.Guest.CoreMode.GlueA.«main_loop2»
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core

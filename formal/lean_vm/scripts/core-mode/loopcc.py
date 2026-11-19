@@ -40,7 +40,9 @@ def candidates(S=None):
         nkinds = {s[0] for s in I.stmts(body[:-2])}
         if k in HELD:
             continue
-        if kinds & {'ite', 'match'} and nkinds <= {'a', 'call', 'ite', 'match'}:
+        # (`CoreMode.isBS`: conditional calls of other functions too)
+        if kinds & {'ite', 'match'} and nkinds <= {'a', 'call', 'ite', 'match', 'callIf'} and \
+                all(I.callee(s[2]) != k for s in I.stmts(body[:-2]) if s[0] == 'callIf'):
             out.append(k)
             continue
         G = (S or {}).get(k)
@@ -88,6 +90,9 @@ def infer_one(k, S):
         raise No('counter not 0')
     cs = {}
     for s in I.stmts(body[:-2]):
+        if s[0] == 'callIf':
+            # a conditional call of another function (`CoreMode.callsBL`): checked as a call returning nothing
+            s = ('call', s[2], s[3], [])
         if s[0] != 'call':
             continue
         f = s[1]
@@ -152,6 +157,12 @@ def infer_one(k, S):
         q = loopc.run_h(r, np, gl)
         if q is not None and q[3][0]:
             hi = EM.cidx(q[3], np)
+            if len(q[3][0]) == 1 and q[3][0][0][0] >= I.GB and q[3][0][0][1] == 1 and q[3][1] == 0:
+                # a ghost slot's exponent (`CoreMode.hiG`), by its family's residual over the ghost's value
+                x = ('lt', ('num', 0), ('val', q[3][0][0][0]))
+                if x not in H.res:
+                    H.res.append(x)
+                continue
             if any(b >= np for b, _ in q[3][0]) or not any(x[0] == 'lt' and x[2] == hi for x in H.res):
                 raise No('linked bound without residual')
     import callcres

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.AlignWin.«verify_tables».Pre
+public import LeanVM.Guest.Bridge.AlignCtx.«verify_tables».Ok
 public import LeanVM.Guest.CoreMode.Gen.«verify_tables».«verify_tables».W0
 public import LeanVM.Guest.CoreMode.Gen.«verify_tables».«verify_tables».W1
 public import LeanVM.Guest.CoreMode.PairRun

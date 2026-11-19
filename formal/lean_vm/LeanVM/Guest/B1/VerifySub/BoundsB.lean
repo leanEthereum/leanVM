@@ -77,9 +77,9 @@ structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
 
 /-- **The callees' bounds**, in call order, `open_stacked`'s `os`. -/
 noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : ℕ) : List ℕ :=
-  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power",
+  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 2 * fs "assert_small_g_power",
     fs "certify_placement" + Tables.cpSizes.sum,
-    fs "log2_ceil_in_the_exponent__L16_L34" + 34 + 2 * fs "assert_small_g_power",
+    fs "log2_ceil_in_the_exponent__L16_L34" + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
     busGrindMax fs, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10 W.K11, Bvk,
     W.Kst "grind_check__L13", fs "ring_switch_target" + 72 + W.B14, os,

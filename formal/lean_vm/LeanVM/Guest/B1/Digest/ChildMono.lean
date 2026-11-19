@@ -524,7 +524,7 @@ noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»
 
 set_option maxRecDepth 100000 in
 theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n
-    52, .n 53]] :=
+    54, .n 55]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
@@ -549,8 +549,8 @@ noncomputable def monoBodyOk : Bool :=
   (atomsIn monoFlat).any (isLoadAt (.n 0) (.n 16) 14) &&
   monoIs (atomsIn monoFlat) (.n 39) (.n 16) (.n 4) 15 &&
   mono2Is (atomsIn monoFlat) (.n 49) (.n 16) (.n 4) 15 (.n 5) 15 &&
-  (atomsIn monoFlat).any (isCopyAt (.n 52) (.n 50)) &&
-  (atomsIn monoFlat).any (isCopyAt (.n 53) (.n 51))
+  (atomsIn monoFlat).any (isCopyAt (.n 54) (.n 50)) &&
+  (atomsIn monoFlat).any (isCopyAt (.n 55) (.n 51))
 
 set_option maxRecDepth 100000 in
 theorem monoBody_ok : monoBodyOk = true := by decide +kernel

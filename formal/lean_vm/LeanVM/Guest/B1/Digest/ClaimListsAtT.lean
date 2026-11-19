@@ -462,7 +462,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
       B1.disj_nil, fun rd _ _ => cc_empty fs cert fp rd⟩
   have hok : KidsDT fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n) :=
     ⟨fun _ => (list_split_n fs cert hκ hn).toT,
-      fun _ => child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtT fs cert hκ hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, -, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDT hok _)
   exact ⟨_, Lown, _, [], ⟨rfl, rfl⟩, hW, hD, hr⟩

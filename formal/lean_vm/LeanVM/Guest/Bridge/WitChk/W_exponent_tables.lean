@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.WitDefs
-public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core
 

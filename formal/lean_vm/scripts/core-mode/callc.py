@@ -7,7 +7,7 @@ not grow.
 
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
-import os, sys, collections
+import os, re, sys, collections
 ARGV = list(sys.argv)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -192,6 +192,11 @@ def gl_of(k):
         # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
         return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
     import callcres
+    if I.callee(k) in callcres.CM_LOOPS:
+        # a frame loop of the gap walk (`CoreMode.cmGl`, `loopGl`): the caller's cells `2` (entries) and `5` (`limit`) its
+        # first two ghost slots, the caller's frame address its third
+        np = len(CORE[k][0])
+        return {2: (np, 0), 5: (np + 1, 0), 0: (np + 2, 0)}
     if k in callcres.ST_LOOPS:
         # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
         # frame address (`0`) its second
@@ -256,6 +261,11 @@ def hp_bs(G):
         for b, _ in bs:
             if b[0] == 'hp' and (b[1], b[2]) not in out:
                 out.append((b[1], b[2]))
+    # then the caller's cells bounding entry runs (`CoreMode.hpBnd`: `.ex (.hp 1 d) 0`)
+    for r in G['preR']:
+        for bd in (r[1], r[2]):
+            if bd[0] == 'ex' and bd[1][0] == 'hp' and bd[1][1] == 1 and bd[2] == 0 and (1, bd[1][2]) not in out:
+                out.append((1, bd[1][2]))
     return out
 
 
@@ -308,7 +318,8 @@ def callee_sig(G, na, nr, postq=False):
             # bounds the arguments' exponents (`boundsX`, their cells argument entry cells)
             def bx(b):
                 return b[0] == 'num' and b[1] < 2 ** 62 or \
-                    (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1]))
+                    (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1])) or \
+                    (b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and (1, b[1][2]) in ps)
             if not ps or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]) or \
                     not ((r[1][0] == 'num' and r[2][0] == 'num') or (bx(r[1]) and bx(r[2]))):
                 raise
@@ -775,6 +786,12 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
         for b in (r[2], r[3]):
             if b[0]:
                 (sl, _), = b[0]
+                if sl >= I.GB:
+                    # a ghost slot (`CoreMode.ghostArg`): the caller's cell `d` an entry run bounds, its parameter's word
+                    gh = h.ghosts[sl - I.GB] if sl - I.GB < len(h.ghosts) else None
+                    if b[1] == 0 and gh and gh[0] == 'hp1' and 2 <= gh[1] and gh[1] - 2 < np and gh[1] in expc:
+                        continue
+                    raise No('callee bound not a constant power')
                 a = args[sl]
                 if const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc):
                     continue
@@ -1048,12 +1065,17 @@ def hcsig_ref(k):
     return f'CoreMode.HcSig.«{k}».sig'
 
 
+def lcsigK(h):
+    """A callee's heap signature as Lean, its auxiliary declarations (`def sig_…`) before it: the key of its copy."""
+    EM = _em()
+    ax = EM.Aux()
+    t = EM.lsig(h, ax)
+    return '\x00'.join(list(ax.defs) + [t])
+
+
 def self_sig(r):
-    """A function's own heap signature as Lean, if it needs no auxiliary declaration (as a callee's copy)."""
-    try:
-        return lcsig(r['cert'].sig)
-    except No:
-        return None
+    """A function's own heap signature as Lean, its auxiliary declarations before it (as a callee's copy's key)."""
+    return lcsigK(r['cert'].sig)
 
 
 def sig_shared(R):
@@ -1067,14 +1089,14 @@ def sig_shared(R):
         hcf = {f for f, _, _ in r.get('hcs', [])}
         for f, h in r['cs'].items():
             if f not in hcf:
-                copies[I.callee(f)][lcsig(h)] += 1
+                copies[I.callee(f)][lcsigK(h)] += 1
     shared, refs = set(), {}
     for c, cnt in copies.items():
         for t, n in cnt.items():
             if c in R and own[c] == t:
                 shared.add(c)
                 refs[(c, t)] = hcsig_ref(c)
-            elif n >= 2:
+            elif n >= 2 or '\x00' in t:
                 refs[(c, t)] = f'CoreMode.HcSig.«{c}».csig' if len(cnt) == 1 else None
     return shared, {ct: n for ct, n in refs.items() if n}
 
@@ -1097,7 +1119,10 @@ def sig_file(pack, ks, R, copies):
             t = EM.lsig(R[k]['cert'].sig, ax)
             out += [d.replace('def ', f'def «{k}».', 1) for d in ax.defs] + [f'def «{k}».sig : CoreMode.HSig := {t}\n']
         if k in cp:
-            out.append(f'def «{k}».csig : CoreMode.HSig := {cp[k]}\n')
+            # a copy with auxiliary declarations: theirs renamed `csig_…`
+            *defs, t = re.sub(r'\bsig_', 'csig_', cp[k]).split('\x00')
+            out += [d.replace('def ', f'def «{k}».', 1) + '\n' for d in defs]
+            out.append(f'def «{k}».csig : CoreMode.HSig := {t}\n')
     out.append('\nend\nend LeanVM.Guest.CoreMode.HcSig\n')
     return ''.join(out)
 
@@ -1145,10 +1170,12 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
         if f in hcf:
             used.add(c)
             return hcsig_ref(c)
-        t = lcsig(h)
+        t = lcsigK(h)
         if (c, t) in refs:
             used.add(c)
             return refs[(c, t)]
+        if '\x00' in t:
+            raise No('callee signature too long')
         return t
     cs = ',\n    '.join(f'("{f}", {entry(f, h)})' for f, h in sorted(r['cs'].items()))
     if sigs is not None:

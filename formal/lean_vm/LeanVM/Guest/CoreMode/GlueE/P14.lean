@@ -11,25 +11,25 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«column_selector__L16».entry : Nat := 211087
-abbrev Fn.«decode_query_windows__L17_L5».entry : Nat := 275754
+abbrev Fn.«column_selector__L16».entry : Nat := 211091
+abbrev Fn.«decode_query_windows__L17_L5».entry : Nat := 275756
 abbrev Fn.«eq_prefix_chain».entry : Nat := 19350
-abbrev Fn.«eq_prefix_run__L37».entry : Nat := 182142
-abbrev Fn.«grind_check__L2».entry : Nat := 251016
-abbrev Fn.«grind_check__L24».entry : Nat := 254397
-abbrev Fn.«index_mle__L26».entry : Nat := 203329
-abbrev Fn.«level_positions__L5_L25_L7_loop0».entry : Nat := 379958
-abbrev Fn.«level_positions__L7_L14_L2».entry : Nat := 255210
-abbrev Fn.«level_positions__L8_L19_L7_loop0».entry : Nat := 316820
-abbrev Fn.«level_residual__L16_L8_L4_L2_loop0».entry : Nat := 407681
-abbrev Fn.«level_residual__L37_L20_L4_L2».entry : Nat := 274268
-abbrev Fn.«level_residual__L44_L19_L4_L2_loop1».entry : Nat := 386378
-abbrev Fn.«level_residual__L44_L20_L4_L2_loop1».entry : Nat := 400880
-abbrev Fn.«level_residual__L55_L13_L4_L2_loop1».entry : Nat := 311942
-abbrev Fn.«level_residual__L55_L15_L6_L3_loop0».entry : Nat := 292656
-abbrev Fn.«padding_weight__L21».entry : Nat := 191946
-abbrev Fn.«plus_one_run__L0».entry : Nat := 194186
-abbrev Fn.«squeeze_point_from__L29».entry : Nat := 212437
+abbrev Fn.«eq_prefix_run__L37».entry : Nat := 182146
+abbrev Fn.«grind_check__L2».entry : Nat := 251018
+abbrev Fn.«grind_check__L24».entry : Nat := 254399
+abbrev Fn.«index_mle__L26».entry : Nat := 203333
+abbrev Fn.«level_positions__L5_L25_L7_loop0».entry : Nat := 379960
+abbrev Fn.«level_positions__L7_L14_L2».entry : Nat := 255212
+abbrev Fn.«level_positions__L8_L19_L7_loop0».entry : Nat := 316822
+abbrev Fn.«level_residual__L16_L8_L4_L2_loop0».entry : Nat := 407683
+abbrev Fn.«level_residual__L37_L20_L4_L2».entry : Nat := 274270
+abbrev Fn.«level_residual__L44_L19_L4_L2_loop1».entry : Nat := 386380
+abbrev Fn.«level_residual__L44_L20_L4_L2_loop1».entry : Nat := 400882
+abbrev Fn.«level_residual__L55_L13_L4_L2_loop1».entry : Nat := 311944
+abbrev Fn.«level_residual__L55_L15_L6_L3_loop0».entry : Nat := 292658
+abbrev Fn.«padding_weight__L21».entry : Nat := 191950
+abbrev Fn.«plus_one_run__L0».entry : Nat := 194190
+abbrev Fn.«squeeze_point_from__L29».entry : Nat := 212439
 
 end
 
