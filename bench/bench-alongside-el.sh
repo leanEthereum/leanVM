@@ -55,7 +55,7 @@ cargo build --release -p leanvm-bench
 cargo build --release --manifest-path bench/el-load/Cargo.toml
 
 echo "==> 2/6 generating leanVM's 22,400 leanXMSS signatures on all cores (minutes, on the first run only)"
-"${LEANVM[@]}" --repeat 1 >.build/lean-prepare.log 2>&1
+"${LEANVM[@]}" --repeat 1 >.build/lean-prepare.log 2>&1 || { tail -n 20 .build/lean-prepare.log; exit 1; }
 
 echo "==> 3/6 leanVM alone: proving the 16 leaves (untimed), then the 16-to-1 aggregation 5 times"
 lean .build/lean-alone.log
