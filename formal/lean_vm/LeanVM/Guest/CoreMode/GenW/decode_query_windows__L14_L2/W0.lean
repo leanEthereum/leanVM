@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«decode_query_windows__L14_L2».S0
-public import LeanVM.Guest.CoreMode.GenW.«decode_query_windows__L14_L2».S1
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P44».Core
 

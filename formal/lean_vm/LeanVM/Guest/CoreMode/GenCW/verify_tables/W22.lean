@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«verify_tables».S22
-public import LeanVM.Guest.CoreMode.GenCW.«verify_tables».S23
+public import LeanVM.Guest.CoreMode.GenCW.«verify_tables».S0
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_tables».Core
 

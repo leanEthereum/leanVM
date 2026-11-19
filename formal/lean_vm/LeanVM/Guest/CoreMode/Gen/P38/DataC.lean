@@ -8,7 +8,14 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
-public import LeanVM.Guest.CoreMode.Gen.HcSig
+public import LeanVM.Guest.CoreMode.Gen.«P23».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P24».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P25».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P38».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P40».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P47».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P55».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P56».Sig
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -25,9 +32,7 @@ def hcert : CoreMode.HCert where
   rets := [[.run 3 [], .run 3 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("grind_check__L26", 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] })]
+  [("grind_check__L26", CoreMode.HcSig.«grind_check__L26».sig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
   []
@@ -38,9 +43,7 @@ end LeanVM.Guest.Fn.«bus_grind_check__L9»
 namespace LeanVM.Guest.Fn.«column_selector__L30»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 464⟩, 4, (.num 0), (.num 4)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩],
-      postR := [⟨⟨[(1, 1)], 464⟩, 4, (.num 0), (.num 4)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩] }
+  sig := CoreMode.HcSig.«column_selector__L30».sig
   reads := [(9, [(8, 464, .run 0 [0])]), (11, [(10, 112, .run 1 [1])])]
   res := [.sub ⟨[(1, 1), (3, 1)], 464⟩ ⟨⟨[(1, 1)], 464⟩, 4, (.num 0), (.num 4)⟩, .lt (.val 3) (.num 16)]
   rets := [[.run 0 [], .run 1 []]]
@@ -57,21 +60,7 @@ end LeanVM.Guest.Fn.«column_selector__L30»
 namespace LeanVM.Guest.Fn.«column_selector__L7»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 64⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(1, 1)], 176⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 240⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 304⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 368⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 432⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 496⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 16⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 32⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 48⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 64⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 80⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 96⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩],
-      postR := [⟨⟨[(1, 1)], 64⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(1, 1)], 176⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 240⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 304⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 368⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 432⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 496⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 16⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 32⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 48⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 64⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 80⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(2, 1)], 96⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩] }
+  sig := CoreMode.HcSig.«column_selector__L7».sig
   reads := [(15, [(14, 64, .run 0 [0])]), (17, [(16, 16, .run 7 [1])]), (23, [(22, 176, .run 1 [2])]),
     (26, [(25, 32, .run 8 [2])]), (33, [(32, 240, .run 2 [3])]), (36, [(35, 48, .run 9 [3])]),
     (43, [(42, 304, .run 3 [4])]), (46, [(45, 64, .run 10 [4])]), (53, [(52, 368, .run 4 [5])]),
@@ -96,9 +85,7 @@ end LeanVM.Guest.Fn.«column_selector__L7»
 namespace LeanVM.Guest.Fn.«grind_check__L19»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«grind_check__L19».sig
   reads := [(12, [(11, 0, .run 0 [0])]), (20, [(19, 0, .run 1 [1])]), (29, [(28, 0, .run 1 [2])]),
     (38, [(37, 0, .run 1 [3])]), (47, [(46, 0, .run 1 [4])])]
   res := [.lt (.val 6) (.num 2), .lt (.val 5) (.num 2048), .lt (.val 4) (.num 2048), .lt (.val 3) (.num 2048),
@@ -160,12 +147,7 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 2⟩, 5, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 3⟩, 5, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 4⟩, 5, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4])] }),
-    ("decode_query_windows__L25_L7", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4])] })]
+    ("decode_query_windows__L25_L7", CoreMode.HcSig.«decode_query_windows__L25_L7».csig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
   []
@@ -223,12 +205,7 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 3⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 4⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 5⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4])] }),
-    ("decode_query_windows__L21_L3", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4])] })]
+    ("decode_query_windows__L21_L3", CoreMode.HcSig.«decode_query_windows__L21_L3».csig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
   []
@@ -239,15 +216,7 @@ end LeanVM.Guest.Fn.«level_positions__L4_L21_L3»
 namespace LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 21)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩],
-      retM := [(3, ⟨[(0, 21)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, [0, 1, 2, 3])] }
+  sig := CoreMode.HcSig.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig
   reads := []
   res := []
   calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
@@ -311,14 +280,7 @@ def hcert : CoreMode.HCert where
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0", 
-    { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
-      preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩,
-        ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
+  [("opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».sig),
     ("verify_merkle_cap__L7", CoreMode.HcSig.«verify_merkle_cap__L7».sig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
@@ -330,15 +292,7 @@ end LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0»
 namespace LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 44)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩],
-      retM := [(3, ⟨[(0, 44)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, [0, 1, 2, 3, 4])] }
+  sig := CoreMode.HcSig.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig
   reads := []
   res := []
   calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
@@ -347,14 +301,7 @@ def hcert : CoreMode.HCert where
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 
-    { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
-      preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩,
-        ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
+  [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».sig),
     ("verify_merkle_cap__L2", CoreMode.HcSig.«verify_merkle_cap__L2».sig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=

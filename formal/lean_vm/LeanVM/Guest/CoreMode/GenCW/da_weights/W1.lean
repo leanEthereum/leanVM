@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«da_weights».S1
-public import LeanVM.Guest.CoreMode.GenCW.«da_weights».S2
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P28».Core
 

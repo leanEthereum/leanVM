@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L2».S0
-public import LeanVM.Guest.CoreMode.GenCW.«walk_path__L24_L2».S1
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«walk_path__L24_L2».Core
 

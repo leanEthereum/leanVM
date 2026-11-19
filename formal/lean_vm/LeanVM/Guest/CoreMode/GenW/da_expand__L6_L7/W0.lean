@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«da_expand__L6_L7».S0
-public import LeanVM.Guest.CoreMode.GenW.«da_expand__L6_L7».S1
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P29».Core
 

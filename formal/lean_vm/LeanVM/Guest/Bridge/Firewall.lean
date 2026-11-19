@@ -2,7 +2,7 @@ import LeanVM.Guest.Bridge.Defs
 import LeanVM.Guest.Bridge.AlignDefs
 
 /-! **The hint bridge's certificates read the bridge's definitions, the guest's code and their own data
-alone.** Each `Bridge/PrefixOk/*` and `Bridge/Align/*` module imports the definitions (`Bridge.Defs`, `Bridge.AlignDefs`, which adds the executor's power table and tries), the powers of `g` and the jump table (`Data.Pows`, `Align` only), the advice by function
+alone.** Each `Bridge/Align/*` module imports the definitions (`Bridge.Defs`, `Bridge.AlignDefs`, which adds the executor's power table and tries), the powers of `g` and the jump table (`Data.Pows`), the advice by function
 (`Statement.Data.AdviceHints`), its pack's code and certificates (`Bundle`) and its functions' core IR (`Core`). This
 module fails to build if the definitions reach the bridge's proofs, B1's, the protocol's, the schemes' or
 the honest prover beyond its executor (`Statement.Prover.Execute`, whose `Hint` the bridge reads), as
@@ -13,7 +13,7 @@ open Lean Elab Command in
 #eval show CommandElabM Unit from do
   let env ← getEnv
   let forbidden := [`LeanVM.Guest.Bridge.Prefix, `LeanVM.Guest.Bridge.Cells, `LeanVM.Guest.Bridge.Track,
-    `LeanVM.Guest.Bridge.PrefixTrack, `LeanVM.Guest.Bridge.PrefixRun, `LeanVM.Guest.Bridge.RefTrace,
+    `LeanVM.Guest.Bridge.RefTrace,
     `LeanVM.Guest.Bridge.RefHonest, `LeanVM.Guest.Bridge.TrackHonest, `LeanVM.Guest.Mode,
     `LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanVM.Guest.Logic,
     `LeanVM.Guest.Bytecode, `LeanVM.Prover, `LeanXmss, `Sphincs, `LeanDa, `Common, `Statement.LeanVm,

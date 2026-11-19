@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».S0
-public import LeanVM.Guest.CoreMode.GenCW.«sp_wots».S1
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
