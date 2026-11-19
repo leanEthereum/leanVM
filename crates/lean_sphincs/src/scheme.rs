@@ -285,13 +285,81 @@ pub fn tree_fold(
 pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphincsSignature) -> bool {
     let pk_seed = &pk.pk_seed;
     let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
-    let mut signed = fors_recover(pk_seed, idx, &leaves, &signature.fors, |_| ());
+    let mut signed = fors_recover_batched(pk_seed, idx, &leaves, &signature.fors);
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
-        let Some((_, leaf)) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots) else {
+        let Some((_, leaf)) = wots_leaf_batched(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots) else {
             return false;
         };
         signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
     }
     signed == pk.root
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn check_recovery(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphincsSignature) -> bool {
+        let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
+        let mut signed = fors_recover(&pk.pk_seed, idx, &leaves, &signature.fors, |_| ());
+        assert_eq!(signed, fors_recover_batched(&pk.pk_seed, idx, &leaves, &signature.fors));
+        for (layer, layer_sig) in signature.layers.iter().enumerate() {
+            let key = OtsKey::of_index(layer, idx);
+            let recovered = wots_leaf(&pk.pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots);
+            assert_eq!(
+                recovered,
+                wots_leaf_batched(&pk.pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots)
+            );
+            let Some((_, leaf)) = recovered else {
+                assert!(!verify(pk, message, signature));
+                return false;
+            };
+            signed = tree_fold(&pk.pk_seed, &key, leaf, signature.path(layer), |_| ());
+        }
+        let valid = signed == pk.root;
+        assert_eq!(verify(pk, message, signature), valid);
+        valid
+    }
+
+    #[test]
+    fn batched_verification_matches_sequential_fixture_and_tampering() {
+        fn unhex<const LEN: usize>(hex: &str) -> [u8; LEN] {
+            assert_eq!(hex.len(), 2 * LEN);
+            std::array::from_fn(|i| u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap())
+        }
+        let mut lines = include_str!("../tests/lean_sphincs/known_answer.hex").lines();
+        let pk = LeanSphincsPublicKey::from_bytes(&unhex(lines.next().unwrap()));
+        let signature = LeanSphincsSignature::from_bytes(&unhex(lines.next().unwrap()));
+        let message = std::array::from_fn(|i| (7 * i + 3) as u8);
+        assert!(check_recovery(&pk, &message, &signature));
+        let mut bad = signature.clone();
+        bad.randomizer[0] ^= 1;
+        assert!(!check_recovery(&pk, &message, &bad));
+        for c in [0, FORS_TREES - 1] {
+            let mut bad = signature.clone();
+            bad.fors[c].secret[0] ^= 1;
+            assert!(!check_recovery(&pk, &message, &bad));
+            for z in 0..FORS_HEIGHT {
+                let mut bad = signature.clone();
+                bad.fors[c].path[z][0] ^= 1;
+                assert!(!check_recovery(&pk, &message, &bad));
+            }
+        }
+        for layer in 0..LAYERS {
+            let mut bad = signature.clone();
+            bad.layers[layer].counter ^= 1;
+            assert!(!check_recovery(&pk, &message, &bad));
+            for i in 0..V {
+                let mut bad = signature.clone();
+                bad.layers[layer].wots[i][0] ^= 1;
+                assert!(!check_recovery(&pk, &message, &bad));
+            }
+            for z in 0..LAYER_HEIGHTS[layer] {
+                let mut bad = signature.clone();
+                bad.paths[path_range(layer).start + z][0] ^= 1;
+                assert!(!check_recovery(&pk, &message, &bad));
+            }
+        }
+    }
 }
