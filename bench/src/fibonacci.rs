@@ -8,7 +8,7 @@ use verifier::{E, K};
 /// The program (`crates/zkdsl/tests/programs/fibonacci_bench.py`) as the Lean back end compiled it
 /// (`lake exe guest-backend export programs`): `UNROLL` Fibonacci steps a block, the block count read from the second
 /// public word.
-const PROGRAM: &str = include_str!("../../../crates/zkdsl/tests/compiled/fibonacci_bench.txt");
+const PROGRAM: &str = include_str!("../../crates/zkdsl/tests/compiled/fibonacci_bench.txt");
 
 /// Steps a block of the program.
 const UNROLL: usize = 1000;
