@@ -74,3 +74,5 @@ ALONE=$(seconds .build/lean-alone.log) WITH=$(seconds .build/lean-with-el.log)
 CHANGE=$(awk -v a="$ALONE" -v w="$WITH" 'BEGIN { printf "%+.1f", 100 * (w / a - 1) }')
 echo "==> 6/6 the 16-to-1 aggregation: $ALONE s alone, $WITH s beside the execution client ($CHANGE%); \
 the execution client meanwhile: $(tail -n 1 "$EL_LOG")"
+echo "    note: the execution client's database file, 16 GiB, is kept for the next runs; to free the space, run:"
+echo "    rm $PWD/.build/el-load.db"
