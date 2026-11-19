@@ -10,8 +10,8 @@ facade `lean-pq`:
 
 Public keys and messages are 32 bytes. Signatures are plain fixed-length
 `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise
-`LeanPqError`; a seed, message, public key, or signature of the wrong length
-raises `ValueError`. Key generation, signing, verification, aggregation, and
+`LeanPqError`; a seed, secret key, message, public key, or signature of the
+wrong length raises `ValueError`. Key generation, signing, verification, aggregation, and
 aggregate decoding release the GIL.
 
 Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc +

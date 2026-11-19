@@ -72,6 +72,7 @@ impl PyXmssSecretKey {
 
     #[classmethod]
     fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
+        fixed::<{ xmss::SECRET_KEY_LEN }>(data, "secret key")?;
         Ok(Self {
             inner: py
                 .detach(|| xmss::SecretKey::from_bytes(data))
@@ -128,6 +129,7 @@ impl PySphincsSecretKey {
 
     #[classmethod]
     fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
+        fixed::<{ sphincs::SECRET_KEY_LEN }>(data, "secret key")?;
         Ok(Self {
             inner: py
                 .detach(|| sphincs::SecretKey::from_bytes(data))

@@ -40,6 +40,11 @@ def test_secret_keys_round_trip_through_bytes():
     assert restored_sphincs.public_key == sphincs_key.public_key
     lpq.sphincs_verify(sphincs_key.public_key, MESSAGE, restored_sphincs.sign(MESSAGE))
 
+    with pytest.raises(ValueError, match="secret key must be exactly 32 bytes"):
+        lpq.XmssSecretKey.from_bytes(b"\x03" * 31)
+    with pytest.raises(ValueError, match="secret key must be exactly 32 bytes"):
+        lpq.SphincsSecretKey.from_bytes(b"\x04" * 33)
+
 
 def test_aggregates_both_schemes_recursively():
     lpq.setup()
