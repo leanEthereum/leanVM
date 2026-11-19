@@ -96,9 +96,9 @@ variable (P : LeanVM.Cost.MachineProgram)
 /-! ## Powers -/
 
 /-- A power `g^o` by squaring, `o < 2^W`: at most `psAt W`. -/
-theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c101.costDeps) {W o : ℕ}
+theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) {W o : ℕ}
     (hW : 0 < W) (hW64 : W < 64) (ho : o < 2 ^ W) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c101.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
       psAt W := by
   have h64 : 2 ^ W ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hW64.le
   have h1 := powSq_cost P hP LeanVM.Parameters.g o (by omega)

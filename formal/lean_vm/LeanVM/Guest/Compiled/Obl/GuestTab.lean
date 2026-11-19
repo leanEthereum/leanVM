@@ -255,16 +255,16 @@ def guestSkip (j : Nat) : Bool := j == vsIdx || guestXIdx.contains j
 six tables' heights below `g^31`, keccak's `τ` below `g^25`. -/
 def kbBound (c : Nat) : Nat := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
 
-/-- **`verify_sub`'s facts from B1**: before its call of `verify_tables` (statement `333`) the word
+/-- **`verify_sub`'s facts from B1**: before its call of `verify_tables` (statement `316`) the word
 at `dims_g` (value `71`) is read and below `g^34` (`vsDimsKnown0_holds`, as `mem` and as
-`memRel`); before its dispatch to `open_stacked` (statement `1544`) `tabs` (value `1921`) is in
+`memRel`); before its dispatch to `open_stacked` (statement `1510`) `tabs` (value `1887`) is in
 relation `1`, the window table (`vsTabsT_holds`); before its call of `check_opening_terminal`
-(statement `1545`) the eight words at `kappa_base` (value `83`) are read and below `kbBound`
+(statement `1511`) the eight words at `kappa_base` (value `83`) are read and below `kbBound`
 (`vsKnown_holds`). -/
 def vsFacts : List (Nat × Hyp) :=
-  (333, .mem (.n 71) 0 34) :: (333, .rel (.n 71) (memRel 0 34)) :: (1544, .rel (.n 1921) 1) ::
-    ((List.range 8).map fun c => (1545, .mem (.n 83) c (kbBound c))) ++
-    (List.range 8).map fun c => (1545, .rel (.n 83) (memRel c (kbBound c)))
+  (316, .mem (.n 71) 0 34) :: (316, .rel (.n 71) (memRel 0 34)) :: (1510, .rel (.n 1887) 1) ::
+    ((List.range 8).map fun c => (1511, .mem (.n 83) c (kbBound c))) ++
+    (List.range 8).map fun c => (1511, .rel (.n 83) (memRel c (kbBound c)))
 
 end
 end LeanVM.Guest.Compiled.Obl
