@@ -11,6 +11,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"sort"
 	"sync"
 	"unsafe"
@@ -77,13 +78,13 @@ type Aggregate struct {
 // Setup moves the one-time aggregation setup ahead of the first proof. It is optional and safe to
 // call repeatedly.
 func Setup() error {
-	return checkStatus(C.lpq_setup())
+	return call(func() C.int32_t { return C.lpq_setup() })
 }
 
 // GenerateXmssSecretKey creates a random leanXMSS key.
 func GenerateXmssSecretKey() (*XmssSecretKey, error) {
 	var handle *C.lpq_xmss_secret_key
-	if err := checkStatus(C.lpq_xmss_secret_key_generate(&handle)); err != nil {
+	if err := call(func() C.int32_t { return C.lpq_xmss_secret_key_generate(&handle) }); err != nil {
 		return nil, err
 	}
 	return &XmssSecretKey{handle: handle}, nil
@@ -97,7 +98,9 @@ func XmssSecretKeyFromSeed(seed [32]byte) (*XmssSecretKey, error) {
 // XmssSecretKeyFromBytes restores a leanXMSS key from the bytes returned by Bytes.
 func XmssSecretKeyFromBytes(bytes []byte) (*XmssSecretKey, error) {
 	var handle *C.lpq_xmss_secret_key
-	if err := checkStatus(C.lpq_xmss_secret_key_from_bytes(bytesPointer(bytes), C.size_t(len(bytes)), &handle)); err != nil {
+	if err := call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_from_bytes(bytesPointer(bytes), C.size_t(len(bytes)), &handle)
+	}); err != nil {
 		return nil, err
 	}
 	return &XmssSecretKey{handle: handle}, nil
@@ -136,7 +139,9 @@ func (key *XmssSecretKey) Prepare(leafIndex uint32) error {
 	if key.handle == nil {
 		return errClosed("leanXMSS secret key")
 	}
-	return checkStatus(C.lpq_xmss_secret_key_prepare(key.handle, C.uint32_t(leafIndex)))
+	return call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_prepare(key.handle, C.uint32_t(leafIndex))
+	})
 }
 
 // Sign signs message at leafIndex.
@@ -168,17 +173,19 @@ func (key *XmssSecretKey) Close() {
 
 // XmssVerify returns nil when signature is a valid leanXMSS signature over message by publicKey.
 func XmssVerify(publicKey, message [32]byte, signature XmssSignature) error {
-	return checkStatus(C.lpq_xmss_verify(
-		arrayPointer(&publicKey), C.size_t(len(publicKey)),
-		arrayPointer(&message), C.size_t(len(message)),
-		(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
-	))
+	return call(func() C.int32_t {
+		return C.lpq_xmss_verify(
+			arrayPointer(&publicKey), C.size_t(len(publicKey)),
+			arrayPointer(&message), C.size_t(len(message)),
+			(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
+		)
+	})
 }
 
 // GenerateSphincsSecretKey creates a random leanSPHINCS key.
 func GenerateSphincsSecretKey() (*SphincsSecretKey, error) {
 	var handle *C.lpq_sphincs_secret_key
-	if err := checkStatus(C.lpq_sphincs_secret_key_generate(&handle)); err != nil {
+	if err := call(func() C.int32_t { return C.lpq_sphincs_secret_key_generate(&handle) }); err != nil {
 		return nil, err
 	}
 	return &SphincsSecretKey{handle: handle}, nil
@@ -187,8 +194,9 @@ func GenerateSphincsSecretKey() (*SphincsSecretKey, error) {
 // SphincsSecretKeyFromSeed deterministically creates a leanSPHINCS key from seed.
 func SphincsSecretKeyFromSeed(seed [32]byte) (*SphincsSecretKey, error) {
 	var handle *C.lpq_sphincs_secret_key
-	status := C.lpq_sphincs_secret_key_from_seed(arrayPointer(&seed), C.size_t(len(seed)), &handle)
-	if err := checkStatus(status); err != nil {
+	if err := call(func() C.int32_t {
+		return C.lpq_sphincs_secret_key_from_seed(arrayPointer(&seed), C.size_t(len(seed)), &handle)
+	}); err != nil {
 		return nil, err
 	}
 	return &SphincsSecretKey{handle: handle}, nil
@@ -197,7 +205,9 @@ func SphincsSecretKeyFromSeed(seed [32]byte) (*SphincsSecretKey, error) {
 // SphincsSecretKeyFromBytes restores a leanSPHINCS key from the bytes returned by Bytes.
 func SphincsSecretKeyFromBytes(bytes []byte) (*SphincsSecretKey, error) {
 	var handle *C.lpq_sphincs_secret_key
-	if err := checkStatus(C.lpq_sphincs_secret_key_from_bytes(bytesPointer(bytes), C.size_t(len(bytes)), &handle)); err != nil {
+	if err := call(func() C.int32_t {
+		return C.lpq_sphincs_secret_key_from_bytes(bytesPointer(bytes), C.size_t(len(bytes)), &handle)
+	}); err != nil {
 		return nil, err
 	}
 	return &SphincsSecretKey{handle: handle}, nil
@@ -259,11 +269,13 @@ func (key *SphincsSecretKey) Close() {
 // SphincsVerify returns nil when signature is a valid leanSPHINCS signature over message by
 // publicKey.
 func SphincsVerify(publicKey, message [32]byte, signature SphincsSignature) error {
-	return checkStatus(C.lpq_sphincs_verify(
-		arrayPointer(&publicKey), C.size_t(len(publicKey)),
-		arrayPointer(&message), C.size_t(len(message)),
-		(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
-	))
+	return call(func() C.int32_t {
+		return C.lpq_sphincs_verify(
+			arrayPointer(&publicKey), C.size_t(len(publicKey)),
+			arrayPointer(&message), C.size_t(len(message)),
+			(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
+		)
+	})
 }
 
 // AggregateSignatures proves the union of the children's claims and the raw signatures' claims.
@@ -288,13 +300,14 @@ func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 		sphincsRecords = append(sphincsRecords, sphincs[index].Signature[:]...)
 	}
 	var output *C.lpq_aggregate
-	status := C.lpq_aggregate_create(
-		aggregatePointer(handles), C.size_t(len(handles)),
-		bytesPointer(xmssRecords), C.size_t(len(xmss)),
-		bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
-		&output,
-	)
-	if err := checkStatus(status); err != nil {
+	if err := call(func() C.int32_t {
+		return C.lpq_aggregate_create(
+			aggregatePointer(handles), C.size_t(len(handles)),
+			bytesPointer(xmssRecords), C.size_t(len(xmss)),
+			bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
+			&output,
+		)
+	}); err != nil {
 		return nil, err
 	}
 	return &Aggregate{handle: output}, nil
@@ -307,13 +320,14 @@ func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggre
 	xmssRecords := claimRecords(xmssClaims)
 	sphincsRecords := claimRecords(sphincsClaims)
 	var handle *C.lpq_aggregate
-	status := C.lpq_aggregate_from_bytes(
-		bytesPointer(bytes), C.size_t(len(bytes)),
-		bytesPointer(xmssRecords), C.size_t(len(xmssClaims)),
-		bytesPointer(sphincsRecords), C.size_t(len(sphincsClaims)),
-		&handle,
-	)
-	if err := checkStatus(status); err != nil {
+	if err := call(func() C.int32_t {
+		return C.lpq_aggregate_from_bytes(
+			bytesPointer(bytes), C.size_t(len(bytes)),
+			bytesPointer(xmssRecords), C.size_t(len(xmssClaims)),
+			bytesPointer(sphincsRecords), C.size_t(len(sphincsClaims)),
+			&handle,
+		)
+	}); err != nil {
 		return nil, err
 	}
 	return &Aggregate{handle: handle}, nil
@@ -358,14 +372,14 @@ func (aggregate *Aggregate) Close() {
 	}
 }
 
-func (aggregate *Aggregate) claims(call func(*C.lpq_aggregate, *C.lpq_buffer) C.int32_t) ([]Claim, error) {
+func (aggregate *Aggregate) claims(f func(*C.lpq_aggregate, *C.lpq_buffer) C.int32_t) ([]Claim, error) {
 	handle, release, err := aggregate.acquire()
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 	encoded, err := bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return call(handle, output)
+		return f(handle, output)
 	})
 	if err != nil {
 		return nil, err
@@ -442,11 +456,15 @@ func acquireAggregates(aggregates []*Aggregate) ([]*C.lpq_aggregate, func(), err
 	return handles, release, nil
 }
 
-func checkStatus(status C.int32_t) error {
-	if status == statusOK {
-		return nil
+func call(f func() C.int32_t) error {
+	// The native error message belongs to the OS thread that made the call.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if status := f(); status != statusOK {
+		return nativeError(status)
 	}
-	return nativeError(status)
+	return nil
 }
 
 func nativeError(status C.int32_t) error {
@@ -461,18 +479,18 @@ func nativeError(status C.int32_t) error {
 	return fmt.Errorf("leanpq: %s", message)
 }
 
-func bufferResult(call func(*C.lpq_buffer) C.int32_t) ([]byte, error) {
+func bufferResult(f func(*C.lpq_buffer) C.int32_t) ([]byte, error) {
 	var buffer C.lpq_buffer
-	if err := checkStatus(call(&buffer)); err != nil {
+	if err := call(func() C.int32_t { return f(&buffer) }); err != nil {
 		return nil, err
 	}
 	return takeBuffer(&buffer)
 }
 
 // fixedResult copies a native buffer of exactly len(destination) bytes into destination.
-func fixedResult(destination []byte, kind string, call func(*C.lpq_buffer) C.int32_t) error {
+func fixedResult(destination []byte, kind string, f func(*C.lpq_buffer) C.int32_t) error {
 	var buffer C.lpq_buffer
-	if err := checkStatus(call(&buffer)); err != nil {
+	if err := call(func() C.int32_t { return f(&buffer) }); err != nil {
 		return err
 	}
 	defer C.lpq_buffer_free(buffer.data, buffer.len)

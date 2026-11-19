@@ -2,6 +2,8 @@ package leanpq
 
 import (
 	"reflect"
+	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -225,6 +227,48 @@ func TestAggregateRecursively(t *testing.T) {
 		wrong.Close()
 		t.Fatal("empty aggregate bytes must be rejected")
 	}
+}
+
+func TestConcurrentNativeErrors(t *testing.T) {
+	// Ensure at least 2 OS threads for concurrent testing.
+	if old := runtime.GOMAXPROCS(0); old < 2 {
+		runtime.GOMAXPROCS(2)
+		defer runtime.GOMAXPROCS(old)
+	}
+
+	if err := Setup(); err != nil {
+		t.Fatal(err)
+	}
+
+	var workers sync.WaitGroup
+	start := make(chan struct{})
+	for range 4 * runtime.NumCPU() {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			<-start
+			for range 10000 {
+				key, err := XmssSecretKeyFromBytes([]byte{1})
+				key.Close()
+				if want := "leanpq: leanXMSS secret key must be 32 bytes, got 1"; err == nil || err.Error() != want {
+					t.Errorf("XmssSecretKeyFromBytes error = %v, want %q", err, want)
+					return
+				}
+				aggregate, err := AggregateFromBytes([]byte{1, 2, 3}, nil, nil)
+				aggregate.Close()
+				if want := "leanpq: malformed aggregate: the bytes are not a leanVM aggregate proof"; err == nil || err.Error() != want {
+					t.Errorf("AggregateFromBytes error = %v, want %q", err, want)
+					return
+				}
+				if err := Setup(); err != nil {
+					t.Errorf("Setup: %v", err)
+					return
+				}
+			}
+		}()
+	}
+	close(start)
+	workers.Wait()
 }
 
 func mustXmssKey(t *testing.T, seed [32]byte) *XmssSecretKey {
