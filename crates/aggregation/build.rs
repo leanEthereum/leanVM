@@ -71,7 +71,10 @@ fn main() {
 
 /// `lake`'s directory: on the `PATH`, else elan's default.
 fn lean_bin() -> Option<PathBuf> {
-    let on_path = Command::new("lake").arg("--version").output().is_ok_and(|o| o.status.success());
+    let on_path = Command::new("lake")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
     if on_path {
         return Some(PathBuf::new());
     }
@@ -101,7 +104,9 @@ fn write_artifact(root: &Path) {
     }
     // Its progress on stderr: a build script's stdout is cargo's instructions.
     cmd.stdout(std::process::Stdio::from(std::io::stderr()));
-    let status = cmd.status().unwrap_or_else(|e| panic!("formal/lean_vm/scripts/guest-artifact: {e}"));
+    let status = cmd
+        .status()
+        .unwrap_or_else(|e| panic!("formal/lean_vm/scripts/guest-artifact: {e}"));
     assert!(
         status.success(),
         "formal/lean_vm/scripts/guest-artifact failed ({status}): the guest does not compile, or its Lean build failed"
