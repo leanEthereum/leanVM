@@ -111,21 +111,20 @@ def spPathBits : List (List Nat) := [
 
 
 /-- `verify_sig_lean_sphincs`' and `sp_wots`' tables, as arrays: the lanes of `g^k` (`gLanes`),
-`sp_wots`' groups' selector cells and chain starts' tables, the FORS trees' and the layers' pairs
-and bits. -/
+`sp_wots`' groups' bases and chain starts' tables, the FORS trees' and the layers' pairs and
+bits. -/
 structure SpTabs where
   lanes : List ℕ
-  sel : Array ℕ
+  base : Array ℕ
   first : Array (Array ℕ)
   rest : Array (Array ℕ)
-  last : Array (Array ℕ)
   forsKid : Array (Array ℕ)
   forsBit : Array (Array ℕ)
   pathKid : Array (Array ℕ)
   pathBit : Array (Array ℕ)
 
 /-- **The tables**, built from the literals. -/
-def spTabs : SpTabs := ⟨gLanes, spSel.toArray, tabA spFirst, tabA spRest, tabA spLast,
+def spTabs : SpTabs := ⟨gLanes, spBase.toArray, tabA spFirst, tabA spRest,
   tabA spForsKids, tabA spForsBits, tabA spPathKids, tabA spPathBits⟩
 
 /-- FORS tree `c`'s base: its secret's cell (`sForsBase`), 9 values before its first pair. Tree
@@ -159,7 +158,7 @@ bits (row `l` of the tables). -/
 def layerA (T : SpTabs) (σ w : Val) (l : ℕ) (layer : Sphincs.Layer) :
     Sphincs.LayerSignature layer :=
   ⟨BitVec.ofNat 32 (beWordAt 0 (cellNat (σ (.n (spCtr l))))),
-    fun i ↦ cellVal (w (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last w i.val))),
+    fun i ↦ cellVal (w (.n (cwCellA T.lanes 21 16 T.base T.first T.rest w i.val))),
     fun j ↦ cellVal (sibN σ (offAtA T.pathBit l j.val) (offAtA T.pathKid l j.val))⟩
 
 /-- Layer `l`'s call of `sp_wots`: its arguments (`PK.seed`, the key's two address cells, the
@@ -230,11 +229,11 @@ theorem forsOpeningA_eq (σ : Val) {c : ℕ} (hc : c < 24) :
 
 /-- `sp_wots`' tables off arrays read the chain starts `sChainValuesOf` reads. -/
 theorem layerChains_eq (w : Val) (i : Sphincs.ChainIndex) :
-    cellVal (w (.n (cwCellA spTabs.lanes 21 spTabs.sel spTabs.first spTabs.rest spTabs.last w
+    cellVal (w (.n (cwCellA spTabs.lanes 21 16 spTabs.base spTabs.first spTabs.rest w
       i.val))) = sChainValuesOf w i := by
   show _ = cellVal (w (spRen (spStartAt (spK w) i.val)))
   rw [spStartAt_eq_cwCell w i.isLt]
-  exact congrArg (fun k ↦ cellVal (w (.n k))) (cwCellA_eq 21 spSel spFirst spRest spLast w i.val)
+  exact congrArg (fun k ↦ cellVal (w (.n k))) (cwCellA_eq 21 16 spBase spFirst spRest w i.val)
 
 theorem layerSignature_ext {l : Sphincs.Layer} {a b : Sphincs.LayerSignature l}
     (h1 : a.counter = b.counter) (h2 : a.chainValues = b.chainValues)

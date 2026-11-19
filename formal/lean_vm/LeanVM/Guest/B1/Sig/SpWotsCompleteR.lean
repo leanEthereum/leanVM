@@ -35,8 +35,8 @@ variable {C : CallRel} {rd : Reader}
 
 theorem spRi_small {j : Nat} (hj : j ≤ 28) : spRi j = j := by
   unfold spRi spZeroR
-  rw [show List.countP (fun x => decide (x < j)) [28, 138, 225, 300, 359, 446, 521, 584, 631, 706,
-    769, 820, 855, 914, 961, 996] = 0 by
+  rw [show List.countP (fun x => decide (x < j)) [133, 243, 330, 405, 464, 551, 626, 689,
+    736, 811, 874, 925, 960, 1019, 1066, 1101] = 0 by
       rw [List.countP_eq_zero]
       intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -47,15 +47,32 @@ theorem spRi_small {j : Nat} (hj : j ≤ 28) : spRi j = j := by
 
 /-- **`spUn` undoes `spRen`** on every value the template names (`SpWotsRen0` to `SpWotsRen3`). -/
 theorem spUn_spRen : ∀ v ∈ Stmt.valsList spBodyT, spUn (spRen v) = v := by
-  have h127 : ∀ v ∈ Stmt.valsList (spBodyT.drop 127), spUnOK v = true := by
+  have h106 : ∀ v ∈ Stmt.valsList (spBodyT.drop 106), spUnOK v = true := by
     rw [spBodyT_split, List.drop_left' (by rw [spHeadT_length]), spLeafK_of, spPadCell]
     exact List.all_eq_true.mp spRen_tail
-  have h120 := vals_drop_step spRen_run_120 h127
-  have h112 := vals_drop_step spRen_run_112 h120
-  have h104 := vals_drop_step spRen_run_104 h112
-  have h96 := vals_drop_step spRen_run_96 h104
-  have h88 := vals_drop_step spRen_run_88 h96
-  have h80 := vals_drop_step spRen_run_80 h88
+  have h105 := vals_drop_step spRen_run_105 h106
+  have h104 := vals_drop_step spRen_run_104 h105
+  have h103 := vals_drop_step spRen_run_103 h104
+  have h102 := vals_drop_step spRen_run_102 h103
+  have h101 := vals_drop_step spRen_run_101 h102
+  have h100 := vals_drop_step spRen_run_100 h101
+  have h99 := vals_drop_step spRen_run_99 h100
+  have h98 := vals_drop_step spRen_run_98 h99
+  have h97 := vals_drop_step spRen_run_97 h98
+  have h96 := vals_drop_step spRen_run_96 h97
+  have h95 := vals_drop_step spRen_run_95 h96
+  have h94 := vals_drop_step spRen_run_94 h95
+  have h93 := vals_drop_step spRen_run_93 h94
+  have h92 := vals_drop_step spRen_run_92 h93
+  have h91 := vals_drop_step spRen_run_91 h92
+  have h90 := vals_drop_step spRen_run_90 h91
+  have h89 := vals_drop_step spRen_run_89 h90
+  have h88 := vals_drop_step spRen_run_88 h89
+  have h87 := vals_drop_step spRen_run_87 h88
+  have h86 := vals_drop_step spRen_run_86 h87
+  have h85 := vals_drop_step spRen_run_85 h86
+  have h84 := vals_drop_step spRen_run_84 h85
+  have h80 := vals_drop_step spRen_run_80 h84
   have h72 := vals_drop_step spRen_run_72 h80
   have h64 := vals_drop_step spRen_run_64 h72
   have h56 := vals_drop_step spRen_run_56 h64

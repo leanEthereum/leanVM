@@ -15,7 +15,7 @@ valuation: a signature has a fixed shape, so its price is `a·S + b`:
   of the arrays built from them (`SpTabsOK`: `spTabs_ok`), an entry read in constant time
   (`offAtA`: `8`);
 * an exponent off the lanes of `g^k` given (`idxBelow_cost`, `logGTWith_cost`: `23·bound + 25`),
-  a sibling (`sibN_cost`), a chain's start cell (`cwCellA_cost`: `S + 1543`);
+  a sibling (`sibN_cost`), a chain's start cell (`cwCellA_cost`: `S + 1555`, the last chain's offset `spLastOff_cost`);
 * leanSPHINCS, its four valuations (`verify_sig_lean_sphincs`' and the three `sp_wots` frames)
   each of price at most `S`, its positions off the tables (`offAtA`), the counter big-endian
   (`beWordAt_cost`): `forsOpeningA_cost` (`41·S + 1500`), `layerA_cost` (`169·S + 104600`),
@@ -49,8 +49,8 @@ instance (M : ℕ) (l : List ℕ) : Decidable (ListOK M l) := by
 
 theorem gLanes_ok : gLanes.length = 256 ∧ ∀ x ∈ gLanes, x < 2 ^ 64 := by decide +kernel
 
-theorem spTabs_lits_ok : RowsOK 64 spFirst ∧ RowsOK 64 spRest ∧ RowsOK 64 spLast ∧
-    spFirst.length ≤ 3 ∧ spRest.length ≤ 3 ∧ spLast.length ≤ 1 ∧ ListOK 22 spSel := by
+theorem spTabs_lits_ok : RowsOK 64 spFirst ∧ RowsOK 64 spRest ∧ spFirst.length ≤ 3 ∧
+    spRest.length ≤ 3 ∧ ListOK 22 spBase := by
   decide +kernel
 
 theorem spPos_lits_ok : RowsOK 10 spForsKids ∧ RowsOK 10 spForsBits ∧ RowsOK 10 spPathKids ∧
@@ -89,21 +89,19 @@ theorem getD_toArray_lt {l : List ℕ} {M : ℕ} (h : ListOK M l) (k : ℕ) :
 /-- `sp_wots`' tables as arrays, their entries small (`spTabs_ok`). -/
 structure SpTabsOK (T : SpTabs) : Prop where
   lanes : ∀ x ∈ T.lanes, x < 2 ^ 64
-  sel : ∀ k, T.sel.getD k 0 < 2 ^ 20
+  base : ∀ k, T.base.getD k 0 < 2 ^ 20
   first : ∀ r k, offAtA T.first r k < 2 ^ 20
   rest : ∀ r k, offAtA T.rest r k < 2 ^ 20
-  last : ∀ r k, offAtA T.last r k < 2 ^ 20
   forsKid : ∀ r k, offAtA T.forsKid r k < 2 ^ 20
   forsBit : ∀ r k, offAtA T.forsBit r k < 2 ^ 20
   pathKid : ∀ r k, offAtA T.pathKid r k < 2 ^ 20
   pathBit : ∀ r k, offAtA T.pathBit r k < 2 ^ 20
 
 theorem spTabs_ok : SpTabsOK spTabs := by
-  obtain ⟨h1, h2, h3, -, -, -, hsel⟩ := spTabs_lits_ok
+  obtain ⟨h1, h2, -, -, hbase⟩ := spTabs_lits_ok
   obtain ⟨p1, p2, p3, p4, -⟩ := spPos_lits_ok
-  exact ⟨gLanes_ok.2, getD_toArray_lt hsel, offAtA_tabA_lt h1, offAtA_tabA_lt h2,
-    offAtA_tabA_lt h3, offAtA_tabA_lt p1, offAtA_tabA_lt p2, offAtA_tabA_lt p3,
-    offAtA_tabA_lt p4⟩
+  exact ⟨gLanes_ok.2, getD_toArray_lt hbase, offAtA_tabA_lt h1, offAtA_tabA_lt h2,
+    offAtA_tabA_lt p1, offAtA_tabA_lt p2, offAtA_tabA_lt p3, offAtA_tabA_lt p4⟩
 
 /-- A table of rows as arrays (`tabAC`), its rows at most `M` entries: at most
 `(M + 15)·rows + rows + 7`. -/
@@ -122,28 +120,26 @@ theorem tabA_cost (hP : Includes P Decoder.tabAC.costDeps) (t : List (List ℕ))
 /-- **`verify_sig_lean_sphincs`' and `sp_wots`' tables, built** (`spTabsC`): at most `7800`. -/
 theorem spTabs_cost (hP : Includes P Decoder.spTabsC.costDeps) :
     machineCost P Decoder.spTabsC.costIdx [] ≤ 7800 := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := spTabs_lits_ok
+  obtain ⟨h1, h2, h4, h5, -⟩ := spTabs_lits_ok
   obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8⟩ := spPos_lits_ok
   have t1 := tabA_cost P (by includes) spFirst 64 fun r hr ↦ (h1 r hr).1
   have t2 := tabA_cost P (by includes) spRest 64 fun r hr ↦ (h2 r hr).1
-  have t3 := tabA_cost P (by includes) spLast 64 fun r hr ↦ (h3 r hr).1
   have t4 := tabA_cost P (by includes) spForsKids 10 fun r hr ↦ (p1 r hr).1
   have t5 := tabA_cost P (by includes) spForsBits 10 fun r hr ↦ (p2 r hr).1
   have t6 := tabA_cost P (by includes) spPathKids 10 fun r hr ↦ (p3 r hr).1
   have t7 := tabA_cost P (by includes) spPathBits 10 fun r hr ↦ (p4 r hr).1
   have := Nat.mul_le_mul_left (64 + 15) h4
   have := Nat.mul_le_mul_left (64 + 15) h5
-  have := Nat.mul_le_mul_left (64 + 15) h6
   have := Nat.mul_le_mul_left (10 + 15) p5
   have := Nat.mul_le_mul_left (10 + 15) p6
   have := Nat.mul_le_mul_left (10 + 15) p7
   have := Nat.mul_le_mul_left (10 + 15) p8
   rw [Decoder.spTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
-    Decoder.spSelC.costEq P (by includes), Decoder.spFirstC.costEq P (by includes),
-    Decoder.spRestC.costEq P (by includes), Decoder.spLastC.costEq P (by includes),
+    Decoder.spBaseC.costEq P (by includes), Decoder.spFirstC.costEq P (by includes),
+    Decoder.spRestC.costEq P (by includes),
     Decoder.spForsKidsC.costEq P (by includes), Decoder.spForsBitsC.costEq P (by includes),
     Decoder.spPathKidsC.costEq P (by includes), Decoder.spPathBitsC.costEq P (by includes),
-    show spSel.length = 22 from rfl]
+    show spBase.length = 22 from rfl]
   omega
 
 /-! ## The exponent off the lanes -/
@@ -207,44 +203,39 @@ theorem sibN_cost (hP : Includes P Decoder.sibNC.costDeps) (bit b : ℕ)
   have := hS (.n bit); have := hS (.n b); have := hS (.n (b + 1))
   split_ifs <;> omega
 
+omit hσ hS in
+/-- The last chain's offset (`spLastOffC`): at most `27`. -/
+theorem spLastOff_cost (hP : Includes P Decoder.spLastOffC.costDeps) (k : ℕ) (hk : k < 2 ^ 20) :
+    machineCost P Decoder.spLastOffC.costIdx [encodeValue k] ≤ 27 := by
+  rw [Decoder.spLastOffC.costEq P hP]
+  split_ifs <;> limbs_one <;> omega
+
+omit hσ hS in
+theorem spLastOff_lt (k : ℕ) (hk : k < 2 ^ 20) : spLastOff k < 2 ^ 26 := by
+  unfold spLastOff; split_ifs <;> omega
+
 /-- **A chain's start cell, off arrays** (`cwCellC`, `cwCellA`): the lanes below `2^64`, the
-selectors and the tables' entries below `2^20`: at most `S + 1543`. -/
+digit words' first cell, the bases and the tables' entries below `2^20`: at most `S + 1555`. -/
 theorem cwCellA_cost (hP : Includes P Decoder.cwCellC.costDeps) (lanes : List ℕ)
-    (hlanes : ∀ x ∈ lanes, x < 2 ^ 64) (G : ℕ) (sel : Array ℕ) (first rest last : Array (Array ℕ))
-    (hsel : ∀ k, sel.getD k 0 < 2 ^ 20) (hf : ∀ r k, offAtA first r k < 2 ^ 20)
-    (hr : ∀ r k, offAtA rest r k < 2 ^ 20) (hl : ∀ r k, offAtA last r k < 2 ^ 20)
-    (hG : G < 2 ^ 20) (i : ℕ) (hi : i < 2 ^ 20) :
-    machineCost P Decoder.cwCellC.costIdx [encodeValue lanes, encodeValue G, encodeValue sel,
-      encodeValue first, encodeValue rest, encodeValue last, σV, encodeValue i] ≤ S + 1543 := by
+    (hlanes : ∀ x ∈ lanes, x < 2 ^ 64) (G dg : ℕ) (base : Array ℕ) (first rest : Array (Array ℕ))
+    (hbase : ∀ k, base.getD k 0 < 2 ^ 20) (hf : ∀ r k, offAtA first r k < 2 ^ 20)
+    (hr : ∀ r k, offAtA rest r k < 2 ^ 20) (hG : G < 2 ^ 20) (hdg : dg < 2 ^ 20) (i : ℕ)
+    (hi : i < 2 ^ 20) :
+    machineCost P Decoder.cwCellC.costIdx [encodeValue lanes, encodeValue G, encodeValue dg,
+      encodeValue base, encodeValue first, encodeValue rest, σV, encodeValue i] ≤ S + 1555 := by
   rw [Decoder.cwCellC.costEq P hP _ _ _ _ _ _ σ σV hσ]
-  have hsl := hsel (i / 3)
-  rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : i / 3 < 2 ^ 64),
-    limbs_of_lt (by omega : G < 2 ^ 64), limbs_of_lt (by omega : sel.getD (i / 3) 0 < 2 ^ 64)]
-  have := hS (.n (sel.getD (i / 3) 0))
-  have := logGTWith_cost P (by includes) lanes hlanes (σ (.n (sel.getD (i / 3) 0))) 64
-    (by norm_num)
-  have := logGTWith_cost P (by includes) lanes hlanes (σ (.n (sel.getD (i / 3) 0))) 4
-    (by norm_num)
-  rw [Decoder.offAtAC.costEq P (by includes), Decoder.offAtAC.costEq P (by includes)]
-  have h1 := hf (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
-  have h2 := hr (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
-  have h3 := hl (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4)
-  split_ifs with c1 c2
-  · rw [limbs_of_lt (by omega : offAtA first (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA first (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
-    omega
-  · rw [limbs_of_lt (by omega : offAtA rest (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA rest (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
-    omega
-  · rw [limbs_of_lt (by omega : offAtA last (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA last (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64)]
-    omega
+  have hsl := hbase (i / 3)
+  have hi3 : i / 3 < 2 ^ 20 := by omega
+  have := hS (.n (dg + i / 3))
+  have := logGTWith_cost P (by includes) lanes hlanes (σ (.n (dg + i / 3))) 64 (by norm_num)
+  have hk := logGTWith_le lanes (σ (.n (dg + i / 3))) 64
+  have := spLastOff_cost P (by includes) (logGTWith lanes (σ (.n (dg + i / 3))) 64) (by omega)
+  have := spLastOff_lt (logGTWith lanes (σ (.n (dg + i / 3))) 64) (by omega)
+  rw [Decoder.offAtAC.costEq P (by includes)]
+  have h1 := hf (i % 3) (logGTWith lanes (σ (.n (dg + i / 3))) 64)
+  have h2 := hr (i % 3) (logGTWith lanes (σ (.n (dg + i / 3))) 64)
+  limbs_one
+  split_ifs <;> limbs_one <;> omega
 
 /-! ## leanSPHINCS -/
 
@@ -340,16 +331,16 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.chainCount) (by decide) _
     (.closure Decoder.layerAC.lam0.costIdx [encodeValue T, wV])
     (fun i ↦ RunsApp.of_spec (Decoder.layerAC.lam0.costSpec P (by includes) T w wV hw i))
-    (2 * S + 1580) (fun i ↦ by
+    (2 * S + 1592) (fun i ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.layerAC.lam0.costEq P (by includes) T w wV hw]
       simp only [List.length_cons, List.length_nil]
-      have := cwCellA_cost P hw hW (by includes) T.lanes hT.lanes 21 T.sel T.first T.rest T.last
-        hT.sel hT.first hT.rest hT.last (by norm_num) i.val
+      have := cwCellA_cost P hw hW (by includes) T.lanes hT.lanes 21 16 T.base T.first T.rest
+        hT.base hT.first hT.rest (by norm_num) (by norm_num) i.val
         (by have := i.isLt; simp only [Sphincs.chainCount] at this; omega)
       have := cellNat_cost P (by includes)
-        (w (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last w i.val)))
-      have := hW (.n (cwCellA T.lanes 21 T.sel T.first T.rest T.last w i.val))
+        (w (.n (cwCellA T.lanes 21 16 T.base T.first T.rest w i.val)))
+      have := hW (.n (cwCellA T.lanes 21 16 T.base T.first T.rest w i.val))
       omega) 0 (Nat.zero_le _)
   have m1 := ofFnFrom_cost P (by includes) (n := Sphincs.layerHeight layer) (by omega) _
     (.closure Decoder.layerAC.lam1.costIdx [encodeValue T, σV, encodeValue l, encodeValue layer])
