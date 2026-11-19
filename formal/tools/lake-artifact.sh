@@ -17,7 +17,9 @@
 set -euo pipefail
 self=$(readlink -f "$0")
 cd "$(git rev-parse --show-toplevel)"
-name=lean-vm-lake-$(cat formal/lean_vm/lean-toolchain formal/lean_vm/lake-manifest.json | sha256sum | cut -c1-16)
+# `v2`: builds packed before directories were kept lacked the packages' empty git directories (`refs/`), so git took
+# a package for the enclosing repository and Lake's checkout of it rewrote this one's working tree.
+name=lean-vm-lake-v2-$(cat formal/lean_vm/lean-toolchain formal/lean_vm/lake-manifest.json | sha256sum | cut -c1-16)
 marker=formal/lean_vm/.lake/ci-formal-tree  # the `formal/` tree the packed build was made from
 
 case ${1:-} in
@@ -51,11 +53,12 @@ pack)
   echo "$tree" > "$marker"
   start=$SECONDS
   # Mathlib's build comes from `lake exe cache get`, all but its compiled C objects, which the executables need.
-  { find formal/lean_vm/.lake -path formal/lean_vm/.lake/packages/mathlib/.lake -prune -o \( -type f -o -type l \) -print0
+  # Directories too (`--no-recursion`), empty ones included: a package's git repository needs its `refs/`.
+  { find formal/lean_vm/.lake -path formal/lean_vm/.lake/packages/mathlib/.lake -prune -o \( -type f -o -type l -o -type d \) -print0
     find formal/lean_vm/.lake/packages/mathlib/.lake/build/ir -name '*.c.o.*' -print0 2>/dev/null || true
     for p in common Statement lean_xmss lean_sphincs lean_da; do
-      if [ -d "formal/$p/.lake/build" ]; then find "formal/$p/.lake/build" \( -type f -o -type l \) -print0; fi
-    done; } | tar --null -T - -cf - | zstd -T0 -3 -q -o "$out"
+      if [ -d "formal/$p/.lake/build" ]; then find "formal/$p/.lake/build" \( -type f -o -type l -o -type d \) -print0; fi
+    done; } | tar --null --no-recursion -T - -cf - | zstd -T0 -3 -q -o "$out"
   echo "packed $(du -h "$out" | cut -f1) in $((SECONDS - start)) s"
   echo pack=true >> "$GITHUB_OUTPUT"
   echo "name=$name" >> "$GITHUB_OUTPUT"
