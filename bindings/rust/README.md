@@ -4,15 +4,9 @@ The safe Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wr
 
 - **leanXMSS** is synchronized: a key signs at `2^32` leaf indices, one message per leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, with no state kept between them.
-- **Aggregation** proves many signatures of both schemes in one recursive leanVM proof.
+- **Aggregation** proves many signatures of both schemes in one recursive leanVM proof, through a leanVM sidecar.
 
 Public keys and messages are 32 bytes in both schemes.
-
-## Features
-
-Build in release mode: debug builds prove far slower.
-
-Aggregation is the default `aggregation` feature, which pulls in the verifier and the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds from `lean_xmss` and `lean_sphincs` alone, without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
 
 ## Sign and verify
 
@@ -35,22 +29,25 @@ A leanXMSS key keeps no record of the leaf indices it used: persist a durable hi
 
 ## Aggregate
 
-```rust,no_run
-use lean_pq::{aggregate, sphincs, xmss, Aggregate};
+A leanVM sidecar proves and verifies aggregates in a process of its own; run it first (see [`bins/leanvm-sidecar`](../../bins/leanvm-sidecar/README.md)), then connect to its socket. Unix only: on Windows, `Sidecar::connect` fails.
 
+```rust,no_run
+use lean_pq::{sphincs, xmss, Sidecar};
+
+let sidecar = Sidecar::connect("/home/me/.leanvm/sidecar.sock")?;
 let message = [0x42; 32];
 let xmss_key = xmss::SecretKey::from_seed([0x01; 32]);
 let sphincs_key = sphincs::SecretKey::from_seed([0x02; 32]);
 
-let leaf = aggregate(
+let leaf = sidecar.aggregate(
     &[],
     &[(xmss_key.public_key(), message, xmss_key.sign(&message, 7))],
     &[(sphincs_key.public_key(), message, sphincs_key.sign(&message))],
 )?;
-let root = aggregate(&[&leaf], &[], &[])?;
+let root = sidecar.aggregate(&[&leaf], &[], &[])?;
 
 // The bytes are the proof alone: the receiver supplies the claims it expects.
-let received = Aggregate::from_bytes(
+let received = sidecar.verify(
     &root.to_bytes(),
     &[(xmss_key.public_key(), message)],
     &[(sphincs_key.public_key(), message)],
@@ -59,10 +56,10 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 # Ok::<(), lean_pq::Error>(())
 ```
 
-- Aggregation verifies every raw signature before proving, and runs one proof at a time per process.
+- `aggregate` verifies every raw signature before proving. The sidecar proves one request at a time.
 - An encoded aggregate is the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
-- `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven.
-- The first proof starts the prover pool and builds the aggregation guest; call `setup()` to pay that earlier.
+- `verify` checks the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven or verified.
+- A broken connection is reopened on the next call.
 
 ## License
 

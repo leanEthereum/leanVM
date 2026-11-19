@@ -16,7 +16,14 @@ fn native_abi_signs_verifies_and_aggregates() {
         .name("native-abi-test".to_owned())
         .stack_size(32 * 1024 * 1024)
         .spawn(|| unsafe {
-            assert_eq!(lpq_setup(), OK);
+            // Aggregation goes through the sidecar listening on $LEANVM_SIDECAR_SOCKET.
+            let socket = std::env::var("LEANVM_SIDECAR_SOCKET")
+                .expect("set LEANVM_SIDECAR_SOCKET to the socket of a running leanvm-sidecar");
+            let mut sidecar = ptr::null_mut();
+            assert_eq!(
+                lpq_sidecar_connect(socket.as_ptr(), socket.len(), &mut sidecar),
+                OK
+            );
             let message = [42u8; 32];
             let other = [43u8; 32];
 
@@ -134,6 +141,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut aggregate = ptr::null_mut();
             assert_eq!(
                 lpq_aggregate_create(
+                    sidecar,
                     ptr::null(),
                     0,
                     xmss_record.as_ptr(),
@@ -155,6 +163,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut decoded = ptr::null_mut();
             assert_eq!(
                 lpq_aggregate_from_bytes(
+                    sidecar,
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),
                     xmss_claim.as_ptr(),
@@ -177,6 +186,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut rejected = ptr::null_mut();
             assert_eq!(
                 lpq_aggregate_from_bytes(
+                    sidecar,
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),
                     xmss_claim.as_ptr(),
@@ -188,6 +198,7 @@ fn native_abi_signs_verifies_and_aggregates() {
                 ERROR
             );
             assert!(rejected.is_null());
+            lpq_sidecar_destroy(sidecar);
         })
         .expect("test thread starts")
         .join()
