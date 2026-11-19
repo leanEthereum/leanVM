@@ -115,3 +115,10 @@ srcDir = "cli"
 name = "vm-phase25-test"
 root = "VmPhase25Test"
 srcDir = "cli"
+
+# Phase 1's code against the word model on fixture directories (cli/VmPhase1Test.lean); not a default
+# target.
+[[lean_exe]]
+name = "vm-phase1-test"
+root = "VmPhase1Test"
+srcDir = "cli"
