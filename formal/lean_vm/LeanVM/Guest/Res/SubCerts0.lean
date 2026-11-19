@@ -54,20 +54,6 @@ end
 
 end LeanVM.Guest.ModePack.«P34»
 
-namespace LeanVM.Guest.ModePack.«P42»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 388) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P42»
-
 namespace LeanVM.Guest.ModePack.«P57»
 
 open LeanVM.Guest LeanVM.Guest.Res
@@ -81,20 +67,6 @@ theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
 end
 
 end LeanVM.Guest.ModePack.«P57»
-
-namespace LeanVM.Guest.ModePack.«P61»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 389) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P61»
 
 namespace LeanVM.Guest.ModePack.«P63»
 

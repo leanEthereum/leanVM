@@ -351,6 +351,33 @@ def stGl (Cf : CFun) : Bool :=
   (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1])) && Nat.beq Cf.H.sig.ghosts 2 &&
     ngB Cf.fn
 
+/-! ## The gap walk's frame loops -/
+
+/-- **`child_claim_list_mono`'s frame loops** (`cm`): their claims a frame, `136` and `17`. -/
+def cmK (fn : Fn) : Option ℕ :=
+  bif fn.name == name% «child_claim_list_mono_loop0» then some 136 else
+  bif fn.name == name% «child_claim_list_mono_loop1» then some 17 else none
+
+/-- **A frame loop's read of claim `jj`'s entry in its caller's table** (`cm`): the cell
+`[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` the value `12`, gap `i` the value `13 + 10i`) a cell of the run
+`[ghost₀]·g^(4j+d)`, `j` below the exponent of `ghost₁` (its caller's `limit`); and that exponent's existence. -/
+def cmSub (fn : Fn) : CRes → Bool
+  | .sub c q => (cmK fn).any fun m ↦ Nat.blt (c.off / 4) m &&
+      decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val (GB + 1)⟩) &&
+      decide (c.bases = (12, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (13 + 10 * i, 4))
+  | .lt a b => (cmK fn).isSome && decide (a = .num 0) && decide (b = .val (GB + 1))
+  | _ => false
+
+/-- **A frame loop's links**: its caller's cells `2` (entries) and `5` (`limit`) to its first two ghost slots, the
+caller's frame address to its third (`loopGl`); it names no ghost value. -/
+def cmGl (Cf : CFun) : Bool :=
+  (cmK Cf.fn).isSome && decide (Cf.gl = loopGl Cf.fn.params.length [2, 5]) && Nat.beq Cf.H.sig.ghosts 3 &&
+    ngB Cf.fn
+
+theorem cmSub_none {fn : Fn} (h : cmK fn = none) (x : CRes) : cmSub fn x = false := by
+  unfold cmSub
+  split <;> simp [h]
+
 /-! ## The instance's exponent and dimension facts -/
 
 /-- The pointer and offset of the first `load` of `x` among the atoms. -/
@@ -905,7 +932,7 @@ noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (
   ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
       vsExp fn r || layQC fn r || vtCp fn r || daGap fn r || rcTab fn r || vkQC fn r || lyQC fn r) &&
       r.vals.all (Nat.blt · GB)) ||
-    mlSub fn r || stSub fn r || vtExp fn gw r
+    mlSub fn r || stSub fn r || cmSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)
@@ -962,8 +989,10 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
 parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
 (`alGl`); for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a stream-cursor loop its caller's
-stream and frame (`stGl`); or none, the ghost slots own parameter words (`gwSlots`). -/
+stream and frame (`stGl`); for `child_claim_list_mono`'s frame loops its caller's entries, bound and frame (`cmGl`); or
+none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
+  bif (cmK Cf.fn).isSome then cmGl Cf && Cf.H.sig.gw.isEmpty else
   bif (stK Cf.fn).isSome then stGl Cf && Cf.H.sig.gw.isEmpty else
   bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
     ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))

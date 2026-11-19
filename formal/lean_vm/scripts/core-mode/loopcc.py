@@ -157,6 +157,12 @@ def infer_one(k, S):
         q = loopc.run_h(r, np, gl)
         if q is not None and q[3][0]:
             hi = EM.cidx(q[3], np)
+            if len(q[3][0]) == 1 and q[3][0][0][0] >= I.GB and q[3][0][0][1] == 1 and q[3][1] == 0:
+                # a ghost slot's exponent (`CoreMode.hiG`), by its family's residual over the ghost's value
+                x = ('lt', ('num', 0), ('val', q[3][0][0][0]))
+                if x not in H.res:
+                    H.res.append(x)
+                continue
             if any(b >= np for b, _ in q[3][0]) or not any(x[0] == 'lt' and x[2] == hi for x in H.res):
                 raise No('linked bound without residual')
     import callcres

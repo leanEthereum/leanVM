@@ -1601,13 +1601,13 @@ a frame holding its parameters whose entry runs' exponent cells are powers of `g
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none)
-    (hst : CoreMode.stK Cf.fn = none) (hgw : Cf.H.sig.gw = []) {fp : ℕ}
+    (hst : CoreMode.stK Cf.fn = none) (hcm : CoreMode.cmK Cf.fn = none) (hgw : Cf.H.sig.gw = []) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), -⟩ |
-    hm) | hs) | he
+  rcases this with (((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), -⟩ |
+    hm) | hs) | hc) | he
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · exact splitFam_inst hr hI ht hf hsp
@@ -1624,6 +1624,7 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
   · exact lyQC_inst hr hI ht hf x hlq
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
   · cases x <;> simp [CoreMode.stSub, hst] at hs
+  · rw [CoreMode.cmSub_none hcm] at hc; cases hc
   · simp [CoreMode.vtExp, hgw, CoreMode.vtGw] at he
 
 /-- **The residuals of a heap certificate of families hold** at a valuation `σ'` agreeing below `GB` with an honest
@@ -1635,12 +1636,13 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     (hx : CoreMode.ExpW r.img Cf.xc fp) {σ' : Val}
     (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ')
     (hst : ∀ x, CoreMode.stSub Cf.fn x = true → x.Holds σ')
+    (hcm : ∀ x, CoreMode.cmSub Cf.fn x = true → x.Holds σ')
     (hvx : ∀ x, CoreMode.vtExp Cf.fn Cf.H.sig.gw x = true → x.Holds σ') :
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), hv⟩ |
-    hm) | hs) | he
+  rcases this with (((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), hv⟩ |
+    hm) | hs) | hc) | he
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (splitFam_inst hr hI ht hf hsp)
@@ -1657,6 +1659,7 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (lyQC_inst hr hI ht hf x hlq)
   · exact hml x hm
   · exact hst x hs
+  · exact hcm x hc
   · exact hvx x he
 
 end

@@ -109,6 +109,7 @@ public section
 
 theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
   sigsOr_of_list Fn.«child_claim_list_mono_last__L1».modeSigs fa%[],
+  sigsOr_of_list Fn.«child_claim_list_mono_loop1».modeSigs fa%[.inl ⟨_, Fn.«child_claim_list_mono_loop1».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«da_factors__L6_L7_L128».modeSigs fa%[],
   sigsOr_of_list Fn.«da_verify_blob_loop0».modeSigs fa%[.inl ⟨_, Fn.«da_verify_blob_loop0».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«da_verify_cell».modeCert_in, rfl, rfl, rfl⟩],

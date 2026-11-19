@@ -171,36 +171,59 @@ noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
       | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
       | _ => true
 
+/-- **A ghost slot's exponent** (`hiRes`'s ghost case): the bound the word of ghost slot `b` (`np ≤ b < np + ng`),
+its exponent by a residual `e(a) < e(GB + b - np)` over its ghost value. -/
+def hiG (np ng : ℕ) (res : List CRes) : CIdx → Bool
+  | .val b => decide (np ≤ b) && decide (b < np + ng) && res.any fun x ↦ match x with
+    | .lt _ b' => decide (b' = .val (GB + (b - np)))
+    | _ => false
+  | _ => false
+
 /-- **Each linked upper bound of a loop's runs over its caller's cells has an exponent by a residual**: for each mode
 precondition run `rngH` translates with an upper bound other than a constant, that bound over the parameters and a
 residual `e(a) < e(hi)`. -/
-def hiRes (G : Mode.Sig) (gl : List (ℕ × ℕ × ℕ)) (np : ℕ) (res : List CRes) : Bool :=
+def hiRes (G : Mode.Sig) (gl : List (ℕ × ℕ × ℕ)) (np ng : ℕ) (res : List CRes) : Bool :=
   G.preR.all fun r ↦ match rngH gl r with
     | some q => match q.hi with
       | .num _ => true
-      | hi => hi.vals.all (Nat.blt · np) && res.any fun x ↦ match x with
-        | .lt _ b => decide (b = hi)
-        | _ => false
+      | hi => (hi.vals.all (Nat.blt · np) && res.any fun x ↦ match x with
+          | .lt _ b => decide (b = hi)
+          | _ => false) || hiG np ng res hi
     | none => true
 
 /-- **The shape around a loop helper with calls** (`loopShapeOk0`), its linked upper bounds with exponents by
 residuals (`hiRes`). -/
 noncomputable def loopShapeOkC (Cf : CFun) : Bool :=
-  loopShapeOk0 Cf && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res
+  loopShapeOk0 Cf && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.sig.ghosts Cf.H.res
 
-theorem hiRes_spec {G : Mode.Sig} {gl : List (ℕ × ℕ × ℕ)} {np : ℕ} {res : List CRes} (h : hiRes G gl np res = true)
+theorem hiRes_spec {G : Mode.Sig} {gl : List (ℕ × ℕ × ℕ)} {np ng : ℕ} {res : List CRes}
+    (h : hiRes G gl np ng res = true)
     {r : Mode.Rng} (hr : r ∈ G.preR) {q : CRun} (hq : rngH gl r = some q) (hn : ∀ n, q.hi ≠ .num n) :
-    (∀ v ∈ q.hi.vals, v < np) ∧ ∃ a, CRes.lt a q.hi ∈ res := by
+    ((∀ v ∈ q.hi.vals, v < np) ∧ ∃ a, CRes.lt a q.hi ∈ res) ∨
+      ∃ b, q.hi = .val b ∧ np ≤ b ∧ b < np + ng ∧ ∃ a, CRes.lt a (.val (GB + (b - np))) ∈ res := by
   have h1 := List.all_eq_true.mp h r hr
   rw [hq] at h1
   simp only at h1
-  simp only [Bool.and_eq_true, List.all_eq_true, Nat.blt_eq, List.any_eq_true] at h1
-  obtain ⟨h2, x, hx, h3⟩ := h1
-  refine ⟨h2, ?_⟩
-  match x, h3 with
-  | .lt a b, h3 =>
-    simp only [decide_eq_true_eq] at h3
-    exact ⟨a, h3 ▸ hx⟩
+  have hhi : q.hi = q.hi := rfl
+  rcases Bool.or_eq_true_iff.mp h1 with h1 | h1
+  · simp only [Bool.and_eq_true, List.all_eq_true, Nat.blt_eq, List.any_eq_true] at h1
+    obtain ⟨h2, x, hx, h3⟩ := h1
+    refine Or.inl ⟨by rw [hhi]; exact h2, ?_⟩
+    match x, h3 with
+    | .lt a b, h3 =>
+      simp only [decide_eq_true_eq] at h3
+      exact ⟨a, hhi ▸ h3 ▸ hx⟩
+  · unfold hiG at h1
+    split at h1
+    · rename_i b hb
+      simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h1
+      obtain ⟨⟨h2, h3⟩, x, hx, h4⟩ := h1
+      refine Or.inr ⟨b, hb, h2, h3, ?_⟩
+      match x, h4 with
+      | .lt a b', h4 =>
+        simp only [decide_eq_true_eq] at h4
+        exact ⟨a, h4 ▸ hx⟩
+    · cases h1
 
 /-- A slot the tail call passes on unchanged has the same word at the next iteration. -/
 theorem slotW_pass {σ : Val} {ps args : List V} {G : List E} (hp : ps = (List.range ps.length).map V.n) {b : ℕ}
@@ -872,15 +895,29 @@ theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
       · exact ⟨n, by rw [idxC]; exact rep_const (by rw [capE_eq]; exact hn)⟩
       · have hsh := ((Bool.and_eq_true _ _).mp hok.shape).2
         rw [hok.fsig] at hsh
-        obtain ⟨hlt, a, ha⟩ := hiRes_spec hsh hr hq (fun n hn ↦ by
-          rw [hqh] at hn; rw [hn] at hvals; simp [CIdx.vals] at hvals)
-        rw [hqh] at hlt ha
-        have hb' : b' < Cf.fn.params.length := hlt b' (by rw [hvals]; exact List.mem_singleton_self _)
-        obtain ⟨ya, yb, -, hyb, -⟩ := hR0 _ ha
-        refine ⟨yb, ?_⟩
-        rw [hvw] at hyb
-        rw [hvw, hsl _ _ _ (lookup_memL hl'), slotW_lt (by simpa using hb'), slotW_params' hpN hb']
-        exact hyb
+        rcases hiRes_spec hsh hr hq (fun n hn ↦ by
+          rw [hqh] at hn; rw [hn] at hvals; simp [CIdx.vals] at hvals) with ⟨hlt, a, ha⟩ | ⟨b, hb, hnb, hbg, a, ha⟩
+        · rw [hqh] at hlt ha
+          have hb' : b' < Cf.fn.params.length := hlt b' (by rw [hvals]; exact List.mem_singleton_self _)
+          obtain ⟨ya, yb, -, hyb, -⟩ := hR0 _ ha
+          refine ⟨yb, ?_⟩
+          rw [hvw] at hyb
+          rw [hvw, hsl _ _ _ (lookup_memL hl'), slotW_lt (by simpa using hb'), slotW_params' hpN hb']
+          exact hyb
+        · -- a ghost slot's word, its value `GB + b - np`'s
+          obtain ⟨ya, yb, -, hyb, -⟩ := hR0 _ ha
+          refine ⟨yb, ?_⟩
+          rw [hqh] at hb
+          rw [hb]
+          have hl : (args.map σ0).length = Cf.fn.params.length := by simp [hargs]
+          have hg : slotW (args.map σ0 ++ ownG Cf.H.sig σ0) b = vw σ0 (GB + (b - Cf.fn.params.length)) := by
+            unfold slotW
+            rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl]
+            simp only [ownG, List.getElem?_map, List.getElem?_range (show b - Cf.fn.params.length < Cf.H.sig.ghosts
+              by omega), Option.map_some, Option.getD_some]
+          simp only [idxC, valW_baseC] at hyb ⊢
+          rw [hg]
+          exact hyb
     obtain ⟨hpreN, hpreRN, hprePN⟩ := entry_of_preP hs (parAt_app hPN (by simp [hargs])) hLN hTN hXN
       (W := WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs ++ [Ev.inK c]))
       (fun x hx ↦ hWc x (writtenC_noAtom (fun a h ↦ by cases h) (fun f a r h ↦ by cases h) hx)) hreqS hreqP

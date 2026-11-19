@@ -192,6 +192,11 @@ def gl_of(k):
         # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
         return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
     import callcres
+    if I.callee(k) in callcres.CM_LOOPS:
+        # a frame loop of the gap walk (`CoreMode.cmGl`, `loopGl`): the caller's cells `2` (entries) and `5` (`limit`) its
+        # first two ghost slots, the caller's frame address its third
+        np = len(CORE[k][0])
+        return {2: (np, 0), 5: (np + 1, 0), 0: (np + 2, 0)}
     if k in callcres.ST_LOOPS:
         # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
         # frame address (`0`) its second
@@ -256,6 +261,11 @@ def hp_bs(G):
         for b, _ in bs:
             if b[0] == 'hp' and (b[1], b[2]) not in out:
                 out.append((b[1], b[2]))
+    # then the caller's cells bounding entry runs (`CoreMode.hpBnd`: `.ex (.hp 1 d) 0`)
+    for r in G['preR']:
+        for bd in (r[1], r[2]):
+            if bd[0] == 'ex' and bd[1][0] == 'hp' and bd[1][1] == 1 and bd[2] == 0 and (1, bd[1][2]) not in out:
+                out.append((1, bd[1][2]))
     return out
 
 
@@ -308,7 +318,8 @@ def callee_sig(G, na, nr, postq=False):
             # bounds the arguments' exponents (`boundsX`, their cells argument entry cells)
             def bx(b):
                 return b[0] == 'num' and b[1] < 2 ** 62 or \
-                    (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1]))
+                    (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1])) or \
+                    (b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and (1, b[1][2]) in ps)
             if not ps or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]) or \
                     not ((r[1][0] == 'num' and r[2][0] == 'num') or (bx(r[1]) and bx(r[2]))):
                 raise
@@ -775,6 +786,12 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
         for b in (r[2], r[3]):
             if b[0]:
                 (sl, _), = b[0]
+                if sl >= I.GB:
+                    # a ghost slot (`CoreMode.ghostArg`): the caller's cell `d` an entry run bounds, its parameter's word
+                    gh = h.ghosts[sl - I.GB] if sl - I.GB < len(h.ghosts) else None
+                    if b[1] == 0 and gh and gh[0] == 'hp1' and 2 <= gh[1] and gh[1] - 2 < np and gh[1] in expc:
+                        continue
+                    raise No('callee bound not a constant power')
                 a = args[sl]
                 if const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc):
                     continue

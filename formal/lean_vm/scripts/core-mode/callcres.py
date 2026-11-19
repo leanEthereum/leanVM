@@ -466,6 +466,30 @@ def ml_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
 
 
+# `CoreMode.cmK`: `child_claim_list_mono`'s frame loops, their claims a frame
+CM_LOOPS = {'child_claim_list_mono_loop0': 136, 'child_claim_list_mono_loop1': 17}
+
+
+def cm_sub(k, c):
+    """`CoreMode.cmSub`: a frame loop's read of claim `jj`'s entry `c`, the run of its caller's table (ghost `0`, stride
+    4, below the exponent of ghost `1`, its caller's `limit`), or None."""
+    m = CM_LOOPS.get(I.callee(k))
+    if m is None:
+        return None
+    bs, off = c
+    jj = off // 4
+    if jj >= m or tuple(bs) != ((12, 1),) + tuple((13 + 10 * i, 4) for i in range(jj + 1)):
+        return None
+    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', I.GB + 1)))
+
+
+def cm_res(k, r):
+    """`CoreMode.cmSub`: a read (`cm_sub`), or ghost `1`'s exponent `0 < e(limit)`."""
+    if I.callee(k) not in CM_LOOPS:
+        return False
+    return (r[0] == 'sub' and cm_sub(k, r[1]) == r) or r == ('lt', ('num', 0), ('val', I.GB + 1))
+
+
 # `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
 # the stream, the cursor value `v`, the words `S` read past it an iteration)
 ST_LOOPS = {
@@ -693,7 +717,8 @@ def res_ok(k, res, S):
     return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or
                  rc_pts(k, r) or lay_q(k, r) or vt_cp(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r) or ly_q(k, r)) and
                 all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or cm_res(k, r) or
+               vtexp.vt_exp(k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -906,7 +931,8 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c) or
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or cm_sub(self.k, c) or st_sub(self.k, c) or
+                                                 vt_st_sub(self.k, c) or
                                                  lay_st_sub(self.k, c) or ly_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None

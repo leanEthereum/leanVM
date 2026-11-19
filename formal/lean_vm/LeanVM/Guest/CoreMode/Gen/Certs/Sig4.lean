@@ -223,6 +223,7 @@ public section
 
 theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
   sigsOr_of_list Fn.«child_claim_list_mono_last__L0».modeSigs fa%[],
+  sigsOr_of_list Fn.«child_claim_list_mono_loop0».modeSigs fa%[.inl ⟨_, Fn.«child_claim_list_mono_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«da_column_offsets».modeSigs fa%[.inl ⟨_, Fn.«da_column_offsets_loop0».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«da_column_offsets_loop1».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«da_column_offsets_loop2».modeCert_in, rfl, rfl, rfl⟩,

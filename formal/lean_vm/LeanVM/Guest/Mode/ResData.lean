@@ -15,9 +15,7 @@ public import LeanVM.Guest.CoreMode.Pack.«verify_tables».Frame0
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P34».Mode0
-public import LeanVM.Guest.Pack.«P42».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
-public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 
 /-!
@@ -71,8 +69,6 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_any».modeFun, Fn.«child_claim_list_any».code.chunks.flatten),
   (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
   (Fn.«verify_tables».funC, Fn.«verify_tables».code.chunks.flatten),
   (Fn.«verify_tables_loop1».funC, Fn.«verify_tables_loop1».code.chunks.flatten)]
 

@@ -198,7 +198,7 @@ noncomputable def loopShapeRest0 (Cf : CFun) : Bool :=
 
 /-- **`loopShapeOkC` but its pass over the body**, and no residual divisors of the frame walk. -/
 noncomputable def loopShapeRest (Cf : CFun) : Bool :=
-  loopShapeRest0 Cf && trieNil Cf.frame.nzr && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res
+  loopShapeRest0 Cf && trieNil Cf.frame.nzr && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.sig.ghosts Cf.H.res
 
 /-- **A long loop helper's passes, in windows**: the body's statements before the tail call (`LWins`,
 their `match`es' lengths `ml`), its tail (`tailL`), the code (`CWins`), the rest of the shape, the
@@ -302,7 +302,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   · rw [jtdOk, Exec.listSeq_eq, Exec.listSeq_eq, hML, hDL]; exact hjt
   · have e : loopShapeOkC Cf = ((loopShapeRest0 Cf && (stmtsOf Cf.fn.body).all fun s ↦ match s with
         | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
-        | _ => true) && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res) := rfl
+        | _ => true) && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.sig.ghosts Cf.H.res) := rfl
     rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
     rw [e, Bool.and_eq_true, Bool.and_eq_true]
     refine ⟨⟨hr.1.1, List.all_eq_true.mpr fun s hs ↦ ?_⟩, hr.2⟩
