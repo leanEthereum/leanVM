@@ -1,7 +1,7 @@
 //! An execution client's load: validates mainnet blocks as a stateless reth node does, with a node's database I/O
-//! (`db.rs`), one worker per CPU it may use, each starting the next block as soon as it is done.
+//! (`db.rs`), on WORKERS threads, each starting the next block as soon as it is done.
 //!
-//! Usage: `el-load FIXTURES DB`. It first validates each block once, then prints after each block the total so far.
+//! Usage: `el-load FIXTURES DB WORKERS`. It validates each block once, then prints the running total after each block.
 
 mod db;
 
@@ -26,7 +26,7 @@ struct Json {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let [fixtures, db] = &args[..] else { panic!("usage: el-load FIXTURES DB") };
+    let [fixtures, db, workers] = &args[..] else { panic!("usage: el-load FIXTURES DB WORKERS") };
     let db = db::Db::open(db);
     let fixtures = load(fixtures);
     for f in &fixtures {
@@ -39,7 +39,7 @@ fn main() {
     let start = Instant::now();
     let (next, gas) = (AtomicU64::new(0), AtomicU64::new(0));
     std::thread::scope(|s| {
-        for _ in 0..std::thread::available_parallelism().unwrap().get() {
+        for _ in 0..workers.parse::<usize>().unwrap() {
             s.spawn(|| {
                 loop {
                     let f = &fixtures[next.fetch_add(1, Ordering::Relaxed) as usize % fixtures.len()];

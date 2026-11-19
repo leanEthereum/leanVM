@@ -1,6 +1,6 @@
 //! A node's database I/O for a block, on a 16 GiB file standing in for its state database: a 4 KiB page read at a
 //! random place for each account and slot the block touches, as a cold cache misses them, a page written for each the
-//! block changes, and an fsync to commit, past the page cache on Linux as a database bigger than memory is.
+//! block changes, and an fsync to commit, past the page cache as a database bigger than memory is.
 
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -35,7 +35,10 @@ impl Db {
         options.read(true).write(true);
         #[cfg(target_os = "linux")]
         std::os::unix::fs::OpenOptionsExt::custom_flags(&mut options, libc::O_DIRECT);
-        Self(options.open(path).unwrap())
+        let file = options.open(path).unwrap();
+        #[cfg(target_os = "macos")]
+        assert_eq!(unsafe { libc::fcntl(std::os::fd::AsRawFd::as_raw_fd(&file), libc::F_NOCACHE, 1) }, 0);
+        Self(file)
     }
 
     /// A block's I/O: `touched` accounts and slots read, `changed` written back.
