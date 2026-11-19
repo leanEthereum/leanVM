@@ -281,7 +281,7 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
   have hpm : t.pm.length = t.n1 + 2 := by unfold PoisT.n1; omega
   unfold poisMean
   have hsplit := Summable.sum_add_tsum_nat_add' (f := fun i => poisW μ i * ENNReal.ofReal (leafQ tab J i : ℝ))
-    (k := t.n1 + 1) ENNReal.summable
+    (k := t.n1 + 1) CompleteLattice.summable
   rw [← hsplit]
   have hr0 : (0 : ℝ) ≤ (t.r : ℝ) := by exact_mod_cast t.r_nonneg
   have hr1' : (t.r : ℝ) < 1 := by exact_mod_cast hr1
@@ -340,7 +340,7 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
     have hJ0' : (0 : ℝ) ≤ (J : ℝ) := by exact_mod_cast hJ0
     calc ∑' j, poisW μ (j + (t.n1 + 1)) * ENNReal.ofReal (leafQ tab J (j + (t.n1 + 1)) : ℝ)
         ≤ ∑' j : ℕ, ENNReal.ofReal ((t.pb (t.n1 + 1) : ℝ) * ((t.r : ℝ) ^ j * ((T : ℝ) + (J : ℝ) * ((j : ℝ) + 1)))) :=
-          ENNReal.tsum_le_tsum hpt
+          tsum_le_tsum hpt
       _ = ENNReal.ofReal (∑' j : ℕ, (t.pb (t.n1 + 1) : ℝ) * ((t.r : ℝ) ^ j * ((T : ℝ) + (J : ℝ) * ((j : ℝ) + 1)))) := by
           rw [ENNReal.ofReal_tsum_of_nonneg (fun j => mul_nonneg (by exact_mod_cast t.pb_nonneg _)
             (mul_nonneg (pow_nonneg hr0 j) (by positivity))) ((hsum.mul_left _).summable)]

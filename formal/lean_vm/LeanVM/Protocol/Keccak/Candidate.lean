@@ -182,9 +182,9 @@ theorem zeroOn_escape (δ : ℕ → E) {n : ℕ} {acc : List E} (hacc : acc.leng
   have hne' : (C a0 + C (a0 + a1) * X : E[X]) ≠ 0 := by
     intro he
     refine hpair ⟨?_, ?_⟩
-    · have := congrArg (coeff · 0) he; simpa using this
-    · have h0 : a0 = 0 := by have := congrArg (coeff · 0) he; simpa using this
-      have := congrArg (coeff · 1) he
+    · have := congrArg (·.coeff 0) he; simpa using this
+    · have h0 : a0 = 0 := by have := congrArg (·.coeff 0) he; simpa using this
+      have := congrArg (·.coeff 1) he
       simp at this
       rw [h0, zero_add] at this; exact this
   open Polynomial in

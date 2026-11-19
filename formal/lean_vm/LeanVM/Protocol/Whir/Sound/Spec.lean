@@ -354,14 +354,14 @@ noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.L
         (hfin _).subset fun q hq ↦ hq.1
       rw [eBatch, ENNReal.div_eq_inv_mul]
       refine mul_le_mul' le_rfl (Nat.cast_le.mpr ((card_le_card fun ρ hρ ↦ ?_).trans
-        ((card_batch_bad_le claims _ hfinB fun q hq ↦ hp.2 q hq.1 hq.2).trans ?_)))
+        ((card_batch_bad_le claims _ hfinB (by intro q hq; exact hp.2 q hq.1 hq.2)).trans ?_)))
       · simp only [mem_filter, mem_univ, true_and, commits_sample] at hρ ⊢
         by_contra hno
         exact hρ ⟨shapeOK_of_shapeOK₀ hκ₀ hR₀ hℓ₀ hp.1, hp.1.1,
           fun q hq hb hh ↦ hno ⟨q, ⟨hq, hb⟩, hh⟩⟩
       · rw [mul_comm]
         exact Nat.mul_le_mul_left _
-          ((Set.ncard_le_ncard (fun q hq ↦ hq.1) (hfin _)).trans (hL₀ _))
+          ((Set.ncard_le_ncard (by intro q hq; exact hq.1) (hfin _)).trans (hL₀ _))
   have F0 : ∀ ρ, Spec (verifyWhirG μ R (tρ ρ) (wρ ρ))
       (fun h ↦ WhirPre μ R (codes 0) (wρ ρ) (tρ ρ) Bad (commits h))
       (fun tr h ↦ traceGood codes 0 (lvl0Pred μ Bad) tr (commits h)) εmax 0 0 :=

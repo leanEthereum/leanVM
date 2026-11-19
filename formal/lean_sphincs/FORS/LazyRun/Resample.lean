@@ -101,7 +101,7 @@ theorem probEvent_bind_mono_support {α β γ : Type} (p : ProbComp α) (k₁ : 
     (h : ∀ a ∈ support p, Pr{let x ← k₁ a}[event₁ x] ≤ Pr{let x ← k₂ a}[event₂ x]) :
     Pr{let x ← p >>= k₁}[event₁ x] ≤ Pr{let x ← p >>= k₂}[event₂ x] := by
   simp only [OracleComp.prEvent_bind_eq_tsum]
-  refine ENNReal.tsum_le_tsum fun a => ?_
+  refine tsum_le_tsum fun a => ?_
   by_cases ha : a ∈ support p
   · exact mul_le_mul' le_rfl (h a ha)
   · rw [(prEvent_eq_zero_of_not_mem_support _) ha]

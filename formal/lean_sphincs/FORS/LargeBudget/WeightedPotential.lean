@@ -148,7 +148,7 @@ theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
   rw [mul_add]
   refine le_trans (le_of_eq ?_) (add_le_add
     (interp_weight_constW tg initial model (s := s) (signCostSource parameter data m) budget (X d)) hscan)
-  rw [← ENNReal.tsum_add]
+  rw [← tsum_add]
   exact tsum_congr fun out => by ring
 
 /-- The fresh pair completed by a signing call weighs at most its fresh average, weighted. -/
@@ -168,14 +168,14 @@ theorem fresh_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     have h := loop_bound_combSW tg initial model parameter data m hparse hkind s gf (fun _ _ => 0)
       digestAttemptLimit (by unfold digestAttemptLimit; norm_num) budget s start (fun _ => Or.inl rfl)
       hinv (fun _ _ _ => rfl)
-    refine le_trans (ENNReal.tsum_le_tsum fun out => mul_le_mul' le_rfl (mul_le_mul' le_rfl le_self_add))
+    refine le_trans (tsum_le_tsum fun out => mul_le_mul' le_rfl (mul_le_mul' le_rfl le_self_add))
       (le_trans h (mul_le_mul' le_rfl ?_))
     refine walk_le landing_le_one _ (fun ρ => ?_) le_rfl bot_le _ start
     unfold poolValue
     cases pcache parameter data m s ρ <;> simp
   calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = start] *
         (weight tg initial s * freshAvg Finset.univ gf) :=
-        ENNReal.tsum_le_tsum fun start => mul_le_mul' le_rfl (hstart start)
+        tsum_le_tsum fun start => mul_le_mul' le_rfl (hstart start)
     _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 end SignScanW
@@ -305,7 +305,7 @@ theorem sign_expectW2 (hparse : ∀ p call, model.parse (pblk parameter data p c
           (weight tg initial out.2 * failMass Fail)) := by
       intro out
       ring
-    simp only [hpt, ENNReal.tsum_add, ENNReal.tsum_mul_left]
+    simp only [hpt, tsum_add, ENNReal.tsum_mul_left]
     calc _ ≤ (budget : ℝ≥0∞) * (weight tg initial s * hValueO parameter data w b0 s Ms L d (n + 1) budget) +
           (budget : ℝ≥0∞) * (weight tg initial s * failMass Fail) :=
           add_le_add (mul_le_mul' le_rfl hH) (mul_le_mul' le_rfl (hconst _))
@@ -329,7 +329,7 @@ theorem sign_expectW2 (hparse : ∀ p call, model.parse (pblk parameter data p c
     intro out
     unfold canonO
     ring
-  simp only [hsplit, ENNReal.tsum_add]
+  simp only [hsplit, tsum_add]
   calc _ ≤ weight tg initial s * failMass Fail +
         weight tg initial s * (P.map (candO parameter data w Fail s Ms L d (n + 1) budget)).sum +
         weight tg initial s * ((budget : ℝ≥0∞) * (hValueO parameter data w b0 s Ms L d (n + 1) budget +
@@ -397,7 +397,7 @@ theorem new_pair_core (hw : w ≤ 1) (L : QueryLog SigningSpec)
   by_cases hr : Realized tg initial s ∨ signatureLimit < L.length
   · refine le_of_eq_of_le (?_ : _ = (⊥ : ℝ≥0∞)) bot_le
     unfold pairE
-    refine ENNReal.tsum_eq_zero.2 fun u => ?_
+    refine tsum_eq_zero_iff.2 fun u => ?_
     have hr' : Realized tg initial (withPair parameter data s p u) ∨ signatureLimit < L.length :=
       hr.imp (realized_of_extends tg initial (extends_withPair hP hp0 u)) id
     simp only [ite_eq_left hr', mul_zero]

@@ -141,7 +141,7 @@ def cert : Cert prog := spec.toCertOfLead
 at most `2^-128`. -/
 theorem cert_bound (h : List Ev) :
     (2 : ENNReal)⁻¹ ^ grindBits h * cert.ε h ≤ (2 ^ 128 : ENNReal)⁻¹ :=
-  ε0_eq ▸ spec.toCertOfLead_bound zero_le h
+  (spec.toCertOfLead_bound zero_le h).trans_eq ε0_eq
 
 /-- The certificate's doom holds at the start. -/
 theorem cert_D_nil : cert.D [] := by

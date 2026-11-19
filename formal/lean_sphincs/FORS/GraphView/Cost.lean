@@ -225,7 +225,7 @@ theorem hashCalls_signLayerWith (f : QueryImpl HashSpec Id) (sk : Seeded.SecretK
     simp only [Option.map_none, Option.map_some, Option.isSome_none, Option.isSome_some,
       Bool.false_eq_true, ↓reduceIte, hashCalls_pure, hashCalls_bind, hashCalls_treePath_exact,
       Nat.add_zero]
-  all_goals omega
+  omega
 
 /-- The cost of one layer of the signer on any value from below: the counter search, and on success
 the chain values, the path and, below the top, the recovery of the root. -/

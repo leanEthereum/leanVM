@@ -87,7 +87,7 @@ theorem coeff_polyOfBits_bitsFrom (n k c : ℕ) :
 mask's embedding. -/
 theorem embSum_eq (b : ℕ → Bool) (m : ℕ) (hm : ∀ i < 16, m.testBit i = b i) :
     ∑ i ∈ range 16, C (bitE (b i)) * embP i = polyOfBits (bitsFrom (embedMask m) 24) := by
-  refine Polynomial.ext fun c ↦ ?_
+  refine AddMonoidAlgebra.ext <| Finsupp.ext fun c ↦ ?_
   rw [finsetSum_coeff, coeff_polyOfBits_bitsFrom]
   simp only [coeff_C_mul, embP_coeff]
   by_cases hc : c < 24
@@ -102,7 +102,7 @@ theorem kP_eq : kP = polyOfBits (bitsFrom kappaBits 24) :=
 
 theorem polyOfBits_bitsFrom_xor (a b k : ℕ) :
     polyOfBits (bitsFrom a k) + polyOfBits (bitsFrom b k) = polyOfBits (bitsFrom (a ^^^ b) k) := by
-  refine Polynomial.ext fun c ↦ ?_
+  refine AddMonoidAlgebra.ext <| Finsupp.ext fun c ↦ ?_
   rw [coeff_add, coeff_polyOfBits_bitsFrom, coeff_polyOfBits_bitsFrom, coeff_polyOfBits_bitsFrom,
     Nat.testBit_xor]
   by_cases hc : c < k
@@ -197,6 +197,20 @@ theorem gPack_getD (w : Array E) (S : Array ℕ) {c : ℕ} (hc : c < 47) :
   have ht' := Finset.mem_range.1 ht
   rw [testBit_packBits, decide_eq_true ht', Bool.true_and, array_getD_ofFn_lt _ (by omega)]
 
+/-- `Gpoly`'s coefficients, for any inner bound: at `1600` the kernel would unfold the sum. -/
+theorem coeff_Gpoly_range (N : ℕ) (T : States) (P : ℕ) (point w : List E) (c : ℕ) :
+    (∑ z ∈ range (2 ^ (P + 1)), C (eqAt point z) *
+      ∑ j ∈ range N, C (w.getD j 0) * Gterm T P z j).coeff c =
+      ∑ z ∈ range (2 ^ (P + 1)),
+        eqAt point z * ∑ j ∈ range N, w.getD j 0 * (Gterm T P z j).coeff c := by
+  simp only [finsetSum_coeff, coeff_C_mul]
+
+theorem coeff_Gpoly (T : States) (P : ℕ) (point w : List E) (c : ℕ) :
+    (Gpoly T P point w).coeff c = ∑ z ∈ range (2 ^ (P + 1)),
+      eqAt point z * ∑ j ∈ range 1600, w.getD j 0 * (Gterm T P z j).coeff c := by
+  unfold Gpoly
+  exact coeff_Gpoly_range 1600 T P point w c
+
 /-- **`G`'s coefficients.** -/
 theorem gCoeffs_eq {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' col) {d : ℕ} (hd : d < 12)
     {point : List E} (hpt : point.length = P + 1) (w : List E) :
@@ -213,7 +227,7 @@ theorem gCoeffs_eq {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' col)
     rw [foldl_rows 47 (fun z c ↦ (eqTable point).getD z 0 * (gPack (weightTabs w.toArray)
       (((layerMasks col' P (11 - d)).getD z #[]).map embedMask)).getD c 0) _ (fun _ _ ↦ rfl)
       _ c hc]
-    simp only [Gpoly, finsetSum_coeff, coeff_C_mul]
+    rw [coeff_Gpoly]
     refine Finset.sum_congr rfl fun z hz ↦ ?_
     have hz' := Finset.mem_range.1 hz
     rw [eqTable_getD_lt _ (by rw [hpt]; exact hz'), gPack_getD _ _ hc]

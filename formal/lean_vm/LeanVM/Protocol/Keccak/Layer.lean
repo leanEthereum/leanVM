@@ -135,9 +135,9 @@ theorem quad_escape {t0 t1 t2 a0 a1 a2 : E} (h : ¬ (t0 = a0 ∧ t1 = a1 ∧ t2 
   have hne : p ≠ q := by
     intro he
     refine h ⟨?_, ?_, ?_⟩
-    · have := congrArg (coeff · 0) he; simpa [p, q] using this
-    · have := congrArg (coeff · 1) he; simpa [p, q, coeff_X] using this
-    · have := congrArg (coeff · 2) he; simpa [p, q, coeff_X] using this
+    · have := congrArg (·.coeff 0) he; simpa [p, q] using this
+    · have := congrArg (·.coeff 1) he; simpa [p, q, coeff_X] using this
+    · have := congrArg (·.coeff 2) he; simpa [p, q, coeff_X] using this
   refine (avgE_mono fun b ↦ indE_mono fun hb ↦ ?_).trans (sz_escape hne (hdeg _ _ _) (hdeg _ _ _))
   simp only [p, q, eval_add, eval_mul, eval_C, eval_X, eval_pow]
   linear_combination hb

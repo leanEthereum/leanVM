@@ -442,21 +442,31 @@ theorem keccakPadBytes_eq_padBlock (data : List UInt8) (h : data.length < 136) :
   apply List.ext_getElem?
   intro j
   simp only [padBlock, rate, padFirst, padLast, List.getElem?_modify]
-  by_cases hj : j < data.length
-  · split_ifs <;> simp_all [List.getElem?_append_left hj]
-    omega
-  · split_ifs <;> simp_all [List.getElem?_append_right (Nat.le_of_not_lt hj),
-      List.getElem?_replicate]
-    · decide
-    · rw [show j - 135 = (j - 136) + 1 by omega]; rfl
-    · rw [show j - data.length = (134 - data.length) + 1 by omega, List.getElem?_cons_succ,
-        List.getElem?_append_right (by simp), List.length_replicate, Nat.sub_self]
-      have e : 134 - data.length + 1 < 136 - data.length := by omega
-      simp only [List.getElem?_cons_zero, e, ↓reduceIte]
-    · rw [show j - data.length = (j - data.length - 1) + 1 by omega, List.getElem?_cons_succ,
-        List.getElem?_append]
-      simp only [List.length_replicate, List.getElem?_replicate]
-      split_ifs <;> simp_all <;> omega
+  rcases Nat.lt_or_ge j data.length with hj | hj
+  · have h1 : ¬ data.length = j := by omega
+    have h2 : ¬ 136 - 1 = j := by omega
+    rw [apply_ite (fun l : List UInt8 ↦ l[j]?)]
+    simp [List.getElem?_append_left hj, h1, h2]
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hj
+  rw [apply_ite (fun l : List UInt8 ↦ l[data.length + k]?)]
+  simp only [List.append_assoc, List.getElem?_append_right hj, Nat.add_sub_cancel_left,
+    List.getElem?_replicate]
+  by_cases h135 : data.length = 135
+  · rcases k with _ | k <;> simp [h135]
+  · rcases k with _ | k
+    · simp [h, h135]
+      omega
+    · have e1 : (136 - 1 = data.length + (k + 1)) = (k = 134 - data.length) := propext (by omega)
+      have e2 : (data.length = data.length + (k + 1)) = False := eq_false (by omega)
+      simp only [h135, e1, e2, ↓reduceIte, List.singleton_append, List.getElem?_cons_succ,
+        List.getElem?_append, List.length_replicate, List.getElem?_replicate]
+      rcases Nat.lt_trichotomy k (134 - data.length) with hk | rfl | hk
+      · simp [hk, show k + 1 < 136 - data.length by omega]
+        omega
+      · simp [show 134 - data.length + 1 < 136 - data.length by omega]
+      · simp only [show ¬ k < 134 - data.length by omega,
+          show ¬ k + 1 < 136 - data.length by omega, ↓reduceIte]
+        exact List.getElem?_eq_none (by simp only [List.length_singleton]; omega)
 
 /-- Long data: the padding of at least `136` bytes is the first block, then the padding of the
 rest. -/

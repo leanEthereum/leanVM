@@ -162,7 +162,7 @@ theorem toList_tableTabA (hcols : ColsOk prog s q cols) (β : E) (w : List E) (t
       tableTab prog s q β w ⟨s.τ t, s.rows t, cs, t⟩ := by
   rw [tableTabA, tableTab]
   refine toList_ofFn_eq_map _ _ fun x ↦ ?_
-  try dsimp only
+  dsimp only
   split_ifs
   · rw [blockVal, List.map_map, rowOf_eq hcols t x.isLt]
     rfl

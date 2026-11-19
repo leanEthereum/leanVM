@@ -596,7 +596,7 @@ theorem prEvent_bind_le_tsum {α β : Type} (mx : ProbComp α) (f : α → ProbC
     (g : α → ℝ≥0∞) (hg : ∀ x ∈ support mx, Pr{let y ← f x}[P y] ≤ g x) :
     Pr{let y ← mx >>= f}[P y] ≤ ∑' x, Pr{let z ← mx}[z = x] * g x := by
   rw [OracleComp.prEvent_bind_eq_tsum]
-  refine ENNReal.tsum_le_tsum fun x ↦ ?_
+  refine tsum_le_tsum fun x ↦ ?_
   by_cases hx : x ∈ support mx
   · gcongr; exact hg x hx
   · simp [prEvent_eq_zero_of_not_mem_support mx hx]
@@ -631,7 +631,7 @@ theorem prob_fresh_step_le {β : Type} {r : ℕ} (hr : r ≤ maxRows) {c : GCach
           OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1)] := by
     rw [prEvent_eq_tsum_ite _ (fun x : Draw ↦ NewFirst c d j x ∧ x.1 ∈ A),
       prEvent_eq_tsum_ite _ (fun x : Draw ↦ OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1)),
-      ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
+      ← ENNReal.tsum_mul_left, ← tsum_add]
     refine tsum_congr fun x ↦ ?_
     simp only [g]
     split_ifs <;> ring

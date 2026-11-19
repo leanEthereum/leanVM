@@ -120,15 +120,21 @@ theorem eval_membershipPoly (w : Row) (z : E) :
   refine Finset.sum_congr rfl fun u _ ↦ ?_
   rw [tensor_powers, eval_mul, eval_C, eval_pow, eval_X]
 
-theorem coeff_membershipPoly (w : Row) (u : Fin (2 ^ 13)) :
-    (membershipPoly w).coeff u = novelCoeff w u := by
-  rw [membershipPoly, finsetSum_coeff, Finset.sum_eq_single u]
+/-- Generic in `n`: at `2 ^ 13` the kernel would unfold `Finset.univ`. -/
+theorem coeff_sum_C_mul_X_pow {R : Type*} [Semiring R] {n : ℕ} (f : Fin n → R) (u : Fin n) :
+    (∑ v : Fin n, C (f v) * X ^ (v : ℕ)).coeff u = f u := by
+  rw [finsetSum_coeff, Finset.sum_eq_single u]
   · simp
   · intro v _ hv
     rw [coeff_C_mul_X_pow]
     exact ite_eq_right_iff.mpr fun h ↦ absurd (Fin.ext h).symm hv
   · intro hu
     exact absurd (Finset.mem_univ u) hu
+
+theorem coeff_membershipPoly (w : Row) (u : Fin (2 ^ 13)) :
+    (membershipPoly w).coeff u = novelCoeff w u := by
+  unfold membershipPoly
+  exact coeff_sum_C_mul_X_pow (novelCoeff w) u
 
 theorem membershipPoly_ne_zero {w : Row} {u₀ : Fin (2 ^ 13)} (h : novelCoeff w u₀ ≠ 0) :
     membershipPoly w ≠ 0 := by

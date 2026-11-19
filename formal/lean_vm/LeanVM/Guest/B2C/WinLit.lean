@@ -258,8 +258,8 @@ syntax (name := winLit) (docComment)? "win_lit " ident ppSpace num ppSpace num :
     liftTermElabM <| addDocString name (mkNullNode #[]) ⟨doc⟩
   let c := mkConst name
   liftCoreM <| addDecl
-    (.thmDecl (mkTheoremValEx (name.appendAfter "_eq") [] (mkApp3 (mkConst ``Eq [1]) ty e c)
-      (mkApp2 (mkConst ``Eq.refl [1]) ty c) []))
+    (.thmDecl ⟨⟨name.appendAfter "_eq", [], mkApp3 (mkConst ``Eq [1]) ty e c⟩,
+      mkApp2 (mkConst ``Eq.refl [1]) ty c, []⟩)
 
 end
 

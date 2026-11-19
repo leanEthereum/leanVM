@@ -210,8 +210,8 @@ theorem goodDeg_chartRs (R : MvPolynomial (Fin 3) L) {h : ℕ}
 /-- The outer degree of the chart is at most `h`. -/
 theorem natDegree_chartRs_le (R : MvPolynomial (Fin 3) L) {h : ℕ}
     (hR : ∀ m ∈ R.support, m 1 + m 2 ≤ h) : (chartRs R).natDegree ≤ h := by
-  refine natDegree_le_iff_coeff_eq_zero.mpr fun b hb ↦ ?_
-  ext a : 1
+  refine natDegree_le_iff_coeff_eq_zero.mpr fun b hb ↦
+    AddMonoidAlgebra.ext <| Finsupp.ext fun a ↦ ?_
   by_contra hne
   have := goodDeg_chartRs R hR a b hne
   have hbh : b ≤ h := by omega

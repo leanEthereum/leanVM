@@ -485,9 +485,10 @@ theorem inv_sound (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) (j : ℕ
     refine le_trans ?_ ((I.card_auxStage_push_le (theStack ctx.1.2)
       (by simpa using hj) ha).trans (by norm_num))
     have := Fintype.ofFinite E
-    exact Nat.card_mono (Set.toFinite _) fun x hx ↦ by
-      have h2 := hx.2
-      rwa [Vector.toList_push] at h2
+    refine Nat.card_le_card_of_injective (fun x ↦ ⟨x.1, ?_⟩)
+      fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
+    have h2 := x.2.2
+    rwa [Vector.toList_push] at h2
   · have : IsEmpty {x // inv I ctx (j + 1) (c.push x)} := ⟨fun x ↦ hr x.2.1⟩
     rw [Nat.card_of_isEmpty]
     exact Nat.zero_le _

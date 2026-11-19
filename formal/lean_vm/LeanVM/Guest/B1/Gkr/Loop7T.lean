@@ -344,7 +344,7 @@ theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29
         intro c hc
         unfold ly7Rounds at hc
         by_cases e' : σ (.n 64) = 0 <;> simp [e'] at hc <;>
-          (try rcases hc with rfl | rfl) <;> rfl
+          (rcases hc with rfl | rfl) <;> rfl
       rw [this _ hm] at hu; exact absurd hu (by simp)
   · obtain ⟨e53, e57, e56, -, -, hcb⟩ := hQ
     have e := List.getElem_of_eq (ly7Csb_eq σ) hi

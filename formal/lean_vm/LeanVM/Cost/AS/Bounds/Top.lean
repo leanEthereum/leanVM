@@ -192,7 +192,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [h5] at ha
       obtain rfl := Option.some.inj ha
       rw [appCost_fn]
-      try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.lam0.lam0.lam0.lam0.costEq P (by includes)]
       have := finishL_cost P (by includes) prog input qs D W hW hN true lay ρ tr r₂.2 hF0 (by omega)
         (by omega) hρ1 hρ2 hroots hsm (by omega)
@@ -207,7 +207,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [h4] at ha
       obtain rfl := Option.some.inj ha
       rw [appCost_fn]
-      try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.lam0.lam0.lam0.costEq P (by includes)]
       have := decBodyL_cost P (by includes) lay ρ r₂.1 hlay hρ2
       dsimp only at k4 ⊢
@@ -226,7 +226,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [h3] at ha
       obtain rfl := Option.some.inj ha
       rw [appCost_fn]
-      try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.lam0.lam0.costEq P (by includes)]
       dsimp only
       have c1 := skBodyL_cost P (by includes) lay ρ hlay hρ2
@@ -249,7 +249,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [h2] at ha
       obtain rfl := Option.some.inj ha
       rw [appCost_fn]
-      try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.lam0.costEq P (by includes)]
       have c1 := bytecodeWordsC_cost P (by includes) prog
       have c2 := decSizesL_cost P (by includes) (bytecodeWords prog) r₁.1 (by rw [hbl]; omega) (by omega)
@@ -272,7 +272,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [h1] at ha
       obtain rfl := Option.some.inj ha
       rw [appCost_fn]
-      try simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.costEq P (by includes),
         Auto.LeanVM.Protocol.EndToEnd.Sound.startState.c536.costEq P (by includes)]
       have hl6 : tables.length = 6 := by decide +kernel

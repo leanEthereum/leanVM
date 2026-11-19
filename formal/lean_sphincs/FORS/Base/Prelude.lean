@@ -176,7 +176,7 @@ theorem uniform_product {Left Right : Type} [Fintype Left] [Fintype Right] [None
       · intro b hb
         exact ite_eq_right (fun h => hb (congrArg Prod.snd h).symm)
     · rw [ite_eq_right ha]
-      apply ENNReal.tsum_eq_zero.mpr
+      apply tsum_eq_zero_iff.mpr
       intro b
       exact ite_eq_right (fun h => ha (congrArg Prod.fst h).symm)
   rw [PMF.bind_apply]

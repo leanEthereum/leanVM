@@ -258,7 +258,7 @@ theorem stopped_le_fixedRun {α : Type} (model : HiddenRows.Model D R A ι) (tab
       rcases input with draw | (bytes | coordinate)
       · rw [fixedStep_draw]
         simp only [stoppedStep, bind_map_left, OracleComp.prEvent_bind_eq_tsum]
-        refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
+        refine tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
         exact ih value state hagree
       · have hreadStep : ∀ base : DebtState D R ι, base.known = state.known → base.cache = state.cache →
             Pr{let x ← (outsideRead bytes state.cache >>= fun result =>
@@ -266,7 +266,7 @@ theorem stopped_le_fixedRun {α : Type} (model : HiddenRows.Model D R A ι) (tab
             Pr{let result ← readOutside bytes base >>= fun result => fixedRun model table (next result.1) result.2}[CorrectGuess table result.2 ∨ bad (result.1, result.2.cache)] := by
           intro base hknown hcache
           simp only [readOutside, bind_map_left, OracleComp.prEvent_bind_eq_tsum, hcache]
-          refine ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
+          refine tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
           have h := ih result.1 { base with cache := result.2 } (by simpa [hknown] using hagree)
           simpa [hknown] using h
         cases hp : model.parse bytes with

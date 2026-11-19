@@ -39,8 +39,8 @@ theorem prEvent_bind_le_add_of_support {α β : Type} (mx : ProbComp α) (f g k 
     (hp : ∀ x ∈ support mx, Pr{let y ← f x}[P y] ≤ Pr{let y ← g x}[P y] + Pr{let y ← k x}[P y]) :
     Pr{let y ← mx >>= f}[P y] ≤ Pr{let y ← mx >>= g}[P y] + Pr{let y ← mx >>= k}[P y] := by
   simp only [OracleComp.prEvent_bind_eq_tsum]
-  rw [← ENNReal.tsum_add]
-  refine ENNReal.tsum_le_tsum fun x ↦ ?_
+  rw [← tsum_add]
+  refine tsum_le_tsum fun x ↦ ?_
   by_cases hx : x ∈ support mx
   · rw [← mul_add]; gcongr; exact hp x hx
   · simp [prEvent_eq_zero_of_not_mem_support mx hx]
@@ -50,7 +50,7 @@ theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α →
     Pr{let y ← mx >>= f}[P y] ≤ a := by
   simp only [OracleComp.prEvent_bind_eq_tsum]
   calc ∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← f x}[P y]
-      ≤ ∑' x, Pr{let z ← mx}[z = x] * a := ENNReal.tsum_le_tsum fun x ↦ by
+      ≤ ∑' x, Pr{let z ← mx}[z = x] * a := tsum_le_tsum fun x ↦ by
         by_cases hx : x ∈ support mx
         · gcongr; exact hp x hx
         · simp [prEvent_eq_zero_of_not_mem_support mx hx]

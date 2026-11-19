@@ -173,7 +173,7 @@ theorem exists_map_of_isInK {P : E[X]} {d : ℕ} (hP : P.natDegree ≤ d) (S : F
   let L : Fin 2 → K[X] := fun i ↦ ∑ n ∈ Finset.range (d + 1), monomial n ((P.coeff n).limb i)
   have hcoeff : ∀ i n, (L i).coeff n = (P.coeff n).limb i := by
     intro i n
-    simp only [L, finsetSum_coeff, coeff_monomial]
+    simp only [L, finsetSum_coeff, coeff_monomial, Finsupp.single_apply]
     by_cases hn : n < d + 1
     · rw [Finset.sum_eq_single n (fun b _ hb ↦ by simp [hb])
         (fun h ↦ absurd (Finset.mem_range.mpr hn) h)]

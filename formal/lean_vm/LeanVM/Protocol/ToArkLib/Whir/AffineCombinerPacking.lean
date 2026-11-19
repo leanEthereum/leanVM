@@ -101,7 +101,7 @@ theorem eval_packP (b : ρ → L) (P : ρ → F[X]) (a : F) :
 
 theorem coeff_packP (b : ρ → L) (P : ρ → F[X]) (k : ℕ) :
     (packP b P).coeff k = ∑ r, algebraMap F L ((P r).coeff k) * b r := by
-  simp [packP, finsetSum_coeff, coeff_mul_C]
+  simp [packP, coeff_mul_C]
 
 variable (dom : ι ↪ F) (b : ρ → L) (π : L →ₗ[F] (ρ → F))
   (hπ : ∀ c : ρ → F, π (∑ r, algebraMap F L (c r) * b r) = c)

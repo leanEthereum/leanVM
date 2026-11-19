@@ -161,7 +161,7 @@ theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a,
       case witness s d =>
         cases d
         case stack vs => trivial
-        all_goals exact hd.elim
+        exact hd.elim
       all_goals exact hd.elim
   all_goals exact hd.elim
 
@@ -173,7 +173,7 @@ theorem outs_sub_vals (a : Atom) : ∀ v ∈ aOuts a, v ∈ a.vals := by
       case witness s d =>
         cases d
         case stack vs => simpa [aOuts, Atom.vals, Hint.vals, Dest.vals] using hv
-        all_goals simp [aOuts] at hv
+        simp [aOuts] at hv
       all_goals simp [aOuts] at hv
   all_goals simp_all [aOuts, Atom.vals]
 

@@ -850,9 +850,9 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
           VerifierProgram.Costs.seq (costs_sumcheck 3 _ _) (fun r _ ↦ ?_) ?_) (Nat.zero_le _)) ?_
       · obtain ⟨tail, claim⟩ := r
         exact (VerifierProgram.Costs.require (n := 0) _).mono (Nat.zero_le _) fun _ _ ↦ trivial
-      all_goals (try simp only [hm, hP, hr3, List.length_replicate])
+      all_goals simp only [hm, hP, hr3, List.length_replicate]
       all_goals omega
-    all_goals (try simp only [hm, hP, hr3])
+    all_goals simp only [hm, hP, hr3]
     all_goals omega
   | level :: next :: rest, index, s, μ, hμ, hH, hD => by
     simp only [whirHeightsLE, Bool.and_eq_true, decide_eq_true_eq] at hH
@@ -878,7 +878,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
           (costs_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
             (μ - level.fold) (by rw [glueLevel_alphas]; exact hm) hH.2 hD.2).mono ?_
             fun _ h ↦ h) ?_) ?_
-      all_goals (try simp only [hm])
+      all_goals simp only [hm]
       all_goals omega
     all_goals (try simp only [hm])
     all_goals omega

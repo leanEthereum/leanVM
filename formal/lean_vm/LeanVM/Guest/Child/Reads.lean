@@ -734,9 +734,9 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
           Reads.seq (reads_sumcheck 3 _ _) (fun r _ ↦ ?_) ?_) (Nat.zero_le _)) ?_
       · obtain ⟨tail, claim⟩ := r
         exact (Reads.require (n := 0) _).mono (Nat.zero_le _) fun _ _ ↦ trivial
-      all_goals (try simp only [hm, hP, hr3, List.length_replicate])
+      all_goals simp only [hm, hP, hr3, List.length_replicate]
       all_goals omega
-    all_goals (try simp only [hm, hP, hr3])
+    all_goals simp only [hm, hP, hr3]
     all_goals omega
   | level :: next :: rest, index, s, μ, hμ => by
     simp only [whirReads]

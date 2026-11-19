@@ -408,7 +408,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
       | none =>
         dsimp only
         refine ⟨⟨gf, gi, g3, keysIn_insert k1 (hk25 x) (), keysIn_insert k2 (hk25 y) (), k3, vc, vp,
-          by (try dsimp only); omega, by (try dsimp only); omega, by (try dsimp only); omega⟩, ?_⟩
+          by dsimp only; omega, by dsimp only; omega, by dsimp only; omega⟩, ?_⟩
         generalize τ.fwd.get? x.toList = o
         cases o <;> dsimp only <;> omega
       | some sv =>
@@ -427,7 +427,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
         obtain ⟨gc, wc⟩ := smGood_insert g3 (y.toList.drop 17)
           (y, obs.bind fun bs ↦ cut B (bs ++ blockBytes s x))
         refine ⟨⟨gf, gi, gc, keysIn_insert k1 (hk25 x) (), keysIn_insert k2 (hk25 y) (),
-          keysIn_insert k3 (hk8 y) _, valsIn_insert vc _ hp, ?_, by (try dsimp only); omega, by (try dsimp only); omega, by (try dsimp only); omega⟩, ?_⟩
+          keysIn_insert k3 (hk8 y) _, valsIn_insert vc _ hp, ?_, by dsimp only; omega, by dsimp only; omega, by dsimp only; omega⟩, ?_⟩
         · intro p hp'
           rcases List.mem_cons.1 hp' with rfl | hp'
           · exact hp
@@ -468,7 +468,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
       obtain ⟨gf, wf⟩ := smGood_insert g1 y.toList ()
       obtain ⟨gi, wi⟩ := smGood_insert g2 y'.toList ()
       refine ⟨⟨gf, gi, g3, keysIn_insert k1 (hk25 y) (), keysIn_insert k2 (hk25 y') (), k3, vc, vp,
-        by (try dsimp only); omega, by (try dsimp only); omega, by (try dsimp only); omega⟩, ?_⟩
+        by dsimp only; omega, by dsimp only; omega, by dsimp only; omega⟩, ?_⟩
       generalize τ.inv.get? y'.toList = o
       cases o <;> dsimp only <;> omega
 

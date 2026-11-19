@@ -177,7 +177,7 @@ theorem persistent_of_two_points [Fintype ι] [DecidableEq ι] {p κ : ℕ} [Fac
     apply hΔ
     have ha : Δa = 0 := by simpa [v] using congrFun hv0 (Sum.inl 0)
     have hb : Δb = 0 := by simpa [v] using congrFun hv0 (Sum.inl 1)
-    refine ⟨ha, hb, Polynomial.ext fun i ↦ ?_⟩
+    refine ⟨ha, hb, AddMonoidAlgebra.ext <| Finsupp.ext fun i ↦ ?_⟩
     rw [coeff_zero]
     by_cases hi : i ≤ d
     · simpa [v] using congrFun hv0 (Sum.inr ⟨i, Nat.lt_succ_of_le hi⟩)
@@ -204,8 +204,8 @@ theorem persistent_of_two_points [Fintype ι] [DecidableEq ι] {p κ : ℕ} [Fac
   have hLp : Lp ≠ 0 := by
     intro hL0
     apply hw
-    have hw0 : w (Sum.inl 0) = 0 := by simpa [Lp] using congrArg (coeff · 0) hL0
-    have hw1 : w (Sum.inl 1) = 0 := by simpa [Lp] using congrArg (coeff · 1) hL0
+    have hw0 : w (Sum.inl 0) = 0 := by simpa [Lp] using congrArg (·.coeff 0) hL0
+    have hw1 : w (Sum.inl 1) = 0 := by simpa [Lp] using congrArg (·.coeff 1) hL0
     have hH0 : H = 0 := by
       by_contra hH
       have := card_le_natDegree_of_eval_eq_zero (pt_injective dom) hH Cs fun x hx ↦ by
@@ -216,7 +216,7 @@ theorem persistent_of_two_points [Fintype ι] [DecidableEq ι] {p κ : ℕ} [Fac
     · fin_cases c
       · exact hw0
       · exact hw1
-    · have := congrArg (coeff · (i : ℕ)) hH0
+    · have := congrArg (·.coeff (i : ℕ)) hH0
       simp only [H, finsetSum_coeff, coeff_C_mul_X_pow, coeff_zero] at this
       rw [sum_eq_single i (fun j _ hji ↦ by
         simp only [ite_eq_right_iff]

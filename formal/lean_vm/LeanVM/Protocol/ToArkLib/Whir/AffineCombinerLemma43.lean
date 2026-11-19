@@ -47,8 +47,8 @@ theorem card_lines_le {F L : Type*} [Field F] [Fintype F] [Field L] [Algebra F L
         refine card_le_card_of_injOn line (fun ab hab ↦ ?_) fun ab _ ab' _ heq ↦ ?_
         · rw [mem_coe, Multiset.mem_toFinset, mem_roots hc]
           exact (mem_filter.mp hab).2
-        · have c0 := congrArg (coeff · 0) heq
-          have c1 := congrArg (coeff · 1) heq
+        · have c0 := congrArg (·.coeff 0) heq
+          have c1 := congrArg (·.coeff 1) heq
           simp only [line, coeff_add, coeff_C_mul, coeff_X_zero, coeff_X_one, mul_zero, add_zero,
             mul_one, coeff_C, one_ne_zero, ↓reduceIte, zero_add] at c0 c1
           exact Prod.ext ((algebraMap F L).injective c0) ((algebraMap F L).injective c1)

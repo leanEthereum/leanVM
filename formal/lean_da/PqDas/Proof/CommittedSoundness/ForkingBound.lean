@@ -129,7 +129,7 @@ private lemma chal_eq_answer_of_completion {ckVC : CkVC} {s : Fin (Q + 1)}
   classical
   let main := runTrace C vc chk A ckVC
   let x₂ : Trace Λ n ComVC L := PFunctor.FreeM.output main cmp.path
-  let log₂ : QueryLog (wrappedSpec L) := PFunctor.FreeM.Path.trace main cmp.path
+  let log₂ : QueryLog (wrappedSpec L) := (PFunctor.FreeM.Path.trace main cmp.path).toList
   have hmem : (x₂, log₂) ∈ support (replayFirstRun main) := by
     simpa [replayPathResult, pathLogResult, x₂, log₂] using
       replayPathResult_mem_support_replayFirstRun main cmp.path
@@ -328,7 +328,7 @@ private lemma prEvent_sameVec_contextFork_le {δ : ℝ≥0∞}
         Pr{let r ← forkLeaf C vc chk A Q ckVC path}[∃ x₁ x₂, r = some (x₁, x₂) ∧ x₁.vec = x₂.vec]
       ≤ ∑' path, Pr{let x ← (PFunctor.FreeM.withPath (runTrace C vc chk A ckVC) :
           OracleComp (wrappedSpec L) _)}[x = path] * δ :=
-        ENNReal.tsum_le_tsum fun path => mul_le_mul' le_rfl
+        tsum_le_tsum fun path => mul_le_mul' le_rfl
           (prEvent_sameVec_forkLeaf_le C vc chk A Q hSound ckVC path)
     _ = (∑' path, Pr{let x ← (PFunctor.FreeM.withPath (runTrace C vc chk A ckVC) :
           OracleComp (wrappedSpec L) _)}[x = path]) * δ := ENNReal.tsum_mul_right
@@ -350,7 +350,7 @@ private lemma prEvent_diffVec_le_forkVecPair (ckVC : CkVC) :
   classical
   unfold forkVecPair
   rw [bind_assoc, OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_eq_tsum_ite]
-  refine ENNReal.tsum_le_tsum fun r => ?_
+  refine tsum_le_tsum fun r => ?_
   by_cases hE : ∃ x₁ x₂, r = some (x₁, x₂) ∧ x₁.vec ≠ x₂.vec
   swap
   · rw [ite_eq_right hE]
@@ -492,7 +492,7 @@ theorem niCommittedSoundness_forking_bound {δ : ℝ≥0∞}
       = (∑' ckVC, Pr{let x ← vc.setup}[x = ckVC] * B ckVC) +
         ∑' ckVC, Pr{let x ← vc.setup}[x = ckVC] * δ := by
         simp_rw [mul_add]
-        rw [ENNReal.tsum_add]
+        rw [tsum_add]
     _ ≤ (∑' ckVC, Pr{let x ← vc.setup}[x = ckVC] * B ckVC) + δ := by
         refine add_le_add le_rfl ?_
         rw [ENNReal.tsum_mul_right]

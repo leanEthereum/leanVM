@@ -144,7 +144,7 @@ def foldQ {m : ℕ} (dom : Fin n ↪ E) (α β : E) (Q : (Fin (m + 1) → Bool) 
 /-- Over the finite field `E`, there are finitely many polynomials of degree at most `d`. -/
 theorem finite_natDegree_le (d : ℕ) : {P : E[X] | P.natDegree ≤ d}.Finite := by
   refine Set.Finite.of_finite_image (f := fun P : E[X] ↦ fun i : Fin (d + 1) ↦ P.coeff i)
-    (Set.toFinite _) fun P hP Q hQ h ↦ Polynomial.ext fun i ↦ ?_
+    (Set.toFinite _) fun P hP Q hQ h ↦ AddMonoidAlgebra.ext <| Finsupp.ext fun i ↦ ?_
   by_cases hi : i ≤ d
   · exact congrFun h ⟨i, Nat.lt_succ_of_le hi⟩
   · rw [coeff_eq_zero_of_natDegree_lt ((show P.natDegree ≤ d from hP).trans_lt (not_le.mp hi)),

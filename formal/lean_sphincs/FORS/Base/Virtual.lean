@@ -300,11 +300,11 @@ theorem creations_tsum {β : Type} (weights : β → ℝ≥0∞) (G : β → Lis
           fun v => ∑' x, weights x * creations U land (G x) k (v :: items) := by
         funext v; exact (creations_tsum weights G k (v :: items)).symm
       rw [this]
-      simp only [mul_add, ENNReal.tsum_add, freshAvg, Finset.mul_sum]
+      simp only [mul_add, tsum_add, freshAvg, Finset.mul_sum]
       congr 1
       · rw [← ENNReal.tsum_mul_left]
         exact tsum_congr fun x => by ring
-      · rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
+      · rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable)]
         refine Finset.sum_congr rfl fun v _ => ?_
         rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left]
         exact tsum_congr fun x => by ring

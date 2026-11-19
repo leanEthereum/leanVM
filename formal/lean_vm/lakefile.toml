@@ -42,12 +42,12 @@ path = "../lean_da"
 name = "mathlib"
 scope = "leanprover-community"
 git = "https://github.com/leanprover-community/mathlib4"
-rev = "v4.35.0"
+rev = "v4.36.0"
 
 [[require]]
 name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
-rev = "e28da34817c3775cfb935376acf5d416f555d64f"
+rev = "afb9b1363984a70f10e24bd597f6ff40ebc8afbb"
 
 # Clean's last main commit on this toolchain before `ProverData` became a structure (f3abad7c);
 # from d7b65e4a its `Vector.get_eq_getElem` also clashes with Batteries' (imported through CompPoly).
@@ -62,18 +62,18 @@ rev = "b41c196b10cf0f389d2badf5e19e1435e78e6d98"
 [[require]]
 name = "Arklib"
 git = "https://github.com/Verified-zkEVM/ArkLib"
-rev = "31ff7ddf9bc209ffaeab516359cd17f47d9bd6f1"
+rev = "608f550b89b881cc1c9c6c32825fcc61b53c96ab"
 
 # Native probability carriers and the free monads used by Protocol oracle computations.
 [[require]]
 name = "VCVio"
 git = "https://github.com/Verified-zkEVM/VCVio"
-rev = "5f9baf12d29d25ef7e754765d28030d53e728aac"
+rev = "f1e63c780de398fb62206dd5890f27e1ad64e0e6"
 
 [[require]]
 name = "PolyFun"
 git = "https://github.com/Verified-zkEVM/PolyFun"
-rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
+rev = "528b3b1fda285487e55704409bd1b058dc18fcad"
 
 [[lean_lib]]
 name = "LeanVM"

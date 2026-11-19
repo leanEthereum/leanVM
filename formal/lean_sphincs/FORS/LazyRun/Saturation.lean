@@ -438,7 +438,7 @@ theorem uniform_split (set : Set Digest) (inside outside : ℝ≥0∞) :
         Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∉ set] * outside := by
   classical
   rw [OracleComp.prEvent_eq_tsum_ite, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right, ← ENNReal.tsum_mul_right,
-    ← ENNReal.tsum_add]
+    ← tsum_add]
   refine tsum_congr fun value => ?_
   split_ifs <;> simp only [zero_mul, add_zero, zero_add]
 
@@ -1172,18 +1172,18 @@ theorem combine {β : Type} (step : ProbComp β) (nextWeight nextPay nextEnd : �
   have hmass : ∑' x, Pr{let y ← step}[y = x] = 1 := OracleComp.tsum_prEvent_eq_one _
   calc current + payment * ∑' x, Pr{let y ← step}[y = x] * (paid + nextPay x)
       = (current + payment * paid) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
+        simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
         rw [← ENNReal.tsum_mul_left]
         simp only [mul_left_comm payment]
         ring
     _ ≤ nextBudget * (∑' x, Pr{let y ← step}[y = x] * nextWeight x) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) :=
         add_le_add hstep le_rfl
     _ = ∑' x, Pr{let y ← step}[y = x] * (nextBudget * nextWeight x + payment * nextPay x) := by
-        rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
+        rw [← ENNReal.tsum_mul_left, ← tsum_add]
         refine tsum_congr fun x => ?_
         ring
     _ ≤ ∑' x, Pr{let y ← step}[y = x] * nextEnd x := by
-        refine ENNReal.tsum_le_tsum fun x => ?_
+        refine tsum_le_tsum fun x => ?_
         by_cases hx : x ∈ support step
         · gcongr
           exact hih x hx

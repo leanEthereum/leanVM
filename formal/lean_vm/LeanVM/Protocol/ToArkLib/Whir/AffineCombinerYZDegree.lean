@@ -107,7 +107,7 @@ theorem totalDegree_yzSplit (Q : MvPolynomial (Fin 3) L) : (yzSplit Q).totalDegr
     obtain ⟨k, hk⟩ : ∃ k, ((yzSplit Q).coeff n).coeff k ≠ 0 := by
       by_contra hc
       push Not at hc
-      exact MvPolynomial.mem_support_iff.mp hn (Polynomial.ext fun k ↦ by simp [hc k])
+      exact MvPolynomial.mem_support_iff.mp hn (AddMonoidAlgebra.ext <| Finsupp.ext fun k ↦ by simp [hc k])
     rw [coeff_yzSplit] at hk
     have := le_yzDeg (MvPolynomial.mem_support_iff.mpr hk)
     simp only [tri_one, tri_two] at this

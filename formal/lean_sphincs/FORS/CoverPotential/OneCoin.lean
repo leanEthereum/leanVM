@@ -1043,12 +1043,12 @@ theorem fresh_expectO (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     intro start
     have h := scan_bound_comb tg initial model parameter data m hparse hkind s hinv gf (fun _ _ => 0)
       digestAttemptLimit (by unfold digestAttemptLimit; norm_num) budget start
-    refine le_trans (ENNReal.tsum_le_tsum fun out => mul_le_mul_right le_self_add _) (le_trans h ?_)
+    refine le_trans (tsum_le_tsum fun out => mul_le_mul_right le_self_add _) (le_trans h ?_)
     refine walk_le landing_le_one _ (fun ρ => ?_) le_rfl bot_le _ start
     unfold poolValue
     cases pcache parameter data m s ρ <;> simp
   calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = start] * freshAvg Finset.univ gf :=
-        ENNReal.tsum_le_tsum fun start => mul_le_mul_right (hstart start) _
+        tsum_le_tsum fun start => mul_le_mul_right (hstart start) _
     _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 end SignExpectO
@@ -1257,7 +1257,7 @@ theorem sign_expectO2 (hparse : ∀ p call, model.parse (pblk parameter data p c
     rw [termO_eq_cons hm hM]
     exact term_expectO tg initial model hparse' hkind' hinv (excess_props b0) _ _ bi budget
   unfold canonO coreO
-  simp only [mul_add, ENNReal.tsum_add]
+  simp only [mul_add, tsum_add]
   rw [tsum_list_sum]
   calc _ ≤ failMass Fail + (P.map (candO parameter data w Fail s Ms L d (n + 1) budget)).sum +
         (budget * hValueO parameter data w b0 s Ms L d (n + 1) budget + budget * failMass Fail) +

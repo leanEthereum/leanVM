@@ -71,7 +71,7 @@ theorem expectedSimulatedQueryCount_bind
       rw [bind_assoc, expectedSimulatedQueryCount_query_bind,
         expectedSimulatedQueryCount_query_bind]
       simp_rw [ih, mul_add]
-      rw [ENNReal.tsum_add]
+      rw [tsum_add]
       rw [simulateQ_bind, StateT.run_bind, simulateQ_query,
         OracleComp.tsum_prEvent_bind_mul]
       simp only [OracleQuery.input_query, OracleQuery.cont_query]
@@ -137,7 +137,7 @@ theorem expectedSimulatedQueryCount_or_of_disjoint
             expectedSimulatedQueryCount implementation right
               (next result.1) result.2)
       simp_rw [ih, mul_add]
-      rw [ENNReal.tsum_add]
+      rw [tsum_add]
       have hindicator :
           (if left input ∨ right input then (1 : ENNReal) else 0) =
             (if left input then 1 else 0) + (if right input then 1 else 0) := by
