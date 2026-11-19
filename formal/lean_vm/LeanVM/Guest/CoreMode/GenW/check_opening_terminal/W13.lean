@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenW.«check_opening_terminal».S13
-public import LeanVM.Guest.CoreMode.GenW.«check_opening_terminal».S14
+public import LeanVM.Guest.CoreMode.GenW.«check_opening_terminal».S0
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P17».Core
 

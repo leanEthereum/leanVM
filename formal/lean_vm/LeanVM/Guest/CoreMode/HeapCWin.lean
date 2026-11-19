@@ -327,6 +327,18 @@ Every window builds `cxOf`'s tries from the certificate (`withCx`), which for a 
 the window's pass. The tries can be stated once instead, as literals (`cxOf_lit`, each equation decided once),
 after which a window reads them at no building cost (`withCx_cx`). -/
 
+/-- The entry at a position of a list, by the recursors: what a stated context's tries hold, read from the
+certificate's lists (a literal of the trie's shape, each entry a position of a list in the certificate). -/
+noncomputable def nthO {α : Type} (l : List α) : ℕ → Option α :=
+  List.rec (motive := fun _ ↦ ℕ → Option α) (fun _ ↦ none)
+    (fun a _ ih n ↦ Nat.rec (motive := fun _ ↦ Option α) (some a) (fun m _ ↦ ih m) n) l
+
+/-- A list without its first `n` entries, by the recursors: where a long list's positions are read from
+(`nthO`), so that no reading walks far. -/
+noncomputable def dropO {α : Type} (l : List α) (n : ℕ) : List α :=
+  Nat.rec (motive := fun _ ↦ List α → List α) (fun l ↦ l)
+    (fun _ ih l ↦ ih (List.rec (motive := fun _ ↦ List α) [] (fun _ t _ ↦ t) l)) n l
+
 /-- **The context with its tries stated.** -/
 theorem cxOf_lit {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
     {R : Trie (List (ℕ × ℕ × Wit))} {P : Trie CCell} {C T : Trie (List Wit)} {RS : Trie CRes} {DV HV EQ : Trie Unit}

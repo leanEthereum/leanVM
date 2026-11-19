@@ -698,6 +698,7 @@ def windows(R, po):
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue
         gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
+                   pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if R[k].get('hc') else 'sig_pre',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
                    sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
         for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
