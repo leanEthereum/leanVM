@@ -65,7 +65,10 @@ def sym(s):
     return '(.%s %s)' % (s[0], codePtr(s[1]) if s[0] == 'gp' else s[1])
 
 
-def unitTrie(keys): return MG.trie({k: () for k in keys}, lambda _: '()')
+def unitTrie(keys):
+    """A set of keys: the list of its keys (`CoreMode.unitOf`, `CoreMode/TrieOf.lean`)."""
+    ks = sorted(set(keys))
+    return '(CoreMode.unitOf %s)' % lst(ks) if ks else '.nil'
 
 
 def natTrie(d): return MG.trie(d, str)
@@ -280,6 +283,7 @@ def main(argv):
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d' % (p, k)
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
+                'public import LeanVM.Guest.CoreMode.TrieOf\n' +
                 imports(p, packs, [(gen_pack[n], n)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
