@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 keccak256.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
