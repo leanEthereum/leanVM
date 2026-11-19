@@ -1,3 +1,6 @@
+import os
+import sys
+
 import py_lean_pq as lpq
 import pytest
 
@@ -101,3 +104,22 @@ def test_aggregates_both_schemes_recursively():
 def test_aggregating_nothing_fails():
     with pytest.raises(lpq.LeanPqError, match="nothing to publish"):
         lpq.aggregate()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="no fork on Windows")
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded")
+def test_aggregating_in_a_child_forked_after_setup_fails():
+    lpq.setup()
+    pid = os.fork()
+    if pid == 0:
+        # Whatever happens, the child must not return into pytest.
+        code = 1
+        try:
+            lpq.aggregate()
+            code = 2
+        except lpq.LeanPqError as error:
+            code = 0 if "forked" in str(error) else 3
+        finally:
+            os._exit(code)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0

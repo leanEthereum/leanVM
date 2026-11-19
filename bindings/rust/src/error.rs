@@ -85,6 +85,11 @@ pub enum Error {
     #[error("the aggregate does not prove the given claims")]
     #[cfg(feature = "aggregation")]
     AggregateRejected,
+    /// The process was forked after it started the prover pool, so it has the pool but not its
+    /// threads, and a proof would never finish.
+    #[error("cannot aggregate in a process forked after the prover started: aggregate in the parent, or start the child without forking (Python's `spawn` or `forkserver`)")]
+    #[cfg(feature = "aggregation")]
+    ForkedAfterSetup,
 }
 
 /// A fixed-length byte encoding this crate decodes.

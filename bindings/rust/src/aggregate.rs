@@ -10,7 +10,7 @@
 //! the proof against the claims it expects.
 
 use std::fmt;
-use std::sync::Once;
+use std::sync::OnceLock;
 
 use lean_vm::{
     aggregate as prove, setup as setup_lean_vm, AggregateClaims, AggregateProof, OutputClaims,
@@ -33,15 +33,25 @@ const LOG_INV_RATE: usize = 2;
 
 const _: () = assert!(MIN_LOG_INV_RATE <= LOG_INV_RATE && LOG_INV_RATE <= MAX_LOG_INV_RATE);
 
-/// Guards the one-time prover start and guest build.
-static SETUP: Once = Once::new();
+/// The process that started the prover pool and built the guest, once.
+///
+/// A child forked after the start inherits it but not the pool's threads.
+static SETUP: OnceLock<u32> = OnceLock::new();
 
 /// Starts leanVM's prover pool, one thread per core, and builds the aggregation guest, once per
 /// process.
 ///
-/// Aggregating and decoding call it themselves, so calling it only moves that cost earlier.
+/// Aggregating and decoding call it themselves, so calling it only moves that cost earlier. A
+/// process forked after the start cannot aggregate: start it before, or without forking.
 pub fn setup() {
-    SETUP.call_once(|| setup_lean_vm(0));
+    setup_process();
+}
+
+fn setup_process() -> u32 {
+    *SETUP.get_or_init(|| {
+        setup_lean_vm(0);
+        std::process::id()
+    })
 }
 
 /// A verified recursive proof that each listed public key signed its message.
@@ -150,6 +160,8 @@ fn sorted_claims<K: Ord>(claims: impl Iterator<Item = (K, Message)>) -> Vec<(K, 
 /// - Fails when more than 16 children are given.
 /// - Fails when a raw signature does not verify, naming its list and index.
 /// - Fails when the prover rejects the input, for example when it is empty.
+/// - Fails in a process forked after the prover pool started, which has the pool but not its
+///   threads.
 pub fn aggregate(
     children: &[&Aggregate],
     xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
@@ -194,7 +206,9 @@ pub fn aggregate(
         .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
         .collect();
 
-    setup();
+    if setup_process() != std::process::id() {
+        return Err(Error::ForkedAfterSetup);
+    }
     // No DA blobs, and keep every claim the inputs cover.
     prove(
         &children,

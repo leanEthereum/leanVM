@@ -102,7 +102,9 @@ lists of `(public_key, message)` tuples.
 `aggregate` and `Aggregate.from_bytes` build the aggregation guest on first
 use; call `setup()` to pay that cost earlier. It is safe to call repeatedly.
 Proving is serialized process-wide and takes seconds and over a gigabyte of
-memory.
+memory. They also start the prover's threads, which a forked child does not
+inherit: in a child forked after that, `aggregate` raises `LeanPqError`, so give
+`multiprocessing` the `spawn` or `forkserver` start method.
 
 ## Development
 
