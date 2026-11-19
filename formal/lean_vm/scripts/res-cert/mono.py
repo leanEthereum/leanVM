@@ -1,6 +1,6 @@
 """Writes `Guest/Res/MonoCallers{k}.lean` and `MonoOk.lean`: the callers' check of
 `child_claim_list_mono` and its callees over the whole program by ranges (`Res.monoCallers`), the walk's other
-checks (`EndExec.MonoOk`) and `ResTop guestCerts` with the `sub` residuals open less the walk's reads.
+checks (`EndExec.MonoOk`) and `ResTop offCerts` with the `sub` residuals open less the walk's reads.
 That every `sub` residual is in a family, the walk's reads among them, is `sub.py`'s check.
 `callees` checks `child_claim_list_mono`'s callees with `sub` residuals (`sel.residuals`), read off its
 core IR (`Pack/*/Core.lean`), against the family `MonoDefs.monoFam` reads. `--check` writes nothing and
@@ -43,7 +43,7 @@ def header(mod, what):
 def render():
     callees(); files = {}
     mod = 'LeanVM.Guest.Res.MonoOk'
-    t = [header(mod, '`ResTop guestCerts` less the gap walk\'s reads.')]
+    t = [header(mod, '`ResTop offCerts` less the gap walk\'s reads.')]
     t.append('public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk\npublic import LeanVM.Guest.Res.AnyOk\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
@@ -51,10 +51,10 @@ def render():
              'certificates\', the `sub` residuals\' but the splits\', `anyLink`\'s and the gap walk\'s reads, and\n'
              'the listed parameters\' nonzero values. -/\n'
              'theorem resTop_guestM {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
-             '    (hsub : ResOpen guestCerts A fun j x ↦ (((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧\n'
+             '    (hsub : ResOpen offCerts A fun j x ↦ (((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧\n'
              '      anyResB anyLink j x = false) ∧ monoResB j x = false)\n'
-             '    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)\n'
-             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
+             '    (hexp : ResOpen offCerts A fun j x ↦ ltExpB j x = true)\n'
+             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop offCerts A :=\n'
              '  resTop_guestA hexc (resOpen_mono mono_ok hsub) hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}

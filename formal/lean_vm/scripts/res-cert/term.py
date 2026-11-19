@@ -1,6 +1,6 @@
 """Writes `Guest/Res/TermCerts*.lean`: every mode walk certificate's termination facts are its
 function's loop shape's (`EndExec.TermOk`, decided at the function's index by `termOkB`), and
-`TermNode guestCerts`. The certificates, their packs and groups are `Mode/Certs/List.lean`'s, each
+`TermNode offCerts`. The certificates, their packs and groups are `Mode/Certs/List.lean`'s, each
 pack's in `Pack/*/ModeCert.lean`'s order, each one's function index its `FnLink`'s in `Mode/Certs/Sig*.lean`.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/term.py [--check]"""
@@ -13,7 +13,7 @@ OUT = os.path.join(ROOT, 'Res')
 
 def groups():
     t = open(os.path.join(ROOT, 'Mode', 'Certs', 'List.lean')).read()
-    blk = t[t.index('def guestGroups'):t.index('def guestPacks')]
+    blk = t[t.index('def offGroups'):t.index('def offPacks')]
     return [re.findall(r'ModePack\.«([^»]+)»\.certs', g) for g in blk.split('[')[2:]]
 
 
@@ -60,14 +60,14 @@ def render():
                          p, chain(['termOk_of (j := %d) (by decide +kernel)' % j for j in js]), p))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.TermCerts'
-    t = [header(mod, '`TermNode guestCerts`: the termination facts of the entered instances.')]
+    t = [header(mod, '`TermNode offCerts`: the termination facts of the entered instances.')]
     t.append(''.join('public import %s\n' % m for m in mods))
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\n'
              'public section\n\n/-- **Every certificate\'s termination facts are its loop shape\'s.** -/\n'
-             'theorem guestCerts_term : ∀ K ∈ guestCerts, TermOk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+             'theorem offCerts_term : ∀ K ∈ offCerts, TermOk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
                  ['(%s)' % chain(['ModePack.«%s».certs_term' % p for p in g]) for g in G]))
     t.append('/-- **The termination facts of the entered honest instances**, for the mode walk\'s certificates. -/\n'
-             'theorem termNode_guest : TermNode guestCerts := termNode_of guestCerts_term\n\nend\n\nend LeanVM.Guest.EndExec\n')
+             'theorem termNode_guest : TermNode offCerts := termNode_of offCerts_term\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 
