@@ -107,7 +107,8 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of Fn.«plus_one_run__L22».modeSigs fa%[],
   sigsOr_of Fn.«squeeze_point_from__L9».modeSigs fa%[],
-  sigsOr_of Fn.«verify_keccak_loop0».modeSigs fa%[.inl ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩]]
+  sigsOr_of Fn.«verify_keccak_loop0».modeSigs fa%[.inl ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«verify_tables_loop1».modeSigs fa%[.inl ⟨_, Fn.«verify_tables_loop1».modeCert_in, rfl, rfl, rfl⟩]]
 
 end
 

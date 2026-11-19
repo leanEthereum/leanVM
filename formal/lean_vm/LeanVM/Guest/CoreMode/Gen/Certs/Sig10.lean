@@ -236,7 +236,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«plus_one_run__L30».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«plus_one_run__L20».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«block_selector_tab__L25».modeCert_in, rfl, rfl, rfl⟩,
-      .inr (list_mem% 8),
+      .inl ⟨_, Fn.«verify_tables_loop1».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«index_mle__L8».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«plus_one_run__L11».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«block_selector_tab__L18».modeCert_in, rfl, rfl, rfl⟩,

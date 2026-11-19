@@ -18,6 +18,7 @@ public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.EndExecCoreVt
 public import LeanVM.Guest.EndExecRVs
 public import LeanVM.Guest.EndExecRCp
+public import LeanVM.Guest.EndExecCoreDa
 
 /-!
 # The residual families, sound
@@ -1230,6 +1231,289 @@ theorem splitFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts c
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   exact splitFam_sound (by rw [find_name' hf]; exact hf) hw hh h
 
+/-! ## `keccak_layer`'s cursor -/
+
+/-- **`keccak_layer__L{first}` at an honest instance** (`LayQ`, `layer_cur`): its pack rounds' words, its last record's
+cursor `p + 48 + 2y` words into its stream, with room for `84 + 2y` words. -/
+theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) {v : ℕ} (hv : CoreMode.layCur fn = some v) :
+    ∃ p y, σ (.n 9) = Protocol.Verifier.gen ^ (y / B1.VerifySub.krStep) ∧
+      σ (.n 10) = Protocol.Verifier.gen ^ (y % B1.VerifySub.krStep) ∧ y < 32 ∧
+      σ (.n v) = σ (.n 15) * Protocol.Verifier.gen ^ (p + 48 + 2 * y) ∧ p + 84 + 2 * y ≤ 8192 := by
+  have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 744 := by
+    simp only [CoreMode.layCur, Bool.cond_eq_ite, beq_iff_eq] at hv
+    split_ifs at hv with h0 h1
+    · exact ⟨0, by decide, h0, (Option.some.inj hv).symm⟩
+    · exact ⟨1, by decide, h1, (Option.some.inj hv).symm⟩
+  obtain ⟨first, hfi, hname, rfl⟩ := hn
+  have hf' : f = B1.VerifySub.layerName first := by rw [← find_name' hf, hname]
+  subst hf'
+  obtain ⟨fL, hfL, hbL, -⟩ := layer_found hfi
+  obtain rfl : fn = fL := Option.some.inj (hf.symm.trans hfL)
+  obtain ⟨p, y, e7, hy, h9, h10, hroom⟩ := layQ_all hr I hI _ σ bufs kids ht first hfi rfl
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
+    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
+  obtain ⟨hcur, -⟩ := layer_cur hfi (fun _ _ _ h ↦ Res.KidRel.rel h) hy h9 h10 hbL hb
+  refine ⟨p, y, h9, h10, hy, ?_, by omega⟩
+  rw [hcur, e7, mul_assoc, ← pow_add]
+  ring_nf
+
+/-- **`keccak_layer`'s family holds** at an honest instance (`layQC`): `LayQ` puts its cursor `p` words into its stream
+with room for `84 + 2y` words and its pack rounds' words below `32`, its last record's cursor `48 + 2y` words past it
+(`layer_cur`). -/
+theorem layQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.layQC fn x = true → x.Holds σ
+  | .under gs r', h => fun _ ↦ layQC_inst hr hI ht hf r' h
+  | .sub c q, h => by
+    simp only [CoreMode.layQC, Bool.and_eq_true, decide_eq_true_eq, Option.any_eq_true] at h
+    obtain ⟨⟨⟨v, hv, hcb⟩, hco⟩, rfl⟩ := h
+    obtain ⟨p, y, -, -, -, hcur, hroom⟩ := layCur_inst hr hI ht hf hv
+    have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
+    refine ⟨0, 8192, p + 48 + 2 * y + c.off, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
+      CoreMode.rep_const hcap, Nat.zero_le _, by omega, ?_⟩
+    obtain ⟨cb, co⟩ := c
+    simp only at hcb
+    subst hcb
+    simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, one_mul, hcur,
+      ← Value.gen_pow_eq_ofK, addressOfIndex]
+    rw [mul_assoc, ← pow_add]
+    ring_nf
+  | .lt (.val x) (.num n), h => by
+    simp only [CoreMode.layQC, Bool.and_eq_true, Bool.or_eq_true, Nat.beq_eq, decide_eq_true_eq,
+      Option.isSome_iff_exists] at h
+    obtain ⟨⟨⟨⟨v, hv⟩, hx⟩, hn⟩, hnc⟩ := h
+    obtain ⟨p, y, h9, h10, hy, -⟩ := layCur_inst hr hI ht hf hv
+    have hk : 0 < B1.VerifySub.krStep := by decide
+    have h8 : B1.VerifySub.krStep ≤ 32 := by decide
+    rcases hx with rfl | rfl
+    · exact ltF_of_pow (e := y / B1.VerifySub.krStep) hnc (lt_of_le_of_lt (Nat.div_le_self _ _) (by omega))
+        (by rw [h9, Value.gen_pow_eq_ofK])
+    · exact ltF_of_pow (e := y % B1.VerifySub.krStep) hnc (by have := Nat.mod_lt y hk; omega)
+        (by rw [h10, Value.gen_pow_eq_ofK])
+  | .lt (.val _) (.val _), h | .lt (.val _) (.mono _), h | .lt (.num _) _, h | .lt (.mono _) _, h
+  | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [CoreMode.layQC] at h
+
+/-- **`verify_tables`' copy loop's read index holds** at an honest instance (`vtCp`): `VtCQ`'s counter `g^i` below its
+bound `g^n`, which its last parameter also holds, so the index `x·g^-1/i` is `g^(n - 1 - i)` (`Tables.vt_chi_index`). -/
+theorem vtCp_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.vtCp fn x = true → x.Holds σ
+  | .under gs r', h => fun _ ↦ vtCp_inst hr hI ht hf r' h
+  | .lt a b, h => by
+    simp only [CoreMode.vtCp, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨h, rfl⟩, rfl⟩ := h
+    have hf' : f = name% «verify_tables_loop1» := by rw [← find_name' hf, h]
+    subst hf'
+    obtain rfl : fn = fn% «verify_tables_loop1» := Option.some.inj (hf.symm.trans find_l11)
+    obtain ⟨ii, n, h0, h1, h4, hin, hn⟩ := vtCQ_all hr I hI σ bufs kids ht
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+    obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_vt hv find_l11
+    obtain ⟨fn, hf2, -, hbody⟩ := B1.Tables.l11Found
+    obtain rfl : fn = fn% «verify_tables_loop1» := Option.some.inj (hf2.symm.trans find_l11)
+    rw [hbody] at hb
+    simp only [B1.Tables.l11Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hb
+    obtain ⟨c5, m6a, m6b, -⟩ := hb
+    simp only [Atom.Holds] at c5 m6a m6b
+    have hy : Protocol.Verifier.gen ^ n * B1.Tables.vtWInvGen = σ (.n 7) * Protocol.Verifier.gen ^ ii := by
+      rw [← h4, ← c5, ← m6a, m6b, h0]
+    have e7 := B1.Tables.vt_chi_index hin hy
+    have hcap : (34 : ℕ) ≤ capE := by rw [CoreMode.capE_eq]; norm_num
+    refine ⟨n - 1 - ii, n, ?_, ?_, by omega⟩
+    · simp only [idxC, CoreMode.valW_baseC, vw, e7, Value.gen_pow_eq_ofK]
+      exact rep_of (by omega)
+    · simp only [idxC, CoreMode.valW_baseC, vw, h1, Value.gen_pow_eq_ofK]
+      exact rep_of (by omega)
+  | .nz _, h | .subR _ _, h | .subP _ _, h | .sub _ _, h => by simp [CoreMode.vtCp] at h
+
+/-! ## `da_pad`'s gap -/
+
+/-- **`da_pad`'s gap holds** at an honest instance (`daGap`): `DaPadQ`. -/
+theorem daGap_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.daGap fn x = true → x.Holds σ
+  | .under gs r', h => fun _ ↦ daGap_inst hr hI ht hf r' h
+  | .lt a b, h => by
+    simp only [CoreMode.daGap, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨hn, rfl⟩, h⟩ := h
+    split at h
+    · rename_i m
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+      have hf' : f = name% «da_pad» := by rw [← find_name' hf, hn]
+      subst hf'
+      obtain ⟨k, hk, e2⟩ := daPadQ_all hr I hI σ bufs kids ht
+      exact ltF_of_pow (e := k) h.2 (by omega) (by rw [e2, Value.gen_pow_eq_ofK])
+    · cases h
+  | .nz _, h | .subR _ _, h | .subP _ _, h | .sub _ _, h => by simp [CoreMode.daGap] at h
+
+/-! ## A range-checked table read -/
+
+theorem ldAt_mem {as : List Atom} {x p : ℕ} (h : CoreMode.ldAt as x = some p) :
+    Atom.load (V.n x) (V.n p) 0 ∈ as := by
+  unfold CoreMode.ldAt at h
+  obtain ⟨a, ha, hf⟩ := List.exists_of_findSome?_eq_some h
+  cases a with
+  | load v pv o =>
+    cases o with
+    | zero =>
+      simp only at hf
+      split at hf
+      · rename_i x' p' hx hp
+        cases hb : Nat.beq x' x <;> simp only [hb, Bool.cond_true, Bool.cond_false, reduceCtorEq,
+          Option.some.injEq] at hf
+        subst hf
+        rw [CoreMode.vnum_eq hx, CoreMode.vnum_eq hp, Nat.eq_of_beq_eq_true hb] at ha
+        exact ha
+      · cases hf
+    | succ o => simp at hf
+  | _ => simp at hf
+
+theorem mulAt_mem {as : List Atom} {p a b : ℕ} (h : CoreMode.mulAt as p = some (a, b)) :
+    Atom.mul (V.n p) (V.n a) (V.n b) ∈ as := by
+  unfold CoreMode.mulAt at h
+  obtain ⟨c, hc, hf⟩ := List.exists_of_findSome?_eq_some h
+  cases c with
+  | mul d a' b' =>
+    simp only at hf
+    split at hf
+    · rename_i p' a'' b'' hd ha hb
+      cases hq : Nat.beq p' p <;> simp only [hq, Bool.cond_true, Bool.cond_false, reduceCtorEq,
+        Option.some.injEq, Prod.mk.injEq] at hf
+      obtain ⟨rfl, rfl⟩ := hf
+      rw [CoreMode.vnum_eq hd, CoreMode.vnum_eq ha, CoreMode.vnum_eq hb, Nat.eq_of_beq_eq_true hq] at hc
+      exact hc
+    · cases hf
+  | _ => simp at hf
+
+theorem stAt_mem {as : List Atom} {T t c : ℕ} (h : CoreMode.stAt as T t = some c) :
+    Atom.load (V.n c) (V.n T) t ∈ as := by
+  unfold CoreMode.stAt at h
+  obtain ⟨a, ha, hf⟩ := List.exists_of_findSome?_eq_some h
+  cases a with
+  | load v pv o =>
+    simp only at hf
+    split at hf
+    · rename_i c' T' hc hT
+      cases hb : (Nat.beq T' T && Nat.beq o t) <;> simp only [hb, Bool.cond_true, Bool.cond_false, reduceCtorEq,
+        Option.some.injEq] at hf
+      subst hf
+      simp only [Bool.and_eq_true] at hb
+      rw [CoreMode.vnum_eq hc, CoreMode.vnum_eq hT, Nat.eq_of_beq_eq_true hb.1, Nat.eq_of_beq_eq_true hb.2] at ha
+      exact ha
+    · cases hf
+  | _ => simp at hf
+
+/-- **An index's exponent at a table's row** (`tabEv`): the read `g^k`, the index `g^t`. -/
+theorem tabEv_rep {σ : Val} {x J t k u : ℕ} (hx : σ (V.n x) = Protocol.Verifier.gen ^ k) (hJ : σ (V.n J) = Protocol.Verifier.gen ^ t) :
+    ∀ {i : CIdx}, CoreMode.tabEv x J t k i = some u → u < capE → CoreMode.rep ((idxC i).valW (vw σ)) = some u
+  | .num n, h, hu => by
+    simp only [CoreMode.tabEv, Option.some.injEq] at h
+    subst h
+    exact CoreMode.rep_const hu
+  | .val v, h, hu => by
+    simp only [CoreMode.tabEv] at h
+    rw [idxC, CoreMode.valW_baseC, show vw σ v = σ (V.n v) from rfl]
+    cases hb : Nat.beq v x <;> simp only [hb, Bool.cond_true, Bool.cond_false] at h
+    · cases hb' : Nat.beq v J <;> simp only [hb', Bool.cond_true, Bool.cond_false, reduceCtorEq,
+        Option.some.injEq] at h
+      subst h
+      rw [Nat.eq_of_beq_eq_true hb', hJ, Value.gen_pow_eq_ofK]
+      exact rep_of hu
+    · simp only [Option.some.injEq] at h
+      subst h
+      rw [Nat.eq_of_beq_eq_true hb, hx, Value.gen_pow_eq_ofK]
+      exact rep_of hu
+  | .mono c, h, hu => by
+    -- the product's word, `g^u`
+    have key : ∀ (bs : List (ℕ × ℕ)) (o u : ℕ), bs.foldr (fun b acc ↦ acc.bind fun a ↦
+        (bif Nat.beq b.1 x then some (b.2 * k) else bif Nat.beq b.1 J then some (b.2 * t) else none).map (a + ·))
+        (some o) = some u → CoreMode.prodW (vw σ) bs * ofK (addressOfIndex o) = ofK (addressOfIndex u) := by
+      intro bs
+      induction bs with
+      | nil =>
+        intro o u h
+        simp only [List.foldr_nil, Option.some.injEq] at h
+        subst h
+        simp [CoreMode.prodW]
+      | cons b bs ih =>
+        intro o u h
+        simp only [List.foldr_cons] at h
+        obtain ⟨a, ha, hb⟩ := Option.bind_eq_some_iff.mp h
+        have e1 := ih o a ha
+        obtain ⟨d, hd, rfl⟩ := Option.map_eq_some_iff.mp hb
+        have hw : vw σ b.1 ^ b.2 = ofK (addressOfIndex d) := by
+          rw [show vw σ b.1 = σ (V.n b.1) from rfl]
+          cases hx' : Nat.beq b.1 x <;> simp only [hx', Bool.cond_true, Bool.cond_false] at hd
+          · cases hJ' : Nat.beq b.1 J <;> simp only [hJ', Bool.cond_true, Bool.cond_false, reduceCtorEq,
+              Option.some.injEq] at hd
+            subst hd
+            rw [Nat.eq_of_beq_eq_true hJ', hJ, Value.gen_pow_eq_ofK, ← CoreMode.ofK_pow', addressOfIndex,
+              addressOfIndex, ← pow_mul, Nat.mul_comm]
+          · simp only [Option.some.injEq] at hd
+            subst hd
+            rw [Nat.eq_of_beq_eq_true hx', hx, Value.gen_pow_eq_ofK, ← CoreMode.ofK_pow', addressOfIndex,
+              addressOfIndex, ← pow_mul, Nat.mul_comm]
+        simp only [CoreMode.prodW]
+        rw [mul_assoc, e1, hw, ← CoreMode.ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+          Nat.add_comm]
+    simp only [CoreMode.tabEv] at h
+    simp only [idxC, CoreMode.CCell.valW]
+    rw [key c.bases c.off u h]
+    exact rep_of hu
+
+/-- **A table read's row** at an honest path: `x = g^(k_t)`, its index `g^t`, `t < N`. -/
+theorem tabOf_row {r : Ref} (hr : r.Ok) {fn : Fn} {σ : Val} (hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds r.img.read σ)
+    {x T J N : ℕ} (h : CoreMode.tabOf fn x = some (T, J, N)) :
+    ∃ t < N, σ (V.n J) = Protocol.Verifier.gen ^ t ∧ ∀ k, CoreMode.tabK fn T t = some k → σ (V.n x) = Protocol.Verifier.gen ^ k := by
+  unfold CoreMode.tabOf at h
+  obtain ⟨p, hp, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨⟨T', J'⟩, hm, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨N', hN, he⟩ := Option.map_eq_some_iff.mp h
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl, rfl⟩ := he
+  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+  obtain ⟨t, ht, hJ⟩ := rcBound_sound (by omega) r.img hall hN
+  have hld : LoadHolds r.img.read (σ (V.n p)) 0 (σ (V.n x)) := hall _ (ldAt_mem hp)
+  have hmul : σ (V.n p) = σ (V.n T') * σ (V.n J') := hall _ (mulAt_mem hm)
+  refine ⟨t, ht, hJ, fun k hk ↦ ?_⟩
+  unfold CoreMode.tabK at hk
+  obtain ⟨c, hc, hk⟩ := Option.bind_eq_some_iff.mp hk
+  obtain ⟨w, hw, hpw⟩ := Option.bind_eq_some_iff.mp hk
+  have hst : LoadHolds r.img.read (σ (V.n T')) t (σ (V.n c)) := hall _ (stAt_mem hc)
+  have hcw : σ (V.n c) = w := hall _ (constOf_sound hw)
+  rw [hmul, hJ, B1.Tables.tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  rw [B1.loadHolds_unique hld hst, hcw, powOf_sound hpw, Value.gen_pow_eq_ofK]
+
+/-- **A range-checked table read's order holds** at an honest instance (`rcTab`): at the row its index names. -/
+theorem rcTab_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.rcTab fn x = true → x.Holds σ
+  | .under gs r', h => fun _ ↦ rcTab_inst hr hI ht hf r' h
+  | .lt a b, h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds r.img.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+    simp only [CoreMode.rcTab, List.any_eq_true] at h
+    obtain ⟨x, -, h⟩ := h
+    split at h
+    · rename_i T J N hT
+      obtain ⟨t, ht', hJ, hk⟩ := tabOf_row hr hall hT
+      have h1 := List.all_eq_true.mp h t (List.mem_range.mpr ht')
+      split at h1
+      · rename_i k hkk
+        split at h1
+        · rename_i u v hu hv
+          simp only [Bool.and_eq_true, decide_eq_true_eq] at h1
+          have hx := hk k hkk
+          exact ⟨u, v, tabEv_rep hx hJ hu (by omega), tabEv_rep hx hJ hv h1.2, h1.1⟩
+        · cases h1
+      · cases h1
+    · cases h
+  | .nz _, h | .subR _ _, h | .subP _ _, h | .sub _ _, h => by simp [CoreMode.rcTab] at h
+
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -1240,7 +1524,8 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ((⟨(((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs), -⟩ | hm) | hs) | he
+  rcases this with ((⟨(((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb), -⟩ | hm) |
+    hs) | he
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · exact splitFam_inst hr hI ht hf hsp
@@ -1249,6 +1534,10 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
   · exact rcPts_inst hr hI ht hf hrc
   · exact cpPerm_inst hr hI ht hf hcp
   · exact vsExp_inst hr hI ht hf x hvs
+  · exact layQC_inst hr hI ht hf x hly
+  · exact vtCp_inst hr hI ht hf x hvc
+  · exact daGap_inst hr hI ht hf x hdg
+  · exact rcTab_inst hr hI ht hf x htb
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
   · cases x <;> simp [CoreMode.stSub, hst] at hs
   · simp [CoreMode.vtExp, hgw, CoreMode.vtGw] at he
@@ -1266,7 +1555,8 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ((⟨(((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs), hv⟩ | hm) | hs) | he
+  rcases this with ((⟨(((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb), hv⟩ | hm) |
+    hs) | he
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (splitFam_inst hr hI ht hf hsp)
@@ -1275,6 +1565,10 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (rcPts_inst hr hI ht hf hrc)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (cpPerm_inst hr hI ht hf hcp)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vsExp_inst hr hI ht hf x hvs)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (layQC_inst hr hI ht hf x hly)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vtCp_inst hr hI ht hf x hvc)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (daGap_inst hr hI ht hf x hdg)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (rcTab_inst hr hI ht hf x htb)
   · exact hml x hm
   · exact hst x hs
   · exact hvx x he

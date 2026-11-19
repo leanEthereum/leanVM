@@ -182,6 +182,7 @@ public section
 
 theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
   sigsOr_of Fn.«column_selector__L1».modeSigs fa%[],
+  sigsOr_of Fn.«da_pad».modeSigs fa%[.inl ⟨_, Fn.«da_pad_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of Fn.«index_mle__L2».modeSigs fa%[],
   sigsOr_of Fn.«level_positions__L11_L25_L7».modeSigs fa%[.inl ⟨_, Fn.«decode_query_windows__L25_L7».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«level_positions__L11_L25_L7_loop0».modeCert_in, rfl, rfl, rfl⟩],

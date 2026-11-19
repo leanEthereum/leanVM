@@ -29,6 +29,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P12»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
@@ -51,10 +52,13 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«da_pad».envC : Mode.Env := CoreMode.envOf [Fn.«da_pad_loop0».csig]
+noncomputable def Fn.«da_pad».funC : Mode.Fun := ⟨Fn.«da_pad».entry, 12, Fn.«da_pad».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«da_pad».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«da_pad».entry, 12,
     Fn.«da_pad».csig, (CoreMode.sigTrie [Fn.«da_pad_loop0».csig]), 524287, advice.2.2, .nil, .nil,
-    .nil, .nil, .nil, .nil, .nil⟩
+    .nil, .nil, Fn.«da_pad».pairO, Fn.«da_pad».pairS, .nil⟩
 
 theorem Fn.«da_pad».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

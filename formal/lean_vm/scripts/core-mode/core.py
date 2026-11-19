@@ -271,7 +271,7 @@ def cfun_lc(k, j, frame):
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                 f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, calls := {DK}, top := {DK}, '
                 f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
-                f'gtail := {DK}, '
+                f'gtail := {DK}, nzrc := {DK}, '
                 f'{loop_tail(k, frame)} }}'))
 
 

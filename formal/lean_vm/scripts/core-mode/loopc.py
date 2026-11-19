@@ -27,7 +27,8 @@ def candidates():
         t = body[-2]
         if I.callee(t[2]) != k or len(t[3]) != len(params):
             continue
-        if all(s[0] == 'a' for s in body[:-2]):
+        import callcres
+        if all(s[0] == 'a' for s in body[:-2]) and k not in callcres.LEAF_FAM:
             out.append(k)
     return out
 

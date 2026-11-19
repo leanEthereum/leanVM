@@ -464,18 +464,19 @@ def expV (res : List CRes) (v : ℕ) : Bool := res.any fun
   | .lt (.val v') (.num m) => Nat.beq v' v && decide (m ≤ capE)
   | _ => false
 
-/-- A bound over values with an exponent: a constant, or a value a residual bounds (`expV`). -/
-def idxOkN (res : List CRes) : CIdx → Bool
+/-- A bound over values with an exponent: a constant, a value a residual bounds (`expV`), or a parameter `v < np` whose
+cell `2 + v` is one of `xs` (the entry runs' exponent cells, `expCells`). -/
+def idxOkN (res : List CRes) (xs : List ℕ) (np : ℕ) : CIdx → Bool
   | .num _ => true
-  | .val v => expV res v
+  | .val v => expV res v || (decide (v < np) && xs.contains (2 + v))
   | .mono _ => false
 
 /-- **A promised run among the guarantees over values** (`HSig.postRN`): its product and bounds over the bases of
-`postIn`, the bounds constants or exponents (`idxN`) a residual bounds (`idxOkN`). -/
+`postIn`, the bounds constants or exponents (`idxN`) a residual or an entry run bounds (`idxOkN`). -/
 noncomputable def postRNIn (X : AlignCtx) (body : List Stmt) (G : Mode.Sig) (np : ℕ) (H : HCert) (r : Mode.Rng) :
     Bool :=
   monoOkP G np (rngM r) && match monoF (baseOfP X body np) r.q, idxN X body np r.lo, idxN X body np r.hi with
-    | some c, some lo, some hi => idxOkN H.res lo && idxOkN H.res hi &&
+    | some c, some lo, some hi => idxOkN H.res (expCells G) np lo && idxOkN H.res (expCells G) np hi &&
         (CRun.vals ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩).all (H.sig.nv.contains ·) &&
         H.sig.postRN.contains (CRun.mapN H.sig.nv ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩)
     | _, _, _ => false
@@ -779,18 +780,37 @@ def baseC1 (G : Mode.Sig) (na : ℕ) (ps : List (ℕ × ℕ)) : Mode.Base → Bo
   | .hp q d => ps.contains (q, d) && (Nat.beq q 1 ||
       (decide (2 ≤ q) && decide (q - 2 < na) && decide (q < 2 ^ 28) && G.entry.contains q))
 
+/-- A run whose bounds are constants or frame cells' exponents (`idxX`). -/
+def boundsX (r : Mode.Rng) : Bool := (idxX r.lo).isSome && (idxX r.hi).isSome
+
 /-- A run of constant bounds. -/
 def numB (r : Mode.Rng) : Bool :=
   match r.lo, r.hi with
   | .num _, .num _ => true
   | _, _ => false
 
+/-- **A run's next point**: past a run whose upper bound is slot `b`'s exponent, the cell `base·[b]^S`. -/
+def nextPt (q : CRun) : Option CCell :=
+  match q.hi with
+  | .val b => some (q.base.mul ⟨[(b, q.stride)], 0⟩)
+  | _ => none
+
+/-- **A run extended by its next point**: `q` the translation of `r` (`rngX`) with its upper bound `[b]` raised to
+`[b]·g`, the cell past `r`'s end (`nextPt`) a product of `ms` over the slots below `n`. -/
+def rngXExt (G : Mode.Sig) (n : ℕ) (ms : List Mode.Mono) (r : Mode.Rng) (q : CRun) : Bool :=
+  match rngX r with
+  | some q' => match q'.hi, nextPt q' with
+    | .val b, some c => decide (q = ⟨q'.base, q'.stride, q'.lo, .mono ⟨[(b, 1)], 1⟩⟩) &&
+        ms.any fun m ↦ monoS G n false m && monoIs m c
+    | _, _ => false
+  | none => false
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
 each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
-loop's); each returned word's monomial of `h` one `G` promises (`retMIn`); `h` with a ghost slot per caller's cell. -/
+loop's, or one of them extended by its next point, `rngXExt`); each returned word's monomial of `h` one `G` promises (`retMIn`); `h` with a ghost slot per caller's cell. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   (match G.self with
     | some o => decide (o < 2 ^ 28)
@@ -809,11 +829,14 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre
       | _, _ => false)) || (monoS G na true (rngM r) && h.preR.any (rngXIs r ·)) ||
       (numB r && r.q.bs.all (baseC1 G na (hpBs G) ·.1) &&
+        h.preR.any (rngLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) r ·)) ||
+      (boundsX r && (rngM r).bs.all (baseC1 G na (hpBs G) ·.1) &&
         h.preR.any (rngLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) r ·))) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
     (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
-      (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts (hpBs G).length
+      (monoS G (na + nr) false (rngM r) && rngXIs r q) ||
+      (monoS G (na + nr) false (rngM r) && rngXExt G (na + nr) G.post r q)) && Nat.beq h.ghosts (hpBs G).length
 
 /-- The first top-level `const`, `copy` or `mul` defining value `n`, before any `ret`. -/
 def defOf : List Stmt → ℕ → Option Atom
@@ -843,12 +866,24 @@ noncomputable def wordNf (pows : Exec.PowTree) (body : List Stmt) : ℕ → ℕ 
 /-- How deep `wordNf` follows the atoms. -/
 def wordFuel : ℕ := 4
 
+/-- How deep `hpValS` follows a pointer's word. -/
+def baseFuel : ℕ := 16
+
+/-- **The value a top-level `load` reads at a pointer's cell `d`**: `hpVal`, or, the pointer's word the monomial
+`[b]·g^k` (`wordNf`, `baseFuel` deep), the value one reads at `b`'s cell `d + k`. -/
+noncomputable def hpValS (pows : Exec.PowTree) (body : List Stmt) (a d : ℕ) : Option ℕ :=
+  match hpVal body a d with
+  | some n => some n
+  | none => match wordNf pows body baseFuel a with
+    | ⟨[(b, 1)], k⟩ => hpVal body b (d + k)
+    | _ => none
+
 /-- **A callee's ghost word at a call on the argument values `as`**, of its pointer base `(q, d)`: the caller's
 parameter at its cell `d` for `q = 1`, else the value a top-level `load` names at cell `d` past argument `q - 2`'s word
-(`hpVal`), as its word's monomial (`wordNf`). -/
+(`hpValS`), as its word's monomial (`wordNf`). -/
 noncomputable def ghostW (Cf : CFun) (as : List ℕ) (p : ℕ × ℕ) : Option CCell :=
   bif Nat.beq p.1 1 then some ⟨[(p.2 - 2, 1)], 0⟩ else
-    (as[p.1 - 2]?).bind fun a ↦ (hpVal Cf.fn.body a p.2).map (wordNf Cf.pows Cf.fn.body wordFuel)
+    (as[p.1 - 2]?).bind fun a ↦ (hpValS Cf.pows Cf.fn.body a p.2).map (wordNf Cf.pows Cf.fn.body wordFuel)
 
 /-- **A callee's ghost words** (`hpBs`): each caller cell `d` an entry cell of a parameter, and each ghost list the
 certificate gives the callee `f` (`HCert.gargs`) the words `ghostW` names. -/

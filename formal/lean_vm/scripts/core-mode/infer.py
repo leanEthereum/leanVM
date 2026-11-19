@@ -1053,7 +1053,7 @@ class Pass:
             # residue runs `⟨Q·g^(S·d), S·K, 0, h⟩`, `d < K`, reaching past the upper bound: `e(hi) < e(h^K·g)`, a residual
             for K in (2, 4):
                 hs = {R[3] for R, _ in st.runs if R[1] == S * K and R[2] == num(0) and R[0] == shift(Q, 0)}
-                for h in hs:
+                for h in sorted(hs, key=lambda h: -h[1]):
                     if h[0] and all(any(R == (shift(Q, S * d), S * K, num(0), h) for R, _ in st.runs) for d in range(K)):
                         k = self.addres(('lt', hi, shift(mpow(h, K), 1), 'mrg-le'))
                         self.stats['wr-mrg-le'] += 1
@@ -1145,13 +1145,10 @@ class Pass:
 
     def argword(self, st, args, a):
         """The word at cell `d` past argument `q - 2`'s word: the value a top-level `load` names there
-        (`CoreMode.hpVal`), as its monomial."""
-        for s in self.body:
-            if s[0] == 'ret':
-                return None
-            if s[0] == 'a' and s[1][0] == 'load' and s[1][2] == args[a[1] - 2] and s[1][3] == a[2]:
-                return self.mono(st, s[1][1])
-        return None
+        (`CoreMode.hpValS`), as its monomial."""
+        import callc
+        n = callc.hp_val_s(self.body, args[a[1] - 2], a[2])
+        return self.mono(st, n) if n is not None else None
 
     def call(self, st, f, args, rets, cond=None, conditional=False, conds=None, record=True):
         G = SIGS.get(f)

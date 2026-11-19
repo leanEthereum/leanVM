@@ -730,11 +730,97 @@ def vsExp (fn : Fn) : CRes → Bool
   | .under _ r => vsExp fn r
   | _ => false
 
+/-- `keccak_layer__L{first}`'s last record's cursor value (`EndExec.layer_cur`, `layOff first + 744`). -/
+def layCur (fn : Fn) : Option ℕ :=
+  bif fn.name == name% «keccak_layer__L0» then some 745 else bif fn.name == name% «keccak_layer__L1» then some 765 else none
+
+/-- **`keccak_layer`'s family** (`EndExec.LayQ`): a read `c < 36` words past its last record's cursor, one of its
+stream's, parameter `15`'s `[0, 8192)`; its pack rounds' words `e(9), e(10) < n`, `32 ≤ n`; either under branch
+conditions (`EndExec.layQC_inst`). -/
+def layQC (fn : Fn) : CRes → Bool
+  | .sub c q => (layCur fn).any (fun v ↦ decide (c.bases = [(v, 1)])) && decide (c.off < 36) &&
+      decide (q = ⟨⟨[(15, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | .lt (.val x) (.num n) => (layCur fn).isSome && (Nat.beq x 9 || Nat.beq x 10) && decide (32 ≤ n) &&
+      decide (n < capE)
+  | .under _ r => layQC fn r
+  | _ => false
+
+/-- **`verify_tables`' copy loop's read** (`EndExec.VtCQ`): `verify_tables_loop1`'s index `x·g^-1/i`, value `7`,
+below its bound, parameter `1`, either under branch conditions (`EndExec.vtCp_inst`). -/
+def vtCp (fn : Fn) : CRes → Bool
+  | .lt a b => fn.name == name% «verify_tables_loop1» && decide (a = .val 7) && decide (b = .val 1)
+  | .under _ r => vtCp fn r
+  | _ => false
+
+/-- **`da_pad`'s gap** (`EndExec.DaPadQ`): its parameter `2`, the gap `g^(DA_MAX_ROWS - n)` `da_verify` hands it,
+has an exponent below `m`, `DA_MAX_ROWS ≤ m`, either under branch conditions (`EndExec.daGap_inst`). -/
+def daGap (fn : Fn) : CRes → Bool
+  | .lt a b => fn.name == name% «da_pad» && decide (a = .val 2) && match b with
+    | .num m => decide (guest_const% DA_MAX_ROWS ≤ m) && decide (m < capE)
+    | _ => false
+  | .under _ r => daGap fn r
+  | _ => false
+
+/-- The value `p` the first top-level `load x p 0` reads `x` through. -/
+def ldAt (as : List Atom) (x : ℕ) : Option ℕ := as.findSome? fun
+  | .load v p 0 => match vnum v, vnum p with
+    | some x', some p' => bif Nat.beq x' x then some p' else none
+    | _, _ => none
+  | _ => none
+
+/-- The factors `(a, b)` of the first top-level `mul p a b`. -/
+def mulAt (as : List Atom) (p : ℕ) : Option (ℕ × ℕ) := as.findSome? fun
+  | .mul d a b => match vnum d, vnum a, vnum b with
+    | some p', some a', some b' => bif Nat.beq p' p then some (a', b') else none
+    | _, _, _ => none
+  | _ => none
+
+/-- The value `c` the first top-level `load c T t` stores at `T·g^t`. -/
+def stAt (as : List Atom) (T t : ℕ) : Option ℕ := as.findSome? fun
+  | .load v p o => match vnum v, vnum p with
+    | some c, some T' => bif Nat.beq T' T && Nat.beq o t then some c else none
+    | _, _ => none
+  | _ => none
+
+/-- **A table read** (`rcTab`): `x` loaded at offset `0` through a top-level product `T·J`, `J` range checked below
+`g^N`: `(T, J, N)`. -/
+noncomputable def tabOf (fn : Fn) (x : ℕ) : Option (ℕ × ℕ × ℕ) :=
+  let as := Res.topAtoms fn.body
+  (ldAt as x).bind fun p ↦ (mulAt as p).bind fun tj ↦ (Res.rcBound as (V.n tj.2)).map fun N ↦ (tj.1, tj.2, N)
+
+/-- **A table's row `t`**: the exponent `k` of the top-level constant `g^k` a top-level `load` stores at `T·g^t`. -/
+noncomputable def tabK (fn : Fn) (T t : ℕ) : Option ℕ :=
+  let as := Res.topAtoms fn.body
+  (stAt as T t).bind fun c ↦ (Res.constOf as (V.n c)).bind Res.powOf
+
+/-- An index's exponent at a table's row `t`: the read `x` at `k`, the index `J` at `t`, constants as they are. -/
+def tabEv (x J t k : ℕ) : CIdx → Option ℕ
+  | .num n => some n
+  | .val v => bif Nat.beq v x then some k else bif Nat.beq v J then some t else none
+  | .mono c => c.bases.foldr (fun b acc ↦ acc.bind fun a ↦
+      (bif Nat.beq b.1 x then some (b.2 * k) else bif Nat.beq b.1 J then some (b.2 * t) else none).map (a + ·))
+      (some c.off)
+
+/-- **A range-checked table read's order** (`rcTab`): an order over a table read `x` (`tabOf`), its index and
+constants, at every row of the table, either under branch conditions (`EndExec.rcTab_inst`). -/
+noncomputable def rcTab (fn : Fn) : CRes → Bool
+  | .lt a b => (a.vals ++ b.vals).any fun x ↦ match tabOf fn x with
+    | some (T, J, N) => (List.range N).all fun t ↦ match tabK fn T t with
+      | some k => match tabEv x J t k a, tabEv x J t k b with
+        | some u, some v => decide (u < v) && decide (v < capE)
+        | _, _ => false
+      | none => false
+    | none => false
+  | .under _ r => rcTab fn r
+  | _ => false
+
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, `rcPts`, `cpPerm`,
-`vsExp`, its values below `GB`), or the ghost families `ml`, `st` and `verify_tables`' exponent family. -/
+`vsExp`, `layQC`, `vtCp`, `daGap`, `rcTab`, its values below `GB`), or the ghost families `ml`, `st` and
+`verify_tables`' exponent family. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
   ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
-      vsExp fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r || vtExp fn gw r
+      vsExp fn r || layQC fn r || vtCp fn r || daGap fn r || rcTab fn r) && r.vals.all (Nat.blt · GB)) ||
+    mlSub fn r || stSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)

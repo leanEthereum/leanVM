@@ -39,6 +39,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P55».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P55».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P55».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P55».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P55».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P20»
@@ -106,95 +107,15 @@ noncomputable def Fn.«block_selector_tab__L12».frameFun : CoreMode.FFun :=
 theorem Fn.«block_selector_tab__L12».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
     := by
   decide +kernel
+noncomputable def Fn.«keccak_layer__L0».envC : Mode.Env := CoreMode.envOf
+    [Fn.«grind_check__L3».csig, Fn.«keccak_layer__L0_loop0».csig, Fn.«keccak_layer__L0_loop1».csig]
+noncomputable def Fn.«keccak_layer__L0».funC : Mode.Fun := ⟨Fn.«keccak_layer__L0».entry, 1775,
+    Fn.«keccak_layer__L0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«keccak_layer__L0».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«keccak_layer__L0».entry, 1775,
     Fn.«keccak_layer__L0».csig, (CoreMode.sigTrie [Fn.«grind_check__L3».csig,
     Fn.«keccak_layer__L0_loop0».csig, Fn.«keccak_layer__L0_loop1».csig]), 524287, advice.2.2, .nil,
-    .nil, .nil, .nil, (.node none (.node none (.node none (.node (some ()) (.node (some ()) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))))
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node none (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) .nil) .nil))) (.node none .nil (.node (some ()) .nil
-    .nil))) (.node none (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil (.node
-    none (.node (some ()) .nil .nil) .nil)))))) (.node (some ()) (.node (some ()) (.node none (.node
-    none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
-    (some ()) .nil (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) (.node
-    none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil)) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil))))) (.node none (.node (some ()) (.node (some ()) (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ())
-    .nil (.node (some ()) .nil .nil)) .nil) .nil)) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) (.node none .nil
-    (.node (some ()) .nil .nil))) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none (.node (some ())
-    (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil) (.node none .nil (.node none
-    .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node (some ()) (.node
-    (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil))) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ())
-    .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node
-    none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil)
-    .nil))))))) (.node none (.node none (.node (some ()) (.node (some ()) (.node none (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil (.node (some ()) .nil
-    .nil)) .nil))) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil (.node none
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node (some ()) (.node (some ()) (.node none
-    (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil) (.node none (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node
-    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil))))) (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node
-    none (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none (.node (some
-    ()) (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil (.node none (.node (some ())
-    .nil .nil) .nil)))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node
-    none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))))) (.node (some ()) (.node none (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil (.node
-    (some ()) .nil .nil)) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))))
-    (.node none (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil))) (.node none (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil))
-    .nil) .nil) .nil)))))), .nil, .nil⟩
+    .nil, .nil, .nil, Fn.«keccak_layer__L0».pairO, Fn.«keccak_layer__L0».pairS, .nil⟩
 
 theorem Fn.«keccak_layer__L0».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

@@ -119,7 +119,7 @@ noncomputable def dimB (j : ℕ) (w : Wit) : Mode.Res → Bool
 
 /-- **The proof stream's readers and their callers**: `verify_keccak` called by `verify_sub`, the
 two `keccak_layer` specializations by `verify_keccak`, each one's two loops by it, `verify_tables` by
-`verify_sub` and its table sumcheck's two loops by it. -/
+`verify_sub` and its table sumcheck's two loops by it; `da_pad` by `da_verify`. -/
 def stCallers : List (String × String) :=
   [(name% «verify_keccak», name% «verify_sub»), (name% «keccak_layer__L0», name% «verify_keccak»),
     (name% «keccak_layer__L1», name% «verify_keccak»),
@@ -129,7 +129,7 @@ def stCallers : List (String × String) :=
     (name% «keccak_layer__L1_loop1», name% «keccak_layer__L1»), (name% «verify_tables», name% «verify_sub»),
     (name% «verify_tables_loop0», name% «verify_tables»), (name% «verify_tables_loop1», name% «verify_tables»),
     (name% «verify_bus_gkr», name% «verify_sub»), (name% «verify_bus_gkr_loop0», name% «verify_bus_gkr»),
-    (name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0»)]
+    (name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0»), (name% «da_pad», name% «da_verify»)]
 
 /-- **The callees whose facts are carried and their callers** (`Res.callersG`): `check_opening_terminal`
 called by `verify_sub`, each `column_selector__L{κ}` by `check_opening_terminal`, and `stCallers`. -/

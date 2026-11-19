@@ -121,10 +121,10 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
   | _ => false
 
 /-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
-signatures; no conditional call's condition at a nonzero constant's cell. -/
+signatures and its residual divisors (`LoopOkC.nzrc`); no conditional call's condition at a nonzero constant's cell. -/
 noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
   !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && tgtNone Cf.X.sites && trieNil Cf.frame.tgt &&
-    !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
+    !Cf.frame.F.fpOne &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     (match Cf.frame.sig.self with
       | some o => decide (o + 1 < 2 ^ Exec.envDepth) && decide (o < 2 ^ 28)
@@ -264,6 +264,8 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   small : ∀ i (hi : i < K.code.length), SmallOps K.code[i]
   pows : Cf.pows.Ok
   fpows : Cf.frame.F.pows.Ok
+  /-- Its frame walk's residual divisors are its certificate's nonzero residuals (`nzrOk`). -/
+  nzrc : nzrOk Cf K.F.res K.code = true
   /-- Its contract is its mode signature's, and its callees'. -/
   hc : Cf.hc = false
   hcs : Cf.hcs = []
@@ -855,7 +857,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, hcif0⟩ := hsh
   obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBC_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
@@ -1258,7 +1260,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, -⟩ := hsh
   have hs := sigLP_of hok.sig
   obtain ⟨henv, harm, hacc⟩ := hok.frame
@@ -1305,7 +1307,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         (rdW_img hκ hs0.agree) y hy
     · cases he
   · -- a step
-    intro s i hi hpc hat hs0 hYs hsz _ henvK _ hjtR hT _ _ hh _ href Inv k
+    intro s i hi hpc hat hs0 hYs hsz _ henvK _ hjtR hT _ _ hh hres href Inv k
     have hat0 := hat.2 s.mem (Mem.le_refl _) hs0.agree
     have hxw := hat.1
     have hxwE : ExpW img (expCells Cf.frame.sig) s.fp := CFun.xc_of hok.hc ▸ hxw
@@ -1350,7 +1352,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       (fun j hj ↦ by rw [hok.fentry]; exact hK.ops j hj) hhintsF (hok.fentry ▸ hok.fetch) hok.small hi hpcF hAtF hs0
       hon.2 (fun h ↦ absurd h (by simp [hfp1]))
       (fun pre h post hp s1 e hm hin ↦ hh pre h post (by rw [hpcF, hhintsF i hi]; exact hp) s1 e hm hin)
-      (fun o ho ↦ by simp [trieNil_get hnzr0] at ho) ?_ ?_
+      (nzr_hnz hκ hok.nzrc harm hacc hi hAtF hs0 hres) ?_ ?_
       (fun s1 hm ↦ refOk_fp hm.fp href) ?_ ?_
     · -- the oracle's heap cell, written
       intro hOi s1 e1 hm

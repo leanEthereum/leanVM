@@ -50,6 +50,7 @@ noncomputable def «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».modeCe
 noncomputable def «plus_one_run__L22».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «squeeze_point_from__L9».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «verify_keccak_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «verify_tables_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -114,6 +115,8 @@ kernel_rfl «squeeze_point_from__L9».modeSigs : «squeeze_point_from__L9».mode
   []
 kernel_rfl «verify_keccak_loop0».modeSigs : «verify_keccak_loop0».modeCert.E.sigs.entries =
   [(«verify_keccak_loop0».entry, «verify_keccak_loop0».csig)]
+kernel_rfl «verify_tables_loop1».modeSigs : «verify_tables_loop1».modeCert.E.sigs.entries =
+  [(«verify_tables_loop1».entry, «verify_tables_loop1».csig)]
 
 @[expose] public section
 
@@ -192,6 +195,9 @@ noncomputable def «squeeze_point_from__L9».ce : EndExec.CertE CoreMode.hcTab C
 noncomputable def «verify_keccak_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P46».coreFns_ok _ (list_mem% 24), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «verify_tables_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P46».coreFns_ok _ (list_mem% 25), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_of (j := idx) (by decide +kernel)⟩
 
 end
 
@@ -217,7 +223,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».ce, Fn.«plus_one_run__L22».ce,
-   Fn.«squeeze_point_from__L9».ce, Fn.«verify_keccak_loop0».ce]
+   Fn.«squeeze_point_from__L9».ce, Fn.«verify_keccak_loop0».ce, Fn.«verify_tables_loop1».ce]
 
 end
 
