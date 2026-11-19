@@ -144,6 +144,13 @@ def heap_win(k):
     return None
 
 
+def heap_winL(k):
+    """The module of loop helper `k`'s heap check in windows (`loopcc.windows`), if it has one."""
+    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenWL', k, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.GenWL.%s.Ok' % quote(k)
+    return None
+
+
 def heap_proof(k):
     """`heapOkC`'s proof: one kernel evaluation, or its windows' (`GenW/<fn>/Ok.lean`)."""
     return 'heap_okW' if heap_win(k) else DK
@@ -171,16 +178,49 @@ def cfun_lc(k, j, frame):
     """A loop helper with calls: its core data, the kernel's checks (`CoreMode.LoopOkC`: `heapOkC`'s loop rules at its
     callees' heap signatures `csigs`, its signature, code and shape)."""
     return (cfun_def(k, j, f'[], csigs, [], false, [], {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true') +
+            thm(k, 'heap_okC', 'CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true',
+                'heap_okW' if heap_winL(k) else DK) +
             thm(k, 'loop_sig', 'CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                 'cfun.gl = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOkC cfun = true') +
-            thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
-                f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, calls := {DK}, top := {DK}, '
-                f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
-                f'gtail := {DK}, '
-                f'{loop_tail(j, frame)} }}'))
+            (loop_long(k, j) if long_body(k) else
+             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
+                 f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, tgt := {DK}, jtd := {DK}, calls := {DK}, top := {DK}, '
+                 f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
+                 f'gtail := {DK}, '
+                 f'{loop_tail(j, frame)} }}')))
+
+
+def loop_long(k, j):
+    """A long loop helper's checks (`CoreMode.LoopOkC`), each its own declaration (its own heartbeats)."""
+    code = 'code.chunks.flatten'
+    parts = [('body', 'CoreMode.loopBB cfun.fn = true'), ('tgt', f'CoreMode.tgtOk cfun {code} = true'),
+             ('jtd', f'CoreMode.jtdOk cfun modeEnv {code} = true'), ('calls', 'CoreMode.callsBL cfun = true'),
+             ('top', 'cfun.fn.body.all CoreMode.topOk = true'),
+             ('rdFree', '((Bridge.stmtsOf cfun.fn.body).all CoreMode.rdFree || CoreMode.noPtrL cfun) = true'),
+             ('cptr', '(Bridge.stmtsOf cfun.fn.body).all (CoreMode.calleePtrOk cfun) = true'),
+             ('nofa', 'CoreMode.noFA cfun.fn.body = true'), ('gtail', 'CoreMode.tailG cfun = true'),
+             ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
+             ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
+             ('xentry', 'cfun.X.entry = modeFun.entry')]
+    out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
+    out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (modeFun.entry + i) = '
+               f'Mode.hintsAt cfun.frame.hints (modeFun.entry + i)',
+               f'Mode.hintsEq_of_fn (K := {K}) (j := {j}) (d := Data.adviceFn{j}) {DK} {DK} {DK} rfl')
+    out += thm(k, 'loop_fetch', f'Exec.Fetches guestProgram modeFun.entry {code}',
+               f'Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))')
+    out += thm(k, 'loop_small', f'∀ i (hi : i < {code}.length), CoreMode.SmallOps {code}[i]',
+               f'Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))')
+    return out + thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
+                     'CoreMode.fnSpecC_of_loopC\n  { heap := heap_okC, body := loop_body, tgt := loop_tgt, jtd := loop_jtd, '
+                     'calls := loop_calls, top := loop_top, rdFree := loop_rdFree, cptr := loop_cptr, ders := rfl, gw := rfl, '
+                     'nofa := loop_nofa, code := loop_code, fsigs := rfl, gtail := loop_gtail, pair := pair_ok, '
+                     'frame := ⟨loop_env, loop_arms, frameAcc⟩, sig := loop_sig, shape := loop_shape, sigE := rfl, fsig := rfl, '
+                     'fentry := rfl, flen := loop_flen, xentry := loop_xentry, xlen := loop_xlen, dhints := rfl, '
+                     'hints := loop_hints, fetch := loop_fetch, small := loop_small, '
+                     'pows := Exec.PowTree.ok_of_okW Checked.powTree_ok, fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok, '
+                     'hc := rfl, hcs := rfl }')
 
 
 def cfun_m(k, j, frame):
@@ -226,6 +266,8 @@ def main():
     listed = sorted(k for ks in packs.values() for k in ks)
     assert listed == sorted(R), (set(listed) ^ set(R))
     frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.)«([^»]+)»(?:$|\.frameFun\b)', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
+    # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
+    frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
     tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
     files = {}
@@ -247,9 +289,11 @@ def main():
                 body.append(cfun_l(k, j, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'lc':
-                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % p)
+                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0])
                 imps.add('LeanVM.Guest.CoreMode.CoreLoopC')
-                imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
+                imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
+                if heap_winL(k):
+                    imps.add(heap_winL(k))
                 body.append(cfun_lc(k, j, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'c':

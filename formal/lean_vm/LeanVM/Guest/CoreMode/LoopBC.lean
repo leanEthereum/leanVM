@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.LoopB
+public import LeanVM.Guest.CoreMode.WalkS
 
 /-!
 # A loop helper's body with calls
@@ -125,6 +126,110 @@ theorem loopBC_noMatch {fn : Fn} (h : loopBC fn = true) {x : V} {arms : List (Li
   rcases stmts_loopC hpre hm with hm | hm | hm
   · have := hpre _ hm
     simp [isAC] at this
+  · cases hm
+  · cases hm
+
+/-! ## A loop helper's body with branches -/
+
+/-- A statement of a loop helper's body before its tail call, nested ones included: an atom, a call, a
+branch or a `match`. -/
+def isBS : Stmt → Bool
+  | .atom _ | .call .. | .ite .. | .match_ .. => true
+  | _ => false
+
+/-- **A loop helper's body with branches**: its statements before the tail call `callIf c fn.name args`
+(one word per parameter) atoms, calls, branches and `match`es, nested ones included; then `ret []`. -/
+def loopBB (fn : Fn) : Bool :=
+  match fn.body.reverse with
+  | .ret [] :: .callIf _ g args :: pre => (g == fn.name) && Nat.beq args.length fn.params.length &&
+      (stmtsOf pre.reverse).all isBS
+  | _ => false
+
+theorem stmtsOf_append : ∀ (a b : List Stmt), stmtsOf (a ++ b) = stmtsOf a ++ stmtsOf b
+  | [], _ => rfl
+  | s :: a, b => by simp [stmtsOf, stmtsOf_append a b]
+
+theorem loopBB_spec {fn : Fn} (h : loopBB fn = true) : ∃ (pre : List Stmt) (c : V) (args : List V),
+    fn.body = pre ++ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧
+      ∀ s ∈ stmtsOf pre, isBS s = true := by
+  unfold loopBB at h
+  split at h
+  · rename_i c g args pre hrev
+    simp only [Bool.and_eq_true, beq_iff_eq, Nat.beq_eq, List.all_eq_true] at h
+    obtain ⟨⟨rfl, hlen⟩, hpre⟩ := h
+    refine ⟨pre.reverse, c, args, ?_, hlen, hpre⟩
+    rw [← List.reverse_reverse fn.body, hrev]
+    simp
+  · cases h
+
+/-- **The statements of a loop helper's body with branches**: its statements before the tail call, the
+tail call, the return. -/
+theorem stmts_loopB {pre : List Stmt} {c : V} {f : String} {args : List V} {s : Stmt}
+    (h : s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :
+    s ∈ stmtsOf pre ∨ s = .callIf c f args ∨ s = .ret [] := by
+  rw [stmtsOf_append] at h
+  rcases List.mem_append.mp h with h | h
+  · exact Or.inl h
+  · simp only [stmtsOf, stmtsSub, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at h
+    exact Or.inr h
+
+/-- **The path of a loop helper's body with branches**: the path of its statements before the tail
+call falls through, then the tail call, then `ret []`. -/
+theorem walk_loopB (σ : Val) {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS s = true) {c : V} {f : String}
+    {args : List V} {es : List Ev} {vs : List V} (h : walk σ (pre ++ [.callIf c f args, .ret []]) = .ret es vs) :
+    ∃ E, walk σ pre = .fall E ∧ es = E ++ [.inK c, if σ c = 0 then .skip f args else .call f args []] ∧ vs = [] := by
+  rw [Bridge.walk_append, walk_callIf_cons, walk_ret_cons] at h
+  rcases hw : walk σ pre with E | ⟨E, ws⟩ | _
+  · rw [hw] at h
+    simp only [Out.seq, Out.pre, List.append_nil, Out.ret.injEq] at h
+    exact ⟨E, rfl, by rw [← h.1], h.2.symm⟩
+  · have := Bridge.walk_retS pre hw
+    simpa [isBS] using hpre _ this
+  · rw [hw] at h
+    cases h
+
+/-- **The tail call is the body's one conditional call.** -/
+theorem loopB_callIf {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS s = true) {c c' : V} {f f' : String}
+    {args args' : List V} (h : Stmt.callIf c' f' args' ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :
+    c' = c ∧ f' = f ∧ args' = args := by
+  rcases stmts_loopB h with h | h | h
+  · simpa [isBS] using hpre _ h
+  · simp only [Stmt.callIf.injEq] at h
+    exact h
+  · cases h
+
+/-- **A call event of a loop helper's body with branches**: a `call` statement's, or the tail call's. -/
+theorem loopB_callEv {fn : Fn} (h : loopBB fn = true) {σ : Val} {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) {f : String} {a r : List V} (he : Ev.call f a r ∈ es) :
+    Stmt.call f a r ∈ stmtsOf fn.body ∨ (f = fn.name ∧ r = []) := by
+  obtain ⟨pre, c, args, hb, -, hpre⟩ := loopBB_spec h
+  obtain ⟨t, ht, hc⟩ := Bridge.walk_callS fn.body (by rw [hw]; exact he)
+  cases t with
+  | call g a' r' =>
+    simp only [Bridge.CallS] at hc
+    obtain ⟨rfl, rfl, rfl⟩ := hc
+    exact Or.inl ht
+  | callIf c' g a' =>
+    simp only [Bridge.CallS] at hc
+    obtain ⟨rfl, rfl, rfl⟩ := hc
+    rw [hb] at ht
+    exact Or.inr ⟨(loopB_callIf hpre ht).2.1, rfl⟩
+  | dispatch x fs a' r' =>
+    rw [hb] at ht
+    rcases stmts_loopB ht with h | h | h
+    · simpa [isBS] using hpre _ h
+    · cases h
+    · cases h
+  | _ => simp [Bridge.CallS] at hc
+
+/-- A loop helper's body with branches has no dispatch. -/
+theorem loopBB_noDsp {fn : Fn} (h : loopBB fn = true) {x : V} {fs : List String} {args rets : List V} :
+    Stmt.dispatch x fs args rets ∉ stmtsOf fn.body := by
+  obtain ⟨pre, c, args', hb, -, hpre⟩ := loopBB_spec h
+  intro hm
+  rw [hb] at hm
+  rcases stmts_loopB hm with hm | hm | hm
+  · simpa [isBS] using hpre _ hm
   · cases hm
   · cases hm
 

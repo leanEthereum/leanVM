@@ -11,7 +11,7 @@ public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Data.Pows
 public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
-public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ok
+public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ctx
 public import LeanVM.Guest.Pack.«sp_wots».ModeSig
 
 set_option Elab.async false
