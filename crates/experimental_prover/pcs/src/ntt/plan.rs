@@ -153,7 +153,18 @@ fn deep_start(log_d: usize, num_ntts: usize, start: usize) -> usize {
 /// - A gathered layer costs more than a deep one, its rows scattered over more streams than the prefetcher follows.
 /// - So the budget is sized to push layers into the deep pass, not to fit a cache.
 /// - It exceeds [`L3_WORDS`], which then changes no plan.
-#[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
+///
+/// # On x86 without AVX-512
+///
+/// - Measured on Meteor Lake (a Core Ultra 7 155H's performance and efficiency cores), a quarter of Zen 5's budget
+///   wins: smaller deep sub-blocks, more layers in the gathered passes.
+/// - Twice or half that is slower.
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f")))]
+pub(super) const L2_WORDS: usize = 1 << 15;
+#[cfg(not(any(
+    all(target_arch = "aarch64", target_os = "macos"),
+    all(target_arch = "x86_64", not(target_feature = "avx512f"))
+)))]
 pub(super) const L2_WORDS: usize = 1 << 17;
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 pub(super) const L2_WORDS: usize = 1 << 21;
