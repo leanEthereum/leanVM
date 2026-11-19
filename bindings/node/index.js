@@ -701,13 +701,13 @@ if (!nativeBinding) {
 
 module.exports = nativeBinding
 module.exports.Aggregate = nativeBinding.Aggregate
+module.exports.Sidecar = nativeBinding.Sidecar
 module.exports.SphincsSecretKey = nativeBinding.SphincsSecretKey
 module.exports.XmssSecretKey = nativeBinding.XmssSecretKey
-module.exports.aggregate = nativeBinding.aggregate
-module.exports.aggregateFromBytes = nativeBinding.aggregateFromBytes
 module.exports.generateSphincsSecretKey = nativeBinding.generateSphincsSecretKey
 module.exports.generateXmssSecretKey = nativeBinding.generateXmssSecretKey
-module.exports.setup = nativeBinding.setup
+module.exports.sidecarConnect = nativeBinding.sidecarConnect
+module.exports.sidecarStart = nativeBinding.sidecarStart
 module.exports.sphincsSecretKeyFromBytes = nativeBinding.sphincsSecretKeyFromBytes
 module.exports.sphincsSecretKeyFromSeed = nativeBinding.sphincsSecretKeyFromSeed
 module.exports.sphincsVerify = nativeBinding.sphincsVerify

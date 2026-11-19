@@ -1,13 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "aggregation")]
 mod aggregate;
 mod error;
 pub mod sphincs;
 pub mod xmss;
 
-#[cfg(feature = "aggregation")]
-pub use aggregate::{aggregate, setup, Aggregate, MAX_CHILDREN};
+pub use aggregate::{Aggregate, Sidecar, MAX_CHILDREN};
 pub use error::{Encoding, Error};
 
 /// Byte length of a message, the 256-bit digest both schemes sign.

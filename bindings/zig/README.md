@@ -1,17 +1,10 @@
 # lean-pq Zig bindings
 
-Safe Zig bindings for post-quantum signatures and their recursive aggregation:
-
-- **leanXMSS**: stateful. A key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
-- **leanSPHINCS**: stateless. A key signs at most `2^30` messages; signing is deterministic.
-
-Public keys and messages are `[32]u8`; signatures are `[2404]u8` (leanXMSS) and `[7740]u8` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey`, and `Aggregate` own native handles: call `deinit` exactly once on each. Slices returned by `Aggregate.toBytes`, `xmssClaims`, and `sphincsClaims` belong to the caller's allocator.
-
-The binding links the Rust bridge's static `liblean_pq_native.a` for the target, which release packages bundle for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW).
+Zig bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
 
 ## Install
 
-Each GitHub release attaches `lean-pq-zig-<version>.tar.gz`, a Zig package with the native archives bundled. Zig 0.16 or newer:
+Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -20,30 +13,14 @@ zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/downlo
 ```
 <!-- x-release-please-end -->
 
-Then import the module in `build.zig`:
+In `build.zig`:
 
 ```zig
 const lean_pq = b.dependency("lean_pq", .{ .target = target, .optimize = optimize });
 exe.root_module.addImport("lean_pq", lean_pq.module("lean_pq"));
 ```
 
-The package picks the bundled archive for the build target. For any other target, build `liblean_pq_native.a` yourself and pass its directory as `-Dnative-dir=...`.
-
-On Windows the bundled archive targets the GNU ABI, `x86_64-windows-gnu`, which is Zig's native target there, so a plain `zig build` works; Zig supplies the MinGW-w64 libc. The MSVC ABI (`-Dtarget=x86_64-windows-msvc`) is not bundled.
-
-## Build from source
-
-Staging the archive needs Zig 0.15.2 (for `cargo-zigbuild`'s Apple cross builds); building the binding needs Zig 0.16 or newer. On Linux x86_64:
-
-```sh
-rustup target add x86_64-unknown-linux-gnu
-cargo install cargo-zigbuild --locked
-sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
-cd bindings/zig
-zig build test -Dnative-dir=.native
-```
-
-For Linux aarch64, stage `aarch64-unknown-linux-gnu`; for macOS, stage `universal2-apple-darwin` on macOS after adding both Apple Rust targets; for Windows, stage `x86_64-pc-windows-gnu` (cross-builds from Linux). `scripts/package.sh` assembles a release package from staged archives, and `scripts/consumer-smoke.sh` proves one works as a `zig fetch` dependency.
+Prebuilt for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows `x86_64-windows-gnu` (not MSVC). For any other target, pass `-Dnative-dir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -52,7 +29,6 @@ const std = @import("std");
 const lpq = @import("lean_pq");
 
 pub fn main() !void {
-    const allocator = std.heap.page_allocator;
     const message: lpq.Message = [_]u8{0x42} ** 32;
 
     var xmss_key = try lpq.XmssSecretKey.fromSeed([_]u8{0x01} ** 32);
@@ -64,39 +40,70 @@ pub fn main() !void {
     defer sphincs_key.deinit();
     const sphincs_signature = try sphincs_key.sign(message);
     try lpq.sphincsVerify(try sphincs_key.publicKey(), message, &sphincs_signature);
-
-    var leaf = try lpq.Aggregate.create(&.{}, &.{.{
-        .public_key = try xmss_key.publicKey(),
-        .message = message,
-        .signature = xmss_signature,
-    }}, &.{.{
-        .public_key = try sphincs_key.publicKey(),
-        .message = message,
-        .signature = sphincs_signature,
-    }});
-    defer leaf.deinit();
-    var root = try lpq.Aggregate.create(&.{&leaf}, &.{}, &.{});
-    defer root.deinit();
-
-    // The encoding is the proof alone; the receiver supplies the claims it expects.
-    const encoded = try root.toBytes(allocator);
-    defer allocator.free(encoded);
-    var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
-        .public_key = try xmss_key.publicKey(),
-        .message = message,
-    }}, &.{.{
-        .public_key = try sphincs_key.publicKey(),
-        .message = message,
-    }});
-    defer received.deinit();
-    const claims = try received.xmssClaims(allocator);
-    defer allocator.free(claims);
-    std.debug.assert(claims.len == 1);
 }
 ```
 
-Verification failures return `error.InvalidSignature`; other native errors return `error.NativeFailure` or `error.NativePanic`, and `lastError` copies the message.
+- leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
+- leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
+- A bad signature returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 
-leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material: the leanXMSS or leanSPHINCS seed.
+## Aggregate
 
-`Aggregate.create` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, xmss_claims, sphincs_claims)` verifies that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `fromBytes` takes. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+
+```zig
+const allocator = std.heap.page_allocator;
+var sidecar = try lpq.Sidecar.connect("/home/me/.leanvm/sidecar.sock");
+defer sidecar.deinit();
+
+var leaf = try sidecar.aggregate(&.{}, &.{.{
+    .public_key = try xmss_key.publicKey(),
+    .message = message,
+    .signature = xmss_signature,
+}}, &.{.{
+    .public_key = try sphincs_key.publicKey(),
+    .message = message,
+    .signature = sphincs_signature,
+}});
+defer leaf.deinit();
+var root = try sidecar.aggregate(&.{&leaf}, &.{}, &.{});
+defer root.deinit();
+
+const encoded = try root.toBytes(allocator);
+defer allocator.free(encoded);
+var received = try sidecar.verify(encoded, &.{.{
+    .public_key = try xmss_key.publicKey(),
+    .message = message,
+}}, &.{.{
+    .public_key = try sphincs_key.publicKey(),
+    .message = message,
+}});
+defer received.deinit();
+```
+
+- `aggregate` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
+- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
+- `verify` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
+- `Sidecar.start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", threads)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover(allocator)` returns `experimental` or `stable`.
+- A sidecar serves at most 16 connections: share one `Sidecar` per process. Calls on it run one at a time.
+- `close()` stops a sidecar `start` launched at once, failing a call in progress, even from another thread; `deinit` closes and frees the handle.
+
+## Build from source
+
+Needs Rust, [Zig](https://ziglang.org/) 0.15.2 to stage the archive, and Zig 0.16+ to build. From the repository root, on Linux x86_64:
+
+```sh
+rustup target add x86_64-unknown-linux-gnu
+cargo install cargo-zigbuild --locked
+sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
+cd bindings/zig && zig build test -Dnative-dir=.native
+```
+
+Other platforms stage `aarch64-unknown-linux-gnu`, `universal2-apple-darwin` (on macOS, with both Apple Rust targets) or `x86_64-pc-windows-gnu`.
+
+Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
+
+## License
+
+MIT or Apache-2.0, at your option.

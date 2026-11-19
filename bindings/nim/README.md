@@ -1,19 +1,10 @@
 # lean-pq Nim bindings
 
-Nim bindings for post-quantum signatures and their recursive aggregation:
-
-- **leanXMSS**: stateful. A key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
-- **leanSPHINCS**: stateless. A key signs at most `2^30` messages; signing is deterministic.
-
-The bindings follow the [Status Nim style guide](https://status-im.github.io/nim-style-guide/). Every module is `{.push raises: [], gcsafe.}`, fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results), and verification returns `bool`. They build with Nim 2.2.12 or newer under both `--mm:refc` and `--mm:orc`, and the tests compile with `--styleCheck:error` and a strict `warningAsError` and `hintAsError` set.
-
-Public keys and messages are `array[32, byte]`; signatures are `array[2404, byte]` (leanXMSS) and `array[7740, byte]` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey` and `LeanPqAggregate` are references to native handles. The garbage collector frees each handle once nothing refers to it, and `close` frees it at once; every later call on a closed value returns an error.
-
-The binding links the Rust bridge's static `liblean_pq_native.a` for the target. Each release attaches it for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, Nim's default Windows compiler), and the package's first build downloads it with curl.
+Nim bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
 
 ## Install
 
-The package is `bindings/nim` at the tag `bindings-v<version>` and needs no Rust toolchain. Nim 2.2.12 or newer, with Nimble:
+Needs Nim 2.2.12+. In your `.nimble`:
 
 <!-- x-release-please-start-version -->
 ```nim
@@ -21,7 +12,7 @@ requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0
 ```
 <!-- x-release-please-end -->
 
-or, from the command line:
+Or from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -29,7 +20,7 @@ nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindi
 ```
 <!-- x-release-please-end -->
 
-With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), vendor the repository at the same tag as a submodule and add `--path:"vendor/leanVM/bindings/nim"` to the build's `config.nims`:
+With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), vendor the tag as a submodule and add `--path:"vendor/leanVM/bindings/nim"` to `config.nims`:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -38,32 +29,9 @@ git -C vendor/leanVM checkout bindings-v0.12.0
 ```
 <!-- x-release-please-end -->
 
-The package depends on `results`.
+The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
 
-The package picks the release archive for the build target. For any other target, or to build without network access, build `liblean_pq_native.a` yourself and pass its directory with `-d:leanPqNativeDir=DIR`. On Windows the release archive targets the GNU ABI; the MSVC compiler (`--cc:vcc`) is not supported.
-
-## Build from source
-
-Stage the static archive for your platform in the directory the package links from, then run the tests, which build with both memory managers. On Linux x86_64:
-
-```sh
-rustup target add x86_64-unknown-linux-gnu
-cargo install cargo-zigbuild --locked
-sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
-cd bindings/nim
-nimble test
-```
-
-`stage-static.sh` needs [Zig](https://ziglang.org/) 0.15.2 for `cargo-zigbuild`. Each platform stages its archive from one Rust target:
-
-| Rust target | Package directory |
-| --- | --- |
-| `x86_64-unknown-linux-gnu` | `native/x86_64-linux-gnu` |
-| `aarch64-unknown-linux-gnu` | `native/aarch64-linux-gnu` |
-| `universal2-apple-darwin` (on macOS) | `native/universal-macos` |
-| `x86_64-pc-windows-gnu` | `native/x86_64-windows-gnu` |
-
-The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory. `scripts/stage-release.sh` stages the archives a release attaches, and `scripts/consumer-smoke.sh` proves the package works as a Nimble dependency without Rust.
+The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -89,24 +57,6 @@ proc main() =
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
 
-  let
-    leaf = LeanPqAggregate.init(
-      xmss = [XmssSignedMessage(
-        publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
-      sphincs = [SphincsSignedMessage(
-        publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
-    ).expect("leaf")
-    root = LeanPqAggregate.init([leaf]).expect("root")
-
-  # The encoding is the proof alone: the receiver supplies the claims it expects.
-  let
-    encoded = root.toBytes().expect("bytes")
-    expectedXmss = [LeanPqClaim(publicKey: xmssPublicKey, message: message)]
-    expectedSphincs = [LeanPqClaim(publicKey: sphincsPublicKey, message: message)]
-    received = LeanPqAggregate.fromBytes(encoded, expectedXmss, expectedSphincs).expect("verifies")
-  doAssert received.xmssClaims().expect("claims") == @expectedXmss
-  doAssert LeanPqAggregate.fromBytes(encoded, expectedXmss).isErr()
-
   # Handles are freed when collected; `close` frees them now.
   xmssKey.close()
   doAssert xmssKey.sign(message, 8).isErr()
@@ -114,8 +64,57 @@ proc main() =
 main()
 ```
 
-leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material, the leanXMSS or leanSPHINCS seed; wipe your copies when done.
+- leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
+- leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- Fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results); verification returns `bool`. Modules are `{.push raises: [], gcsafe.}` and build under `--mm:refc` and `--mm:orc`.
+- Every later call on a closed value returns an error. Do not `close` a value while another thread uses it.
 
-`LeanPqAggregate.init` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `LeanPqAggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `fromBytes` takes. `leanPqSetup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+## Aggregate
 
-Do not `close` a value while another thread uses it.
+Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above (and `import std/os`):
+
+```nim
+let
+  sidecar = LeanPqSidecar.connect(getHomeDir() / ".leanvm" / "sidecar.sock").expect("sidecar")
+  leaf = sidecar.aggregate(
+    xmss = [XmssSignedMessage(
+      publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
+    sphincs = [SphincsSignedMessage(
+      publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
+  ).expect("leaf")
+  root = sidecar.aggregate([leaf]).expect("root")
+  encoded = root.toBytes().expect("bytes")
+  received = sidecar.verify(
+    encoded,
+    [LeanPqClaim(publicKey: xmssPublicKey, message: message)],
+    [LeanPqClaim(publicKey: sphincsPublicKey, message: message)],
+  ).expect("verifies")
+doAssert received.xmssClaims().expect("claims").len == 1
+sidecar.close()
+```
+
+- `aggregate` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
+- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
+- `verify` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
+- `LeanPqSidecar.start("leanvm-sidecar", getHomeDir() / ".leanvm" / "run" / "sidecar.sock", threads = 0)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover()` returns `experimental` or `stable`.
+- A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
+- On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
+
+## Build from source
+
+Needs Rust and [Zig](https://ziglang.org/) 0.15.2. From the repository root, on Linux x86_64:
+
+```sh
+rustup target add x86_64-unknown-linux-gnu
+cargo install cargo-zigbuild --locked
+sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
+cd bindings/nim && nimble test
+```
+
+Other platforms stage `aarch64-unknown-linux-gnu` into `native/aarch64-linux-gnu`, `universal2-apple-darwin` into `native/universal-macos` (on macOS), and `x86_64-pc-windows-gnu` into `native/x86_64-windows-gnu`.
+
+Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
+
+## License
+
+MIT or Apache-2.0, at your option.
