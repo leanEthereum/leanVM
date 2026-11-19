@@ -157,14 +157,14 @@ test('opens VRF proofs under the root', async () => {
 test('loads a VRF key from its cache', async () => {
   const cache = (await lpq.VrfKey.fromSeed(seed(9), 100, 200)).cacheToBytes()
 
-  const loaded = await lpq.VrfKey.fromCacheBytes(seed(9), cache)
-  const root = loaded.root()
-  assert.equal(root.toString('hex'), '577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6')
+  const root = Buffer.from('577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6', 'hex')
+  const loaded = await lpq.VrfKey.fromCacheBytes(seed(9), cache, root)
   assert.deepEqual(loaded.cacheToBytes(), cache)
   lpq.vrfVerify(root, 150, loaded.proof(150))
 
-  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), cache.subarray(0, -1)), /VRF cache is malformed/)
-  await assert.rejects(lpq.VrfKey.fromCacheBytes(Buffer.alloc(31), cache), /seed must be 32 bytes/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), cache.subarray(0, -1), root), /VRF cache is malformed/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), cache, Buffer.alloc(32)), /does not match the root/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(Buffer.alloc(31), cache, root), /seed must be 32 bytes/)
 })
 
 test('rejects VRF slots outside the range and bad encodings', async () => {

@@ -110,14 +110,16 @@ suite "lean_pq":
   test "VRF key loads from its cache":
     let
       seed = filled(9)
-      cache = VrfKey.init(seed, 100, 200).expect("key").cacheToBytes().expect("cache")
-      loaded = VrfKey.fromCacheBytes(seed, cache).expect("loaded key")
-      vrfRoot = loaded.root().expect("root")
+      key = VrfKey.init(seed, 100, 200).expect("key")
+      cache = key.cacheToBytes().expect("cache")
+      vrfRoot = key.root().expect("root")
+      loaded = VrfKey.fromCacheBytes(seed, cache, vrfRoot).expect("loaded key")
     check:
       @vrfRoot == fromHex("577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6")
       loaded.cacheToBytes().expect("cache") == cache
       vrfVerify(vrfRoot, 150, loaded.proof(150).expect("proof"))
-      VrfKey.fromCacheBytes(seed, cache.toOpenArray(0, cache.len - 2)).isErr()
+      VrfKey.fromCacheBytes(seed, cache.toOpenArray(0, cache.len - 2), vrfRoot).isErr()
+      VrfKey.fromCacheBytes(seed, cache, default(VrfRoot)).isErr()
 
   test "secret keys round trip through bytes":
     let

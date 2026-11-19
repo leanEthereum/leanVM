@@ -84,7 +84,7 @@ final class Native {
     private static final MethodHandle AGGREGATE_DESTROY = downcall("lpq_aggregate_destroy", DESTROY);
 
     private static final MethodHandle VRF_KEY_NEW = downcall("lpq_vrf_key_new", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-    private static final MethodHandle VRF_KEY_FROM_CACHE_BYTES = downcall("lpq_vrf_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle VRF_KEY_FROM_CACHE_BYTES = downcall("lpq_vrf_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle VRF_KEY_CACHE_TO_BYTES = downcall("lpq_vrf_key_cache_to_bytes", HANDLE_TO_BUFFER);
     private static final MethodHandle VRF_KEY_ROOT = downcall("lpq_vrf_key_root", HANDLE_TO_BUFFER);
     private static final MethodHandle VRF_KEY_PROOF = downcall("lpq_vrf_key_proof", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
@@ -253,9 +253,9 @@ final class Native {
         }
     }
 
-    static MemorySegment vrfKeyFromCacheBytes(byte[] seed, byte[] cache) {
+    static MemorySegment vrfKeyFromCacheBytes(byte[] seed, byte[] cache, byte[] root) {
         try (Arena arena = Arena.ofConfined()) {
-            return handle(VRF_KEY_FROM_CACHE_BYTES, copy(arena, seed), (long) seed.length, copy(arena, cache), (long) cache.length);
+            return handle(VRF_KEY_FROM_CACHE_BYTES, copy(arena, seed), (long) seed.length, copy(arena, cache), (long) cache.length, copy(arena, root), (long) root.length);
         }
     }
 

@@ -23,15 +23,16 @@ def test_reproduces_the_known_root():
 def test_loads_a_key_from_its_cache():
     cache = lpq.VrfKey.from_seed(SEED, 100, 200).cache_to_bytes()
 
-    loaded = lpq.VrfKey.from_cache_bytes(SEED, cache)
-    assert loaded.root() == ROOT
+    loaded = lpq.VrfKey.from_cache_bytes(SEED, cache, ROOT)
     assert loaded.cache_to_bytes() == cache
     lpq.vrf_verify(ROOT, 150, loaded.proof(150))
 
     with pytest.raises(ValueError, match="VRF cache is malformed"):
-        lpq.VrfKey.from_cache_bytes(SEED, cache[:-1])
+        lpq.VrfKey.from_cache_bytes(SEED, cache[:-1], ROOT)
+    with pytest.raises(ValueError, match="does not match the root"):
+        lpq.VrfKey.from_cache_bytes(SEED, cache, bytes(32))
     with pytest.raises(ValueError, match="seed must be exactly 32 bytes"):
-        lpq.VrfKey.from_cache_bytes(SEED[:31], cache)
+        lpq.VrfKey.from_cache_bytes(SEED[:31], cache, ROOT)
 
 
 def test_rejects_bad_ranges_slots_and_lengths():

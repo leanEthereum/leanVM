@@ -55,9 +55,9 @@ export declare class VrfKey {
   static fromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
   /**
    * Rebuilds a key from its seed and a cache from `cacheToBytes()`, without hashing the range.
-   * Rejects a malformed cache. The cache is not checked: compare `root()` with the registered root.
+   * Rejects a malformed cache or one that does not lead to `root`.
    */
-  static fromCacheBytes(seed: Buffer, cache: Buffer): Promise<VrfKey>
+  static fromCacheBytes(seed: Buffer, cache: Buffer, root: Buffer): Promise<VrfKey>
   /** The 32-byte root, which the validator registers. */
   root(): Buffer
   /** Encodes the key's cache: its range and cached layer, no secret. */

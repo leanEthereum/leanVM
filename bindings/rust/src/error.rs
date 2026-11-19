@@ -42,8 +42,9 @@ pub enum Error {
         end: Slot,
     },
 
-    /// Bytes given to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) are malformed.
-    #[error("VRF cache is malformed: {actual} bytes")]
+    /// A cache given to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) is malformed
+    /// or does not lead to the given root.
+    #[error("VRF cache is malformed or does not match the root ({actual} bytes)")]
     InvalidVrfCache {
         /// Their length.
         actual: usize,

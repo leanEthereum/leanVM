@@ -21,11 +21,12 @@ public final class VrfKey implements AutoCloseable {
 
     /**
      * Rebuilds a key from its seed and a cache from {@link #cacheToBytes()}, without hashing the
-     * range. The cache is not checked: compare {@link #root()} with the registered root.
+     * range. Throws {@link LeanPqException} if the cache is malformed or does not lead to the root.
      */
-    public static VrfKey fromCacheBytes(byte[] seed, byte[] cache) {
+    public static VrfKey fromCacheBytes(byte[] seed, byte[] cache, byte[] root) {
         Native.requireLength(seed, Native.SEED_LENGTH, "seed");
-        return new VrfKey(Native.vrfKeyFromCacheBytes(seed, Objects.requireNonNull(cache, "cache")));
+        Native.requireLength(root, Native.VRF_ROOT_LENGTH, "root");
+        return new VrfKey(Native.vrfKeyFromCacheBytes(seed, Objects.requireNonNull(cache, "cache"), root));
     }
 
     /** Encodes the key's cache: its range and cached layer, no secret. */

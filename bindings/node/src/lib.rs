@@ -361,7 +361,7 @@ impl Task for SphincsSignTask {
 
 pub enum VrfKeySource {
     Range { start: f64, end: f64 },
-    Cache(Vec<u8>),
+    Cache { cache: Vec<u8>, root: Vec<u8> },
 }
 
 pub struct VrfKeyTask {
@@ -380,8 +380,9 @@ impl Task for VrfKeyTask {
                 let slots = uint32(*start, "start")?..uint32(*end, "end")?;
                 vrf::Key::new(seed, slots).map_err(api_error)
             }
-            VrfKeySource::Cache(cache) => {
-                vrf::Key::from_cache_bytes(seed, cache).map_err(api_error)
+            VrfKeySource::Cache { cache, root } => {
+                let root = bytes32(root, "root")?;
+                vrf::Key::from_cache_bytes(seed, cache, &root).map_err(api_error)
             }
         }
     }
@@ -695,10 +696,17 @@ pub fn vrf_key_from_seed(seed: Buffer, start: f64, end: f64) -> AsyncTask<VrfKey
 }
 
 #[napi(ts_return_type = "Promise<VrfKey>")]
-pub fn vrf_key_from_cache_bytes(seed: Buffer, cache: Buffer) -> AsyncTask<VrfKeyTask> {
+pub fn vrf_key_from_cache_bytes(
+    seed: Buffer,
+    cache: Buffer,
+    root: Buffer,
+) -> AsyncTask<VrfKeyTask> {
     AsyncTask::new(VrfKeyTask {
         seed: seed.to_vec(),
-        source: VrfKeySource::Cache(cache.to_vec()),
+        source: VrfKeySource::Cache {
+            cache: cache.to_vec(),
+            root: root.to_vec(),
+        },
     })
 }
 

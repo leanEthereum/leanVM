@@ -55,10 +55,8 @@ impl VrfKey {
     }
 
     /// Rebuilds a key from its seed and a cache from [`Self::cache_to_bytes`], without hashing the
-    /// range. `None` if the cache is malformed.
-    ///
-    /// The cache is not checked: compare [`Self::root`] with the registered root.
-    pub fn from_cache_bytes(seed: [u8; 32], bytes: &[u8]) -> Option<Self> {
+    /// range. `None` if the cache is malformed or does not lead to `root`.
+    pub fn from_cache_bytes(seed: [u8; 32], bytes: &[u8], root: &Hash) -> Option<Self> {
         let (start, rest) = bytes.split_first_chunk::<4>()?;
         let (end, nodes) = rest.split_first_chunk::<4>()?;
         let slots = u32::from_le_bytes(*start)..u32::from_le_bytes(*end);
@@ -66,8 +64,11 @@ impl VrfKey {
         let (nodes, []) = nodes.as_chunks::<32>() else {
             return None;
         };
-        (nodes.len() == (last - first + 1) as usize)
-            .then(|| Self::uncached(seed, slots).with_cache(level, nodes.to_vec()))
+        if nodes.len() != (last - first + 1) as usize {
+            return None;
+        }
+        let key = Self::uncached(seed, slots).with_cache(level, nodes.to_vec());
+        (key.root == *root).then_some(key)
     }
 
     /// Encodes the cache: `start` and `end` (4 little-endian bytes each), then the cached layer. It

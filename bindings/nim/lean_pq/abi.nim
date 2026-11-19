@@ -174,8 +174,8 @@ proc lpqVrfKeyNew*(
   seed: ptr byte, seedLen: csize_t, start, stop: uint32, output: ptr ptr LpqVrfKey): int32 {.
   importc: "lpq_vrf_key_new", header: lpqHeader.}
 proc lpqVrfKeyFromCacheBytes*(
-  seed: ptr byte, seedLen: csize_t, cache: ptr byte, cacheLen: csize_t,
-  output: ptr ptr LpqVrfKey): int32 {.
+  seed: ptr byte, seedLen: csize_t, cache: ptr byte, cacheLen: csize_t, root: ptr byte,
+  rootLen: csize_t, output: ptr ptr LpqVrfKey): int32 {.
   importc: "lpq_vrf_key_from_cache_bytes", header: lpqHeader.}
 proc lpqVrfKeyCacheToBytes*(key: ptr LpqVrfKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_vrf_key_cache_to_bytes", header: lpqHeader.}

@@ -64,13 +64,11 @@ impl Key {
     /// Rebuilds a key from its seed and a cache from [`Self::cache_to_bytes`], without hashing the
     /// range.
     ///
-    /// The cache is not checked: compare [`Self::root`] with the registered root.
-    ///
     /// # Errors
     ///
-    /// Fails if the cache is malformed.
-    pub fn from_cache_bytes(seed: Seed, cache: &[u8]) -> Result<Self, Error> {
-        VrfKey::from_cache_bytes(seed, cache)
+    /// Fails if the cache is malformed or does not lead to `root`.
+    pub fn from_cache_bytes(seed: Seed, cache: &[u8], root: &Root) -> Result<Self, Error> {
+        VrfKey::from_cache_bytes(seed, cache, root)
             .map(Self)
             .ok_or(Error::InvalidVrfCache {
                 actual: cache.len(),

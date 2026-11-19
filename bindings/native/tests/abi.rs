@@ -232,13 +232,23 @@ fn native_abi_reveals_and_verifies_vrf_proofs() {
                 seed.as_ptr(),
                 32,
                 cache.as_ptr(),
-                cache.len() - 1,
+                cache.len(),
+                [0; 32].as_ptr(),
+                32,
                 &mut key
             ),
             ERROR
         );
         assert_eq!(
-            lpq_vrf_key_from_cache_bytes(seed.as_ptr(), 32, cache.as_ptr(), cache.len(), &mut key),
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len(),
+                root.as_ptr(),
+                32,
+                &mut key
+            ),
             OK
         );
         let mut buffer = LpqBuffer::default();

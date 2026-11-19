@@ -67,7 +67,7 @@ export declare function sphincsSecretKeyFromSeed(seed: Buffer): Promise<SphincsS
 
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
 
-export declare function vrfKeyFromCacheBytes(seed: Buffer, cache: Buffer): Promise<VrfKey>
+export declare function vrfKeyFromCacheBytes(seed: Buffer, cache: Buffer, root: Buffer): Promise<VrfKey>
 
 export declare function vrfKeyFromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
 

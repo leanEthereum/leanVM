@@ -51,30 +51,30 @@ fn vrf_bounds() {
     assert!(!verify_vrf_proof(&key.root(), 10, &proof));
 }
 
-/// A key loaded from its cache gives the same root and proofs, and malformed bytes are refused.
+/// A key rebuilt from its cache has the same root, cache and proofs; a malformed cache, a wrong
+/// root and a wrong seed are refused, and no cache holds a leaf.
 #[test]
 fn vrf_cache_bytes() {
     for (slots, expected) in RANGES.into_iter().zip(ROOTS) {
-        let cache = VrfKey::new(seed(), slots.clone()).unwrap().cache_to_bytes();
-        let leaf = VrfKey::new(seed(), slots.clone()).unwrap().proof(slots.start).unwrap()[0];
+        let built = VrfKey::new(seed(), slots.clone()).unwrap();
+        let (cache, root) = (built.cache_to_bytes(), built.root());
+        let leaf = built.proof(slots.start).unwrap()[0];
         assert!(
             !cache.windows(32).any(|window| window == leaf),
             "{slots:?}: the cache holds a leaf"
         );
-        let key = VrfKey::from_cache_bytes(seed(), &cache).unwrap();
+
+        let key = VrfKey::from_cache_bytes(seed(), &cache, &root).unwrap();
         assert_eq!(hex(&key.root()), expected, "{slots:?}");
         assert_eq!(key.cache_to_bytes(), cache);
-        assert!(verify_vrf_proof(
-            &key.root(),
-            slots.start.into(),
-            &key.proof(slots.start).unwrap()
-        ));
+        assert_eq!(key.proof(slots.start), built.proof(slots.start));
 
-        assert!(VrfKey::from_cache_bytes(seed(), &cache[..cache.len() - 1]).is_none());
-        assert!(VrfKey::from_cache_bytes(seed(), &[&cache[..], &[0; 32]].concat()).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &cache, &[0; 32]).is_none());
+        assert!(VrfKey::from_cache_bytes([0; 32], &cache, &root).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &cache[..cache.len() - 1], &root).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &[&cache[..], &[0; 32]].concat(), &root).is_none());
         let mut wrong_range = cache.clone();
         wrong_range[4..8].copy_from_slice(&(slots.end + (1 << 20)).to_le_bytes());
-        assert!(VrfKey::from_cache_bytes(seed(), &wrong_range).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &wrong_range, &root).is_none());
     }
-    assert!(VrfKey::from_cache_bytes(seed(), &[]).is_none());
 }

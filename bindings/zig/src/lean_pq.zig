@@ -201,11 +201,10 @@ pub const VrfKey = struct {
     }
 
     /// Rebuilds a key from its seed and a cache from `cacheToBytes`, without hashing the range.
-    /// `error.NativeFailure` if the cache is malformed. The cache is not checked: compare `root()`
-    /// with the registered root.
-    pub fn fromCacheBytes(seed: Seed, cache: []const u8) Error!VrfKey {
+    /// `error.NativeFailure` if the cache is malformed or does not lead to `expected_root`.
+    pub fn fromCacheBytes(seed: Seed, cache: []const u8, expected_root: VrfRoot) Error!VrfKey {
         var output: ?*c.lpq_vrf_key = null;
-        try checkStatus(c.lpq_vrf_key_from_cache_bytes(&seed, seed.len, bytesPtr(cache), cache.len, &output));
+        try checkStatus(c.lpq_vrf_key_from_cache_bytes(&seed, seed.len, bytesPtr(cache), cache.len, &expected_root, expected_root.len, &output));
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 

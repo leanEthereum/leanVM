@@ -182,11 +182,13 @@ impl PyVrfKey {
         py: Python<'_>,
         seed: &[u8],
         cache: &[u8],
+        root: &[u8],
     ) -> PyResult<Self> {
         let seed = fixed(seed, "seed")?;
+        let root = fixed(root, "root")?;
         Ok(Self {
             inner: py
-                .detach(move || vrf::Key::from_cache_bytes(seed, cache))
+                .detach(move || vrf::Key::from_cache_bytes(seed, cache, &root))
                 .map_err(api_error)?,
         })
     }

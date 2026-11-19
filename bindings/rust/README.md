@@ -36,7 +36,7 @@ vrf::verify(&root, 1500, &key.proof(1500)?)?;
 
 A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes, the leaf then its 31 siblings, and verifying it reads only the slot's 31 low bits, as the consensus specifications do. An empty range, a range past `2^31` and a slot outside the range are errors.
 
-`Key::cache_to_bytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `Key::from_cache_bytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range. The cache is not checked: compare `root()` with the registered root before revealing a proof.
+`Key::cache_to_bytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `Key::from_cache_bytes(seed, cache, root)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
 
 ## Aggregate
 
