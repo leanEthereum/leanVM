@@ -1,9 +1,25 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
+use std::thread;
 
 use lean_pq::{sphincs, xmss, Message};
-use napi::bindgen_prelude::{AsyncTask, Buffer, Error, Result, Status, Task};
+use napi::bindgen_prelude::{AsyncTask, Buffer, Error, Object, Result, Status, Task};
 use napi::Env;
 use napi_derive::napi;
+
+/// Runs `task` on a thread of its own and returns its promise.
+///
+/// Proving and the one-time setup hold a thread for seconds, and `AsyncTask`'s threads are
+/// libuv's pool, which Node's file, DNS and crypto work share.
+fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
+    let (deferred, promise) = env.create_deferred()?;
+    thread::spawn(move || match catch_unwind(AssertUnwindSafe(|| task.compute())) {
+        Ok(Ok(output)) => deferred.resolve(move |env| task.resolve(env, output)),
+        Ok(Err(error)) => deferred.reject(error),
+        Err(_) => deferred.reject(Error::new(Status::GenericFailure, "lean-pq panicked")),
+    });
+    Ok(promise)
+}
 
 fn api_error(error: lean_pq::Error) -> Error {
     Error::new(Status::GenericFailure, error.to_string())
@@ -405,8 +421,8 @@ impl Task for AggregateTask {
 }
 
 #[napi(ts_return_type = "Promise<void>")]
-pub fn setup() -> AsyncTask<SetupTask> {
-    AsyncTask::new(SetupTask)
+pub fn setup(env: &Env) -> Result<Object<'_>> {
+    on_own_thread(env, SetupTask)
 }
 
 #[napi(ts_return_type = "Promise<XmssSecretKey>")]
@@ -471,26 +487,34 @@ pub fn sphincs_verify(public_key: Buffer, message: Buffer, signature: Buffer) ->
 
 #[napi(ts_return_type = "Promise<Aggregate>")]
 pub fn aggregate_from_bytes(
+    env: &Env,
     data: Buffer,
     xmss: Vec<Claim>,
     sphincs: Vec<Claim>,
-) -> AsyncTask<AggregateFromBytesTask> {
-    AsyncTask::new(AggregateFromBytesTask {
-        data: data.to_vec(),
-        xmss: xmss.into_iter().map(RawClaim::from).collect(),
-        sphincs: sphincs.into_iter().map(RawClaim::from).collect(),
-    })
+) -> Result<Object<'_>> {
+    on_own_thread(
+        env,
+        AggregateFromBytesTask {
+            data: data.to_vec(),
+            xmss: xmss.into_iter().map(RawClaim::from).collect(),
+            sphincs: sphincs.into_iter().map(RawClaim::from).collect(),
+        },
+    )
 }
 
 #[napi(ts_return_type = "Promise<Aggregate>")]
 pub fn aggregate(
+    env: &Env,
     children: Vec<&Aggregate>,
     xmss: Vec<SignedMessage>,
     sphincs: Vec<SignedMessage>,
-) -> AsyncTask<AggregateTask> {
-    AsyncTask::new(AggregateTask {
-        children: children.iter().map(|child| child.inner.clone()).collect(),
-        xmss: xmss.into_iter().map(RawSignedMessage::from).collect(),
-        sphincs: sphincs.into_iter().map(RawSignedMessage::from).collect(),
-    })
+) -> Result<Object<'_>> {
+    on_own_thread(
+        env,
+        AggregateTask {
+            children: children.iter().map(|child| child.inner.clone()).collect(),
+            xmss: xmss.into_iter().map(RawSignedMessage::from).collect(),
+            sphincs: sphincs.into_iter().map(RawSignedMessage::from).collect(),
+        },
+    )
 }
