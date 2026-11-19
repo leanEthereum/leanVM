@@ -104,6 +104,8 @@ def «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».sig : CoreMode.HSi
         ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }
+def «squeeze_point_from__L23».csig : CoreMode.HSig := 
+    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 23)⟩] }
 
 end
 end LeanVM.Guest.CoreMode.HcSig

@@ -589,6 +589,15 @@ def resArg (res : List CRes) (args : List V) : CIdx → Bool
           | _ => false
       | none => false
     | none => false
+  | .mono c => match c.bases with
+    | [(b, 1)] => match args[b]? with
+      | some v => match vnum v with
+        | some k => res.any fun
+            | .lt (.val k') (.num n) => Nat.beq k' k && decide (n + c.off < capE)
+            | _ => false
+        | none => false
+      | none => false
+    | _ => false
   | _ => false
 
 /-- A callee's run bound at a call on `args` has an exponent: `idxPow`, a parameter's (`expArg`), or an argument's a
@@ -738,22 +747,37 @@ def retMIn (G : Mode.Sig) (na nr : ℕ) (p : ℕ × CCell) : Bool :=
   decide (p.1 < nr) && decide (2 + na + p.1 < 2 ^ 28) &&
     G.retV.any fun q ↦ Nat.beq q.1 (2 + na + p.1) && monoS G na false q.2 && monoIs q.2 p.2
 
-/-- **A callee's caller cells** (`.hp 1 d`) its entry runs' products name, once each, in order: its ghost slots at a
-call, ghost `j` the caller's cell `(hp1s G)[j]` (`hpArgOk`). -/
-def hp1s (G : Mode.Sig) : List ℕ :=
-  nubN [] (G.preR.flatMap fun r ↦ r.q.bs.filterMap fun b ↦ match b.1 with
-    | .hp q d => bif Nat.beq q 1 then some d else none
+/-- Pairs, once each, in order (`acc` reversed, the ones kept so far). -/
+def nubP : List (ℕ × ℕ) → List (ℕ × ℕ) → List (ℕ × ℕ)
+  | acc, [] => acc.reverse
+  | acc, x :: l => nubP (bif acc.contains x then acc else x :: acc) l
+
+/-- **A callee's pointer bases** (`.hp q d`) its entry runs' products and its entry products but pointer facts
+(`hpOf`) name, once each, in order: its ghost slots at a call, ghost `j` the word of `(hpBs G)[j]`: the caller's cell
+`d` for `q = 1`, the word at cell `d` past argument `q - 2`'s word otherwise (`hpArgOk`). -/
+def hpBs (G : Mode.Sig) : List (ℕ × ℕ) :=
+  nubP [] (((G.preR.flatMap fun r ↦ r.q.bs) ++ (G.pre.filter fun m ↦ (hpOf m).isNone).flatMap (·.bs)).filterMap
+    fun b ↦ match b.1 with
+    | .hp q d => some (q, d)
     | .fr _ => none)
 
-/-- **The caller's cells as a callee's ghost slots** past its `n` arguments: `(d, n + j, 0)`. -/
-def glOfs : ℕ → List ℕ → List (ℕ × ℕ × ℕ)
+/-- **The caller's cells among a callee's ghost slots** past its `n` arguments: `(d, n + j, 0)` for `(1, d)`. -/
+def glOfs : ℕ → List (ℕ × ℕ) → List (ℕ × ℕ × ℕ)
   | _, [] => []
-  | n, d :: ds => (d, n, 0) :: glOfs (n + 1) ds
+  | n, (q, d) :: l => bif Nat.beq q 1 then (d, n, 0) :: glOfs (n + 1) l else glOfs (n + 1) l
 
-/-- **A callee's base at a call**: an argument's entry cell `2 + b`, `b < na`, or a caller's cell of `ds`. -/
-def baseC1 (G : Mode.Sig) (na : ℕ) (ds : List ℕ) : Mode.Base → Bool
+/-- **The words at arguments' cells among a callee's ghost slots** past its `n` arguments: `((q, d), n + j)` for
+`q ≠ 1`. -/
+def gpOfs : ℕ → List (ℕ × ℕ) → List ((ℕ × ℕ) × ℕ)
+  | _, [] => []
+  | n, (q, d) :: l => bif Nat.beq q 1 then gpOfs (n + 1) l else ((q, d), n) :: gpOfs (n + 1) l
+
+/-- **A callee's base at a call**: an argument's entry cell `2 + b`, `b < na`, or a pointer base of `ps` (past an
+argument's entry cell for `q ≠ 1`). -/
+def baseC1 (G : Mode.Sig) (na : ℕ) (ps : List (ℕ × ℕ)) : Mode.Base → Bool
   | .fr o => decide (2 ≤ o) && decide (o - 2 < na) && decide (o < 2 ^ 28) && G.entry.contains o
-  | .hp q d => Nat.beq q 1 && ds.contains d
+  | .hp q d => ps.contains (q, d) && (Nat.beq q 1 ||
+      (decide (2 ≤ q) && decide (q - 2 < na) && decide (q < 2 ^ 28) && G.entry.contains q))
 
 /-- A run of constant bounds. -/
 def numB (r : Mode.Rng) : Bool :=
@@ -777,28 +801,66 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (h.retM.all (retMIn G na nr) && h.postQ.isEmpty) &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
-      | none => false) || hpIn G na true h.preP h.pre m) &&
+      | none => false) || hpIn G na true h.preP h.pre m ||
+      (m.bs.all (baseC1 G na (hpBs G) ·.1) && h.preR.any (ptLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) m ·))) &&
+    (hpBs G).all (fun p ↦ Nat.beq p.1 1 || cellIn ⟨[(p.1 - 2, 1)], p.2⟩ h.pre) &&
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre
       | _, _ => false)) || (monoS G na true (rngM r) && h.preR.any (rngXIs r ·)) ||
-      (numB r && r.q.bs.all (baseC1 G na (hp1s G) ·.1) && h.preR.any (rngLIs (glOfs na (hp1s G)) [] r ·))) &&
+      (numB r && r.q.bs.all (baseC1 G na (hpBs G) ·.1) &&
+        h.preR.any (rngLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) r ·))) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
     (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
-      (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts (hp1s G).length
+      (monoS G (na + nr) false (rngM r) && rngXIs r q)) && Nat.beq h.ghosts (hpBs G).length
 
-/-- **A callee's ghost words, the caller's own parameters** (`hp1s`): each caller cell `d` an entry cell of a
-parameter, and each ghost list the certificate gives the callee `f` (`HCert.gargs`) those parameters. -/
-def hpArgOk (Cf : CFun) (G : Mode.Sig) (f : String) : Bool :=
-  (hp1s G).all (fun d ↦ decide (2 ≤ d) && decide (d - 2 < Cf.fn.params.length) && decide (d < 2 ^ 28) &&
-    Cf.frame.sig.entry.contains d) &&
-  Cf.H.gargs.all fun p ↦ !(p.1 == f) || decide (p.2.2 = (hp1s G).map fun d ↦ ⟨[(d - 2, 1)], 0⟩)
+/-- The first top-level `const`, `copy` or `mul` defining value `n`, before any `ret`. -/
+def defOf : List Stmt → ℕ → Option Atom
+  | [], _ => none
+  | .ret _ :: _, _ => none
+  | .atom a :: ss, n => match a with
+    | .const d _ | .copy d _ | .mul d _ _ => bif (vnum d).any (Nat.beq · n) then some a else defOf ss n
+    | _ => defOf ss n
+  | _ :: ss, n => defOf ss n
+
+/-- **A value's word as a monomial** through the body's top-level atoms, `k` deep: a `const` power of `g`, a
+`copy`'s source's, a `mul`'s factors' product, else the value itself. -/
+noncomputable def wordNf (pows : Exec.PowTree) (body : List Stmt) : ℕ → ℕ → CCell
+  | 0, n => ⟨[(n, 1)], 0⟩
+  | k + 1, n => match defOf body n with
+    | some (.const _ c) => match powOf pows c with
+      | some e => ⟨[], e⟩
+      | none => ⟨[(n, 1)], 0⟩
+    | some (.copy _ s) => match vnum s with
+      | some m => wordNf pows body k m
+      | none => ⟨[(n, 1)], 0⟩
+    | some (.mul _ a b) => match vnum a, vnum b with
+      | some x, some y => (wordNf pows body k x).mul (wordNf pows body k y)
+      | _, _ => ⟨[(n, 1)], 0⟩
+    | _ => ⟨[(n, 1)], 0⟩
+
+/-- How deep `wordNf` follows the atoms. -/
+def wordFuel : ℕ := 4
+
+/-- **A callee's ghost word at a call on the argument values `as`**, of its pointer base `(q, d)`: the caller's
+parameter at its cell `d` for `q = 1`, else the value a top-level `load` names at cell `d` past argument `q - 2`'s word
+(`hpVal`), as its word's monomial (`wordNf`). -/
+noncomputable def ghostW (Cf : CFun) (as : List ℕ) (p : ℕ × ℕ) : Option CCell :=
+  bif Nat.beq p.1 1 then some ⟨[(p.2 - 2, 1)], 0⟩ else
+    (as[p.1 - 2]?).bind fun a ↦ (hpVal Cf.fn.body a p.2).map (wordNf Cf.pows Cf.fn.body wordFuel)
+
+/-- **A callee's ghost words** (`hpBs`): each caller cell `d` an entry cell of a parameter, and each ghost list the
+certificate gives the callee `f` (`HCert.gargs`) the words `ghostW` names. -/
+noncomputable def hpArgOk (Cf : CFun) (G : Mode.Sig) (f : String) : Bool :=
+  (hpBs G).all (fun p ↦ !Nat.beq p.1 1 || (decide (2 ≤ p.2) && decide (p.2 - 2 < Cf.fn.params.length) &&
+    decide (p.2 < 2 ^ 28) && Cf.frame.sig.entry.contains p.2)) &&
+  Cf.H.gargs.all fun x ↦ !(x.1 == f) || decide (x.2.2.map some = (hpBs G).map (ghostW Cf x.2.1))
 
 /-- **A call's callee** `f` at a site of `na` arguments and `nr` returned words, of mode signature `G`: a
 callee whose contract is its heap signature's (`hcs`), its counts the site's, its header cells entry cells; or
 its mode signature holding of its heap signature (`fitB`). -/
-def callOkC (Cf : CFun) (G : Mode.Sig) (f : String) (na nr : ℕ) : Bool :=
+noncomputable def callOkC (Cf : CFun) (G : Mode.Sig) (f : String) (na nr : ℕ) : Bool :=
   match Cf.hcs.lookup f with
   | some p => decide (p = (na, nr)) && G.entry.contains 0 && G.entry.contains 1
   | none => fitB G (Cf.sigOf f) na nr && hpArgOk Cf G f

@@ -80,7 +80,7 @@ def _em():
     return emitc
 
 
-def cell(m, nslots, ent=None, G=None, ret_ok=None, gl=None):
+def cell(m, nslots, ent=None, G=None, ret_ok=None, gl=None, gp=None):
     """A mode product `(fp, k, bs)` as a heap cell over slots (frame cell `2 + b` is slot `b`; with `gl`, the caller's
     cell `d` linked to slot `b` with no power of `g`, `CoreMode.baseOfL`), or `No`."""
     fp, k, bs = m
@@ -90,6 +90,9 @@ def cell(m, nslots, ent=None, G=None, ret_ok=None, gl=None):
     for b, e in bs:
         if gl and b[0] == 'hp' and b[1] == 1 and b[2] in gl and gl[b[2]][1] == 0:
             out.append((gslot(gl[b[2]][0], nslots), e))
+            continue
+        if gp and b[0] == 'hp' and b[1] != 1 and (b[1], b[2]) in gp:
+            out.append((gslot(gp[(b[1], b[2])], nslots), e))
             continue
         if b[0] != 'fr':
             raise No('pointer base')
@@ -160,10 +163,11 @@ def bound(b, n, ent, gl=None):
     raise No('run bound')
 
 
-def runX(r, n, ent=None, gl=None):
-    """`CoreMode.rngX`: a run with exponent bounds (`CoreMode.rngL` with the caller's cells `gl` linked)."""
+def runX(r, n, ent=None, gl=None, gp=None):
+    """`CoreMode.rngX`: a run with exponent bounds (`CoreMode.rngL` with the caller's cells `gl` linked, the argument
+    words `gp` as ghost slots)."""
     q, lo, hi, S, d = r
-    c = cell(q, n, ent, gl=gl)
+    c = cell(q, n, ent, gl=gl, gp=gp)
     return norm_run((I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl)), c[1] + d)
 
 
@@ -240,13 +244,27 @@ def hp_facts(ms, n, ent=None):
 
 
 def hp1s(G):
-    """`CoreMode.hp1s`: the caller's cells `d` (bases `.hp 1 d`) of the entry runs' products, once each, in order."""
+    """The caller's cells `d` (bases `.hp 1 d`) among `hp_bs`."""
+    return [d for q, d in hp_bs(G) if q == 1]
+
+
+def hp_bs(G):
+    """`CoreMode.hpBs`: the pointer bases `(q, d)` (`.hp q d`) of the entry runs' products, then of the entry products
+    but pointer facts (`hpOf`), once each, in order."""
     out = []
-    for r in G['preR']:
-        for b, _ in r[0][2]:
-            if b[0] == 'hp' and b[1] == 1 and b[2] not in out:
-                out.append(b[2])
+    for bs in [r[0][2] for r in G['preR']] + [m[2] for m in G['pre'] if not hp_of(m)]:
+        for b, _ in bs:
+            if b[0] == 'hp' and (b[1], b[2]) not in out:
+                out.append((b[1], b[2]))
     return out
+
+
+def base_c1(G, na, ps, b):
+    """`CoreMode.baseC1`: an argument's entry cell, or a pointer base of `ps` (past an argument's entry cell for
+    `q ≠ 1`)."""
+    if b[0] == 'fr':
+        return 2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry']
+    return (b[1], b[2]) in ps and (b[1] == 1 or (2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry']))
 
 
 def callee_sig(G, na, nr):
@@ -258,27 +276,40 @@ def callee_sig(G, na, nr):
         raise No('callee header')
     h = I.Sig(na)
     ent = lambda o: o in G['entry']
-    h.pre = [cell(m, na, ent) for m in G['pre'] if not hp_of(m)]
+    # the pointer bases its entry runs and products name, ghost slot `na + j` the `j`-th (`CoreMode.hpBs`): the
+    # caller's cell `d` for `q = 1` (`glOfs`), the word at cell `d` past argument `q - 2`'s word otherwise (`gpOfs`)
+    ps = hp_bs(G)
+    gl = {d: (na + j, 0) for j, (q, d) in enumerate(ps) if q == 1}
+    gp = {(q, d): na + j for j, (q, d) in enumerate(ps) if q != 1}
+    gpre = []
+
+    def pre_cell(m):
+        try:
+            return [cell(m, na, ent)]
+        except No:
+            # over pointer bases: a run of one point over the ghost slots (`fitB`, `baseC1`, `ptLIs`)
+            if not ps or not all(base_c1(G, na, ps, b) for b, _ in m[2]):
+                raise
+            gpre.append((cell(m, na, ent, gl=gl, gp=gp), 1, I.num(0), I.num(1)))
+            return []
+    h.pre = [c for m in G['pre'] if not hp_of(m) for c in pre_cell(m)]
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], na, ent)
     if any(c not in h.pre for c, _ in h.preP):
         raise No('callee pointer cell')
-    # the caller's cells its entry runs name, ghost slot `na + j` the `j`-th (`CoreMode.hp1s`, `glOfs`)
-    hp1 = hp1s(G)
-    gl = {d: (na + j, 0) for j, d in enumerate(hp1)}
+    # the word at an argument's cell, its cell a precondition (`fitB`)
+    if any(q != 1 and I.mk(((q - 2, 1),), d) not in h.pre for q, d in ps):
+        raise No('callee pointer base cell')
 
     def pre_run(r):
         try:
             return runX(r, na, ent)
         except No:
-            # a run of constant bounds over argument entry cells and the caller's cells (`fitB`, `baseC1`, `rngLIs`)
-            if not hp1 or r[1][0] != 'num' or r[2][0] != 'num' or not all(
-                    (b[0] == 'hp' and b[1] == 1 and b[2] in gl) or
-                    (b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry'])
-                    for b, _ in r[0][2]):
+            # a run of constant bounds over argument entry cells and pointer bases (`fitB`, `baseC1`, `rngLIs`)
+            if not ps or r[1][0] != 'num' or r[2][0] != 'num' or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]):
                 raise
-            return runX(r, na, ent, gl=gl)
-    h.preR = [pre_run(r) for r in G['preR']]
-    h.ghosts = [('hp1', d) for d in hp1]
+            return runX(r, na, ent, gl=gl, gp=gp)
+    h.preR = [pre_run(r) for r in G['preR']] + gpre
+    h.ghosts = [('hp1', d) if q == 1 else ('hpw', q, d) for q, d in ps]
     h.prePR = [prun(p, na, ent) for p in G['preP']]
     if any(p[0] not in h.preR for p in h.prePR):
         raise No('callee preP cells')
@@ -337,6 +368,21 @@ def jt_run():
     spec.loader.exec_module(md)
     jt = md.load()['jt']
     return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
+
+
+def jt_sym(files):
+    """The jump table's end in the printed certificates as the glue's `CoreMode.jtHi` (`GlueG`), not its value: a
+    function whose run it is changes with the table's length only through the glue."""
+    _, _, (_, lo), (_, hi) = JT_RUN[0] or jt_run()
+    pats = [(f'(.num {lo}), (.num {hi})⟩', f'(.num {lo}), (.num CoreMode.jtHi)⟩'),
+            (f'⟨[], {lo}⟩, ⟨[], {hi}⟩⟩', f'⟨[], {lo}⟩, ⟨[], CoreMode.jtHi⟩⟩')]
+    for path, text in list(files.items()):
+        t = text
+        for a, b in pats:
+            t = t.replace(a, b)
+        if t != text:
+            i = t.index('\npublic import ') + 1
+            files[path] = t[:i] + 'public import LeanVM.Guest.CoreMode.GlueG\n' + t[i:]
 
 
 def own_sig(G, np, nr, gl=None):
@@ -567,6 +613,50 @@ def hp_val(body, k, d):
     return None
 
 
+def def_of(body, n):
+    """`CoreMode.defOf`: the first top-level `const`, `copy` or `mul` defining `n`, before any `ret`."""
+    for s in body:
+        if s[0] == 'ret':
+            return None
+        if s[0] == 'a' and s[1][0] in ('const', 'copy', 'mul') and s[1][1] == n:
+            return s[1]
+    return None
+
+
+WORD_FUEL = 4
+
+
+def word_nf(body, k, n):
+    """`CoreMode.wordNf`: a value's word as a monomial through the top-level atoms, `k` deep."""
+    import heapc
+    self_ = (((n, 1),), 0)
+    if k == 0:
+        return self_
+    a = def_of(body, n)
+    if a is None:
+        return self_
+    if a[0] == 'const':
+        c = a[2]
+        if c[1] != 0:
+            return self_
+        e = 0 if c[0] == 1 else I.POWS.get(c[0])
+        return ((), e) if e is not None else self_
+    if a[0] == 'copy':
+        return word_nf(body, k - 1, a[2])
+    return heapc.cmul(word_nf(body, k - 1, a[2]), word_nf(body, k - 1, a[3]))
+
+
+def ghost_w(body, ks, p):
+    """`CoreMode.ghostW`: a callee's ghost word at a call on the argument values `ks`, of its pointer base `p`."""
+    q, d = p
+    if q == 1:
+        return (((d - 2, 1),), 0)
+    if q - 2 >= len(ks):
+        return None
+    n = hp_val(body, ks[q - 2], d)
+    return word_nf(body, WORD_FUEL, n) if n is not None else None
+
+
 def top_sels(body):
     """`Res.topSels`: the top-level selectors (a `match`'s or `dispatch`'s value and arm count) up to the first statement
     that may return."""
@@ -602,6 +692,11 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                 if B is None and b[1] == 0:
                     B = (callcres.addr_bound(k, a) if k is not None else None) or \
                         callcres.rc_bound(callcres.top_atoms(body), a)
+                if B is None and b[1] > 0 and k is not None:
+                    # an argument times `g^c`, its bound plus `c` an exponent (`CoreMode.resArg`'s `.mono`)
+                    B = callcres.vs_bound(k, a)
+                    if B is not None and not B + b[1] < 2 ** 62:
+                        B = None
                 if B is None or acc is None:
                     raise No('callee bound not a constant power')
                 acc.add((a, B))
@@ -647,9 +742,12 @@ def infer_one(k, S, allow=None, hcsig=None):
             else:
                 h = callee_sig(Gf, len(args), nr)
             for a in h.ghosts:
-                # the caller's cells, its own parameters' entry cells (`CoreMode.hpArgOk`)
+                # the caller's cells, its own parameters' entry cells; the words at an argument's cells, values a
+                # top-level `load` names (`CoreMode.hpArgOk`)
                 if a[0] == 'hp1' and not (2 <= a[1] and a[1] - 2 < np and a[1] < 2 ** 28 and a[1] in G['entry']):
                     raise No('callee caller cell')
+                if a[0] == 'hpw' and hp_val(body, args[a[1] - 2], a[2]) is None:
+                    raise No('callee argument word')
             exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
@@ -681,6 +779,12 @@ def infer_one(k, S, allow=None, hcsig=None):
         H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+    # the callees' ghost words, those `hpArgOk` names
+    for g, ks, ms in H.gargs:
+        Gf = S.get(STABLE.get(g, g)) or S.get(g)
+        if Gf is not None and not any(f == g for f, _, _ in hcs) and \
+                [tuple(m) if m is not None else None for m in ms] != [ghost_w(body, ks, p) for p in hp_bs(Gf)]:
+            raise No('callee ghost words')
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
     for x, m in sorted(own.expRes):
         r = ('lt', ('val', x), ('num', m))
@@ -1038,6 +1142,7 @@ def emit(R, check):
         stale.append(path)
         if not check:
             os.remove(path)
+    jt_sym(files)
     for path, text in sorted(files.items()):
         old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
         if old != text:

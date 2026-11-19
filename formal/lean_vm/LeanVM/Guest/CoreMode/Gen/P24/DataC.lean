@@ -58,9 +58,7 @@ end LeanVM.Guest.Fn.«block_selector_tab__L17»
 namespace LeanVM.Guest.Fn.«bus_grind_check__L3»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«bus_grind_check__L3».sig
   reads := []
   res := []
   calls := [[.run 0 []]]
@@ -238,9 +236,7 @@ end LeanVM.Guest.Fn.«da_vector»
 namespace LeanVM.Guest.Fn.«grind_check__L13»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«grind_check__L13».sig
   reads := [(12, [(11, 0, .run 0 [0])]), (20, [(19, 0, .run 1 [1])]), (29, [(28, 0, .run 1 [2])]),
     (38, [(37, 0, .run 1 [3])]), (47, [(46, 0, .run 1 [4])])]
   res := [.lt (.val 6) (.num 128), .lt (.val 5) (.num 2048), .lt (.val 4) (.num 2048), .lt (.val 3) (.num 2048),
@@ -547,23 +543,7 @@ end LeanVM.Guest.Fn.«level_residual__L218_L15_L6_L3»
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 34⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 50⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 66⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 82⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 98⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 114⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 130⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 146⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 162⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 34)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 33)⟩],
-      postR := [⟨⟨[(1, 1)], 34⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 50⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 66⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 82⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 98⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 114⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 130⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 146⟩, 1, (.num 0), (.num 16)⟩,
-        ⟨⟨[(1, 1)], 162⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 33⟩, 1, (.num 0), (.num 17)⟩,
-        ⟨⟨[(1, 1)], 49⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(1, 1)], 65⟩, 1, (.num 0), (.num 17)⟩,
-        ⟨⟨[(1, 1)], 81⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(1, 1)], 97⟩, 1, (.num 0), (.num 17)⟩,
-        ⟨⟨[(1, 1)], 113⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(1, 1)], 129⟩, 1, (.num 0), (.num 17)⟩,
-        ⟨⟨[(1, 1)], 145⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(1, 1)], 161⟩, 1, (.num 0), (.num 17)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 34)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 33)⟩] }
+  sig := CoreMode.HcSig.«log2_ceil_in_the_exponent__L16_L34».sig
   reads := [(4, [(3, 0, .ev 0), (3, 1, .ev 1), (3, 2, .ev 2), (3, 3, .ev 3), (3, 4, .ev 4), (3, 5, .ev 5), (3, 6, .ev 6), (3, 7, .ev 7), (3, 8, .ev 8), (3, 9, .ev 9), (3, 10, .ev 10), (3, 11, .ev 11), (3, 12, .ev 12), (3, 13, .ev 13), (3, 14, .ev 14), (3, 15, .ev 15), (3, 16, .ev 16), (3, 17, .ev 17), (3, 18, .ev 18), (3, 19, .ev 19), (3, 20, .ev 20), (3, 21, .ev 21), (3, 22, .ev 22), (3, 23, .ev 23), (3, 24, .ev 24), (3, 25, .ev 25), (3, 26, .ev 26), (3, 27, .ev 27), (3, 28, .ev 28), (3, 29, .ev 29), (3, 30, .ev 30), (3, 31, .ev 31), (3, 32, .ev 32), (3, 33, .ev 33)]),
     (16, [(15, 0, .run 9 [0])]), (25, [(24, 0, .run 9 [1])])]
   res := [.lt (.val 4) (.num 34), .under [.nonzero 19] (.lt (.mono ⟨[(11, 1), (22, 1)], 16⟩) (.num 34))]

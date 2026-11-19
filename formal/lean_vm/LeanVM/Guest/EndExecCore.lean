@@ -12,7 +12,9 @@ public import LeanVM.Guest.CoreMode.Fam.Kid
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.JumpCells
 public import LeanVM.Guest.Bridge.JumpCells.All
+public import LeanVM.Guest.Bridge.ProgAlKeys
 public import LeanVM.Guest.EndExecLoop
+public import LeanVM.Guest.EndExecChain
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreMono
 public import LeanVM.Guest.EndExecCoreSt

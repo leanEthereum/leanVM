@@ -52,6 +52,7 @@ noncomputable def «padding_weight__L20».modeCert : Mode.Cert := ⟨envC, funC,
 noncomputable def «plus_one_run__L1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «ring_switch_target_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «squeeze_point_from__L28».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «verify_sub».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -119,6 +120,55 @@ kernel_rfl «ring_switch_target_loop0».modeSigs : «ring_switch_target_loop0».
   [(«ring_switch_target_loop0».entry, «ring_switch_target_loop0».csig)]
 kernel_rfl «squeeze_point_from__L28».modeSigs : «squeeze_point_from__L28».modeCert.E.sigs.entries =
   []
+kernel_rfl «verify_sub».modeSigs : «verify_sub».modeCert.E.sigs.entries =
+  [(«bus_grind_check__L11».entry, «bus_grind_check__L11».csig),
+    («open_stacked__L9».entry, «open_stacked__L9».csig),
+    («open_stacked__L7».entry, «open_stacked__L7».csig),
+    («squeeze_point_from__L25».entry, «squeeze_point_from__L25».csig),
+    («open_stacked__L4».entry, «open_stacked__L4».csig),
+    («bus_grind_check__L3».entry, «bus_grind_check__L3».csig),
+    («open_stacked__L0».entry, «open_stacked__L0».csig),
+    («log2_ceil_in_the_exponent__L16_L34».entry, «log2_ceil_in_the_exponent__L16_L34».csig),
+    («verify_bus_gkr».entry, «verify_bus_gkr».csig),
+    («bus_grind_check__L7».entry, «bus_grind_check__L7».csig),
+    («squeeze_point_from__L24».entry, «squeeze_point_from__L24».csig),
+    («log2_ceil_in_the_exponent__L0_L34».entry, «log2_ceil_in_the_exponent__L0_L34».csig),
+    («bus_grind_check__L13».entry, «bus_grind_check__L13».csig),
+    («open_stacked__L6».entry, «open_stacked__L6».csig),
+    («squeeze_point_from__L21».entry, «squeeze_point_from__L21».csig),
+    («squeeze_point_from__L20».entry, «squeeze_point_from__L20».csig),
+    («bus_grind_check__L5».entry, «bus_grind_check__L5».csig),
+    («bus_grind_check__L1».entry, «bus_grind_check__L1».csig),
+    («squeeze_point_from__L29».entry, «squeeze_point_from__L29».csig),
+    («g_power_of_word».entry, «g_power_of_word».csig),
+    («squeeze_point_from__L28».entry, «squeeze_point_from__L28».csig),
+    («bus_grind_check__L9».entry, «bus_grind_check__L9».csig),
+    («open_stacked__L2».entry, «open_stacked__L2».csig),
+    («squeeze_point_from__L30».entry, «squeeze_point_from__L30».csig),
+    («ring_switch_target».entry, «ring_switch_target».csig),
+    («open_stacked__L5».entry, «open_stacked__L5».csig),
+    («open_stacked__L10».entry, «open_stacked__L10».csig),
+    («open_stacked__L3».entry, «open_stacked__L3».csig),
+    («bus_grind_check__L4».entry, «bus_grind_check__L4».csig),
+    («squeeze_point_from__L27».entry, «squeeze_point_from__L27».csig),
+    («bus_grind_check__L12».entry, «bus_grind_check__L12».csig),
+    («bus_grind_check__L8».entry, «bus_grind_check__L8».csig),
+    («bus_grind_check__L0».entry, «bus_grind_check__L0».csig),
+    («grind_check__L15».entry, «grind_check__L15».csig),
+    («open_stacked__L1».entry, «open_stacked__L1».csig),
+    («squeeze_point_from__L22».entry, «squeeze_point_from__L22».csig),
+    («bus_grind_check__L6».entry, «bus_grind_check__L6».csig),
+    («check_opening_terminal».entry, «check_opening_terminal».csig),
+    («squeeze_point_from__L23».entry, «squeeze_point_from__L23».csig),
+    («grind_check__L13».entry, «grind_check__L13».csig),
+    («certify_placement».entry, «certify_placement».csig),
+    («verify_keccak».entry, «verify_keccak».csig),
+    («bus_grind_check__L10».entry, «bus_grind_check__L10».csig),
+    («squeeze_point_from__L26».entry, «squeeze_point_from__L26».csig),
+    («verify_tables».entry, «verify_tables».csig),
+    («opening_message__L1_L1».entry, «opening_message__L1_L1».csig),
+    («open_stacked__L8».entry, «open_stacked__L8».csig),
+    («bus_grind_check__L2».entry, «bus_grind_check__L2».csig)]
 
 @[expose] public section
 
@@ -203,6 +253,9 @@ noncomputable def «ring_switch_target_loop0».ce : EndExec.CertE CoreMode.hcTab
 noncomputable def «squeeze_point_from__L28».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P33».coreFns_ok _ (list_mem% 26), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «verify_sub».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P33».coreFns_ok _ (list_mem% 27), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
 end
 
@@ -228,7 +281,8 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».ce, Fn.«padding_weight__L20».ce,
-   Fn.«plus_one_run__L1».ce, Fn.«ring_switch_target_loop0».ce, Fn.«squeeze_point_from__L28».ce]
+   Fn.«plus_one_run__L1».ce, Fn.«ring_switch_target_loop0».ce, Fn.«squeeze_point_from__L28».ce,
+   Fn.«verify_sub».ce]
 
 end
 

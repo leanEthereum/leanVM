@@ -8,19 +8,23 @@
 module
 
 public import LeanVM.Guest.SoundFacts
+public import LeanVM.Guest.CoreMode.GlueA.«main_loop2»
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Pack.«P43».Bundle
 
 set_option linter.all false
 set_option linter.style.nameCheck false
 
-/-! Each function's code is the program's (`code_mem`). -/
+/-! Each function's code is the program's (`code_mem`); the program's tables at its index are its data (`tie`). -/
 
 namespace LeanVM.Guest
 
 public section
 
 theorem Fn.«main_loop2».code_mem : code ∈ Data.functions := Checked.code39 ▸ End.fnOf_mem (by decide)
+theorem Fn.«main_loop2».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop2_main", Fn.«main_loop2».entry)], advice) :=
+  ⟨Checked.code39, Checked.core39, Checked.cert39, Bridge.ProgAl.plumbEq39, Bridge.ProgAl.tab39⟩
 
 end
 

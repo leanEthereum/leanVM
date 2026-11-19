@@ -653,12 +653,88 @@ def vtAtoms : List Atom :=
 noncomputable def vtExp (fn : Fn) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
   fn.name == name% «verify_tables» && decide (gw = vtGw) && vtExpR vtAtoms [] r
 
-/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, its values below `GB`), or
-the ghost families `ml`, `st` and `verify_tables`' exponent family. -/
+/-! ## A range-checked index, `certify_placement`'s order, `verify_sub`'s exponents -/
+
+/-- **`[B]·[J]·g^o` one of the points `[B]·g^(o + t)`, `t < N`**, `J` range checked below `g^N` at the top level
+(`Res.rcBound`, `N ≤ 64`). -/
+noncomputable def rcPtsAt (fn : Fn) (B J o : ℕ) (cs : List CCell) : Bool :=
+  match Res.rcBound (Res.topAtoms fn.body) (V.n J) with
+  | some N => decide (N ≤ 64) && (List.range N).all fun t ↦ cs.contains ⟨[(B, 1)], o + t⟩
+  | none => false
+
+/-- **A cell at a range-checked index among the points it can be** (`rcPtsAt`, either base the index). -/
+noncomputable def rcPts (fn : Fn) : CRes → Bool
+  | .subP c cs => match c.bases with
+    | [(a, 1), (b, 1)] => rcPtsAt fn a b c.off cs || rcPtsAt fn b a c.off cs
+    | _ => false
+  | _ => false
+
+/-- `certify_placement`'s ranks' group values (`B1.Tables.cpRB`). -/
+def cpRanks : List ℕ := [138, 149, 167, 185, 203, 221, 239, 257, 275]
+
+/-- **`certify_placement`'s `group_base[0 .. 9)` through its hinted order** (`cpPerm`, the old route's `Res.cpSub` on core
+names): the cell `[137]·g^k`, `k < 9`, one of `[137]·[v]` over its ranks' groups (`EndExec.cpPerm_inst`). -/
+def cpPerm (fn : Fn) : CRes → Bool
+  | .subP c cs => fn.name == name% «certify_placement» && decide (c.bases = [(137, 1)]) && decide (c.off < 9) &&
+      decide (cs = cpRanks.map fun v ↦ ⟨[(137, 1), (v, 1)], 0⟩)
+  | _ => false
+
+/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)` (`EndExec.VsQ`): the tables' log-heights `dims[1..6]`
+(values `86..91`, `583` the keccak table's again), the bus depth `253`, the table sumcheck's depth `579`, the stack's log
+`276` and less `20`, `278`. -/
+def vsPows : List (ℕ × ℕ × ℕ) :=
+  [(86, 0, 30), (87, 0, 30), (88, 0, 30), (89, 0, 30), (90, 0, 30), (91, 9, 24), (583, 9, 24), (253, 20, 33),
+    (579, 9, 33), (276, 20, 30), (278, 0, 10)]
+
+/-- `verify_sub`'s products naming one of its values: `278 = 276·277`. -/
+def vsMuls : List ((ℕ × ℕ) × ℕ) := [((276, 277), 278)]
+
+/-- `verify_sub`'s orders `e(x) ≤ e(y) + c`. -/
+def vsLes : List (ℕ × ℕ × ℕ) := [(91, 579, 0), (583, 579, 0), (276, 278, 20)]
+
+/-- `verify_sub`'s cursors in its stream `[25]·[0, 8192)`, each with room for `207` words. -/
+def vsCurs : List ℕ := [567, 578, 595]
+
+/-- **An index as `verify_sub`'s value times `g^c`**: the value (a product of `vsMuls` naming it) and `c`. -/
+def vsBase : CIdx → Option (ℕ × ℕ)
+  | .num _ => none
+  | .val x => some (x, 0)
+  | .mono c => match c.bases with
+    | [(x, 1)] => some (x, c.off)
+    | [(a, 1), (b, 1)] => (vsMuls.lookup (a, b)).map fun x ↦ (x, c.off)
+    | _ => none
+
+/-- An index's exponent bounds by `vsPows`. -/
+def vsIv (i : CIdx) : Option (ℕ × ℕ) :=
+  match i with
+  | .num n => some (n, n)
+  | _ => (vsBase i).bind fun p ↦ (vsPows.lookup p.1).map fun b ↦ (b.1 + p.2, b.2 + p.2)
+
+/-- **An order of `verify_sub`'s exponents** its bounds or orders decide. -/
+def vsLt (a b : CIdx) : Bool :=
+  match vsIv a, vsIv b with
+  | some (_, ha), some (lb, hb) => decide (ha < capE) && decide (hb < capE) && (decide (ha < lb) ||
+      match vsBase a, vsBase b with
+      | some (x, ca), some (y, cb) => vsLes.any fun l ↦ decide (l.1 = x ∧ l.2.1 = y ∧ ca + l.2.2 < cb)
+      | _, _ => false)
+  | _, _ => false
+
+/-- **`verify_sub`'s exponent family** (the old route's `Res.vsB` on core names): an order its bounds decide
+(`vsLt`), a read `c < 207` words past a cursor inside its stream, either under branch conditions (`EndExec.vsExp_inst`). -/
+def vsExp (fn : Fn) : CRes → Bool
+  | .lt a b => fn.name == name% «verify_sub» && vsLt a b
+  | .sub c q => fn.name == name% «verify_sub» && decide (q = ⟨⟨[(25, 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
+      (match c.bases with
+        | [(x, 1)] => vsCurs.contains x
+        | _ => false) && decide (c.off < 207)
+  | .under _ r => vsExp fn r
+  | _ => false
+
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, `rcPts`, `cpPerm`,
+`vsExp`, its values below `GB`), or the ghost families `ml`, `st` and `verify_tables`' exponent family. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r) && r.vals.all (Nat.blt · GB)) ||
-    mlSub fn r ||
-    stSub fn r || vtExp fn gw r
+  ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
+      vsExp fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)

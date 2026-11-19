@@ -30,6 +30,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P51».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P23»
@@ -50,41 +51,17 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«certify_placement».envC : Mode.Env := CoreMode.envOf []
+noncomputable def Fn.«certify_placement».funC : Mode.Fun := ⟨Fn.«certify_placement».entry, 469,
+    Fn.«certify_placement».csig, .nil, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node (some [(.nz 141)]) .nil .nil) .nil) .nil)))
+    .nil) .nil)), .nil, false, .nil⟩
 noncomputable def Fn.«certify_placement».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«certify_placement».entry, 469,
     Fn.«certify_placement».csig, .nil, 524287, advice.2.2, (.node none .nil (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none (.node (some [141]) .nil .nil) .nil)
-    .nil))) .nil) .nil)), .nil, .nil, .nil, (.node (some ()) (.node (some ()) (.node (some ())
-    (.node (some ()) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    .nil .nil)) .nil) (.node none (.node none (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node
-    (some ()) .nil .nil))) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))) (.node (some ())
-    (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil))) (.node none (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))))
-    (.node (some ()) (.node (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil .nil))))
-    (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))))) (.node
-    (some ()) (.node (some ()) (.node none (.node none (.node none .nil (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil)) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ())
-    .nil .nil) (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil)) .nil)) (.node (some ()) (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) (.node none .nil (.node none (.node (some
-    ()) .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) .nil)
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none .nil
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))))))), .nil,
-    .nil⟩
+    .nil))) .nil) .nil)), .nil, .nil, .nil, Fn.«certify_placement».pairO,
+    Fn.«certify_placement».pairS, .nil⟩
 
 theorem Fn.«certify_placement».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

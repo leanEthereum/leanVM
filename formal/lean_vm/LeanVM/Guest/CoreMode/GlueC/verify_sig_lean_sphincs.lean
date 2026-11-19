@@ -8,19 +8,23 @@
 module
 
 public import LeanVM.Guest.SoundFacts
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 
 set_option linter.all false
 set_option linter.style.nameCheck false
 
-/-! Each function's code is the program's (`code_mem`). -/
+/-! Each function's code is the program's (`code_mem`); the program's tables at its index are its data (`tie`). -/
 
 namespace LeanVM.Guest
 
 public section
 
 theorem Fn.«verify_sig_lean_sphincs».code_mem : code ∈ Data.functions := Checked.code21 ▸ End.fnOf_mem (by decide)
+theorem Fn.«verify_sig_lean_sphincs».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("sp_wots", Fn.«sp_wots».entry)], advice) :=
+  ⟨Checked.code21, Checked.core21, Checked.cert21, Checked.plumbEq21, Bridge.ProgAl.tab21⟩
 
 end
 

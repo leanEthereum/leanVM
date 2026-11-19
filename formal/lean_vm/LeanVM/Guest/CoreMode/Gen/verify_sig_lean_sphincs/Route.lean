@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab0
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Core
+public import LeanVM.Guest.CoreMode.GlueC.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -20,12 +19,12 @@ open LeanVM.Guest
 
 public section
 
-theorem hon21_body : (CoreMode.bodyCore Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
-theorem hon21_ptr : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.ptrCellB 21) = true := by decide +kernel
-theorem hon21_ret : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.retCellB 21) = true := by decide +kernel
-theorem hon21_sel : (CoreMode.selGo 21 Fn.«verify_sig_lean_sphincs».cfun.fn.params [] Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
-theorem hon21_rest : CoreMode.honRest 21 Fn.«verify_sig_lean_sphincs».cfun.fn = true := by decide +kernel
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_sig_lean_sphincs».cfun := CoreMode.cfOk_of (by decide) Checked.code21 Checked.core21 Checked.cert21 Checked.plumbEq21 Bridge.ProgAl.tab21 rfl rfl rfl (by rw [CoreMode.honB_of hon21_body hon21_ptr hon21_ret hon21_sel hon21_rest]; decide +kernel)
+theorem hon0_body : (CoreMode.bodyCore Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
+theorem hon0_ptr : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.ptrCellB Fn.«verify_sig_lean_sphincs».idx) = true := by decide +kernel
+theorem hon0_ret : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.retCellB Fn.«verify_sig_lean_sphincs».idx) = true := by decide +kernel
+theorem hon0_sel : (CoreMode.selGo Fn.«verify_sig_lean_sphincs».idx Fn.«verify_sig_lean_sphincs».cfun.fn.params [] Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
+theorem hon0_rest : CoreMode.honRest Fn.«verify_sig_lean_sphincs».idx Fn.«verify_sig_lean_sphincs».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_sig_lean_sphincs».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«verify_sig_lean_sphincs».tie rfl rfl rfl (by rw [CoreMode.honB_of hon0_body hon0_ptr hon0_ret hon0_sel hon0_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

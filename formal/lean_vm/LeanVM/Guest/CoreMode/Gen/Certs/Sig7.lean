@@ -106,6 +106,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of Fn.«block_selector__L30».modeSigs fa%[],
   sigsOr_of Fn.«block_selector_tab__L23».modeSigs fa%[],
   sigsOr_of Fn.«block_selector_tab__L5».modeSigs fa%[],
+  sigsOr_of Fn.«certify_placement».modeSigs fa%[],
   sigsOr_of Fn.«child_claim_list_last__L14».modeSigs fa%[],
   sigsOr_of Fn.«claim_list_last__L11».modeSigs fa%[],
   sigsOr_of Fn.«decode_query_windows__L26_L2».modeSigs fa%[],

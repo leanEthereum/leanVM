@@ -44,14 +44,25 @@ def idxT (G : Mode.Sig) (np : ℕ) : Mode.Idx → Option CIdx
   | .ex (.fr o) 0 => bif parCell G np o then some (.val (o - 2)) else none
   | _ => none
 
-/-- **A mode run as a heap run**: its product over parameters' entry cells, its offset folded, its
-bounds translated. -/
-def rngT (G : Mode.Sig) (np : ℕ) (r : Mode.Rng) : Option CRun :=
+/-- **A mode run as a heap run, its offset as it is**: its product over parameters' entry cells, its offset folded,
+its bounds translated. -/
+def rngT0 (G : Mode.Sig) (np : ℕ) (r : Mode.Rng) : Option CRun :=
   bif monoS G np true r.q then
     match monoC r.q, idxT G np r.lo, idxT G np r.hi with
     | some c, some lo, some hi => some ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩
     | _, _, _ => none
   else none
+
+/-- Both bounds constants. -/
+def numBs (r : Mode.Rng) : Bool :=
+  match r.lo, r.hi with
+  | .num _, .num _ => true
+  | _, _ => false
+
+/-- **A mode run as a heap run**: `rngT0`, or for constant bounds `rngC` (a wrapped offset starting at the run's first
+cell). -/
+def rngT (G : Mode.Sig) (np : ℕ) (r : Mode.Rng) : Option CRun :=
+  bif monoS G np true r.q && numBs r then rngC r else rngT0 G np r
 
 /-- A product over parameters' entry cells, translated. -/
 def monoT (G : Mode.Sig) (np : ℕ) (m : Mode.Mono) : Option CCell :=
@@ -152,10 +163,10 @@ theorem idxVal_iff {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt 
       obtain ⟨hlt, hw⟩ := rep_spec hr
       refine ⟨_, x, hget, by rw [hw], by rw [capE_eq] at hlt; exact hlt, rfl⟩
 
-theorem rngT_spec {G : Mode.Sig} {np : ℕ} {r : Mode.Rng} {q : CRun} (h : rngT G np r = some q) :
+theorem rngT_spec {G : Mode.Sig} {np : ℕ} {r : Mode.Rng} {q : CRun} (h : rngT0 G np r = some q) :
     ∃ c lo hi, monoS G np true r.q = true ∧ monoC r.q = some c ∧ idxT G np r.lo = some lo ∧ idxT G np r.hi = some hi ∧
       q = ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩ := by
-  unfold rngT at h
+  unfold rngT0 at h
   cases hm : monoS G np true r.q <;> simp only [hm, Bool.cond_true, Bool.cond_false] at h
   · cases h
   split at h
@@ -163,6 +174,13 @@ theorem rngT_spec {G : Mode.Sig} {np : ℕ} {r : Mode.Rng} {q : CRun} (h : rngT 
     cases h
     exact ⟨c, lo, hi, rfl, hc, hlo, hhi, rfl⟩
   · cases h
+
+theorem rngT_cases {G : Mode.Sig} {np : ℕ} {r : Mode.Rng} {q : CRun} (h : rngT G np r = some q) :
+    rngT0 G np r = some q ∨ (monoS G np true r.q = true ∧ rngC r = some q) := by
+  unfold rngT at h
+  cases hm : (monoS G np true r.q && numBs r) <;> simp only [hm, Bool.cond_true, Bool.cond_false] at h
+  · exact Or.inl h
+  · exact Or.inr ⟨(Bool.and_eq_true _ _).mp hm |>.1, h⟩
 
 theorem run_val {w : ℕ → E} (c : CCell) (S j d : ℕ) :
     (c.valW w * ofK (g ^ (S * j + d))) = ((⟨c.bases, c.off + d⟩ : CCell).valW w * ofK (addressOfIndex (S * j))) := by
@@ -173,6 +191,9 @@ theorem run_val {w : ℕ → E} (c : CCell) (S j d : ℕ) :
 /-- **A mode run written is its heap run's cells written**, over a frame holding the parameters. -/
 theorem rw_slotT {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt G np s ws) {r : Mode.Rng} {q : CRun}
     (hr : rngT G np r = some q) (h : RW s r) : ∀ x, q.Set (slotW ws) x → WrK s.mem x := by
+  rcases rngT_cases hr with hr | ⟨hmS, hr⟩
+  swap
+  · exact rw_slot hr (slotGet_par hP hmS).eq h
   obtain ⟨c, lo, hi, hmS, hmc, hlo, hhi, rfl⟩ := rngT_spec hr
   rintro x ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
   obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
@@ -190,6 +211,9 @@ bounds' values existing. -/
 theorem slot_rwT {G : Mode.Sig} {np : ℕ} {s : St} {ws : List E} (hP : ParAt G np s ws) {r : Mode.Rng} {q : CRun}
     (hr : rngT G np r = some q) (hlo : ∃ x, IdxVal s r.lo x) (hhi : ∃ x, IdxVal s r.hi x)
     (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) : RW s r := by
+  rcases rngT_cases hr with hr | ⟨hmS, hr⟩
+  swap
+  · exact slot_rw hr (slotGet_par hP hmS) h
   obtain ⟨c, lo, hi, hmS, hmc, hlo', hhi', rfl⟩ := rngT_spec hr
   obtain ⟨xlo, hxlo⟩ := hlo
   obtain ⟨xhi, hxhi⟩ := hhi

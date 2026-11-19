@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab0
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.«verify_tables».Core
+public import LeanVM.Guest.CoreMode.GlueC.«verify_tables»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -20,59 +19,59 @@ open LeanVM.Guest
 
 public section
 
-theorem res12_res0 : Fn.«verify_tables».res0.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res1 : Fn.«verify_tables».res1.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res2 : Fn.«verify_tables».res2.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res3 : Fn.«verify_tables».res3.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res4 : Fn.«verify_tables».res4.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res5 : Fn.«verify_tables».res5.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res6 : Fn.«verify_tables».res6.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res7 : Fn.«verify_tables».res7.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res8 : Fn.«verify_tables».res8.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res9 : Fn.«verify_tables».res9.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res10 : Fn.«verify_tables».res10.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res11 : Fn.«verify_tables».res11.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res12 : Fn.«verify_tables».res12.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res13 : Fn.«verify_tables».res13.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res14 : Fn.«verify_tables».res14.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res15 : Fn.«verify_tables».res15.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res16 : Fn.«verify_tables».res16.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res17 : Fn.«verify_tables».res17.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res18 : Fn.«verify_tables».res18.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res19 : Fn.«verify_tables».res19.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res20 : Fn.«verify_tables».res20.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res21 : Fn.«verify_tables».res21.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res22 : Fn.«verify_tables».res22.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res23 : Fn.«verify_tables».res23.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res24 : Fn.«verify_tables».res24.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res25 : Fn.«verify_tables».res25.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res26 : Fn.«verify_tables».res26.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res27 : Fn.«verify_tables».res27.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res28 : Fn.«verify_tables».res28.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res29 : Fn.«verify_tables».res29.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res30 : Fn.«verify_tables».res30.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res31 : Fn.«verify_tables».res31.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res32 : Fn.«verify_tables».res32.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res33 : Fn.«verify_tables».res33.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res34 : Fn.«verify_tables».res34.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res35 : Fn.«verify_tables».res35.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res36 : Fn.«verify_tables».res36.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res37 : Fn.«verify_tables».res37.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res38 : Fn.«verify_tables».res38.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res39 : Fn.«verify_tables».res39.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res40 : Fn.«verify_tables».res40.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res41 : Fn.«verify_tables».res41.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res42 : Fn.«verify_tables».res42.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_res43 : Fn.«verify_tables».res43.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
-theorem res12_ok : CoreMode.resOk Fn.«verify_tables».cfun = true := by
+theorem res0_res0 : Fn.«verify_tables».res0.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res1 : Fn.«verify_tables».res1.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res2 : Fn.«verify_tables».res2.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res3 : Fn.«verify_tables».res3.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res4 : Fn.«verify_tables».res4.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res5 : Fn.«verify_tables».res5.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res6 : Fn.«verify_tables».res6.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res7 : Fn.«verify_tables».res7.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res8 : Fn.«verify_tables».res8.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res9 : Fn.«verify_tables».res9.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res10 : Fn.«verify_tables».res10.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res11 : Fn.«verify_tables».res11.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res12 : Fn.«verify_tables».res12.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res13 : Fn.«verify_tables».res13.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res14 : Fn.«verify_tables».res14.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res15 : Fn.«verify_tables».res15.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res16 : Fn.«verify_tables».res16.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res17 : Fn.«verify_tables».res17.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res18 : Fn.«verify_tables».res18.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res19 : Fn.«verify_tables».res19.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res20 : Fn.«verify_tables».res20.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res21 : Fn.«verify_tables».res21.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res22 : Fn.«verify_tables».res22.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res23 : Fn.«verify_tables».res23.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res24 : Fn.«verify_tables».res24.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res25 : Fn.«verify_tables».res25.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res26 : Fn.«verify_tables».res26.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res27 : Fn.«verify_tables».res27.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res28 : Fn.«verify_tables».res28.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res29 : Fn.«verify_tables».res29.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res30 : Fn.«verify_tables».res30.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res31 : Fn.«verify_tables».res31.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res32 : Fn.«verify_tables».res32.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res33 : Fn.«verify_tables».res33.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res34 : Fn.«verify_tables».res34.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res35 : Fn.«verify_tables».res35.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res36 : Fn.«verify_tables».res36.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res37 : Fn.«verify_tables».res37.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res38 : Fn.«verify_tables».res38.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res39 : Fn.«verify_tables».res39.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res40 : Fn.«verify_tables».res40.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res41 : Fn.«verify_tables».res41.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res42 : Fn.«verify_tables».res42.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_res43 : Fn.«verify_tables».res43.all (CoreMode.resFamG Fn.«verify_tables».cfun.fn Fn.«verify_tables».cfun.xc Fn.«verify_tables».cfun.H.sig.gw) = true := by decide +kernel
+theorem res0_ok : CoreMode.resOk Fn.«verify_tables».cfun = true := by
   rw [CoreMode.resOk, show Fn.«verify_tables».cfun.H.res = (Fn.«verify_tables».res0 ++ Fn.«verify_tables».res1 ++ Fn.«verify_tables».res2 ++ Fn.«verify_tables».res3 ++ Fn.«verify_tables».res4 ++ Fn.«verify_tables».res5 ++ Fn.«verify_tables».res6 ++ Fn.«verify_tables».res7 ++ Fn.«verify_tables».res8 ++ Fn.«verify_tables».res9 ++ Fn.«verify_tables».res10 ++ Fn.«verify_tables».res11 ++ Fn.«verify_tables».res12 ++ Fn.«verify_tables».res13 ++ Fn.«verify_tables».res14 ++ Fn.«verify_tables».res15 ++ Fn.«verify_tables».res16 ++ Fn.«verify_tables».res17 ++ Fn.«verify_tables».res18 ++ Fn.«verify_tables».res19 ++ Fn.«verify_tables».res20 ++ Fn.«verify_tables».res21 ++ Fn.«verify_tables».res22 ++ Fn.«verify_tables».res23 ++ Fn.«verify_tables».res24 ++ Fn.«verify_tables».res25 ++ Fn.«verify_tables».res26 ++ Fn.«verify_tables».res27 ++ Fn.«verify_tables».res28 ++ Fn.«verify_tables».res29 ++ Fn.«verify_tables».res30 ++ Fn.«verify_tables».res31 ++ Fn.«verify_tables».res32 ++ Fn.«verify_tables».res33 ++ Fn.«verify_tables».res34 ++ Fn.«verify_tables».res35 ++ Fn.«verify_tables».res36 ++ Fn.«verify_tables».res37 ++ Fn.«verify_tables».res38 ++ Fn.«verify_tables».res39 ++ Fn.«verify_tables».res40 ++ Fn.«verify_tables».res41 ++ Fn.«verify_tables».res42 ++ Fn.«verify_tables».res43) from rfl]
-  simp only [List.all_append, res12_res0, res12_res1, res12_res2, res12_res3, res12_res4, res12_res5, res12_res6, res12_res7, res12_res8, res12_res9, res12_res10, res12_res11, res12_res12, res12_res13, res12_res14, res12_res15, res12_res16, res12_res17, res12_res18, res12_res19, res12_res20, res12_res21, res12_res22, res12_res23, res12_res24, res12_res25, res12_res26, res12_res27, res12_res28, res12_res29, res12_res30, res12_res31, res12_res32, res12_res33, res12_res34, res12_res35, res12_res36, res12_res37, res12_res38, res12_res39, res12_res40, res12_res41, res12_res42, res12_res43, Bool.and_self]
-theorem hon12_body : (CoreMode.bodyCore Fn.«verify_tables».cfun.fn.body || CoreMode.loopBC Fn.«verify_tables».cfun.fn) = true := by decide +kernel
-theorem hon12_ptr : (Bridge.stmtsOf Fn.«verify_tables».cfun.fn.body).all (CoreMode.ptrCellB 12) = true := by decide +kernel
-theorem hon12_ret : (Bridge.stmtsOf Fn.«verify_tables».cfun.fn.body).all (CoreMode.retCellB 12) = true := by decide +kernel
-theorem hon12_sel : (CoreMode.selGo 12 Fn.«verify_tables».cfun.fn.params [] Fn.«verify_tables».cfun.fn.body || CoreMode.loopBC Fn.«verify_tables».cfun.fn) = true := by decide +kernel
-theorem hon12_rest : CoreMode.honRest 12 Fn.«verify_tables».cfun.fn = true := by decide +kernel
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_tables».cfun := CoreMode.cfOk_of (by decide) Checked.code12 Checked.core12 Checked.cert12 Checked.plumbEq12 Bridge.ProgAl.tab12 rfl rfl rfl (by rw [CoreMode.honB_of hon12_body hon12_ptr hon12_ret hon12_sel hon12_rest, res12_ok]; decide +kernel)
+  simp only [List.all_append, res0_res0, res0_res1, res0_res2, res0_res3, res0_res4, res0_res5, res0_res6, res0_res7, res0_res8, res0_res9, res0_res10, res0_res11, res0_res12, res0_res13, res0_res14, res0_res15, res0_res16, res0_res17, res0_res18, res0_res19, res0_res20, res0_res21, res0_res22, res0_res23, res0_res24, res0_res25, res0_res26, res0_res27, res0_res28, res0_res29, res0_res30, res0_res31, res0_res32, res0_res33, res0_res34, res0_res35, res0_res36, res0_res37, res0_res38, res0_res39, res0_res40, res0_res41, res0_res42, res0_res43, Bool.and_self]
+theorem hon0_body : (CoreMode.bodyCore Fn.«verify_tables».cfun.fn.body || CoreMode.loopBC Fn.«verify_tables».cfun.fn) = true := by decide +kernel
+theorem hon0_ptr : (Bridge.stmtsOf Fn.«verify_tables».cfun.fn.body).all (CoreMode.ptrCellB Fn.«verify_tables».idx) = true := by decide +kernel
+theorem hon0_ret : (Bridge.stmtsOf Fn.«verify_tables».cfun.fn.body).all (CoreMode.retCellB Fn.«verify_tables».idx) = true := by decide +kernel
+theorem hon0_sel : (CoreMode.selGo Fn.«verify_tables».idx Fn.«verify_tables».cfun.fn.params [] Fn.«verify_tables».cfun.fn.body || CoreMode.loopBC Fn.«verify_tables».cfun.fn) = true := by decide +kernel
+theorem hon0_rest : CoreMode.honRest Fn.«verify_tables».idx Fn.«verify_tables».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_tables».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«verify_tables».tie rfl rfl rfl (by rw [CoreMode.honB_of hon0_body hon0_ptr hon0_ret hon0_sel hon0_rest, res0_ok]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

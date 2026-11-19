@@ -17,6 +17,9 @@ namespace LeanVM.Guest.CoreMode.HcSig
 
 @[expose] public section
 
+def «bus_grind_check__L9».sig : CoreMode.HSig := 
+    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
+      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
 def «column_selector__L30».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(1, 1)], 464⟩, 4, (.num 0), (.num 4)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩],
       postR := [⟨⟨[(1, 1)], 464⟩, 4, (.num 0), (.num 4)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩] }

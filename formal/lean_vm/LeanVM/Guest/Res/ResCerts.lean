@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.Res.ResCerts0
-public import LeanVM.Guest.Res.ResCerts1
 public import LeanVM.Guest.EndExecRSplit
 
 set_option Elab.async false
@@ -27,21 +26,18 @@ theorem offCerts_res : ∀ K ∈ offCerts, ResOk resExc nzVals K :=
     (Mode.fa_cons (ModePack.«P24».certs_res)
     (Mode.fa_cons (ModePack.«P29».certs_res)
     (Mode.fa_cons (ModePack.«P3».certs_res)
-    (Mode.fa_cons (ModePack.«P33».certs_res)
     (Mode.fa_cons (ModePack.«P34».certs_res)
     (Mode.fa_cons (ModePack.«P36».certs_res)
     (Mode.fa_cons (ModePack.«P38».certs_res)
     (Mode.fa_cons (ModePack.«P42».certs_res)
     (Mode.fa_cons (ModePack.«P46».certs_res)
-    (Mode.fa_cons (ModePack.«P51».certs_res)
     (Mode.fa_cons (ModePack.«P54».certs_res)
     (Mode.fa_cons (ModePack.«P55».certs_res)
     (Mode.fa_cons (ModePack.«P57».certs_res)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P61».certs_res)
+    (Mode.fa_cons (ModePack.«P61».certs_res)
     (Mode.fa_cons (ModePack.«P63».certs_res)
-    (Mode.fa_nil))))
-    (Mode.fa_nil))))
+    (Mode.fa_nil))))))))))))))))))
+    (Mode.fa_nil)))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed
 certificates', the `sub` residuals' but the splits', the exponent facts' order residuals and the listed

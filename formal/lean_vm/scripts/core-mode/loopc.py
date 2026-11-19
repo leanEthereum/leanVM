@@ -95,8 +95,8 @@ def run_h(r, np, gl):
 
 
 def run(G, np, r, ps=None, gl=None):
-    """`CoreMode.rngT`, its bounds `rngK` (`rngKX` with the cells `ps`, if given); with links `gl`, `rngTG`: a run over
-    a linked caller's cell first (`run_h`)."""
+    """`CoreMode.rngT`, its bounds `rngK` (`rngKX` with the cells `ps`, if given), constant bounds `rngC`'s normal form;
+    with links `gl`, `rngTG`: a run over a linked caller's cell first (`run_h`)."""
     h = run_h(r, np, gl)
     if h is not None:
         return h
@@ -104,7 +104,13 @@ def run(G, np, r, ps=None, gl=None):
     ok = (lambda i: idx_k(G, i)) if ps is None else (lambda i: idx_kx(G, ps, i))
     if not (ok(lo) and ok(hi)):
         raise No('run bound')
-    return (I.shift(mono(G, np, q), d), S, idx(G, np, lo), idx(G, np, hi))
+    R = (I.shift(mono(G, np, q), d), S, idx(G, np, lo), idx(G, np, hi))
+    if R[2][0] or R[3][0]:
+        return R
+    # constant bounds (`CoreMode.rngT`'s `rngC`): a wrapped offset starts at the run's first cell
+    if not R[3][1] - R[2][1] < 2 ** 62:
+        raise No('run bound')
+    return callc.norm_run(R, R[0][1])
 
 
 def addr_runs(np, gl):

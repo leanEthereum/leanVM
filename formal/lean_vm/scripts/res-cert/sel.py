@@ -21,7 +21,7 @@ OUT = term.OUT
 # the certificates whose residuals the families leave: `claim_list_digest`'s dispatch sits in a branch,
 # `certify_placement`'s divisor is no parameter, `log2_ceil_in_the_exponent`'s order residual is
 # branch-held (`EndExecRLce`), and `verify_bus_gkr_loop0`'s callee reads (`EndExecRGkrC`)
-EXC = ['claim_list_digest', 'certify_placement', 'log2_ceil_in_the_exponent__L0_L34',
+EXC = ['claim_list_digest', 'log2_ceil_in_the_exponent__L0_L34',
        'log2_ceil_in_the_exponent__L16_L34', 'verify_bus_gkr_loop0']
 
 

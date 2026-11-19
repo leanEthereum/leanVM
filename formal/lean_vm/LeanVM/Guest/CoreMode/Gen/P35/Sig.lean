@@ -85,6 +85,8 @@ def «level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig : CoreMode.HSig :=
       retM := [(3, ⟨[(0, 55)], 0⟩)],
       prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩, [0, 1, 2, 3])] }
+def «squeeze_point_from__L22».csig : CoreMode.HSig := 
+    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 22)⟩] }
 
 end
 end LeanVM.Guest.CoreMode.HcSig

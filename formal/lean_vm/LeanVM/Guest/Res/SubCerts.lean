@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Res.SubCerts0
-public import LeanVM.Guest.Res.SubCerts1
 public import LeanVM.Guest.Res.MonoOk
 public import LeanVM.Guest.EndExecRSub
+public import LeanVM.Guest.EndExecRCp
 
 set_option Elab.async false
 
@@ -28,21 +28,18 @@ theorem offCerts_sub : ∀ K ∈ offCerts, SubOk resExc K :=
     (Mode.fa_cons (ModePack.«P24».certs_sub)
     (Mode.fa_cons (ModePack.«P29».certs_sub)
     (Mode.fa_cons (ModePack.«P3».certs_sub)
-    (Mode.fa_cons (ModePack.«P33».certs_sub)
     (Mode.fa_cons (ModePack.«P34».certs_sub)
     (Mode.fa_cons (ModePack.«P36».certs_sub)
     (Mode.fa_cons (ModePack.«P38».certs_sub)
     (Mode.fa_cons (ModePack.«P42».certs_sub)
     (Mode.fa_cons (ModePack.«P46».certs_sub)
-    (Mode.fa_cons (ModePack.«P51».certs_sub)
     (Mode.fa_cons (ModePack.«P54».certs_sub)
     (Mode.fa_cons (ModePack.«P55».certs_sub)
     (Mode.fa_cons (ModePack.«P57».certs_sub)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P61».certs_sub)
+    (Mode.fa_cons (ModePack.«P61».certs_sub)
     (Mode.fa_cons (ModePack.«P63».certs_sub)
-    (Mode.fa_nil))))
-    (Mode.fa_nil))))
+    (Mode.fa_nil))))))))))))))))))
+    (Mode.fa_nil)))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed
 certificates' residuals and the nonzero values not proved here. -/
@@ -51,7 +48,8 @@ theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, Res
   resTop_guestM hexc (resOpen_subOk offCerts_sub hexc) resOpen_ltExp (by
     intro p hp
     simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp
-    rcases hp with rfl | rfl | rfl
+    rcases hp with rfl | rfl | rfl | rfl
+    · exact nzVal_cp155
     · exact nzVal_ml0 mono_ok
     · exact nzVal_vt133
     · exact nzVal_vt430)

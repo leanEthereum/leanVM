@@ -33,6 +33,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P13»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -103,16 +104,17 @@ noncomputable def Fn.«claim_list_digest».frameFun : CoreMode.FFun :=
 
 theorem Fn.«claim_list_digest».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
+noncomputable def Fn.«main_loop4».envC : Mode.Env := CoreMode.envOf
+    [Fn.«child_claim_list_digest».csig, Fn.«main_loop4».csig, Fn.«statement_digest».csig,
+    Fn.«verify_sub».csig]
+noncomputable def Fn.«main_loop4».funC : Mode.Fun := ⟨Fn.«main_loop4».entry, 96,
+    Fn.«main_loop4».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«main_loop4».frameFun : CoreMode.FFun :=
   ⟨{ env := [(18, (.fpg 0))], fpOne := false, pows := fpows, scaled := [18] },
     Fn.«main_loop4».entry, 96, Fn.«main_loop4».csig, (CoreMode.sigTrie
-    [Fn.«child_claim_list_digest».csig, Fn.«statement_digest».csig, Fn.«verify_sub».csig]), 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node (some ()) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    (some ()) .nil .nil))) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    .nil))) .nil)), .nil, .nil⟩
+    [Fn.«child_claim_list_digest».csig, Fn.«main_loop4».csig, Fn.«statement_digest».csig,
+    Fn.«verify_sub».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«main_loop4».pairO,
+    Fn.«main_loop4».pairS, .nil⟩
 
 theorem Fn.«main_loop4».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

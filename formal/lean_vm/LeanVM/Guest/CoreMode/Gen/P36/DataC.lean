@@ -57,9 +57,7 @@ end LeanVM.Guest.Fn.«block_selector_tab__L13»
 namespace LeanVM.Guest.Fn.«bus_grind_check__L12»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«bus_grind_check__L12».sig
   reads := []
   res := []
   calls := [[.run 1 [], .run 1 []]]
@@ -77,9 +75,7 @@ end LeanVM.Guest.Fn.«bus_grind_check__L12»
 namespace LeanVM.Guest.Fn.«bus_grind_check__L7»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«bus_grind_check__L7».sig
   reads := []
   res := []
   calls := [[.run 1 [], .run 1 []]]
