@@ -1,6 +1,6 @@
 # lean-pq
 
-Safe Rust bindings for post-quantum signatures and their aggregation.
+The safe Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap, with the proving parameters fixed. It is internal to the bindings: Rust code depends on `lean_vm` directly (see the bindings README).
 
 - **leanXMSS** is synchronized: a key signs at `2^32` leaf indices, one message per leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, with no state kept between them.
@@ -8,16 +8,7 @@ Safe Rust bindings for post-quantum signatures and their aggregation.
 
 Public keys and messages are 32 bytes in both schemes.
 
-## Install
-
-The crate is not on crates.io, as the crates it builds on are not.
-
-<!-- x-release-please-start-version -->
-```toml
-[dependencies]
-lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.1" }
-```
-<!-- x-release-please-end -->
+## Features
 
 Build in release mode: debug builds prove far slower.
 

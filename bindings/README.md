@@ -16,7 +16,6 @@ Each `bindings-vX.Y.Z` release publishes every package at `X.Y.Z`. Prebuilt pack
 | [Go](go/README.md) ≥ 1.24 | `leanvm.org/go` | Linux amd64/arm64 (glibc), macOS amd64/arm64, Windows amd64 |
 | [Zig](zig/README.md) ≥ 0.16 | package attached to each GitHub release | Linux x86_64/aarch64 (glibc), macOS x86_64/aarch64, Windows x86_64 |
 | [Nim](nim/README.md) ≥ 2.2.12 | Nimble package `lean_pq`, `bindings/nim` at tag `bindings-vX.Y.Z` | Linux x86_64/aarch64 (glibc), macOS x86_64/arm64, Windows x86_64 (MinGW) |
-| [Rust](rust/README.md) | `lean-pq` from git | built from source |
 
 The x86_64 builds require a CPU with AVX2 and PCLMULQDQ.
 
@@ -104,14 +103,14 @@ The first build downloads the target's native archive from the release; the tag 
 
 ### Rust
 
-The crate is not on crates.io, as the crates it builds on are not:
+There is no Rust package: Rust code depends on [`lean_vm`](../crates/lean_vm/src/lib.rs) from git, which signs and verifies (its `lean_xmss` and `lean_sphincs` modules) and aggregates, with the full API ([`api.rs`](../crates/lean_vm/tests/api.rs) shows its use). Pin a `rev`:
 
-<!-- x-release-please-start-version -->
 ```toml
 [dependencies]
-lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.1" }
+lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", rev = "<commit>", features = ["experimental_prover"] }
 ```
-<!-- x-release-please-end -->
+
+Build in release, with `-C target-cpu=native` (or at least `+avx2,+pclmulqdq` on x86_64): the field and Keccak kernels are chosen at compile time. [`lean-pq`](rust/README.md) is the bindings' internal facade, not for Rust users.
 
 ## Build from source
 
@@ -119,13 +118,13 @@ Every binding builds against the crates in the same checkout. The bindings are t
 
 | Binding | Local build and test | Prerequisites |
 | --- | --- | --- |
-| [Python](python/README.md) | `uv run --extra dev maturin develop --release`, then `uv run --extra dev pytest tests/` in `bindings/python` | Rust, uv |
+| [Python](python/README.md) | `uv run --extra dev pytest tests/` in `bindings/python` | Rust, uv |
 | [Node.js](node/README.md) | `npm ci && npm run build && npm test` in `bindings/node` | Rust, Node.js 18.17+ |
 | [Java](java/README.md) | `gradle -p bindings/java test` | Rust, JDK 25, Gradle 9.1+ |
 | [Go](go/README.md) | stage the static archive (below), then `go test ./...` in `bindings/go` | Rust, Go 1.24+, cgo, Zig, `cargo-zigbuild` |
 | [Zig](zig/README.md) | stage the static archive (below), then `zig build test -Dnative-dir=…` in `bindings/zig` | Rust, Zig 0.16+, `cargo-zigbuild` |
 | [Nim](nim/README.md) | stage the static archive (below) in `bindings/nim/native/<target>`, then `nimble test` in `bindings/nim` | Rust, Nim 2.2.12+, `cargo-zigbuild` |
-| [Rust](rust/README.md) | `cargo test --release -p lean-pq` in `bindings` | Rust |
+| [`lean-pq`](rust/README.md), the shared facade | `cargo test --release -p lean-pq` in `bindings` | Rust |
 
 Go, Zig and Nim link a static archive for the build target. For Linux x86_64:
 
