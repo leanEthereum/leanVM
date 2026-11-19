@@ -186,7 +186,7 @@ theorem stmtR : ∀ (s : Stmt) (rest : List Stmt) (st : St), ∀ vs ∈ retS s,
           | exact wp_failP
           | refine wp_pass fun _ _ => ?_
           | split)
-        all_goals simp_all [retL]
+        simp_all [retL]
   | .match_ x arms, rest, st, vs, h => by
       simp only [retS] at h
       rw [placeStmt]
@@ -316,7 +316,7 @@ theorem stmtC : ∀ (s : Stmt) (rest : List Stmt) (st : St), ∀ g ∈ Stmt.call
           | exact wp_failP
           | refine wp_pass fun _ _ => ?_
           | split)
-        all_goals simp_all [Stmt.blockCallees]
+        simp_all [Stmt.blockCallees]
   | .match_ x arms, rest, st, g, h => by
       simp only [Stmt.callees] at h
       rw [placeStmt]

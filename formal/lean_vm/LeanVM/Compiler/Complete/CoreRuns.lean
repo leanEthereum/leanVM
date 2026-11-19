@@ -246,7 +246,7 @@ theorem stmtFa : ∀ (s : Stmt) (rest : List Stmt) (st : St) (p : V) (run : List
           | exact wp_failP
           | refine wp_pass fun _ _ => ?_
           | split)
-        all_goals simp_all [lAtomsK]
+        simp_all [lAtomsK]
   | .match_ x arms, rest, st, p, run, h => by
       simp only [sAtomsK] at h
       rw [placeStmt]
