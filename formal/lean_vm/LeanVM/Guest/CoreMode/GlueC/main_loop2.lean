@@ -12,13 +12,16 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Pack.«P43».Bundle
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«main_loop2»
+/-! Each function's code is the program's (`code_mem`). -/
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `main_loop2`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code39 ▸ End.fnOf_mem (by decide)
+theorem Fn.«main_loop2».code_mem : code ∈ Data.functions := Checked.code39 ▸ End.fnOf_mem (by decide)
 
 end
-end LeanVM.Guest.Fn.«main_loop2»
+
+end LeanVM.Guest

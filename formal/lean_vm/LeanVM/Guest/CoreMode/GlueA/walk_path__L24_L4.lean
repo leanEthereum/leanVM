@@ -10,16 +10,17 @@ module
 public import Statement.Data.AdviceHints
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L4»
+/-! Each function's entry, length and hints by pc (`advice`) and its index in the program (`idx`). -/
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `walk_path__L24_L4`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1538
-
-/-- `walk_path__L24_L4`: its index in the program. -/
-abbrev idx : ℕ := 1538
+abbrev Fn.«walk_path__L24_L4».advice := Data.adviceFn1538
+abbrev Fn.«walk_path__L24_L4».idx : ℕ := 1538
 
 end
-end LeanVM.Guest.Fn.«walk_path__L24_L4»
+
+end LeanVM.Guest

@@ -165,8 +165,6 @@ part_core_mode() {
   python3 -I scripts/core-mode/core.py "${check[@]}"
   step "core-mode: the core route's certificates, the end theorem's assembly (scripts/core-mode/certs.py)"
   python3 -I scripts/core-mode/certs.py "${check[@]}"
-  step "core-mode: the inference's heap certificates of the functions off the route (scripts/core-mode/emitc.py)"
-  python3 -I scripts/core-mode/emitc.py "${check[@]}"
 }
 
 part_bridge() {

@@ -14,64 +14,41 @@ public import LeanVM.Guest.CoreMode.Nzs
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+/-! Each function's certificate (`modeCert`: its `envC`, `funC` and code), its callees' signatures
+(`modeSigs`), and the certificate with its facts (`ce`). -/
 
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `verify_sig_lean_sphincs`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `verify_sig_lean_sphincs`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«sp_wots».entry, Fn.«sp_wots».csig)]
-
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
-
-namespace LeanVM.Guest.CorePack.«verify_sig_lean_sphincs»
+namespace LeanVM.Guest.Fn
 
 open LeanVM.Guest LeanVM.Guest.EndExec
 
 @[expose] public section
 
-/-- The pack's certificates. -/
-noncomputable def certs : List Mode.Cert :=
-  [Fn.«verify_sig_lean_sphincs».modeCert]
+noncomputable def «verify_sig_lean_sphincs».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
-public section
+kernel_rfl «verify_sig_lean_sphincs».modeSigs : «verify_sig_lean_sphincs».modeCert.E.sigs.entries =
+  [(«sp_wots».entry, «sp_wots».csig)]
 
-theorem mem0 : Fn.«verify_sig_lean_sphincs».modeCert ∈ certs := List.mem_cons_self
+@[expose] public section
 
-/-- The certificates' static facts. -/
-theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
-  Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_nil)
+noncomputable def «verify_sig_lean_sphincs».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«verify_sig_lean_sphincs».coreFns_ok _ (list_mem% 0), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
-/-- The certificates' frame interfaces, the core route's. -/
-theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ ModePack.«verify_sig_lean_sphincs».coreFns, Cf ∈ T) :
-    ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«verify_sig_lean_sphincs».fnSpecC)
-    (Mode.fa_nil)
+end
 
-/-- The certificates' code, the program's. -/
-theorem certs_fn : ∀ K ∈ certs, Mode.FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of Fn.«verify_sig_lean_sphincs».code_mem rfl rfl rfl)
-    (Mode.fa_nil)
+end LeanVM.Guest.Fn
 
-/-- The certificates' termination facts, their loop shapes'. -/
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := Fn.«verify_sig_lean_sphincs».idx) (by decide +kernel))
-    (Mode.fa_nil)
+namespace LeanVM.Guest.CorePack.«verify_sig_lean_sphincs»
 
-/-- The certificates' residuals: listed parameters' nonzero values. -/
-theorem certs_nz : ∀ K ∈ certs, NzOnly CoreMode.coreNzs K :=
-  Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_nil)
+@[expose] public section
+
+/-- The pack's certificates with their facts. -/
+noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
+  [Fn.«verify_sig_lean_sphincs».ce]
 
 end
 

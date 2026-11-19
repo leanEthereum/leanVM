@@ -28,108 +28,40 @@ open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
 public section
 
 theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsOr coreCerts offSigs K :=
-  fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (CorePack.«P0».certs_sigs)
-    (Mode.fa_cons (CorePack.«P1».certs_sigs)
-    (Mode.fa_cons (CorePack.«P10».certs_sigs)
-    (Mode.fa_cons (CorePack.«P11».certs_sigs)
-    (Mode.fa_cons (CorePack.«P12».certs_sigs)
-    (Mode.fa_cons (CorePack.«P13».certs_sigs)
-    (Mode.fa_cons (CorePack.«P14».certs_sigs)
-    (Mode.fa_cons (CorePack.«P15».certs_sigs)
-    (Mode.fa_cons (CorePack.«P16».certs_sigs)
-    (Mode.fa_cons (CorePack.«P17».certs_sigs)
-    (Mode.fa_cons (CorePack.«P18».certs_sigs)
-    (Mode.fa_cons (CorePack.«P19».certs_sigs)
-    (Mode.fa_cons (CorePack.«P2».certs_sigs)
-    (Mode.fa_cons (CorePack.«P20».certs_sigs)
-    (Mode.fa_cons (CorePack.«P21».certs_sigs)
-    (Mode.fa_cons (CorePack.«P22».certs_sigs)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (CorePack.«P23».certs_sigs)
-    (Mode.fa_cons (CorePack.«P24».certs_sigs)
-    (Mode.fa_cons (CorePack.«P25».certs_sigs)
-    (Mode.fa_cons (CorePack.«P26».certs_sigs)
-    (Mode.fa_cons (CorePack.«P27».certs_sigs)
-    (Mode.fa_cons (CorePack.«P28».certs_sigs)
-    (Mode.fa_cons (CorePack.«P29».certs_sigs)
-    (Mode.fa_cons (CorePack.«P3».certs_sigs)
-    (Mode.fa_cons (CorePack.«P30».certs_sigs)
-    (Mode.fa_cons (CorePack.«P31».certs_sigs)
-    (Mode.fa_cons (CorePack.«P32».certs_sigs)
-    (Mode.fa_cons (CorePack.«P33».certs_sigs)
-    (Mode.fa_cons (CorePack.«P34».certs_sigs)
-    (Mode.fa_cons (CorePack.«P35».certs_sigs)
-    (Mode.fa_cons (CorePack.«P36».certs_sigs)
-    (Mode.fa_cons (CorePack.«P37».certs_sigs)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (CorePack.«P38».certs_sigs)
-    (Mode.fa_cons (CorePack.«P39».certs_sigs)
-    (Mode.fa_cons (CorePack.«P4».certs_sigs)
-    (Mode.fa_cons (CorePack.«P40».certs_sigs)
-    (Mode.fa_cons (CorePack.«P41».certs_sigs)
-    (Mode.fa_cons (CorePack.«P42».certs_sigs)
-    (Mode.fa_cons (CorePack.«P43».certs_sigs)
-    (Mode.fa_cons (CorePack.«P44».certs_sigs)
-    (Mode.fa_cons (CorePack.«P45».certs_sigs)
-    (Mode.fa_cons (CorePack.«P46».certs_sigs)
-    (Mode.fa_cons (CorePack.«P47».certs_sigs)
-    (Mode.fa_cons (CorePack.«P48».certs_sigs)
-    (Mode.fa_cons (CorePack.«P49».certs_sigs)
-    (Mode.fa_cons (CorePack.«P5».certs_sigs)
-    (Mode.fa_cons (CorePack.«P50».certs_sigs)
-    (Mode.fa_cons (CorePack.«P51».certs_sigs)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (CorePack.«P52».certs_sigs)
-    (Mode.fa_cons (CorePack.«P53».certs_sigs)
-    (Mode.fa_cons (CorePack.«P54».certs_sigs)
-    (Mode.fa_cons (CorePack.«P55».certs_sigs)
-    (Mode.fa_cons (CorePack.«P56».certs_sigs)
-    (Mode.fa_cons (CorePack.«P57».certs_sigs)
-    (Mode.fa_cons (CorePack.«P58».certs_sigs)
-    (Mode.fa_cons (CorePack.«P59».certs_sigs)
-    (Mode.fa_cons (CorePack.«P6».certs_sigs)
-    (Mode.fa_cons (CorePack.«P60».certs_sigs)
-    (Mode.fa_cons (CorePack.«P61».certs_sigs)
-    (Mode.fa_cons (CorePack.«P62».certs_sigs)
-    (Mode.fa_cons (CorePack.«P63».certs_sigs)
-    (Mode.fa_cons (CorePack.«P7».certs_sigs)
-    (Mode.fa_cons (CorePack.«P8».certs_sigs)
-    (Mode.fa_cons (CorePack.«P9».certs_sigs)
-    (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (CorePack.«open_stacked__L0».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L1».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L10».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L2».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L3».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L4».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L5».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L6».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L7».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L8».certs_sigs)
-    (Mode.fa_cons (CorePack.«open_stacked__L9».certs_sigs)
-    (Mode.fa_cons (CorePack.«sp_wots».certs_sigs)
-    (Mode.fa_cons (CorePack.«verify_merkle_cap__L8».certs_sigs)
-    (Mode.fa_cons (CorePack.«verify_sig_lean_sphincs».certs_sigs)
-    (Mode.fa_cons (CorePack.«verify_tables».certs_sigs)
-    (Mode.fa_nil)))))))))))))))))
-    (Mode.fa_nil)))))))
+  CertE.fa (ls := corePacks) fa%[CorePack.«P0».certs_sigs, CorePack.«P1».certs_sigs, CorePack.«P10».certs_sigs,
+       CorePack.«P11».certs_sigs, CorePack.«P12».certs_sigs, CorePack.«P13».certs_sigs,
+       CorePack.«P14».certs_sigs, CorePack.«P15».certs_sigs, CorePack.«P16».certs_sigs,
+       CorePack.«P17».certs_sigs, CorePack.«P18».certs_sigs, CorePack.«P19».certs_sigs,
+       CorePack.«P2».certs_sigs, CorePack.«P20».certs_sigs, CorePack.«P21».certs_sigs,
+       CorePack.«P22».certs_sigs, CorePack.«P23».certs_sigs, CorePack.«P24».certs_sigs,
+       CorePack.«P25».certs_sigs, CorePack.«P26».certs_sigs, CorePack.«P27».certs_sigs,
+       CorePack.«P28».certs_sigs, CorePack.«P29».certs_sigs, CorePack.«P3».certs_sigs,
+       CorePack.«P30».certs_sigs, CorePack.«P31».certs_sigs, CorePack.«P32».certs_sigs,
+       CorePack.«P33».certs_sigs, CorePack.«P34».certs_sigs, CorePack.«P35».certs_sigs,
+       CorePack.«P36».certs_sigs, CorePack.«P37».certs_sigs, CorePack.«P38».certs_sigs,
+       CorePack.«P39».certs_sigs, CorePack.«P4».certs_sigs, CorePack.«P40».certs_sigs,
+       CorePack.«P41».certs_sigs, CorePack.«P42».certs_sigs, CorePack.«P43».certs_sigs,
+       CorePack.«P44».certs_sigs, CorePack.«P45».certs_sigs, CorePack.«P46».certs_sigs,
+       CorePack.«P47».certs_sigs, CorePack.«P48».certs_sigs, CorePack.«P49».certs_sigs,
+       CorePack.«P5».certs_sigs, CorePack.«P50».certs_sigs, CorePack.«P51».certs_sigs,
+       CorePack.«P52».certs_sigs, CorePack.«P53».certs_sigs, CorePack.«P54».certs_sigs,
+       CorePack.«P55».certs_sigs, CorePack.«P56».certs_sigs, CorePack.«P57».certs_sigs,
+       CorePack.«P58».certs_sigs, CorePack.«P59».certs_sigs, CorePack.«P6».certs_sigs,
+       CorePack.«P60».certs_sigs, CorePack.«P61».certs_sigs, CorePack.«P62».certs_sigs,
+       CorePack.«P63».certs_sigs, CorePack.«P7».certs_sigs, CorePack.«P8».certs_sigs,
+       CorePack.«P9».certs_sigs, CorePack.«open_stacked__L0».certs_sigs,
+       CorePack.«open_stacked__L1».certs_sigs, CorePack.«open_stacked__L10».certs_sigs,
+       CorePack.«open_stacked__L2».certs_sigs, CorePack.«open_stacked__L3».certs_sigs,
+       CorePack.«open_stacked__L4».certs_sigs, CorePack.«open_stacked__L5».certs_sigs,
+       CorePack.«open_stacked__L6».certs_sigs, CorePack.«open_stacked__L7».certs_sigs,
+       CorePack.«open_stacked__L8».certs_sigs, CorePack.«open_stacked__L9».certs_sigs,
+       CorePack.«sp_wots».certs_sigs, CorePack.«verify_merkle_cap__L8».certs_sigs,
+       CorePack.«verify_sig_lean_sphincs».certs_sigs, CorePack.«verify_tables».certs_sigs]
 
 /-- **What the core route gives of the end theorem's assembly.** -/
-theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs offSigs Fn.«main».modeCert where
-  table := coreTable_ok
-  st := coreCerts_st
-  spec := coreCerts_spec
-  fn := coreCerts_fn
-  sigs := coreCerts_sigs
-  term := coreCerts_term
-  res := coreCerts_nz
-  nzs := coreNzs_ok
-  nodup := coreCerts_nodup
-  main := Fn.«main».modeCert_in
-  mainF := rfl
-  mainR := by decide +kernel
-  mainT := rfl
-  mainC := by decide +kernel
+theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs offSigs Fn.«main».modeCert :=
+  CoreFacts.of corePacks coreCerts_sigs coreNzs_ok coreCerts_nodup Fn.«main».modeCert_in rfl (by decide +kernel) rfl
+    (by decide +kernel)
 
 /-- **`main`'s certificate starts as the prologue leaves it.** -/
 theorem mainOk_core : MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl

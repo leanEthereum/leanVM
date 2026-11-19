@@ -14,540 +14,200 @@ public import LeanVM.Guest.CoreMode.Nzs
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«column_selector__L16»
+/-! Each function's certificate (`modeCert`: its `envC`, `funC` and code), its callees' signatures
+(`modeSigs`), and the certificate with its facts (`ce`). -/
 
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `column_selector__L16`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `column_selector__L16`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«column_selector__L16»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `decode_query_windows__L17_L5`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `decode_query_windows__L17_L5`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_chain»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `eq_prefix_chain`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `eq_prefix_chain`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«eq_prefix_run__L30».entry, Fn.«eq_prefix_run__L30».csig),
-    (Fn.«eq_prefix_run__L27».entry, Fn.«eq_prefix_run__L27».csig),
-    (Fn.«eq_prefix_run__L11».entry, Fn.«eq_prefix_run__L11».csig),
-    (Fn.«eq_prefix_run__L14».entry, Fn.«eq_prefix_run__L14».csig),
-    (Fn.«eq_prefix_run__L3».entry, Fn.«eq_prefix_run__L3».csig),
-    (Fn.«eq_prefix_run__L22».entry, Fn.«eq_prefix_run__L22».csig),
-    (Fn.«eq_prefix_run__L35».entry, Fn.«eq_prefix_run__L35».csig),
-    (Fn.«eq_prefix_run__L19».entry, Fn.«eq_prefix_run__L19».csig),
-    (Fn.«eq_prefix_run__L6».entry, Fn.«eq_prefix_run__L6».csig),
-    (Fn.«eq_prefix_run__L38».entry, Fn.«eq_prefix_run__L38».csig),
-    (Fn.«eq_prefix_run__L15».entry, Fn.«eq_prefix_run__L15».csig),
-    (Fn.«eq_prefix_run__L10».entry, Fn.«eq_prefix_run__L10».csig),
-    (Fn.«eq_prefix_run__L26».entry, Fn.«eq_prefix_run__L26».csig),
-    (Fn.«eq_prefix_run__L31».entry, Fn.«eq_prefix_run__L31».csig),
-    (Fn.«eq_prefix_run__L34».entry, Fn.«eq_prefix_run__L34».csig),
-    (Fn.«eq_prefix_run__L23».entry, Fn.«eq_prefix_run__L23».csig),
-    (Fn.«eq_prefix_run__L2».entry, Fn.«eq_prefix_run__L2».csig),
-    (Fn.«eq_prefix_run__L18».entry, Fn.«eq_prefix_run__L18».csig),
-    (Fn.«eq_prefix_run__L7».entry, Fn.«eq_prefix_run__L7».csig),
-    (Fn.«eq_prefix_run__L39».entry, Fn.«eq_prefix_run__L39».csig),
-    (Fn.«eq_prefix_run__L16».entry, Fn.«eq_prefix_run__L16».csig),
-    (Fn.«eq_prefix_run__L9».entry, Fn.«eq_prefix_run__L9».csig),
-    (Fn.«eq_prefix_run__L25».entry, Fn.«eq_prefix_run__L25».csig),
-    (Fn.«eq_prefix_run__L0».entry, Fn.«eq_prefix_run__L0».csig),
-    (Fn.«eq_prefix_run__L32».entry, Fn.«eq_prefix_run__L32».csig),
-    (Fn.«eq_prefix_run__L40».entry, Fn.«eq_prefix_run__L40».csig),
-    (Fn.«eq_prefix_run__L8».entry, Fn.«eq_prefix_run__L8».csig),
-    (Fn.«eq_prefix_run__L17».entry, Fn.«eq_prefix_run__L17».csig),
-    (Fn.«eq_prefix_run__L24».entry, Fn.«eq_prefix_run__L24».csig),
-    (Fn.«eq_prefix_run__L1».entry, Fn.«eq_prefix_run__L1».csig),
-    (Fn.«eq_prefix_run__L33».entry, Fn.«eq_prefix_run__L33».csig),
-    (Fn.«eq_prefix_run__L13».entry, Fn.«eq_prefix_run__L13».csig),
-    (Fn.«eq_prefix_run__L12».entry, Fn.«eq_prefix_run__L12».csig),
-    (Fn.«eq_prefix_run__L29».entry, Fn.«eq_prefix_run__L29».csig),
-    (Fn.«eq_prefix_run__L28».entry, Fn.«eq_prefix_run__L28».csig),
-    (Fn.«eq_prefix_run__L36».entry, Fn.«eq_prefix_run__L36».csig),
-    (Fn.«eq_prefix_run__L4».entry, Fn.«eq_prefix_run__L4».csig),
-    (Fn.«eq_prefix_run__L21».entry, Fn.«eq_prefix_run__L21».csig),
-    (Fn.«eq_prefix_run__L5».entry, Fn.«eq_prefix_run__L5».csig),
-    (Fn.«eq_prefix_run__L20».entry, Fn.«eq_prefix_run__L20».csig),
-    (Fn.«eq_prefix_run__L37».entry, Fn.«eq_prefix_run__L37».csig)]
-
-end LeanVM.Guest.Fn.«eq_prefix_chain»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L37»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `eq_prefix_run__L37`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `eq_prefix_run__L37`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L37»
-
-namespace LeanVM.Guest.Fn.«grind_check__L2»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `grind_check__L2`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `grind_check__L2`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«grind_check__L2»
-
-namespace LeanVM.Guest.Fn.«grind_check__L24»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `grind_check__L24`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `grind_check__L24`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«grind_check__L24»
-
-namespace LeanVM.Guest.Fn.«index_mle__L26»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `index_mle__L26`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `index_mle__L26`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«index_mle__L26»
-
-namespace LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_positions__L5_L25_L7_loop0`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_positions__L5_L25_L7_loop0`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«decode_query_windows__L25_L7».entry, Fn.«decode_query_windows__L25_L7».csig),
-    (Fn.«level_positions__L5_L25_L7_loop0».entry, Fn.«level_positions__L5_L25_L7_loop0».csig)]
-
-end LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L7_L14_L2»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_positions__L7_L14_L2`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_positions__L7_L14_L2`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«decode_query_windows__L14_L2».entry, Fn.«decode_query_windows__L14_L2».csig),
-    (Fn.«level_positions__L7_L14_L2_loop0».entry, Fn.«level_positions__L7_L14_L2_loop0».csig)]
-
-end LeanVM.Guest.Fn.«level_positions__L7_L14_L2»
-
-namespace LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_positions__L8_L19_L7_loop0`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_positions__L8_L19_L7_loop0`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«decode_query_windows__L19_L7».entry, Fn.«decode_query_windows__L19_L7».csig),
-    (Fn.«level_positions__L8_L19_L7_loop0».entry, Fn.«level_positions__L8_L19_L7_loop0».csig)]
-
-end LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L16_L8_L4_L2_loop0»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L16_L8_L4_L2_loop0`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L16_L8_L4_L2_loop0`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L16_L8_L4_L2_loop0».entry, Fn.«level_residual__L16_L8_L4_L2_loop0».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L16_L8_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L37_L20_L4_L2`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L37_L20_L4_L2`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L37_L20_L4_L2_loop0».entry, Fn.«level_residual__L37_L20_L4_L2_loop0».csig),
-    (Fn.«level_residual__L37_L20_L4_L2_loop1».entry, Fn.«level_residual__L37_L20_L4_L2_loop1».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2_loop1»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L44_L19_L4_L2_loop1`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L44_L19_L4_L2_loop1`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L44_L19_L4_L2_loop1».entry, Fn.«level_residual__L44_L19_L4_L2_loop1».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2_loop1»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L44_L20_L4_L2_loop1`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L44_L20_L4_L2_loop1`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L44_L20_L4_L2_loop1».entry, Fn.«level_residual__L44_L20_L4_L2_loop1».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2_loop1»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L55_L13_L4_L2_loop1`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L55_L13_L4_L2_loop1`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L55_L13_L4_L2_loop1».entry, Fn.«level_residual__L55_L13_L4_L2_loop1».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L15_L6_L3_loop0»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `level_residual__L55_L15_L6_L3_loop0`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `level_residual__L55_L15_L6_L3_loop0`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(Fn.«level_residual__L55_L15_L6_L3_loop0».entry, Fn.«level_residual__L55_L15_L6_L3_loop0».csig)]
-
-end LeanVM.Guest.Fn.«level_residual__L55_L15_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L21»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `padding_weight__L21`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `padding_weight__L21`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«padding_weight__L21»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L0»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `plus_one_run__L0`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `plus_one_run__L0`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«plus_one_run__L0»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L29»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `squeeze_point_from__L29`: its certificate, the core route's. -/
-noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-/-- `squeeze_point_from__L29`: its callees' signatures. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = []
-
-end LeanVM.Guest.Fn.«squeeze_point_from__L29»
-
-namespace LeanVM.Guest.CorePack.«P14»
+namespace LeanVM.Guest.Fn
 
 open LeanVM.Guest LeanVM.Guest.EndExec
 
 @[expose] public section
 
-/-- The pack's certificates. -/
-noncomputable def certs : List Mode.Cert :=
-  [Fn.«column_selector__L16».modeCert,
-    Fn.«decode_query_windows__L17_L5».modeCert,
-    Fn.«eq_prefix_chain».modeCert,
-    Fn.«eq_prefix_run__L37».modeCert,
-    Fn.«grind_check__L2».modeCert,
-    Fn.«grind_check__L24».modeCert,
-    Fn.«index_mle__L26».modeCert,
-    Fn.«level_positions__L5_L25_L7_loop0».modeCert,
-    Fn.«level_positions__L7_L14_L2».modeCert,
-    Fn.«level_positions__L8_L19_L7_loop0».modeCert,
-    Fn.«level_residual__L16_L8_L4_L2_loop0».modeCert,
-    Fn.«level_residual__L37_L20_L4_L2».modeCert,
-    Fn.«level_residual__L44_L19_L4_L2_loop1».modeCert,
-    Fn.«level_residual__L44_L20_L4_L2_loop1».modeCert,
-    Fn.«level_residual__L55_L13_L4_L2_loop1».modeCert,
-    Fn.«level_residual__L55_L15_L6_L3_loop0».modeCert,
-    Fn.«padding_weight__L21».modeCert,
-    Fn.«plus_one_run__L0».modeCert,
-    Fn.«squeeze_point_from__L29».modeCert]
+noncomputable def «column_selector__L16».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «decode_query_windows__L17_L5».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «eq_prefix_chain».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «eq_prefix_run__L37».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «grind_check__L2».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «grind_check__L24».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «index_mle__L26».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_positions__L5_L25_L7_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_positions__L7_L14_L2».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_positions__L8_L19_L7_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L16_L8_L4_L2_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L37_L20_L4_L2».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L44_L19_L4_L2_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L44_L20_L4_L2_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L55_L13_L4_L2_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «level_residual__L55_L15_L6_L3_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «padding_weight__L21».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «plus_one_run__L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «squeeze_point_from__L29».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
-public section
+kernel_rfl «column_selector__L16».modeSigs : «column_selector__L16».modeCert.E.sigs.entries =
+  []
+kernel_rfl «decode_query_windows__L17_L5».modeSigs : «decode_query_windows__L17_L5».modeCert.E.sigs.entries =
+  []
+kernel_rfl «eq_prefix_chain».modeSigs : «eq_prefix_chain».modeCert.E.sigs.entries =
+  [(«eq_prefix_run__L30».entry, «eq_prefix_run__L30».csig),
+    («eq_prefix_run__L27».entry, «eq_prefix_run__L27».csig),
+    («eq_prefix_run__L11».entry, «eq_prefix_run__L11».csig),
+    («eq_prefix_run__L14».entry, «eq_prefix_run__L14».csig),
+    («eq_prefix_run__L3».entry, «eq_prefix_run__L3».csig),
+    («eq_prefix_run__L22».entry, «eq_prefix_run__L22».csig),
+    («eq_prefix_run__L35».entry, «eq_prefix_run__L35».csig),
+    («eq_prefix_run__L19».entry, «eq_prefix_run__L19».csig),
+    («eq_prefix_run__L6».entry, «eq_prefix_run__L6».csig),
+    («eq_prefix_run__L38».entry, «eq_prefix_run__L38».csig),
+    («eq_prefix_run__L15».entry, «eq_prefix_run__L15».csig),
+    («eq_prefix_run__L10».entry, «eq_prefix_run__L10».csig),
+    («eq_prefix_run__L26».entry, «eq_prefix_run__L26».csig),
+    («eq_prefix_run__L31».entry, «eq_prefix_run__L31».csig),
+    («eq_prefix_run__L34».entry, «eq_prefix_run__L34».csig),
+    («eq_prefix_run__L23».entry, «eq_prefix_run__L23».csig),
+    («eq_prefix_run__L2».entry, «eq_prefix_run__L2».csig),
+    («eq_prefix_run__L18».entry, «eq_prefix_run__L18».csig),
+    («eq_prefix_run__L7».entry, «eq_prefix_run__L7».csig),
+    («eq_prefix_run__L39».entry, «eq_prefix_run__L39».csig),
+    («eq_prefix_run__L16».entry, «eq_prefix_run__L16».csig),
+    («eq_prefix_run__L9».entry, «eq_prefix_run__L9».csig),
+    («eq_prefix_run__L25».entry, «eq_prefix_run__L25».csig),
+    («eq_prefix_run__L0».entry, «eq_prefix_run__L0».csig),
+    («eq_prefix_run__L32».entry, «eq_prefix_run__L32».csig),
+    («eq_prefix_run__L40».entry, «eq_prefix_run__L40».csig),
+    («eq_prefix_run__L8».entry, «eq_prefix_run__L8».csig),
+    («eq_prefix_run__L17».entry, «eq_prefix_run__L17».csig),
+    («eq_prefix_run__L24».entry, «eq_prefix_run__L24».csig),
+    («eq_prefix_run__L1».entry, «eq_prefix_run__L1».csig),
+    («eq_prefix_run__L33».entry, «eq_prefix_run__L33».csig),
+    («eq_prefix_run__L13».entry, «eq_prefix_run__L13».csig),
+    («eq_prefix_run__L12».entry, «eq_prefix_run__L12».csig),
+    («eq_prefix_run__L29».entry, «eq_prefix_run__L29».csig),
+    («eq_prefix_run__L28».entry, «eq_prefix_run__L28».csig),
+    («eq_prefix_run__L36».entry, «eq_prefix_run__L36».csig),
+    («eq_prefix_run__L4».entry, «eq_prefix_run__L4».csig),
+    («eq_prefix_run__L21».entry, «eq_prefix_run__L21».csig),
+    («eq_prefix_run__L5».entry, «eq_prefix_run__L5».csig),
+    («eq_prefix_run__L20».entry, «eq_prefix_run__L20».csig),
+    («eq_prefix_run__L37».entry, «eq_prefix_run__L37».csig)]
+kernel_rfl «eq_prefix_run__L37».modeSigs : «eq_prefix_run__L37».modeCert.E.sigs.entries =
+  []
+kernel_rfl «grind_check__L2».modeSigs : «grind_check__L2».modeCert.E.sigs.entries =
+  []
+kernel_rfl «grind_check__L24».modeSigs : «grind_check__L24».modeCert.E.sigs.entries =
+  []
+kernel_rfl «index_mle__L26».modeSigs : «index_mle__L26».modeCert.E.sigs.entries =
+  []
+kernel_rfl «level_positions__L5_L25_L7_loop0».modeSigs : «level_positions__L5_L25_L7_loop0».modeCert.E.sigs.entries =
+  [(«decode_query_windows__L25_L7».entry, «decode_query_windows__L25_L7».csig),
+    («level_positions__L5_L25_L7_loop0».entry, «level_positions__L5_L25_L7_loop0».csig)]
+kernel_rfl «level_positions__L7_L14_L2».modeSigs : «level_positions__L7_L14_L2».modeCert.E.sigs.entries =
+  [(«decode_query_windows__L14_L2».entry, «decode_query_windows__L14_L2».csig),
+    («level_positions__L7_L14_L2_loop0».entry, «level_positions__L7_L14_L2_loop0».csig)]
+kernel_rfl «level_positions__L8_L19_L7_loop0».modeSigs : «level_positions__L8_L19_L7_loop0».modeCert.E.sigs.entries =
+  [(«decode_query_windows__L19_L7».entry, «decode_query_windows__L19_L7».csig),
+    («level_positions__L8_L19_L7_loop0».entry, «level_positions__L8_L19_L7_loop0».csig)]
+kernel_rfl «level_residual__L16_L8_L4_L2_loop0».modeSigs : «level_residual__L16_L8_L4_L2_loop0».modeCert.E.sigs.entries =
+  [(«level_residual__L16_L8_L4_L2_loop0».entry, «level_residual__L16_L8_L4_L2_loop0».csig)]
+kernel_rfl «level_residual__L37_L20_L4_L2».modeSigs : «level_residual__L37_L20_L4_L2».modeCert.E.sigs.entries =
+  [(«level_residual__L37_L20_L4_L2_loop0».entry, «level_residual__L37_L20_L4_L2_loop0».csig),
+    («level_residual__L37_L20_L4_L2_loop1».entry, «level_residual__L37_L20_L4_L2_loop1».csig)]
+kernel_rfl «level_residual__L44_L19_L4_L2_loop1».modeSigs : «level_residual__L44_L19_L4_L2_loop1».modeCert.E.sigs.entries =
+  [(«level_residual__L44_L19_L4_L2_loop1».entry, «level_residual__L44_L19_L4_L2_loop1».csig)]
+kernel_rfl «level_residual__L44_L20_L4_L2_loop1».modeSigs : «level_residual__L44_L20_L4_L2_loop1».modeCert.E.sigs.entries =
+  [(«level_residual__L44_L20_L4_L2_loop1».entry, «level_residual__L44_L20_L4_L2_loop1».csig)]
+kernel_rfl «level_residual__L55_L13_L4_L2_loop1».modeSigs : «level_residual__L55_L13_L4_L2_loop1».modeCert.E.sigs.entries =
+  [(«level_residual__L55_L13_L4_L2_loop1».entry, «level_residual__L55_L13_L4_L2_loop1».csig)]
+kernel_rfl «level_residual__L55_L15_L6_L3_loop0».modeSigs : «level_residual__L55_L15_L6_L3_loop0».modeCert.E.sigs.entries =
+  [(«level_residual__L55_L15_L6_L3_loop0».entry, «level_residual__L55_L15_L6_L3_loop0».csig)]
+kernel_rfl «padding_weight__L21».modeSigs : «padding_weight__L21».modeCert.E.sigs.entries =
+  []
+kernel_rfl «plus_one_run__L0».modeSigs : «plus_one_run__L0».modeCert.E.sigs.entries =
+  []
+kernel_rfl «squeeze_point_from__L29».modeSigs : «squeeze_point_from__L29».modeCert.E.sigs.entries =
+  []
 
-theorem mem0 : Fn.«column_selector__L16».modeCert ∈ certs := List.mem_cons_self
+@[expose] public section
 
-theorem mem1 : Fn.«decode_query_windows__L17_L5».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_self)
+noncomputable def «column_selector__L16».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 0), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «decode_query_windows__L17_L5».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 1), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «eq_prefix_chain».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 2), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «eq_prefix_run__L37».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 3), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «grind_check__L2».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 4), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «grind_check__L24».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 5), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «index_mle__L26».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 6), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_positions__L5_L25_L7_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 7), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_positions__L7_L14_L2».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 8), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_positions__L8_L19_L7_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 9), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L16_L8_L4_L2_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 10), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L37_L20_L4_L2».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 11), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L44_L19_L4_L2_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 12), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L44_L20_L4_L2_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 13), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L55_L13_L4_L2_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 14), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «level_residual__L55_L15_L6_L3_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 15), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «padding_weight__L21».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 16), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «plus_one_run__L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 17), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «squeeze_point_from__L29».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P14».coreFns_ok _ (list_mem% 18), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
-theorem mem2 : Fn.«eq_prefix_chain».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))
+end
 
-theorem mem3 : Fn.«eq_prefix_run__L37».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))
+end LeanVM.Guest.Fn
 
-theorem mem4 : Fn.«grind_check__L2».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))
+namespace LeanVM.Guest.CorePack.«P14»
 
-theorem mem5 : Fn.«grind_check__L24».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))
+@[expose] public section
 
-theorem mem6 : Fn.«index_mle__L26».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))
-
-theorem mem7 : Fn.«level_positions__L5_L25_L7_loop0».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))
-
-theorem mem8 : Fn.«level_positions__L7_L14_L2».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))
-
-theorem mem9 : Fn.«level_positions__L8_L19_L7_loop0».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))
-
-theorem mem10 : Fn.«level_residual__L16_L8_L4_L2_loop0».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))
-
-theorem mem11 : Fn.«level_residual__L37_L20_L4_L2».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))
-
-theorem mem12 : Fn.«level_residual__L44_L19_L4_L2_loop1».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))
-
-theorem mem13 : Fn.«level_residual__L44_L20_L4_L2_loop1».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))
-
-theorem mem14 : Fn.«level_residual__L55_L13_L4_L2_loop1».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))
-
-theorem mem15 : Fn.«level_residual__L55_L15_L6_L3_loop0».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))
-
-theorem mem16 : Fn.«padding_weight__L21».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))
-
-theorem mem17 : Fn.«plus_one_run__L0».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))
-
-theorem mem18 : Fn.«squeeze_point_from__L29».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))
-
-/-- The certificates' static facts. -/
-theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
-  Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_nil)))))))))))))))))))
-
-/-- The certificates' frame interfaces, the core route's. -/
-theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ ModePack.«P14».coreFns, Cf ∈ T) :
-    ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«column_selector__L16».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_self))) rfl Fn.«decode_query_windows__L17_L5».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))) rfl Fn.«eq_prefix_chain».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))) rfl Fn.«eq_prefix_run__L37».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))) rfl Fn.«grind_check__L2».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))) rfl Fn.«grind_check__L24».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))) rfl Fn.«index_mle__L26».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))) rfl Fn.«level_positions__L5_L25_L7_loop0».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))) rfl Fn.«level_positions__L7_L14_L2».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))) rfl Fn.«level_positions__L8_L19_L7_loop0».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))) rfl Fn.«level_residual__L16_L8_L4_L2_loop0».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))) rfl Fn.«level_residual__L37_L20_L4_L2».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))) rfl Fn.«level_residual__L44_L19_L4_L2_loop1».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))) rfl Fn.«level_residual__L44_L20_L4_L2_loop1».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))) rfl Fn.«level_residual__L55_L13_L4_L2_loop1».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))) rfl Fn.«level_residual__L55_L15_L6_L3_loop0».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))) rfl Fn.«padding_weight__L21».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))) rfl Fn.«plus_one_run__L0».fnSpecC)
-    (Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))) rfl Fn.«squeeze_point_from__L29».fnSpecC)
-    (Mode.fa_nil)))))))))))))))))))
-
-/-- The certificates' code, the program's. -/
-theorem certs_fn : ∀ K ∈ certs, Mode.FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of Fn.«column_selector__L16».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«decode_query_windows__L17_L5».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«eq_prefix_chain».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«eq_prefix_run__L37».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«grind_check__L2».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«grind_check__L24».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«index_mle__L26».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_positions__L5_L25_L7_loop0».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_positions__L7_L14_L2».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_positions__L8_L19_L7_loop0».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L16_L8_L4_L2_loop0».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L37_L20_L4_L2».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L44_L19_L4_L2_loop1».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L44_L20_L4_L2_loop1».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L55_L13_L4_L2_loop1».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«level_residual__L55_L15_L6_L3_loop0».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«padding_weight__L21».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«plus_one_run__L0».code_mem rfl rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of Fn.«squeeze_point_from__L29».code_mem rfl rfl rfl)
-    (Mode.fa_nil)))))))))))))))))))
-
-/-- The certificates' termination facts, their loop shapes'. -/
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := Fn.«column_selector__L16».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«decode_query_windows__L17_L5».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«eq_prefix_chain».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«eq_prefix_run__L37».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«grind_check__L2».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«grind_check__L24».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«index_mle__L26».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_positions__L5_L25_L7_loop0».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_positions__L7_L14_L2».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_positions__L8_L19_L7_loop0».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L16_L8_L4_L2_loop0».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L37_L20_L4_L2».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L44_L19_L4_L2_loop1».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L44_L20_L4_L2_loop1».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L55_L13_L4_L2_loop1».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«level_residual__L55_L15_L6_L3_loop0».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«padding_weight__L21».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«plus_one_run__L0».idx) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := Fn.«squeeze_point_from__L29».idx) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))
-
-/-- The certificates' residuals: listed parameters' nonzero values. -/
-theorem certs_nz : ∀ K ∈ certs, NzOnly CoreMode.coreNzs K :=
-  Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_cons (nzOnly_nil rfl)
-    (Mode.fa_nil)))))))))))))))))))
+/-- The pack's certificates with their facts. -/
+noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
+  [Fn.«column_selector__L16».ce, Fn.«decode_query_windows__L17_L5».ce, Fn.«eq_prefix_chain».ce,
+   Fn.«eq_prefix_run__L37».ce, Fn.«grind_check__L2».ce, Fn.«grind_check__L24».ce,
+   Fn.«index_mle__L26».ce, Fn.«level_positions__L5_L25_L7_loop0».ce,
+   Fn.«level_positions__L7_L14_L2».ce, Fn.«level_positions__L8_L19_L7_loop0».ce,
+   Fn.«level_residual__L16_L8_L4_L2_loop0».ce, Fn.«level_residual__L37_L20_L4_L2».ce,
+   Fn.«level_residual__L44_L19_L4_L2_loop1».ce, Fn.«level_residual__L44_L20_L4_L2_loop1».ce,
+   Fn.«level_residual__L55_L13_L4_L2_loop1».ce, Fn.«level_residual__L55_L15_L6_L3_loop0».ce,
+   Fn.«padding_weight__L21».ce, Fn.«plus_one_run__L0».ce, Fn.«squeeze_point_from__L29».ce]
 
 end
 

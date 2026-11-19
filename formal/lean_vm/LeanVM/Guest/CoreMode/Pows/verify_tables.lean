@@ -10,21 +10,17 @@ module
 public import LeanVM.Guest.Pow
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_tables»
+/-! Each function's powers of `g` its constants name (`pows`), checked in the kernel (`pows_ok`). -/
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_tables`: the powers of `g` its constants name. -/
-noncomputable def pows : Exec.PowTree :=
-  (.node 4096 12 (.node 64 6 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 32 5 (.node 16 4 .leaf .leaf) .leaf)) (.node 512 9 (.node 256 8 (.node 128 7 .leaf .leaf) .leaf) (.node 2048 11 (.node 1024 10 .leaf .leaf) .leaf))) (.node 8589934592 33 (.node 21299200 144 (.node 8388608 23 (.node 524288 19 .leaf .leaf) .leaf) (.node 4294967296 32 (.node 1073741824 30 .leaf .leaf) .leaf)) (.node 299140177199104 288 (.node 17179869184 34 (.node 10905190400 153 .leaf .leaf) .leaf) (.node 12261764870545049476 524287 (.node 267460055567564800 8397 .leaf .leaf) .leaf))))
+noncomputable def Fn.«verify_tables».pows : Exec.PowTree := (.node 4096 12 (.node 64 6 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 32 5 (.node 16 4 .leaf .leaf) .leaf)) (.node 512 9 (.node 256 8 (.node 128 7 .leaf .leaf) .leaf) (.node 2048 11 (.node 1024 10 .leaf .leaf) .leaf))) (.node 8589934592 33 (.node 21299200 144 (.node 8388608 23 (.node 524288 19 .leaf .leaf) .leaf) (.node 4294967296 32 (.node 1073741824 30 .leaf .leaf) .leaf)) (.node 299140177199104 288 (.node 17179869184 34 (.node 10905190400 153 .leaf .leaf) .leaf) (.node 12261764870545049476 524287 (.node 267460055567564800 8397 .leaf .leaf) .leaf))))
+theorem Fn.«verify_tables».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 
 end
 
-public section
-
-/-- `verify_tables`: its powers are powers of `g`. -/
-theorem pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest
