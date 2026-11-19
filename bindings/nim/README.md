@@ -19,18 +19,20 @@ references to native handles. The garbage collector frees each handle once nothi
 and `close` frees it at once; every later call on a closed value returns an error.
 
 The binding links a target-matched static `liblean_pq_native.a` produced by the shared Rust bridge.
-Release packages bundle it for Linux x86_64 and aarch64 (glibc), macOS (universal), and Windows
-x86_64 (MinGW-w64 gcc, Nim's default Windows compiler). The archive is an implementation detail of
+Each release attaches it for Linux x86_64 and aarch64 (glibc), macOS (universal), and Windows
+x86_64 (MinGW-w64 gcc, Nim's default Windows compiler), and the package's first build downloads it
+with curl. The archive is an implementation detail of
 this binding, not a public C API.
 
 ## Install
 
-Each release tags `bindings/nim/v<version>`: a commit that holds only this package with the native
-archives built in, so installing needs no Rust toolchain. Nim 2.2.12 or newer, with Nimble:
+The package is `bindings/nim` at the release tag `bindings-v<version>`. Its first build downloads
+the native archive for the target from that release into the package's `native/` directory, so
+installing needs no Rust toolchain. Nim 2.2.12 or newer, with Nimble:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
 ```
 <!-- x-release-please-end -->
 
@@ -38,28 +40,27 @@ or, from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
 ```
 <!-- x-release-please-end -->
 
-Name the tag: the bindings' `bindings-vX.Y.Z` release tags are not Nimble packages.
-
-With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), vendor the same tag
-as a submodule; `lean_pq.nim` sits at the package root, so the generated
-`--path` entry is all `import lean_pq` needs:
+With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), vendor the repository
+at the same tag as a submodule and add `--path:"vendor/leanVM/bindings/nim"` to the build's
+`config.nims`:
 
 <!-- x-release-please-start-version -->
 ```sh
-git submodule add https://github.com/leanEthereum/leanVM vendor/nim-lean-pq
-git -C vendor/nim-lean-pq checkout bindings/nim/v0.11.0
+git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
+git -C vendor/leanVM checkout bindings-v0.11.0
 ```
 <!-- x-release-please-end -->
 
 The package depends on `results`.
 
-The package picks the bundled archive for the build target. For any other target, build
-`liblean_pq_native.a` yourself and pass its directory with `-d:leanPqNativeDir=DIR`. On Windows the
-bundled archive targets the GNU ABI; the MSVC compiler (`--cc:vcc`) is not supported.
+The package picks the release archive for the build target. For any other target, or to build
+without network access, build `liblean_pq_native.a` yourself and pass its directory with
+`-d:leanPqNativeDir=DIR`. On Windows the release archive targets the GNU ABI; the MSVC compiler
+(`--cc:vcc`) is not supported.
 
 ## Build from this repository
 
@@ -85,8 +86,8 @@ stages its archive from one Rust target:
 | `x86_64-pc-windows-gnu` | `native/x86_64-windows-gnu` |
 
 The aggregation test proves recursively: expect seconds per proof and about 1.6 GB of memory.
-`scripts/assemble-package.sh` builds the tagged package from the release archives, and
-`scripts/consumer-smoke.sh` proves it works as a Nimble dependency without Rust.
+`scripts/stage-release.sh` stages the archives a release attaches, and `scripts/consumer-smoke.sh`
+proves the package works as a Nimble dependency without Rust.
 
 ## Example
 

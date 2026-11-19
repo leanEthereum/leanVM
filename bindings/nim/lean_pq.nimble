@@ -5,10 +5,10 @@ version       = "0.11.0" # x-release-please-version
 author        = "The leanVM contributors"
 description   = "leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation"
 license       = "MIT or Apache License 2.0"
-# `native` holds the bundled static archives in release packages; Nimble's default file selection
-# would leave them and the header out.
+# Nimble's default file selection would leave the header out. The first build downloads the
+# native archive into `native/` (lean_pq/abi.nim).
 installFiles  = @["lean_pq.nim"]
-installDirs   = @["lean_pq", "include", "native"]
+installDirs   = @["lean_pq", "include"]
 
 requires "nim >= 2.2.12"
 requires "results"

@@ -48,6 +48,10 @@
         },
         {
           "type": "generic",
+          "path": "nim/lean_pq/abi.nim"
+        },
+        {
+          "type": "generic",
           "path": "rust/README.md"
         }
       ],

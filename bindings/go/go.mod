@@ -1,3 +1,3 @@
-module github.com/leanEthereum/leanVM/bindings/go
+module leanvm.org/go
 
 go 1.24

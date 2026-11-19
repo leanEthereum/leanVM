@@ -304,8 +304,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" "dist/lean-pq-zig-${RELEASE_TAG#bindings-v}.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
 
-  # The Go module `go get` fetches: a parentless commit holding bindings/go plus the zig-native
-  # archives, tagged bindings/go/vX.Y.Z, so building against it needs only Go and a C compiler.
+  # The Go module leanvm.org/go: bindings/go plus the zig-native archives, as module proxy files,
+  # so building against it needs only Go and a C compiler. They never enter git: go-publish
+  # attaches them to the release and the Website workflow serves them from leanvm.org/goproxy.
   go-module:
     name: Go module
     needs: zig-native
@@ -330,9 +331,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: go-module
-          path: |
-            go-module/go-module.bundle
-            go-module/proxy
+          path: go-module/proxy
           if-no-files-found: error
 
   # Fetches the assembled module through a file:// GOPROXY and runs the README example, on runners
@@ -375,15 +374,17 @@ jobs:
       - name: Build and run a consumer against the module
         run: sh bindings/go/scripts/consumer-smoke.sh go-module/proxy "${RELEASE_TAG#bindings-v}"
 
-  # Pushes only the module tag; a dry run checks the push with --dry-run.
+  # Attaches the module's proxy files to the release, then has the Website workflow serve them.
   go-publish:
     name: Publish the Go module
     needs: [go-module, go-consumer]
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     env:
-      MODULE: github.com/leanEthereum/leanVM/bindings/go
+      MODULE: leanvm.org/go
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -394,27 +395,33 @@ jobs:
         with:
           go-version-file: bindings/go/go.mod
           cache: false
-      - name: Push the module tag
+      - name: Attach the module to the GitHub release
         env:
-          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/bindings-v') }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          tag="bindings/go/v${RELEASE_TAG#bindings-v}"
-          git fetch go-module/go-module.bundle "refs/tags/$tag:refs/tags/$tag"
-          git log -1 --format='%H %P %s' "$tag"
-          if [ "$DRY_RUN" = true ]; then
-            git push --dry-run origin "refs/tags/$tag"
-          else
-            git push origin "refs/tags/$tag"
-          fi
+          version=v${RELEASE_TAG#bindings-v}
+          for ext in info mod zip; do
+            cp "go-module/$MODULE/@v/$version.$ext" "go-module-$version.$ext"
+          done
+          gh release upload "$GITHUB_REF_NAME" go-module-"$version".info go-module-"$version".mod \
+            go-module-"$version".zip --clobber -R "$GITHUB_REPOSITORY"
+      - name: Deploy leanvm.org with the module
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main -R "$GITHUB_REPOSITORY"
       - name: Fetch the module through the public proxy
-        if: startsWith(github.ref, 'refs/tags/bindings-v')
         run: |
-          GOPROXY=https://proxy.golang.org go list -m "$MODULE@v${RELEASE_TAG#bindings-v}"
-          GOPROXY=https://proxy.golang.org go mod download -json "$MODULE@v${RELEASE_TAG#bindings-v}"
+          version=v${RELEASE_TAG#bindings-v}
+          for attempt in $(seq 60); do
+            curl -fsS "https://leanvm.org/goproxy/$MODULE/@v/list" | grep -qx "$version" && break
+            sleep 10
+          done
+          GOPROXY=https://proxy.golang.org go list -m "$MODULE@$version"
+          GOPROXY=https://proxy.golang.org go mod download -json "$MODULE@$version"
 
-  # The Nimble package: a parentless commit holding bindings/nim at its root plus the zig-native
-  # archives, tagged bindings/nim/vX.Y.Z, so `nimble install`, a `requires` line or a
-  # nimbus-build-system submodule needs only Nim and a C compiler.
+  # The Nimble package is bindings/nim at the release tag. Its first build downloads its target's
+  # stripped zig-native archive from the release (lean_pq/abi.nim), so `nimble install`, a
+  # `requires` line or a nimbus-build-system submodule needs only Nim, a C compiler and curl.
   nim-package:
     name: Nim package
     needs: zig-native
@@ -425,24 +432,24 @@ jobs:
         with:
           path: native
           pattern: zig-native-*
-      - name: Assemble the package
+      - name: Stage the archives
         run: |
           for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
           rustup component add llvm-tools
           llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
           LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/nim/scripts/assemble-package.sh "${RELEASE_TAG#bindings-v}" native nim-package | tee package.log
+            sh bindings/nim/scripts/stage-release.sh native nim-package | tee package.log
           for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
-            grep -qx "bundled $target" package.log
+            grep -qx "staged $target" package.log
           done
       - uses: actions/upload-artifact@v4
         with:
           name: nim-package
-          path: nim-package/nim-package.bundle
+          path: nim-package
           if-no-files-found: error
 
-  # Installs the tagged package through Nimble and runs the README example, on runners with the
-  # preinstalled Rust toolchain removed.
+  # Installs the package through Nimble from a tag, downloading the staged archives, and runs the
+  # README example, on runners with the preinstalled Rust toolchain removed.
   nim-consumer:
     name: Nim consumer / ${{ matrix.runner }}
     needs: nim-package
@@ -479,35 +486,24 @@ jobs:
             done
           done
       - name: Build and run a consumer against the package
-        run: |
-          git clone -q nim-package/nim-package.bundle "$RUNNER_TEMP/nim-package"
-          sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" "${RELEASE_TAG#bindings-v}"
+        run: sh bindings/nim/scripts/consumer-smoke.sh nim-package "${RELEASE_TAG#bindings-v}"
 
-  # Pushes only the package tag; a dry run checks the push with --dry-run.
   nim-publish:
-    name: Publish the Nimble package
+    name: Attach the Nim archives
     needs: [nim-package, nim-consumer]
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: nim-package
           path: nim-package
-      - name: Push the package tag
+      - name: Attach to the GitHub release
         env:
-          DRY_RUN: ${{ !startsWith(github.ref, 'refs/tags/bindings-v') }}
-        run: |
-          tag="bindings/nim/v${RELEASE_TAG#bindings-v}"
-          git fetch nim-package/nim-package.bundle "refs/tags/$tag:refs/tags/$tag"
-          git log -1 --format='%H %P %s' "$tag"
-          if [ "$DRY_RUN" = true ]; then
-            git push --dry-run origin "refs/tags/$tag"
-          else
-            git push origin "refs/tags/$tag"
-          fi
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" nim-package/lean-pq-native-*.a --clobber -R "$GITHUB_REPOSITORY"
 
   # One Node.js addon per napi target (bindings/node/package.json `napi.targets`). The version is
   # stamped before building because the generated loader (index.js) bakes it in.

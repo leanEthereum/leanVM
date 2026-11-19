@@ -19,9 +19,9 @@ of them at `X.Y.Z`. Prebuilt packages need no Rust toolchain.
 | [Python](python/README.md) ≥ 3.11 | `py-lean-pq` on PyPI | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
 | [Node.js](node/README.md) ≥ 18.17 | `@kevaundray/lean-pq` on npm | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
 | [Java](java/README.md) 25 | `io.github.crate-crypto:lean-pq` on Maven Central | Linux x86_64/aarch64 (glibc 2.17+), macOS x86_64/arm64, Windows x86_64 |
-| [Go](go/README.md) ≥ 1.24 | `github.com/leanEthereum/leanVM/bindings/go` | Linux amd64/arm64 (glibc), macOS amd64/arm64, Windows amd64 |
+| [Go](go/README.md) ≥ 1.24 | `leanvm.org/go` | Linux amd64/arm64 (glibc), macOS amd64/arm64, Windows amd64 |
 | [Zig](zig/README.md) ≥ 0.16 | package attached to each GitHub release | Linux x86_64/aarch64 (glibc), macOS x86_64/aarch64, Windows x86_64 |
-| [Nim](nim/README.md) ≥ 2.2.12 | Nimble package `lean_pq` at tag `bindings/nim/vX.Y.Z` | Linux x86_64/aarch64 (glibc), macOS x86_64/arm64, Windows x86_64 (MinGW) |
+| [Nim](nim/README.md) ≥ 2.2.12 | Nimble package `lean_pq`, `bindings/nim` at tag `bindings-vX.Y.Z` | Linux x86_64/aarch64 (glibc), macOS x86_64/arm64, Windows x86_64 (MinGW) |
 | [Rust](rust/README.md) | `lean-pq` from this repository (git) | built from source |
 
 The x86_64 builds require a CPU with AVX2 and PCLMULQDQ.
@@ -74,11 +74,11 @@ The jar bundles the native library for each platform. Run with
 
 <!-- x-release-please-start-version -->
 ```sh
-go get github.com/leanEthereum/leanVM/bindings/go@v0.11.0
+go get leanvm.org/go@v0.11.0
 ```
 <!-- x-release-please-end -->
 
-The module links a bundled static library through cgo, so it needs `CGO_ENABLED=1` and a C
+The module, served from leanvm.org, links a bundled static library through cgo, so it needs `CGO_ENABLED=1` and a C
 compiler: gcc or clang on Linux, the Xcode command line tools on macOS, and MinGW-w64 gcc on
 Windows.
 
@@ -106,12 +106,12 @@ In your `.nimble` file:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM#bindings/nim/v0.11.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
 ```
 <!-- x-release-please-end -->
 
-The tag holds the package with its native archives built in, and also works as a
-nimbus-build-system `vendor/` submodule. The bindings are `Result`-based and `raises: []`, and
+The first build downloads the native archive for the target from the release; the tag also works
+as a nimbus-build-system `vendor/` submodule. The bindings are `Result`-based and `raises: []`, and
 build with `--mm:refc` and `--mm:orc`.
 
 ### Rust

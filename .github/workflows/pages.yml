@@ -1,6 +1,7 @@
 name: Website
 
-# Publishes doc/site/ (leanvm.org) to GitHub Pages on every push to main that changes it.
+# Publishes doc/site/ (leanvm.org) to GitHub Pages on every push to main that changes it, and with
+# the Go module proxy when bindings-release.yml dispatches it after a release.
 
 on:
   push:
@@ -29,6 +30,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      # The Go module leanvm.org/go (doc/site/go/index.html): every version's proxy files, from the
+      # release assets of every bindings-vX.Y.Z release, so the archives they hold never enter git.
+      # Every deploy replaces the whole site, so each one rebuilds this from all releases.
+      - name: Add the Go module proxy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          versions=doc/site/goproxy/leanvm.org/go/@v
+          mkdir -p "$versions"
+          gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 1000 \
+            --json tagName -q '.[].tagName' | { grep '^bindings-v' || true; } | while read -r tag; do
+            version=v${tag#bindings-v}
+            gh release download "$tag" -R "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/$tag" --pattern 'go-module-*' || continue
+            for ext in info mod zip; do
+              [ -f "$RUNNER_TEMP/$tag/go-module-$version.$ext" ] || continue 2
+            done
+            for ext in info mod zip; do
+              mv "$RUNNER_TEMP/$tag/go-module-$version.$ext" "$versions/$version.$ext"
+            done
+            echo "$version" >> "$versions/list"
+          done
+          touch "$versions/list"
+          cat "$versions/list"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: doc/site

@@ -7,12 +7,12 @@ expose C pointers or the internal bridge ABI.
 
 ## Install
 
-Each release tags `bindings/go/v<version>`: a commit holding only this module with the native
-archives built in, so `go get` needs no Rust toolchain:
+The module is `leanvm.org/go`. Each release publishes it with the native archives built in, served
+from leanvm.org rather than from git, so `go get` needs no Rust toolchain:
 
 <!-- x-release-please-start-version -->
 ```sh
-go get github.com/leanEthereum/leanVM/bindings/go@v0.11.0
+go get leanvm.org/go@v0.11.0
 ```
 <!-- x-release-please-end -->
 
@@ -33,8 +33,8 @@ Supported platforms:
 | `windows/amd64` | `internal/native/windows_amd64` (MinGW-w64) |
 
 Build tags select the archive and cgo links it into the final Go binary, so the program has no
-runtime dependency on the bridge. The tagged commit is not on any branch: `main` holds no
-archives, and building from a checkout of this repository needs the source build below.
+runtime dependency on the bridge. The archives are never committed: building from a checkout of
+this repository needs the source build below.
 
 ## Source build and test
 
@@ -64,8 +64,10 @@ Each platform stages its archive from one Rust target:
 The universal macOS build requires both `x86_64-apple-darwin` and
 `aarch64-apple-darwin` Rust targets and runs on macOS so `cargo-zigbuild` can use the installed SDK.
 
-`scripts/assemble-module.sh` builds the tagged module from the release archives, and
-`scripts/consumer-smoke.sh` proves it works through `go get` without Rust.
+`scripts/assemble-module.sh` builds the published module's proxy files from the release archives,
+and `scripts/consumer-smoke.sh` proves it works through `go get` without Rust. A release attaches
+the files to its GitHub release, and the Website workflow serves every release's files from
+`leanvm.org/goproxy`, which `leanvm.org/go`'s `go-import` tag names.
 
 ## Example
 
@@ -75,7 +77,7 @@ package main
 import (
     "log"
 
-    leanpq "github.com/leanEthereum/leanVM/bindings/go"
+    leanpq "leanvm.org/go"
 )
 
 func main() {

@@ -1,15 +1,12 @@
 #!/bin/sh
 # Assemble the published Go module: the committed bindings/go tree plus one stripped native archive
-# per supported platform, committed alone on a parentless commit tagged bindings/go/vVERSION.
+# per supported platform, as the module proxy files leanvm.org serves (never committed to git).
 #
 # NATIVE_ROOT holds the zig-native release archives: x86_64-linux-gnu, aarch64-linux-gnu,
 # universal-macos and x86_64-windows-gnu, each with liblean_pq_native.a.
 #
-# OUTPUT_DIRECTORY receives:
-#   repo/              scratch repository holding the tagged commit
-#   go-module.bundle   git bundle of the tag, for pushing it from another job
-#   proxy/             the module as `go mod download` fetches it from that tag, usable as
-#                      GOPROXY=file://...
+# OUTPUT_DIRECTORY/proxy receives the module's list, .info, .mod and .zip in the GOPROXY layout,
+# usable as GOPROXY=file://...
 #
 # LLVM_STRIP and LLVM_AR name the LLVM tools (default llvm-strip and llvm-ar).
 set -eu
@@ -24,10 +21,7 @@ native_root=$(CDPATH= cd -- "$2" && pwd)
 output=$3
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
-module=github.com/leanEthereum/leanVM/bindings/go
-# The module cache spells each upper-case letter as `!` and its lower case.
-module_escaped=$(printf '%s' "$module" | sed 's/[[:upper:]]/!&/g' | tr '[:upper:]' '[:lower:]')
-tag=bindings/go/v$version
+module=leanvm.org/go
 llvm_strip=${LLVM_STRIP:-llvm-strip}
 llvm_ar=${LLVM_AR:-llvm-ar}
 
@@ -44,9 +38,9 @@ if [ -e "$output" ]; then
 fi
 mkdir -p "$output"
 output=$(CDPATH= cd -- "$output" && pwd)
-tree="$output/repo"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
+tree="$work/zip/$module@v$version"
 
 # Drops debug information from every object in a static archive. Universal macOS archives are
 # stripped whole; other archives member by member, because llvm-strip rejects the short import
@@ -73,46 +67,38 @@ strip_archive() {
     )
 }
 
-git -c init.defaultBranch=module init -q "$tree"
-git -C "$repo_dir" archive HEAD bindings/go | tar -x -C "$tree"
+git -C "$repo_dir" archive HEAD bindings/go | tar -x -C "$work"
+mkdir -p "$(dirname -- "$tree")"
+mv "$work/bindings/go" "$tree"
 # The licenses live at the repository root; the module needs its own copy (pkg.go.dev requires one).
-cp "$repo_dir/LICENSE-MIT" "$repo_dir/LICENSE-APACHE" "$tree/bindings/go/"
+cp "$repo_dir/LICENSE-MIT" "$repo_dir/LICENSE-APACHE" "$tree/"
 for pair in x86_64-linux-gnu:linux_amd64 aarch64-linux-gnu:linux_arm64 \
     universal-macos:darwin_universal x86_64-windows-gnu:windows_amd64; do
     source="$native_root/${pair%%:*}/liblean_pq_native.a"
-    destination="$tree/bindings/go/internal/native/${pair#*:}/liblean_pq_native.a"
+    destination="$tree/internal/native/${pair#*:}/liblean_pq_native.a"
     mkdir -p "$(dirname -- "$destination")"
     install -m 0644 "$source" "$destination"
     strip_archive "$destination"
     echo "staged ${pair#*:}: $(wc -c < "$source") bytes, $(wc -c < "$destination") stripped"
 done
 
-source_commit=$(git -C "$repo_dir" rev-parse HEAD)
-git -C "$tree" add -A -f
-GIT_AUTHOR_NAME='github-actions[bot]' \
-    GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
-    GIT_AUTHOR_DATE=$(git -C "$repo_dir" log -1 --format=%cI) \
-    GIT_COMMITTER_NAME='github-actions[bot]' \
-    GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
-    GIT_COMMITTER_DATE=$(git -C "$repo_dir" log -1 --format=%cI) \
-    git -C "$tree" commit -q -m "Go module $module v$version" -m "Built from $source_commit."
-git -C "$tree" tag "$tag"
-git -C "$tree" bundle create -q "$output/go-module.bundle" "refs/tags/$tag"
-echo "tagged $tag at $(git -C "$tree" rev-parse HEAD)"
+# The module proxy's files for this version. Every file in a module zip sits under MODULE@VERSION/.
+versions="$output/proxy/$module/@v"
+mkdir -p "$versions"
+(cd "$work/zip" && find . -type f | LC_ALL=C sort | sed 's|^\./||' | zip -q -X -@ "$versions/v$version.zip")
+cp "$tree/go.mod" "$versions/v$version.mod"
+printf '{"Version":"v%s","Time":"%s"}\n' "$version" "$(git -C "$repo_dir" log -1 --format=%cI)" > "$versions/v$version.info"
+printf 'v%s\n' "$version" > "$versions/list"
 
-# Fetch the module from the tag exactly as the Go proxy will, with the repository URL redirected to
-# the scratch repository. The go command enforces the module zip limits here.
+# Fetch the module from these files exactly as the go command will from leanvm.org, which enforces
+# the module zip's rules and limits.
 (
     cd "$work"
-    GOMODCACHE="$work/modcache" GOPROXY=direct GOSUMDB=off GOFLAGS=-modcacherw \
-        GIT_CONFIG_COUNT=1 \
-        GIT_CONFIG_KEY_0="url.file://$tree.insteadOf" \
-        GIT_CONFIG_VALUE_0=https://github.com/leanEthereum/leanVM \
+    GOMODCACHE="$work/modcache" GOPROXY="file://$output/proxy" GOSUMDB=off GOFLAGS=-modcacherw \
         go mod download -json "$module@v$version"
 )
-mv "$work/modcache/cache/download" "$output/proxy"
 
-zip="$output/proxy/$module_escaped/@v/v$version.zip"
+zip="$versions/v$version.zip"
 unzip -l "$zip"
 unpacked=$(unzip -l "$zip" | tail -n 1 | awk '{print $1}')
 echo "module zip: $(wc -c < "$zip") bytes compressed, $unpacked bytes uncompressed"

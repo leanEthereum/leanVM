@@ -3,16 +3,21 @@
 ## The ABI is private to this repository's language bindings: it is not a supported C API.
 ## `include/lean_pq_native.h` documents it and must match `bindings/native/include`.
 ##
-## The archive comes from `native/<target>/liblean_pq_native.a` inside this package, which release
-## packages bundle for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64
-## (MinGW). Pass `-d:leanPqNativeDir=DIR` to link the archive in `DIR` instead.
+## The archive is `native/<target>/liblean_pq_native.a` inside this package. The first build
+## downloads it from this version's GitHub release, which has one for Linux x86_64 and aarch64
+## (glibc), macOS (universal) and Windows x86_64 (MinGW); `-d:leanPqNativeUrl=URL` names another
+## location of the release's `lean-pq-native-<target>.a` files. Pass `-d:leanPqNativeDir=DIR` to
+## link the archive in `DIR` instead, for other targets or builds without network access.
 
 {.push raises: [], gcsafe.}
 
-from std/os import parentDir, `/`, quoteShell
+from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
+  leanPqVersion = "0.11.0" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
+  leanPqNativeUrl {.strdefine, used.} =
+    "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion
   packageDir = currentSourcePath().parentDir().parentDir()
   lpqHeader = packageDir / "include" / "lean_pq_native.h"
 
@@ -24,11 +29,28 @@ const
     else: ""
 
 when leanPqNativeDir.len == 0 and bundledTarget.len == 0:
-  {.error: "lean_pq bundles no native archive for this target; pass -d:leanPqNativeDir=DIR".}
+  {.error: "lean_pq has no prebuilt native archive for this target; pass -d:leanPqNativeDir=DIR".}
 
 const nativeArchive =
   (when leanPqNativeDir.len > 0: leanPqNativeDir
    else: packageDir / "native" / bundledTarget) / "liblean_pq_native.a"
+
+when leanPqNativeDir.len == 0 and not fileExists(nativeArchive):
+  const
+    nativeUrl = leanPqNativeUrl & "/lean-pq-native-" & bundledTarget & ".a"
+    partial = nativeArchive & ".part"
+    # A complete download is renamed into place, so an interrupted one is never linked.
+    fetch =
+      when defined(windows):
+        "cmd /c curl -fsSL --retry 3 --create-dirs -o " & quoteShell(partial) & " " &
+          quoteShell(nativeUrl) & " && move /y " & quoteShell(partial) & " " & quoteShell(nativeArchive)
+      else:
+        "curl -fsSL --retry 3 --create-dirs -o " & quoteShell(partial) & " " & quoteShell(nativeUrl) &
+          " && mv " & quoteShell(partial) & " " & quoteShell(nativeArchive)
+    fetched = gorgeEx(fetch)
+  when fetched.exitCode != 0 or not fileExists(nativeArchive):
+    {.error: "lean_pq could not download " & nativeUrl & ": " & fetched.output &
+      "; pass -d:leanPqNativeDir=DIR to link a liblean_pq_native.a you built".}
 
 {.passl: quoteShell(nativeArchive).}
 

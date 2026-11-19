@@ -325,14 +325,14 @@ jobs:
           mkdir -p "$RUNNER_TEMP/native/${{ matrix.platform.bundle_dir }}"
           cp bindings/nim/native/${{ matrix.platform.bundle_dir }}/liblean_pq_native.a "$RUNNER_TEMP/native/${{ matrix.platform.bundle_dir }}/"
           LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/nim/scripts/assemble-package.sh 0.0.0 "$RUNNER_TEMP/native" "$RUNNER_TEMP/nim-package"
+            sh bindings/nim/scripts/stage-release.sh "$RUNNER_TEMP/native" "$RUNNER_TEMP/nim-package"
           # The consumer must build without Rust. Drop every PATH directory holding cargo, rustc or
           # rustup: ~/.cargo/bin, and on macOS Homebrew's rustup. The toolchain stays installed for
           # the rust-cache post step.
           no_rust_path=$(printf '%s\n' "$PATH" | tr ':' '\n' | while IFS= read -r dir; do
             [ -x "$dir/cargo" ] || [ -x "$dir/rustc" ] || [ -x "$dir/rustup" ] || printf '%s\n' "$dir"
           done | paste -sd: -)
-          PATH=$no_rust_path sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package/repo" 0.0.0
+          PATH=$no_rust_path sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" 0.0.0
 
   go:
     name: Go cgo / ${{ matrix.platform.name }}
