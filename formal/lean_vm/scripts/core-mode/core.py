@@ -459,12 +459,13 @@ def loop_long(k, j):
                      'CoreMode.fnSpecC_of_loopC\n  { heap := heap_okC, '
                      f'body := {f}.1, calls := {f}.2.1, top := {f}.2.2.1, rdFree := {f}.2.2.2.1, cptr := {f}.2.2.2.2.1, '
                      f'nofa := {f}.2.2.2.2.2.1, tgt := {f}.2.2.2.2.2.2.1, jtd := {f}.2.2.2.2.2.2.2.1, shape := {f}.2.2.2.2.2.2.2.2, '
-                     'ders := rfl, gw := rfl, code := loop_code, fsigs := rfl, gtail := loop_gtail, pair := pair_okP, '
+                     'ders := rfl, gw := rfl, code := loop_code, fsigs := rfl, gtail := loop_gtail, nzrc := CoreMode.nzr_of_wins loop_wins, '
+                     'pair := pair_okP, '
                      'frame := ⟨loop_env, loop_arms, frameAcc⟩, sig := loop_sig, sigE := rfl, fsig := rfl, '
                      'fentry := rfl, flen := loop_flen, xentry := loop_xentry, xlen := loop_xlen, dhints := rfl, '
                      'hints := loop_hints, fetch := loop_fetch, small := loop_small, '
                      f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok, '
-                     'hc := rfl, hcs := rfl, nzrc := (by decide +kernel) }')
+                     'hc := rfl, hcs := rfl }')
 
 
 def cfun_m(k, j, frame):
