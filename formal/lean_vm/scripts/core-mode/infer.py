@@ -1350,6 +1350,9 @@ class Pass:
         if G.ghosts and 'obj' in F:
             import objs
             self.ginst = objs.inst(self, st, G, args, None, tail=True)
+        elif G.ghosts and all(a[0] in ('link', 'fp') for a in G.ghosts):
+            # a loop's caller's cells and frame (`CoreMode.loopGl`): its tail call names its own ghosts (`tailG`)
+            self.ginst = [mk(((GB + j, 1),), 0) for j in range(len(G.ghosts))]
         for c in G.pre:
             t = self.tr(st, c, args, None)
             if t in G.pre:

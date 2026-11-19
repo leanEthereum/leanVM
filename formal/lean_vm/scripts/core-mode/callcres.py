@@ -268,6 +268,59 @@ def sub_rc(q, r):
     return rl[1] <= ql[1] + k and qh[1] + k <= rh[1] and all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1]))
 
 
+def nz_atoms(c, body):
+    """`CoreMode.nzAtoms`: the top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level
+    branch on `c` that does not return, before the first statement that may return."""
+    out = []
+    for s in body:
+        if s[0] == 'ite' and s[1] == c and not has_ret(s):
+            out += top_atoms(s[3])
+        if s[0] == 'ret' or has_ret(s):
+            break
+    return out
+
+
+def const_of(atoms, v):
+    """`Res.constOf`: the first constant `v` gets among the atoms."""
+    for a in atoms:
+        if a[0] == 'const' and a[1] == v:
+            return tuple(a[2])
+    return None
+
+
+def neg_pair(body, k, x, v, off, n):
+    """`CoreMode.negPair`: `e(x·v·g^off) < n` where `k` is nonzero."""
+    top = top_atoms(body)
+    if not off < 2 ** 33 or rc_bound(top, x) is None:
+        return False
+    if not any(a[0] == 'const' and a[1] == v and a[2][1] == 0 and I.gf_mulx(a[2][0], 1) == 1 for a in nz_atoms(k, body)):
+        return False
+    for a in top:
+        if a[0] != 'add' or a[1] != k:
+            continue
+        y, o = a[2], a[3]
+        for b in top:
+            if b[0] == 'mul' and b[1] == y and b[2] == x:
+                w, w2 = const_of(top, o), const_of(top, b[3])
+                N = rc_bound(top, y)
+                if w is not None and w == w2 and w == (I.gf_mulx(1, off), 0) and N is not None and N <= n + 1:
+                    return True
+    return False
+
+
+def neg_fam(k, conds, r):
+    """`CoreMode.negFam`: under a condition `c ≠ 0`, `e(x·v·g^off) < n`, either base first (`neg_pair`)."""
+    if r[0] != 'lt' or r[1][0] != 'mono' or r[2][0] != 'num' or not r[2][1] < CAPE:
+        return False
+    (bs, off), n = r[1][1], r[2][1]
+    if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
+        return False
+    body = I.CORE[k][1]
+    (a, _), (b, _) = bs
+    return any(c[0] == 'nonzero' and (neg_pair(body, c[1], a, b, off, n) or neg_pair(body, c[1], b, a, off, n))
+               for c in conds)
+
+
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
@@ -277,7 +330,7 @@ def res_fam(k, r, G):
     import callc
     params, body = I.CORE[k]
     if r[0] == 'under':
-        return res_fam(k, r[2], G)
+        return res_fam(k, r[2], G) or neg_fam(k, r[1], r[2])
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
         x, n = r[1][1], r[2][1]
         if not n < CAPE:
@@ -373,10 +426,28 @@ def ml_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
 
 
+# `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
+# the stream, the cursor value `v`, the words `S` read past it an iteration)
+ST_LOOPS = {
+    'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
+    'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
+    'verify_bus_gkr_loop0_loop0': (11, 13, 8), 'verify_tables_loop0': (22, 11, 3),
+}
+
+
+def st_sub(k, c):
+    """`CoreMode.stSub`: a stream-cursor loop's read `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)`, or
+    None."""
+    p = ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)
+    if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
+        return None
+    return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
 
 
 def sel_facts(EM):
@@ -414,7 +485,8 @@ def vt_st_sub(k, c):
 
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
+    its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
+    (`st_sub`)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
@@ -422,7 +494,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or vt_st_sub(self.k, c))
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
@@ -443,8 +515,9 @@ def leaf_candidates():
     pointer runs (`postP`), which milestone 1's does not state."""
     import heap, route
     S = route.sigs()
+    import callc
     return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and
-                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP'])))
+                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP']) or callc.has_fa(I.CORE[k][1])))
 
 
 def extend(out, why, S, verbose=False):
@@ -464,7 +537,10 @@ def extend(out, why, S, verbose=False):
             # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'}):
+            # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
+            # residual is of no family
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
+                          FEATURES | {'dup', 'nohs'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

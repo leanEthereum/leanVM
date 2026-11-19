@@ -257,7 +257,8 @@ noncomputable def modeEnv : Mode.Env :=
     none (.node none (.node none (.node none (.node (some Fn.«level_positions__L4_L20_L2».modeSig)
     .nil .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)))) .nil))))))), 524287⟩
 
-/-- `open_stacked__L4`: its entry, length and signature; on the core route, nothing for a walk. -/
+/-- `open_stacked__L4`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨219079, 1865, Fn.«open_stacked__L4».modeSig, .nil, .nil, .nil, false, .nil⟩
 

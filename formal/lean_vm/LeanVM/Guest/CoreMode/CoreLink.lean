@@ -225,9 +225,13 @@ theorem slotEqL_of {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree
   · rw [hb1] at h
     by_cases hq : q = 1
     · subst hq
-      have h' : (gl.lookup d).isSome = true := by simpa [baseS] using h
+      have h' : (!Nat.beq d 0 && (gl.lookup d).isSome) = true := h
+      rw [Bool.and_eq_true] at h'
+      obtain ⟨hd0, h'⟩ := h'
       obtain ⟨⟨bb, k⟩, hl⟩ := Option.isSome_iff_exists.mp h'
+      have hd0' : d ≠ 0 := fun h0 ↦ by simp [h0] at hd0
       obtain ⟨a, ha1, had, hM⟩ := hgl d bb k (lookup_memL hl)
+      simp only [LinkW, hd0', ↓reduceIte] at hM
       refine ⟨slotW ws bb * ofK (g ^ k), by simp [BaseL, hl], fun u hu ↦ ?_⟩
       obtain ⟨p, x, hp, hx, hu⟩ := hu
       have hp' : p = ofK (g ^ a) := rd_getA hκ ha hfp (by norm_num) ha1 hp

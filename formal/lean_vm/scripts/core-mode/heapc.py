@@ -1648,6 +1648,21 @@ def atomDst(a):
     return []
 
 
+# frame run cells past their runs a function's certificate also lists (`(kp, i)`, `i` at least the run's length), by
+# function: the frame walk's cells written at every return (`callc.fa_past`, `CoreMode.faRetAt`)
+FA_EXTRA = {}
+
+
+def fa_past_ok(body, kp, i):
+    """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
+    for s in body:
+        if not _noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][1] == kp and s[1][2] and len(s[1][2]) <= i:
+            return True
+    return False
+
+
 def fa_pairs(body):
     """Every `(kp, i)` `faOk` accepts: a `frameAddr kp run` and an atom defining `run[i]` among `topAtoms` (the
     top-level atoms before the first statement with a `ret` inside)."""
@@ -1709,7 +1724,8 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.fail('noGhost')
     if not dersOk(H.ders):
         P.fail('dersOk')
-    if not set(map(tuple, H.fas)) <= set(fa_pairs(body)):
+    fps = set(fa_pairs(body))
+    if not all(p in fps or fa_past_ok(body, *p) for p in map(tuple, H.fas)):
         P.fail('faOk')
     st = St()
     for i in range(m):

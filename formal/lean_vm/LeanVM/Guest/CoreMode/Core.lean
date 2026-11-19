@@ -145,11 +145,15 @@ def CFun.xc (Cf : CFun) : List ℕ := bif Cf.hc then [] else expCells Cf.frame.s
 theorem CFun.xc_of {Cf : CFun} (h : Cf.hc = false) : Cf.xc = expCells Cf.frame.sig := by
   simp [CFun.xc, h]
 
+/-- **What a link `(d, b, k)` says of the caller's frame `a`**, slot `b`'s word `w`: cell `d` holds `w·g^k`; for `d = 0`
+(a cell no mode signature names), `w·g^k` is the frame's address. -/
+def LinkW (img : MemoryImage κ) (a d : ℕ) (w : E) (k : ℕ) : Prop :=
+  if d = 0 then w * ofK (g ^ k) = ofK (g ^ a) else refMem img (a + d) = w * ofK (g ^ k)
+
 /-- **The caller's linked cells** (`CFun.gl`) at frame `fp` of the reference, the slots' words `ws`: header cell
-`1` names the caller's frame `a`, whose cell `d` holds slot `b`'s word times `g^k`. -/
+`1` names the caller's frame `a`, whose cell `d` holds slot `b`'s word times `g^k` (`LinkW`; `d = 0`, its address). -/
 def GlF (img : MemoryImage κ) (gl : List (ℕ × ℕ × ℕ)) (fp : ℕ) (ws : List E) : Prop :=
-  ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧
-    refMem img (a + d) = slotW ws b * ofK (g ^ k)
+  ∀ d b k, (d, b, k) ∈ gl → ∃ a, Rd img fp 1 = some (ofK (g ^ a)) ∧ a + d < maxCells ∧ LinkW img a d (slotW ws b) k
 
 /-- **The own parameter words** (`HSig.gw`) at the valuation `σ`: ghost `j` the reference's word at the address of
 the cell `c` of each `(c, j)` (`0` past the image). -/
@@ -211,6 +215,8 @@ structure HonB (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
     Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
+  /-- `main`'s frame is `0`. -/
+  main : Cf.X.main = true → fp = 0
 
 /-- **An honest valuation** of `Cf.fn` in frame `fp` of the reference image. -/
 structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop extends HonB img Cf fp σ where
@@ -513,7 +519,7 @@ def rngLIs (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (r 
 own parameter word (`gp`). -/
 def baseS (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (n : ℕ) : Mode.Base → Bool
   | .fr o => decide (2 ≤ o) && decide (o - 2 < n) && decide (o < 2 ^ 28)
-  | .hp q d => bif Nat.beq q 1 then (gl.lookup d).isSome else decide (q < 2 ^ 28) && (gp.lookup (q, d)).isSome
+  | .hp q d => bif Nat.beq q 1 then !Nat.beq d 0 && (gl.lookup d).isSome else decide (q < 2 ^ 28) && (gp.lookup (q, d)).isSome
 
 /-- **A one-point run at a product, translated** (`baseOfL`): `q` is `⟨c, 1, 0, 1⟩`, `c` the product's cell. -/
 def ptLIs (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (m : Mode.Mono) (q : CRun) : Bool :=
@@ -688,9 +694,13 @@ noncomputable def postRB (G : Mode.Sig) (Cf : CFun) (np : ℕ) (r : Mode.Rng) : 
       | none => false
   | _ => false
 
+/-- `main`'s own precondition at a constant cell `g^o`, `o` an entry cell of its frame `0`. -/
+def mainPre (Cf : CFun) (G : Mode.Sig) (c : CCell) : Bool :=
+  Cf.X.main && c.bases.isEmpty && G.entry.contains c.off
+
 /-- **The signature callers know, translated**: no self frame pointer, termination fact, loop run,
 pointer fact or order, no more ghost slots than linked cells; its heap preconditions each a cell or run of the
-signature's (over parameters; a run also the jump table's `jt`, over the caller's cells linked to parameters or ghost
+signature's (`main`'s also its entry cells, `mainPre`; over parameters; a run also the jump table's `jt`, over the caller's cells linked to parameters or ghost
 slots, `rngLIs`, or a stride-one run the signature's runs make up, `runCov`);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
@@ -702,7 +712,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng)
       Cf.H.sig.postPR.any (prunIs r ·) && Cf.H.sig.postR.any (rngXIs r.1 ·)) && G.postLP.isEmpty &&
     G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.all (hpAll G np G.pre) &&
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
-    preCov G np Cf.H.sig.pre &&
+    preCov G np (Cf.H.sig.pre.filter fun c ↦ !mainPre Cf G c) &&
     Cf.H.sig.preR.all (fun q ↦ ((jt :: G.preR).any fun r ↦ (monoS G np false r.q && rngIs r q) ||
       (monoS G np false (rngM r) && rngXIs r q) || ((rngM r).bs.all (baseS Cf.gl (gpOf np Cf.H.sig.gw) np ·.1) &&
         rngLIs Cf.gl (gpOf np Cf.H.sig.gw) r q)) || runCov G np q ||
@@ -1041,29 +1051,43 @@ def trieNil {α : Type} : Exec.Trie α → Bool
 def sigsOut {α : Type} (sigs : Exec.Trie α) (entry len : ℕ) : Bool :=
   (List.range len).all fun o ↦ Nat.beq o 0 || (sigs.get (entry + o)).isNone
 
+/-- `main`'s code before its halting pc (any other function: no condition). -/
+def mainOk (Cf : CFun) : Bool :=
+  !Cf.X.main || decide (Cf.frame.entry + Cf.frame.len ≤ Cf.X.halt)
+
 /-- **The shape the core route takes**: a body of atoms, branches, `match`es, calls at its top level
-and returns, one return count (`bodyCore`, `retsN`), not `main`, no frame cell `1` its frame pointer's,
-no pc at cell `0`, the walk's tables the `match`es' arms, no callee inside the function, no residual,
+and returns, one return count (`bodyCore`, `retsN`), `main`'s code before its halting pc (`mainOk`), its frame
+walk's `main` its own (`fpOne`), no frame cell `1` its frame pointer's,
+no pc at cell `0`, the walk's tables the `match`es' arms, no callee inside the function,
 small entry cells. -/
 noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
-  bodyCore Cf.fn.body && !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
+  bodyCore Cf.fn.body && mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
     tgtOk Cf code && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
-    !Cf.frame.F.fpOne && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
+    Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
 /-- `shapeOk` but for its two longest passes (`bodyCore`, `tgtOk`), which a long body checks apart. -/
 noncomputable def shapeRest (Cf : CFun) : Bool :=
-  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
+  mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
     sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
-    !Cf.frame.F.fpOne && trieNil Cf.frame.nzr && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
+    Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
 theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf.fn.body = true)
     (ht : tgtOk Cf code = true) (hr : shapeRest Cf = true) : shapeOk Cf code = true := by
   simp only [shapeRest, Bool.and_eq_true] at hr
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := hr
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h8⟩, h9⟩, h10⟩ := hr
   simp only [shapeOk, Bool.and_eq_true]
-  exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩
+  exact ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, h1⟩, h2⟩, h3⟩, h4⟩, ht⟩, h5⟩, h6⟩, h8⟩, h9⟩, h10⟩
+
+/-- **The frame walk's residual divisors** (`FFun.nzr`): at each offset, each a frame cell the walk's state there
+has written and the mode certificate's residuals there (`res`) say nonzero. -/
+noncomputable def nzrOk (Cf : CFun) (res : Exec.Trie (List Mode.Res)) (code : List OffsetInstruction) : Bool :=
+  (List.range code.length).all fun i ↦ match Cf.frame.nzr.get i with
+    | none => true
+    | some os => match retSt Cf.frame code i with
+      | some A => os.all fun o ↦ (A.w.get o).isSome && ((res.get i).getD []).contains (.nz o)
+      | none => false
 
 /-- A value an atom of the body defines. -/
 def dstIn (body : List Stmt) (v : V) : Bool :=
@@ -1072,12 +1096,14 @@ def dstIn (body : List Stmt) (v : V) : Bool :=
     | _ => false
 
 /-- **A frame run's cells at a return state `A`**: from its first value's cell `c` on, each cell `c + k` whose value an
-atom of the body defines is written. -/
-noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (A : FSt) : Stmt → Bool
-  | .atom (.frameAddr _ (r :: rs)) => (List.range (rs.length + 1)).all fun k ↦
+atom of the body defines is written, and each cell `c + i` past the run the certificate's frame run cells `fas` list
+(`(kp, i)`, its pointer `V.n kp`). -/
+noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (ℕ × ℕ)) (A : FSt) : Stmt → Bool
+  | .atom (.frameAddr p (r :: rs)) => ((List.range (rs.length + 1)).all fun k ↦
       !(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome
+        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome) &&
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
   | _ => true
 
 /-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
@@ -1085,7 +1111,7 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (A : FSt) : S
 noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   !faNeed Cf || (List.range code.length).all fun i ↦ match code[i]? with
     | some (.jump _ 0 1) => match retSt Cf.frame code i with
-      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body A)
+      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body Cf.H.fas A)
       | none => false
     | _ => true
 
@@ -1189,6 +1215,9 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   jtd : jtdOk Cf K.E K.code = true
   fsig : Cf.frame.sig = K.F.sig
   fsigs : Cf.frame.sigs = K.E.sigs
+  fmain : K.F.main = Cf.X.main
+  fhalt : Cf.frame.halt = K.E.halt
+  xhalt : Cf.X.halt = K.E.halt
   fentry : Cf.frame.entry = K.F.entry
   flen : Cf.frame.len = K.code.length
   xentry : Cf.X.entry = K.F.entry
@@ -1201,6 +1230,8 @@ structure CoreOk (K : Mode.Cert) (Cf : CFun) : Prop where
   fpows : Cf.frame.F.pows.Ok
   /-- The frame run cells it guarantees written at its returns. -/
   faret : faRetOk Cf K.code = true
+  /-- The frame walk's residual divisors among the mode certificate's nonzero residuals. -/
+  nzrc : nzrOk Cf K.F.res K.code = true
 
 end
 

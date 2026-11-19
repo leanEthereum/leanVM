@@ -68,9 +68,11 @@ theorem glF_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hmem
   rcases hmem with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
   · refine ⟨a, hRd, by omega, ?_⟩
+    simp only [CoreMode.LinkW, show (2 : ℕ) ≠ 0 by omega, ↓reduceIte]
     rw [hm2, hsl _ h1, pow_zero]
     simp
   · refine ⟨a, hRd, h5, ?_⟩
+    simp only [CoreMode.LinkW, show (5 : ℕ) ≠ 0 by omega, ↓reduceIte]
     rw [hm5, hsl _ h2, B1.word_gen, ← pow_one LeanVM.Protocol.Verifier.gen, Value.gen_pow_eq_ofK]
 
 end

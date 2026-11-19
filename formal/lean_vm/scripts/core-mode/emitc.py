@@ -507,7 +507,7 @@ class Solver:
                 f = self.fact(st, (Q[3][0], Q[3][1] - 1), R[3])
             if f is None and not Q[3][0] and Q[3][1] < C.CAPE:
                 f = self.factC(st, C.tsub(Q[3][1], 1), R[3])
-            if f is None:
+            if f is None and 'nohs' not in I.F:
                 f = self.fact(st, Q[3], C.cshift(R[3], 1))
             if f is None:
                 return None
@@ -1437,7 +1437,7 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body)
+    H.fas = C.fa_pairs(body) + C.FA_EXTRA.get(k, [])
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []

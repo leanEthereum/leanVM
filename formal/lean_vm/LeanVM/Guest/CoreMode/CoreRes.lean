@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.Res.AnyData
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
+public import LeanVM.Guest.CoreMode.LoopLink
 public import LeanVM.Guest.Res.SelDefs
 public import LeanVM.Guest.Res.TermDefs
 import LeanVM.Guest.Data.Source
@@ -40,12 +41,17 @@ function's own code whose soundness at its honest instances is proved once, in `
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
+  `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
 These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest valuation whatever its
 ghost words (`CRes.holds_congr`). One family names a ghost:
 * `ml` (`mlSub`): `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)`
   lies in its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost
   the caller's cell `2`, `glOk`), from the old route's gap walk (`EndExecCoreMono`).
+* `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
+  `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
+  (`EndExecCoreSt`).
 
 `resOk Cf`: every residual of `Cf`'s heap certificate of a family (`resFamG`). `CfOk` asks it, so the core
 route's honest valuations (`HonF.res`) make the residuals true.
@@ -127,6 +133,46 @@ noncomputable def expM (as : List Atom) : ℕ → V → Option ℕ
 /-- The fuel of `expM` the families use. -/
 def expFuel : ℕ := 6
 
+/-- The top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level branch on `c`
+that does not return, before the first statement that may return. -/
+noncomputable def nzAtoms (c : V) : List Stmt → List Atom
+  | [] => []
+  | s :: ss => (match s with
+      | .ite c' _ n => if c' = c ∧ Memory.noRetR s = true then Res.topAtoms n else []
+      | _ => []) ++ (if Memory.noRetR s = true then nzAtoms c ss else [])
+
+/-- `g⁻¹`: `w·g = 1`. -/
+noncomputable def invG (w : E) : Bool := decide (w * ofK (addressOfIndex 1) = 1)
+
+/-- **`x·v·g^off` below `g^n`** (`negFam`), `k` a branch condition: `v` the constant `g⁻¹` of the arm taken when `k`
+is nonzero (`nzAtoms`), `x` range checked, `k = y + w` and `y = x·w`, `w` the constant `g^off` (so `x ≠ 1` there), `y`
+range checked below `g^(n + 1)`. -/
+noncomputable def negPair (fn : Fn) (k x v off n : ℕ) : Bool :=
+  decide (off < 2 ^ 33) && (Res.rcBound (Res.topAtoms fn.body) (V.n x)).isSome &&
+  (nzAtoms (V.n k) fn.body).any (fun
+    | .const d w => decide (d = V.n v) && invG w
+    | _ => false) &&
+  (Res.topAtoms fn.body).any fun
+    | .add d y o => decide (d = V.n k) && (Res.topAtoms fn.body).any (fun
+        | .mul y' x' b => decide (y' = y) && decide (x' = V.n x) &&
+          (match Res.constOf (Res.topAtoms fn.body) o, Res.constOf (Res.topAtoms fn.body) b with
+          | some w, some w' => decide (w = w') && decide (w = ofK (addressOfIndex off))
+          | _, _ => false) &&
+          (match Res.rcBound (Res.topAtoms fn.body) y with
+          | some N => decide (N ≤ n + 1)
+          | none => false)
+        | _ => false)
+    | _ => false
+
+/-- **The `neg` family**, under a branch condition `k ≠ 0`: `e(x·v·g^off) < n` (`negPair`, either base first). -/
+noncomputable def negFam (fn : Fn) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num n) => decide (n < capE) && cs.any fun
+      | .nonzero k => match c.bases with
+        | [(a, 1), (b, 1)] => negPair fn k a b c.off n || negPair fn k b a c.off n
+        | _ => false
+      | _ => false
+  | _ => false
+
 /-- **A residual of a family**, read off the function's code and the frame cells `xc` known to hold powers of `g` (`CFun.xc`), of `np`
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
@@ -161,7 +207,7 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
   | .subR q r => subRC q r
-  | .under _ r => resFam fn xc r
+  | .under cs r => resFam fn xc r || negFam fn cs r
   | _ => false
 
 /-! ## The values a residual names -/
@@ -251,6 +297,31 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val 3⟩) &&
       decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
   | _ => false
+
+/-! ## The proof stream's cursor loops -/
+
+/-- **The loops reading the proof stream past a cursor** (`st`): `(name, D, v, S)`, a loop whose caller's cell `D`
+holds the stream, whose body loads the cursor `v`, reading at most `S` words past it an iteration. -/
+def stLoops : List (String × ℕ × ℕ × ℕ) :=
+  [(name% «keccak_layer__L0_loop0», 17, 20, 16), (name% «keccak_layer__L1_loop0», 17, 20, 16),
+    (name% «keccak_layer__L0_loop1», 17, 14, 2), (name% «keccak_layer__L1_loop1», 17, 14, 2),
+    (name% «verify_bus_gkr_loop0_loop0», 11, 13, 8), (name% «verify_tables_loop0», 22, 11, 3)]
+
+/-- A stream-cursor loop's `(D, v, S)`. -/
+def stK (fn : Fn) : Option (ℕ × ℕ × ℕ) := stLoops.lookup fn.name
+
+/-- **A read past a stream cursor** (`st`): the cell `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)` (its
+ghost the caller's stream). -/
+def stSub (fn : Fn) : CRes → Bool
+  | .sub c q => (stK fn).any fun p ↦ decide (c.bases = [(p.2.1, 1)]) && Nat.blt c.off p.2.2 &&
+      decide (q = ⟨⟨[(GB, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | _ => false
+
+/-- **A stream-cursor loop's links**: its caller's cell `D` to its first ghost slot, the caller's frame address to its
+second (`loopGl`); it names no ghost value. -/
+def stGl (Cf : CFun) : Bool :=
+  (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1])) && Nat.beq Cf.H.sig.ghosts 2 &&
+    ngB Cf.fn
 
 /-! ## The instance's exponent and dimension facts -/
 
@@ -343,7 +414,7 @@ def vtStC (fn : Fn) : CRes → Bool
 
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r || vtStC fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
+  ((resFam fn xc r || resQ fn r || vtStC fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)
@@ -390,9 +461,10 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
 
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); or none,
-the ghost slots own parameter words (`gwSlots`). -/
+parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a
+stream-cursor loop its caller's stream and frame (`stGl`); or none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
+  bif (stK Cf.fn).isSome then stGl Cf && Cf.H.sig.gw.isEmpty else
   bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
     ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
       && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf)

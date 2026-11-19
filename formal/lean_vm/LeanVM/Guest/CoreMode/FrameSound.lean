@@ -355,7 +355,7 @@ inductive JumpOut (img : MemoryImage κ) (Fn : FFun) (code : List OffsetInstruct
   | ret : retRegs img (g ^ s1.fp) = some ⟨g ^ s'.pc, g ^ s'.fp⟩ →
       (∀ o ∈ Fn.sig.ret, s1.mem.written (s1.fp + o) = true) → rj → JumpOut img Fn code rj s1 s'
   /-- `main`'s halt. -/
-  | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → JumpOut img Fn code rj s1 s'
+  | halt : ¬ rj → Fn.F.fpOne = true → s'.pc = Fn.halt → s'.fp = s1.fp → JumpOut img Fn code rj s1 s'
   /-- A loop's tail call into frame `fp + e`: its entry facts, its header this frame's, nothing
   returned in its frame. -/
   | tail (e : ℕ) : ¬ rj → s'.pc = Fn.entry → s'.fp = s1.fp + e → EntryFr img Fn.sig s' →
@@ -549,7 +549,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hh
         obtain ⟨⟨h1, rfl⟩, he⟩ := hh
         unfold pcLim at he
-        exact .halt (hnr nofun) h1 (gpow_lt_inj (by omega) (by omega) (hpa.trans hpt))
+        exact .halt (hnr nofun) h1 (gpow_lt_inj (by omega) (by omega) (hpa.trans hpt)) hfp'
       | cell o =>
         obtain rfl := jumpKind_cell (by rw [hjk])
         simp only at hx

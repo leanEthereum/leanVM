@@ -416,6 +416,192 @@ theorem resSelN_sound {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev} {vs : 
     exact rep_of (by omega)
   · cases h
 
+/-- The top-level atoms of a block falling through are among its events. -/
+theorem topAtoms_on_fall {σ : Val} : ∀ {ss : List Stmt} {es : List Ev},
+    walk σ ss = .fall es → ∀ {a : Atom}, a ∈ Res.topAtoms ss → Ev.atom a ∈ es
+  | [], _, _, _, h => by simp [Res.topAtoms] at h
+  | s :: ss, es, hw, a, ha => by
+    rw [walk] at hw
+    obtain ⟨es1, es2, h1, h2, rfl⟩ : ∃ es1 es2, walk1 σ s = .fall es1 ∧ walk σ ss = .fall es2 ∧ es = es1 ++ es2 := by
+      cases h1 : walk1 σ s with
+      | fall es1 =>
+        rw [h1] at hw
+        cases h2 : walk σ ss with
+        | fall es2 => rw [h2] at hw; exact ⟨es1, es2, rfl, rfl, (Out.fall.inj hw).symm⟩
+        | ret _ _ => rw [h2] at hw; cases hw
+        | stuck => rw [h2] at hw; cases hw
+      | ret _ _ => rw [h1] at hw; cases hw
+      | stuck => rw [h1] at hw; cases hw
+    cases s with
+    | atom b =>
+      simp only [Res.topAtoms, List.mem_cons] at ha
+      simp only [walk1, Out.fall.injEq] at h1
+      subst h1
+      rcases ha with rfl | ha
+      · exact List.mem_cons_self
+      · exact List.mem_append_right _ (topAtoms_on_fall h2 ha)
+    | _ =>
+      simp only [Res.topAtoms] at ha
+      split_ifs at ha
+      · exact List.mem_append_right _ (topAtoms_on_fall h2 ha)
+      · simp at ha
+
+/-- **The atoms of the arm a nonzero condition takes** (`CoreMode.nzAtoms`) are on a returning path. -/
+theorem nzAtoms_on_path {σ : Val} {c : V} (hc : σ c ≠ 0) : ∀ {ss : List Stmt} {es : List Ev} {vs : List V},
+    walk σ ss = .ret es vs → ∀ {a : Atom}, a ∈ CoreMode.nzAtoms c ss → Ev.atom a ∈ es
+  | [], _, _, _, _, h => by simp [CoreMode.nzAtoms] at h
+  | s :: ss, es, vs, hw, a, ha => by
+    simp only [CoreMode.nzAtoms, List.mem_append] at ha
+    rcases ha with ha | ha
+    · cases s with
+      | ite c' z n =>
+        simp only at ha
+        split_ifs at ha with hcn
+        · obtain ⟨rfl, hn⟩ := hcn
+          obtain ⟨es1, es2, h1, -, rfl⟩ := Res.walk_cons_noRet (by rw [← Memory.noRetR_eq]; exact hn) hw
+          simp only [walk1, hc, ↓reduceIte] at h1
+          cases hn' : walk σ n with
+          | fall esn =>
+            rw [hn'] at h1
+            simp only [Out.pre, Out.fall.injEq] at h1
+            subst h1
+            exact List.mem_append_left _ (List.mem_cons_of_mem _ (topAtoms_on_fall hn' ha))
+          | ret _ _ => rw [hn'] at h1; cases h1
+          | stuck => rw [hn'] at h1; cases h1
+        · simp at ha
+      | _ => simp at ha
+    · split_ifs at ha with hn
+      · obtain ⟨es1, es2, -, h2, rfl⟩ := Res.walk_cons_noRet (by rw [← Memory.noRetR_eq]; exact hn) hw
+        exact List.mem_append_right _ (nzAtoms_on_path hc h2 ha)
+      · simp at ha
+
+/-- **The `neg` family holds** (`e(x·v·g^off) < n`, `CoreMode.negPair`) where its condition `k` is nonzero, along a
+returning path whose events hold on a memory of at most `2^28` words: `x = g^e` and `y = x·g^off = g^(e + off)`
+range checked, `e ≠ 0` (else `k = y + g^off = 0`), `v·g = 1`, so `x·v·g^off = g^(e + off - 1)`. -/
+theorem negPair_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {k x v off n : ℕ}
+    (hk : σ (V.n k) ≠ 0) (h : CoreMode.negPair fn k x v off n = true) :
+    ∃ y, σ (V.n x) * σ (V.n v) * ofK (addressOfIndex off) = ofK (addressOfIndex y) ∧ y < n := by
+  have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+  simp only [CoreMode.negPair, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true, Option.isSome_iff_exists] at h
+  obtain ⟨⟨⟨hoff, N1, hN1⟩, ⟨av, hav, hv⟩⟩, ⟨aa, haa, hadd⟩⟩ := h
+  -- `x = g^e`
+  obtain ⟨e, he, hσx⟩ := rcBound_sound (by omega) Lm hall hN1
+  have hN1b : N1 ≤ 2 ^ 33 := by
+    unfold Res.rcBound at hN1
+    obtain ⟨a, -, hf⟩ := List.exists_of_findSome?_eq_some hN1
+    cases a with
+    | rangeCheck _ _ _ _ _ =>
+      simp only at hf
+      split_ifs at hf
+      split at hf
+      · split_ifs at hf with hb
+        cases hf
+        omega
+      · cases hf
+    | _ => cases hf
+  -- `v = g⁻¹`
+  cases av with
+  | const d w =>
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at hv
+    obtain ⟨rfl, hinv⟩ := hv
+    have hσv : σ (V.n v) = w := hh _ (nzAtoms_on_path hk hw hav)
+    simp only [CoreMode.invG, decide_eq_true_eq] at hinv
+    -- `k = y + w0`, `y = x·w0`
+    cases aa with
+    | add d y o =>
+      simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at hadd
+      obtain ⟨rfl, am, ham, hmul⟩ := hadd
+      cases am with
+      | mul y' x' b =>
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hmul
+        obtain ⟨⟨⟨rfl, rfl⟩, hc⟩, hy⟩ := hmul
+        split at hc
+        · rename_i w0 w0' ho hb
+          simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+          obtain ⟨rfl, hw0⟩ := hc
+          split at hy
+          · rename_i N2 hN2
+            simp only [decide_eq_true_eq] at hy
+            have hσo : σ o = w0 := hall _ (EndExec.constOf_sound ho)
+            have hσb : σ b = w0 := hall _ (EndExec.constOf_sound hb)
+            have hσk : σ (V.n k) = σ y' + σ o := hall _ haa
+            have hσy : σ y' = σ (V.n x) * σ b := hall _ ham
+            obtain ⟨e2, he2, hσy2⟩ := rcBound_sound (by omega) Lm hall hN2
+            have hN2b : N2 ≤ 2 ^ 33 := by
+              unfold Res.rcBound at hN2
+              obtain ⟨a, -, hf⟩ := List.exists_of_findSome?_eq_some hN2
+              cases a with
+              | rangeCheck _ _ _ _ _ =>
+                simp only at hf
+                split_ifs at hf
+                split at hf
+                · split_ifs at hf with hb
+                  cases hf
+                  omega
+                · cases hf
+              | _ => cases hf
+            rw [Value.gen_pow_eq_ofK] at hσx hσy2
+            -- `e ≠ 0`
+            have he0 : e ≠ 0 := by
+              rintro rfl
+              apply hk
+              rw [hσk, hσy, hσx, hσb, hσo, show addressOfIndex 0 = 1 from pow_zero _,
+                show ofK (1 : K) = 1 from map_one (algebraMap K E), one_mul, CharTwo.add_self_eq_zero]
+            -- `y = g^(e + off)`
+            have hyy : e + off = e2 := by
+              have h1 : ofK (addressOfIndex (e + off)) = ofK (addressOfIndex e2) := by
+                rw [← hσy2, hσy, hσx, hσb, hw0, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+              exact LeanVM.Prover.Exec.gpow_inj (by omega) (by omega) (ofK_injective h1)
+            refine ⟨e2 - 1, ?_, by omega⟩
+            have h1 : ofK (addressOfIndex e) * ofK (addressOfIndex off) =
+                ofK (addressOfIndex (e2 - 1)) * ofK (addressOfIndex 1) := by
+              rw [← ofK_mul, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+                ← pow_add, show e + off = e2 - 1 + 1 by omega]
+            rw [hσx, hσv]
+            calc ofK (addressOfIndex e) * w * ofK (addressOfIndex off)
+                = (ofK (addressOfIndex e) * ofK (addressOfIndex off)) * w := by ring
+              _ = ofK (addressOfIndex (e2 - 1)) * (w * ofK (addressOfIndex 1)) := by rw [h1]; ring
+              _ = _ := by rw [hinv, mul_one]
+          · cases hy
+        · cases hc
+      | _ => simp at hmul
+    | _ => simp at hadd
+  | _ => simp at hv
+
+/-- **The `neg` family holds** where its branch condition does (`CoreMode.negFam`). -/
+theorem negFam_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {cs : List CoreMode.CCond}
+    (hcs : ∀ c ∈ cs, c.Holds σ) : ∀ {r : CRes}, CoreMode.negFam fn cs r = true → r.Holds σ
+  | .lt (.mono c) (.num n), h => by
+    simp only [CoreMode.negFam, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    obtain ⟨hn, cd, hcd, hc⟩ := h
+    cases cd with
+    | nonzero k =>
+      have hk : σ (V.n k) ≠ 0 := hcs _ hcd
+      obtain ⟨cb, off⟩ := c
+      simp only at hc
+      split at hc
+      · rename_i a b
+        have hv : ∀ x v, CoreMode.negPair fn k x v off n = true →
+            σ (V.n a) * σ (V.n b) * ofK (addressOfIndex off) = σ (V.n x) * σ (V.n v) * ofK (addressOfIndex off) →
+            (CRes.lt (.mono ⟨[(a, 1), (b, 1)], off⟩) (.num n)).Holds σ := fun x v hp he ↦ by
+          obtain ⟨y, hy, hyn⟩ := negPair_sound hμ Lm hw hh hk hp
+          refine ⟨y, n, ?_, CoreMode.rep_const hn, hyn⟩
+          have e1 : CoreMode.CCell.valW (vw σ) ⟨[(a, 1), (b, 1)], off⟩ =
+              σ (V.n a) * σ (V.n b) * ofK (addressOfIndex off) := by
+            simp [CoreMode.CCell.valW, CoreMode.prodW, vw, mul_assoc]
+          simp only [idxC]
+          rw [e1, he, hy]
+          exact rep_of (by omega)
+        rcases Bool.or_eq_true_iff.mp hc with hp | hp
+        · exact hv a b hp rfl
+        · exact hv b a hp (by ring)
+      · cases hc
+    | _ => simp at hc
+  | .lt (.val _) _, h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
+  | .nz _, h | .sub _ _, h | .subR _ _, h | .subP _ _, h | .under _ _, h => by simp [CoreMode.negFam] at h
+
 /-- **A residual of a family holds** at an honest instance's valuation, in a frame `fp` holding its
 parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/
 theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -444,7 +630,13 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resSelN_sound hw h
-  | .under _ r', h => fun _ ↦ resFam_inst hr hI ht hf hx hpar r' h
+  | .under cs r', h => fun hcs ↦ by
+    simp only [resFam, Bool.or_eq_true] at h
+    rcases h with h | h
+    · exact resFam_inst hr hI ht hf hx hpar r' h
+    · obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+      obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+      exact negFam_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh hcs h
   | .subR q r', h => by
     simp only [resFam] at h
     exact subRC_holds h σ
@@ -728,16 +920,18 @@ theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
-    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none) {fp : ℕ}
+    (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none)
+    (hst : CoreMode.stK Cf.fn = none) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ⟨(hf' | hq) | hvt, -⟩ | hm
+  rcases this with (⟨(hf' | hq) | hvt, -⟩ | hm) | hs
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · exact vtStC_inst hr hI ht hf hvt
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
+  · cases x <;> simp [CoreMode.stSub, hst] at hs
 
 /-- **The residuals of a heap certificate of families hold** at a valuation `σ'` agreeing below `GB` with an honest
 instance's, given its ghost family's (`mlSub`): the others name no ghost (`CRes.holds_congr`). -/
@@ -746,15 +940,17 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) {σ' : Val}
-    (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ') :
+    (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ')
+    (hst : ∀ x, CoreMode.stSub Cf.fn x = true → x.Holds σ') :
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ⟨(hf' | hq) | hvt, hv⟩ | hm
+  rcases this with (⟨(hf' | hq) | hvt, hv⟩ | hm) | hs
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vtStC_inst hr hI ht hf hvt)
   · exact hml x hm
+  · exact hst x hs
 
 end
 
