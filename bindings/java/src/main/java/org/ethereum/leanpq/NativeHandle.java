@@ -2,6 +2,7 @@ package org.ethereum.leanpq;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.ref.Cleaner;
+import java.lang.ref.Reference;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -18,7 +19,13 @@ final class NativeHandle implements AutoCloseable {
     }
 
     Borrow borrow() {
-        return state.borrow();
+        // Until the borrow is counted, the Cleaner may run once this handle is unreachable, even
+        // while its owner is mid-call.
+        try {
+            return state.borrow();
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     @Override

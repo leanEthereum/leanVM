@@ -29,7 +29,9 @@ public final class Aggregate implements AutoCloseable {
         Objects.requireNonNull(bytes, "bytes");
         byte[] xmssRecords = records(Objects.requireNonNull(xmssClaims, "xmssClaims"));
         byte[] sphincsRecords = records(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
-        return new Aggregate(Native.aggregateFromBytes(bytes, xmssRecords, xmssClaims.size(), sphincsRecords, sphincsClaims.size()));
+        // The counts come from the packed records, not from the lists, whose sizes may have changed.
+        return new Aggregate(Native.aggregateFromBytes(
+            bytes, xmssRecords, xmssRecords.length / CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / CLAIM_LENGTH));
     }
 
     /** Returns the proof alone, without its claims. */
@@ -63,8 +65,9 @@ public final class Aggregate implements AutoCloseable {
     }
 
     private static byte[] records(List<SignatureClaim> claims) {
-        byte[] records = new byte[Math.multiplyExact(claims.size(), CLAIM_LENGTH)];
-        for (int index = 0; index < claims.size(); index++) {
+        int count = claims.size();
+        byte[] records = new byte[Math.multiplyExact(count, CLAIM_LENGTH)];
+        for (int index = 0; index < count; index++) {
             Objects.requireNonNull(claims.get(index), "claim").writeRecord(records, index * CLAIM_LENGTH);
         }
         return records;

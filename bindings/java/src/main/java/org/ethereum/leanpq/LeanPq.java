@@ -50,7 +50,11 @@ public final class LeanPq {
                 borrowed.add(Objects.requireNonNull(child, "child").borrow());
             }
             List<MemorySegment> pointers = borrowed.stream().map(NativeHandle.Borrow::pointer).toList();
-            return new Aggregate(Native.aggregate(pointers, xmssRecords, xmss.size(), sphincsRecords, sphincs.size()));
+            // The counts come from the packed records, not from the lists, whose sizes may have changed.
+            return new Aggregate(Native.aggregate(
+                pointers,
+                xmssRecords, xmssRecords.length / (RECORD_PREFIX_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
+                sphincsRecords, sphincsRecords.length / (RECORD_PREFIX_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
         } finally {
             for (int index = borrowed.size() - 1; index >= 0; index--) {
                 borrowed.get(index).close();
@@ -60,8 +64,9 @@ public final class LeanPq {
 
     private static byte[] records(List<SignedMessage> entries, int signatureLength, String scheme) {
         int recordLength = RECORD_PREFIX_LENGTH + signatureLength;
-        byte[] records = new byte[Math.multiplyExact(entries.size(), recordLength)];
-        for (int index = 0; index < entries.size(); index++) {
+        int count = entries.size();
+        byte[] records = new byte[Math.multiplyExact(count, recordLength)];
+        for (int index = 0; index < count; index++) {
             Objects.requireNonNull(entries.get(index), "signed message")
                 .writeRecord(records, index * recordLength, signatureLength, scheme);
         }
