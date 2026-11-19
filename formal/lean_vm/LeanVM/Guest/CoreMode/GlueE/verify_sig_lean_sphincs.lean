@@ -7,15 +7,12 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`: its entry pc. -/
-abbrev entry : Nat := 57221
+abbrev Fn.«verify_sig_lean_sphincs».entry : Nat := 57221
 
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

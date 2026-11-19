@@ -58,7 +58,7 @@ public import LeanVM.Guest.Bridge.AllocChk.«P63»
 public import LeanVM.Guest.Bridge.AllocChk.«P6»
 public import LeanVM.Guest.Bridge.AllocChk.«P7»
 public import LeanVM.Guest.Bridge.AllocLink
-public import LeanVM.Guest.Bridge.ProgAl.Link9
+public import LeanVM.Guest.Bridge.ProgAl.Tab9
 public import LeanVM.Guest.Checked.Link9
 meta import LeanVM.Guest.KernelLit
 

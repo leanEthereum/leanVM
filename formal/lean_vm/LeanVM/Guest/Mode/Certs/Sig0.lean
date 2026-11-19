@@ -122,18 +122,11 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«main_loop4».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_digest».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«main_loop4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«statement_digest».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_sub».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))))
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 theorem certs_fn : ∀ K ∈ certs, FnLink K :=
   Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code24 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code41 rfl rfl)
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 
@@ -265,26 +258,6 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
 end
 
 end LeanVM.Guest.ModePack.«P42»
-
-namespace LeanVM.Guest.ModePack.«P43»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«main_loop2».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«main_loop2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code39 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P43»
 
 namespace LeanVM.Guest.ModePack.«P54»
 

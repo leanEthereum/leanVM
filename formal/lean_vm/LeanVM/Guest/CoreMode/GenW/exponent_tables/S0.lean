@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.GlueG
 public import LeanVM.Guest.CoreMode.GenW.«exponent_tables».Cx
 
 set_option maxRecDepth 100000
@@ -24,7 +25,7 @@ noncomputable def st0_eqs : List (CCell × CCell) := []
 /-- The state before statement 0. -/
 noncomputable def st0 : CSt := ⟨.nil,
     .nil,
-    insL [(0, ⟨⟨[], 0⟩, 1, ⟨[], 430⟩, ⟨[], 14352⟩⟩)] .nil,
+    insL [(0, ⟨⟨[], 0⟩, 1, ⟨[], 430⟩, ⟨[], CoreMode.jtHi⟩⟩)] .nil,
     .nil,
     .nil,
     .nil,

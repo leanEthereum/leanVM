@@ -5,17 +5,17 @@ oracle) with the kernel's check of its walk (`frameOk … = true := by decide +k
 function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
 `frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
-(`sigc.py`) and nonzero residuals). The oracle and the residual divisors are read off today's mode walk's
-inference (`frame_data.py`, `MODE_CERT_CACHE`) until the core heap certificate gives them.
-Usage: MODE_CERT_CACHE=FILE python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
+(`sigc.py`) and nonzero residuals). A function on the core route takes its oracle and stores from its pairing and its
+residual divisors from its own walk (`frame_run.own_nz`); one off the route, from the mode walk's inference
+(`frame_data.py`, `MODE_CERT_CACHE`, read only then). The frame signatures are the frame layout's (`compiled.fsig`).
+Usage: [MODE_CERT_CACHE=FILE] python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
 import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
 import frame_data as FD  # noqa: E402
 import frame_run as RUN  # noqa: E402
-sys.path.insert(0, FD.MODE)
-import gen as MG  # noqa: E402
+import compiled as MG  # noqa: E402
 
 OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
 # a module's checks: at most this many instructions
@@ -25,7 +25,7 @@ WIN = int(os.environ.get("FRAME_WIN", 7000))
 
 
 def wrap(text, width=100):
-    """`MG.wrap` in linear time: long lines broken at spaces, the rest indented."""
+    """`compiled.wrap` in linear time: long lines broken at spaces, the rest indented."""
     out = []
     for line in text.split('\n'):
         if len(line) <= width:
@@ -65,7 +65,10 @@ def sym(s):
     return '(.%s %s)' % (s[0], codePtr(s[1]) if s[0] == 'gp' else s[1])
 
 
-def unitTrie(keys): return MG.trie({k: () for k in keys}, lambda _: '()')
+def unitTrie(keys):
+    """A set of keys: the list of its keys (`CoreMode.unitOf`, `CoreMode/TrieOf.lean`)."""
+    ks = sorted(set(keys))
+    return '(CoreMode.unitOf %s)' % lst(ks) if ks else '.nil'
 
 
 def natTrie(d): return MG.trie(d, str)
@@ -85,10 +88,16 @@ def fstLit(A):
 ROUTE = {}
 
 
+# a function whose windows at `WIN` instructions take past the 7.5 GB a module may take: its own size (`main_loop2`,
+# `__loop2_main` to the compiler: its walk reads its packed alignment context)
+WINS = {'__loop2_main': 4000}
+
+
 def cutsFor(D, n):
-    """Offsets to cut a long function at, about every `WIN` instructions."""
+    """Offsets to cut a long function at, about every `WIN` instructions (`WINS`)."""
     f = D['fns'][n]
-    return list(range(WIN, f['count'] - WIN // 4, WIN))
+    w = WINS.get(n, WIN)
+    return list(range(w, f['count'] - w // 4, w))
 
 
 def cutLit(c):
@@ -101,10 +110,11 @@ def cutLit(c):
 def fnData(D, n, cuts):
     """The function's `FFun` literal, its callees' packs, and the walk (with its cut states)."""
     f = D['fns'][n]
-    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n)
     rt = ROUTE.get(n)
     O_ = set(rt['O']) if rt else set(D['O'].get(n, []))
     S_ = set(rt['S']) if rt else set()
+    # a function on the core route: its own residual divisors, not the mode walk's
+    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n, RUN.own_nz(D, n, O_, S_) if rt else None)
     w = FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], nzr, tgt, O_, D['halt'], S=S_)
     w.cutAt = set(cuts)
     w.run(f['ops'])
@@ -146,7 +156,7 @@ def fnData(D, n, cuts):
     else:
         O, S = MG.bigTrie('frameO', 'Unit', {i: () for i in D['O'].get(n, [])}, lambda _: '()', defs), '.nil'
     if rt:
-        defs += envDefs(D, n)
+        defs += envDefs(D, n, nzr)
     lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
         facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints,
         MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str), MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x),
@@ -164,16 +174,15 @@ def sigTrie(ns):
     return '(CoreMode.sigTrie %s)' % lst(sorted({MG.fnq(m) for m in ns}), lambda q: '%s.csig' % q)
 
 
-def envDefs(D, n):
+def envDefs(D, n, nzr):
     """A function on the core route: its frame interface's environment (its callees' signatures) and data (its
-    entry, length, signature, nonzero residuals), `Mode.Cert`'s parts."""
+    entry, length, signature, nonzero residuals: its walk's residual divisors `nzr`), `Mode.Cert`'s parts."""
     f = D['fns'][n]
-    nz = {i: [r for r in rs if r[0] == 'nz'] for i, rs in D['R'].get(n, {}).items()}
-    nz = {i: rs for i, rs in nz.items() if rs}
+    nz = {i: [('nz', o) for o in os_] for i, os_ in nzr.items() if os_}
     return ['noncomputable def envC : Mode.Env := CoreMode.envOf %s\n' % (
                 lst(sorted({MG.fnq(m) for m in MG.calleesOf(n)}), lambda q: '%s.csig' % q)),
             'noncomputable def funC : Mode.Fun := ⟨%s.entry, %d, %s.csig, .nil, %s, .nil, %s, .nil⟩\n' % (
-                MG.fnq(n), f['count'], MG.fnq(n), MG.trie(nz, lambda l: MG.lst(l, MG.res_)) if nz else '.nil',
+                MG.fnq(n), f['count'], MG.fnq(n), MG.trie(nz, lambda l: MG.lst(l, MG.res)) if nz else '.nil',
                 'true' if n == 'main' else 'false')]
 
 
@@ -192,7 +201,8 @@ def pair_mod(g, n):
     function's own, checked in windows."""
     gen = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'CoreMode', 'Gen')
     if os.path.exists(os.path.join(gen, g, n, 'Ok.lean')):
-        return 'LeanVM.Guest.CoreMode.Gen.«%s».«%s».Ok' % (g, n)
+        # its oracle only (`pairO`, `pairS`), not its windows' checks
+        return 'LeanVM.Guest.CoreMode.Gen.«%s».«%s».Ctx' % (g, n)
     return 'LeanVM.Guest.CoreMode.Gen.«%s».Pair' % g
 
 
@@ -221,9 +231,8 @@ def fpowsDef(k):
             for m in PW.NS.finditer(open(path, encoding='utf-8').read()):
                 FPOWS.setdefault(m.group(1), set()).update(int(x) for x in PW.SET.findall(m.group(2)) if int(x) in G)
         FPOWS = {key: PW.tree(sorted((x, G[x]) for x in xs)) for key, xs in FPOWS.items()}
-    return ('/-- `%s`: the powers of `g` its code names. -/\nnoncomputable def fpows : PowTree :=\n  %s\n\n'
-            '/-- `%s`: its code\'s powers are powers of `g`. -/\n'
-            'theorem fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n\n' % (k, FPOWS.get(k, '.leaf'), k))
+    return ('noncomputable def Fn.«%s».fpows : PowTree :=\n  %s\n'
+            'theorem Fn.«%s».fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n' % (k, FPOWS.get(k, '.leaf'), k))
 
 
 def funDef(D, n, lit, defs):
@@ -234,17 +243,22 @@ def main(argv):
     only = None; fns_only = None
     if '--only' in argv: only = argv[argv.index('--only') + 1:]
     if '--fns' in argv: fns_only = argv[argv.index('--fns') + 1:]
-    D = FD.load(os.environ['MODE_CERT_CACHE'], os.environ.get('FRAME_CACHE'))
     global ROUTE
     import route, heap
     ROUTE = route.route_sub()
     gen_pack = {k: v[0] for k, v in heap.pack_of().items()}
-    for n, f in D['fns'].items():
-        f['ns'] = f.get('ns', n)
+    fns = MG.code()['fns']
+    for n, f in fns.items():
         # a function the compiler names apart from its stable name (a loop helper `__loopN_f`): on the route by the latter
         if f['ns'] != n and f['ns'] in ROUTE:
             ROUTE[n] = ROUTE[f['ns']]
             gen_pack[n] = gen_pack[f['ns']]
+    # the mode walk's inference, only for the functions off the core route
+    off = [n for p, names in MG.packs().items() if not only or p in only for n in names
+           if n not in ROUTE and (not fns_only or n in fns_only)]
+    if off and not os.environ.get('MODE_CERT_CACHE'):
+        raise SystemExit('frame_gen: %d functions off the core route need MODE_CERT_CACHE' % len(off))
+    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'))
     files = {}
     stats = collections.Counter()
     for p, names in sorted(MG.packs().items()):
@@ -263,8 +277,9 @@ def main(argv):
             for n in g:
                 lit, defs, ps = fnData(D, n, [])
                 packs |= ps
-                if n in ROUTE: gens.add((gen_pack[n], n)); env = True
+                if n in ROUTE: env = True
                 ns_ = D['fns'][n]['ns']
+                if n in ROUTE: gens.add((gen_pack[n], ns_))
                 body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
                             'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
                 stats['fns'] += 1
@@ -280,7 +295,8 @@ def main(argv):
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d' % (p, k)
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
-                imports(p, packs, [(gen_pack[n], n)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
+                'public import LeanVM.Guest.CoreMode.TrieOf\n' +
+                imports(p, packs, [(gen_pack[n], ns_)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
             for m in range(len(bounds) - 1):
@@ -318,8 +334,11 @@ def main(argv):
         files[os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '%s.lean' % p)] = (
             header('LeanVM.Guest.CoreMode.GlueP.«%s»' % p, 'The powers of `g` the code of each function of the pack names, '
                    'code pointers among them.') +
-            'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n' +
-            ''.join(ns(D['fns'][n]['ns'], fpowsDef(D['fns'][n]['ns'])) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])))
+            'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n'
+            'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
+            '@[expose] public section\n\n' +
+            ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
+            '\nend\n\nend LeanVM.Guest\n')
     lines = 0
     for path, text in sorted(files.items()):
         text = wrap(text)

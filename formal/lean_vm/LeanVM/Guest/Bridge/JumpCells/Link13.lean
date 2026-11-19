@@ -53,7 +53,7 @@ public import LeanVM.Guest.Bridge.JumpCells.P_P63
 public import LeanVM.Guest.Bridge.JumpCells.P_P7
 public import LeanVM.Guest.Bridge.JumpCells.P_P9
 public import LeanVM.Guest.Bridge.JumpCellsIdx
-public import LeanVM.Guest.Bridge.ProgAl.Link13
+public import LeanVM.Guest.Bridge.ProgAl.Tab13
 public import LeanVM.Guest.Checked.Link13
 meta import LeanVM.Guest.KernelLit
 

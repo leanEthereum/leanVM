@@ -25,9 +25,10 @@ open LeanVM.Guest.Check (getF)
 
 @[expose] public section
 
-/-- A statement of a loop helper's body with calls: an atom, a call, a conditional call or a return. -/
+/-- A statement of a loop helper's body with calls: an atom, a call, a conditional call, a return, a branch
+or a `match`. -/
 def loopStmtC : Stmt → Bool
-  | .atom _ | .call .. | .callIf .. | .ret _ => true
+  | .atom _ | .call .. | .callIf .. | .ret _ | .ite .. | .match_ .. => true
   | _ => false
 
 variable {H : HCert}
@@ -73,6 +74,8 @@ theorem pair_tailLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       · have h4 : X.selfAt of = true := h3.1
         rw [hsf] at h4
         cases h4
+    | ite c z n => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
+    | match_ x arms => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
     | _ => simp [loopStmtC] at hl
   obtain ⟨hloc, t, ca, -, -, hca, rfl, hcase⟩ := headH_callIf hh hcur
   have hrn : retNil ca.pos = true := by
@@ -132,6 +135,8 @@ theorem pair_retLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
       simp only [PairCtx.ofH] at ht
       rw [h0] at ht; cases ht
     | ret vs' => exact ⟨vs', rfl⟩
+    | ite c z n => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
+    | match_ x arms => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
     | _ => simp [loopStmtC] at hl
   refine ⟨as, hpairs, ?_⟩
   rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hp

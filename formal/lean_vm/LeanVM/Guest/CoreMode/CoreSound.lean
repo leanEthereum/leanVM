@@ -1560,7 +1560,7 @@ theorem dspSite_of {X : AlignCtx} {od of : ℕ} {args rets : List V} {s : B2C.Si
 
 /-- **A dispatch's `JUMP` the walk reads callees for**: its callees' entries `dspPc`, each callee of the
 dispatch at its site among them. -/
-theorem dsp_at {Cf : CFun} (hcb : callsB Cf = true) {k od of : ℕ} (hdj : dspJ Cf k od of = true) {x : V}
+theorem dsp_at {Cf : CFun} (hcb : (stmtsOf Cf.fn.body).all (dspB Cf) = true) {k od of : ℕ} (hdj : dspJ Cf k od of = true) {x : V}
     {fs : List String} {args rets : List V} {s : B2C.Site} (hst : Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body)
     (hsite : Cf.X.siteAt of args rets = some s) :
     ∃ pcs, Cf.frame.calls.get k = some pcs ∧ Cf.frame.arms.get k = none ∧ Cf.X.selfAt of = false ∧
@@ -1576,7 +1576,7 @@ theorem dsp_at {Cf : CFun} (hcb : callsB Cf = true) {k od of : ℕ} (hdj : dspJ 
     simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, List.all_eq_true, List.any_eq_true] at hdj
     obtain ⟨⟨⟨htg, hr⟩, hpc⟩, hfs'⟩ := hdj
     have hc := List.all_eq_true.mp hcb _ hst
-    simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none, beq_iff_eq] at hc
+    simp only [dspB, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Option.isNone_iff_eq_none, beq_iff_eq] at hc
     have hfe : fs' = fs := by
       rcases hc.2 _ (lookup_mem hfs) with h | h
       · rw [hsite] at h; cases h
@@ -1599,7 +1599,7 @@ target the entry of the callee the path calls. -/
 theorem core_tgt {img : MemoryImage κ} {Cf : CFun} {code : List OffsetInstruction}
     (hpair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body code Cf.d = true)
     (hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true) (htgt : tgtOk Cf code = true)
-    (hcb : callsB Cf = true) {fp i : ℕ} {σ : Val} (hσ : HonF img Cf fp σ) {pos : List Stmt} {pre es : List Ev}
+    (hcb : (stmtsOf Cf.fn.body).all (dspB Cf) = true) {fp i : ℕ} {σ : Val} (hσ : HonF img Cf fp σ) {pos : List Stmt} {pre es : List Ev}
     {vs : List V} (hat : pairAt Cf.P Cf.fn.body code Cf.d i = some pos)
     (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs) (hwp : walk σ pos = .ret es vs) :
     TgtOk img Cf.frame code i fp := by
@@ -1943,7 +1943,7 @@ its selector, whose arm the path takes is a slot of the table; the selector's wo
 theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : CFun}
     (hpair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body K.code Cf.d = true)
     (hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true) (hjtd : jtdOk Cf K.E K.code = true)
-    (hcalls : K.code.all (jumpCallOk Cf) = true)
+    (hcalls : (∀ x fs a r, Stmt.dispatch x fs a r ∉ stmtsOf Cf.fn.body) ∨ K.code.all (jumpCallOk Cf) = true)
     {s s1 : St} {i o1 o2 o3 : ℕ} (hins : K.code[i]? = some (.deref o1 o2 o3 .cell)) (hj : jtd Cf.X o1 o2 o3 = true)
     (ho1 : o1 < 2 ^ 28) (henv : Mode.EnvOk s K.E) (hm : Moves (refMem img) s s1)
     {σ : Val} (hσ : HonF img Cf s.fp σ) {pos : List Stmt} {pre es : List Ev} {vs : List V}
@@ -2003,6 +2003,8 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
       rcases hother with h | ⟨x, fs, args, rets, ss, hcur⟩
       · exact h
       obtain ⟨-, -, s0, -, -, hsite, htg', -⟩ := headH_dispatch hh hcur
+      have hcalls := hcalls.resolve_left fun hn ↦ hn _ _ _ _
+        (zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self))
       have hcj := List.all_eq_true.mp hcalls _ (List.mem_of_getElem? hci)
       have := (jumpCallOk_dsp hcj (siteAt_spec hsite).1 htg').2.2.1
       rw [ha] at this; cases this
@@ -2842,7 +2844,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         by_cases hj : jtd Cf.X a o c = true
         · have hsm := hok.small i hi
           rw [hci] at hsm
-          exact core_jtd hκ hok.pair hctrl hok.jtd hok.calls (by rw [List.getElem?_eq_getElem hi, hci]) hj hsm.1 henvK hm hσ0
+          exact core_jtd hκ hok.pair hctrl hok.jtd (.inr hok.calls) (by rw [List.getElem?_eq_getElem hi, hci]) hj hsm.1 henvK hm hσ0
             hpos hb hwp
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) (Bool.eq_false_iff.mpr hj) hwp
@@ -2878,7 +2880,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
       | _ => trivial
     · -- a table jump's target, one of its arms
       obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, -, -, -⟩ := hheap σ0 hσ0
-      exact core_tgt hok.pair hctrl htgt (callsB_of' hok.heap) hσ0 hpos hb hwp
+      exact core_tgt hok.pair hctrl htgt (dspB_of_callsB (callsB_of' hok.heap)) hσ0 hpos hb hwp
     · -- falling through
       intro s1 s' e1 hm hmo e' hpc' hfp' hf' hle' hat' hstw hc0
       have hle : s.mem ≤ s'.mem := Mem.le_trans hm.le hle'
@@ -3370,7 +3372,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               rcases tgtGo_at htgt hci hkk with h | ⟨h, -⟩
               · exact h
               · rw [hds] at h; cases h
-            obtain ⟨pcs, -, -, -, -, hr30, -, hpcs, hfs⟩ := dsp_at (callsB_of' hok.heap) hdj hmem hsite
+            obtain ⟨pcs, -, -, -, -, hr30, -, hpcs, hfs⟩ := dsp_at (dspB_of_callsB (callsB_of' hok.heap)) hdj hmem hsite
             -- the callee a path's dispatch calls: entered at the entry its target cell holds
             have hpick : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {f : String} {evs es' : List Ev},
                 HonF img Cf s.fp σ → walk σ Cf.fn.body = .ret (pre ++ es) vs →

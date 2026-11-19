@@ -30,12 +30,11 @@ theorem offCerts_sub : ∀ K ∈ offCerts, SubOk resExc K :=
     (Mode.fa_cons (ModePack.«P34».certs_sub)
     (Mode.fa_cons (ModePack.«P38».certs_sub)
     (Mode.fa_cons (ModePack.«P42».certs_sub)
-    (Mode.fa_cons (ModePack.«P43».certs_sub)
     (Mode.fa_cons (ModePack.«P54».certs_sub)
     (Mode.fa_cons (ModePack.«P57».certs_sub)
     (Mode.fa_cons (ModePack.«P61».certs_sub)
     (Mode.fa_cons (ModePack.«P63».certs_sub)
-    (Mode.fa_nil)))))))))))))))
+    (Mode.fa_nil))))))))))))))
     (Mode.fa_nil)))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed

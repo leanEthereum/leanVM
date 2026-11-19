@@ -236,6 +236,13 @@ def heap_win(k):
     return None
 
 
+def heap_winL(k):
+    """The module of loop helper `k`'s heap check in windows (`loopcc.windows`), if it has one."""
+    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenWL', k, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.GenWL.%s.Ok' % quote(k)
+    return None
+
+
 def heap_proof(k):
     """`heapOkC`'s proof: one kernel evaluation, or its windows' (`GenW/<fn>/Ok.lean`)."""
     return 'heap_okW' if heap_win(k) else DK
@@ -262,17 +269,203 @@ def cfun_l(k, j, frame):
 def cfun_lc(k, j, frame):
     """A loop helper with calls: its core data, the kernel's checks (`CoreMode.LoopOkC`: `heapOkC`'s loop rules at its
     callees' heap signatures `csigs`, its signature, code and shape)."""
+    if k in LONG:
+        # its core data apart (`Gen/<pack>/Cfun.lean`), its passes in windows
+        return ('', thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
+                        'heap_okW' if heap_winL(k) else DK) +
+                thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
+                    'cfun.gl = true') +
+                thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') + LONG[k][3] + loop_long(k, j))
     return (cfun_def(k, j, f'[], csigs, [], false, [], {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true') +
+            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
+                'heap_okW' if heap_winL(k) else DK) +
             thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                 'cfun.gl = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOkC cfun = true') +
-            thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
-                f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, calls := {DK}, top := {DK}, '
-                f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
-                f'gtail := {DK}, nzrc := {DK}, '
-                f'{loop_tail(k, frame)} }}'))
+            (thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
+                 f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, tgt := {DK}, jtd := {DK}, calls := {DK}, top := {DK}, '
+                 f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
+                 f'gtail := {DK}, nzrc := {DK}, '
+                 f'{loop_tail(k, frame)} }}')))
+
+
+# a long loop helper's passes over its body and code in windows (`CoreMode/LoopWin.lean`, `RouteWin.lean`): nested
+# statements per body window, instructions per code window
+WIN_STMTS, WIN_CODE = 12000, 8192
+# set by `main`: the long loop helpers' modules, each function's mode pack, the module of function `j`'s code
+LONG, PACK_OF = {}, {}
+codes_mod = None
+
+
+def pre_stmts(ss):
+    """`Bridge.stmtsOf`'s order: each statement, then those nested in it."""
+    for s in ss:
+        yield s
+        if s[0] == 'ite':
+            yield from pre_stmts(s[2]); yield from pre_stmts(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from pre_stmts(a)
+
+
+def mlens(ss):
+    """`CoreMode.matchLens`."""
+    return [(s[1], len(s[2])) for s in pre_stmts(ss) if s[0] == 'match']
+
+
+def body_cuts(body, end):
+    """Cuts at top-level statements before `end`, each window at most `WIN_STMTS` nested statements."""
+    cuts, acc = [], 0
+    for i in range(end):
+        n = nstmts([body[i]])
+        if acc and acc + n > WIN_STMTS:
+            cuts.append(i)
+            acc = 0
+        acc += n
+    return cuts
+
+
+def code_cuts(code):
+    """Cuts of the code every `WIN_CODE` instructions, none right after a `DEREF` (a table read's jump is next)."""
+    cuts, b = [], WIN_CODE
+    while b < len(code):
+        while b < len(code) and code[b - 1][0] == '.deref':
+            b += 1
+        if b < len(code):
+            cuts.append(b)
+        b += WIN_CODE
+    return cuts
+
+
+def lst(xs):
+    return '[' + ', '.join(xs) + ']'
+
+
+# a chain's last cut, the end it names: an equation of numbers, the kernel's
+FIN = '(by show _ = _; decide +kernel)'
+
+
+def chain(items, final):
+    """`⟨a ≤ b, w, ⟨…⟩⟩` over windows `[(b, proof)]`, ending in `final`."""
+    out = final
+    for prf in reversed(items):
+        out = f'⟨by decide, {prf}, {out}⟩'
+    return out
+
+
+def long_loop(k, j, hp, frame_mod, gl):
+    """A long loop helper's own modules (`Gen/<hp>/`): its core data (`Cfun`), its body's windows (`LW<i>`), its code's
+    (`CW<i>`), its core data checks' (`RW<i>`, `SW<i>`): `({path: text}, Core imports, Route imports)`."""
+    sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
+    import align as AL
+    params, body = heap.CORE[k]
+    code = AL.functions()[k]['code']
+    n = len(body)
+    cs = body_cuts(body, n - 2)
+    lb = [0] + cs + [n - 2]
+    ml_w = [mlens(body[lb[i]:lb[i + 1]]) for i in range(len(lb) - 1)]
+    ml = [m for w in ml_w for m in w]
+    ccs = code_cuts(code) + [len(code)]
+    cb = [0] + ccs
+    base = f'LeanVM.Guest.CoreMode.Gen.«{hp}»'
+    files = {}
+    hdr = lambda m, w: HEADER.format(mod=f'{base}.{m}', what=w)
+    ns = lambda body_: f'\nset_option Elab.async false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n{body_}\nend\n\nend LeanVM.Guest\n'
+    mlt = lst(f'({x}, {y})' for x, y in ml)
+    files['Cfun'] = (hdr('Cfun', f'The core data of `{k}`, apart (its passes are checked in windows).') +
+                     ''.join(f'public import {m}\n' for m in sorted({
+                         'LeanVM.Guest.CoreMode.RouteWin', quote(frame_mod), f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx',
+                         f'{base}.DataLC', 'LeanVM.Guest.Pack.«%s».%s' % heap.pack_of()[k], f'LeanVM.Guest.CoreMode.GlueC.«{hp}»',
+                         f'LeanVM.Guest.CoreMode.Pows.«{hp}»',
+                         'Statement.Data.AdviceHints'})) +
+                     ns(f'noncomputable def Fn.«{k}».cfun : CoreMode.CFun := ⟨frameFun, alignCtxP, hcert, core, '
+                        f'Fn.«{k}».advice, Fn.«{k}».pows, [], csigs, [], false, [], {gl}⟩\n\n'
+                        f'/-- Its `match`es\' selectors and lengths. -/\ndef Fn.«{k}».mlL : List (ℕ × ℕ) :=\n  {mlt}\n'))
+    imp = f'public import {base}.Cfun\n'
+    cimps, rimps = [f'{base}.Cfun'], [f'{base}.Cfun']
+    lws, rws, sws = [], [], []
+    for i in range(len(lb) - 1):
+        a, b = lb[i], lb[i + 1]
+        files[f'LW{i}'] = (hdr(f'LW{i}', f'Window {i} of `{k}`\'s body: statements {a} to {b - 1}.') + imp +
+                           ns(f'theorem Fn.«{k}».lw{i} : CoreMode.winL cfun (CoreMode.slice cfun.fn.body {a} {b}) '
+                              f'{lst(f"({x}, {y})" for x, y in ml_w[i])} = true := by\n  decide +kernel\n'))
+        cimps.append(f'{base}.LW{i}')
+        lws.append(f'Fn.«{k}».lw{i}')
+    rb = lb[:-1] + [n]
+    sb = lb[:-1] + [n - 1]
+    for i in range(len(rb) - 1):
+        a, b = rb[i], rb[i + 1]
+        files[f'RW{i}'] = (hdr(f'RW{i}', f'Window {i} of `{k}`\'s cells: statements {a} to {b - 1}.') + imp +
+                           f'public import {quote(codes_mod(j))}\n' +
+                           ns(f'theorem Fn.«{k}».rw{i} : CoreMode.cellsB {j} (CoreMode.slice cfun.fn.body {a} {b}) = true := by\n'
+                              f'  decide +kernel\n'))
+        rimps.append(f'{base}.RW{i}')
+        rws.append(f'Fn.«{k}».rw{i}')
+        a, b = sb[i], sb[i + 1]
+        files[f'SW{i}'] = (hdr(f'SW{i}', f'Window {i} of `{k}`\'s selectors: statements {a} to {b - 1}.') + imp +
+                           f'public import {quote(codes_mod(j))}\n' +
+                           ns(f'theorem Fn.«{k}».sw{i} : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body {a} {b}) && '
+                              f'CoreMode.selGo {j} cfun.fn.params (CoreMode.seenF [] (cfun.fn.body.take {a})) '
+                              f'(CoreMode.slice cfun.fn.body {a} {b})) = true := by\n  decide +kernel\n'))
+        rimps.append(f'{base}.SW{i}')
+        sws.append(f'Fn.«{k}».sw{i}')
+    cws = []
+    for i in range(len(cb) - 1):
+        a, b = cb[i], cb[i + 1]
+        files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') + imp +
+                           f'public import {quote(codes_mod(j))}\n' +
+                           ns(f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
+                              f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
+                              f'  decide +kernel\n'))
+        cimps.append(f'{base}.CW{i}')
+        cws.append(f'Fn.«{k}».cw{i}')
+    pairs = lambda m: lst(f'({x}, {y})' for x, y in m)
+    lcs = lst(f'({lb[i + 1]}, {pairs(ml_w[i])})' for i in range(len(lb) - 1))
+    wins = f'CoreMode.LoopWins {K} cfun mlL {lcs} {lst(str(c) for c in ccs)}'
+    thms = (thm(k, 'loop_rest', 'CoreMode.loopShapeRest cfun = true') +
+            thm(k, 'loop_tailL', 'CoreMode.tailL cfun = true') +
+            thm(k, 'loop_wins', wins,
+                f'⟨{DK}, {chain(lws, FIN)}, loop_tailL, {chain(cws, FIN)}, loop_rest, {DK}⟩'))
+    fn = f'Fn.«{k}».cfun.fn'
+    hons = (f'theorem hon{j}_long : (CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn}) = true ∧ '
+            f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {j}) = true ∧ '
+            f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {j}) = true ∧ '
+            f'(CoreMode.selGo {j} {fn}.params [] {fn}.body || CoreMode.loopBC {fn}) = true :=\n'
+            f'  CoreMode.honB_long (j := {j}) (fn := {fn}) (cs := {lst(str(b) for b in rb[1:])}) '
+            f'(ss := {lst(str(b) for b in sb[1:])})\n  {chain(rws, FIN)}\n  {chain(sws, FIN)} {DK}\n'
+            f'theorem hon{j}_rest : CoreMode.honRest {j} {fn} = true := by decide +kernel\n')
+    return files, cimps, rimps, thms, hons
+
+
+def loop_long(k, j):
+    """A long loop helper's checks (`CoreMode.LoopOkC`), its passes by its windows (`loop_wins`), each other heavy one
+    its own declaration (its own heartbeats)."""
+    code = 'code.chunks.flatten'
+    parts = [('gtail', 'CoreMode.tailG cfun = true'),
+             ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
+             ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
+             ('xentry', 'cfun.X.entry = funC.entry')]
+    out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
+    out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (funC.entry + i) = '
+               f'Mode.hintsAt cfun.frame.hints (funC.entry + i)',
+               f'Mode.hintsEq_of_fn (K := {K}) (j := Fn.«{k}».idx) (d := Fn.«{k}».advice) {DK} {DK} {DK} rfl')
+    out += thm(k, 'loop_fetch', f'Exec.Fetches guestProgram funC.entry {code}',
+               f'Exec.guest_fetches Fn.«{k}».code_mem')
+    out += thm(k, 'loop_small', f'∀ i (hi : i < {code}.length), CoreMode.SmallOps {code}[i]',
+               f'Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«{k}».code_mem)')
+    f = '(CoreMode.loopFields_of_wins loop_wins)'
+    return out + thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
+                     'CoreMode.fnSpecC_of_loopC\n  { heap := heap_okC, '
+                     f'body := {f}.1, calls := {f}.2.1, top := {f}.2.2.1, rdFree := {f}.2.2.2.1, cptr := {f}.2.2.2.2.1, '
+                     f'nofa := {f}.2.2.2.2.2.1, tgt := {f}.2.2.2.2.2.2.1, jtd := {f}.2.2.2.2.2.2.2.1, shape := {f}.2.2.2.2.2.2.2.2, '
+                     'ders := rfl, gw := rfl, code := loop_code, fsigs := rfl, gtail := loop_gtail, nzrc := CoreMode.nzr_of_wins loop_wins, '
+                     'pair := pair_okP, '
+                     'frame := ⟨loop_env, loop_arms, frameAcc⟩, sig := loop_sig, sigE := rfl, fsig := rfl, '
+                     'fentry := rfl, flen := loop_flen, xentry := loop_xentry, xlen := loop_xlen, dhints := rfl, '
+                     'hints := loop_hints, fetch := loop_fetch, small := loop_small, '
+                     f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok, '
+                     'hc := rfl, hcs := rfl }')
 
 
 def cfun_m(k, j, frame):
@@ -313,10 +506,24 @@ def main():
     for k in sorted(R):
         packs.setdefault(R[k]['bpack'], []).append(k)
     frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.)«([^»]+)»(?:$|\.frameFun\b)', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
+    # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
+    frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
     tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
     files = {}
     S = route.sigs()
+    # the long loop helpers: their core data apart, their passes in windows (`long_loop`)
+    global LONG, PACK_OF, codes_mod
+    codes_mod = lambda j: codes[str(j)]
+    PACK_OF = {k: p for p, ks in packs.items() for k in ks}
+    LONG = {}
+    for k in sorted(R):
+        if R[k].get('kind') == 'lc' and long_body(k):
+            fr = frames[k].replace('.FrameL', '.FrameD')
+            fl, cimps, rimps_, thms, hons_ = long_loop(k, R[k]['j'], po[k][0], fr, callc.gl_lean(k))
+            for nm, text in fl.items():
+                files[os.path.join(GEN, po[k][0], nm + '.lean')] = text
+            LONG[k] = (cimps, rimps_, hons_, thms)
     for p, ks in sorted(packs.items()):
         imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Small',
                 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
@@ -337,9 +544,13 @@ def main():
                 body.append(cfun_l(k, j, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'lc':
-                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % p)
+                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0])
                 imps.add('LeanVM.Guest.CoreMode.CoreLoopC')
-                imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
+                imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
+                if heap_winL(k):
+                    imps.add(heap_winL(k))
+                if k in LONG:
+                    imps |= set(LONG[k][0])
                 body.append(cfun_lc(k, j, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'c':
@@ -365,7 +576,10 @@ def main():
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
-            rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
+            # the tables at `j` through the glue's `tie` (`GlueC`): the route names `k` by its key, `j` only as `Fn.«k».idx`
+            assert str(j) in codes and str(j) in tabs, k
+            rimps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
+            x = f'Fn.«{k}».idx'
             hb = '(by decide +kernel)'
             rch = res_chunks(k, po)
             rw = []
@@ -373,26 +587,33 @@ def main():
                 fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 for c in rch:
-                    hons.append(f'theorem res{j}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
-                hons.append(f'theorem res{j}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
+                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
+                hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
-                            f'  simp only [List.all_append, {", ".join(f"res{j}_{c}" for c in rch)}, Bool.and_self]\n')
-                rw.append(f'res{j}_ok')
+                            f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
+                rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
-            if long_body(k):
+            if k in LONG:
+                rimps |= set(LONG[k][1])
+                hons.append(LONG[k][2])
+                hb = (f'(by rw [CoreMode.honB_of hon{j}_long.1 hon{j}_long.2.1 hon{j}_long.2.2.1 hon{j}_long.2.2.2 '
+                      f'hon{j}_rest, CoreMode.faOkB_of_noFA (CoreMode.loopFields_of_wins Fn.«{k}».loop_wins).2.2.2.2.2.1'
+                      f'{"".join(", " + x for x in rw)}]; decide +kernel)')
+            elif long_body(k):
                 fn = f'Fn.«{k}».cfun.fn'
                 parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
-                         ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {j})', 'its pointers\' cells'),
-                         ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {j})', 'its returned values\' cells'),
-                         ('sel', f'(CoreMode.selGo {j} {fn}.params [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
-                         ('rest', f'CoreMode.honRest {j} {fn}', 'the rest of its frame')]
+                         ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {x})', 'its pointers\' cells'),
+                         ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
+                         ('sel', f'(CoreMode.selGo {x} {fn}.params [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
+                         ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
-                    hons.append(f'theorem hon{j}_{nm} : {st} = true := by decide +kernel\n')
-                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest{"".join(", " + x for x in rw)}]; '
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by decide +kernel\n')
+                hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
-            decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of (by decide) Checked.code{j} '
-                         f'Checked.core{j} Checked.cert{j} Checked.plumbEq{j} Bridge.ProgAl.tab{j} rfl rfl rfl {hb}\n')
+            hx = f'Fn.«{k}».alignCtxEq' if k in LONG else 'rfl'
+            decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«{k}».tie '
+                         f'rfl rfl {hx} {hb}\n')
             oks.append(f'cfOk{i}')
         chain = 'List.forall_mem_nil _'
         for q in reversed(oks):
@@ -406,7 +627,8 @@ def main():
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     stale = []
-    have = set(glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')))
+    have = set(glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
+               [f for pat in ('Cfun', 'LW*', 'CW*', 'RW*', 'SW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
     for path in sorted(have - set(files)):
         if CHECK: stale.append(path)
         else: os.remove(path)

@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab11
-public import LeanVM.Guest.Checked.Link11
 public import LeanVM.Guest.CoreMode.Gen.«verify_merkle_cap__L8».Core
+public import LeanVM.Guest.CoreMode.GlueC.«P6»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -20,7 +19,7 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk_of (by decide) Checked.code1182 Checked.core1182 Checked.cert1182 Checked.plumbEq1182 Bridge.ProgAl.tab1182 rfl rfl rfl (by decide +kernel)
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«verify_merkle_cap__L8».tie rfl rfl rfl (by decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

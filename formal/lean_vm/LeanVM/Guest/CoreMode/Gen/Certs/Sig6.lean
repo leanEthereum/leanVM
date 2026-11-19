@@ -11,6 +11,53 @@ public import LeanVM.Guest.CoreMode.Gen.Certs.List
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.CorePack.«P44»
+
+open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
+
+public section
+
+theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
+  sigsOr_of Fn.«block_selector_tab__L0».modeSigs fa%[],
+  sigsOr_of Fn.«block_selector_tab__L26».modeSigs fa%[],
+  sigsOr_of Fn.«child_claim_list_last__L11».modeSigs fa%[],
+  sigsOr_of Fn.«claim_list_last__L14».modeSigs fa%[],
+  sigsOr_of Fn.«decode_query_windows__L14_L2».modeSigs fa%[],
+  sigsOr_of Fn.«level_positions__L11_L17_L5_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L11_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L19_L21_L3».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L19_L21_L3_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L21_L3».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L3_L17_L5».modeSigs fa%[.inl ⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«level_positions__L3_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L44_L22_L4».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L44_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L4_L13_L7_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L4_L13_L7_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L13_L7».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L5_L16_L4».modeSigs fa%[.inl ⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«level_positions__L5_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L5_L20_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L5_L20_L2_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L20_L2».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_positions__L5_L22_L4_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L5_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_residual__L28_L10_L4_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L28_L10_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_residual__L32_L11_L4_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L32_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_residual__L37_L18_L4_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L37_L18_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«level_residual__L73_L21_L6_L3».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L73_L21_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«level_residual__L73_L21_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«walk_path__L24_L3».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of Fn.«sel_partial_nibble__L2».modeSigs fa%[],
+  sigsOr_of Fn.«squeeze_point_from__L12».modeSigs fa%[]]
+
+end
+
+end LeanVM.Guest.CorePack.«P44»
+
 namespace LeanVM.Guest.CorePack.«P45»
 
 open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
@@ -246,44 +293,3 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
 end
 
 end LeanVM.Guest.CorePack.«P49»
-
-namespace LeanVM.Guest.CorePack.«P5»
-
-open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
-
-public section
-
-theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
-  sigsOr_of Fn.«block_selector__L29».modeSigs fa%[],
-  sigsOr_of Fn.«block_selector_tab__L18».modeSigs fa%[],
-  sigsOr_of Fn.«column_selector__L2».modeSigs fa%[],
-  sigsOr_of Fn.«index_mle__L1».modeSigs fa%[],
-  sigsOr_of Fn.«level_positions__L11_L23_L5_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L11_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_positions__L6_L15_L3».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L6_L15_L3_loop0».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«decode_query_windows__L15_L3».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_positions__L8_L27_L3_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_positions__L8_L27_L3_loop0».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«decode_query_windows__L27_L3».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L18_L6_L4_L2_loop1».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L18_L6_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L18_L8_L4_L2».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L18_L8_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«level_residual__L18_L8_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L21_L6_L4_L2_loop1».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L21_L6_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L21_L8_L4_L2».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L21_L8_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«level_residual__L21_L8_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L25_L16_L4_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L25_L16_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«level_residual__L44_L15_L4_L2_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L44_L15_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».modeSigs fa%[.inl ⟨_, Fn.«walk_path__L18_L2».modeCert_in, rfl, rfl, rfl⟩,
-      .inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩]]
-
-end
-
-end LeanVM.Guest.CorePack.«P5»

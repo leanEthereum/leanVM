@@ -62,8 +62,7 @@ public section
 
 theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
   Mode.fa_cons (resOk_exc (by simp [resExc]))
-    (Mode.fa_cons (resOk_of (j := 41) (by decide +kernel))
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 
@@ -124,20 +123,6 @@ theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
 end
 
 end LeanVM.Guest.ModePack.«P42»
-
-namespace LeanVM.Guest.ModePack.«P43»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
-  Mode.fa_cons (resOk_of (j := 39) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P43»
 
 namespace LeanVM.Guest.ModePack.«P54»
 

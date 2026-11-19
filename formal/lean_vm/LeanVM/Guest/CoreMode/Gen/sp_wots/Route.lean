@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab0
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Core
+public import LeanVM.Guest.CoreMode.GlueC.«sp_wots»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -20,12 +19,12 @@ open LeanVM.Guest
 
 public section
 
-theorem hon20_body : (CoreMode.bodyCore Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by decide +kernel
-theorem hon20_ptr : (Bridge.stmtsOf Fn.«sp_wots».cfun.fn.body).all (CoreMode.ptrCellB 20) = true := by decide +kernel
-theorem hon20_ret : (Bridge.stmtsOf Fn.«sp_wots».cfun.fn.body).all (CoreMode.retCellB 20) = true := by decide +kernel
-theorem hon20_sel : (CoreMode.selGo 20 Fn.«sp_wots».cfun.fn.params [] Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by decide +kernel
-theorem hon20_rest : CoreMode.honRest 20 Fn.«sp_wots».cfun.fn = true := by decide +kernel
-theorem cfOk0 : CoreMode.CfOk Fn.«sp_wots».cfun := CoreMode.cfOk_of (by decide) Checked.code20 Checked.core20 Checked.cert20 Checked.plumbEq20 Bridge.ProgAl.tab20 rfl rfl rfl (by rw [CoreMode.honB_of hon20_body hon20_ptr hon20_ret hon20_sel hon20_rest]; decide +kernel)
+theorem hon0_body : (CoreMode.bodyCore Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by decide +kernel
+theorem hon0_ptr : (Bridge.stmtsOf Fn.«sp_wots».cfun.fn.body).all (CoreMode.ptrCellB Fn.«sp_wots».idx) = true := by decide +kernel
+theorem hon0_ret : (Bridge.stmtsOf Fn.«sp_wots».cfun.fn.body).all (CoreMode.retCellB Fn.«sp_wots».idx) = true := by decide +kernel
+theorem hon0_sel : (CoreMode.selGo Fn.«sp_wots».idx Fn.«sp_wots».cfun.fn.params [] Fn.«sp_wots».cfun.fn.body || CoreMode.loopBC Fn.«sp_wots».cfun.fn) = true := by decide +kernel
+theorem hon0_rest : CoreMode.honRest Fn.«sp_wots».idx Fn.«sp_wots».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«sp_wots».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«sp_wots».tie rfl rfl rfl (by rw [CoreMode.honB_of hon0_body hon0_ptr hon0_ret hon0_sel hon0_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

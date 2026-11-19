@@ -7,279 +7,36 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«block_selector__L19»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `block_selector__L19`: its entry pc. -/
-abbrev entry : Nat := 197721
+abbrev Fn.«block_selector__L19».entry : Nat := 197721
+abbrev Fn.«da_levels__L32_L5_loop0».entry : Nat := 274672
+abbrev Fn.«eq_prefix_run__L15».entry : Nat := 179249
+abbrev Fn.«level_positions__L11_L22_L4».entry : Nat := 262587
+abbrev Fn.«level_positions__L3_L13_L7».entry : Nat := 255919
+abbrev Fn.«level_positions__L3_L20_L2_loop0».entry : Nat := 330780
+abbrev Fn.«level_positions__L3_L22_L4_loop0».entry : Nat := 366005
+abbrev Fn.«level_positions__L4_L17_L5_loop0».entry : Nat := 290059
+abbrev Fn.«level_positions__L5_L21_L3_loop0».entry : Nat := 341881
+abbrev Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».entry : Nat := 260657
+abbrev Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».entry : Nat := 272130
+abbrev Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».entry : Nat := 270225
+abbrev Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».entry : Nat := 273780
+abbrev Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».entry : Nat := 263402
+abbrev Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».entry : Nat := 273367
+abbrev Fn.«level_residual__L109_L15_L6_L3_loop0».entry : Nat := 291020
+abbrev Fn.«level_residual__L16_L7_L4_L2».entry : Nat := 272815
+abbrev Fn.«level_residual__L32_L9_L4_L2».entry : Nat := 262229
+abbrev Fn.«level_residual__L55_L20_L6_L3_loop0».entry : Nat := 345152
+abbrev Fn.«level_residual__L73_L16_L6_L3».entry : Nat := 259970
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».entry : Nat := 415973
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».entry : Nat := 353739
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».entry : Nat := 394345
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».entry : Nat := 277609
+abbrev Fn.«plus_one_run__L13».entry : Nat := 194459
 
 end
 
-end LeanVM.Guest.Fn.«block_selector__L19»
-
-namespace LeanVM.Guest.Fn.«da_levels__L32_L5_loop0»
-
-@[expose] public section
-
-/-- `__loop0_da_levels__L32_L5`: its entry pc. -/
-abbrev entry : Nat := 274672
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L32_L5_loop0»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L15»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L15`: its entry pc. -/
-abbrev entry : Nat := 179249
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_run__L15»
-
-namespace LeanVM.Guest.Fn.«level_positions__L11_L22_L4»
-
-@[expose] public section
-
-/-- `level_positions__L11_L22_L4`: its entry pc. -/
-abbrev entry : Nat := 262587
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L11_L22_L4»
-
-namespace LeanVM.Guest.Fn.«level_positions__L3_L13_L7»
-
-@[expose] public section
-
-/-- `level_positions__L3_L13_L7`: its entry pc. -/
-abbrev entry : Nat := 255919
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L3_L13_L7»
-
-namespace LeanVM.Guest.Fn.«level_positions__L3_L20_L2_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_positions__L3_L20_L2`: its entry pc. -/
-abbrev entry : Nat := 330780
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L3_L20_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L3_L22_L4_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_positions__L3_L22_L4`: its entry pc. -/
-abbrev entry : Nat := 366005
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L3_L22_L4_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L4_L17_L5_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_positions__L4_L17_L5`: its entry pc. -/
-abbrev entry : Nat := 290059
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L4_L17_L5_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L5_L21_L3_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_positions__L5_L21_L3`: its entry pc. -/
-abbrev entry : Nat := 341881
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L5_L21_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0`: its entry pc. -/
-abbrev entry : Nat := 260657
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1»
-
-@[expose] public section
-
-/-- `level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1`: its entry pc. -/
-abbrev entry : Nat := 272130
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1»
-
-namespace LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1»
-
-@[expose] public section
-
-/-- `level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1`: its entry pc. -/
-abbrev entry : Nat := 270225
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1»
-
-namespace LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its entry pc. -/
-abbrev entry : Nat := 273780
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1»
-
-@[expose] public section
-
-/-- `level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1`: its entry pc. -/
-abbrev entry : Nat := 263402
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1»
-
-namespace LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0`: its entry pc. -/
-abbrev entry : Nat := 273367
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L15_L6_L3_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_residual__L109_L15_L6_L3`: its entry pc. -/
-abbrev entry : Nat := 291020
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L109_L15_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L16_L7_L4_L2»
-
-@[expose] public section
-
-/-- `level_residual__L16_L7_L4_L2`: its entry pc. -/
-abbrev entry : Nat := 272815
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L16_L7_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L32_L9_L4_L2»
-
-@[expose] public section
-
-/-- `level_residual__L32_L9_L4_L2`: its entry pc. -/
-abbrev entry : Nat := 262229
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L32_L9_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop0»
-
-@[expose] public section
-
-/-- `__loop0_level_residual__L55_L20_L6_L3`: its entry pc. -/
-abbrev entry : Nat := 345152
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L73_L16_L6_L3»
-
-@[expose] public section
-
-/-- `level_residual__L73_L16_L6_L3`: its entry pc. -/
-abbrev entry : Nat := 259970
-
-end
-
-end LeanVM.Guest.Fn.«level_residual__L73_L16_L6_L3»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0»
-
-@[expose] public section
-
-/-- `__loop0_opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`: its entry pc. -/
-abbrev entry : Nat := 415973
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1»
-
-@[expose] public section
-
-/-- `opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1`: its entry pc. -/
-abbrev entry : Nat := 353739
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1»
-
-@[expose] public section
-
-/-- `opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1`: its entry pc. -/
-abbrev entry : Nat := 394345
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: its entry pc. -/
-abbrev entry : Nat := 277609
-
-end
-
-end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L13»
-
-@[expose] public section
-
-/-- `plus_one_run__L13`: its entry pc. -/
-abbrev entry : Nat := 194459
-
-end
-
-end LeanVM.Guest.Fn.«plus_one_run__L13»
+end LeanVM.Guest

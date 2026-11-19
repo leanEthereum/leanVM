@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Packed
+public import LeanVM.Guest.CoreMode.GlueE.«P43»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
@@ -23,12 +24,12 @@ open LeanVM.Guest
 /-- `main_loop2`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«main_loop2».cert.locs [] Fn.«main_loop2».code.entryPc false
-    Fn.«main_loop2».plumb Data.powTree Data.jtTrie [("__loop2_main", 64313)] 524287 Fn.«main_loop2».code.instructionCount
+    Fn.«main_loop2».plumb Data.powTree Data.jtTrie [("__loop2_main", Fn.«main_loop2».entry)] 524287 Fn.«main_loop2».code.instructionCount
 
 /-- `main_loop2`: its context with its cells packed ahead. -/
 noncomputable def alignCtxP : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofPacked alignPacked true [] Fn.«main_loop2».code.entryPc false
-    Fn.«main_loop2».plumb Data.powTree Data.jtTrie [("__loop2_main", 64313)] 524287 Fn.«main_loop2».code.instructionCount
+    Fn.«main_loop2».plumb Data.powTree Data.jtTrie [("__loop2_main", Fn.«main_loop2».entry)] 524287 Fn.«main_loop2».code.instructionCount
 
 /-- `main_loop2`: its advice's parts. -/
 def alignHParts : List (List (ℕ × List LeanVM.Prover.Exec.Hint)) :=

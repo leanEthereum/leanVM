@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Link15
+public import LeanVM.Guest.Bridge.ProgAl.Tab15
 public import LeanVM.Guest.Bridge.WitChk.«P10»
 public import LeanVM.Guest.Bridge.WitChk.«P13»
 public import LeanVM.Guest.Bridge.WitChk.«P15»

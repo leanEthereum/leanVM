@@ -62,8 +62,7 @@ public section
 
 theorem certs_term : ∀ K ∈ certs, TermOk K :=
   Mode.fa_cons (termOk_of (j := 24) (by decide +kernel))
-    (Mode.fa_cons (termOk_of (j := 41) (by decide +kernel))
-    (Mode.fa_nil))
+    (Mode.fa_nil)
 
 end
 
@@ -124,20 +123,6 @@ theorem certs_term : ∀ K ∈ certs, TermOk K :=
 end
 
 end LeanVM.Guest.ModePack.«P42»
-
-namespace LeanVM.Guest.ModePack.«P43»
-
-open LeanVM.Guest LeanVM.Guest.EndExec
-
-public section
-
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := 39) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P43»
 
 namespace LeanVM.Guest.ModePack.«P54»
 

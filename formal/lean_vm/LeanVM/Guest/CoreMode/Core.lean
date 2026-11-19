@@ -970,6 +970,17 @@ noncomputable def callsB (Cf : CFun) : Bool :=
         Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
     | _ => true
 
+/-- **A dispatch checked as `callsB` does**: its callees by `callChkM`, the ones `dsp` lists at its sites. -/
+noncomputable def dspB (Cf : CFun) : Stmt → Bool
+  | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
+      Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
+  | _ => true
+
+theorem dspB_of_callsB {Cf : CFun} (h : callsB Cf = true) : (stmtsOf Cf.fn.body).all (dspB Cf) = true :=
+  List.all_eq_true.mpr fun s hs ↦ by
+    have := List.all_eq_true.mp h s hs
+    cases s <;> simp_all [dspB]
+
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
 noncomputable def retAt (X : AlignCtx) (env : Exec.Trie CCell) (vs : List V) (o : ℕ) (c : CCell) : Bool :=
   vs.any fun v ↦ Nat.beq (X.locAt v.idx) o && match monoOf env v with

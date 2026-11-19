@@ -7,33 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Tab0
-public import LeanVM.Guest.Bridge.ProgAl.Tab1
-public import LeanVM.Guest.Bridge.ProgAl.Tab10
-public import LeanVM.Guest.Bridge.ProgAl.Tab11
-public import LeanVM.Guest.Bridge.ProgAl.Tab12
-public import LeanVM.Guest.Bridge.ProgAl.Tab13
-public import LeanVM.Guest.Bridge.ProgAl.Tab14
-public import LeanVM.Guest.Bridge.ProgAl.Tab2
-public import LeanVM.Guest.Bridge.ProgAl.Tab3
-public import LeanVM.Guest.Bridge.ProgAl.Tab5
-public import LeanVM.Guest.Bridge.ProgAl.Tab6
-public import LeanVM.Guest.Bridge.ProgAl.Tab8
-public import LeanVM.Guest.Bridge.ProgAl.Tab9
-public import LeanVM.Guest.Checked.Link0
-public import LeanVM.Guest.Checked.Link1
-public import LeanVM.Guest.Checked.Link10
-public import LeanVM.Guest.Checked.Link11
-public import LeanVM.Guest.Checked.Link12
-public import LeanVM.Guest.Checked.Link13
-public import LeanVM.Guest.Checked.Link14
-public import LeanVM.Guest.Checked.Link2
-public import LeanVM.Guest.Checked.Link3
-public import LeanVM.Guest.Checked.Link5
-public import LeanVM.Guest.Checked.Link6
-public import LeanVM.Guest.Checked.Link8
-public import LeanVM.Guest.Checked.Link9
 public import LeanVM.Guest.CoreMode.Gen.«P51».Core
+public import LeanVM.Guest.CoreMode.GlueC.«P51»
 public import LeanVM.Guest.CoreMode.Route
 
 set_option Elab.async false
@@ -44,25 +19,25 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«block_selector__L30».cfun := CoreMode.cfOk_of (by decide) Checked.code195 Checked.core195 Checked.cert195 Checked.plumbEq195 Bridge.ProgAl.tab195 rfl rfl rfl (by decide +kernel)
-theorem cfOk1 : CoreMode.CfOk Fn.«block_selector_tab__L23».cfun := CoreMode.cfOk_of (by decide) Checked.code256 Checked.core256 Checked.cert256 Checked.plumbEq256 Bridge.ProgAl.tab256 rfl rfl rfl (by decide +kernel)
-theorem cfOk2 : CoreMode.CfOk Fn.«block_selector_tab__L5».cfun := CoreMode.cfOk_of (by decide) Checked.code238 Checked.core238 Checked.cert238 Checked.plumbEq238 Bridge.ProgAl.tab238 rfl rfl rfl (by decide +kernel)
-theorem cfOk3 : CoreMode.CfOk Fn.«certify_placement».cfun := CoreMode.cfOk_of (by decide) Checked.code16 Checked.core16 Checked.cert16 Checked.plumbEq16 Bridge.ProgAl.tab16 rfl rfl rfl (by decide +kernel)
-theorem cfOk4 : CoreMode.CfOk Fn.«child_claim_list_last__L14».cfun := CoreMode.cfOk_of (by decide) Checked.code385 Checked.core385 Checked.cert385 Checked.plumbEq385 Bridge.ProgAl.tab385 rfl rfl rfl (by decide +kernel)
-theorem cfOk5 : CoreMode.CfOk Fn.«claim_list_last__L11».cfun := CoreMode.cfOk_of (by decide) Checked.code363 Checked.core363 Checked.cert363 Checked.plumbEq363 Bridge.ProgAl.tab363 rfl rfl rfl (by decide +kernel)
-theorem cfOk6 : CoreMode.CfOk Fn.«decode_query_windows__L26_L2».cfun := CoreMode.cfOk_of (by decide) Checked.code1312 Checked.core1312 Checked.cert1312 Checked.plumbEq1312 Bridge.ProgAl.tab1312 rfl rfl rfl (by decide +kernel)
-theorem cfOk7 : CoreMode.CfOk Fn.«level_positions__L7_L14_L2_loop0».cfun := CoreMode.cfOk_of (by decide) Checked.code964 Checked.core964 Checked.cert964 Checked.plumbEq964 Bridge.ProgAl.tab964 rfl rfl rfl (by decide +kernel)
-theorem cfOk8 : CoreMode.CfOk Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».cfun := CoreMode.cfOk_of (by decide) Checked.code656 Checked.core656 Checked.cert656 Checked.plumbEq656 Bridge.ProgAl.tab656 rfl rfl rfl (by decide +kernel)
-theorem cfOk9 : CoreMode.CfOk Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cfun := CoreMode.cfOk_of (by decide) Checked.code571 Checked.core571 Checked.cert571 Checked.plumbEq571 Bridge.ProgAl.tab571 rfl rfl rfl (by decide +kernel)
-theorem cfOk10 : CoreMode.CfOk Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».cfun := CoreMode.cfOk_of (by decide) Checked.code809 Checked.core809 Checked.cert809 Checked.plumbEq809 Bridge.ProgAl.tab809 rfl rfl rfl (by decide +kernel)
-theorem cfOk11 : CoreMode.CfOk Fn.«level_residual__L17_L7_L4_L2».cfun := CoreMode.cfOk_of (by decide) Checked.code887 Checked.core887 Checked.cert887 Checked.plumbEq887 Bridge.ProgAl.tab887 rfl rfl rfl (by decide +kernel)
-theorem cfOk12 : CoreMode.CfOk Fn.«level_residual__L37_L20_L4_L2_loop0».cfun := CoreMode.cfOk_of (by decide) Checked.code1436 Checked.core1436 Checked.cert1436 Checked.plumbEq1436 Bridge.ProgAl.tab1436 rfl rfl rfl (by decide +kernel)
-theorem cfOk13 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».cfun := CoreMode.cfOk_of (by decide) Checked.code1146 Checked.core1146 Checked.cert1146 Checked.plumbEq1146 Bridge.ProgAl.tab1146 rfl rfl rfl (by decide +kernel)
-theorem cfOk14 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».cfun := CoreMode.cfOk_of (by decide) Checked.code1148 Checked.core1148 Checked.cert1148 Checked.plumbEq1148 Bridge.ProgAl.tab1148 rfl rfl rfl (by decide +kernel)
-theorem cfOk15 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of (by decide) Checked.code1232 Checked.core1232 Checked.cert1232 Checked.plumbEq1232 Bridge.ProgAl.tab1232 rfl rfl rfl (by decide +kernel)
-theorem cfOk16 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of (by decide) Checked.code1369 Checked.core1369 Checked.cert1369 Checked.plumbEq1369 Bridge.ProgAl.tab1369 rfl rfl rfl (by decide +kernel)
-theorem cfOk17 : CoreMode.CfOk Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of (by decide) Checked.code1097 Checked.core1097 Checked.cert1097 Checked.plumbEq1097 Bridge.ProgAl.tab1097 rfl rfl rfl (by decide +kernel)
-theorem cfOk18 : CoreMode.CfOk Fn.«squeeze_point_from__L17».cfun := CoreMode.cfOk_of (by decide) Checked.code587 Checked.core587 Checked.cert587 Checked.plumbEq587 Bridge.ProgAl.tab587 rfl rfl rfl (by decide +kernel)
+theorem cfOk0 : CoreMode.CfOk Fn.«block_selector__L30».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«block_selector__L30».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk1 : CoreMode.CfOk Fn.«block_selector_tab__L23».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«block_selector_tab__L23».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk2 : CoreMode.CfOk Fn.«block_selector_tab__L5».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«block_selector_tab__L5».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk3 : CoreMode.CfOk Fn.«certify_placement».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«certify_placement».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk4 : CoreMode.CfOk Fn.«child_claim_list_last__L14».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_last__L14».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk5 : CoreMode.CfOk Fn.«claim_list_last__L11».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«claim_list_last__L11».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk6 : CoreMode.CfOk Fn.«decode_query_windows__L26_L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«decode_query_windows__L26_L2».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk7 : CoreMode.CfOk Fn.«level_positions__L7_L14_L2_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L7_L14_L2_loop0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk8 : CoreMode.CfOk Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk9 : CoreMode.CfOk Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk10 : CoreMode.CfOk Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk11 : CoreMode.CfOk Fn.«level_residual__L17_L7_L4_L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_residual__L17_L7_L4_L2».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk12 : CoreMode.CfOk Fn.«level_residual__L37_L20_L4_L2_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_residual__L37_L20_L4_L2_loop0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk13 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk14 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk15 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk16 : CoreMode.CfOk Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk17 : CoreMode.CfOk Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk18 : CoreMode.CfOk Fn.«squeeze_point_from__L17».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«squeeze_point_from__L17».tie rfl rfl rfl (by decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

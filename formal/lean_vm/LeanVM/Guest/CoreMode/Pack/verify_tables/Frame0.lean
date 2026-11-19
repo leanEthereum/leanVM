@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.GlueP.«verify_tables»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«verify_tables»
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
-public import LeanVM.Guest.CoreMode.Gen.«verify_tables».«verify_tables».Ok
+public import LeanVM.Guest.CoreMode.Gen.«verify_tables».«verify_tables».Ctx
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P10»

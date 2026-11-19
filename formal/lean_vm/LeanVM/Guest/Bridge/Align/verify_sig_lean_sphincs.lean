@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.CoreMode.GlueE.«sp_wots»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
@@ -19,7 +20,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-noncomputable def Fn.«verify_sig_lean_sphincs».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("sp_wots", 33508)] 524287 code.instructionCount
+noncomputable def Fn.«verify_sig_lean_sphincs».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("sp_wots", Fn.«sp_wots».entry)] 524287 code.instructionCount
 
 end
 

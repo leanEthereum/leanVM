@@ -397,6 +397,21 @@ def jt_run():
     return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
 
 
+def jt_sym(files):
+    """The jump table's end in the printed certificates as the glue's `CoreMode.jtHi` (`GlueG`), not its value: a
+    function whose run it is changes with the table's length only through the glue."""
+    _, _, (_, lo), (_, hi) = JT_RUN[0] or jt_run()
+    pats = [(f'(.num {lo}), (.num {hi})⟩', f'(.num {lo}), (.num CoreMode.jtHi)⟩'),
+            (f'⟨[], {lo}⟩, ⟨[], {hi}⟩⟩', f'⟨[], {lo}⟩, ⟨[], CoreMode.jtHi⟩⟩')]
+    for path, text in list(files.items()):
+        t = text
+        for a, b in pats:
+            t = t.replace(a, b)
+        if t != text:
+            i = t.index('\npublic import ') + 1
+            files[path] = t[:i] + 'public import LeanVM.Guest.CoreMode.GlueG\n' + t[i:]
+
+
 def own_sig(G, np, nr, gl=None):
     """`sigOk`: the function's heap signature, its mode signature's translated (its `preR` with the caller's cells
     `gl` linked, `CoreMode.rngLIs`)."""
@@ -1194,6 +1209,7 @@ def emit(R, check):
         stale.append(path)
         if not check:
             os.remove(path)
+    jt_sym(files)
     for path, text in sorted(files.items()):
         old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
         if old != text:

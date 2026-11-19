@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Bridge.RefHonest
 public import LeanVM.Guest.EndExec
+public import LeanVM.Guest.EndExecEntry
 
 /-!
 # The tree track along the reference run
@@ -85,18 +86,6 @@ theorem inst_fp_lt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
   omega
 
 /-! ## The functions' layout -/
-
-theorem consecutive_bounds : ∀ {s e : ℕ} {fns : List CompiledFunction}, consecutive s fns e = true →
-    ∀ f ∈ fns, s ≤ f.entryPc ∧ f.entryPc + f.instructionCount ≤ e
-  | _, _, [], _, _, hf => absurd hf List.not_mem_nil
-  | _, _, f0 :: gs, h, f, hf => by
-    simp only [consecutive, Bool.and_eq_true, beq_iff_eq] at h
-    obtain ⟨hg, hgs⟩ := h
-    have := consecutive_le hgs
-    rcases List.mem_cons.mp hf with rfl | hf
-    · omega
-    · have := consecutive_bounds hgs f hf
-      omega
 
 /-- **Consecutive functions**: an entry within a function's instructions is that function's
 entry. -/

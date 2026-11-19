@@ -1,16 +1,15 @@
-"""The frame walk's inputs, read from the generated data: each function's code, hints, executor facts
-(`Check.Cert.facts` in its `Bundle`), callee frame signatures and table targets, and, until the core
-heap certificate's pairing gives it, the oracle: the offsets whose `DEREF` today's mode walk
-(`scripts/mode-cert`) treats as a load of a heap cell it knows written, read off a run of that walk
-with its inferred signatures (`MODE_CERT_CACHE`, as `mode-cert/gen.py` writes it)."""
+"""The frame walk's inputs, read from the generated data (`compiled.py`): each function's code, hints, executor facts
+(`Check.Cert.facts` in its `Bundle`), callee frame signatures (the frame layout's) and table targets; and, for a
+function off the core route (whose pairing gives the core route's), the oracle: the offsets whose `DEREF` the mode
+walk (`scripts/mode-cert`) treats as a load of a heap cell it knows written, read off a run of that walk with its
+inferred signatures (`MODE_CERT_CACHE`, as `mode-cert/gen.py` writes it), and that walk's residual divisors."""
 import os, re, sys, glob, pickle, collections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODE = os.path.normpath(os.path.join(HERE, '..', 'mode-cert'))
-sys.path.insert(0, MODE)
+sys.path.insert(0, HERE)
 sys.setrecursionlimit(100000)
-import infer as I  # noqa: E402
-import walk as W  # noqa: E402
+import compiled as C  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 
@@ -82,10 +81,29 @@ def trie_entries(src):
     return out
 
 
+def mode_walk(full=False):
+    """The mode walk's modules (`scripts/mode-cert/walk.py`, and with `full` its `infer.py`, imported as `mode_infer`:
+    the core route has an `infer` of its own), for the functions off the core route."""
+    if MODE not in sys.path:
+        sys.path.append(MODE)
+    import walk as W
+    if not full:
+        return None, W
+    I = sys.modules.get('mode_infer')
+    if I is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('mode_infer', os.path.join(MODE, 'infer.py'))
+        I = importlib.util.module_from_spec(spec)
+        sys.modules['mode_infer'] = I
+        spec.loader.exec_module(I)
+    return I, W
+
+
 def oracle(cache):
     """Run today's mode walk on each function with its inferred signature and residuals, and record
     each `DEREF` of mode `cell` at each offset: a store, a load of a heap cell it knows written, or
     a link. The oracle: offsets where some path loads and every path stores or loads."""
+    I, W = mode_walk(True)
     sigs, fails, R, Esigs, cost = pickle.load(open(cache, 'rb'))
     I.E.sigs = Esigs
     dec = {}
@@ -113,12 +131,16 @@ def oracle(cache):
     return O, sigs, R, Esigs
 
 
-def load(cache, ocache=None):
-    if ocache and os.path.exists(ocache):
-        O, sigs, R, Esigs = pickle.load(open(ocache, 'rb'))
-    else:
-        O, sigs, R, Esigs = oracle(cache)
-        if ocache: pickle.dump((O, sigs, R, Esigs), open(ocache, 'wb'))
-    fx = facts()
-    fsig = {pc: (list(s.entry), s.self_, list(s.ret)) for pc, s in Esigs.items()}
-    return dict(fns=I.fns, O=O, sigs=sigs, R=R, fsig=fsig, facts=fx, pows=I.POWS, jt=I.JT, halt=I.HALT)
+def load(cache=None, ocache=None):
+    """The walks' inputs; with the mode walk's cache, also its oracle (`O`) and residuals (`R`), which only the
+    functions off the core route read."""
+    D = dict(C.code(), facts=facts(), O={}, R={})
+    if cache:
+        if ocache and os.path.exists(ocache):
+            mode_walk()  # the pickled signatures' classes
+            O, sigs, R, Esigs = pickle.load(open(ocache, 'rb'))
+        else:
+            O, sigs, R, Esigs = oracle(cache)
+            if ocache: pickle.dump((O, sigs, R, Esigs), open(ocache, 'wb'))
+        D.update(O=O, R=R)
+    return D

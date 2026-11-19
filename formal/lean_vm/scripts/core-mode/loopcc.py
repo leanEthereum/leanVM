@@ -19,10 +19,15 @@ CORE, STABLE = I.CORE, I.STABLE
 No = callc.No
 
 
+# loop helpers not taken
+HELD = set()
+
+
 def candidates(S=None):
     """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
     call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`), runs over its caller's cells, or
-    residuals of a family."""
+    residuals of a family; or (`CoreMode.loopBB`) a body with
+    branches and `match`es, its statements before the tail (nested ones included) atoms, calls, branches, `match`es."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]
@@ -32,6 +37,12 @@ def candidates(S=None):
         if I.callee(t[2]) != k or len(t[3]) != len(params):
             continue
         kinds = {s[0] for s in body[:-2]}
+        nkinds = {s[0] for s in I.stmts(body[:-2])}
+        if k in HELD:
+            continue
+        if kinds & {'ite', 'match'} and nkinds <= {'a', 'call', 'ite', 'match'}:
+            out.append(k)
+            continue
         G = (S or {}).get(k)
         own_ptr = G is not None and bool(G['preP'] or G['postLP'])
         # a leaf of runs over its caller's cells (the stream-cursor loops, `callcres.ST_LOOPS`; `anyLink`'s loops)
@@ -56,8 +67,8 @@ def infer_one(k, S):
         raise No('header')
     # `CoreMode.LoopOkC.rdFree`: a range check or `touch` reads memory only with no pointer fact on the path
     # (`noPtrL`, checked below); no `frameAddr`
-    mem_read = any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch') for s in body)
-    if any(s[0] == 'a' and s[1][0] == 'frameAddr' for s in body) or (mem_read and (G['preP'] or G['postLP'])):
+    mem_read = any(s[0] == 'a' and s[1][0] in ('rangeCheck', 'touch') for s in I.stmts(body))
+    if any(s[0] == 'a' and s[1][0] == 'frameAddr' for s in I.stmts(body)) or (mem_read and (G['preP'] or G['postLP'])):
         raise No('memory read')
     # `CoreMode.tailPass`: the parameters' cells the tail call passes on unchanged
     ps = [2 + b for b, a in enumerate(body[-2][3]) if a == params[b]]
@@ -76,7 +87,7 @@ def infer_one(k, S):
     if I.loop_params(k)[0] != 0:
         raise No('counter not 0')
     cs = {}
-    for s in body[:-2]:
+    for s in I.stmts(body[:-2]):
         if s[0] != 'call':
             continue
         f = s[1]
@@ -203,6 +214,38 @@ set_option linter.all false
 """
 
 
+GENWL = os.path.join(os.path.dirname(GEN), 'GenWL')
+
+
+def windows(R, po):
+    """The heap checks estimated past `heapwin.BUDGET`, in windows (`heapwin.one`, `HeapCWin` for a loop helper):
+    `GenWL/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` and its own as
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
+    import heapwin
+    epo = heapwin.E.pack_of()
+    files, dirs = {}, set()
+    for k in sorted(R):
+        H = R[k]['cert']
+        sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
+        sigs[I.callee(k)] = H.sig
+        sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
+        if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
+            continue
+        gen = dict(root='LeanVM.Guest.CoreMode.GenWL', sub='HeapWL', final='heap_okW',
+                   data=['LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0]],
+                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+        for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
+            files[os.path.join(GENWL, k, name + '.lean')] = text
+        dirs.add(os.path.join(GENWL, k))
+    return files, dirs
+
+
+def win_fns():
+    """The functions whose heap check `windows` writes (from the tree)."""
+    import glob
+    return {os.path.basename(os.path.dirname(f)) for f in glob.glob(os.path.join(GENWL, '*', 'Ok.lean'))}
+
+
 def emit(R, check):
     import heap, glob
     po = heap.pack_of()
@@ -221,6 +264,15 @@ def emit(R, check):
         stale.append(path)
         if not check:
             os.remove(path)
+    wfiles, wdirs = windows(R, po)
+    files.update(wfiles)
+    for path in sorted(set(glob.glob(os.path.join(GENWL, '*', '*.lean'))) - set(wfiles)):
+        stale.append(path)
+        if not check:
+            os.remove(path)
+    for d in sorted(set(glob.glob(os.path.join(GENWL, '*'))) - wdirs):
+        if not check:
+            os.rmdir(d)
     for path, text in sorted(files.items()):
         old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
         if old != text:
