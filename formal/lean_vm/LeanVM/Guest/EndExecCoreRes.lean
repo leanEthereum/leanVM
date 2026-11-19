@@ -17,6 +17,7 @@ public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.EndExecCoreVt
 public import LeanVM.Guest.EndExecCoreVk
+public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.EndExecRVs
 public import LeanVM.Guest.EndExecRCp
 public import LeanVM.Guest.EndExecCoreDa
@@ -1486,7 +1487,7 @@ theorem tabOf_row {r : Ref} (hr : r.Ok) {fn : Fn} {σ : Val} (hall : ∀ a ∈ R
   have hst : LoadHolds r.img.read (σ (V.n T')) t (σ (V.n c)) := hall _ (stAt_mem hc)
   have hcw : σ (V.n c) = w := hall _ (constOf_sound hw)
   rw [hmul, hJ, B1.Tables.tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
-  rw [B1.loadHolds_unique hld hst, hcw, powOf_sound hpw, Value.gen_pow_eq_ofK]
+  rw [B1.loadHolds_unique hld hst, hcw, powOf1_sound hpw, Value.gen_pow_eq_ofK]
 
 /-- **A range-checked table read's order holds** at an honest instance (`rcTab`): at the row its index names. -/
 theorem rcTab_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)

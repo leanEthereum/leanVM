@@ -230,7 +230,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«squeeze_point_from__L28».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«squeeze_point_from__L29».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«squeeze_point_from__L30».modeCert_in, rfl, rfl, rfl⟩,
-      .inr (list_mem% 0),
+      .inl ⟨_, Fn.«verify_bus_gkr».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«verify_keccak».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«verify_tables».modeCert_in, rfl, rfl, rfl⟩]]
 

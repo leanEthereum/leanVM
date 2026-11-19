@@ -13,7 +13,6 @@ public import LeanVM.Guest.Pack.«P16».ModeCert
 public import LeanVM.Guest.Pack.«P24».ModeCert
 public import LeanVM.Guest.Pack.«P29».ModeCert
 public import LeanVM.Guest.Pack.«P34».ModeCert
-public import LeanVM.Guest.Pack.«P38».ModeCert
 public import LeanVM.Guest.Pack.«P42».ModeCert
 public import LeanVM.Guest.Pack.«P54».ModeCert
 public import LeanVM.Guest.Pack.«P57».ModeCert
@@ -31,8 +30,8 @@ open LeanVM.Guest
 /-- The certificates by pack, packs in groups. -/
 noncomputable def offGroups : List (List (List Cert)) :=
   [[ModePack.«P11».certs, ModePack.«P16».certs, ModePack.«P24».certs, ModePack.«P29».certs,
-    ModePack.«P34».certs, ModePack.«P38».certs, ModePack.«P42».certs, ModePack.«P54».certs,
-    ModePack.«P57».certs, ModePack.«P61».certs, ModePack.«P63».certs]]
+    ModePack.«P34».certs, ModePack.«P42».certs, ModePack.«P54».certs, ModePack.«P57».certs,
+    ModePack.«P61».certs, ModePack.«P63».certs]]
 
 /-- The certificates by pack. -/
 noncomputable def offPacks : List (List Cert) := offGroups.flatten
@@ -62,37 +61,31 @@ theorem offPacks_mem4 : ModePack.«P34».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))
 
-theorem offPacks_mem5 : ModePack.«P38».certs ∈ offPacks :=
+theorem offPacks_mem5 : ModePack.«P42».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))
 
-theorem offPacks_mem6 : ModePack.«P42».certs ∈ offPacks :=
+theorem offPacks_mem6 : ModePack.«P54».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))
 
-theorem offPacks_mem7 : ModePack.«P54».certs ∈ offPacks :=
+theorem offPacks_mem7 : ModePack.«P57».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_self))))))))
 
-theorem offPacks_mem8 : ModePack.«P57».certs ∈ offPacks :=
+theorem offPacks_mem8 : ModePack.«P61».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))
 
-theorem offPacks_mem9 : ModePack.«P61».certs ∈ offPacks :=
+theorem offPacks_mem9 : ModePack.«P63».certs ∈ offPacks :=
   mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))
-
-theorem offPacks_mem10 : ModePack.«P63».certs ∈ offPacks :=
-  mem_flatten_of (List.mem_cons_self) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self)))))))))))
 
 /-- No entry repeats, the core route's certificates' among them. -/
 theorem offCerts_nodup : nodupB ((CoreMode.coreCerts ++ offCerts).map (·.F.entry)) 0 = true := by
@@ -105,13 +98,12 @@ theorem offCerts_st : ∀ K ∈ offCerts, CertSt K :=
     (Mode.fa_cons (ModePack.«P24».certs_st)
     (Mode.fa_cons (ModePack.«P29».certs_st)
     (Mode.fa_cons (ModePack.«P34».certs_st)
-    (Mode.fa_cons (ModePack.«P38».certs_st)
     (Mode.fa_cons (ModePack.«P42».certs_st)
     (Mode.fa_cons (ModePack.«P54».certs_st)
     (Mode.fa_cons (ModePack.«P57».certs_st)
     (Mode.fa_cons (ModePack.«P61».certs_st)
     (Mode.fa_cons (ModePack.«P63».certs_st)
-    (Mode.fa_nil)))))))))))))
+    (Mode.fa_nil))))))))))))
     (Mode.fa_nil)))
 
 end
@@ -173,23 +165,12 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_any»
 
-namespace LeanVM.Guest.Fn.«verify_bus_gkr»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem5 ModePack.«P38».mem0
-
-end
-
-end LeanVM.Guest.Fn.«verify_bus_gkr»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem6 ModePack.«P42».mem0
+  Mode.mem_flatten_of Mode.offPacks_mem5 ModePack.«P42».mem0
 
 end
 
@@ -200,7 +181,7 @@ namespace LeanVM.Guest.Fn.«da_verify»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem7 ModePack.«P54».mem0
+  Mode.mem_flatten_of Mode.offPacks_mem6 ModePack.«P54».mem0
 
 end
 
@@ -211,7 +192,7 @@ namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem8 ModePack.«P57».mem0
+  Mode.mem_flatten_of Mode.offPacks_mem7 ModePack.«P57».mem0
 
 end
 
@@ -222,7 +203,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem9 ModePack.«P61».mem0
+  Mode.mem_flatten_of Mode.offPacks_mem8 ModePack.«P61».mem0
 
 end
 
@@ -233,7 +214,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem10 ModePack.«P63».mem0
+  Mode.mem_flatten_of Mode.offPacks_mem9 ModePack.«P63».mem0
 
 end
 

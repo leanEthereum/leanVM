@@ -791,7 +791,7 @@ noncomputable def tabOf (fn : Fn) (x : ℕ) : Option (ℕ × ℕ × ℕ) :=
 /-- **A table's row `t`**: the exponent `k` of the top-level constant `g^k` a top-level `load` stores at `T·g^t`. -/
 noncomputable def tabK (fn : Fn) (T t : ℕ) : Option ℕ :=
   let as := Res.topAtoms fn.body
-  (stAt as T t).bind fun c ↦ (Res.constOf as (V.n c)).bind Res.powOf
+  (stAt as T t).bind fun c ↦ (Res.constOf as (V.n c)).bind Res.powOf1
 
 /-- An index's exponent at a table's row `t`: the read `x` at `k`, the index `J` at `t`, constants as they are. -/
 def tabEv (x J t k : ℕ) : CIdx → Option ℕ

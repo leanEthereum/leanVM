@@ -14,9 +14,13 @@ sys.modules.setdefault('infer', I)
 CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
 # `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
-# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
+# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`); `verify_keccak`:
+# its layers' runs at their records' words (`postQ`), loads naming stored words (`hv`), runs made up for its reads and
+# its callees' runs (`der`); `verify_bus_gkr`: a loop's runs where it is not entered (`join`), point runs (`ptsrun`),
+# range-checked point indices (`rcpts`)
 VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},),
             'verify_keccak': (FEATURES | {'postQ', 'hv', 'der'},),
+            'verify_bus_gkr': (FEATURES | {'join', 'ptsrun', 'rcpts'},),
             'certify_placement': (FEATURES | {'rcpts', 'perm'},)}
 
 
