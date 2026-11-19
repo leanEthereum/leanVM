@@ -47,6 +47,25 @@ class LeanPqTest {
     }
 
     @Test
+    void xmssKeyLoadsFromItsTreeCache() {
+        byte[] message = bytes(7);
+        try (XmssSecretKey xmss = XmssSecretKey.fromSeed(bytes(7))) {
+            xmss.prepare(3);
+            byte[] cache = xmss.cacheToBytes();
+            try (XmssSecretKey loaded = XmssSecretKey.fromCacheBytes(bytes(7), cache)) {
+                assertArrayEquals(xmss.publicKey(), loaded.publicKey());
+                assertArrayEquals(cache, loaded.cacheToBytes());
+                byte[] signature = loaded.sign(message, 3);
+                assertArrayEquals(xmss.sign(message, 3), signature);
+                assertTrue(LeanPq.xmssVerify(xmss.publicKey(), message, signature));
+            }
+            byte[] truncated = Arrays.copyOf(cache, cache.length - 1);
+            assertThrows(LeanPqException.class, () -> XmssSecretKey.fromCacheBytes(bytes(7), truncated));
+            assertThrows(IllegalArgumentException.class, () -> XmssSecretKey.fromCacheBytes(new byte[31], cache));
+        }
+    }
+
+    @Test
     void aggregatesBothSchemesRecursively() {
         byte[] first = bytes(0x11);
         byte[] second = bytes(0x22);

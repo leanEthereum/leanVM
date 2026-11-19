@@ -6,7 +6,7 @@ Python bindings for post-quantum signatures and their aggregation, over the Rust
 - **leanSPHINCS**: stateless hash-based signatures.
 - **Aggregation**: a recursive proof that every listed public key signed its message. Aggregates can be combined into larger aggregates.
 
-Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification, aggregation, and aggregate decoding release the GIL.
+Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, tree cache, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification, aggregation, and aggregate decoding release the GIL.
 
 Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc + musl), macOS arm64, and Windows x86_64. The Windows wheels link the C runtime statically, so they need no Visual C++ redistributable. x86_64 wheels require a CPU with AVX2 and PCLMULQDQ.
 
@@ -36,6 +36,8 @@ restored = lpq.XmssSecretKey.from_bytes(key.to_bytes())
 ```
 
 leanXMSS keys are stateful: never sign two different messages at the same leaf index. Persist your own durable high-water leaf index alongside `XmssSecretKey.to_bytes()` (the key's seed, secret material) and advance it before publishing a signature.
+
+`XmssSecretKey.cache_to_bytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.from_cache_bytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
 
 ## leanSPHINCS
 

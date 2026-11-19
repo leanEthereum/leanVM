@@ -97,6 +97,15 @@ pub const XmssSecretKey = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
+    /// Loads a key from its seed and the bytes of `cacheToBytes`, building no tree. The cache is
+    /// not checked, and a wrong one gives invalid signatures, so this is mostly useful for
+    /// testing: never load a cache from an untrusted source in production.
+    pub fn fromCacheBytes(seed: Seed, cache: []const u8) Error!XmssSecretKey {
+        var output: ?*c.lpq_xmss_secret_key = null;
+        try checkStatus(c.lpq_xmss_secret_key_from_cache_bytes(&seed, seed.len, bytesPtr(cache), cache.len, &output));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
     pub fn deinit(self: *XmssSecretKey) void {
         c.lpq_xmss_secret_key_destroy(self.handle);
         self.* = undefined;
@@ -107,6 +116,13 @@ pub const XmssSecretKey = struct {
         var output: c.lpq_buffer = .{ .data = null, .len = 0 };
         try checkStatus(c.lpq_xmss_secret_key_to_bytes(self.handle, &output));
         return takeFixed(xmss_secret_key_len, output);
+    }
+
+    /// The trees the key holds, without any secret. The caller owns the returned slice.
+    pub fn cacheToBytes(self: *const XmssSecretKey, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_xmss_secret_key_cache_to_bytes(self.handle, &output));
+        return takeBuffer(allocator, output);
     }
 
     pub fn publicKey(self: *const XmssSecretKey) Error!PublicKey {

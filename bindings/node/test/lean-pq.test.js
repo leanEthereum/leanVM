@@ -38,6 +38,22 @@ test('round trips secret keys through bytes', async () => {
   lpq.sphincsVerify(sphincsKey.publicKey, message, await sphincsRestored.sign(message))
 })
 
+test('loads a leanXMSS key from its tree cache', async () => {
+  const message = Buffer.alloc(32, 7)
+  const key = await lpq.XmssSecretKey.fromSeed(seed(7))
+  await key.prepare(3)
+  const cache = key.cacheToBytes()
+
+  const loaded = await lpq.XmssSecretKey.fromCacheBytes(seed(7), cache)
+  assert.deepEqual(loaded.publicKey, key.publicKey)
+  assert.deepEqual(loaded.cacheToBytes(), cache)
+  const signature = await loaded.sign(message, 3)
+  assert.deepEqual(signature, await key.sign(message, 3))
+  lpq.xmssVerify(key.publicKey, message, signature)
+
+  await assert.rejects(lpq.XmssSecretKey.fromCacheBytes(seed(7), cache.subarray(1)), /tree cache has an invalid length/)
+})
+
 test('aggregates both schemes recursively', async () => {
   const first = Buffer.alloc(32, 0x11)
   const second = Buffer.alloc(32, 0x22)

@@ -46,6 +46,23 @@ suite "lean_pq":
       xmssVerify(publicKey, message, signature)
       not xmssVerify(publicKey, otherMessage, signature)
 
+  test "leanXMSS key loads from its tree cache":
+    let
+      seed = filled(6)
+      key = XmssSecretKey.fromSeed(seed).expect("key")
+    check key.prepare(3).isOk()
+    let
+      cache = key.cacheToBytes().expect("cache")
+      loaded = XmssSecretKey.fromCacheBytes(seed, cache).expect("loaded key")
+      publicKey = key.publicKey().expect("public key")
+      signature = loaded.sign(message, 3).expect("signature")
+
+    check:
+      loaded.publicKey().expect("public key") == publicKey
+      signature == key.sign(message, 3).expect("signature")
+      xmssVerify(publicKey, message, signature)
+      XmssSecretKey.fromCacheBytes(seed, cache.toOpenArray(1, cache.high)).isErr()
+
   test "leanSPHINCS signs and verifies":
     let
       seed = filled(2)

@@ -27,6 +27,26 @@ test "leanSPHINCS signs and verifies" {
     try std.testing.expectError(error.InvalidSignature, lpq.sphincsVerify(public_key, other_message, &signature));
 }
 
+test "leanXMSS key loads from its tree cache" {
+    const allocator = std.testing.allocator;
+    const seed: lpq.Seed = [_]u8{6} ** 32;
+    var key = try lpq.XmssSecretKey.fromSeed(seed);
+    defer key.deinit();
+    try key.prepare(3);
+    const cache = try key.cacheToBytes(allocator);
+    defer allocator.free(cache);
+
+    var loaded = try lpq.XmssSecretKey.fromCacheBytes(seed, cache);
+    defer loaded.deinit();
+    const public_key = try key.publicKey();
+    try std.testing.expectEqual(public_key, try loaded.publicKey());
+    const signature = try loaded.sign(message, 3);
+    try std.testing.expectEqual(try key.sign(message, 3), signature);
+    try lpq.xmssVerify(public_key, message, &signature);
+
+    try std.testing.expectError(error.NativeFailure, lpq.XmssSecretKey.fromCacheBytes(seed, cache[1..]));
+}
+
 test "secret keys round trip through bytes" {
     var xmss = try lpq.XmssSecretKey.generate();
     defer xmss.deinit();

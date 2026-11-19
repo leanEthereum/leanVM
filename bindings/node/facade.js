@@ -5,6 +5,7 @@ const { Aggregate, SphincsSecretKey, XmssSecretKey } = native
 XmssSecretKey.generate = native.generateXmssSecretKey
 XmssSecretKey.fromSeed = native.xmssSecretKeyFromSeed
 XmssSecretKey.fromBytes = native.xmssSecretKeyFromBytes
+XmssSecretKey.fromCacheBytes = native.xmssSecretKeyFromCacheBytes
 
 SphincsSecretKey.generate = native.generateSphincsSecretKey
 SphincsSecretKey.fromSeed = native.sphincsSecretKeyFromSeed

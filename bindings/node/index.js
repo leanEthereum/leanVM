@@ -712,5 +712,6 @@ module.exports.sphincsSecretKeyFromBytes = nativeBinding.sphincsSecretKeyFromByt
 module.exports.sphincsSecretKeyFromSeed = nativeBinding.sphincsSecretKeyFromSeed
 module.exports.sphincsVerify = nativeBinding.sphincsVerify
 module.exports.xmssSecretKeyFromBytes = nativeBinding.xmssSecretKeyFromBytes
+module.exports.xmssSecretKeyFromCacheBytes = nativeBinding.xmssSecretKeyFromCacheBytes
 module.exports.xmssSecretKeyFromSeed = nativeBinding.xmssSecretKeyFromSeed
 module.exports.xmssVerify = nativeBinding.xmssVerify

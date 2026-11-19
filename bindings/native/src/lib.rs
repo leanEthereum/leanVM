@@ -185,6 +185,30 @@ pub unsafe extern "C" fn lpq_xmss_secret_key_to_bytes(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_from_cache_bytes(
+    seed: *const u8,
+    seed_len: usize,
+    cache: *const u8,
+    cache_len: usize,
+    out: *mut *mut XmssSecretKeyHandle,
+) -> c_int {
+    ffi(|| {
+        let seed = bytes32(seed, seed_len, "seed")?;
+        let key = xmss::SecretKey::from_cache_bytes(seed, bytes(cache, cache_len, "cache")?)
+            .map_err(|e| e.to_string())?;
+        put_handle(out, XmssSecretKeyHandle(key), "secret-key")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_cache_to_bytes(
+    key: *mut XmssSecretKeyHandle,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| put_buffer(out, handle(key, "secret-key")?.0.cache_to_bytes()))
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lpq_xmss_secret_key_public_key(
     key: *mut XmssSecretKeyHandle,
     out: *mut LpqBuffer,

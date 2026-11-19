@@ -46,6 +46,25 @@ def test_secret_keys_round_trip_through_bytes():
         lpq.SphincsSecretKey.from_bytes(b"\x04" * 33)
 
 
+def test_xmss_key_loads_from_its_tree_cache():
+    seed = b"\x07" * 32
+    key = lpq.XmssSecretKey.from_seed(seed)
+    key.prepare(3)
+    cache = key.cache_to_bytes()
+
+    loaded = lpq.XmssSecretKey.from_cache_bytes(seed, cache)
+    assert loaded.public_key == key.public_key
+    assert loaded.cache_to_bytes() == cache
+    signature = loaded.sign(MESSAGE, 3)
+    assert signature == key.sign(MESSAGE, 3)
+    lpq.xmss_verify(key.public_key, MESSAGE, signature)
+
+    with pytest.raises(ValueError, match="tree cache has an invalid length"):
+        lpq.XmssSecretKey.from_cache_bytes(seed, cache[1:])
+    with pytest.raises(ValueError, match="seed must be exactly 32 bytes"):
+        lpq.XmssSecretKey.from_cache_bytes(seed[1:], cache)
+
+
 def test_aggregates_both_schemes_recursively():
     lpq.setup()
     first = b"\x11" * 32

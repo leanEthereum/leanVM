@@ -47,6 +47,8 @@ lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSignature)
 
 Persist your own durable high-water leaf index alongside a leanXMSS key's `toBytes()` and advance it before publishing a signature. `toBytes()` is secret material: the key's 32-byte seed. `XmssSecretKey.prepare(leafIndex)` builds the bottom tree a leaf index falls in ahead of signing there; a key keeps the 8 bottom trees it used last.
 
+`cacheToBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.fromCacheBytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+
 ## Aggregation
 
 `aggregate` verifies every raw signature before proving and runs one proof at a time per process. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.

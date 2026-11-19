@@ -206,12 +206,32 @@ proc fromSeed*(T: type XmssSecretKey, seed: LeanPqSeed): Result[XmssSecretKey, s
   ## The seed is the key's entire secret material: never derive another key from it.
   XmssSecretKey.fromBytes(seed)
 
+proc fromCacheBytes*(
+    T: type XmssSecretKey, seed: LeanPqSeed, cache: openArray[byte]
+): Result[XmssSecretKey, string] =
+  ## Loads a key from its seed and the bytes of `cacheToBytes`, building no tree. The cache is
+  ## not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing:
+  ## never load a cache from an untrusted source in production.
+  var handle: ptr LpqXmssSecretKey
+  ? check(lpqXmssSecretKeyFromCacheBytes(
+    bytesPtr(seed), csize_t(seed.len), bytesPtr(cache), csize_t(cache.len), addr handle))
+  if handle.isNil:
+    return err("native leanXMSS secret key is null")
+  ok(XmssSecretKey(handle: handle))
+
 proc toBytes*(key: XmssSecretKey): Result[array[XmssSecretKeyLen, byte], string] =
   ## SECRET KEY MATERIAL: the 32-byte seed.
   let handle = ? key.nativeHandle()
   var buffer: LpqBuffer
   ? check(lpqXmssSecretKeyToBytes(handle, addr buffer))
   takeArray[XmssSecretKeyLen](buffer, "leanXMSS secret key")
+
+proc cacheToBytes*(key: XmssSecretKey): Result[seq[byte], string] =
+  ## The trees the key holds, without any secret.
+  let handle = ? key.nativeHandle()
+  var buffer: LpqBuffer
+  ? check(lpqXmssSecretKeyCacheToBytes(handle, addr buffer))
+  takeBytes(buffer)
 
 proc publicKey*(key: XmssSecretKey): Result[XmssPublicKey, string] =
   let handle = ? key.nativeHandle()

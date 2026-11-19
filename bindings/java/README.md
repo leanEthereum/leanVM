@@ -124,6 +124,8 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` builds the signing state ahead of time. Secret-key bytes are secret material: the key's 32-byte seed.
 
+`cacheToBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.fromCacheBytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+
 ## Aggregation
 
 `LeanPq.aggregate(children, xmss, sphincs)` verifies every raw signature before proving, accepts at most 16 children, and runs one proof at a time per process. `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields. `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven. `LeanPq.setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.

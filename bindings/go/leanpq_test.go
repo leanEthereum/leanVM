@@ -53,6 +53,46 @@ func TestSignAndVerify(t *testing.T) {
 	}
 }
 
+func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
+	message := bytes32(7)
+	seed := bytes32(8)
+
+	key := mustXmssKey(t, seed)
+	if err := key.Prepare(3); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := key.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := XmssSecretKeyFromCacheBytes(seed, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loaded.Close()
+	publicKey := mustXmssPublicKey(t, key)
+	if mustXmssPublicKey(t, loaded) != publicKey {
+		t.Fatal("loaded leanXMSS key must keep its public key")
+	}
+	want, err := key.Sign(message, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := loaded.Sign(message, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatal("loaded leanXMSS key must sign as the original")
+	}
+	if err := XmssVerify(publicKey, message, got); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := XmssSecretKeyFromCacheBytes(seed, cache[1:]); err == nil {
+		t.Fatal("a cache of another length must be rejected")
+	}
+}
+
 func TestSecretKeysRoundTripThroughBytes(t *testing.T) {
 	message := bytes32(7)
 

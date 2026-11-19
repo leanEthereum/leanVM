@@ -116,6 +116,8 @@ main()
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material, the leanXMSS or leanSPHINCS seed; wipe your copies when done.
 
+`XmssSecretKey.cacheToBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.fromCacheBytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+
 `LeanPqAggregate.init` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `LeanPqAggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `fromBytes` takes. `leanPqSetup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
 
 Do not `close` a value while another thread uses it.

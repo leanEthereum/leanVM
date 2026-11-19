@@ -16,6 +16,8 @@ export declare class SphincsSecretKey {
 export declare class XmssSecretKey {
   /** SECRET KEY MATERIAL: the seed. */
   toBytes(): Buffer
+  /** The trees the key holds, without any secret. */
+  cacheToBytes(): Buffer
   get publicKey(): Buffer
   prepare(leafIndex: number): Promise<void>
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
@@ -51,6 +53,8 @@ export declare function sphincsSecretKeyFromSeed(seed: Buffer): Promise<SphincsS
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
 
 export declare function xmssSecretKeyFromBytes(data: Buffer): Promise<XmssSecretKey>
+
+export declare function xmssSecretKeyFromCacheBytes(seed: Buffer, cache: Buffer): Promise<XmssSecretKey>
 
 export declare function xmssSecretKeyFromSeed(seed: Buffer): Promise<XmssSecretKey>
 

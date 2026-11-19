@@ -205,9 +205,9 @@ impl LeanXmssExpandedSecretKey {
     /// the length is wrong.
     ///
     /// The bytes are not checked, so this function is mostly useful for testing.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// Should NOT be used in production when the bytes come from an untrusted source.
     pub fn from_cache_bytes(key_seed: &SecretKey, bytes: &[u8]) -> Option<Self> {
         let (top, bottoms) = bytes.split_at_checked(CACHED_TREE_SIZE)?;

@@ -66,6 +66,44 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut error = LpqBuffer::default();
             assert_eq!(lpq_last_error(&mut error), OK);
             assert!(!take(error).is_empty());
+
+            // The key loads from its seed and its tree cache, and signs the same.
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(
+                lpq_xmss_secret_key_cache_to_bytes(xmss_key, &mut buffer),
+                OK
+            );
+            let cache = take(buffer);
+            let mut loaded = ptr::null_mut();
+            assert_eq!(
+                lpq_xmss_secret_key_from_cache_bytes(
+                    [7; 32].as_ptr(),
+                    32,
+                    cache.as_ptr(),
+                    cache.len(),
+                    &mut loaded
+                ),
+                OK
+            );
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(
+                lpq_xmss_secret_key_sign(loaded, message.as_ptr(), 32, 5, &mut buffer),
+                OK
+            );
+            assert_eq!(take(buffer), xmss_sig);
+            lpq_xmss_secret_key_destroy(loaded);
+            let mut rejected = ptr::null_mut();
+            assert_eq!(
+                lpq_xmss_secret_key_from_cache_bytes(
+                    [7; 32].as_ptr(),
+                    32,
+                    cache.as_ptr(),
+                    cache.len() - 1,
+                    &mut rejected
+                ),
+                ERROR
+            );
+            assert!(rejected.is_null());
             lpq_xmss_secret_key_destroy(xmss_key);
 
             // leanSPHINCS

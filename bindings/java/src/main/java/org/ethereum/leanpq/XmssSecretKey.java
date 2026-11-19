@@ -29,10 +29,27 @@ public final class XmssSecretKey implements AutoCloseable {
         return new XmssSecretKey(Native.xmssFromBytes(Objects.requireNonNull(bytes, "bytes")));
     }
 
+    /**
+     * Loads a key from its 32-byte seed and the bytes of {@link #cacheToBytes()}, building no tree.
+     * The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful
+     * for testing: never load a cache from an untrusted source in production.
+     */
+    public static XmssSecretKey fromCacheBytes(byte[] seed, byte[] cache) {
+        Native.requireLength(seed, Native.SEED_LENGTH, "seed");
+        return new XmssSecretKey(Native.xmssFromCacheBytes(seed, Objects.requireNonNull(cache, "cache")));
+    }
+
     /** Returns the 32-byte secret seed. */
     public byte[] toBytes() {
         try (NativeHandle.Borrow borrowed = handle.borrow()) {
             return Native.xmssToBytes(borrowed.pointer());
+        }
+    }
+
+    /** Returns the trees the key holds, without any secret. */
+    public byte[] cacheToBytes() {
+        try (NativeHandle.Borrow borrowed = handle.borrow()) {
+            return Native.xmssCacheToBytes(borrowed.pointer());
         }
     }
 
