@@ -1,4 +1,4 @@
-# The Fibonacci benchmark (`bins/leanvm`, `cargo leanvm fibonacci --n N`): Fibonacci in the
+# The Fibonacci benchmark (`bench/`, `cargo leanvm-bench fibonacci --n N`): Fibonacci in the
 # exponent over N = 1000·B steps, `buff[g^k]` holding g^F(k). The block count B is read at run time
 # from the second public word, g^B, so one compiled program serves every N: block j reads its
 # boundary pair at cells g^{2j}, g^{2j+1} (its base `b = x·x` for the loop counter x = g^j), runs

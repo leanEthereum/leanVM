@@ -3,7 +3,7 @@
 
     scripts/guest-cost [--repeat N] [--top N] [--json OUT] [--keep DIR] [--prover P]
 
-Run from anywhere; it builds the CLI (`cargo build --release -p leanvm-cli`, so `source ~/.cargo/env` first), runs
+Run from anywhere; it builds the CLI (`cargo build --release -p leanvm-bench`, so `source ~/.cargo/env` first), runs
 each benchmark once with the VM's per-pc profile (`DBG_PROF_DUMP`) and, unless `--repeat 0`, again `--repeat N`
 times for the proving time, and prints for each:
 
@@ -176,9 +176,9 @@ def main():
     ap.add_argument("--bench", action="append", metavar="NAME=ARGS",
                     help="a benchmark of the CLI's arguments ARGS instead of the default three (repeatable)")
     a = ap.parse_args()
-    subprocess.run(["cargo", "build", "--release", "-q", "-p", "leanvm-cli"], cwd=ROOT, check=True)
+    subprocess.run(["cargo", "build", "--release", "-q", "-p", "leanvm-bench"], cwd=ROOT, check=True)
     target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
-    binary = str(target / "release" / "leanvm")
+    binary = str(target / "release" / "leanvm-bench")
     keep = Path(a.keep) if a.keep else target / "guest-cost"
     keep.mkdir(parents=True, exist_ok=True)
     ops, fns, size = read_artifact(ARTIFACT)
