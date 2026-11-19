@@ -6,9 +6,13 @@
   children the guest program accepts and the honest proof being such a child.
 -/
 
-import LeanVM.Guest.Child.FreshUnique
-import LeanVM.Guest.Budget.Fits
-import LeanVM.Prover.EndChild
+module
+
+public import LeanVM.Guest.Child.FreshUnique
+public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Prover.EndChild
+
+@[expose] public section
 
 /-!
 # Completeness on honest children
@@ -75,3 +79,5 @@ theorem honest_proof_rarely_refused : HonestProofRarelyRefused :=
   Budget.guest_child_complete.1
 
 end LeanVM.Guest.Completeness
+
+end

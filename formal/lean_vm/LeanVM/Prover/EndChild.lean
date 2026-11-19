@@ -5,11 +5,15 @@
   `LeanVM.leanVmHonestProver`.
 -/
 
-import LeanVM.Prover.End
-import LeanVM.Prover.CompleteChild
-import LeanVM.Guest.WithHash
-import LeanVM.Guest.ExperimentBridge
-import LeanVM.Guest.AcceptableChild
+module
+
+public import LeanVM.Prover.End
+public import LeanVM.Prover.CompleteChild
+public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.ExperimentBridge
+public import LeanVM.Guest.AcceptableChild
+
+@[expose] public section
 
 /-!
 # The guest's completeness end theorem
@@ -69,3 +73,5 @@ theorem Guest.Budget.guest_child_complete : Guest.Completeness.GuestChildComplet
   Guest.Budget.guestChildComplete_of_withHash Guest.Budget.guestChildCompleteWithHash_holds
 
 end LeanVM
+
+end
