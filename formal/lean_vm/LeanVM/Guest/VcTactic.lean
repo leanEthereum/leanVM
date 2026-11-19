@@ -42,7 +42,7 @@ statement costs one small `simp` and lemma applications. The metaprogram itself 
 per statement, and abstracting each existential over the rest of the condition and its proof
 costs time in the size of that rest. A sequence of branches duplicates what follows them, once
 per branch, as the condition itself does. The kernel checks the whole proof; the tactic does not
-type-check it itself.
+type-check it itself, so `lake-build.py --dev` keeps the kernel on in every module that uses it.
 -/
 
 public meta section

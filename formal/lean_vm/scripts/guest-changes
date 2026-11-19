@@ -98,7 +98,8 @@ BODY_KEY = re.compile(r"\(fn% «([^»]+)»\)\.body\b|\bFn\.body \(fn% «([^»]+)
                       r"|\bcore_eq% «([^»]+)»|\bFn\.«([^»]+)»\.core\.(?!name\b|params\b)\w"
                       r"|\(coreOf \(fn_idx% «([^»]+)»\)\)\.body\b")
 # A proof by the `vc` tactic reads the body of each function it names.
-VC = re.compile(r"(?:^\s*|<;>\s*|·\s*)vc(?: \[|\s*$| <;>)", re.M)
+VC = re.compile(r"(?<![\w.'`«])vc(?![\w.'»])")
+COMMENT = re.compile(r"/-.*?-/|--[^\n]*", re.S)
 VC_KEY = re.compile(r"\b(?:fn|idx|fn_idx)% «([^»]+)»|\bFn\.«([^»]+)»\.core\b")
 BODY_IDX = re.compile(r"\bData\.core(\d+)\.body\b|\bFn\.body Data\.core(\d+)\b|\(coreOf (\d+)\)\.body\b")
 # A definition and its text, up to the next declaration.
@@ -109,7 +110,7 @@ DEF = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|public|noncomputa
 def body_reads(text, key_at):
     """The stable names whose bodies `text` reads directly."""
     keys = {next(g for g in m.groups() if g) for m in BODY_KEY.finditer(text)}
-    if VC.search(text):
+    if VC.search(COMMENT.sub("", text)):
         keys |= {next(g for g in m.groups() if g) for m in VC_KEY.finditer(text)}
     for m in BODY_IDX.finditer(text):
         j = int(m.group(1) or m.group(2)) if not m.group(3) else int(m.group(3)) - 1
