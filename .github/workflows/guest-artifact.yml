@@ -41,6 +41,16 @@ jobs:
         with:
           workspaces: formal/lean_vm/scripts/guest-export
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The compiler's build (its C compiled by clang beside the Lean modules) exceeds the runner's memory at
+      # its peak; the swap goes on the runner's scratch disk, as in lean.yml.
+      - name: Add swap
+        run: |
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
       - name: Compile the guest (guest-artifact)
         run: formal/lean_vm/scripts/guest-artifact
       - name: Save the Lean build
