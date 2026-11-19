@@ -516,6 +516,30 @@ pub unsafe extern "C" fn lpq_vrf_key_new(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_from_cache_bytes(
+    seed: *const u8,
+    seed_len: usize,
+    cache: *const u8,
+    cache_len: usize,
+    out: *mut *mut VrfKeyHandle,
+) -> c_int {
+    ffi(|| {
+        let seed = bytes32(seed, seed_len, "seed")?;
+        let key = vrf::Key::from_cache_bytes(seed, bytes(cache, cache_len, "cache")?)
+            .map_err(|e| e.to_string())?;
+        put_handle(out, VrfKeyHandle(key), "VRF key")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_cache_to_bytes(
+    key: *mut VrfKeyHandle,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| put_buffer(out, handle(key, "VRF key")?.0.cache_to_bytes()))
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lpq_vrf_key_root(key: *mut VrfKeyHandle, out: *mut LpqBuffer) -> c_int {
     ffi(|| put_buffer(out, handle(key, "VRF key")?.0.root().to_vec()))
 }

@@ -139,6 +139,8 @@ try (VrfKey key = VrfKey.fromSeed(seed32, 1000, 2000)) {
 
 `fromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `proof(slot)` is cheap: keep the key open for as long as the validator proposes from it. A range must be nonempty and end at most at 2^31, and a slot outside it has no proof, both failing with `LeanPqException`. A proof is 1024 bytes, the leaf then its 31 siblings, and `vrfVerify` counts only the slot's 31 low bits, as the consensus specifications do.
 
+`cacheToBytes()` returns the range and the layer of the tree a key keeps, which hold no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them, hashing about sqrt(end - start) nodes in place of every leaf of the range. The cache is not checked, and a wrong one gives a wrong root, so compare `root()` with the registered root before revealing a proof.
+
 ## Aggregation
 
 `LeanPq.aggregate(children, xmss, sphincs)` verifies every raw signature before proving, accepts at most 16 children, and runs one proof at a time per process. `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields. `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven. `LeanPq.setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.

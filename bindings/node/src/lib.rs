@@ -186,6 +186,12 @@ impl VrfKey {
         self.inner.root().to_vec().into()
     }
 
+    /// The range and the cached nodes, without any secret.
+    #[napi]
+    pub fn cache_to_bytes(&self) -> Buffer {
+        self.inner.cache_to_bytes().into()
+    }
+
     #[napi]
     pub fn proof(&self, slot: f64) -> Result<Buffer> {
         let proof = self.inner.proof(uint32(slot, "slot")?).map_err(api_error)?;
@@ -368,10 +374,14 @@ impl Task for SphincsSignTask {
     }
 }
 
+pub enum VrfKeySource {
+    Range { start: f64, end: f64 },
+    Cache(Vec<u8>),
+}
+
 pub struct VrfKeyTask {
     seed: Vec<u8>,
-    start: f64,
-    end: f64,
+    source: VrfKeySource,
 }
 
 impl Task for VrfKeyTask {
@@ -380,8 +390,15 @@ impl Task for VrfKeyTask {
 
     fn compute(&mut self) -> Result<Self::Output> {
         let seed = bytes32(&self.seed, "seed")?;
-        let slots = uint32(self.start, "start")?..uint32(self.end, "end")?;
-        vrf::Key::new(seed, slots).map_err(api_error)
+        match &self.source {
+            VrfKeySource::Range { start, end } => {
+                let slots = uint32(*start, "start")?..uint32(*end, "end")?;
+                vrf::Key::new(seed, slots).map_err(api_error)
+            }
+            VrfKeySource::Cache(cache) => {
+                vrf::Key::from_cache_bytes(seed, cache).map_err(api_error)
+            }
+        }
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -545,8 +562,15 @@ pub fn sphincs_verify(public_key: Buffer, message: Buffer, signature: Buffer) ->
 pub fn vrf_key_from_seed(seed: Buffer, start: f64, end: f64) -> AsyncTask<VrfKeyTask> {
     AsyncTask::new(VrfKeyTask {
         seed: seed.to_vec(),
-        start,
-        end,
+        source: VrfKeySource::Range { start, end },
+    })
+}
+
+#[napi(ts_return_type = "Promise<VrfKey>")]
+pub fn vrf_key_from_cache_bytes(seed: Buffer, cache: Buffer) -> AsyncTask<VrfKeyTask> {
+    AsyncTask::new(VrfKeyTask {
+        seed: seed.to_vec(),
+        source: VrfKeySource::Cache(cache.to_vec()),
     })
 }
 

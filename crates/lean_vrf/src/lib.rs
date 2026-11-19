@@ -42,28 +42,60 @@ impl VrfKey {
     /// The key of `seed` with the leaves of `slots`, hashing each of them once, or `None` for an
     /// empty range or one past `2^31`.
     pub fn new(seed: [u8; 32], slots: Range<u32>) -> Option<Self> {
-        if slots.is_empty() || slots.end > 1 << VRF_TREE_DEPTH {
+        let (level, first, last) = layer(&slots)?;
+        let uncached = Self::uncached(seed, slots);
+        let cache = (first..=last).map(|j| uncached.node(level, j.into())).collect();
+        Some(uncached.with_cache(level, cache))
+    }
+
+    /// The range, `start` then `end` as 4 little-endian bytes each, then the cached layer. The
+    /// bytes hold no secret, and [`Self::from_cache_bytes`] loads them in place of hashing the
+    /// range again.
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        [
+            &self.slots.start.to_le_bytes(),
+            &self.slots.end.to_le_bytes(),
+            self.cache.as_flattened(),
+        ]
+        .concat()
+    }
+
+    /// The key of `seed` and the bytes of [`Self::cache_to_bytes`], hashing about `sqrt(R)` nodes
+    /// for the root, or `None` for bytes that do not encode a range and its layer. The layer is
+    /// not checked: a wrong one gives a wrong root, so compare [`Self::root`] with the registered
+    /// root before revealing a proof.
+    pub fn from_cache_bytes(seed: [u8; 32], bytes: &[u8]) -> Option<Self> {
+        let (start, rest) = bytes.split_first_chunk::<4>()?;
+        let (end, nodes) = rest.split_first_chunk::<4>()?;
+        let slots = u32::from_le_bytes(*start)..u32::from_le_bytes(*end);
+        let (level, first, last) = layer(&slots)?;
+        let (nodes, []) = nodes.as_chunks::<32>() else {
             return None;
-        }
-        let level = slots.len().next_power_of_two().ilog2().div_ceil(2) as usize;
-        let (first, last) = (slots.start >> level, (slots.end - 1) >> level);
-        // No layer is cached yet, so these nodes are hashed from their leaves.
-        let mut key = Self {
-            seed,
-            slots,
-            level: usize::MAX,
-            cache: Vec::new(),
-            root: Hash::default(),
         };
-        key.cache = (first..=last).map(|j| key.node(level, j.into())).collect();
-        key.level = level;
-        key.root = key.node(VRF_TREE_DEPTH, 0);
-        Some(key)
+        (nodes.len() == (last - first + 1) as usize)
+            .then(|| Self::uncached(seed, slots).with_cache(level, nodes.to_vec()))
     }
 
     /// The validator's VRF root.
     pub fn root(&self) -> Hash {
         self.root
+    }
+
+    /// A key with no layer cached yet, whose nodes are hashed from their leaves.
+    fn uncached(seed: [u8; 32], slots: Range<u32>) -> Self {
+        Self {
+            seed,
+            slots,
+            level: usize::MAX,
+            cache: Vec::new(),
+            root: Hash::default(),
+        }
+    }
+
+    fn with_cache(self, level: usize, cache: Vec<Hash>) -> Self {
+        let mut key = Self { level, cache, ..self };
+        key.root = key.node(VRF_TREE_DEPTH, 0);
+        key
     }
 
     /// The proof of `slot`, or `None` outside the range.
@@ -97,6 +129,17 @@ impl VrfKey {
             .update(suffix)
             .finalize()
     }
+}
+
+/// The height of the cached layer, at half the height of the range's subtree but at least 1, so
+/// that no leaf is cached, and the indices of its first and last node holding a slot of the
+/// range; `None` for an empty range or one past `2^31`.
+fn layer(slots: &Range<u32>) -> Option<(usize, u32, u32)> {
+    if slots.is_empty() || slots.end > 1 << VRF_TREE_DEPTH {
+        return None;
+    }
+    let level = slots.len().next_power_of_two().ilog2().div_ceil(2).max(1) as usize;
+    Some((level, slots.start >> level, (slots.end - 1) >> level))
 }
 
 /// Whether `proof` opens the leaf of `slot` under `root`, as `is_valid_vrf_proof` of the

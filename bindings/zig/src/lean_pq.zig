@@ -205,9 +205,26 @@ pub const VrfKey = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
+    /// Loads a key from its seed and the bytes of `cacheToBytes`, hashing about `sqrt(end - start)`
+    /// nodes. Fails with `error.NativeFailure` when the bytes do not encode a range and its cached
+    /// layer. The cache is not checked, and a wrong one gives a wrong root and proofs that do not
+    /// verify: compare `root()` with the registered root before revealing a proof.
+    pub fn fromCacheBytes(seed: Seed, cache: []const u8) Error!VrfKey {
+        var output: ?*c.lpq_vrf_key = null;
+        try checkStatus(c.lpq_vrf_key_from_cache_bytes(&seed, seed.len, bytesPtr(cache), cache.len, &output));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
     pub fn deinit(self: *VrfKey) void {
         c.lpq_vrf_key_destroy(self.handle);
         self.* = undefined;
+    }
+
+    /// The range and the cached layer, without any secret. The caller owns the returned slice.
+    pub fn cacheToBytes(self: *const VrfKey, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_cache_to_bytes(self.handle, &output));
+        return takeBuffer(allocator, output);
     }
 
     pub fn root(self: *const VrfKey) Error!VrfRoot {

@@ -45,6 +45,14 @@ pub enum Error {
         end: Slot,
     },
 
+    /// Bytes handed to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) do not
+    /// encode a range and its cached layer.
+    #[error("VRF cache is malformed: {actual} bytes")]
+    InvalidVrfCache {
+        /// The length that was supplied.
+        actual: usize,
+    },
+
     /// A VRF proof was asked for at a slot outside the key's range.
     #[error("VRF slot {slot} is outside the key's range")]
     VrfSlot {

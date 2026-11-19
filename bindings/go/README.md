@@ -166,3 +166,5 @@ if err := leanpq.VrfVerify(root, 1500, proof); err != nil {
 ```
 
 `VrfKeyFromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `Proof` is cheap: keep the key open for as long as the validator proposes from it. `VrfKeyFromSeed` rejects an empty range and one that ends past 2^31, and `Proof` rejects a slot outside the range. A proof is 1024 bytes, the leaf then its 31 siblings, and `VrfVerify` counts only the 31 low bits of the slot, as the consensus specifications do.
+
+`VrfKey.CacheBytes()` returns the range and the layer of the tree a key keeps, which hold no secret, and `VrfKeyFromCacheBytes(seed, cache)` loads a key from them, hashing about sqrt(end - start) nodes in place of every leaf of the range. The cache is not checked, and a wrong one gives a wrong root, so compare `Root()` with the registered root before revealing a proof.

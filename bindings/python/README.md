@@ -65,6 +65,8 @@ lpq.vrf_verify(root, 1500, proof)  # raises LeanPqError if invalid
 
 `from_seed` hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots; `proof` then hashes about `3 sqrt(R)` nodes. A slot outside the key's range, an empty range, or one ending past `2^31` raises `LeanPqError`. `vrf_verify`, like the consensus specifications, checks only the 31 low bits of the slot.
 
+`VrfKey.cache_to_bytes()` returns the key's range and cached nodes, about `32 sqrt(R)` bytes holding no secret, and `VrfKey.from_cache_bytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again. Bytes that do not encode a range and its cached nodes raise `ValueError`. The cache is not checked, and a wrong one gives a wrong root, so compare the loaded key's `root()` with the registered root before revealing a proof.
+
 ## Aggregation
 
 `aggregate` proves raw `(public_key, message, signature)` tuples of either scheme together with up to 16 child aggregates. The result's claims are the union of its inputs' claims. Raw signatures are verified before proving.

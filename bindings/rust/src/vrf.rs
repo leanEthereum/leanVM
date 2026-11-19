@@ -64,6 +64,32 @@ impl Key {
             .ok_or(Error::InvalidVrfRange { start, end })
     }
 
+    /// Encodes the range and the cached layer, about `32 sqrt(R)` bytes.
+    ///
+    /// The bytes hold no secret. [`Self::from_cache_bytes`] loads them in place of hashing the
+    /// range again.
+    #[must_use]
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        self.0.cache_to_bytes()
+    }
+
+    /// Loads a key from its seed and the bytes of [`Self::cache_to_bytes`], hashing about
+    /// `sqrt(R)` nodes.
+    ///
+    /// The cache is not checked, and a wrong one gives a wrong root and proofs that do not
+    /// verify: compare [`Self::root`] with the registered root before revealing a proof.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the bytes do not encode a range and its cached layer.
+    pub fn from_cache_bytes(seed: Seed, cache: &[u8]) -> Result<Self, Error> {
+        VrfKey::from_cache_bytes(seed, cache)
+            .map(Self)
+            .ok_or(Error::InvalidVrfCache {
+                actual: cache.len(),
+            })
+    }
+
     /// The tree's root, the validator's VRF root.
     #[must_use]
     pub fn root(&self) -> Root {

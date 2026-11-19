@@ -712,6 +712,7 @@ module.exports.setup = nativeBinding.setup
 module.exports.sphincsSecretKeyFromBytes = nativeBinding.sphincsSecretKeyFromBytes
 module.exports.sphincsSecretKeyFromSeed = nativeBinding.sphincsSecretKeyFromSeed
 module.exports.sphincsVerify = nativeBinding.sphincsVerify
+module.exports.vrfKeyFromCacheBytes = nativeBinding.vrfKeyFromCacheBytes
 module.exports.vrfKeyFromSeed = nativeBinding.vrfKeyFromSeed
 module.exports.vrfVerify = nativeBinding.vrfVerify
 module.exports.xmssSecretKeyFromBytes = nativeBinding.xmssSecretKeyFromBytes

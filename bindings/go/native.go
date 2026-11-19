@@ -300,6 +300,31 @@ func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
 	return &VrfKey{handle: handle}, nil
 }
 
+// VrfKeyFromCacheBytes loads a VRF key from its seed and the bytes returned by CacheBytes,
+// hashing about sqrt(end - start) nodes. The cache is not checked, and a wrong one gives a wrong
+// root, so compare Root with the registered root before revealing a proof.
+func VrfKeyFromCacheBytes(seed [32]byte, cache []byte) (*VrfKey, error) {
+	var handle *C.lpq_vrf_key
+	if err := call(func() C.int32_t {
+		return C.lpq_vrf_key_from_cache_bytes(arrayPointer(&seed), C.size_t(len(seed)), bytesPointer(cache), C.size_t(len(cache)), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &VrfKey{handle: handle}, nil
+}
+
+// CacheBytes returns the key's range and the layer of the tree it keeps, without any secret.
+func (key *VrfKey) CacheBytes() ([]byte, error) {
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return nil, errClosed("VRF key")
+	}
+	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_cache_to_bytes(key.handle, output)
+	})
+}
+
 // Root returns the key's root, the validator's registered VRF root.
 func (key *VrfKey) Root() ([32]byte, error) {
 	var root [32]byte

@@ -59,6 +59,8 @@ lpq.vrfVerify(root, 1500, vrfKey.proof(1500)) // throws if invalid
 
 `VrfKey.fromSeed(seed, start, end)` covers the slots `[start, end)`, with `end` at most `2^31`. It returns a Promise: it hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots. `proof(slot)` then hashes about `3 sqrt(R)` nodes, and throws for a slot outside the range. A proof is 1024 bytes, its leaf then its 31 siblings. `vrfVerify` takes the slot as a number up to `Number.MAX_SAFE_INTEGER` and, like the consensus specifications, checks only its 31 low bits.
 
+`cacheToBytes()` returns the key's range and cached nodes, about `32 sqrt(R)` bytes holding no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again; it rejects bytes that do not encode a range and its cached nodes. The cache is not checked, and a wrong one gives a wrong root, so compare the loaded key's `root()` with the registered root before revealing a proof.
+
 ## Aggregation
 
 `aggregate` verifies every raw signature before proving and runs one proof at a time per process. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.

@@ -128,4 +128,6 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 `VrfKey.init(seed, start, stop)` is the VRF tree of `seed` with leaves for the slots `start ..< stop`, and fails for an empty range or one ending past `2^31`. It hashes every leaf of the range once and keeps about `sqrt(stop - start)` of the tree's nodes. `root()` is the root to register, and `proof(slot)` is the slot's leaf and its 31 siblings, hashing about `3 sqrt(stop - start)` nodes; `vrfVerify(root, slot, proof)` checks it, counting only the slot's 31 low bits. A slot outside the range has no proof.
 
+`VrfKey.cacheToBytes()` returns the range and the cached layer, about `32 sqrt(stop - start)` bytes that hold no secret, and `VrfKey.fromCacheBytes(seed, cache)` loads a key from them in place of hashing every leaf of the range again, failing for bytes that do not encode a range and its layer. The cache is not checked, and a wrong one gives a wrong root and proofs that do not verify: compare the loaded key's `root()` with the registered root before revealing a proof.
+
 Do not `close` a value while another thread uses it.

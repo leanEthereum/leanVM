@@ -62,8 +62,16 @@ export declare class VrfKey {
    * empty or ends past `2^31`.
    */
   static fromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
+  /**
+   * Loads a key from its 32-byte seed and the bytes of `cacheToBytes()`, hashing about `sqrt(R)`
+   * nodes. Rejects when the bytes do not encode a range and its cached nodes. The cache is not
+   * checked, and a wrong one gives a wrong root: compare `root()` with the registered root.
+   */
+  static fromCacheBytes(seed: Buffer, cache: Buffer): Promise<VrfKey>
   /** The 32-byte root: the validator's VRF root. */
   root(): Buffer
+  /** The range and the cached nodes, about `32 sqrt(R)` bytes, without any secret. */
+  cacheToBytes(): Buffer
   /**
    * The 1024-byte proof a block at `slot` reveals: its leaf, then its 31 siblings. Hashes about
    * `3 sqrt(R)` nodes. Throws when the slot is outside the key's range.

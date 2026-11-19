@@ -44,3 +44,18 @@ fn rejects_bad_ranges_and_slots_outside_the_range() {
     assert_eq!(key.proof(20).unwrap_err(), Error::VrfSlot { slot: 20 });
     assert_eq!(key.proof(9).unwrap_err(), Error::VrfSlot { slot: 9 });
 }
+
+#[test]
+fn loads_from_its_cache() {
+    let key = Key::new([9; 32], 100..200).unwrap();
+    let cache = key.cache_to_bytes();
+    let loaded = Key::from_cache_bytes([9; 32], &cache).unwrap();
+    assert_eq!(loaded.root(), key.root());
+    assert_eq!(loaded.proof(150).unwrap(), key.proof(150).unwrap());
+    assert_eq!(
+        Key::from_cache_bytes([9; 32], &cache[1..]).unwrap_err(),
+        Error::InvalidVrfCache {
+            actual: cache.len() - 1
+        }
+    );
+}

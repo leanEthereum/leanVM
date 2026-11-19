@@ -350,6 +350,27 @@ proc init*(T: type VrfKey, seed: LeanPqSeed, start, stop: uint32): Result[VrfKey
     return err("native VRF key is null")
   ok(VrfKey(handle: handle))
 
+proc fromCacheBytes*(
+    T: type VrfKey, seed: LeanPqSeed, cache: openArray[byte]
+): Result[VrfKey, string] =
+  ## Loads a key from its seed and the bytes of `cacheToBytes`, hashing about `sqrt(stop - start)`
+  ## nodes. Fails when the bytes do not encode a range and its cached layer. The cache is not
+  ## checked, and a wrong one gives a wrong root and proofs that do not verify: compare `root()`
+  ## with the registered root before revealing a proof.
+  var handle: ptr LpqVrfKey
+  ? check(lpqVrfKeyFromCacheBytes(
+    addr seed[0], csize_t(seed.len), bytesPtr(cache), csize_t(cache.len), addr handle))
+  if handle.isNil:
+    return err("native VRF key is null")
+  ok(VrfKey(handle: handle))
+
+proc cacheToBytes*(key: VrfKey): Result[seq[byte], string] =
+  ## The range and the cached layer, without any secret.
+  let handle = ? key.nativeHandle()
+  var buffer: LpqBuffer
+  ? check(lpqVrfKeyCacheToBytes(handle, addr buffer))
+  takeBytes(buffer)
+
 proc root*(key: VrfKey): Result[VrfRoot, string] =
   let handle = ? key.nativeHandle()
   var buffer: LpqBuffer

@@ -1,6 +1,7 @@
 package leanpq
 
 import (
+	"bytes"
 	"encoding/hex"
 	"reflect"
 	"runtime"
@@ -160,6 +161,48 @@ func TestVrf(t *testing.T) {
 	}
 	if _, err := key.Root(); err == nil {
 		t.Fatal("a closed VRF key must be rejected")
+	}
+}
+
+func TestVrfKeyLoadsFromItsCache(t *testing.T) {
+	key, err := VrfKeyFromSeed(bytes32(9), 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer key.Close()
+	cache, err := key.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := VrfKeyFromCacheBytes(bytes32(9), cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loaded.Close()
+	root, err := loaded.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := hex.EncodeToString(root[:]), "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6"; got != want {
+		t.Fatalf("loaded VRF root = %s, want %s", got, want)
+	}
+	again, err := loaded.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(again, cache) {
+		t.Fatal("the VRF cache must round-trip")
+	}
+	proof, err := loaded.Proof(150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VrfVerify(root, 150, proof); err != nil {
+		t.Fatalf("a proof of the loaded VRF key must verify: %v", err)
+	}
+	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), cache[:len(cache)-1]); err == nil {
+		wrong.Close()
+		t.Fatal("a truncated VRF cache must be rejected")
 	}
 }
 

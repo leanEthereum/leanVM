@@ -65,6 +65,28 @@ test "VRF key opens its slots" {
     try std.testing.expectError(error.NativeFailure, lpq.VrfKey.init(seed, 0, (1 << 31) + 1));
 }
 
+test "VRF key loads from its cache" {
+    const allocator = std.testing.allocator;
+    const seed: lpq.Seed = [_]u8{9} ** 32;
+    var key = try lpq.VrfKey.init(seed, 100, 200);
+    defer key.deinit();
+    const cache = try key.cacheToBytes(allocator);
+    defer allocator.free(cache);
+
+    var loaded = try lpq.VrfKey.fromCacheBytes(seed, cache);
+    defer loaded.deinit();
+    var expected_root: lpq.VrfRoot = undefined;
+    _ = try std.fmt.hexToBytes(&expected_root, "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6");
+    const root = try loaded.root();
+    try std.testing.expectEqual(expected_root, root);
+    const reencoded = try loaded.cacheToBytes(allocator);
+    defer allocator.free(reencoded);
+    try std.testing.expectEqualSlices(u8, cache, reencoded);
+    try lpq.vrfVerify(root, 150, &try loaded.proof(150));
+
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, cache[0 .. cache.len - 1]));
+}
+
 test "aggregates recursively and round trips through bytes" {
     const allocator = std.testing.allocator;
     try lpq.setup();

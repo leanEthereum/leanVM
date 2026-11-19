@@ -11,6 +11,7 @@ SphincsSecretKey.fromSeed = native.sphincsSecretKeyFromSeed
 SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
 
 VrfKey.fromSeed = native.vrfKeyFromSeed
+VrfKey.fromCacheBytes = native.vrfKeyFromCacheBytes
 
 Aggregate.fromBytes = function fromBytes(data, { xmss = [], sphincs = [] } = {}) {
   return native.aggregateFromBytes(data, xmss, sphincs)

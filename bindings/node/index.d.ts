@@ -15,6 +15,8 @@ export declare class SphincsSecretKey {
 
 export declare class VrfKey {
   root(): Buffer
+  /** The range and the cached nodes, without any secret. */
+  cacheToBytes(): Buffer
   proof(slot: number): Buffer
 }
 
@@ -54,6 +56,8 @@ export declare function sphincsSecretKeyFromBytes(data: Buffer): Promise<Sphincs
 export declare function sphincsSecretKeyFromSeed(seed: Buffer): Promise<SphincsSecretKey>
 
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
+
+export declare function vrfKeyFromCacheBytes(seed: Buffer, cache: Buffer): Promise<VrfKey>
 
 export declare function vrfKeyFromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
 

@@ -46,6 +46,8 @@ vrf::verify(&root, 1500, &key.proof(1500)?)?;
 # Ok::<(), lean_pq::Error>(())
 ```
 
+`Key::cache_to_bytes` encodes the range and the cached layer, about `32 sqrt(R)` bytes holding no secret, and `Key::from_cache_bytes(seed, cache)` loads a key from them without hashing the range again. The cache is not checked: compare `root()` with the registered root before revealing a proof.
+
 ## Aggregate
 
 ```rust,no_run

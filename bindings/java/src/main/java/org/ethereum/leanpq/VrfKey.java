@@ -1,6 +1,7 @@
 package org.ethereum.leanpq;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Objects;
 
 /**
  * A key of the consensus VRF tree, pruned to a range of unsigned 32-bit slots: a 32-byte seed and
@@ -20,6 +21,23 @@ public final class VrfKey implements AutoCloseable {
      */
     public static VrfKey fromSeed(byte[] seed, long start, long end) {
         return new VrfKey(Native.vrfKeyNew(Native.requireLength(seed, Native.SEED_LENGTH, "seed"), start, end));
+    }
+
+    /**
+     * Loads a key from its 32-byte seed and the bytes of {@link #cacheToBytes()}, hashing about
+     * sqrt(end - start) nodes. The cache is not checked, and a wrong one gives a wrong root, so
+     * compare {@link #root()} with the registered root before revealing a proof.
+     */
+    public static VrfKey fromCacheBytes(byte[] seed, byte[] cache) {
+        Native.requireLength(seed, Native.SEED_LENGTH, "seed");
+        return new VrfKey(Native.vrfKeyFromCacheBytes(seed, Objects.requireNonNull(cache, "cache")));
+    }
+
+    /** Returns the range and the cached layer of the tree, without any secret. */
+    public byte[] cacheToBytes() {
+        try (NativeHandle.Borrow borrowed = handle.borrow()) {
+            return Native.vrfCacheToBytes(borrowed.pointer());
+        }
     }
 
     /** Returns the 32-byte root, the validator's registered VRF root. */

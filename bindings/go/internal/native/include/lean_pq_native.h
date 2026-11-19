@@ -70,6 +70,13 @@ void lpq_aggregate_destroy(lpq_aggregate *aggregate);
 
 /* Hashes every leaf of the range once, and keeps about sqrt(end - start) nodes of the tree. */
 int32_t lpq_vrf_key_new(const uint8_t *seed, size_t seed_len, uint32_t start, uint32_t end, lpq_vrf_key **out);
+/*
+ * Loads a key from its seed and the bytes of lpq_vrf_key_cache_to_bytes, hashing about
+ * sqrt(end - start) nodes. The cache is not checked: compare the root with the registered one.
+ */
+int32_t lpq_vrf_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *cache, size_t cache_len, lpq_vrf_key **out);
+/* The range and the cached layer, holding no secret. */
+int32_t lpq_vrf_key_cache_to_bytes(lpq_vrf_key *key, lpq_buffer *out);
 int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);
 /* The proof at a slot of the key's range, hashing about 3 sqrt(end - start) nodes. */
 int32_t lpq_vrf_key_proof(lpq_vrf_key *key, uint32_t slot, lpq_buffer *out);

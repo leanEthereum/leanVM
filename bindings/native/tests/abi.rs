@@ -210,6 +210,29 @@ fn native_abi_reveals_and_verifies_vrf_proofs() {
         assert_eq!(lpq_vrf_key_proof(key, 150, &mut buffer), OK);
         let proof = take(buffer);
         assert_eq!(proof.len(), lean_pq::vrf::PROOF_LEN);
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_cache_to_bytes(key, &mut buffer), OK);
+        let cache = take(buffer);
+        lpq_vrf_key_destroy(key);
+
+        let mut key = ptr::null_mut();
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len() - 1,
+                &mut key
+            ),
+            ERROR
+        );
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(seed.as_ptr(), 32, cache.as_ptr(), cache.len(), &mut key),
+            OK
+        );
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_root(key, &mut buffer), OK);
+        assert_eq!(take(buffer), root);
         lpq_vrf_key_destroy(key);
 
         assert_eq!(
