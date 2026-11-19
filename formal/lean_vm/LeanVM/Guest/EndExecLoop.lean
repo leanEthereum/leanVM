@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Bridge.JumpCellsDeployed
+public import LeanVM.Guest.Bridge.JumpCells
+public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.ExecDecodable
 

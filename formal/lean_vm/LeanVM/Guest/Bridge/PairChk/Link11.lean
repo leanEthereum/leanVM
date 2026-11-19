@@ -59,7 +59,7 @@ public import LeanVM.Guest.Bridge.PairChk.«P7»
 public import LeanVM.Guest.Bridge.PairChk.«P9»
 public import LeanVM.Guest.Bridge.PairChk.«verify_merkle_cap__L8»
 public import LeanVM.Guest.Bridge.PairLink
-public import LeanVM.Guest.Bridge.ProgAl.Link11
+public import LeanVM.Guest.Bridge.ProgAl.Tab11
 public import LeanVM.Guest.Checked.Link11
 meta import LeanVM.Guest.KernelLit
 

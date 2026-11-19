@@ -56,7 +56,7 @@ public import LeanVM.Guest.Bridge.PairChk.«P7»
 public import LeanVM.Guest.Bridge.PairChk.«P8»
 public import LeanVM.Guest.Bridge.PairChk.«P9»
 public import LeanVM.Guest.Bridge.PairLink
-public import LeanVM.Guest.Bridge.ProgAl.Link6
+public import LeanVM.Guest.Bridge.ProgAl.Tab6
 public import LeanVM.Guest.Checked.Link6
 meta import LeanVM.Guest.KernelLit
 

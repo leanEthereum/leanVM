@@ -68,7 +68,7 @@ public import LeanVM.Guest.Bridge.PairChk.«W_sp_wots»
 public import LeanVM.Guest.Bridge.PairChk.«W_verify_tables»
 public import LeanVM.Guest.Bridge.PairChk.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Bridge.PairLink
-public import LeanVM.Guest.Bridge.ProgAl.Link0
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
 meta import LeanVM.Guest.KernelLit
 

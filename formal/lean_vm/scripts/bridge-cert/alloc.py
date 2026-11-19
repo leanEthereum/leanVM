@@ -596,7 +596,7 @@ def run(check):
     for p in glob.glob(os.path.join(data.ROOT, 'Checked', 'Link*.lean')):
         fsq |= set(int(x) for x in re.findall(r'^kernel_rfl fsEq(\d+) ', open(p, encoding='utf-8').read(), re.M))
     for lmod, js in sorted(groups.items()):
-        imps = {'LeanVM.Guest.Bridge.AllocLink', f'LeanVM.Guest.Checked.{lmod}', f'LeanVM.Guest.Bridge.ProgAl.{lmod}'}
+        imps = {'LeanVM.Guest.Bridge.AllocLink', f'LeanVM.Guest.Checked.{lmod}', f'LeanVM.Guest.Bridge.ProgAl.Tab{lmod[len("Link"):]}'}  # the tables' entries, not the alignment checks
         imps |= {check_module(ctxs[lk[j][0]][2]) for j in js}
         imps |= {shape_mods[lk[j][0]] for j in js if lk[j][0] in shape_mods}
         imps |= {body_mods[lk[j][0]] for j in js if lk[j][0] in body_mods}

@@ -10,7 +10,8 @@ module
 public import LeanVM.Guest.EndExecRT
 public import LeanVM.Guest.EndExecRKid
 public import LeanVM.Guest.CoreMode.WalkS
-public import LeanVM.Guest.Bridge.JumpCellsDeployed
+public import LeanVM.Guest.Bridge.JumpCells
+public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreMono

@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.JumpCells
+public import LeanVM.Guest.Bridge.JumpCellsOf
 public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.Bridge.RefHonest
 
