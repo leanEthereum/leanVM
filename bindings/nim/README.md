@@ -17,7 +17,7 @@ The package is `bindings/nim` at the tag `bindings-v<version>` and needs no Rust
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
 ```
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ or, from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
 ```
 <!-- x-release-please-end -->
 
@@ -34,7 +34,7 @@ With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), ve
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.11.1
+git -C vendor/leanVM checkout bindings-v0.12.0
 ```
 <!-- x-release-please-end -->
 
