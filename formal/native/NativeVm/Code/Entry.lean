@@ -12,7 +12,7 @@ holding the public input (`EntryPre`); and what the verifier then does (`entry_s
 normally, or fails and `onFail` ends normally, either way with `rax = 1` exactly when the wire
 bytes decode (`Proof.fromBytes`) to a proof `verifyWith` accepts, and the callee-saved registers
 restored. `EntryPre` gives `BodyPre` (`bodyPre_of_entryPre`), from which `verifier_spec` runs, with
-the decoder's contract proved (`Wire.decode_ok'`).
+the decoder's contract (`Wire.decode_ok'`) and the seven phases' (`phase1_ok` .. `phase7_ok`).
 -/
 
 @[expose] public section
@@ -166,11 +166,8 @@ theorem verdict_input (bytes : List UInt8) (a : Areas) (bytecode : List UInt64)
 
 /-- **The verifier from its entry**: from `EntryPre`, `body` ends normally, or fails and `onFail`
 ends normally, either way with `rax = 1` exactly when the wire bytes decode to a proof
-`verifyWith` accepts (`verdict_input`), and the callee-saved registers restored. It assumes the
-phases' contracts. -/
-theorem entry_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2)
-    (h3 : Phase3Ok phase3) (h4 : Phase4Ok phase4) (h5 : Phase5Ok phase5) (h6 : Phase6Ok phase6)
-    (h7 : Phase7Ok phase7) {s : QState} {ctx : UInt64} {a : Areas} {bytes : List UInt8}
+`verifyWith` accepts (`verdict_input`), and the callee-saved registers restored. -/
+theorem entry_spec {s : QState} {ctx : UInt64} {a : Areas} {bytes : List UInt8}
     {bytecode : List UInt64} {pub : Vector UInt64 4} (hrdi : s.reg .rdi = ctx)
     (hp : EntryPre s.mem ctx a bytes bytecode pub) :
     WP body s (Ret s.reg (verdict bytes (EntryPre.input a bytecode pub)))
@@ -178,6 +175,7 @@ theorem entry_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2)
         (fun _ ↦ False)) := by
   obtain ⟨we, hB, hbp⟩ := bodyPre_of_entryPre hrdi hp
   rw [← hB]
-  exact verifier_spec Wire.decode_ok' h1 h2 h3 h4 h5 h6 h7 hbp
+  exact verifier_spec Wire.decode_ok' phase1_ok phase2_ok phase3_ok phase4_ok phase5_ok phase6_ok
+    phase7_ok hbp
 
 end NativeVm.Code

@@ -14,13 +14,12 @@ input as `NativeVm.Input` lays them out, with room for the decoded proof and the
 and the callee-saved registers as they were. Every layout of the code is covered (Kraken's `Host`).
 
 The proof: from `EntryPre`, `body` ends with the verdict or fails and `onFail` ends with it
-(`NativeVm.Code.entry_spec`, the wire decoder's contract proved, the seven phases' assumed), and
+(`NativeVm.Code.entry_spec`, from the wire decoder's and the seven phases' contracts), and
 the compiled code does what they do (`Compile.program_correct`).
 -/
 
 open Native hiding Reg64 Width
-open NativeVm.Code (body onFail Areas EntryPre entry_spec verdict_input phase1 phase2 phase3 phase4
-  phase5 phase6 phase7 Phase1Ok Phase2Ok Phase3Ok Phase4Ok Phase5Ok Phase6Ok Phase7Ok)
+open NativeVm.Code (body onFail Areas EntryPre entry_spec verdict_input)
 open LeanVM.Parameters (K)
 open LeanVM.Semantics (keccakF1600)
 open LeanVM.Protocol.Compile (Proof)
@@ -30,10 +29,8 @@ open LeanVM.Protocol.Verifier (verifyWith)
 
 namespace NativeX64.VmVerifier
 
-/-- **leanVM verification is correct on x86-64**, given the seven phases' contracts. -/
-theorem verify_correct_of (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok phase3)
-    (h4 : Phase4Ok phase4) (h5 : Phase5Ok phase5) (h6 : Phase6Ok phase6) (h7 : Phase7Ok phase7)
-    [Host] (hP : Host.prog = Compile.program body onFail)
+/-- **leanVM verification is correct on x86-64**. -/
+theorem verify_correct [Host] (hP : Host.prog = Compile.program body onFail)
     {bytes : List UInt8} {bytecode : List UInt64} {pub : Vector UInt64 4} {ctx : UInt64}
     {a : Areas} {s : QState} {m : MachineData} (hR : StateRel s m) (hrdi : s.reg .rdi = ctx)
     (hin : EntryPre s.mem ctx a bytes bytecode pub) :
@@ -46,7 +43,7 @@ theorem verify_correct_of (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Ph
           then 1 else 0) ∧
       ∀ r ∈ Context.calleeSaved, st.data.regs.get64 r.toX64 = m.regs.get64 r.toX64)
       ⟨m, Host.addrOf 0⟩ := by
-  obtain ⟨o, hx, ho⟩ := entry_spec h1 h2 h3 h4 h5 h6 h7 hrdi hin
+  obtain ⟨o, hx, ho⟩ := entry_spec hrdi hin
   refine eventually_weaken _ _ _ _ ?_ (Compile.program_correct hP hx hR fun s₁ h ↦ ?_)
   · rintro st (⟨s₁, rfl, hR₁, hpc⟩ | ⟨s₁, s₂, rfl, hE₂, hR₂, hpc⟩)
     · obtain ⟨hrax, hcs⟩ := ho
