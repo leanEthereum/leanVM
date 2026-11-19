@@ -362,7 +362,7 @@ JT_RUN = [None]
 def jt_run():
     """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
     import importlib.util
-    spec = importlib.util.spec_from_file_location('mode_cert_data', os.path.join(HERE, '..', 'mode-cert', 'data.py'))
+    spec = importlib.util.spec_from_file_location('compiled', os.path.join(HERE, 'compiled.py'))
     md = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(md)
     jt = md.load()['jt']

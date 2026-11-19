@@ -114,7 +114,7 @@ def _fn(text):
 
 
 def _mode_data():
-    return _by_path('mode_data', 'mode-cert/data.py').load()
+    return _by_path('compiled', 'core-mode/compiled.py').load()
 
 
 def load():

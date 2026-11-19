@@ -11,9 +11,8 @@ public import LeanVM.Guest.EndExecHonest
 public import LeanVM.Guest.ProverGuest
 public import LeanVM.Guest.EndExecR
 public import LeanVM.Guest.EndExecCore
-public import LeanVM.Guest.Mode.Certs
-public import LeanVM.Guest.Res.SubCerts
-public import LeanVM.Guest.Res.TermCerts
+public import LeanVM.Guest.CoreMode.Gen.Certs
+public import LeanVM.Guest.Res.Off
 public import LeanVM.Guest.EndExecRLce
 public import LeanVM.Guest.EndExecYDeployed
 public import LeanVM.Guest.EndExecYWitCells
@@ -35,20 +34,22 @@ public import LeanVM.Guest.EndExecRGkrC
 /-!
 # The end theorem
 
-The certificates are the mode walk's (`Mode.guestCerts`, `main`'s, `Mode.guestE0`), the alignment
+The certificates (`allCerts`) are the core route's (`CoreMode.coreCerts`, `main`'s among them) and the
+mode walk's of the functions off it (`Mode.offCerts`), closed by `assemble` from what each part
+gives (`CoreMode.coreFacts`, `offFacts`), the program `Mode.guestE0`; the alignment
 the deployed one (`Bridge.alignA`), and the hint tracks' invariant `YFin`: the witness streams'
 cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the other's premises
 (`KeepY.and`, `InitY.and`: `XOf` is monotone in its hint invariant).
 
 `execGaps_of : OpenGaps → ExecGaps …` is `ExecGaps.ofR` with every proved part: the certificates
-(`Mode.modeCerts_guest`, `Mode.mainOk_guestCerts`, `Mode.guestCerts_entry_ne`), `main`'s exactness
+(`assembled`, `CoreMode.mainOk_core`), `main`'s exactness
 (`Budget.mainExactHyp`), the alignment and its jumps (`Bridge.progAl`, `Bridge.alignA_main`,
 `alLayout_alignA`, `jumpCells_at`), the `DEREF` pointers (`derefPow_all`), the computed hints
 (`hintComputed_alignA`, `extraRef_alignA`), the witness hints (`hintWitness_alignA`,
 `witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`, on `allocGaps_guest`), the cells the hints use
 (`hintsUsed_alignA`), the tracks kept
 (`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
-(`resTop_guestF`) and the termination facts (`termNode_guest`). `guest_prover_complete_of` is
+and the termination facts (`assembled`: the core route's, and `resTop_guestF`, `termNode_guest` off it). `guest_prover_complete_of` is
 `guest_prover_complete` from `OpenGaps`, which `openGaps` proves: the kernel checks every walk.
 `guestExecution_complete_holds` is `Statement/`'s `GuestExecutionComplete`, the statement's
 witness generation (`Prover.guestExecution`) being `guestRun guestAdvice` (`prover_guestExecution_eq`).
@@ -101,27 +102,36 @@ theorem openGaps : OpenGaps := ⟨⟨⟩⟩
 
 /-! ## The assembly -/
 
+/-- **The end theorem's certificates**: the core route's, then those of the functions off it. -/
+noncomputable abbrev allCerts : List Mode.Cert := CoreMode.coreCerts ++ Mode.offCerts
+
+/-- **The certificates closed**, with their residuals and termination facts, given the frame interfaces
+the kernel does not check. -/
+theorem assembled (h : Mode.ModeHyps) :
+    ModeCerts allCerts Fn.«main».modeCert Mode.guestE0 ∧ (∀ K ∈ allCerts, K.F.entry ≠ 0) ∧
+      ResTop allCerts alignA ∧ TermNode allCerts :=
+  assemble CoreMode.coreFacts (offFacts h fun K hK ↦ by
+    simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
+    rcases hK with rfl | rfl | rfl | rfl
+    · exact resCld_alignA
+    · exact resLce0_alignA
+    · exact resLce16_alignA
+    · exact resLy_alignA)
+
 /-- **`ExecGaps` from the open facts**, every proved part wired in. -/
 theorem execGaps_of (O : OpenGaps) :
-    ExecGaps Mode.guestCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
-  ExecGaps.ofR (A := alignA) (Mode.modeCerts_guest O.modeHyps) Mode.mainOk_guestCerts Budget.mainExactHyp
+    ExecGaps allCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
+  have h := assembled O.modeHyps
+  ExecGaps.ofR (A := alignA) h.1 CoreMode.mainOk_core Budget.mainExactHyp
     (hintAlloc_alignA sizesAt_guest allocReady_guest fun _ _ h ↦ h.2)
     (hintWitness_alignA (witCells_alignA witPtrRes_guest) pushShape fun _ _ h ↦ h.1)
     (hintComputed_alignA extraRef_alignA)
-    (resTop_guestF (fun K hK ↦ by
-      simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-      rcases hK with rfl | rfl | rfl | rfl | rfl
-      · exact resCld_alignA
-      · exact resCp_alignA
-      · exact resLce0_alignA
-      · exact resLce16_alignA
-      · exact resLy_alignA))
-    termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
+    h.2.2.1 h.2.2.2 Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at h.2.1
     (derefPow_all _)
     (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) keepY_allocA_guest)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
-    (coreHonAll_X (Mode.modeCerts_guest O.modeHyps) Mode.guestCerts_entry_ne Bridge.progAl Bridge.alignA_main
+    (coreHonAll_X h.1 h.2.1 Bridge.progAl Bridge.alignA_main
       jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok mono_ok)
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open

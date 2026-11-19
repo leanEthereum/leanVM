@@ -1,6 +1,6 @@
 """Writes `Guest/Res/ResCerts*.lean`: every mode walk certificate's residuals are in the families
 (`Res.ResOk`, decided at the function's index by `Res.resOk_of`), but the certificates of `EXC`;
-and `ResTop guestCerts` from them (`EndExec.resTop_of_ok`). `Guest/Res/ResGiven.lean` lists `EXC`'s
+and `ResTop offCerts` from them (`EndExec.resTop_of_ok`). `Guest/Res/ResGiven.lean` lists `EXC`'s
 certificates (`resExc`) and the parameters whose nonzero values the divisor residuals need
 (`nzVals`: each `nz o` residual's parameter `o - 2`, but a loop helper's counter, or past the
 parameters a value at cell `o` a top-level atom names). The
@@ -8,7 +8,7 @@ certificates, their packs, groups and function indices are those `term.py` reads
 the walks' checks `mode-cert/gen.py` wrote (`Pack/*/Mode{k}.lean`, `ModeD{k}.lean`, `ModeX.lean`).
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/sel.py [--check]"""
-import sys, os, glob
+import sys, os, glob, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -21,7 +21,7 @@ OUT = term.OUT
 # the certificates whose residuals the families leave: `claim_list_digest`'s dispatch sits in a branch,
 # `certify_placement`'s divisor is no parameter, `log2_ceil_in_the_exponent`'s order residual is
 # branch-held (`EndExecRLce`), and `verify_bus_gkr_loop0`'s callee reads (`EndExecRGkrC`)
-EXC = ['claim_list_digest', 'certify_placement', 'log2_ceil_in_the_exponent__L0_L34',
+EXC = ['claim_list_digest', 'log2_ceil_in_the_exponent__L0_L34',
        'log2_ceil_in_the_exponent__L16_L34', 'verify_bus_gkr_loop0']
 
 
@@ -80,7 +80,12 @@ def render():
             for n in term.packCerts(p): pack[n] = p
     mod = 'LeanVM.Guest.Res.ResGiven'
     t = [header(mod, 'The certificates whose residuals are given whole, and the parameters given nonzero.')]
-    t.append(''.join('public import LeanVM.Guest.Pack.«%s».ModeCert\n' % p for p in sorted({pack[n] for n in EXC})))
+    # a listed certificate on the core route is its `Cert` module's (`scripts/core-mode/certs.py`)
+    for c in glob.glob(os.path.join(term.ROOT, 'CoreMode', 'Gen', '*', 'Cert.lean')):
+        for n in re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(c).read(), re.M):
+            pack.setdefault(n, ('core', c.split(os.sep)[-2]))
+    t.append(''.join('public import LeanVM.Guest.%s\n' % ('CoreMode.Gen.«%s».Cert' % q[1] if isinstance(q, tuple) else 'Pack.«%s».ModeCert' % q)
+                     for q in sorted({pack[n] for n in EXC}, key=str)))
     t.append('public import LeanVM.Guest.Res.SelDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core\n\n'
              '@[expose] public section\n\n/-- The certificates whose residuals are given whole. -/\n'
              'noncomputable def resExc : List Mode.Cert := [\n  %s]\n\n'
@@ -103,21 +108,21 @@ def render():
                           'resOk_of (j := %d) (by decide +kernel)' % j) for n, j in zip(ns, js)]), p))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.ResCerts'
-    t = [header(mod, '`ResTop guestCerts alignA` from the families\' and the listed certificates\' residuals.')]
+    t = [header(mod, '`ResTop offCerts alignA` from the families\' and the listed certificates\' residuals.')]
     t.append(''.join('public import %s\n' % m for m in mods))
     t.append('public import LeanVM.Guest.EndExecRSplit\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s residuals are in the families.** -/\n'
-             'theorem guestCerts_res : ∀ K ∈ guestCerts, ResOk resExc nzVals K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
+             'theorem offCerts_res : ∀ K ∈ offCerts, ResOk resExc nzVals K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
                  ['(%s)' % term.chain(['ModePack.«%s».certs_res' % p for p in g]) for g in G]))
     t.append('/-- **The residuals at the honest frames**, for the mode walk\'s certificates: from the listed\n'
              'certificates\', the `sub` residuals\' but the splits\', the exponent facts\' order residuals and the listed\n'
              'parameters\' nonzero values. -/\n'
              'theorem resTop_guest {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
-             '    (hsub : ResOpen guestCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)\n'
-             '    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)\n'
-             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
-             '  resTop_of_ok guestCerts_res hexc splits_ok hsub hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
+             '    (hsub : ResOpen offCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)\n'
+             '    (hexp : ResOpen offCerts A fun j x ↦ ltExpB j x = true)\n'
+             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop offCerts A :=\n'
+             '  resTop_of_ok offCerts_res hexc splits_ok hsub hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 

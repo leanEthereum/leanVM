@@ -4,7 +4,7 @@ function's code, `Res.subFamB`, on the certificate's witness of that code, which
 or a read of the proof stream at a site of `Res.stSites` or a run a split cuts into blocks,
 `Res.blkB`, which need none), decided at the function's index by `Res.subOk_of`, but the
 certificates of `sel.EXC`; and
-`ResTop guestCerts` from the listed certificates' residuals (`EndExec.resOpen_subOk`) and the listed
+`ResTop offCerts` from the listed certificates' residuals (`EndExec.resOpen_subOk`) and the listed
 values' nonzero words but those of `PROVED`. The certificates, their packs, groups and function
 indices are those `term.py` reads.
 `--check` writes nothing and fails when a file differs.
@@ -19,8 +19,8 @@ import wit
 
 OUT = term.OUT
 # the nonzero values proved here, by their proofs
-PROVED = {('child_claim_list_mono_last__L0', 1): 'nzVal_ml0 mono_ok', ('verify_tables', 133): 'nzVal_vt133',
-          ('verify_tables', 430): 'nzVal_vt430'}
+PROVED = {('certify_placement', 155): 'nzVal_cp155', ('child_claim_list_mono_last__L0', 1): 'nzVal_ml0 mono_ok',
+          ('verify_tables', 133): 'nzVal_vt133', ('verify_tables', 430): 'nzVal_vt430'}
 
 
 def header(mod, what):
@@ -45,12 +45,12 @@ def render():
                           'subOk_of (j := %d) (w := %s) (by decide +kernel)' % (j, W.get(n, '⟨[], []⟩'))) for n, j in zip(ns, js)]), p))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.SubCerts'
-    t = [header(mod, '`ResTop guestCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
+    t = [header(mod, '`ResTop offCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\n')
+    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\npublic import LeanVM.Guest.EndExecRCp\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s `sub` residuals are in the families.** -/\n'
-             'theorem guestCerts_sub : ∀ K ∈ guestCerts, SubOk resExc K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
+             'theorem offCerts_sub : ∀ K ∈ offCerts, SubOk resExc K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
                  ['(%s)' % term.chain(['ModePack.«%s».certs_sub' % p for p in g]) for g in G]))
     nz = sel.nzVals()
     given = [p for p in nz if p not in PROVED]
@@ -59,8 +59,8 @@ def render():
     t.append('/-- **The residuals at the honest frames**, for the mode walk\'s certificates: from the listed\n'
              'certificates\' residuals and the nonzero values not proved here. -/\n'
              'theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)%s :\n'
-             '    ResTop guestCerts A :=\n'
-             '  resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) resOpen_ltExp (by\n'
+             '    ResTop offCerts A :=\n'
+             '  resTop_guestM hexc (resOpen_subOk offCerts_sub hexc) resOpen_ltExp (by\n'
              '    intro p hp\n'
              '    simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp\n'
              '    rcases hp with %s%s)\n\nend\n\nend LeanVM.Guest.EndExec\n' % (hyps, ' | '.join(['rfl'] * len(nz)), arms))

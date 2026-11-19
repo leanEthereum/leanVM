@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.EndExecRA
-public import LeanVM.Guest.Res.CpChk
 public import LeanVM.Guest.CoreMode.Fam.MonoReplay
 public import LeanVM.Guest.B1.Placement.Certify
 
@@ -26,9 +25,7 @@ the next.
 
 The keys strictly descend (`cp_desc`), so the ranks' keys are distinct, and the keys being the
 words of their groups' cells, the ranks' groups are (`Value.cover_of_writeOnce`): nine ranks into
-nine groups, onto. Each residual is one of the shapes `Res.cpAcc` takes, wherever the walk puts
-it (`Res.cp_res`): a divisor is a rank's key; the run is `group_base[0 .. 9)`, each cell `g^k` that
-of the rank `r` with `π r = k`.
+nine groups, onto (`cp_onto`), which the core route's `cpPerm` family reads (`EndExec.cpPerm_inst`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -173,87 +170,25 @@ theorem cp_onto {rd : Reader} {σ : Core.Val}
     (fun r hr ↦ (hkey r hr).symm) le_rfl g hg
   exact ⟨r, hr, hrg⟩
 
-/-! ## The residuals -/
 
-/-- **`certify_placement`'s residuals at its honest frames.** -/
-theorem resCp_alignA : ResCert alignA Fn.«certify_placement».modeCert := by
-  intro r hr i hi e j t x hx hin
-  have hres := LeanVM.Guest.Res.cp_res i hi x hx
-  obtain ⟨hj0, hent0⟩ := LeanVM.Guest.Res.cp_idx
-  have hcells := LeanVM.Guest.Res.cp_cells
+/-- **Rank `1`'s key is nonzero** at every honest instance: the word at its group's cell (`cp_keys`). -/
+theorem nzVal_cp155 : NzVal "certify_placement" (.n 155) := by
+  intro r hr I hI σ bufs kids hIt
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  -- the frame's function
-  obtain ⟨ia, rfl, hia, hna, hfa, hca, -, -, h1a, hlta⟩ := fn_of_idx t.idx
-  obtain ⟨ib, hib, hib', hnb, hfb, hcb, -, -, h1b, hltb⟩ := fn_of_idx hj0
-  have hjj : ia + 1 = fn_idx% «certify_placement» := by
-    refine fnOf_entry_inj hlta hltb ?_
-    have := t.entry
-    simp only [entryOf, t.idx] at this
-    rw [this, hent0]
-  obtain rfl : ia = ib := by omega
-  have hname : e.I.t.name = "certify_placement" := by rw [← hna, hnb]
-  rw [← hjj] at hcells hres
-  -- the instance's body at its valuation, and its exponent tables
-  obtain ⟨f0, bufs, kids, hnode⟩ := t.node
-  have hf0 : f0 = "certify_placement" := by rw [← hname, hnode]; rfl
-  subst hf0
-  obtain ⟨args0, rets0, hv⟩ := inst_valid' hr t.inst hnode
+  obtain ⟨args0, rets0, hv⟩ := inst_valid' hr hI hIt
   obtain ⟨fn, hfn, hps, hbody⟩ := cpFound
   obtain ⟨-, hb⟩ := LeanVM.Guest.Res.holds_of_valid LeanVM.Guest.Res.fs_pos hv hfn
   rw [hbody, holdsList_append, holdsList_noRet _ cpPre_noRet] at hb
-  have htab : B1.ExpTables r.img.read (e.σ (.n 1)) :=
-    (carryQ_all hr e.I t.inst _ e.σ bufs kids hnode fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1)
+  have htab : B1.ExpTables r.img.read (σ (.n 1)) :=
+    (carryQ_all hr I hI _ σ bufs kids hIt fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1)
       (by rw [hps]; rfl)).1
-  obtain ⟨hK, hf, hord⟩ := cp_keys (by omega) r.img hb.1 htab
-  -- the path's atoms name their values, which the frame holds
-  obtain ⟨vs, hw, hF, -⟩ := t.events hr
-  have hfnj : coreOf (ia + 1) = fn := by
-    rw [hca]; exact Option.some.inj (hfa.symm.trans (hname ▸ hfn))
-  rw [hfnj, hbody] at hw
-  have hcell : ∀ a ∈ leadAtoms (cpPre ++ [.ret [.n 406, .n 407]]), ∀ v ∈ atomUses a,
-      2 ≤ cellJ (ia + 1) v → cellJ (ia + 1) v < fsN (ia + 1) →
-      refMem r.img (e.I.fp + cellJ (ia + 1) v) = e.σ v := fun a ha v hv h2 hlt ↦
-    t.cell hr hF (namedOf_atom (lead_on_path hw ha) hv) h2 hlt
-  have hcellV : ∀ a ∈ leadAtoms (cpPre ++ [.ret [.n 406, .n 407]]), ∀ v ∈ atomUses a, v ∈ LeanVM.Guest.Res.cpVals →
-      refMem r.img (e.I.fp + cellJ (ia + 1) v) = e.σ v := fun a ha v hv hv' ↦
-    hcell a ha v hv (hcells v hv').1 (hcells v hv').2
-  simp only [LeanVM.Guest.Res.cpAcc, Bool.or_eq_true, List.any_eq_true, List.mem_range, beq_iff_eq] at hres
-  rcases hres with ⟨r1, hr1, rfl⟩ | rfl
-  · -- rank `r1 + 1`'s key, the word at its group's cell
-    have hatom : ∀ r < 8, Atom.load (.n (137 + 18 * (r + 1))) (.n (136 + 18 * (r + 1))) 0 ∈
-        leadAtoms (cpPre ++ [.ret [.n 406, .n 407]]) := by decide +kernel
-    show refMem r.img (e.I.fp + cellJ (ia + 1) (.n (137 + 18 * (r1 + 1)))) ≠ 0
-    rw [hcellV _ (hatom r1 hr1) _ (by simp [atomUses])
-      (List.mem_append_left _ (List.mem_map.mpr ⟨r1, List.mem_range.mpr hr1, rfl⟩))]
-    obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf (r1 + 1) (by omega)
-    have eK : cpRK (r1 + 1) = 137 + 18 * (r1 + 1) := by simp only [cpRK, Nat.add_one_ne_zero, ↓reduceIte]
-    rw [eK, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
-    obtain ⟨K, hK0, hKl⟩ := hK gi hgi
-    rw [tb_loadHolds_unique hld hKl]
-    exact hK0
-  · -- `group_base[0 .. 9)`: cell `g^k` the rank's whose group is `k`
-    obtain ⟨π, hπ, hon⟩ := cp_onto hK hf
-    have e136 := hcellV (.load (.n 138) (.n 136) 0) (by decide +kernel) (.n 136) (by decide)
-      (by decide)
-    refine ⟨0, 9, rfl, rfl, fun vq hvq k _ hk ↦ ?_⟩
-    obtain ⟨r0, hr0, hπr⟩ := hon k hk
-    refine ⟨_, List.mem_map.mpr ⟨r0, List.mem_range.mpr hr0, rfl⟩,
-      fun vb ylo yhi hvb hlo hhi ↦ ⟨0, by simp only [RIdx] at hlo; omega,
-        by simp only [RIdx] at hhi; omega, ?_⟩⟩
-    obtain ⟨w, ⟨u, w1, hu, hw1, rfl⟩, rfl⟩ := hvq
-    obtain ⟨wb, ⟨u', wb1, hu', ⟨u2, wb2, hu2, hwb2, rfl⟩, rfl⟩, rfl⟩ := hvb
-    simp only [RBs] at hw1 hwb2
-    subst hw1 hwb2
-    simp only [RBase] at hu hu'
-    obtain ⟨y, ⟨hy, hylt⟩, rfl⟩ := hu2
-    rw [e136, Mode.limb_mul_ofK] at hy
-    obtain ⟨-, hrd⟩ := hord r0 hr0
-    have hrd' : r.img.read (Parameters.g ^ y) = some (e.σ (.n (cpRB r0))) := by rw [← hy]; exact hrd
-    rw [((refRd_img hκ r.img) _ _ (by unfold maxCells at hylt; omega) hrd').2, hπ r0 hr0, hπr,
-      ← hu, ← hu', ← ofK_gpow]
-    dsimp only
-    simp only [pow_zero, pow_one, mul_one, one_mul, Nat.add_zero,
-      show ofK (1 : K) = 1 from map_one (algebraMap K E)]
+  obtain ⟨hK, hf, -⟩ := cp_keys (by omega) r.img hb.1 htab
+  obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf 1 (by omega)
+  have eK : cpRK 1 = 155 := rfl
+  rw [eK, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  obtain ⟨K, hK0, hKl⟩ := hK gi hgi
+  rw [tb_loadHolds_unique hld hKl]
+  exact hK0
 
 end
 

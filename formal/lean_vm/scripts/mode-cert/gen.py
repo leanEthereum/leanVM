@@ -717,26 +717,26 @@ def assemblyFiles(packList, walkH, hintsH, R):
     files = {}
     PL = plumbs()
     pk = sorted(packList)
-    out = [header('LeanVM.Guest.Mode.Certs.List', "The mode walk's certificates, every guest function's, and their entries told apart.")]
-    out.append(importLines({'LeanVM.Guest.Pack.«%s».ModeCert' % p for p in pk}))
+    out = [header('LeanVM.Guest.Mode.Certs.List', "The mode walk's certificates, the functions' off the core route, and the entries told apart.")]
+    out.append(importLines({'LeanVM.Guest.Pack.«%s».ModeCert' % p for p in pk} | {'LeanVM.Guest.CoreMode.Gen.Certs.List'}))
     out.append('\nset_option Elab.async false\n')
     out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n')
     G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
     gi = {p: (g, i) for g, ps in enumerate(G) for i, p in enumerate(ps)}
-    out.append('/-- The certificates by pack, packs in groups. -/\nnoncomputable def guestGroups : List (List (List Cert)) :=\n  [%s]\n\n' % ',\n   '.join(
+    out.append('/-- The certificates by pack, packs in groups. -/\nnoncomputable def offGroups : List (List (List Cert)) :=\n  [%s]\n\n' % ',\n   '.join(
         '[%s]' % ', '.join('ModePack.«%s».certs' % p for p in ps) for ps in G))
-    out.append('/-- The certificates by pack. -/\nnoncomputable def guestPacks : List (List Cert) := guestGroups.flatten\n\n')
-    out.append('/-- **Every guest function\'s certificate.** -/\nnoncomputable def guestCerts : List Cert := guestPacks.flatten\n\nend\n\npublic section\n\n')
+    out.append('/-- The certificates by pack. -/\nnoncomputable def offPacks : List (List Cert) := offGroups.flatten\n\n')
+    out.append('/-- **The certificates of the functions off the core route.** -/\nnoncomputable def offCerts : List Cert := offPacks.flatten\n\nend\n\npublic section\n\n')
     for k, p in enumerate(pk):
-        out.append('theorem guestPacks_mem%d : ModePack.«%s».certs ∈ guestPacks :=\n  mem_flatten_of (%s) (%s)\n\n' % (
+        out.append('theorem offPacks_mem%d : ModePack.«%s».certs ∈ offPacks :=\n  mem_flatten_of (%s) (%s)\n\n' % (
             k, p, memProof(gi[p][0]), memProof(gi[p][1])))
-    out.append('/-- No entry repeats. -/\ntheorem guestCerts_nodup : nodupB (guestCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
-    out.append('/-- The certificates\' static facts. -/\ntheorem guestCerts_st : ∀ K ∈ guestCerts, CertSt K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+    out.append('/-- No entry repeats, the core route\'s certificates\' among them. -/\ntheorem offCerts_nodup : nodupB ((CoreMode.coreCerts ++ offCerts).map (·.F.entry)) 0 = true := by\n  decide +kernel\n\n')
+    out.append('/-- The certificates\' static facts. -/\ntheorem offCerts_st : ∀ K ∈ offCerts, CertSt K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
         ['(%s)' % chain(['ModePack.«%s».certs_st' % p for p in ps]) for ps in G]))
     out.append('end\n\nend LeanVM.Guest.Mode\n')
     for k, p in enumerate(pk):
         for i, n in enumerate(packList[p]):
-            out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\npublic section\n\ntheorem modeCert_in : modeCert ∈ Mode.guestCerts :=\n  Mode.mem_flatten_of Mode.guestPacks_mem%d ModePack.«%s».mem%d\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
+            out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\npublic section\n\ntheorem modeCert_in : modeCert ∈ Mode.offCerts :=\n  Mode.mem_flatten_of Mode.offPacks_mem%d ModePack.«%s».mem%d\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
                 I.fns[n]['ns'], k, p, i, I.fns[n]['ns']))
     files[os.path.join(base, 'Certs', 'List.lean')] = ''.join(out)
     chunks = []; cur = []; size = 0
@@ -746,7 +746,8 @@ def assemblyFiles(packList, walkH, hintsH, R):
     if cur: chunks.append(cur)
     for c, ps in enumerate(chunks):
         out = [header('LeanVM.Guest.Mode.Certs.Sig%d' % c, "The mode walk's certificates' callee signatures and code, pack by pack.")]
-        out.append(importLines({'LeanVM.Guest.Mode.Certs.List', 'LeanVM.Guest.Mode.CertNz', 'LeanVM.Guest.SoundFacts'} | {'LeanVM.Guest.Checked.%s' % l for l in LINKS}))
+        out.append(importLines({'LeanVM.Guest.Mode.Certs.List', 'LeanVM.Guest.Mode.CertNz', 'LeanVM.Guest.SoundFacts',
+                                'LeanVM.Guest.CoreMode.Assemble'} | {'LeanVM.Guest.Checked.%s' % l for l in LINKS}))
         out.append('\nset_option Elab.async false\n')
         nzs = []
         for p in ps:
@@ -755,8 +756,9 @@ def assemblyFiles(packList, walkH, hintsH, R):
             sp = []
             for n in ns:
                 es = calleeEntries(n)
-                sp.append('Mode.sigsIn_of %s.modeSigs\n    (%s)' % (fnq(n), chain(['⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fnq(m) for e, m in es])))
-            out.append('theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=\n  %s\n\n' % chain(sp))
+                sp.append('Mode.sigsIn_of %s.modeSigs\n    (%s)' % (fnq(n), chain(['EndExec.SigIn.%s ⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % (
+                    'left' if onRoute(m) else 'right', fnq(m)) for e, m in es])))
+            out.append('theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=\n  %s\n\n' % chain(sp))
             fl = ['Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code%d rfl rfl' % FNIDX[n] for n in ns]
             out.append('theorem certs_fn : ∀ K ∈ certs, FnLink K :=\n  %s\n\n' % chain(fl))
             out.append('end\n\nend LeanVM.Guest.ModePack.«%s»\n' % p)
@@ -769,16 +771,13 @@ def assemblyFiles(packList, walkH, hintsH, R):
     # the hypotheses and the closed certificates
     held = sorted(walkH | hintsH)
     out = [header('LeanVM.Guest.Mode.Certs', "The certificates closed (`ModeCerts`), from the frame interfaces the kernel does not check.")]
-    rp = [p for p in pk if any(onRoute(n) for n in packList[p])]
-    out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | {'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))} |
-                           {'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p for p in rp}))
+    rp = []
+    out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | {'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))}))
     out.append('\nset_option Elab.async false\n')
     out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\npublic section\n\n')
-    out.append('/-- **The core route\'s data**, pack by pack. -/\nnoncomputable def coreTable : List CoreMode.CFun :=\n  List.flatten %s\n\n' % lst(rp, lambda p: 'ModePack.«%s».coreFns' % p))
-    out.append('/-- The core route\'s data, each the deployed guest\'s. -/\ntheorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=\n  fa_flatten (%s)\n\n' % chain(['ModePack.«%s».coreFns_ok' % p for p in rp]))
     out.append('/-- **The frame interfaces the kernel does not check**, one per function (`FnSpec K`, for its\n    frame predicate `guestQ`): a function whose walk fails or is too costly to check, or whose\n    hints are too costly to check in one piece. -/\nstructure ModeHyps : Prop where\n')
     for n in held:
-        out.append('  %s : FnSpec CoreMode.hcTab coreTable %s.modeCert\n' % (hypName(n), fnq(n)))
+        out.append('  %s : FnSpec CoreMode.hcTab CoreMode.coreTable %s.modeCert\n' % (hypName(n), fnq(n)))
     out.append('\n')
     def packSpec(p):
         a = ''.join(' h.%s' % hypName(n) for n in packList[p] if n in walkH or n in hintsH)
@@ -790,17 +789,17 @@ def assemblyFiles(packList, walkH, hintsH, R):
     G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
     for g, ps in enumerate(G):
         body = chain([packSpec(p) for p in ps])
-        out.append('theorem guestGroup_spec%d (%s : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, FnSpec CoreMode.hcTab coreTable K :=\n  %s\n\n' % (
+        out.append('theorem offGroup_spec%d (%s : ModeHyps) : ∀ l ∈ offGroups[%d]!, ∀ K ∈ l, FnSpec CoreMode.hcTab CoreMode.coreTable K :=\n  %s\n\n' % (
             g, 'h' if ' h.' in body else '_h', g, body))
     def two(f):
         return 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
-    out.append('theorem guestCerts_spec (h : ModeHyps) : ∀ K ∈ guestCerts, FnSpec CoreMode.hcTab coreTable K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
-        ['guestGroup_spec%d h' % g for g in range(len(G))]))
-    out.append('theorem guestCerts_sigs : ∀ K ∈ guestCerts, SigsIn guestCerts K :=\n  %s\n\n' % two('ModePack.«%s».certs_sigs'))
-    out.append('theorem guestCerts_fn : ∀ K ∈ guestCerts, FnLink K :=\n  %s\n\n' % two('ModePack.«%s».certs_fn'))
-    out.append('/-- **The certificates closed**, given the frame interfaces the kernel does not check. -/\ntheorem modeCerts_guest (h : ModeHyps) :\n    EndExec.ModeCerts guestCerts Fn.«main».modeCert guestE0 :=\n  modeCerts_of coreTable_ok guestCerts_st (guestCerts_spec h) guestCerts_fn guestCerts_sigs guestCerts_nodup\n    Fn.«main».modeCert_in rfl (by decide +kernel) rfl (by decide +kernel)\n\n')
-    out.append('/-- No certificate\'s entry is `__jump_tables`\'s. -/\ntheorem guestCerts_entry_ne : ∀ K ∈ guestCerts, K.F.entry ≠ 0 := entry_ne_zero guestCerts_st\n\n')
-    out.append('/-- **`main`\'s certificate starts as the prologue leaves it.** -/\ntheorem mainOk_guestCerts : EndExec.MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl\n\n')
+    out.append('theorem offCerts_spec (h : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+        ['offGroup_spec%d h' % g for g in range(len(G))]))
+    out.append('theorem offCerts_sigs : ∀ K ∈ offCerts, SigsIn (CoreMode.coreCerts ++ offCerts) K :=\n  %s\n\n' % two('ModePack.«%s».certs_sigs'))
+    offs = sorted({m for n in I.fns if onRoute(n) for m in calleesOf(n) if not onRoute(m)}, key=lambda m: I.fns[m]['entry'])
+    out.append('/-- The core route\'s callees off it, these certificates\'. -/\ntheorem offSigs_in : ∀ p ∈ CoreMode.offSigs, SigIn offCerts p :=\n  %s\n\n' % chain(
+        ['⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fnq(m) for m in offs]))
+    out.append('theorem offCerts_fn : ∀ K ∈ offCerts, FnLink K :=\n  %s\n\n' % two('ModePack.«%s».certs_fn'))
     out.append('end\n\nend LeanVM.Guest.Mode\n')
     files[os.path.join(base, 'Certs.lean')] = ''.join(out)
     return files
@@ -882,12 +881,16 @@ def main(argv):
         walkH.update(xs)
         cmods = ['Mode%d' % k for k in range(len(groups))] + ['ModeL%d' % k for k in range(len(long_))] + \
             (['ModeX'] if xs else []) + (['ModeH'] if hs else [])
-        files[os.path.join(PACKS, p, 'ModeCert.lean')] = certFile(p, ns, cmods, walkH, hintsH)
-        packList[p] = ns
+        offs = [n for n in ns if not onRoute(n)]
+        if offs:
+            files[os.path.join(PACKS, p, 'ModeCert.lean')] = certFile(p, offs, cmods, walkH, hintsH)
+            packList[p] = offs
     if not only: files.update(assemblyFiles(packList, walkH, hintsH, R))
     import glob
     bad = []
-    for path in glob.glob(os.path.join(PACKS, '*', 'Mode*.lean')):
+    stale = glob.glob(os.path.join(PACKS, '*', 'Mode*.lean'))
+    if not only: stale += glob.glob(os.path.join(I.data.ROOT, 'Mode', 'Certs', 'Sig*.lean'))
+    for path in stale:
         if path in files or (only and path.split(os.sep)[-2] not in only): continue
         if check: bad.append(path)
         else: os.remove(path)

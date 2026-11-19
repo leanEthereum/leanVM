@@ -1,4 +1,4 @@
-"""Writes `Guest/Res/AnyOk.lean`: `ResTop guestCerts` with the `sub` residuals open less the reads of
+"""Writes `Guest/Res/AnyOk.lean`: `ResTop offCerts` with the `sub` residuals open less the reads of
 `child_claim_list_any`'s entries table by its callees (`Res.anyLink`, `anyLink_ok`: the core route's
 `scripts/core-mode/anylink.py` writes them, read off the core IR). That every `sub` residual is in a family,
 these reads among them, is `sub.py`'s check. Also the helpers `coreBody`, `coreCount` and `RANGES` the other
@@ -39,7 +39,7 @@ def header(mod, what):
 def render():
     files = {}
     mod = 'LeanVM.Guest.Res.AnyOk'
-    t = [header(mod, '`ResTop guestCerts` less `anyLink`\'s reads.')]
+    t = [header(mod, '`ResTop offCerts` less `anyLink`\'s reads.')]
     t.append('public import LeanVM.Guest.CoreMode.Gen.AnyLinkOk\npublic import LeanVM.Guest.Res.ResCerts\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
@@ -47,10 +47,10 @@ def render():
              'certificates\', the `sub` residuals\' but the splits\' and `anyLink`\'s reads, and the listed\n'
              'parameters\' nonzero values. -/\n'
              'theorem resTop_guestA {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
-             '    (hsub : ResOpen guestCerts A fun j x ↦ ((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧\n'
+             '    (hsub : ResOpen offCerts A fun j x ↦ ((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧\n'
              '      anyResB anyLink j x = false)\n'
-             '    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)\n'
-             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
+             '    (hexp : ResOpen offCerts A fun j x ↦ ltExpB j x = true)\n'
+             '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop offCerts A :=\n'
              '  resTop_guest hexc (resOpen_any anyLink_ok hsub) hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
