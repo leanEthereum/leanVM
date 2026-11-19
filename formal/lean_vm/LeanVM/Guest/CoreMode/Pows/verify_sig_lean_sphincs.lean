@@ -10,21 +10,17 @@ module
 public import LeanVM.Guest.Pow
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+/-! Each function's powers of `g` its constants name (`pows`), checked in the kernel (`pows_ok`). -/
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`: the powers of `g` its constants name. -/
-noncomputable def pows : Exec.PowTree :=
-  (.node 33554432 25 (.node 256 8 (.node 16 4 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf)) (.node 262144 18 (.node 16384 14 (.node 4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf .leaf) .leaf))) (.node 18014398509481984 54 (.node 70368744177664 46 (.node 4294967296 32 (.node 67108864 26 .leaf .leaf) (.node 1099511627776 40 .leaf .leaf)) (.node 4503599627370496 52 (.node 281474976710656 48 .leaf .leaf) .leaf)) (.node 1152921504606846976 60 (.node 288230376151711744 58 (.node 72057594037927936 56 .leaf .leaf) .leaf) (.node 9223372036854810629 255 (.node 9223372036854775808 63 .leaf .leaf) .leaf))))
+noncomputable def Fn.«verify_sig_lean_sphincs».pows : Exec.PowTree := (.node 33554432 25 (.node 256 8 (.node 16 4 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf)) (.node 262144 18 (.node 16384 14 (.node 4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf .leaf) .leaf))) (.node 18014398509481984 54 (.node 70368744177664 46 (.node 4294967296 32 (.node 67108864 26 .leaf .leaf) (.node 1099511627776 40 .leaf .leaf)) (.node 4503599627370496 52 (.node 281474976710656 48 .leaf .leaf) .leaf)) (.node 1152921504606846976 60 (.node 288230376151711744 58 (.node 72057594037927936 56 .leaf .leaf) .leaf) (.node 9223372036854810629 255 (.node 9223372036854775808 63 .leaf .leaf) .leaf))))
+theorem Fn.«verify_sig_lean_sphincs».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 
 end
 
-public section
-
-/-- `verify_sig_lean_sphincs`: its powers are powers of `g`. -/
-theorem pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

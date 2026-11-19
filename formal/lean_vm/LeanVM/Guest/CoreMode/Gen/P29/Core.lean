@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreLoop
 public import LeanVM.Guest.CoreMode.CoreLoopC
+public import LeanVM.Guest.CoreMode.FaRetSplit
 public import LeanVM.Guest.CoreMode.Gen.«P29».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P29».DataL
 public import LeanVM.Guest.CoreMode.Gen.«P29».DataLC
@@ -110,20 +111,46 @@ theorem Fn.«child_claim_list_mono_last__L12».fnSpecC : Mode.FnSpecC ⟨envC, f
   { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«child_claim_list_mono_last__L12».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«child_claim_list_mono_last__L12».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«child_claim_list_mono_last__L12».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«child_claim_list_mono_last__L12».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«child_claim_list_mono_last__L12».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 theorem Fn.«da_expand__L13_L7».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
 theorem Fn.«da_expand__L13_L7».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret0 : CoreMode.faRetC cfun code.chunks.flatten 32 0 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret1 : CoreMode.faRetC cfun code.chunks.flatten 32 1 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret2 : CoreMode.faRetC cfun code.chunks.flatten 32 2 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret3 : CoreMode.faRetC cfun code.chunks.flatten 32 3 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret4 : CoreMode.faRetC cfun code.chunks.flatten 32 4 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret5 : CoreMode.faRetC cfun code.chunks.flatten 32 5 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret6 : CoreMode.faRetC cfun code.chunks.flatten 32 6 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret7 : CoreMode.faRetC cfun code.chunks.flatten 32 7 = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret_runs : CoreMode.runsLe (32 * 8) (Bridge.stmtsOf cfun.fn.body) = true := (by decide +kernel)
+theorem Fn.«da_expand__L13_L7».faret : CoreMode.faRetOk cfun code.chunks.flatten = true := 
+  CoreMode.faRetOk_of_kchunks 32 8 (by decide) faret_runs fun c hc ↦ by
+    interval_cases c
+    exacts [faret0, faret1, faret2, faret3, faret4, faret5, faret6, faret7]
 theorem Fn.«da_expand__L13_L7».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
 theorem Fn.«da_expand__L13_L7».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«da_expand__L13_L7».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
 theorem Fn.«da_expand__L13_L7».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«da_expand__L13_L7».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
-  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«da_expand__L13_L7».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«da_expand__L13_L7».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«da_expand__L13_L7».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«da_expand__L13_L7».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«da_expand__L13_L7».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«da_expand__L13_L7».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«da_expand__L13_L7».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«da_expand__L13_L7».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«da_expand__L13_L7».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«da_expand__L13_L7».fpows_ok, faret := faret, nzrc := (by decide +kernel) }
 theorem Fn.«da_expand__L6_L7».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
 theorem Fn.«da_expand__L6_L7».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret0 : CoreMode.faRetC cfun code.chunks.flatten 32 0 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret1 : CoreMode.faRetC cfun code.chunks.flatten 32 1 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret2 : CoreMode.faRetC cfun code.chunks.flatten 32 2 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret3 : CoreMode.faRetC cfun code.chunks.flatten 32 3 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret4 : CoreMode.faRetC cfun code.chunks.flatten 32 4 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret5 : CoreMode.faRetC cfun code.chunks.flatten 32 5 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret6 : CoreMode.faRetC cfun code.chunks.flatten 32 6 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret7 : CoreMode.faRetC cfun code.chunks.flatten 32 7 = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret_runs : CoreMode.runsLe (32 * 8) (Bridge.stmtsOf cfun.fn.body) = true := (by decide +kernel)
+theorem Fn.«da_expand__L6_L7».faret : CoreMode.faRetOk cfun code.chunks.flatten = true := 
+  CoreMode.faRetOk_of_kchunks 32 8 (by decide) faret_runs fun c hc ↦ by
+    interval_cases c
+    exacts [faret0, faret1, faret2, faret3, faret4, faret5, faret6, faret7]
 theorem Fn.«da_expand__L6_L7».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
 theorem Fn.«da_expand__L6_L7».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«da_expand__L6_L7».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
 theorem Fn.«da_expand__L6_L7».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«da_expand__L6_L7».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
-  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«da_expand__L6_L7».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«da_expand__L6_L7».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«da_expand__L6_L7».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«da_expand__L6_L7».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«da_expand__L6_L7».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«da_expand__L6_L7».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«da_expand__L6_L7».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«da_expand__L6_L7».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«da_expand__L6_L7».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«da_expand__L6_L7».fpows_ok, faret := faret, nzrc := (by decide +kernel) }
 theorem Fn.«eq_prefix_run__L25».core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := (by decide +kernel)
 theorem Fn.«eq_prefix_run__L25».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
 theorem Fn.«eq_prefix_run__L25».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)

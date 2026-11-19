@@ -7,4 +7,4 @@ if _m is None:
     _m = importlib.util.module_from_spec(_spec)
     sys.modules['compiled'] = _m
     _spec.loader.exec_module(_m)
-load, LEAN_VM, ROOT, STATEMENT = _m.load, _m.LEAN_VM, _m.ROOT, _m.STATEMENT
+load, HERE, LEAN_VM, ROOT, STATEMENT = _m.load, _m.HERE, _m.LEAN_VM, _m.ROOT, _m.STATEMENT

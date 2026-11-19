@@ -10,354 +10,69 @@ module
 public import Statement.Data.AdviceHints
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«child_claim_list_last__L3»
+/-! Each function's entry, length and hints by pc (`advice`) and its index in the program (`idx`). -/
 
-@[expose] public section
-
-/-- `child_claim_list_last__L3`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn374
-
-/-- `child_claim_list_last__L3`: its index in the program. -/
-abbrev idx : ℕ := 374
-
-end
-end LeanVM.Guest.Fn.«child_claim_list_last__L3»
-
-namespace LeanVM.Guest.Fn.«claim_list_last__L4»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `claim_list_last__L4`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn356
-
-/-- `claim_list_last__L4`: its index in the program. -/
-abbrev idx : ℕ := 356
-
-end
-end LeanVM.Guest.Fn.«claim_list_last__L4»
-
-namespace LeanVM.Guest.Fn.«column_selector__L19»
-
-@[expose] public section
-
-/-- `column_selector__L19`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn297
-
-/-- `column_selector__L19`: its index in the program. -/
-abbrev idx : ℕ := 297
-
-end
-end LeanVM.Guest.Fn.«column_selector__L19»
-
-namespace LeanVM.Guest.Fn.«column_selector__L20»
-
-@[expose] public section
-
-/-- `column_selector__L20`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn298
-
-/-- `column_selector__L20`: its index in the program. -/
-abbrev idx : ℕ := 298
-
-end
-end LeanVM.Guest.Fn.«column_selector__L20»
-
-namespace LeanVM.Guest.Fn.«da_column_offsets_loop0»
-
-@[expose] public section
-
-/-- `da_column_offsets_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn416
-
-/-- `da_column_offsets_loop0`: its index in the program. -/
-abbrev idx : ℕ := 416
-
-end
-end LeanVM.Guest.Fn.«da_column_offsets_loop0»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L21_L3»
-
-@[expose] public section
-
-/-- `decode_query_windows__L21_L3`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1095
-
-/-- `decode_query_windows__L21_L3`: its index in the program. -/
-abbrev idx : ℕ := 1095
+abbrev Fn.«child_claim_list_last__L3».advice := Data.adviceFn374
+abbrev Fn.«child_claim_list_last__L3».idx : ℕ := 374
+abbrev Fn.«claim_list_last__L4».advice := Data.adviceFn356
+abbrev Fn.«claim_list_last__L4».idx : ℕ := 356
+abbrev Fn.«column_selector__L19».advice := Data.adviceFn297
+abbrev Fn.«column_selector__L19».idx : ℕ := 297
+abbrev Fn.«column_selector__L20».advice := Data.adviceFn298
+abbrev Fn.«column_selector__L20».idx : ℕ := 298
+abbrev Fn.«da_column_offsets_loop0».advice := Data.adviceFn416
+abbrev Fn.«da_column_offsets_loop0».idx : ℕ := 416
+abbrev Fn.«decode_query_windows__L21_L3».advice := Data.adviceFn1095
+abbrev Fn.«decode_query_windows__L21_L3».idx : ℕ := 1095
+abbrev Fn.«eq_prefix_run__L38».advice := Data.adviceFn80
+abbrev Fn.«eq_prefix_run__L38».idx : ℕ := 80
+abbrev Fn.«index_mle__L10».advice := Data.adviceFn209
+abbrev Fn.«index_mle__L10».idx : ℕ := 209
+abbrev Fn.«index_mle__L29».advice := Data.adviceFn228
+abbrev Fn.«index_mle__L29».idx : ℕ := 228
+abbrev Fn.«level_positions__L11_L24_L6_loop0».advice := Data.adviceFn1226
+abbrev Fn.«level_positions__L11_L24_L6_loop0».idx : ℕ := 1226
+abbrev Fn.«level_positions__L19_L20_L2_loop0».advice := Data.adviceFn1133
+abbrev Fn.«level_positions__L19_L20_L2_loop0».idx : ℕ := 1133
+abbrev Fn.«level_positions__L44_L25_L7_loop0».advice := Data.adviceFn1406
+abbrev Fn.«level_positions__L44_L25_L7_loop0».idx : ℕ := 1406
+abbrev Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».advice := Data.adviceFn818
+abbrev Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».idx : ℕ := 818
+abbrev Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».advice := Data.adviceFn857
+abbrev Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».idx : ℕ := 857
+abbrev Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».advice := Data.adviceFn850
+abbrev Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».idx : ℕ := 850
+abbrev Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».advice := Data.adviceFn761
+abbrev Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».idx : ℕ := 761
+abbrev Fn.«level_residual__L109_L17_L6_L3_loop1».advice := Data.adviceFn1113
+abbrev Fn.«level_residual__L109_L17_L6_L3_loop1».idx : ℕ := 1113
+abbrev Fn.«level_residual__L19_L11_L4_L2_loop0».advice := Data.adviceFn1399
+abbrev Fn.«level_residual__L19_L11_L4_L2_loop0».idx : ℕ := 1399
+abbrev Fn.«level_residual__L33_L6_L4_L2_loop0».advice := Data.adviceFn1004
+abbrev Fn.«level_residual__L33_L6_L4_L2_loop0».idx : ℕ := 1004
+abbrev Fn.«level_residual__L55_L11_L4_L2_loop0».advice := Data.adviceFn1038
+abbrev Fn.«level_residual__L55_L11_L4_L2_loop0».idx : ℕ := 1038
+abbrev Fn.«level_residual__L55_L22_L6_L3_loop1».advice := Data.adviceFn1334
+abbrev Fn.«level_residual__L55_L22_L6_L3_loop1».idx : ℕ := 1334
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».advice := Data.adviceFn1279
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».idx : ℕ := 1279
+abbrev Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».advice := Data.adviceFn1523
+abbrev Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».idx : ℕ := 1523
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0».advice := Data.adviceFn1058
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0».idx : ℕ := 1058
+abbrev Fn.«rs_eq_rows__L2».advice := Data.adviceFn86
+abbrev Fn.«rs_eq_rows__L2».idx : ℕ := 86
+abbrev Fn.«squeeze_point_from__L26».advice := Data.adviceFn318
+abbrev Fn.«squeeze_point_from__L26».idx : ℕ := 318
+abbrev Fn.«walk_path__L12_L5».advice := Data.adviceFn1458
+abbrev Fn.«walk_path__L12_L5».idx : ℕ := 1458
 
 end
-end LeanVM.Guest.Fn.«decode_query_windows__L21_L3»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L38»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L38`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn80
-
-/-- `eq_prefix_run__L38`: its index in the program. -/
-abbrev idx : ℕ := 80
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L38»
-
-namespace LeanVM.Guest.Fn.«index_mle__L10»
-
-@[expose] public section
-
-/-- `index_mle__L10`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn209
-
-/-- `index_mle__L10`: its index in the program. -/
-abbrev idx : ℕ := 209
-
-end
-end LeanVM.Guest.Fn.«index_mle__L10»
-
-namespace LeanVM.Guest.Fn.«index_mle__L29»
-
-@[expose] public section
-
-/-- `index_mle__L29`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn228
-
-/-- `index_mle__L29`: its index in the program. -/
-abbrev idx : ℕ := 228
-
-end
-end LeanVM.Guest.Fn.«index_mle__L29»
-
-namespace LeanVM.Guest.Fn.«level_positions__L11_L24_L6_loop0»
-
-@[expose] public section
-
-/-- `level_positions__L11_L24_L6_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1226
-
-/-- `level_positions__L11_L24_L6_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1226
-
-end
-end LeanVM.Guest.Fn.«level_positions__L11_L24_L6_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L19_L20_L2_loop0»
-
-@[expose] public section
-
-/-- `level_positions__L19_L20_L2_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1133
-
-/-- `level_positions__L19_L20_L2_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1133
-
-end
-end LeanVM.Guest.Fn.«level_positions__L19_L20_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L44_L25_L7_loop0»
-
-@[expose] public section
-
-/-- `level_positions__L44_L25_L7_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1406
-
-/-- `level_positions__L44_L25_L7_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1406
-
-end
-end LeanVM.Guest.Fn.«level_positions__L44_L25_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn818
-
-/-- `level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its index in the program. -/
-abbrev idx : ℕ := 818
-
-end
-end LeanVM.Guest.Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn857
-
-/-- `level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0`: its index in the program. -/
-abbrev idx : ℕ := 857
-
-end
-end LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn850
-
-/-- `level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0`: its index in the program. -/
-abbrev idx : ℕ := 850
-
-end
-end LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn761
-
-/-- `level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its index in the program. -/
-abbrev idx : ℕ := 761
-
-end
-end LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop1»
-
-@[expose] public section
-
-/-- `level_residual__L109_L17_L6_L3_loop1`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1113
-
-/-- `level_residual__L109_L17_L6_L3_loop1`: its index in the program. -/
-abbrev idx : ℕ := 1113
-
-end
-end LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L19_L11_L4_L2_loop0»
-
-@[expose] public section
-
-/-- `level_residual__L19_L11_L4_L2_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1399
-
-/-- `level_residual__L19_L11_L4_L2_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1399
-
-end
-end LeanVM.Guest.Fn.«level_residual__L19_L11_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L33_L6_L4_L2_loop0»
-
-@[expose] public section
-
-/-- `level_residual__L33_L6_L4_L2_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1004
-
-/-- `level_residual__L33_L6_L4_L2_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1004
-
-end
-end LeanVM.Guest.Fn.«level_residual__L33_L6_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L11_L4_L2_loop0»
-
-@[expose] public section
-
-/-- `level_residual__L55_L11_L4_L2_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1038
-
-/-- `level_residual__L55_L11_L4_L2_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1038
-
-end
-end LeanVM.Guest.Fn.«level_residual__L55_L11_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L22_L6_L3_loop1»
-
-@[expose] public section
-
-/-- `level_residual__L55_L22_L6_L3_loop1`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1334
-
-/-- `level_residual__L55_L22_L6_L3_loop1`: its index in the program. -/
-abbrev idx : ℕ := 1334
-
-end
-end LeanVM.Guest.Fn.«level_residual__L55_L22_L6_L3_loop1»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1»
-
-@[expose] public section
-
-/-- `opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1279
-
-/-- `opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1`: its index in the program. -/
-abbrev idx : ℕ := 1279
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»
-
-@[expose] public section
-
-/-- `opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1523
-
-/-- `opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0`: its index in the program. -/
-abbrev idx : ℕ := 1523
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0»
-
-@[expose] public section
-
-/-- `opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1058
-
-/-- `opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0`: its index in the program. -/
-abbrev idx : ℕ := 1058
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L2»
-
-@[expose] public section
-
-/-- `rs_eq_rows__L2`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn86
-
-/-- `rs_eq_rows__L2`: its index in the program. -/
-abbrev idx : ℕ := 86
-
-end
-end LeanVM.Guest.Fn.«rs_eq_rows__L2»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L26»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L26`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn318
-
-/-- `squeeze_point_from__L26`: its index in the program. -/
-abbrev idx : ℕ := 318
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L26»
-
-namespace LeanVM.Guest.Fn.«walk_path__L12_L5»
-
-@[expose] public section
-
-/-- `walk_path__L12_L5`: its entry, length and hints by pc. -/
-abbrev advice := Data.adviceFn1458
-
-/-- `walk_path__L12_L5`: its index in the program. -/
-abbrev idx : ℕ := 1458
-
-end
-end LeanVM.Guest.Fn.«walk_path__L12_L5»
+end LeanVM.Guest

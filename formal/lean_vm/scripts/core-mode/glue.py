@@ -50,23 +50,22 @@ def main():
     for pack, ks in sorted(packs.items()):
         ks = sorted(ks)
         a = [header(f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', 'The advice of the pack\'s functions, by stable key.'),
-             'public import Statement.Data.AdviceHints\n\nset_option linter.all false\n']
+             'public import Statement.Data.AdviceHints\n\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
         c = [header(f'LeanVM.Guest.CoreMode.GlueC.«{pack}»', 'The code of the pack\'s functions, the program\'s.'),
              'public import LeanVM.Guest.SoundFacts\n',
              ''.join(f'public import {m}\n' for m in sorted({link[adv[name[k]]] for k in ks if adv[name[k]] in link})),
              ''.join(f'public import LeanVM.Guest.Pack.«{q}».Bundle\n' for q in sorted({bpack[k] for k in ks})),
-             '\nset_option linter.all false\n']
+             '\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
+        a.append('\n/-! Each function\'s entry, length and hints by pc (`advice`) and its index in the program (`idx`). -/\n\n'
+                 'namespace LeanVM.Guest\n\n@[expose] public section\n\n')
+        c.append('\n/-! Each function\'s code is the program\'s (`code_mem`). -/\n\nnamespace LeanVM.Guest\n\npublic section\n\n')
         for k in ks:
             j = adv[name[k]]
-            a.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                     f'/-- `{k}`: its entry, length and hints by pc. -/\nabbrev advice := Data.adviceFn{j}\n\n'
-                     f'/-- `{k}`: its index in the program. -/\nabbrev idx : ℕ := {j}\n\n'
-                     f'end\nend LeanVM.Guest.Fn.«{k}»\n')
+            a.append(f'abbrev Fn.«{k}».advice := Data.adviceFn{j}\nabbrev Fn.«{k}».idx : ℕ := {j}\n')
             if j in link:
-                c.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\npublic section\n\n'
-                         f'/-- `{k}`: its code is the program\'s. -/\n'
-                         f'theorem code_mem : code ∈ Data.functions := Checked.code{j} ▸ End.fnOf_mem (by decide)\n\n'
-                         f'end\nend LeanVM.Guest.Fn.«{k}»\n')
+                c.append(f'theorem Fn.«{k}».code_mem : code ∈ Data.functions := Checked.code{j} ▸ End.fnOf_mem (by decide)\n')
+        a.append('\nend\n\nend LeanVM.Guest\n')
+        c.append('\nend\n\nend LeanVM.Guest\n')
         want[os.path.join(GUEST, 'CoreMode', 'GlueA', pack + '.lean')] = ''.join(a)
         want[os.path.join(GUEST, 'CoreMode', 'GlueC', pack + '.lean')] = ''.join(c)
     stale = []

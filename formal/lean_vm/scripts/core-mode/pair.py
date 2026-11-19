@@ -254,7 +254,15 @@ def count_loads(body):
 
 
 def collect():
-    """Each function passing `heapOk`, with what its pairing reads and the pass's result."""
+    """Each function passing `heapOk`, with what its pairing reads and the pass's result; computed once while its
+    inputs are unchanged (`memo.py`)."""
+    if '--all' in sys.argv or '--fn' in sys.argv:
+        return _collect()
+    import memo
+    return memo.cached('pair.collect', _collect)
+
+
+def _collect():
     res = {k: heap.Fn(k).run() for k in heap.scope_fns()}
     ok = sorted(k for k, f in res.items() if f.fail is None)
     reads = {k: set(res[k].wit) for k in ok}

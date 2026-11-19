@@ -10,21 +10,17 @@ module
 public import LeanVM.Guest.Pow
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L2»
+/-! Each function's powers of `g` its constants name (`pows`), checked in the kernel (`pows_ok`). -/
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `walk_path__L24_L2`: the powers of `g` its constants name. -/
-noncomputable def pows : Exec.PowTree :=
-  (.node 9223372036854775808 63 .leaf .leaf)
+noncomputable def Fn.«walk_path__L24_L2».pows : Exec.PowTree := (.node 9223372036854775808 63 .leaf .leaf)
+theorem Fn.«walk_path__L24_L2».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 
 end
 
-public section
-
-/-- `walk_path__L24_L2`: its powers are powers of `g`. -/
-theorem pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«walk_path__L24_L2»
+end LeanVM.Guest

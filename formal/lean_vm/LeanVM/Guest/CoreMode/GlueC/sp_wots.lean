@@ -12,13 +12,16 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+/-! Each function's code is the program's (`code_mem`). -/
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `sp_wots`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code20 ▸ End.fnOf_mem (by decide)
+theorem Fn.«sp_wots».code_mem : code ∈ Data.functions := Checked.code20 ▸ End.fnOf_mem (by decide)
 
 end
-end LeanVM.Guest.Fn.«sp_wots»
+
+end LeanVM.Guest

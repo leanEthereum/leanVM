@@ -12,13 +12,16 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+/-! Each function's code is the program's (`code_mem`). -/
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_sig_lean_sphincs`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code21 ▸ End.fnOf_mem (by decide)
+theorem Fn.«verify_sig_lean_sphincs».code_mem : code ∈ Data.functions := Checked.code21 ▸ End.fnOf_mem (by decide)
 
 end
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+
+end LeanVM.Guest
