@@ -105,7 +105,7 @@ def run(r, nslots, ent=None):
     q, lo, hi, S, d = r
     if lo[0] != 'num' or hi[0] != 'num':
         raise No('run bound')
-    if not (lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
+    if not max(0, hi[1] - lo[1]) < 2 ** 62:
         raise No('run bound')
     c = cell(q, nslots, ent)
     return norm_run((I.shift(c, d), S, I.num(lo[1]), I.num(hi[1])), c[1] + d)
@@ -113,9 +113,10 @@ def run(r, nslots, ent=None):
 
 def norm_run(R, off):
     """`CoreMode.rngC`'s normal form: a run of constant bounds `[a, b)` whose cell offset `off` is `2^62` or more
-    (a negative one, modulo the order of `g`) starts at `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
+    (a negative one, modulo the order of `g`), or a bound `2^62` or more (past the order), starts at
+    `(off + S·a) mod (2^64 - 1)` over `[0, b - a)`."""
     Q, S, lo, hi = R
-    if off < 2 ** 62 or lo[0] or hi[0]:
+    if lo[0] or hi[0] or (off < 2 ** 62 and lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
         return R
     return ((Q[0], (off + S * lo[1]) % I.ORD), S, I.num(0), I.num(max(0, hi[1] - lo[1])))
 
@@ -191,7 +192,14 @@ def gl_of(k):
         # frame address (`0`) its second
         np = len(CORE[k][0])
         return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
-    return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
+    if k in I.IS_LOOP:
+        if not _LINKS.get(k):
+            return {}
+        # a loop callee of `anyLink` (`CoreMode.alGl`): its links, then the caller's frame address its one ghost slot
+        g = dict(_LINKS[k])
+        g[0] = (len(CORE[k][0]), 0)
+        return g
+    return dict(_LINKS.get(k) or {})
 
 
 def ml_k(k):
@@ -230,6 +238,16 @@ def hp_facts(ms, n, ent=None):
     return [(I.mk(((q - 2, 1),), d), tuple(sorted(ks))) for (q, d), ks in sorted(by.items())]
 
 
+def hp1s(G):
+    """`CoreMode.hp1s`: the caller's cells `d` (bases `.hp 1 d`) of the entry runs' products, once each, in order."""
+    out = []
+    for r in G['preR']:
+        for b, _ in r[0][2]:
+            if b[0] == 'hp' and b[1] == 1 and b[2] not in out:
+                out.append(b[2])
+    return out
+
+
 def callee_sig(G, na, nr):
     """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words; a loop's
     runs (`postL`, `postLP`) among its guarantees."""
@@ -243,7 +261,23 @@ def callee_sig(G, na, nr):
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], na, ent)
     if any(c not in h.pre for c, _ in h.preP):
         raise No('callee pointer cell')
-    h.preR = [runX(r, na, ent) for r in G['preR']]
+    # the caller's cells its entry runs name, ghost slot `na + j` the `j`-th (`CoreMode.hp1s`, `glOfs`)
+    hp1 = hp1s(G)
+    gl = {d: (na + j, 0) for j, d in enumerate(hp1)}
+
+    def pre_run(r):
+        try:
+            return runX(r, na, ent)
+        except No:
+            # a run of constant bounds over argument entry cells and the caller's cells (`fitB`, `baseC1`, `rngLIs`)
+            if not hp1 or r[1][0] != 'num' or r[2][0] != 'num' or not all(
+                    (b[0] == 'hp' and b[1] == 1 and b[2] in gl) or
+                    (b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry'])
+                    for b, _ in r[0][2]):
+                raise
+            return runX(r, na, ent, gl=gl)
+    h.preR = [pre_run(r) for r in G['preR']]
+    h.ghosts = [('hp1', d) for d in hp1]
     h.prePR = [prun(p, na, ent) for p in G['preP']]
     if any(p[0] not in h.preR for p in h.prePR):
         raise No('callee preP cells')
@@ -368,9 +402,16 @@ def own_sig(G, np, nr, gl=None):
             h.nv.append(v)
         return h.nv.index(v)
 
+    rlocs = (I.D['comp'].get(CORE_BODY.get('k')) or {}).get('locs') or []
+    rvals = next((s[1] for s in body0 if s[0] == 'ret'), [])
+
     def base_p(b, e):
         if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np:
             return (b[1] - 2, e)
+        if b[0] == 'fr':
+            # a return cell's returned value (`CoreMode.retAtCell`)
+            v = next((v for v in rvals if v < len(rlocs) and rlocs[v] == b[1]), None)
+            return None if v is None else (v, e)
         if b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np:
             n = hp_val(body0, b[1] - 2, b[2])
             return None if n is None else (n, e)
@@ -578,9 +619,9 @@ def infer_one(k, S, allow=None, hcsig=None):
     CORE_BODY['body'] = body
     CORE_BODY['k'] = k
     own = own_sig(G, np, len(rets), gl_of(k))
-    if own.gw:
-        # own parameter words (`HSig.gw`) are not on the core route yet (`HeapK.c` asks `gw = []`)
-        raise No('own parameter words')
+    if own.gw and gl_of(k):
+        # own parameter words (`HSig.gw`) as the ghost slots only where no caller's cell is linked (`CoreMode.gwSlots`)
+        raise No('own parameter words and links')
     cs = {}
     hcs = set()
     arg_res = set()
@@ -604,6 +645,10 @@ def infer_one(k, S, allow=None, hcsig=None):
                 hcs.add((f, len(args), nr))
             else:
                 h = callee_sig(Gf, len(args), nr)
+            for a in h.ghosts:
+                # the caller's cells, its own parameters' entry cells (`CoreMode.hpArgOk`)
+                if a[0] == 'hp1' and not (2 <= a[1] and a[1] - 2 < np and a[1] < 2 ** 28 and a[1] in G['entry']):
+                    raise No('callee caller cell')
             exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')

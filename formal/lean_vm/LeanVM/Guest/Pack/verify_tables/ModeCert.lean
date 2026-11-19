@@ -8,9 +8,8 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.HcTab
+public import LeanVM.Guest.CoreMode.Gen.«verify_tables».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«verify_tables».ModeH
-public import LeanVM.Guest.Pack.«verify_tables».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -21,8 +20,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `verify_tables`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `verify_tables`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -140,10 +139,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
 
 /-- The certificates' frame interfaces: by their walks and hints, by the core route, or hypotheses.
     -/
-theorem certs_spec {T : List CoreMode.CFun} (_hT : ∀ Cf ∈ ([] : List CoreMode.CFun), Cf ∈ T) :
+theorem certs_spec {T : List CoreMode.CFun} (hT : ∀ Cf ∈ coreFns, Cf ∈ T) :
     ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=
-  Mode.fa_cons (Mode.fnSpec_walk (certs_st _ mem0) ⟨Fn.«verify_tables».modeOk,
-    Fn.«verify_tables».modeHintsOk⟩)
+  Mode.fa_cons (Mode.fnSpec_core (hT _ (List.mem_cons_self)) rfl Fn.«verify_tables».fnSpecC)
     (Mode.fa_nil)
 
 end

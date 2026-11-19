@@ -137,7 +137,7 @@ theorem addr_mod (n : ℕ) : addressOfIndex (n % (2 ^ 64 - 1)) = addressOfIndex 
   rw [← orderOf_g, pow_mod_orderOf]
 
 theorem rngC_spec {r : Mode.Rng} {q : CRun} (h : rngC r = some q) :
-    ∃ a b c t o, r.lo = .num a ∧ r.hi = .num b ∧ a < 2 ^ 62 ∧ b < 2 ^ 62 ∧ monoC r.q = some c ∧ t ≤ a ∧
+    ∃ a b c t o, r.lo = .num a ∧ r.hi = .num b ∧ a - t < 2 ^ 62 ∧ b - t < 2 ^ 62 ∧ monoC r.q = some c ∧ t ≤ a ∧
       addressOfIndex o = addressOfIndex (c.off + r.d + r.S * t) ∧
       q = ⟨⟨c.bases, o⟩, r.S, .num (a - t), .num (b - t)⟩ := by
   unfold rngC at h
@@ -147,9 +147,9 @@ theorem rngC_spec {r : Mode.Rng} {q : CRun} (h : rngC r = some q) :
     split_ifs at h with hab
     obtain ⟨c, hc, rfl⟩ := Option.map_eq_some_iff.mp h
     split_ifs with hd
-    · exact ⟨a, b, c, 0, c.off + r.d, hlo, hhi, hab.1, hab.2, hc, Nat.zero_le _, by simp, by simp⟩
-    · exact ⟨a, b, c, a, (c.off + r.d + r.S * a) % (2 ^ 64 - 1), hlo, hhi, hab.1, hab.2, hc, le_rfl, addr_mod _,
-        by simp⟩
+    · exact ⟨a, b, c, 0, c.off + r.d, hlo, hhi, by omega, by omega, hc, Nat.zero_le _, by simp, by simp⟩
+    · exact ⟨a, b, c, a, (c.off + r.d + r.S * a) % (2 ^ 64 - 1), hlo, hhi, by omega, by omega, hc, le_rfl,
+        addr_mod _, by simp⟩
   · cases h
 
 theorem valW_shiftc {w : ℕ → E} (c : CCell) (d : ℕ) :

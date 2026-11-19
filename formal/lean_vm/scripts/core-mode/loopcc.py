@@ -33,9 +33,9 @@ def candidates(S=None):
         kinds = {s[0] for s in body[:-2]}
         G = (S or {}).get(k)
         own_ptr = G is not None and bool(G['preP'] or G['postLP'])
-        # a leaf of runs over its caller's cells (`CoreMode.loopGl`: the stream-cursor loops, `callcres.ST_LOOPS`)
+        # a leaf of runs over its caller's cells (the stream-cursor loops, `callcres.ST_LOOPS`; `anyLink`'s loops)
         import callcres
-        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS):
+        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS or callc.gl_of(k)):
             out.append(k)
     return out
 
@@ -132,6 +132,14 @@ def infer_one(k, S):
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     if EM.check(k, H, sigOf) is not None:
         raise No('recheck')
+    # `CoreMode.hiRes`: a linked upper bound over the parameters, its exponent by a residual
+    gl = callc.gl_of(k) or None
+    for r in G['preR']:
+        q = loopc.run_h(r, np, gl)
+        if q is not None and q[3][0]:
+            hi = EM.cidx(q[3], np)
+            if any(b >= np for b, _ in q[3][0]) or not any(x[0] == 'lt' and x[2] == hi for x in H.res):
+                raise No('linked bound without residual')
     import callcres
     if H.res and not callcres.res_ok(k, H.res, S):
         raise No('residuals')

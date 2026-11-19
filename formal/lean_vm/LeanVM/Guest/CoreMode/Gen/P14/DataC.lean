@@ -734,9 +734,7 @@ end LeanVM.Guest.Fn.«eq_prefix_chain»
 namespace LeanVM.Guest.Fn.«grind_check__L2»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+  sig := CoreMode.HcSig.«grind_check__L2».sig
   reads := [(13, [(12, 0, .run 0 [0])]), (21, [(20, 0, .run 1 [1])]), (30, [(29, 0, .run 1 [2])]),
     (39, [(38, 0, .run 1 [3])]), (48, [(47, 0, .run 1 [4])]), (57, [(56, 0, .run 1 [5])])]
   res := [.lt (.val 7) (.num 128), .lt (.val 6) (.num 2048), .lt (.val 5) (.num 2048), .lt (.val 4) (.num 2048),

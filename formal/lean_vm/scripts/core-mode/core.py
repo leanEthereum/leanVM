@@ -57,8 +57,11 @@ def pair_mod(g, n):
 
 
 # a body of more statements (nested ones included) than `SPLIT` has its longest passes over the body checked apart
+# (`verify_tables`' and `verify_sig_lean_sphincs`': a module's memory is its heaviest declaration's)
 # (`shapeOk_of`, `honB_of`): the kernel's memory goes by declaration, not by module
-SPLIT = 10000
+SPLIT = 5000
+# a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
+RES_SPLIT = 8
 
 
 def nstmts(body):
@@ -75,6 +78,23 @@ def nstmts(body):
 
 def long_body(k):
     return nstmts(heap.CORE[k][1]) > SPLIT
+
+
+def res_chunks(k, po):
+    """The residual lists of `k`'s heap certificate (`hcert.res`'s `res0 ++ res1 ++ ...` in its pack's `DataC`), or
+    none."""
+    f = os.path.join(GEN, po[k][0], 'DataC.lean')
+    if not os.path.exists(f):
+        return []
+    s = open(f, encoding='utf-8').read()
+    i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
+    if i < 0:
+        return []
+    j = s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)
+    m = re.search(r'\n  res := \(([^)]*)\)\n', s[i:j if j > 0 else len(s)])
+    if not m:
+        return []
+    return [x.strip() for x in m.group(1).split('++')]
 
 
 DK = '(by decide +kernel)'
@@ -106,11 +126,44 @@ def common(k):
             f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok')
 
 
-def checks(k, j, frame, heap):
+_SIGS = {}
+
+
+def sig_split(k):
+    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`), its promised
+    runs one by one; the number of runs, else None."""
+    if not long_body(k):
+        return None
+    if 'S' not in _SIGS:
+        _SIGS['S'] = route.sigs()
+    G = _SIGS['S'].get(k)
+    return None if G is None else len(G['postR'])
+
+
+def sig_check(k, split):
+    """`core_sig`: one kernel evaluation, or a long body's parts (`sig_split`, a body with calls)."""
+    a = 'funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)'
+    n = sig_split(k) if split else None
+    if n is None:
+        return thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true')
+    out = (thm(k, 'core_hc', 'cfun.hc = false') +
+           thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
+           thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
+           thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true'))
+    for i in range(n):
+        out += thm(k, f'core_sigR{i}', f'CoreMode.chunkAll (CoreMode.postRP {a}) funC.sig.postR {i} = true')
+    tail = ('fun i hi ↦ absurd hi (Nat.not_lt_zero _)' if n == 0 else
+            'fun i hi ↦ by\n    interval_cases i\n    exacts [%s]' % ', '.join(f'core_sigR{i}' for i in range(n)))
+    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true', f'\n  CoreMode.all_of_chunks {n} {DK} {tail}') +
+            thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true',
+                'CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG'))
+    return out
+
+
+def checks(k, j, frame, heap, split=False):
     """The kernel's checks of function `k` on the core route (`CoreMode.CoreOk`), each heavy one its own declaration
     (its own heartbeats), hence its frame interface."""
-    return (thm(k, 'core_sig', 'CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) '
-                '(Mode.jtRng envC) = true') +
+    return (sig_check(k, split) +
             thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun funC.sig) = true') + shape(k) +
             thm(k, 'core_calls', 'code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true') +
             thm(k, 'core_jtd', 'CoreMode.jtdOk cfun envC code.chunks.flatten = true') +
@@ -135,7 +188,7 @@ def cfun_c(k, j, frame):
     past `heapwin.BUDGET`, `heap_proof`), the kernel's checks."""
     return (cfun_def(k, j, f'[], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}'),
             thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true', heap_proof(k)) +
-            checks(k, j, frame, f'.c heap_okC rfl {DK} rfl rfl {DK}'))
+            checks(k, j, frame, f'.c heap_okC rfl {DK} rfl rfl', True))
 
 
 def heap_win(k):
@@ -251,6 +304,8 @@ def main():
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
+                if sig_split(k) is not None:
+                    imps.add('LeanVM.Guest.CoreMode.SigSplit')
                 if heap_win(k):
                     imps.add(heap_win(k))
                 imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
@@ -272,6 +327,18 @@ def main():
             j = R[k]['j']
             rimps.add(quote(codes[str(j)])); rimps.add(quote(tabs[str(j)]))
             hb = '(by decide +kernel)'
+            rch = res_chunks(k, po)
+            rw = []
+            if len(rch) > RES_SPLIT:
+                fk = f'Fn.«{k}»'
+                fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
+                for c in rch:
+                    hons.append(f'theorem res{j}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
+                hons.append(f'theorem res{j}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
+                            f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
+                            f'  simp only [List.all_append, {", ".join(f"res{j}_{c}" for c in rch)}, Bool.and_self]\n')
+                rw.append(f'res{j}_ok')
+                hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if long_body(k):
                 fn = f'Fn.«{k}».cfun.fn'
                 parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
@@ -281,7 +348,7 @@ def main():
                          ('rest', f'CoreMode.honRest {j} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{j}_{nm} : {st} = true := by decide +kernel\n')
-                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest]; '
+                hb = (f'(by rw [CoreMode.honB_of hon{j}_body hon{j}_ptr hon{j}_ret hon{j}_sel hon{j}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
             decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of (by decide) Checked.code{j} '

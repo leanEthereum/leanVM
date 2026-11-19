@@ -20,7 +20,12 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_sig_lean_sphincs».cfun := CoreMode.cfOk_of (by decide) Checked.code21 Checked.core21 Checked.cert21 Checked.plumbEq21 Bridge.ProgAl.tab21 rfl rfl rfl (by decide +kernel)
+theorem hon21_body : (CoreMode.bodyCore Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
+theorem hon21_ptr : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.ptrCellB 21) = true := by decide +kernel
+theorem hon21_ret : (Bridge.stmtsOf Fn.«verify_sig_lean_sphincs».cfun.fn.body).all (CoreMode.retCellB 21) = true := by decide +kernel
+theorem hon21_sel : (CoreMode.selGo 21 Fn.«verify_sig_lean_sphincs».cfun.fn.params [] Fn.«verify_sig_lean_sphincs».cfun.fn.body || CoreMode.loopBC Fn.«verify_sig_lean_sphincs».cfun.fn) = true := by decide +kernel
+theorem hon21_rest : CoreMode.honRest 21 Fn.«verify_sig_lean_sphincs».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_sig_lean_sphincs».cfun := CoreMode.cfOk_of (by decide) Checked.code21 Checked.core21 Checked.cert21 Checked.plumbEq21 Bridge.ProgAl.tab21 rfl rfl rfl (by rw [CoreMode.honB_of hon21_body hon21_ptr hon21_ret hon21_sel hon21_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

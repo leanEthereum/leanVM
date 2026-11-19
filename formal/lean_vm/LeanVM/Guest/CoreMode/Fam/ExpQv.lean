@@ -112,12 +112,13 @@ theorem vtPQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.
 
 
 /-- **The exponent facts but `check_opening_terminal`'s at every honest instance**: `verify_tables`'
-`g_bus_mu = g^|point|`, `|point| < 33`, and `dims_g`'s first word `g^logMem`, `logMem ≤ 32`. -/
+`g_bus_mu = g^|point|`, `|point| < 33`, `dims_g`'s first word `g^logMem`, `logMem ≤ 32`, and its other six the
+tables' log-heights, below `31` (`B1.Tables.vt_pads`). -/
 theorem expQv_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpQv r J := by
   intro J hJ f σ bufs kids hJt fn hf c hc hcf hn v hv
   simp only [Res.expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
     List.not_mem_nil, or_false] at hc
-  rcases hc with ((rfl | rfl) | ⟨k, -, rfl⟩) | rfl | rfl
+  rcases hc with (((rfl | rfl) | ⟨k, -, rfl⟩) | rfl | rfl) | ⟨k, hk, rfl⟩
   · exact absurd rfl hn
   · exact absurd rfl hn
   · exact absurd rfl hn
@@ -135,6 +136,15 @@ theorem expQv_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r
     obtain ⟨-, -, hgmu, hlen, -, hlm, ⟨ds, -, hds⟩, -⟩ := hP
   · exact ⟨pt.length, hlen, hgmu⟩
   · exact ⟨lm, show lm < 33 by omega, hds 0 (by simp)⟩
+  · -- `dims_g`'s other words: the tables' log-heights, below `31`, by its body (`vt_pads`)
+    obtain ⟨args, rets, hJv⟩ := inst_valid' hr hJ hJt
+    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
+      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+    obtain ⟨-, hbJ⟩ := Res.holds_of_valid hfs hJv VerifySub.find_vt
+    obtain ⟨hVt, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) VerifySub.find_vt hbJ
+    have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+    obtain ⟨τ, -, -, h1, h2, -⟩ := Tables.vt_pads (by omega) r.img σ hVt k hk
+    exact ⟨τ, h1, h2⟩
 
 end
 

@@ -30,6 +30,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P4».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P4».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P4».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P4».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P4».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P13»
 public import LeanVM.Guest.CoreMode.Sig.«P14»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
@@ -53,36 +54,17 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«aggregate_claims».envC : Mode.Env := CoreMode.envOf
+    [Fn.«aggregate_claims_loop0».csig, Fn.«aggregate_claims_loop1».csig,
+    Fn.«aggregate_claims_loop2».csig, Fn.«batch_sumcheck__L23».csig, Fn.«grind_check__L2».csig]
+noncomputable def Fn.«aggregate_claims».funC : Mode.Fun := ⟨Fn.«aggregate_claims».entry, 233,
+    Fn.«aggregate_claims».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«aggregate_claims».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«aggregate_claims».entry, 233,
     Fn.«aggregate_claims».csig, (CoreMode.sigTrie [Fn.«aggregate_claims_loop0».csig,
     Fn.«aggregate_claims_loop1».csig, Fn.«aggregate_claims_loop2».csig,
     Fn.«batch_sumcheck__L23».csig, Fn.«grind_check__L2».csig]), 524287, advice.2.2, .nil, .nil,
-    .nil, .nil, (.node none (.node none (.node none (.node none (.node none (.node none (.node (some
-    ()) (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none .nil (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node (some ()) .nil .nil)))
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
-    .nil (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node none
-    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node none (.node
-    (some ()) .nil .nil) .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))))
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node (some ()) .nil
-    .nil))))) (.node none (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil
-    .nil) .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none
-    .nil (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node
-    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node
-    (some ()) .nil .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil .nil)))))), .nil, .nil⟩
+    .nil, .nil, Fn.«aggregate_claims».pairO, Fn.«aggregate_claims».pairS, .nil⟩
 
 theorem Fn.«aggregate_claims».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

@@ -2579,17 +2579,7 @@ end LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3»
 namespace LeanVM.Guest.Fn.«shared_selector_tables»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.val 5)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.val 5)⟩,
-        ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.val 5)⟩,
-        ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.val 5)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.val 5)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 4, (.num 0), (.val 5)⟩, ⟨⟨[(1, 1)], 1⟩, 4, (.num 0), (.val 5)⟩,
-        ⟨⟨[(1, 1)], 2⟩, 4, (.num 0), (.val 5)⟩, ⟨⟨[(1, 1)], 3⟩, 4, (.num 0), (.val 5)⟩,
-        ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.val 5)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.val 5)⟩] }
+  sig := CoreMode.HcSig.«shared_selector_tables».sig
   reads := []
   res := [.under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 0⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),
     .under [.nonzero 44] (.subR ⟨⟨[(2, 1)], 1⟩, 4, (.num 0), (.mono ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], 0⟩)⟩ ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.val 5)⟩),

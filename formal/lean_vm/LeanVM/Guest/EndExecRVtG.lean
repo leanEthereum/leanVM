@@ -122,7 +122,9 @@ keys are nonzero. -/
 theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 32) {ds : List E}
     (hds : TbReadsAt Lm.read (σ (.n 10)) (gen ^ lm :: ds)) (hE : ExpTablesAt Lm.read (σ (.n 12))) :
     (∀ g < 9, ∃ r < 9, σ (.n (vtRv 112 r)) = gen ^ g) ∧
-      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 := by
+      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 ∧
+      (∀ r < 9, ∃ e < 9, σ (.n (vtRv 112 r)) = gen ^ e) ∧
+      (∀ r < 6, ∃ e, 18 ≤ e ∧ e < 24 ∧ σ (.n (vtRv 409 r)) = gen ^ e) := by
   obtain ⟨k0, kl⟩ := vt_kb h
   have hpads := vt_pads hμ Lm σ h
   obtain ⟨τ, hτ⟩ := tb_exists_fun_of_forall (α := ℕ) (n := 6)
@@ -205,13 +207,18 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
     hsideT hS2 (by norm_num) (fun e he1 he2 ↦ by
       have := hkeyK (e - 9) (by omega)
       simpa [vtGi, show ¬(e - 9 < 9) by omega, show e - 9 + 9 = e by omega] using this)
-  refine ⟨fun g hg ↦ by simpa using hPs g hg, hCs, fun h0 ↦ ?_, fun h0 ↦ ?_⟩
+  refine ⟨fun g hg ↦ by simpa using hPs g hg, hCs, fun h0 ↦ ?_, fun h0 ↦ ?_,
+    fun r hr ↦ ?_, fun r hr ↦ ?_⟩
   · obtain ⟨e, -, -, -, hk⟩ := hPr 1 (by norm_num)
     rw [show vtRv 112 1 + 8 = 133 from rfl, h0, zero_mul] at hk
     exact Value.gen_pow_ne_zero _ hk.symm
   · obtain ⟨e, -, -, -, hk⟩ := hCr 1 (by norm_num)
     rw [show vtRv 409 1 + 8 = 430 from rfl, h0, zero_mul] at hk
     exact Value.gen_pow_ne_zero _ hk.symm
+  · obtain ⟨e, -, he, hσ, -⟩ := hPr r hr
+    exact ⟨e, by omega, hσ⟩
+  · obtain ⟨e, h1, h2, hσ, -⟩ := hCr r hr
+    exact ⟨e, h1, h2, hσ⟩
 
 end
 
@@ -233,7 +240,9 @@ theorem vt_inst (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
 theorem vt_groups_at (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node "verify_tables" σ bufs kids) :
     (∀ g < 9, ∃ r < 9, σ (.n (vtRv 112 r)) = gen ^ g) ∧
-      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 := by
+      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 ∧
+      (∀ r < 9, ∃ e < 9, σ (.n (vtRv 112 r)) = gen ^ e) ∧
+      (∀ r < 6, ∃ e, 18 ≤ e ∧ e < 24 ∧ σ (.n (vtRv 409 r)) = gen ^ e) := by
   obtain ⟨hH, pi, lm, w, pt, vals, hP⟩ := vt_inst hr hJ hJt
   rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
     σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13),
@@ -248,7 +257,7 @@ theorem nzVal_vt133 : NzVal "verify_tables" (.n 133) := fun _ hr _ hI _ _ _ hIt 
 
 /-- **Rank `1`'s count key is nonzero.** -/
 theorem nzVal_vt430 : NzVal "verify_tables" (.n 430) := fun _ hr _ hI _ _ _ hIt ↦
-  (vt_groups_at hr hI hIt).2.2.2
+  (vt_groups_at hr hI hIt).2.2.2.1
 
 /-! ## The families at the honest frames -/
 
@@ -322,7 +331,7 @@ theorem vtGrp_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : vtGrp
   simp only [vtGrpB, Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true, decide_eq_true_eq] at hx
   obtain ⟨hname, hx⟩ := hx
   obtain ⟨hj, bufs, kids, hJt⟩ := vt_top_idx t hname
-  obtain ⟨hP, hC, -, -⟩ := vt_groups_at hr t.inst hJt
+  obtain ⟨hP, hC, -, -, -, -⟩ := vt_groups_at hr t.inst hJt
   obtain ⟨cP, cC⟩ := vtLoad_cells
   rcases hx with rfl | rfl
   · refine vtGrp_rsub fun x _ hx ↦ ?_
