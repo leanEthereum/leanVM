@@ -354,7 +354,7 @@ jobs:
             done
           done
       - name: Build and run a consumer against the module
-        run: sh bindings/go/scripts/consumer-smoke.sh go-module/proxy "${RELEASE_TAG#bindings-v}"
+        run: sh bindings/go/scripts/consumer-smoke.sh go-module "${RELEASE_TAG#bindings-v}"
 
   # Attaches the module's proxy files to the release, then has the Website workflow serve them.
   go-publish:
