@@ -643,7 +643,7 @@ jobs:
             if latest=$(npm view "$name" version 2>/dev/null); then
               echo "$name exists on npm (latest $latest)"
             else
-              echo "::warning::$name is not on npm yet; its first publish needs the NPM_TOKEN secret (bindings/node/README.md)"
+              echo "::warning::$name is not on npm yet; its first publish needs the NPM_TOKEN secret (bindings/RELEASING.md)"
             fi
           done
 
@@ -705,7 +705,7 @@ jobs:
   #   workflow:    bindings-release.yml
   #   environment: npm          (must match `environment.name` below)
   # npm can only attach a trusted publisher to a package that already exists, so the first publish
-  # of each package uses an NPM_TOKEN secret; see bindings/node/README.md. npm tries trusted
+  # of each package uses an NPM_TOKEN secret; see bindings/RELEASING.md. npm tries trusted
   # publishing first and falls back to the token. Already-published versions are skipped, so a
   # failed run can be re-dispatched on the same tag.
   node-publish:
@@ -813,7 +813,7 @@ jobs:
 
   # Assembles io.github.crate-crypto:lean-pq with all four libraries, runs the consumer against it
   # and publishes it to Maven Central through the Central Portal. The plugin signs every file and
-  # releases the deployment once the Portal validates it. See bindings/java/README.md for the secrets.
+  # releases the deployment once the Portal validates it. See bindings/RELEASING.md for the secrets.
   java-publish:
     name: Publish to Maven Central
     needs: java-native
@@ -856,7 +856,7 @@ jobs:
           missing=0
           for name in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD SIGNING_KEY SIGNING_PASSWORD; do
             if [ -z "$(printenv "$name")" ]; then
-              echo "::error::repository secret $name is not set; see bindings/java/README.md"
+              echo "::error::repository secret $name is not set; see bindings/RELEASING.md"
               missing=1
             fi
           done
@@ -921,45 +921,3 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"
-
-  # The leanvm-sidecar executables the bindings' aggregation talks to, for a CPU baseline (x86_64:
-  # AVX2 and PCLMULQDQ, as the bindings), on the oldest glibc runners, checked to start.
-  sidecar:
-    name: Sidecar / ${{ matrix.asset }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - asset: leanvm-sidecar-x86_64-linux
-            runner: ubuntu-22.04
-            rustflags: -C target-cpu=x86-64-v3 -C target-feature=+pclmulqdq
-          - asset: leanvm-sidecar-aarch64-linux
-            runner: ubuntu-22.04-arm
-            rustflags: -C target-feature=+aes
-          - asset: leanvm-sidecar-aarch64-macos
-            runner: macos-15
-            rustflags: -C target-cpu=apple-m1
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build
-        env:
-          RUSTFLAGS: ${{ matrix.rustflags }}
-        run: |
-          cargo build --release --locked -p leanvm-sidecar --features experimental_prover
-          cp target/release/leanvm-sidecar "${{ matrix.asset }}"
-      - name: Check it starts
-        run: sh bindings/scripts/start-sidecar.sh "${{ matrix.asset }}" "$RUNNER_TEMP/sc"
-      - name: Attach to the GitHub release
-        if: startsWith(github.ref, 'refs/tags/bindings-v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: sh .github/scripts/attach-release-assets.sh "${{ matrix.asset }}"
-      - name: Install it through the install script, and start it
-        if: startsWith(github.ref, 'refs/tags/bindings-v')
-        run: |
-          sh bindings/scripts/install-sidecar.sh --version "${RELEASE_TAG#bindings-v}" --root "$RUNNER_TEMP/installed"
-          sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/installed/bin/leanvm-sidecar" "$RUNNER_TEMP/sc-installed"
