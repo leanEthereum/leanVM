@@ -113,9 +113,10 @@ jobs:
           args: --out ../../dist
           working-directory: bindings/python
       # maturin packages the leanVM path dependencies' crate directories, but `aggregation` also
-      # compiles in guests/lean_ethereum.py from the repository root.
-      - name: Add the guest program to the sdist
-        run: sh bindings/python/scripts/add-guest-to-sdist.sh dist/py_lean_pq-*.tar.gz
+      # compiles in guests/lean_ethereum.py from the repository root, and the build needs
+      # bindings/.cargo/config.toml's portable CPU baseline.
+      - name: Add the guest program and the cargo config to the sdist
+        run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-sdist
