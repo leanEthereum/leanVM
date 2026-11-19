@@ -186,6 +186,44 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 
+namespace LeanVM.Guest.Fn.«da_expand__L6_L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_expand__L6_L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `da_expand__L6_L7`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨247981, 658, Fn.«da_expand__L6_L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_expand__L6_L7»
+
+namespace LeanVM.Guest.Fn.«da_expand__L13_L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_expand__L13_L7`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `da_expand__L13_L7`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨249283, 658, Fn.«da_expand__L13_L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«da_expand__L13_L7»
+
 namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

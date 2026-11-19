@@ -1034,12 +1034,14 @@ def dstIn (body : List Stmt) (v : V) : Bool :=
     | _ => false
 
 /-- **A frame run's cells at a return state `A`**: from its first value's cell `c` on, each cell `c + k` whose value an
-atom of the body defines is written. -/
-noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (A : FSt) : Stmt → Bool
-  | .atom (.frameAddr _ (r :: rs)) => (List.range (rs.length + 1)).all fun k ↦
+atom of the body defines is written, and each cell `c + i` past the run the certificate's frame run cells `fas` list
+(`(kp, i)`, its pointer `V.n kp`). -/
+noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (ℕ × ℕ)) (A : FSt) : Stmt → Bool
+  | .atom (.frameAddr p (r :: rs)) => ((List.range (rs.length + 1)).all fun k ↦
       !(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome
+        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome) &&
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
   | _ => true
 
 /-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
@@ -1047,7 +1049,7 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (A : FSt) : S
 noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   !faNeed Cf || (List.range code.length).all fun i ↦ match code[i]? with
     | some (.jump _ 0 1) => match retSt Cf.frame code i with
-      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body A)
+      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body Cf.H.fas A)
       | none => false
     | _ => true
 

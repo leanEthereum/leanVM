@@ -289,19 +289,23 @@ def atomDst : Atom → List V
   | _ => []
 
 /-- **A frame run's cell at return**: the cell `p·g^i` of a `frameAddr p run` on the path, whose value
-`run[i]` an atom on the path defines (the frame cell holding it, written by then). -/
-def FAW (σ : Val) (es : List Ev) (x : K) : Prop :=
-  ∃ p run i v, Ev.atom (.frameAddr p run) ∈ es ∧ run[i]? = some v ∧ (∃ a, Ev.atom a ∈ es ∧ v ∈ atomDst a) ∧
-    x = cellAt σ p i
+`run[i]` an atom on the path defines (the frame cell holding it, written by then); or, past the run, a cell `(kp, i)`
+of the certificate's frame run cells `fas` (`i` at least the run's length), which the frame walk has written at the
+returns (`faRetOk`). -/
+def FAW (σ : Val) (fas : List (ℕ × ℕ)) (es : List Ev) (x : K) : Prop :=
+  (∃ p run i v, Ev.atom (.frameAddr p run) ∈ es ∧ run[i]? = some v ∧ (∃ a, Ev.atom a ∈ es ∧ v ∈ atomDst a) ∧
+    x = cellAt σ p i) ∨
+  ∃ kp i run, (kp, i) ∈ fas ∧ Ev.atom (.frameAddr (V.n kp) run) ∈ es ∧ run ≠ [] ∧ run.length ≤ i ∧
+    x = cellAt σ (V.n kp) i
 
 /-- **The guarantees at return are written**, at the parameters' words `ws0` and the returned `vs`: by the
 events, or a frame run's cells (`FAW`). -/
 def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
     (vs : List V) : Prop :=
-  SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
-    PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
-    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) ∧
-    SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
+  SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) ∧
+    SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
 def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
@@ -1969,19 +1973,21 @@ def topAtoms : List Stmt → List Atom
 /-- The value numbers the atoms define (`atomDst`), as a trie. -/
 noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
 
-/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number). -/
+/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number), or past a
+nonempty run. -/
 noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
   | .frameAddr p run => (match vnum p with
       | some k => Nat.beq k kp
-      | none => false) && (match run[i]? with
+      | none => false) && ((match run[i]? with
       | some v => match vnum v with
         | some k => (getF D k).isSome
         | none => false
-      | none => false)
+      | none => false) || (!run.isEmpty && Nat.ble run.length i))
   | _ => false
 
 /-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
-`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`). -/
+`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`), or past a nonempty
+run. -/
 noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
   | [] => true
   | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l

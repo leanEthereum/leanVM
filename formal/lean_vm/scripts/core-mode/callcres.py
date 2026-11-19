@@ -485,8 +485,9 @@ def leaf_candidates():
     pointer runs (`postP`), which milestone 1's does not state."""
     import heap, route
     S = route.sigs()
+    import callc
     return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and
-                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP'])))
+                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP']) or callc.has_fa(I.CORE[k][1])))
 
 
 def extend(out, why, S, verbose=False):

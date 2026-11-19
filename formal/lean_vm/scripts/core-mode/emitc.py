@@ -1437,7 +1437,7 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body)
+    H.fas = C.fa_pairs(body) + C.FA_EXTRA.get(k, [])
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []

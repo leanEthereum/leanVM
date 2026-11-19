@@ -629,6 +629,10 @@ def infer_one(k, S, allow=None, hcsig=None):
         raise No('own signature dropped')
     sigOf = lambda g: sigs.get(I.callee(g), EM.C.EMPTY)
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+    if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
+        # with frame run cells past their runs, which the frame walk has written at the returns (`CoreMode.FAW`)
+        EM.C.FA_EXTRA[k] = fa_past(k)
+        H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
@@ -654,6 +658,33 @@ def infer_one(k, S, allow=None, hcsig=None):
         if EM.check(k, H, sigOf) is not None:
             H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+FA_PAST = {}
+
+
+def fa_past(k):
+    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`, which needs
+    `MODE_CERT_CACHE`), as `(kp, i)`; none without it."""
+    if k in FA_PAST:
+        return FA_PAST[k]
+    FA_PAST[k] = []
+    if not os.environ.get('MODE_CERT_CACHE'):
+        return []
+    import subprocess, json, heapc
+    body = CORE[k][1]
+    locs = I.D['comp'][k]['locs']
+    fas = []
+    for s in body:
+        if not heapc._noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
+            fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
+    if fas:
+        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps({k: fas}),
+                           capture_output=True, text=True, check=True)
+        FA_PAST[k] = [tuple(p) for p in json.loads(r.stdout).get(k, [])]
+    return FA_PAST[k]
 
 
 def has_fa(body):

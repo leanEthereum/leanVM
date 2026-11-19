@@ -254,14 +254,15 @@ theorem pow_of_ofK {a b : ℕ} (h : ofK ((g : K) ^ a) = ofK (g ^ b)) : (g : K) ^
 
 /-- A body without `frameAddr` atoms guarantees no frame run cell (`FAW`). -/
 theorem noFAW {body : List Stmt} (h : noFA body = true) {σ : Val} {es : List Ev} {vs : List V}
-    (hw : walk σ body = .ret es vs) (x : K) : ¬ FAW σ es x := by
-  rintro ⟨p, run, i, v, he, -⟩
-  have hs := Bridge.walk_atomS body (by rw [hw]; exact he)
-  have := List.all_eq_true.mp h _ hs
-  simp at this
+    (hw : walk σ body = .ret es vs) {fas : List (ℕ × ℕ)} (x : K) : ¬ FAW σ fas es x := by
+  rintro (⟨p, run, i, v, he, -⟩ | ⟨kp, i, run, -, he, -⟩) <;>
+  · have hs := Bridge.walk_atomS body (by rw [hw]; exact he)
+    have := List.all_eq_true.mp h _ hs
+    simp at this
 
 theorem postOkW_of {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E} {es : List Ev}
-    {vs : List V} (hn : ∀ x, ¬ FAW σ es x) (h : PostOkC sigOf H rd σ ws0 es vs) : PostOkW sigOf H rd σ ws0 es vs :=
+    {vs : List V} (hn : ∀ x, ¬ FAW σ H.fas es x) (h : PostOkC sigOf H rd σ ws0 es vs) :
+    PostOkW sigOf H rd σ ws0 es vs :=
   ⟨h.1.mono fun x hx ↦ hx.resolve_right (hn x), fun x hx ↦ (h.2.1 x hx).resolve_right (hn x),
     fun x hx ↦ (h.2.2.1 x hx).resolve_right (hn x), h.2.2.2.mono fun x hx ↦ hx.resolve_right (hn x)⟩
 
@@ -307,7 +308,7 @@ theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List
 /-- **A guarantee written at return**: by the events, or a frame run's cell where frame run cells are guaranteed
 (`faNeed`; written by the walk's facts at the returns, `faw_wrk`). -/
 def WrF (Cf : CFun) (rd : Reader) (σ : Val) (es : List Ev) (x : K) : Prop :=
-  WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es x ∨ (faNeed Cf = true ∧ FAW σ es x)
+  WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es x ∨ (faNeed Cf = true ∧ FAW σ Cf.H.fas es x)
 
 /-- **The heap facts of an honest path**, each call's callee's returned words given: its parameters `V.n k`;
 every event's needs written before it; the promised cells and the signature's runs written by the end, at the
@@ -2041,33 +2042,47 @@ frame run's cell 0 (`HonB.fa`). -/
 theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryImage κ} {s s1 : St} {i c : ℕ}
     (hi : i < M.code.length) (hci : M.code[i]? = some (.jump c 0 1)) (hat : AtF img Cf.frame M.code i s)
     (hle : s.mem ≤ s1.mem) (hfine : Fine (refMem img) s1) {σ : Val} (hσ : HonB img Cf s.fp σ) {es : List Ev}
-    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hn : faNeed Cf = true) {x : K} (h : FAW σ es x) :
+    {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hn : faNeed Cf = true) {x : K} (h : FAW σ Cf.H.fas es x) :
     WrK s1.mem x := by
-  obtain ⟨p, run, k, v, hfa, hrk, ⟨a, ha, hva⟩, rfl⟩ := h
-  cases run with
-  | nil => simp at hrk
-  | cons r rs =>
   have hr := hok.faret
   simp only [faRetOk, hn, Bool.not_true, Bool.false_or, List.all_eq_true, List.mem_range] at hr
   have hr' := hr i hi
   rw [hci] at hr'
   obtain ⟨A, hA, hH⟩ := atF_ret hok.frame.2.1 hok.frame.2.2 hi hat
   simp only [hA, List.all_eq_true] at hr'
-  have hfa' := hr' _ (Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact hfa))
-  have hp := hσ.fa hn es vs hw p r rs hfa
-  simp only [faRetAt, List.all_eq_true, List.mem_range] at hfa'
-  have hk : k < rs.length + 1 := by simpa using (List.getElem?_eq_some_iff.mp hrk).1
-  have hkk := hfa' k hk
-  have hdst : dstIn Cf.fn.body v = true := by
-    unfold dstIn
-    exact List.any_eq_true.mpr ⟨.atom a, Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact ha), by simpa using hva⟩
-  rw [hrk] at hkk
-  simp only [hdst, Bool.not_true, Bool.false_or, Option.isSome_iff_exists] at hkk
-  obtain ⟨u, hu⟩ := hkk
-  have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hu)
-  refine ⟨s.fp + (Cf.X.locAt r.idx + k), ?_, written_lt hfine hwr, hwr⟩
-  simp only [cellAt, hp, limb_ofK, addressOfIndex, pow_add]
-  simp [mul_assoc]
+  -- a frame run's cell `k` written in the walk's state, at its address
+  have hcell : ∀ (p r : V) (rs : List V) (k : ℕ), Ev.atom (.frameAddr p (r :: rs)) ∈ es →
+      (A.w.get (Cf.X.locAt r.idx + k)).isSome = true → WrK s1.mem (cellAt σ p k) := by
+    intro p r rs k hfa hkk
+    have hp := hσ.fa hn es vs hw p r rs hfa
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hkk
+    have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hu)
+    refine ⟨s.fp + (Cf.X.locAt r.idx + k), ?_, written_lt hfine hwr, hwr⟩
+    simp only [cellAt, hp, limb_ofK, addressOfIndex, pow_add]
+    simp [mul_assoc]
+  rcases h with ⟨p, run, k, v, hfa, hrk, ⟨a, ha, hva⟩, rfl⟩ | ⟨kp, k, run, hm, hfa, hne, hle', rfl⟩
+  · cases run with
+    | nil => simp at hrk
+    | cons r rs =>
+    have hfa' := hr' _ (Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact hfa))
+    simp only [faRetAt, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hfa'
+    have hk : k < rs.length + 1 := by simpa using (List.getElem?_eq_some_iff.mp hrk).1
+    have hkk := hfa'.1 k hk
+    have hdst : dstIn Cf.fn.body v = true := by
+      unfold dstIn
+      exact List.any_eq_true.mpr ⟨.atom a, Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact ha), by simpa using hva⟩
+    rw [hrk] at hkk
+    simp only [hdst, Bool.not_true, Bool.false_or] at hkk
+    exact hcell p r rs k hfa hkk
+  · cases run with
+    | nil => exact absurd rfl hne
+    | cons r rs =>
+    have hfa' := hr' _ (Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact hfa))
+    simp only [faRetAt, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hfa'
+    have hq := hfa'.2 (kp, k) hm
+    have hb : Nat.ble (rs.length + 1) k = true := Nat.ble_eq.mpr (by simpa using hle')
+    simp only [hb, decide_true, Bool.and_true, Bool.not_true, Bool.false_or] at hq
+    exact hcell (V.n kp) r rs k hfa hq
 
 /-- **The frame walk's residual divisors are nonzero** in the reference: each written in the walk's state at its
 offset (`atF_ret`) and a nonzero residual of the mode certificate there (`nzrOk`), which `ResAt` makes hold. -/

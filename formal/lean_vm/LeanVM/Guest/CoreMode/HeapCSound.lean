@@ -4801,9 +4801,10 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
       · exact Or.inr (by rw [hu]; rfl)
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
-its value defined by one of them. -/
+its value defined by one of them, or past a nonempty run. -/
 theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
-    ∀ p ∈ fas, ∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a
+    ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
   | [], _, p, hp => by simp at hp
   | (kp, i) :: l, h, p, hp => by
     simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
@@ -4811,7 +4812,7 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
     · obtain ⟨a, ha, hfa⟩ := h.1
       cases a with
       | frameAddr q run =>
-        simp only [faAt, Bool.and_eq_true] at hfa
+        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
         obtain ⟨hq, hv⟩ := hfa
         cases hqn : vnum q with
         | none => rw [hqn] at hq; cases hq
@@ -4820,21 +4821,26 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
           have hk : k = kp := Nat.eq_of_beq_eq_true hq
           subst hk
           rw [vnum_eq hqn] at ha
-          cases hri : run[i]? with
-          | none => rw [hri] at hv; cases hv
-          | some v =>
-            simp only [hri] at hv
-            cases hvn : vnum v with
-            | none => simp only [hvn] at hv; cases hv
-            | some k' =>
-              simp only [hvn] at hv
-              rcases getF_keysT _ _ hv with hm | hm
-              · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-                obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-                refine ⟨run, v, ha, hri, a', ha', ?_⟩
-                rw [vnum_eq hvn, ← vnum_eq hv'n]
-                exact hva'
-              · simp [getF_nil] at hm
+          rcases hv with hv | hv
+          · left
+            cases hri : run[i]? with
+            | none => rw [hri] at hv; cases hv
+            | some v =>
+              simp only [hri] at hv
+              cases hvn : vnum v with
+              | none => simp only [hvn] at hv; cases hv
+              | some k' =>
+                simp only [hvn] at hv
+                rcases getF_keysT _ _ hv with hm | hm
+                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
+                  rw [vnum_eq hvn, ← vnum_eq hv'n]
+                  exact hva'
+                · simp [getF_nil] at hm
+          · right
+            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+            exact ⟨run, ha, hv.1, hv.2⟩
       | _ => simp [faAt] at hfa
     · exact faOk_spec h.2 p hp
 
@@ -4847,10 +4853,11 @@ theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x :
 /-- The frame run cells the certificate guarantees at return are frame run cells of the path. -/
 theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
     (hfa : faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas = true) (hw : walk σ f.body = .ret es vs)
-    {x : K} (h : FAX H σ x) : FAW σ es x := by
+    {x : K} (h : FAX H σ x) : FAW σ H.fas es x := by
   obtain ⟨p, hp, rfl⟩ := h
-  obtain ⟨run, v, hfr, hv, a, ha, hva⟩ := faOk_spec hfa p hp
-  exact ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  rcases faOk_spec hfa p hp with ⟨run, v, hfr, hv, a, ha, hva⟩ | ⟨run, hfr, hne, hle⟩
+  · exact Or.inl ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  · exact Or.inr ⟨p.1, p.2, run, hp, topAtoms_on_path hw _ hfr, hne, hle, rfl⟩
 
 /-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
 that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
