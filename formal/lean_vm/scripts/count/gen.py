@@ -450,10 +450,16 @@ def main():
                                     'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
+    if a.cmd == 'callees':
+        # From the core IR alone, before the back end's tables exist (`guest-tables` imports the callees' check).
+        guest = os.path.join(a.lean_vm, 'LeanVM', 'Guest')
+        fns = core.load(os.path.join(guest, 'Data'), a.cache)
+        family.write_callees(os.path.join(guest, 'Memory'), fns)
+        print('callees: %d functions' % len(fns))
+        return
     g = G(a.lean_vm, a.cache)
     if a.cmd == 'report': cmd_report(g)
     elif a.cmd == 'words': cmd_words(g)
-    elif a.cmd == 'callees': cmd_callees(g)
     elif a.cmd == 'cnt': cmd_cnt(g)
     elif a.cmd == 'static': cmd_static(g)
     elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)

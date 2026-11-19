@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export programs core changes vt deployed memory whir count tables decoder backend
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export programs core changes vt memory deployed whir count tables decoder backend traced pieces cpleval
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -22,7 +22,10 @@
 # benchmark and the fixtures load, and the core IR `Expand` gives each program of the front end's regression
 # corpus (`tests/frontend/*.core`, from `tests/frontend/*.py`). The `backend`
 # step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
-# (`guest-oblgen`).
+# (`guest-oblgen`); the `traced`, `pieces` and `cpleval` steps its kernel-checked compilation of the
+# guest (`guest-traced`, `guest-pieces`, `guest-pieces test`) and the completeness checks' evaluation
+# modules (`guest-cpleval`). What the steps write whole is not committed (`formal/.gitignore`): on a
+# fresh checkout this script writes it before the first build that reads it.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() from=export jobs=()
@@ -35,7 +38,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export programs core changes vt deployed memory whir count tables decoder backend)
+steps=(export programs core changes vt memory deployed whir count tables decoder backend traced pieces cpleval)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -65,7 +68,7 @@ parts_core=(core_ir core_names) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_deployed=(deployed) targets_deployed=(guest-tables)
-parts_memory=(memory) targets_memory=(guest-memory)
+parts_memory=(count_callees memory) targets_memory=(guest-memory)
 parts_whir=(whir_data whir_mat_plan whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
@@ -73,6 +76,9 @@ parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Gues
 parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.CoreData LeanVM.Cost.Decoder.GuestPlaces guest-tables)
 parts_backend=(backend_obl) targets_backend=(guest-oblgen LeanVM.Guest.CoreData
   LeanVM.Guest.B1.Opening.Interface)
+parts_traced=(traced) targets_traced=(guest-traced)
+parts_pieces=(pieces pieces_test) targets_pieces=(guest-pieces)
+parts_cpleval=(cpleval) targets_cpleval=(guest-cpleval)
 
 part_export() {
   step "export: the compiled guest (guest-artifact), then bytecode, source, programs (guest-export, from leanVM's sources)"
@@ -135,6 +141,12 @@ part_memory() {
   gen guest-memory
 }
 
+part_count_callees() {
+  # Before the back end's tables: `guest-tables` imports the callees' check.
+  step "memory: every function's callees (scripts/count/gen.py callees)"
+  in_place count/gen.py python3 -I scripts/count/gen.py . callees
+}
+
 part_whir_data() {
   step "whir: the stacked opening's templates (whir-data)"
   python3 -I scripts/whir-data "${check[@]}"
@@ -187,6 +199,27 @@ part_backend_obl() {
   step "backend: the soundness obligations' guest tables and evaluation modules (guest-oblgen)"
   lakebuild "${targets_backend[@]}"
   capped lake env .lake/build/bin/guest-oblgen "${check[@]}"
+}
+
+part_traced() {
+  step "traced: the guest's traced input to the back end (guest-traced)"
+  gen guest-traced
+}
+
+part_pieces() {
+  step "pieces: the kernel's checks of the guest's compilation (guest-pieces)"
+  gen guest-pieces
+}
+
+part_pieces_test() {
+  step "pieces: the compiled test program from its pieces (guest-pieces test)"
+  lakebuild guest-pieces
+  capped .lake/build/bin/guest-pieces test "${check[@]}"
+}
+
+part_cpleval() {
+  step "cpleval: the completeness checks' evaluation modules (guest-cpleval)"
+  gen guest-cpleval
 }
 
 selected=() started=
