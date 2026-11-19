@@ -10,9 +10,7 @@ env:
   # the version as ${RELEASE_TAG#bindings-v}. Dispatching this workflow from a branch is a dry run:
   # every build and check runs at version 0.0.0, and nothing is published or uploaded.
   RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/bindings-v') && github.ref_name || 'bindings-v0.0.0' }}
-  # Python interpreters to build wheels against. Multi-line so
-  # actions/setup-python installs all of them; maturin-action picks
-  # them up via --find-interpreter inside the manylinux container.
+  # Python interpreters to build wheels against, one per line for actions/setup-python.
   PYTHON_VERSIONS: |
     3.11
     3.12
@@ -23,9 +21,7 @@ permissions:
   contents: read
 
 jobs:
-  # manylinux2014 wheels for glibc-based Linux distros (the common case)
-  # plus macOS and Windows. Linux x86_64 and aarch64 cover the realistic install base
-  # for v0.0.x; add x86/armv7/s390x/ppc64le later if anyone asks.
+  # Wheels for glibc Linux (manylinux2014), macOS and Windows.
   build:
     name: ${{ matrix.platform.runner }} / ${{ matrix.platform.target }}
     runs-on: ${{ matrix.platform.runner }}
@@ -54,19 +50,14 @@ jobs:
           command: build
           args: --release --out ../../dist --find-interpreter
           working-directory: bindings/python
-          # manylinux: auto picks the right manylinux container per target.
-          # The container is isolated from the runner, so --find-interpreter
-          # tells maturin to discover the Pythons inside (mounted by the
-          # action) instead of the runner-installed ones on PATH.
+          # --find-interpreter finds the Pythons inside the manylinux container, not the runner's.
           manylinux: auto
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist/*.whl
 
-  # musllinux wheels for Alpine / musl-based distros (Docker base images,
-  # some CI runners, etc.). Without these, musl users would fall back to
-  # building from sdist on every install: slow but functional.
+  # musllinux wheels for Alpine and other musl distros, which would otherwise build the sdist.
   musllinux:
     name: musllinux / ${{ matrix.platform.target }}
     runs-on: ${{ matrix.platform.runner }}
@@ -96,9 +87,7 @@ jobs:
           name: wheels-musllinux-${{ matrix.platform.target }}
           path: dist/*.whl
 
-  # Source distribution as a fallback for platforms we don't ship wheels
-  # for (less-common archs, etc.). pip falls back to sdist when
-  # no compatible wheel exists; users get a from-source build.
+  # The source distribution pip builds where no wheel fits.
   sdist:
     name: sdist
     runs-on: ubuntu-latest
@@ -110,9 +99,6 @@ jobs:
           command: sdist
           args: --out ../../dist
           working-directory: bindings/python
-      # maturin packages the leanVM path dependencies' crate directories, but `aggregation` also
-      # compiles in guests/lean_ethereum.py from the repository root, and the build needs
-      # bindings/.cargo/config.toml's portable CPU baseline.
       - name: Add the guest program and the cargo config to the sdist
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
       - uses: actions/upload-artifact@v4
@@ -167,8 +153,7 @@ jobs:
     name: Publish to PyPI
     needs: [build, musllinux, sdist, windows-wheel-test]
     runs-on: ubuntu-latest
-    # PyPI Trusted Publishing: py-lean-pq's trusted publishers on PyPI must
-    # include this one, which these claims name:
+    # PyPI trusted publishing; py-lean-pq's trusted publisher on PyPI names:
     #   repo:        leanEthereum/leanVM
     #   workflow:    bindings-release.yml
     #   environment: pypi          (must match `environment.name` below)
@@ -229,7 +214,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: zig-native-${{ matrix.platform.bundle_dir }}
-          path: native/${{ matrix.platform.bundle_dir }}/liblean_pq_native.a
+          path: native/
           if-no-files-found: error
 
   # The Zig package consumers add with `zig fetch --save URL`, attached to the GitHub release.
@@ -243,12 +228,12 @@ jobs:
         with:
           path: native
           pattern: zig-native-*
+          merge-multiple: true
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.16.0
       - name: Assemble package
         run: |
-          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
           version=${RELEASE_TAG#bindings-v}
           sh bindings/zig/scripts/package.sh "$version" native "dist/lean-pq-zig-$version.tar.gz" | tee package.log
           for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
@@ -314,17 +299,15 @@ jobs:
         with:
           path: native
           pattern: zig-native-*
+          merge-multiple: true
       - uses: actions/setup-go@v7
         with:
           go-version-file: bindings/go/go.mod
           cache: false
       - name: Assemble the module
         run: |
-          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
           rustup component add llvm-tools
-          llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
-          LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/go/scripts/assemble-module.sh "${RELEASE_TAG#bindings-v}" native go-module
+          sh bindings/go/scripts/assemble-module.sh "${RELEASE_TAG#bindings-v}" native go-module
       - uses: actions/upload-artifact@v4
         with:
           name: go-module
@@ -429,13 +412,11 @@ jobs:
         with:
           path: native
           pattern: zig-native-*
+          merge-multiple: true
       - name: Stage the archives
         run: |
-          for dir in native/zig-native-*; do mv "$dir" "native/${dir#native/zig-native-}"; done
           rustup component add llvm-tools
-          llvm_bin="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin"
-          LLVM_STRIP="$llvm_bin/llvm-strip" LLVM_AR="$llvm_bin/llvm-ar" \
-            sh bindings/nim/scripts/stage-release.sh native nim-package | tee package.log
+          sh bindings/nim/scripts/stage-release.sh native nim-package | tee package.log
           for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
             grep -qx "staged $target" package.log
           done
@@ -825,7 +806,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: java-native-${{ matrix.platform.name }}
-          path: native/${{ matrix.platform.name }}/
+          path: native/
           if-no-files-found: error
 
   # Assembles io.github.crate-crypto:lean-pq with all four libraries, runs the consumer against it
@@ -843,6 +824,7 @@ jobs:
         with:
           path: native
           pattern: java-native-*
+          merge-multiple: true
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -852,7 +834,6 @@ jobs:
           gradle-version: "9.3.1"
       - name: Assemble the jar
         run: |
-          for dir in native/java-native-*; do mv "$dir" "native/${dir#native/java-native-}"; done
           version=${RELEASE_TAG#bindings-v}
           gradle -p bindings/java jar -Pversion="$version" -PleanPqNativeDir="$PWD/native"
           unzip -Z1 "bindings/java/build/libs/lean-pq-$version.jar" | tee jar-contents.txt

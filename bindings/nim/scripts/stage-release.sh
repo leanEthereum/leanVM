@@ -7,8 +7,6 @@
 # aarch64-linux-gnu, universal-macos, x86_64-windows-gnu (the zig-native release archives, under
 # the target names lean_pq/abi.nim uses). A release stages all four (the workflow checks each
 # "staged" line); CI stages the one it built.
-#
-# LLVM_STRIP and LLVM_AR name the LLVM tools (default llvm-strip and llvm-ar).
 set -eu
 
 if [ "$#" -ne 2 ]; then
@@ -18,8 +16,6 @@ fi
 
 native_root=$(CDPATH= cd -- "$1" && pwd)
 output=$2
-llvm_strip=${LLVM_STRIP:-llvm-strip}
-llvm_ar=${LLVM_AR:-llvm-ar}
 
 if [ -e "$output" ]; then
     echo "$output already exists" >&2
@@ -27,34 +23,7 @@ if [ -e "$output" ]; then
 fi
 mkdir -p "$output"
 output=$(CDPATH= cd -- "$output" && pwd)
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
-
-# Drops debug information from every object in a static archive. Universal
-# macOS archives are stripped whole; other archives member by member, because llvm-strip rejects
-# the short import members the Windows archive carries.
-strip_archive() {
-    archive=$1
-    if [ "$(od -An -tx1 -N4 "$archive" | tr -d ' \n')" = cafebabe ]; then
-        "$llvm_strip" --strip-debug "$archive"
-        return
-    fi
-    members=$("$llvm_ar" t "$archive" | grep '\.o$')
-    if [ -n "$(printf '%s\n' "$members" | sort | uniq -d)" ]; then
-        echo "$archive has duplicate object names" >&2
-        exit 1
-    fi
-    rm -rf "$work/members"
-    mkdir "$work/members"
-    # shellcheck disable=SC2086 # Rust's member names contain no whitespace.
-    (
-        cd "$work/members"
-        "$llvm_ar" x "$archive" $members
-        "$llvm_strip" --strip-debug $members
-        "$llvm_ar" r "$archive" $members
-    )
-}
-
+strip="$(CDPATH= cd -- "$(dirname -- "$0")/../../native/scripts" && pwd)/strip-archive.sh"
 staged=0
 for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-gnu; do
     source="$native_root/$target/liblean_pq_native.a"
@@ -63,7 +32,7 @@ for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-
     fi
     destination="$output/lean-pq-native-$target.a"
     install -m 0644 "$source" "$destination"
-    strip_archive "$destination"
+    sh "$strip" "$destination"
     echo "staged $target"
     echo "$target: $(wc -c < "$source") bytes, $(wc -c < "$destination") stripped"
     staged=$((staged + 1))

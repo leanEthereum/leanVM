@@ -67,10 +67,7 @@ jobs:
           BRANCH: ${{ needs.release-please.outputs.pr_branch }}
         run: gh workflow run bindings-ci.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
 
-  # GITHUB_TOKEN-driven tag pushes do NOT trigger workflows (GitHub anti-loop
-  # protection), so we can't just rely on bindings-release.yml's `on: push: tags`
-  # trigger. Instead, when RP cuts a release, dispatch bindings-release.yml directly
-  # against the new tag.
+  # A tag pushed with GITHUB_TOKEN starts no workflow, so dispatch bindings-release.yml on it.
   trigger-release:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}

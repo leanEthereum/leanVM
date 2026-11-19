@@ -1,9 +1,9 @@
 #!/bin/sh
-# Build and stage one cross-compiled static bridge archive for cgo consumers and release packaging.
+# Build and stage one target's static bridge archive for the Go, Zig and Nim builds and releases.
 #
-# Builds only the staticlib crate type: built alongside the cdylib and rlib, the archive is about
-# three times larger. universal2-apple-darwin is built per architecture and combined with lipo,
-# so it needs a macOS host.
+# Builds only the staticlib crate type: built alongside the cdylib and rlib, the archive is larger.
+# universal2-apple-darwin is built per architecture and combined with lipo, so it needs a macOS
+# host.
 set -eu
 
 if [ "$#" -ne 2 ]; then

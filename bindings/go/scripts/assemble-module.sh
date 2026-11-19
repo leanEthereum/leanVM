@@ -7,8 +7,6 @@
 #
 # OUTPUT_DIRECTORY/proxy receives the module's list, .info, .mod and .zip in the GOPROXY layout,
 # usable as GOPROXY=file://...
-#
-# LLVM_STRIP and LLVM_AR name the LLVM tools (default llvm-strip and llvm-ar).
 set -eu
 
 if [ "$#" -ne 3 ]; then
@@ -22,8 +20,6 @@ output=$3
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
 module=leanvm.org/go
-llvm_strip=${LLVM_STRIP:-llvm-strip}
-llvm_ar=${LLVM_AR:-llvm-ar}
 
 case $version in
     *[!0-9.]* | '' | .* | *. | *..*)
@@ -42,31 +38,6 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 tree="$work/zip/$module@v$version"
 
-# Drops debug information from every object in a static archive. Universal macOS archives are
-# stripped whole; other archives member by member, because llvm-strip rejects the short import
-# members the Windows archive carries.
-strip_archive() {
-    archive=$1
-    if [ "$(od -An -tx1 -N4 "$archive" | tr -d ' \n')" = cafebabe ]; then
-        "$llvm_strip" --strip-debug "$archive"
-        return
-    fi
-    members=$("$llvm_ar" t "$archive" | grep '\.o$')
-    if [ -n "$(printf '%s\n' "$members" | sort | uniq -d)" ]; then
-        echo "$archive has duplicate object names" >&2
-        exit 1
-    fi
-    rm -rf "$work/members"
-    mkdir "$work/members"
-    # shellcheck disable=SC2086 # Rust's member names contain no whitespace.
-    (
-        cd "$work/members"
-        "$llvm_ar" x "$archive" $members
-        "$llvm_strip" --strip-debug $members
-        "$llvm_ar" r "$archive" $members
-    )
-}
-
 git -C "$repo_dir" archive HEAD bindings/go | tar -x -C "$work"
 mkdir -p "$(dirname -- "$tree")"
 mv "$work/bindings/go" "$tree"
@@ -78,7 +49,7 @@ for pair in x86_64-linux-gnu:linux_amd64 aarch64-linux-gnu:linux_arm64 \
     destination="$tree/internal/native/${pair#*:}/liblean_pq_native.a"
     mkdir -p "$(dirname -- "$destination")"
     install -m 0644 "$source" "$destination"
-    strip_archive "$destination"
+    sh "$repo_dir/bindings/native/scripts/strip-archive.sh" "$destination"
     echo "staged ${pair#*:}: $(wc -c < "$source") bytes, $(wc -c < "$destination") stripped"
 done
 
