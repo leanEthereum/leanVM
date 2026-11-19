@@ -908,13 +908,10 @@ FA_PAST = {}
 
 
 def fa_past(k):
-    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`, which needs
-    `MODE_CERT_CACHE`), as `(kp, i)`; none without it."""
+    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`), as `(kp, i)`."""
     if k in FA_PAST:
         return FA_PAST[k]
     FA_PAST[k] = []
-    if not os.environ.get('MODE_CERT_CACHE'):
-        return []
     import subprocess, json, heapc
     body = CORE[k][1]
     locs = I.D['comp'][k]['locs']
