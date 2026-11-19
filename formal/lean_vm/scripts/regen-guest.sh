@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode core-mode bridge memory res whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge core-mode memory res whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert mode core-mode bridge memory res whir count tables decoder)
+steps=(export core changes vt cert mode bridge core-mode memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -125,9 +125,10 @@ part_mode() {
   python3 -I scripts/mode-cert/res.py "${check[@]}"
 }
 
-# The core route (`formal/notes/core-mode.md`): its functions' heap certificates, pairings, frame walks
-# and route data. Its frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
+# The core route (`formal/notes/core-mode.md`): its functions' signatures, heap certificates, pairings, frame
+# walks and route data. Its signatures and frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
 # changes which functions the mode walk checks, so the mode certificates are written again after it.
+# After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
   if [ ! -f "$MODE_CERT_CACHE" ]; then
     case " ${selected[*]} " in
@@ -135,8 +136,14 @@ part_core_mode() {
     esac
   fi
   [ -f "$MODE_CERT_CACHE" ] || part_mode
-  step "core-mode: the inference's heap certificates (scripts/core-mode/emitc.py)"
-  python3 -I scripts/core-mode/emitc.py "${check[@]}"
+  step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
+  python3 -I scripts/core-mode/anylink.py "${check[@]}"
+  step "core-mode: each function's signature (scripts/core-mode/sigc.py)"
+  python3 -I scripts/core-mode/sigc.py "${check[@]}"
+  step "core-mode: each function's powers of g (scripts/core-mode/pows.py)"
+  python3 -I scripts/core-mode/pows.py "${check[@]}"
+  step "core-mode: the functions' ties to their global index (scripts/core-mode/glue.py)"
+  python3 -I scripts/core-mode/glue.py "${check[@]}"
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
   python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
   step "core-mode: leaf loop helpers (scripts/core-mode/loopc.py)"
@@ -156,10 +163,12 @@ part_core_mode() {
   fi
   step "core-mode: route data (scripts/core-mode/core.py)"
   python3 -I scripts/core-mode/core.py "${check[@]}"
+  step "core-mode: the inference's heap certificates of the functions off the route (scripts/core-mode/emitc.py)"
+  python3 -I scripts/core-mode/emitc.py "${check[@]}"
 }
 
 part_bridge() {
-  step "bridge: the hint bridge's prefix checks (scripts/bridge-cert/gen.py)"
+  step "bridge: the hint bridge's prefix class, a report (scripts/bridge-cert/gen.py)"
   python3 -I scripts/bridge-cert/gen.py "${check[@]}"
   step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
   python3 -I scripts/bridge-cert/align.py "${check[@]}"
@@ -185,16 +194,18 @@ part_res() {
   python3 -I scripts/res-cert/term.py "${check[@]}"
   step "res: the residuals' families (scripts/res-cert/sel.py)"
   python3 -I scripts/res-cert/sel.py "${check[@]}"
-  step "res: the claim lists' table reads linked to their callers (scripts/res-cert/link.py)"
+  step "res: the residuals less the claim lists' linked table reads (scripts/res-cert/link.py)"
   python3 -I scripts/res-cert/link.py "${check[@]}"
-  step "res: the monotone claim lists' table reads (scripts/res-cert/mono.py)"
+  step "res: the monotone claim lists' callers (scripts/core-mode/monocall.py)"
+  python3 -I scripts/core-mode/monocall.py "${check[@]}"
+  step "res: facts carried down to callees (scripts/core-mode/carry.py)"
+  python3 -I scripts/core-mode/carry.py "${check[@]}"
+  step "res: check_opening_terminal's callers (scripts/core-mode/termcall.py)"
+  python3 -I scripts/core-mode/termcall.py "${check[@]}"
+  step "res: the residuals less the monotone claim lists' table reads (scripts/res-cert/mono.py)"
   python3 -I scripts/res-cert/mono.py "${check[@]}"
   step "res: every sub residual in a proved family (scripts/res-cert/sub.py)"
   python3 -I scripts/res-cert/sub.py "${check[@]}"
-  step "res: facts carried down to callees (scripts/res-cert/carry.py)"
-  python3 -I scripts/res-cert/carry.py "${check[@]}"
-  step "res: check_opening_terminal's callers (scripts/res-cert/termcall.py)"
-  python3 -I scripts/res-cert/termcall.py "${check[@]}"
 }
 
 part_whir_data() {
@@ -229,8 +240,8 @@ part_count_vsos() {
 
 # After `count/gen.py`, which writes the `Memory/GuestCallees.lean` it reads.
 part_count_loops() {
-  step "count: the loop helpers' entries (scripts/res-cert/loops.py)"
-  python3 -I scripts/res-cert/loops.py "${check[@]}"
+  step "count: the loop helpers' entries (scripts/core-mode/loopcheck.py)"
+  python3 -I scripts/core-mode/loopcheck.py "${check[@]}"
 }
 
 part_tables() {

@@ -8,63 +8,24 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P41»
 public import LeanVM.Guest.Pack.«P41».Core
 public import LeanVM.Guest.CoreMode.Gen.«P41».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L18»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L18`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L18»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L14»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L14`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L18».heap_ok : CoreMode.heapOk Fn.«block_selector__L18».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L14».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L14».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«g_power_of_word».heap_ok : CoreMode.heapOk Fn.«g_power_of_word».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«opening_message__L8_L1».heap_ok : CoreMode.heapOk Fn.«opening_message__L8_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L12».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L12».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«eq_prefix_run__L14»
 
-namespace LeanVM.Guest.Fn.«g_power_of_word»
-
-@[expose] public section
-
-/-- `g_power_of_word`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«g_power_of_word»
-
-namespace LeanVM.Guest.Fn.«opening_message__L8_L1»
-
-@[expose] public section
-
-/-- `opening_message__L8_L1`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«opening_message__L8_L1»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L12»
-
-@[expose] public section
-
-/-- `plus_one_run__L12`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L12»
+end LeanVM.Guest

@@ -208,7 +208,7 @@ pub fn parse_with_constants(
     // Two names that used to be accepted and then silently picked a winner.
     // A repeated `def` lowered both bodies and kept the last, and a name
     // beginning with `__` can collide with a compiler-generated one: a loop
-    // helper is `__loopN`, and a `Const` specialization of `f` is `f__L1`, so a
+    // helper of `f` is `__loopN_f`, and a `Const` specialization of `f` is `f__L1`, so a
     // user function called `f__L1` took the specialization's place and the call
     // ran the wrong body.
     for (i, f) in funcs.iter().enumerate() {

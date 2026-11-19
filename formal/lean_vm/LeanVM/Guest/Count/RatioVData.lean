@@ -71,11 +71,12 @@ def krVkA : Opcode → ℕ
   | .jump => 118
   | .keccak => 24
 
-/-! ## `__loop15` -/
+/-! ## `__loop0_check_opening_terminal` -/
 
-/-- Indices of the functions `__loop15` reaches, part 0. -/
-def krVl15J0 : List ℕ := [276]
-/-- The core indices of the functions `__loop15`'s paths reach. -/
+/-- Indices of the functions `__loop0_check_opening_terminal` reaches, part 0. -/
+def krVl15J0 : List ℕ := [
+    276]
+/-- The core indices of the functions `__loop0_check_opening_terminal`'s paths reach. -/
 def krVl15J : List ℕ := krVl15J0
 
 /-- Their calls, by index, part 0. -/
@@ -86,7 +87,7 @@ def krVl15CL : List (ℕ × List ℕ) := krVl15CL0
 /-- The calls of function `i`, by index. -/
 def krVl15C (i : ℕ) : List ℕ := (krVl15CL.lookup i).getD []
 
-/-- `__loop15`'s ratios, in thousandths. -/
+/-- `__loop0_check_opening_terminal`'s ratios, in thousandths. -/
 def krVl15A : Opcode → ℕ
   | .xor => 53
   | .mulNative => 632

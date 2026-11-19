@@ -23,7 +23,7 @@ theorem pairEndOk : Bridge.chainEnd Fn.«verify_tables».code.code pairK2 = true
   decide +kernel
 
 /-- `verify_tables`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_tables».core.body Fn.«verify_tables».code.code Data.adviceFn12 = true :=
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«verify_tables».core.body Fn.«verify_tables».code.code Fn.«verify_tables».advice = true :=
   CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2])
     (And.intro pairWin0 (And.intro pairWin1 pairEndOk))
 

@@ -393,22 +393,21 @@ def emit(out_dir, res):
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of `{ks[0]}` and {len(ks) - 1} more.')
-        ok += (f'public import LeanVM.Guest.CoreMode.Heap\npublic import LeanVM.Guest.Data.Pows\n'
+        ok += (f'public import LeanVM.Guest.CoreMode.Heap\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
                f'public import LeanVM.Guest.Pack.«{pack}».{coremod}\n'
                f'public import LeanVM.Guest.CoreMode.Gen.«{pack}».Data\n\nset_option Elab.async false\n')
+        oks = ''
         for k in ks:
             post = ''
             if k in R:
                 cells = wrap(f'({lean_cell(c)}, {lean_wit(w)})' for c, w in R[k]['post'])
-                post = (f'\n/-- `{k}`: the heap cells it promises its callers, with their witnesses. -/\n'
+                post = (f'\n'
                         f'def hpost : List (CoreMode.CCell × CoreMode.Wit) :=\n  [{cells}]\n')
-            data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                     f'/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n'
+            data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n'
+                     f'def hcert : CoreMode.HCert where\n'
                      f'{lean_cert(res[k], R[k]["pre"] if k in R else None)}{post}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
-            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                   f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by\n'
-                   f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
+            oks += f'theorem Fn.«{k}».heap_ok : CoreMode.heapOk Fn.«{k}».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel\n'
+        ok += '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\npublic section\n\n' + oks + '\nend\n\nend LeanVM.Guest\n'
         for name, text in (('Data', data), ('Ok', ok)):
             path = os.path.join(d, name + '.lean')
             if CHECK:

@@ -16,7 +16,7 @@ open LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop2`, window 30: what its groups of arms compute alike. -/
+/-- `__loop2_main`, window 30: what its groups of arms compute alike. -/
 win_lit x39_30 39 30
 
 end

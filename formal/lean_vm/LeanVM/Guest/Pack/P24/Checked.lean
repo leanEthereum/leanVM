@@ -48,7 +48,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop3`, window 0. -/
+/-- `__loop3_main`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(21, Fn.«verify_sig_lean_sphincs».sig), (40, Fn.«main_loop3».sig)]) Data.jtTrie globSem) code
     Fn.«main_loop3».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -301,7 +301,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop61`, window 0. -/
+/-- `__loop0_level_positions__L4_L14_L2`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(963, Fn.«decode_query_windows__L14_L2».sig), (975, Fn.«level_positions__L4_L14_L2_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L4_L14_L2_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -334,7 +334,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop184`, window 0. -/
+/-- `__loop1_level_residual__L25_L9_L4_L2`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(1129, Fn.«level_residual__L25_L9_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L25_L9_L4_L2_loop1».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -348,7 +348,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop247`, window 0. -/
+/-- `__loop1_level_residual__L37_L15_L4_L2`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(1208, Fn.«level_residual__L37_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L37_L15_L4_L2_loop1».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -362,7 +362,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop257`, window 0. -/
+/-- `__loop0_level_residual__L19_L7_L4_L2`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(1218, Fn.«level_residual__L19_L7_L4_L2_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L19_L7_L4_L2_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel

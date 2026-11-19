@@ -36,13 +36,13 @@ matching each core atom with the first instruction that fits the cells known so 
 compiler emits them in order; a constant takes the cell of the instruction that uses it, and a
 frame run (`addr`) its consecutive cells.
 
-A `match` of many straight-line arms (`__loop2`'s dispatches on a codeword, `256` inlined arms)
+A `match` of many straight-line arms (`__loop2_main`'s dispatches on a codeword, `256` inlined arms)
 naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
 its three checks are split into groups of `armGroup` arms, sized by the values they name
 (`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
 `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
 check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
-computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2`'s, whose arms jump to
+computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2_main`'s, whose arms jump to
 the next one's) as well. The kernel's time on one
 declaration grows faster than its work, so many small checks beat one large one. A certificate too
 large for one module has its cells in modules of their own (`Pack/<name>/Cells{k}`). The checks
@@ -879,7 +879,7 @@ def loopsOf (body : List Core.Stmt) : List String :=
 
 /-- The tagged tuples of frame cells each function assumes in the semantic relations
 (`Glob.sem`, `WalkTags.lean`): the exponent table (tag `0`) at `verify_sub`'s argument 4 and at
-`__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
+`__loop4_main`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
 `opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
 its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
 (`Check.tagNe`); `level_queries`' window pointers (argument 5, `lqTag`), which it hands
@@ -888,7 +888,7 @@ its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), wi
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
-  m := m.insert "__loop4" [(0, [16])]
+  m := m.insert "__loop4_main" [(0, [16])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
       m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
@@ -3662,7 +3662,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     (glue : List String) : List (System.FilePath × String) := Id.run do
   -- the checks, in modules of consecutive parts
   -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
-  -- a window of more than `bigWin` instructions (`__loop2`'s chained `match`es, 2816: ~170 s,
+  -- a window of more than `bigWin` instructions (`__loop2_main`'s chained `match`es, 2816: ~170 s,
   -- ~35 GB each in the kernel) is checked in a module of its own at 1M heartbeats, as its
   -- soundness check (`Checked`)
   let bigSet : Std.HashSet (ℕ × ℕ) := fps.foldl (fun h fp =>
@@ -3828,7 +3828,7 @@ end CplK
 /-! ## The completeness and sharing checks in the packs
 
 A function whose windows are none of one split `match`, with no chained or separately counted
-`match`es and no static sharing check by windows (`special`, `__loop2` today), has its
+`match`es and no static sharing check by windows (`special`, `__loop2_main` today), has its
 completeness and sharing checks over its own data and view (`B2C.cplWinD`, `B2C.shareWinD`) in
 its pack (`Pack/<dir>/Cplw{g}`, `Shared{g}`), with `cplOk` and `shareOk` there (or, its checks
 in several of the pack's modules, in `CplwOk`, `SharedOk`); the glue (`B2C/Cplw/Fn{b}`,

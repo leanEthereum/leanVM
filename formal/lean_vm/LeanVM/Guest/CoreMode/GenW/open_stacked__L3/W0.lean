@@ -8,8 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«open_stacked__L3».S0
-public import LeanVM.Guest.CoreMode.GenW.«open_stacked__L3».S1
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P60»
 public import LeanVM.Guest.Pack.«P60».Core
 
 set_option Elab.async false
@@ -21,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 0 to 394. -/
-theorem win0 : winOkF Data.powTree sigW core hcert ((core.body.drop 0).take (395 - 0)) st0 st1 = true := by
+theorem win0 : winOkF Fn.«open_stacked__L3».pows sigW core hcert ((core.body.drop 0).take (395 - 0)) st0 st1 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

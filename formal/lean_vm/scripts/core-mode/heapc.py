@@ -405,6 +405,21 @@ def runRun(F, E, Q, R):
     return Q[0] == R[0] and Q[1] == R[1] and loOk(F, E, Q, R) and hiOk(F, E, Q, R)
 
 
+def shiftR(Q, R):
+    """`CoreMode.shiftR`: `R` rebased onto `Q`'s base (its base `t` strides past, constant lower bounds,
+    `R.lo + t <= Q.lo`), its cells from `Q.lo` to its upper bound; or `None`."""
+    if not (0 < Q[1] and Q[1] == R[1] and Q[0][0] == R[0][0] and Q[0][1] <= R[0][1] and
+            (R[0][1] - Q[0][1]) % Q[1] == 0 and not Q[2][0] and not R[2][0] and
+            R[2][1] + (R[0][1] - Q[0][1]) // Q[1] <= Q[2][1] < CAPE):
+        return None
+    return (Q[0], Q[1], Q[2], R[3])
+
+
+def runRunS(F, E, Q, R):
+    R2 = shiftR(Q, R)
+    return R2 is not None and runRun(F, E, Q, R2)
+
+
 def emptyR(Q):
     return not Q[2][0] and not Q[3][0] and Q[3][1] <= Q[2][1] and Q[2][1] < CAPE
 
@@ -647,7 +662,8 @@ def ptOk(X, st, c, w):
 def rnOk(X, st, Q, w):
     if w[0] == 'run':
         R = st.rs.get(w[1])
-        return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R))
+        return R is not None and (runRun(X.facts(st.env, w[2]), st.eqs, Q, R) or X.subRun(st.env, w[2], Q, R) or
+                                  runRunS(X.facts(st.env, w[2]), st.eqs, Q, R))
     if w[0] == 'empty':
         return emptyE(st.eqs, Q)
     return False

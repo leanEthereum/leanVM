@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ctx
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Data
+public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 namespace LeanVM.Guest.Fn.«sp_wots»

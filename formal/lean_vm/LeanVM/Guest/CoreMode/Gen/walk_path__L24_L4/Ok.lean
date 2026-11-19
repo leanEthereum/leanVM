@@ -8,19 +8,20 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«walk_path__L24_L4»
 public import LeanVM.Guest.Pack.«walk_path__L24_L4».Core
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L4».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L4»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `walk_path__L24_L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
+
+theorem Fn.«walk_path__L24_L4».heap_ok : CoreMode.heapOk Fn.«walk_path__L24_L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«walk_path__L24_L4»
+
+end LeanVM.Guest

@@ -65,7 +65,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop4`, window 0. -/
+/-- `__loop4_main`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(19, Fn.«verify_sub».sig), (22, Fn.«statement_digest».sig), (25, Fn.«child_claim_list_digest».sig), (41, Fn.«main_loop4».sig)]) Data.jtTrie globSem) code
     Fn.«main_loop4».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -295,7 +295,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop64`, window 0. -/
+/-- `__loop0_level_positions__L3_L12_L6`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(980, Fn.«decode_query_windows__L12_L6».sig), (981, Fn.«level_positions__L3_L12_L6_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L3_L12_L6_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -309,7 +309,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop67`, window 0. -/
+/-- `__loop0_level_positions__L3_L15_L3`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(947, Fn.«decode_query_windows__L15_L3».sig), (984, Fn.«level_positions__L3_L15_L3_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L3_L15_L3_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -342,7 +342,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop241`, window 0. -/
+/-- `__loop1_level_residual__L55_L19_L6_L3`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(1202, Fn.«level_residual__L55_L19_L6_L3_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L55_L19_L6_L3_loop1».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
@@ -380,7 +380,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop433`, window 0. -/
+/-- `__loop1_level_residual__L73_L24_L6_L3`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs ([(1429, Fn.«level_residual__L73_L24_L6_L3_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L73_L24_L6_L3_loop1».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel

@@ -1,7 +1,7 @@
 """`Count/VsCountData.lean`, `Count/VsCountChk{X,M,S,D,J,K}.lean`: the instruction counts, per
 opcode, of `verify_sub`'s statically bounded callees (each child's opening arm
 `open_stacked__L{c}` among them), of `child_claim_list_digest`'s callees, and the frame weights
-of `verify_sub`, `child_claim_list_digest` and `__loop4`, as tables checked against the `V`
+of `verify_sub`, `child_claim_list_digest` and `main_loop4`, as tables checked against the `V`
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os, re
@@ -41,7 +41,7 @@ RB = [('verify_bus_gkr', 39767), ('verify_keccak', 56404)]
 
 def vt_term(g):
     """`verify_tables`' and the terminal's weight bounds per opcode index (`B1.VerifySub.vtWB`,
-    `termWB` at `Count.vsWords`), from the `W` certificates and the ratios of `__loop14` and
+    `termWB` at `Count.vsWords`), from the `W` certificates and the ratios of `ring_switch_target_loop0` and
     `ring_switch_weight`."""
     import checker, gen
     from ratio import blk_callees
@@ -140,7 +140,7 @@ def tables(g):
 
 
 def l5_parts(tbl, k):
-    """At the opcode index `k`: `__loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
+    """At the opcode index `k`: `main_loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
     children's claim lists' digests' constant and per-claim slope on either walk, the larger of
     `child_claim_list_any`'s and `child_claim_list_mono`'s (`B1.Main.ccHonest`): the loop per `136`
     claims by the claims, the loop per `17` at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
@@ -179,7 +179,7 @@ def write(g, OPS):
     o.append('/-- The children\'s claim lists\' loops: `child_claim_list_any`\'s per `136` and per `17` claims, '
              '`child_claim_list_mono`\'s. -/\ndef ccLpNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in CC_LP))
     o.append('/-- Their core indices. -/\ndef ccLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CC_LP))
-    o.append('/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, '
+    o.append('/-- The core indices of `verify_sub`, `child_claim_list_digest`, `main_loop4`, `child_claim_list_any`, '
              '`child_claim_list_mono`. -/\ndef omJ : List ℕ := %s\n'
              % lst(g.by[n] for n in OM))
     o.append('/-- Their names. -/\ndef omNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in OM))

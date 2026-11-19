@@ -88,12 +88,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«verify_tables».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 5411 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 5411 st70 = true := by
+theorem last_ok : lastOkF Fn.«verify_tables».pows sigW core hcert 5411 st70 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -105,7 +105,7 @@ namespace LeanVM.Guest.Fn.«verify_tables»
 @[expose] public section
 
 /-- `verify_tables`: the heap check, in 70 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«verify_tables».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(775, HeapWG.st1), (790, HeapWG.st2), (825, HeapWG.st3), (856, HeapWG.st4), (868, HeapWG.st5), (888, HeapWG.st6), (908, HeapWG.st7), (928, HeapWG.st8), (948, HeapWG.st9), (968, HeapWG.st10), (988, HeapWG.st11), (1008, HeapWG.st12), (1028, HeapWG.st13), (1048, HeapWG.st14), (1068, HeapWG.st15), (1088, HeapWG.st16), (1108, HeapWG.st17), (1128, HeapWG.st18), (1148, HeapWG.st19), (1168, HeapWG.st20), (1188, HeapWG.st21), (1208, HeapWG.st22), (1228, HeapWG.st23), (1248, HeapWG.st24), (1268, HeapWG.st25), (1288, HeapWG.st26), (1308, HeapWG.st27), (1318, HeapWG.st28), (1328, HeapWG.st29), (1481, HeapWG.st30), (1492, HeapWG.st31), (1508, HeapWG.st32), (1528, HeapWG.st33), (1548, HeapWG.st34), (1568, HeapWG.st35), (1585, HeapWG.st36), (1598, HeapWG.st37), (1608, HeapWG.st38), (1618, HeapWG.st39), (1628, HeapWG.st40), (1638, HeapWG.st41), (1648, HeapWG.st42), (1658, HeapWG.st43), (1668, HeapWG.st44), (1678, HeapWG.st45), (1688, HeapWG.st46), (1698, HeapWG.st47), (1708, HeapWG.st48), (1718, HeapWG.st49), (1728, HeapWG.st50), (1738, HeapWG.st51), (1748, HeapWG.st52), (1758, HeapWG.st53), (1768, HeapWG.st54), (1778, HeapWG.st55), (1788, HeapWG.st56), (1798, HeapWG.st57), (1808, HeapWG.st58), (1818, HeapWG.st59), (1828, HeapWG.st60), (1838, HeapWG.st61), (1848, HeapWG.st62), (1858, HeapWG.st63), (1868, HeapWG.st64), (1878, HeapWG.st65), (1888, HeapWG.st66), (1898, HeapWG.st67), (1908, HeapWG.st68), (3023, HeapWG.st69), (5411, HeapWG.st70)]) HeapWG.head_ok

@@ -7,91 +7,54 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link11
 public import LeanVM.Guest.CoreMode.Gen.«P6».DataC
 public import LeanVM.Guest.CoreMode.Gen.«P6».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P6».Pair
+public import LeanVM.Guest.CoreMode.GlueC.«P6»
 public import LeanVM.Guest.CoreMode.Pack.verify_merkle_cap__L8.Frame0
+public import LeanVM.Guest.CoreMode.Pows.«P6»
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«P6».Core
-public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L8`: what the core route knows of it. -/
-noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn1182, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+noncomputable def Fn.«verify_merkle_cap__L8».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«verify_merkle_cap__L8».advice, Fn.«verify_merkle_cap__L8».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
 public section
 
-attribute [local irreducible] pairO pairS
+attribute [local irreducible] Fn.«verify_merkle_cap__L8».pairO Fn.«verify_merkle_cap__L8».pairS
 
-/-- `verify_merkle_cap__L8`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
-    (Mode.jtRng modeEnv) = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: its returned products. -/
-theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: its shape. -/
-theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: its calls' jumps. -/
-theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: its reads of the jump table. -/
-theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_merkle_cap__L8`: the kernel's checks of the core route, tied to its mode certificate. -/
-theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl
-  pair := pair_ok
-  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
-  sig := core_sig
-  retv := core_retv
-  shape := core_shape
-  calls := core_calls
-  jtd := core_jtd
-  fsig := rfl
-  fsigs := rfl
-  fmain := by decide +kernel
-  fhalt := by decide +kernel
-  xhalt := by decide +kernel
-  fentry := rfl
-  flen := by decide +kernel
-  xentry := by decide +kernel
-  dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 1182) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code1182 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code1182 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  faret := by decide +kernel
-  nzrc := by decide +kernel
-
-/-- `verify_merkle_cap__L8`: its frame interface, by the core route. -/
-theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
+theorem Fn.«verify_merkle_cap__L8».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_merkle_cap__L8».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«verify_merkle_cap__L8».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«verify_merkle_cap__L8».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_merkle_cap__L8».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«verify_merkle_cap__L8».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«verify_merkle_cap__L8».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest
+
+namespace LeanVM.Guest.ModePack.«verify_merkle_cap__L8»
+
+@[expose] public section
+
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [LeanVM.Guest.Fn.«verify_merkle_cap__L8».cfun]
+
+end
+
+end LeanVM.Guest.ModePack.«verify_merkle_cap__L8»

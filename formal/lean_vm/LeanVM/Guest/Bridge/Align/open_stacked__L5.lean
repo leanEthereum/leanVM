@@ -7,39 +7,33 @@
 
 module
 
-
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P22».Core
 public import LeanVM.Guest.Pack.«open_stacked__L5».Bundle
 public import Statement.Data.AdviceHints
 
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«open_stacked__L5»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `open_stacked__L5`: what its alignment check reads beyond its body and code. -/
-noncomputable def alignCtx : Bridge.AlignCtx :=
-  Bridge.AlignCtx.ofData Fn.«open_stacked__L5».cert.locs [] Fn.«open_stacked__L5».code.entryPc false
-    Fn.«open_stacked__L5».plumb Data.powTree Data.jtTrie [("fold_final_msg__L3", 257977), ("grind_check__L15", 211564), ("grind_check__L17", 254111), ("level_positions__L10_L19_L7", 256918), ("level_positions__L11_L23_L5", 264314), ("level_positions__L15_L22_L4", 264272), ("level_positions__L19_L21_L3", 264230), ("level_positions__L37_L20_L8", 264188), ("level_positions__L3_L16_L4", 255689), ("level_positions__L3_L17_L5", 259621), ("level_positions__L3_L18_L6", 261561), ("level_positions__L3_L19_L7", 263253), ("level_positions__L3_L20_L2", 264981), ("level_positions__L4_L17_L5", 257570), ("level_positions__L4_L19_L7", 261196), ("level_positions__L4_L21_L3", 264830), ("level_positions__L5_L18_L6", 257297), ("level_positions__L5_L19_L7", 263060), ("level_positions__L5_L20_L2", 264788), ("level_positions__L7_L21_L3", 264556), ("level_positions__L7_L22_L4", 264598), ("level_positions__L8_L20_L2", 264514), ("level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0", 264397), ("level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1", 265199), ("level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1", 265165), ("level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1", 265130), ("level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0", 265095), ("level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1", 257941), ("level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0", 265059), ("level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0", 264356), ("level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0", 265023), ("level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0", 257719), ("level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0", 264944), ("level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0", 264908), ("level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0", 264872), ("level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0", 257452), ("level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0", 264753), ("level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0", 264716), ("level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0", 264679), ("level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0", 264640), ("level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0", 264475), ("level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0", 264437), ("level_residual__L109_L19_L6_L3", 265280), ("level_residual__L18_L7_L4_L2", 265798), ("level_residual__L19_L7_L4_L2", 265753), ("level_residual__L218_L19_L6_L3", 265235), ("level_residual__L21_L7_L4_L2", 265708), ("level_residual__L23_L11_L4_L2", 265664), ("level_residual__L23_L7_L4_L2", 258471), ("level_residual__L25_L11_L4_L2", 265619), ("level_residual__L28_L11_L4_L2", 265574), ("level_residual__L32_L11_L4_L2", 258333), ("level_residual__L32_L15_L4_L2", 265550), ("level_residual__L37_L15_L4_L2", 265505), ("level_residual__L44_L15_L4_L2", 265460), ("level_residual__L55_L15_L4_L2", 265415), ("level_residual__L55_L19_L6_L3", 265370), ("level_residual__L73_L19_L6_L3", 265325), ("opening_message__L12_L1", 257756), ("opening_message__L6_L1", 255112), ("opening_message__L8_L1", 254663), ("opening_round", 19461), ("opening_tail_round", 19521), ("squeeze_point_from__L11", 257118), ("squeeze_point_from__L15", 256727), ("squeeze_point_from__L19", 264111), ("squeeze_point_from__L7", 257487)] 524287 Fn.«open_stacked__L5».code.instructionCount
+noncomputable def Fn.«open_stacked__L5».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("fold_final_msg__L3", 257977), ("grind_check__L15", 211564), ("grind_check__L17", 254111), ("level_positions__L10_L19_L7", 256918), ("level_positions__L11_L23_L5", 264314), ("level_positions__L15_L22_L4", 264272), ("level_positions__L19_L21_L3", 264230), ("level_positions__L37_L20_L8", 264188), ("level_positions__L3_L16_L4", 255689), ("level_positions__L3_L17_L5", 259621), ("level_positions__L3_L18_L6", 261561), ("level_positions__L3_L19_L7", 263253), ("level_positions__L3_L20_L2", 264981), ("level_positions__L4_L17_L5", 257570), ("level_positions__L4_L19_L7", 261196), ("level_positions__L4_L21_L3", 264830), ("level_positions__L5_L18_L6", 257297), ("level_positions__L5_L19_L7", 263060), ("level_positions__L5_L20_L2", 264788), ("level_positions__L7_L21_L3", 264556), ("level_positions__L7_L22_L4", 264598), ("level_positions__L8_L20_L2", 264514), ("level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0", 264397), ("level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1", 265199), ("level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1", 265165), ("level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1", 265130), ("level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0", 265095), ("level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1", 257941), ("level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0", 265059), ("level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0", 264356), ("level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0", 265023), ("level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0", 257719), ("level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0", 264944), ("level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0", 264908), ("level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0", 264872), ("level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0", 257452), ("level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0", 264753), ("level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0", 264716), ("level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0", 264679), ("level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0", 264640), ("level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0", 264475), ("level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0", 264437), ("level_residual__L109_L19_L6_L3", 265280), ("level_residual__L18_L7_L4_L2", 265798), ("level_residual__L19_L7_L4_L2", 265753), ("level_residual__L218_L19_L6_L3", 265235), ("level_residual__L21_L7_L4_L2", 265708), ("level_residual__L23_L11_L4_L2", 265664), ("level_residual__L23_L7_L4_L2", 258471), ("level_residual__L25_L11_L4_L2", 265619), ("level_residual__L28_L11_L4_L2", 265574), ("level_residual__L32_L11_L4_L2", 258333), ("level_residual__L32_L15_L4_L2", 265550), ("level_residual__L37_L15_L4_L2", 265505), ("level_residual__L44_L15_L4_L2", 265460), ("level_residual__L55_L15_L4_L2", 265415), ("level_residual__L55_L19_L6_L3", 265370), ("level_residual__L73_L19_L6_L3", 265325), ("opening_message__L12_L1", 257756), ("opening_message__L6_L1", 255112), ("opening_message__L8_L1", 254663), ("opening_round", 19461), ("opening_tail_round", 19521), ("squeeze_point_from__L11", 257118), ("squeeze_point_from__L15", 256727), ("squeeze_point_from__L19", 264111), ("squeeze_point_from__L7", 257487)] 524287 code.instructionCount
 
 end
+
+end LeanVM.Guest
+
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L5`: its hint-only cells are fresh. -/
-theorem alignCellsOk :
-    Bridge.cellsFresh Fn.«open_stacked__L5».cert.locs (Bridge.plumbCells Fn.«open_stacked__L5».plumb) [] = true := by
-  decide +kernel
-
-/-- `open_stacked__L5` aligns with its body. -/
-theorem alignOk :
-    Bridge.alignOk alignCtx Fn.«open_stacked__L5».core.body Fn.«open_stacked__L5».code.code Data.adviceFn344 = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L5».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
+theorem Fn.«open_stacked__L5».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn344 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L5»
+end LeanVM.Guest

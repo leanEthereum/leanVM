@@ -18,7 +18,7 @@ open LeanVM.Guest
 public section
 
 /-- `verify_tables`: the pairing from offset 4096 to 5240. -/
-theorem pairWin1 : CoreMode.winOkH alignCtx hcert pairO pairS Fn.«verify_tables».core.body Fn.«verify_tables».code.code Data.adviceFn12 pairK1 pairK2 = true := by
+theorem pairWin1 : CoreMode.winOkH alignCtx hcert pairO pairS Fn.«verify_tables».core.body Fn.«verify_tables».code.code Fn.«verify_tables».advice pairK1 pairK2 = true := by
   decide +kernel
 
 end

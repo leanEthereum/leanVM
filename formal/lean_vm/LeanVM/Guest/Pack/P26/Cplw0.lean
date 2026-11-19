@@ -166,11 +166,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop37`, window 0, part 0. -/
+/-- `__loop1_keccak_layer__L1`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(434, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop37`: every part of every window. -/
+/-- `__loop1_keccak_layer__L1`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(434, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel

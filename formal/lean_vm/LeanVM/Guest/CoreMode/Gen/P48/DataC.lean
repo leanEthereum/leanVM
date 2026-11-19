@@ -8,16 +8,49 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
-public import LeanVM.Guest.CoreMode.Gen.HcSig
+public import LeanVM.Guest.CoreMode.Gen.«P0».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P10».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P12».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P14».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P18».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P19».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P2».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P20».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P21».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P23».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P26».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P28».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P29».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P32».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P36».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P37».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P38».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P4».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P41».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P42».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P43».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P45».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P46».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P47».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P48».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P49».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P51».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P52».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P53».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P54».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P55».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P57».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P6».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P61».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P62».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P63».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P9».Sig
 
 set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«level_positions__L37_L21_L3»
-
 @[expose] public section
-
-/-- `level_positions__L37_L21_L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -46,9 +79,8 @@ def hcert : CoreMode.HCert where
         .run 17 [], .run 18 [], .run 19 [], .run 1 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16,
         .pfr 2 [], .pfr 20 [], .pfr 21 [], .pfr 22 [], .pfr 23 [], .pfr 24 [], .pfr 25 []]]
 
-/-- `level_positions__L37_L21_L3`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop261", 
+  [("__loop0_level_positions__L37_L21_L3", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
@@ -67,15 +99,8 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 3⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 4⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(4, 1)], 5⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4])] }),
-    ("decode_query_windows__L21_L3", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4])] })]
-/-- `level_positions__L37_L21_L3`: its own contract its heap signature's (`CFun.hc`). -/
+    ("decode_query_windows__L21_L3", CoreMode.HcSig.«decode_query_windows__L21_L3».csig)]
 def hcFlag : Bool := false
-/-- `level_positions__L37_L21_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -83,10 +108,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L37_L21_L3»
 
 namespace LeanVM.Guest.Fn.«level_positions__L5_L18_L6»
-
 @[expose] public section
-
-/-- `level_positions__L5_L18_L6`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -119,9 +141,8 @@ def hcert : CoreMode.HCert where
         .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 2 [], .pfr 22 [], .pfr 23 [], .pfr 24 [], .pfr 25 [],
         .pfr 26 [], .pfr 27 [], .pfr 28 []]]
 
-/-- `level_positions__L5_L18_L6`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop98", 
+  [("__loop0_level_positions__L5_L18_L6", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
@@ -142,16 +163,8 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 4⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 5⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 6⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3])] }),
-    ("decode_query_windows__L18_L6", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(1, 1)], 6⟩, ⟨[(2, 1)], 6⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 7)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L5_L18_L6`: its own contract its heap signature's (`CFun.hc`). -/
+    ("decode_query_windows__L18_L6", CoreMode.HcSig.«decode_query_windows__L18_L6».csig)]
 def hcFlag : Bool := false
-/-- `level_positions__L5_L18_L6`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -159,32 +172,9 @@ end
 end LeanVM.Guest.Fn.«level_positions__L5_L18_L6»
 
 namespace LeanVM.Guest.Fn.«level_positions__L7_L15_L3»
-
 @[expose] public section
-
-/-- `level_positions__L7_L15_L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := 
-    { preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(6, 1)], 0⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(6, 1)], 1⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(6, 1)], 2⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(6, 1)], 3⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(6, 1)], 4⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(6, 1)], 5⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(6, 1)], 6⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(6, 1)], 7⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(7, 1)], 1⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(7, 1)], 3⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(7, 1)], 5⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(7, 1)], 6⟩, 8, (.num 1), (.num 7)⟩, ⟨⟨[(7, 1)], 7⟩, 8, (.num 1), (.num 7)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 0⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 1⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 2⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 3⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 4⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 5⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 6⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 7⟩, 8, (.num 1), (.num 7)⟩, [0, 1, 2, 3])] }
+  sig := CoreMode.HcSig.«level_positions__L7_L15_L3».sig
   reads := [(18, [(17, 0, .run 7 [])]), (19, [(17, 1, .run 8 [])]), (20, [(17, 2, .run 9 [])]),
     (21, [(17, 3, .run 10 [])]), (22, [(17, 4, .run 11 [])])]
   res := []
@@ -194,9 +184,8 @@ def hcert : CoreMode.HCert where
         .run 26 [], .run 27 [], .run 5 [], .run 5 [], .pfr 6 [], .pfr 28 [], .pfr 29 [], .pfr 30 [],
         .pfr 31 [], .pfr 32 [], .pfr 33 [], .pfr 34 [], .pfr 35 []]]
 
-/-- `level_positions__L7_L15_L3`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop95", 
+  [("__loop0_level_positions__L7_L15_L3", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
@@ -219,14 +208,8 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 5⟩, 8, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 6⟩, 8, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 7⟩, 8, (.val 0), (.val 1)⟩, [0, 1, 2, 3])] }),
-    ("decode_query_windows__L15_L3", 
-    { preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
-        ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L7_L15_L3`: its own contract its heap signature's (`CFun.hc`). -/
+    ("decode_query_windows__L15_L3", CoreMode.HcSig.«decode_query_windows__L15_L3».sig)]
 def hcFlag : Bool := false
-/-- `level_positions__L7_L15_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -234,10 +217,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L7_L15_L3»
 
 namespace LeanVM.Guest.Fn.«level_positions__L7_L17_L5»
-
 @[expose] public section
-
-/-- `level_positions__L7_L17_L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -271,9 +251,8 @@ def hcert : CoreMode.HCert where
         .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .ev 16, .ev 18, .pfr 4 [], .pfr 24 [], .pfr 25 [], .pfr 26 [],
         .pfr 27 [], .pfr 28 [], .pfr 29 [], .pfr 30 []]]
 
-/-- `level_positions__L7_L17_L5`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop128", 
+  [("__loop0_level_positions__L7_L17_L5", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
@@ -294,16 +273,8 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 4⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 5⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 6⟩, 7, (.val 0), (.val 1)⟩, [0, 1, 2, 3])] }),
-    ("decode_query_windows__L17_L5", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(1, 1)], 6⟩, ⟨[(2, 1)], 6⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 7)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L7_L17_L5`: its own contract its heap signature's (`CFun.hc`). -/
+    ("decode_query_windows__L17_L5", CoreMode.HcSig.«decode_query_windows__L17_L5».csig)]
 def hcFlag : Bool := false
-/-- `level_positions__L7_L17_L5`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -311,10 +282,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L7_L17_L5»
 
 namespace LeanVM.Guest.Fn.«level_positions__L7_L19_L7»
-
 @[expose] public section
-
-/-- `level_positions__L7_L19_L7`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -344,9 +312,8 @@ def hcert : CoreMode.HCert where
         .run 19 [], .run 20 [], .run 21 [], .run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14,
         .ev 16, .pfr 4 [], .pfr 22 [], .pfr 23 [], .pfr 24 [], .pfr 25 [], .pfr 26 [], .pfr 27 []]]
 
-/-- `level_positions__L7_L19_L7`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop161", 
+  [("__loop0_level_positions__L7_L19_L7", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
@@ -365,15 +332,8 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 3⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 4⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3]),
         (⟨⟨[(4, 1)], 5⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3])] }),
-    ("decode_query_windows__L19_L7", 
-    { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩],
-      preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3])] })]
-/-- `level_positions__L7_L19_L7`: its own contract its heap signature's (`CFun.hc`). -/
+    ("decode_query_windows__L19_L7", CoreMode.HcSig.«decode_query_windows__L19_L7».csig)]
 def hcFlag : Bool := false
-/-- `level_positions__L7_L19_L7`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -381,20 +341,9 @@ end
 end LeanVM.Guest.Fn.«level_positions__L7_L19_L7»
 
 namespace LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 15)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩],
-      retM := [(3, ⟨[(0, 15)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, [0, 1, 2, 3, 4])] }
+  sig := CoreMode.HcSig.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig
   reads := []
   res := []
   calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
@@ -406,20 +355,10 @@ def hcert : CoreMode.HCert where
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
-/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 
-    { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(3, 1)], 6⟩, ⟨[(3, 1)], 7⟩],
-      preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩,
-        ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
+  [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».sig),
     ("verify_merkle_cap__L4", CoreMode.HcSig.«verify_merkle_cap__L4».sig)]
-/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L4", 2, 2)]
 
@@ -427,21 +366,9 @@ end
 end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1»
-
 @[expose] public section
-
-/-- `level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
-        ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(3, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(3, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
-      retM := [(3, ⟨[(0, 16)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, [0, 1, 2, 3])] }
+  sig := CoreMode.HcSig.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig
   reads := []
   res := []
   calls := [[.ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13, .ev 14, .ev 15,
@@ -476,21 +403,10 @@ def hcert : CoreMode.HCert where
         .pre 12, .pre 13, .pre 14, .pre 15, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .run 6 [], .pfr 7 []]]
 
-/-- `level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1", 
-    { pre := [⟨[(3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(4, 1)], 2⟩,
-        ⟨[(3, 1)], 3⟩, ⟨[(4, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(4, 1)], 4⟩, ⟨[(3, 1)], 5⟩, ⟨[(4, 1)], 5⟩,
-        ⟨[(3, 1)], 6⟩, ⟨[(4, 1)], 6⟩, ⟨[(3, 1)], 7⟩, ⟨[(4, 1)], 7⟩],
-      preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 8)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩],
-      prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
+  [("opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1", CoreMode.HcSig.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».sig),
     ("verify_merkle_cap__L6", CoreMode.HcSig.«verify_merkle_cap__L6».sig)]
-/-- `level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L6", 2, 2)]
 
@@ -498,10 +414,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1»
 
 namespace LeanVM.Guest.Fn.«level_residual__L17_L6_L4_L2»
-
 @[expose] public section
-
-/-- `level_residual__L17_L6_L4_L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -528,9 +441,8 @@ def hcert : CoreMode.HCert where
   rets := [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .run 0 [], .run 1 [],
         .run 2 [], .run 3 [], .run 4 [], .run 5 [], .run 6 [], .run 7 [], .run 8 []]]
 
-/-- `level_residual__L17_L6_L4_L2`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop372", 
+  [("__loop0_level_residual__L17_L6_L4_L2", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(4, 1)], 5⟩],
@@ -539,15 +451,13 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 4⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 5⟩, 8, (.val 0), (.val 1)⟩,
         ⟨⟨[(2, 1)], 6⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 7⟩, 8, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(3, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] }),
-    ("__loop373", 
+    ("__loop1_level_residual__L17_L6_L4_L2", 
     { pre := [⟨[(0, 2), (2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (2, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(4, 1)], 5⟩],
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L17_L6_L4_L2`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L17_L6_L4_L2`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -555,10 +465,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L17_L6_L4_L2»
 
 namespace LeanVM.Guest.Fn.«level_residual__L218_L20_L6_L3»
-
 @[expose] public section
-
-/-- `level_residual__L218_L20_L6_L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -592,9 +499,8 @@ def hcert : CoreMode.HCert where
         .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23,
         .pre 24, .pre 25, .run 8 []]]
 
-/-- `level_residual__L218_L20_L6_L3`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop271", 
+  [("__loop0_level_residual__L218_L20_L6_L3", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(5, 1)], 4⟩, ⟨[(4, 1)], 5⟩, ⟨[(5, 1)], 5⟩, ⟨[(4, 1)], 6⟩, ⟨[(4, 1)], 7⟩, ⟨[(4, 1)], 8⟩,
@@ -605,7 +511,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 4⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 5⟩, 8, (.val 0), (.val 1)⟩,
         ⟨⟨[(2, 1)], 6⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 7⟩, 8, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(3, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] }),
-    ("__loop272", 
+    ("__loop1_level_residual__L218_L20_L6_L3", 
     { pre := [⟨[(0, 2), (2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (2, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(5, 1)], 4⟩, ⟨[(4, 1)], 5⟩, ⟨[(5, 1)], 5⟩, ⟨[(4, 1)], 6⟩, ⟨[(4, 1)], 7⟩, ⟨[(4, 1)], 8⟩,
@@ -613,9 +519,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨[(4, 1)], 15⟩, ⟨[(4, 1)], 16⟩, ⟨[(4, 1)], 17⟩, ⟨[(4, 1)], 18⟩, ⟨[(4, 1)], 19⟩],
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L218_L20_L6_L3`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L218_L20_L6_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -623,10 +527,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L218_L20_L6_L3»
 
 namespace LeanVM.Guest.Fn.«level_residual__L73_L18_L6_L3»
-
 @[expose] public section
-
-/-- `level_residual__L73_L18_L6_L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -659,9 +560,8 @@ def hcert : CoreMode.HCert where
         .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23,
         .run 8 []]]
 
-/-- `level_residual__L73_L18_L6_L3`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop201", 
+  [("__loop0_level_residual__L73_L18_L6_L3", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(5, 1)], 4⟩, ⟨[(4, 1)], 5⟩, ⟨[(5, 1)], 5⟩, ⟨[(4, 1)], 6⟩, ⟨[(4, 1)], 7⟩, ⟨[(4, 1)], 8⟩,
@@ -672,7 +572,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 4⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 5⟩, 8, (.val 0), (.val 1)⟩,
         ⟨⟨[(2, 1)], 6⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 7⟩, 8, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(3, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] }),
-    ("__loop202", 
+    ("__loop1_level_residual__L73_L18_L6_L3", 
     { pre := [⟨[(0, 2), (2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (2, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
         ⟨[(5, 1)], 1⟩, ⟨[(4, 1)], 2⟩, ⟨[(5, 1)], 2⟩, ⟨[(4, 1)], 3⟩, ⟨[(5, 1)], 3⟩, ⟨[(4, 1)], 4⟩,
         ⟨[(5, 1)], 4⟩, ⟨[(4, 1)], 5⟩, ⟨[(5, 1)], 5⟩, ⟨[(4, 1)], 6⟩, ⟨[(4, 1)], 7⟩, ⟨[(4, 1)], 8⟩,
@@ -680,9 +580,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨[(4, 1)], 15⟩, ⟨[(4, 1)], 16⟩, ⟨[(4, 1)], 17⟩],
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L73_L18_L6_L3`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L73_L18_L6_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -690,10 +588,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L73_L18_L6_L3»
 
 namespace LeanVM.Guest.Fn.«open_stacked__L7»
-
 @[expose] public section
-
-/-- Part of `hcert`. -/
 def call11_0 : List CoreMode.Wit :=
   [.ev 4, .ev 6, .ev 12, .ev 14, .ev 20, .ev 22, .ev 28, .ev 30, .ev 36, .ev 38, .ev 44, .ev 46, .pts, .ev 78,
     .ev 82, .ev 86, .run 24 [], .run 26 [], .run 23 [], .run 25 [], .run 27 [], .run 24 [], .run 26 [],
@@ -846,7 +741,6 @@ def call11_0 : List CoreMode.Wit :=
     .run 28 [], .run 30 [], .run 32 [], .run 29 [], .run 31 [], .run 28 [], .run 30 [], .run 32 [], .run 29 [],
     .run 31 [], .run 28 [], .run 30 []]
 
-/-- Part of `hcert`. -/
 def call11_1 : List CoreMode.Wit :=
   [.run 32 [], .run 29 [], .run 31 [], .run 28 [], .run 30 [], .run 32 [], .pfr 34 [], .pts, .pfr 34 [],
     .pfr 34 [], .pfr 35 [], .pfr 37 [], .pfr 39 [], .pfr 36 [], .pfr 38 [], .pfr 35 [], .pfr 37 [], .pfr 39 [],
@@ -856,7 +750,6 @@ def call11_1 : List CoreMode.Wit :=
     .pfr 35 [], .pfr 37 [], .pfr 39 [], .pfr 36 [], .pfr 38 [], .pfr 35 [], .pfr 37 [], .pfr 39 [], .pfr 36 [],
     .pfr 38 [], .pfr 35 [], .pfr 37 [], .pfr 39 [], .pfr 36 [], .pfr 38 [], .pfr 35 [], .pfr 37 [], .pfr 39 []]
 
-/-- Part of `hcert`. -/
 def calls0 : List (List CoreMode.Wit) :=
   [[.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .run 1 [], .run 1 []],
     [.pre 5, .pre 6, .pre 7, .pre 8, .pre 9, .run 3 [], .run 3 []],
@@ -998,7 +891,6 @@ def calls0 : List (List CoreMode.Wit) :=
     [.run 63 [], .run 63 []],
     [.run 129 [], .run 129 [], .run 128 [], .run 105 [], .run 127 [], .run 126 [], .run 126 []]]
 
-/-- Part of `hcert`. -/
 def calls1 : List (List CoreMode.Wit) :=
   [[.ev 233, .ev 235, .ev 241, .ev 243, .ev 249, .ev 251, .ev 257, .ev 259, .pts, .ev 334, .ev 336,
         .ev 338, .ev 340, .ev 342, .ev 344, .run 142 [], .run 143 [], .run 144 [], .run 145 [], .run 146 [],
@@ -1091,7 +983,6 @@ def calls1 : List (List CoreMode.Wit) :=
         .ev 383, .ev 385, .ev 387, .ev 389, .ev 391, .ev 393, .ev 395, .ev 397, .ev 399, .ev 401, .ev 403,
         .ev 405, .ev 407, .ev 409, .ev 411]]
 
-/-- Part of `hcert`. -/
 def calls2 : List (List CoreMode.Wit) :=
   [[.ev 579, .ev 67, .ev 581, .ev 69, .ev 583, .ev 71, .ev 585, .ev 73, .ev 587, .ev 75, .ev 589, .ev 77,
         .ev 591, .ev 593, .ev 595, .ev 597, .ev 599, .ev 601, .ev 603, .ev 605, .ev 607, .ev 609, .ev 611,
@@ -1236,55 +1127,8 @@ def calls2 : List (List CoreMode.Wit) :=
         .run 177 [], .pts, .run 177 [], .run 177 [], .pts, .run 177 [], .run 177 [], .pts, .run 177 [],
         .run 177 [], .pts, .run 177 [], .run 177 []]]
 
-/-- `open_stacked__L7`: its heap certificate. -/
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩, ⟨[(9, 1)], 2⟩, ⟨[(9, 1)], 3⟩, ⟨[(9, 1)], 4⟩, ⟨[(9, 1)], 5⟩,
-        ⟨[(9, 1)], 6⟩, ⟨[(9, 1)], 7⟩, ⟨[(9, 1)], 8⟩, ⟨[(9, 1)], 9⟩, ⟨[(9, 1)], 10⟩, ⟨[(9, 1)], 11⟩,
-        ⟨[(9, 1)], 12⟩, ⟨[(9, 1)], 13⟩, ⟨[(9, 1)], 14⟩, ⟨[(9, 1)], 15⟩, ⟨[(9, 1)], 16⟩, ⟨[(9, 1)], 17⟩,
-        ⟨[(9, 1)], 18⟩, ⟨[(9, 1)], 19⟩, ⟨[(9, 1)], 20⟩, ⟨[(9, 1)], 21⟩, ⟨[(9, 1)], 22⟩, ⟨[(9, 1)], 23⟩,
-        ⟨[(9, 1)], 24⟩, ⟨[(9, 1)], 25⟩, ⟨[(9, 1)], 26⟩, ⟨[(9, 1)], 27⟩, ⟨[(9, 1)], 28⟩, ⟨[(9, 1)], 29⟩,
-        ⟨[(9, 1)], 30⟩, ⟨[(9, 1)], 31⟩, ⟨[(9, 1)], 32⟩, ⟨[(9, 1)], 33⟩, ⟨[(9, 1)], 34⟩, ⟨[(9, 1)], 35⟩,
-        ⟨[(9, 1)], 36⟩, ⟨[(9, 1)], 37⟩, ⟨[(9, 1)], 38⟩, ⟨[(9, 1)], 39⟩, ⟨[(9, 1)], 40⟩, ⟨[(9, 1)], 41⟩,
-        ⟨[(9, 1)], 42⟩, ⟨[(9, 1)], 43⟩, ⟨[(9, 1)], 44⟩, ⟨[(9, 1)], 45⟩, ⟨[(9, 1)], 46⟩, ⟨[(9, 1)], 47⟩,
-        ⟨[(9, 1)], 48⟩, ⟨[(9, 1)], 49⟩, ⟨[(9, 1)], 50⟩, ⟨[(9, 1)], 51⟩, ⟨[(9, 1)], 52⟩, ⟨[(9, 1)], 53⟩,
-        ⟨[(9, 1)], 54⟩, ⟨[(9, 1)], 55⟩, ⟨[(9, 1)], 56⟩, ⟨[(9, 1)], 57⟩, ⟨[(9, 1)], 58⟩, ⟨[(9, 1)], 59⟩,
-        ⟨[(9, 1)], 60⟩, ⟨[(9, 1)], 61⟩, ⟨[(9, 1)], 62⟩, ⟨[(9, 1)], 63⟩, ⟨[(9, 1)], 64⟩, ⟨[(9, 1)], 65⟩,
-        ⟨[(9, 1)], 66⟩, ⟨[(9, 1)], 67⟩, ⟨[(9, 1)], 68⟩, ⟨[(9, 1)], 69⟩, ⟨[(9, 1)], 70⟩, ⟨[(9, 1)], 71⟩,
-        ⟨[(9, 1)], 72⟩, ⟨[(9, 1)], 73⟩, ⟨[(9, 1)], 74⟩, ⟨[(9, 1)], 75⟩, ⟨[(9, 1)], 76⟩, ⟨[(9, 1)], 77⟩,
-        ⟨[(9, 1)], 78⟩, ⟨[(9, 1)], 79⟩, ⟨[(9, 1)], 80⟩, ⟨[(9, 1)], 81⟩, ⟨[(9, 1)], 82⟩, ⟨[(9, 1)], 83⟩,
-        ⟨[(9, 1)], 84⟩, ⟨[(9, 1)], 85⟩, ⟨[(9, 1)], 86⟩, ⟨[(9, 1)], 87⟩, ⟨[(9, 1)], 88⟩, ⟨[(9, 1)], 89⟩,
-        ⟨[(9, 1)], 90⟩, ⟨[(9, 1)], 91⟩, ⟨[(9, 1)], 92⟩, ⟨[(9, 1)], 93⟩, ⟨[(9, 1)], 94⟩, ⟨[(9, 1)], 95⟩,
-        ⟨[(9, 1)], 96⟩, ⟨[(9, 1)], 97⟩, ⟨[(9, 1)], 98⟩, ⟨[(9, 1)], 99⟩, ⟨[(9, 1)], 100⟩, ⟨[(9, 1)], 101⟩,
-        ⟨[(9, 1)], 102⟩, ⟨[(9, 1)], 103⟩, ⟨[(9, 1)], 104⟩, ⟨[(9, 1)], 105⟩, ⟨[(9, 1)], 106⟩, ⟨[(9, 1)], 107⟩,
-        ⟨[(9, 1)], 108⟩, ⟨[(9, 1)], 109⟩, ⟨[(9, 1)], 110⟩, ⟨[(9, 1)], 111⟩, ⟨[(9, 1)], 112⟩, ⟨[(9, 1)], 113⟩,
-        ⟨[(9, 1)], 114⟩, ⟨[(9, 1)], 115⟩, ⟨[(9, 1)], 116⟩, ⟨[(9, 1)], 117⟩, ⟨[(9, 1)], 118⟩, ⟨[(9, 1)], 119⟩,
-        ⟨[(9, 1)], 120⟩, ⟨[(9, 1)], 121⟩, ⟨[(9, 1)], 122⟩, ⟨[(9, 1)], 123⟩, ⟨[(9, 1)], 124⟩, ⟨[(9, 1)], 125⟩,
-        ⟨[(9, 1)], 126⟩, ⟨[(9, 1)], 127⟩, ⟨[(9, 1)], 128⟩, ⟨[(9, 1)], 129⟩, ⟨[(9, 1)], 130⟩, ⟨[(9, 1)], 131⟩,
-        ⟨[(9, 1)], 132⟩, ⟨[(9, 1)], 133⟩, ⟨[(9, 1)], 134⟩, ⟨[(9, 1)], 135⟩, ⟨[(9, 1)], 136⟩, ⟨[(9, 1)], 137⟩,
-        ⟨[(9, 1)], 138⟩, ⟨[(9, 1)], 139⟩, ⟨[(9, 1)], 140⟩, ⟨[(9, 1)], 141⟩, ⟨[(9, 1)], 142⟩, ⟨[(9, 1)], 143⟩,
-        ⟨[(9, 1)], 144⟩, ⟨[(9, 1)], 145⟩, ⟨[(9, 1)], 146⟩, ⟨[(9, 1)], 147⟩, ⟨[(9, 1)], 148⟩, ⟨[(9, 1)], 149⟩,
-        ⟨[(9, 1)], 150⟩, ⟨[(9, 1)], 151⟩, ⟨[(9, 1)], 152⟩, ⟨[(9, 1)], 153⟩, ⟨[(9, 1)], 154⟩, ⟨[(9, 1)], 155⟩,
-        ⟨[(9, 1)], 156⟩, ⟨[(9, 1)], 157⟩, ⟨[(9, 1)], 158⟩, ⟨[(9, 1)], 159⟩, ⟨[(9, 1)], 160⟩, ⟨[(9, 1)], 161⟩,
-        ⟨[(9, 1)], 162⟩, ⟨[(9, 1)], 163⟩, ⟨[(9, 1)], 164⟩, ⟨[(9, 1)], 165⟩, ⟨[(9, 1)], 166⟩, ⟨[(9, 1)], 167⟩,
-        ⟨[(9, 1)], 168⟩, ⟨[(9, 1)], 169⟩, ⟨[(9, 1)], 170⟩, ⟨[(9, 1)], 171⟩, ⟨[(9, 1)], 172⟩, ⟨[(9, 1)], 173⟩,
-        ⟨[(9, 1)], 174⟩, ⟨[(9, 1)], 175⟩, ⟨[(9, 1)], 176⟩, ⟨[(9, 1)], 177⟩, ⟨[(9, 1)], 178⟩, ⟨[(9, 1)], 179⟩,
-        ⟨[(9, 1)], 180⟩, ⟨[(9, 1)], 181⟩, ⟨[(9, 1)], 182⟩, ⟨[(9, 1)], 183⟩, ⟨[(9, 1)], 184⟩, ⟨[(9, 1)], 185⟩,
-        ⟨[(9, 1)], 186⟩, ⟨[(9, 1)], 187⟩, ⟨[(9, 1)], 188⟩, ⟨[(9, 1)], 189⟩, ⟨[(9, 1)], 190⟩, ⟨[(9, 1)], 191⟩,
-        ⟨[(9, 1)], 192⟩, ⟨[(9, 1)], 193⟩, ⟨[(9, 1)], 194⟩],
-      preR := [⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(9, 1)], 0⟩, 1, (.num 0), (.num 195)⟩, ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 1⟩)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 5⟩)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 29⟩)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 61⟩)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 125⟩)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 2045⟩)⟩, ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 4)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 32)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 128)⟩,
-        ⟨⟨[(10, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩, ⟨⟨[(12, 1)], 0⟩, 1, (.num 0), (.num 40)⟩,
-        ⟨⟨[(13, 1)], 0⟩, 1, (.num 0), (.num 40)⟩, ⟨⟨[(9, 1)], 30⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 6⟩)⟩,
-        ⟨⟨[(9, 1)], 30⟩, 1, (.num 0), (.num 9)⟩, ⟨⟨[(9, 1)], 148⟩, 1, (.num 0), (.mono ⟨[(0, 1)], 34⟩)⟩,
-        ⟨⟨[(9, 1)], 148⟩, 1, (.num 0), (.num 37)⟩] }
+  sig := CoreMode.HcSig.«open_stacked__L7».sig
   reads := [(105, [(96, 0, .run 15 [])]), (106, [(96, 1, .run 15 [])]), (119, [(104, 0, .pre 39)]),
     (122, [(104, 1, .pre 40)]), (169, [(96, 2, .run 15 [])]), (172, [(96, 3, .run 15 [])]),
     (175, [(96, 4, .run 15 [])]), (178, [(96, 5, .run 15 [])]), (181, [(96, 6, .run 15 [])]),
@@ -1431,42 +1275,11 @@ def hcert : CoreMode.HCert where
         .ev 566, .ev 568, .ev 570, .ev 572, .ev 574, .ev 576, .run 14 [6], .run 14 [], .run 77 [7], .run 77 []]]
   eqs := [167, 314, 463, 612]
 
-/-- `open_stacked__L7`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
-  [("fold_final_msg__L5", 
-    { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩,
-        ⟨[(0, 1)], 3⟩, ⟨[(1, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(1, 1)], 4⟩, ⟨[(0, 1)], 5⟩, ⟨[(0, 1)], 6⟩,
-        ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(0, 1)], 10⟩, ⟨[(0, 1)], 11⟩, ⟨[(0, 1)], 12⟩,
-        ⟨[(0, 1)], 13⟩, ⟨[(0, 1)], 14⟩, ⟨[(0, 1)], 15⟩, ⟨[(0, 1)], 16⟩, ⟨[(0, 1)], 17⟩, ⟨[(0, 1)], 18⟩,
-        ⟨[(0, 1)], 19⟩, ⟨[(0, 1)], 20⟩, ⟨[(0, 1)], 21⟩, ⟨[(0, 1)], 22⟩, ⟨[(0, 1)], 23⟩, ⟨[(0, 1)], 24⟩,
-        ⟨[(0, 1)], 25⟩, ⟨[(0, 1)], 26⟩, ⟨[(0, 1)], 27⟩, ⟨[(0, 1)], 28⟩, ⟨[(0, 1)], 29⟩, ⟨[(0, 1)], 30⟩,
-        ⟨[(0, 1)], 31⟩],
-      post := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 32)⟩] }),
-    ("grind_check__L15", 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }),
-    ("grind_check__L17", 
-    { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }),
-    ("level_positions__L10_L21_L3", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 10)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 10)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 10)⟩, [0, 1, 2, 3, 4])] }),
+  [("fold_final_msg__L5", CoreMode.HcSig.«fold_final_msg__L5».csig),
+    ("grind_check__L15", CoreMode.HcSig.«grind_check__L15».sig),
+    ("grind_check__L17", CoreMode.HcSig.«grind_check__L17».sig),
+    ("level_positions__L10_L21_L3", CoreMode.HcSig.«level_positions__L10_L21_L3».csig),
     ("level_positions__L11_L25_L7", 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
         ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
@@ -1515,81 +1328,10 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 22)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 22)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 22)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L3_L18_L6", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩,
-        ⟨[(6, 1)], 6⟩, ⟨[(7, 1)], 6⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 1⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 3⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 5⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 6⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 0⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 1⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 2⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 3⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 4⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 5⟩, 7, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 6⟩, 7, (.num 1), (.num 3)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 7)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 0⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 1⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 2⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 3⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 4⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 5⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 6⟩, 7, (.num 1), (.num 3)⟩, [0, 1, 2, 3])] }),
-    ("level_positions__L3_L19_L7", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3])] }),
-    ("level_positions__L3_L20_L2", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L3_L21_L3", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 3)⟩, [0, 1, 2, 3, 4])] }),
+    ("level_positions__L3_L18_L6", CoreMode.HcSig.«level_positions__L3_L18_L6».csig),
+    ("level_positions__L3_L19_L7", CoreMode.HcSig.«level_positions__L3_L19_L7».csig),
+    ("level_positions__L3_L20_L2", CoreMode.HcSig.«level_positions__L3_L20_L2».csig),
+    ("level_positions__L3_L21_L3", CoreMode.HcSig.«level_positions__L3_L21_L3».csig),
     ("level_positions__L44_L22_L4", 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
         ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
@@ -1606,144 +1348,14 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 44)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 44)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 44)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L4_L19_L7", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3])] }),
-    ("level_positions__L4_L20_L2", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L4_L21_L3", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L4_L22_L4", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 5, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 1⟩, 5, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 5, (.num 1), (.num 4)⟩, ⟨⟨[(6, 1)], 3⟩, 5, (.num 1), (.num 4)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 5, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 4)⟩,
-        ⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 4)⟩, ⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 4)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 4)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L5_L21_L3", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 5)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L5_L22_L4", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 1⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 3⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L5_L23_L5", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 1⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(6, 1)], 3⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 5)⟩, ⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 5)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 5, (.num 1), (.num 5)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_positions__L6_L20_L2", 
-    { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
-        ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩, ⟨[(6, 1)], 5⟩, ⟨[(7, 1)], 5⟩],
-      preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postR := [⟨⟨[(6, 1)], 0⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(6, 1)], 1⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(6, 1)], 2⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(6, 1)], 3⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(6, 1)], 4⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(6, 1)], 5⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 6)⟩, ⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 6)⟩,
-        ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
-      postPR := [(⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 0⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 1⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 2⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 3⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 4⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4]),
-        (⟨⟨[(7, 1)], 5⟩, 6, (.num 1), (.num 6)⟩, [0, 1, 2, 3, 4])] }),
+    ("level_positions__L4_L19_L7", CoreMode.HcSig.«level_positions__L4_L19_L7».csig),
+    ("level_positions__L4_L20_L2", CoreMode.HcSig.«level_positions__L4_L20_L2».csig),
+    ("level_positions__L4_L21_L3", CoreMode.HcSig.«level_positions__L4_L21_L3».csig),
+    ("level_positions__L4_L22_L4", CoreMode.HcSig.«level_positions__L4_L22_L4».csig),
+    ("level_positions__L5_L21_L3", CoreMode.HcSig.«level_positions__L5_L21_L3».csig),
+    ("level_positions__L5_L22_L4", CoreMode.HcSig.«level_positions__L5_L22_L4».csig),
+    ("level_positions__L5_L23_L5", CoreMode.HcSig.«level_positions__L5_L23_L5».csig),
+    ("level_positions__L6_L20_L2", CoreMode.HcSig.«level_positions__L6_L20_L2».csig),
     ("level_positions__L7_L24_L6", 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
         ⟨[(6, 1)], 3⟩, ⟨[(7, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(7, 1)], 4⟩],
@@ -1810,84 +1422,12 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 54)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 54)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(5, 1)], 2⟩, 2, (.num 0), (.num 54)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
-        ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(3, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(3, 1)], 7⟩, ⟨[(3, 1)], 8⟩, ⟨[(3, 1)], 9⟩,
-        ⟨[(3, 1)], 10⟩, ⟨[(3, 1)], 11⟩, ⟨[(3, 1)], 12⟩, ⟨[(3, 1)], 13⟩, ⟨[(3, 1)], 14⟩, ⟨[(3, 1)], 15⟩,
-        ⟨[(3, 1)], 16⟩, ⟨[(3, 1)], 17⟩, ⟨[(3, 1)], 18⟩, ⟨[(3, 1)], 19⟩, ⟨[(3, 1)], 20⟩, ⟨[(3, 1)], 21⟩,
-        ⟨[(3, 1)], 22⟩, ⟨[(3, 1)], 23⟩, ⟨[(3, 1)], 24⟩, ⟨[(3, 1)], 25⟩, ⟨[(3, 1)], 26⟩, ⟨[(3, 1)], 27⟩,
-        ⟨[(3, 1)], 28⟩, ⟨[(3, 1)], 29⟩, ⟨[(3, 1)], 30⟩, ⟨[(3, 1)], 31⟩, ⟨[(3, 1)], 32⟩, ⟨[(3, 1)], 33⟩,
-        ⟨[(3, 1)], 34⟩, ⟨[(3, 1)], 35⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 36)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩],
-      retM := [(3, ⟨[(0, 15)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 15)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
-        ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(3, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(3, 1)], 7⟩, ⟨[(3, 1)], 8⟩, ⟨[(3, 1)], 9⟩,
-        ⟨[(3, 1)], 10⟩, ⟨[(3, 1)], 11⟩, ⟨[(3, 1)], 12⟩, ⟨[(3, 1)], 13⟩, ⟨[(3, 1)], 14⟩, ⟨[(3, 1)], 15⟩,
-        ⟨[(3, 1)], 16⟩, ⟨[(3, 1)], 17⟩, ⟨[(3, 1)], 18⟩, ⟨[(3, 1)], 19⟩, ⟨[(3, 1)], 20⟩, ⟨[(3, 1)], 21⟩,
-        ⟨[(3, 1)], 22⟩, ⟨[(3, 1)], 23⟩, ⟨[(3, 1)], 24⟩, ⟨[(3, 1)], 25⟩, ⟨[(3, 1)], 26⟩, ⟨[(3, 1)], 27⟩,
-        ⟨[(3, 1)], 28⟩, ⟨[(3, 1)], 29⟩, ⟨[(3, 1)], 30⟩, ⟨[(3, 1)], 31⟩, ⟨[(3, 1)], 32⟩, ⟨[(3, 1)], 33⟩,
-        ⟨[(3, 1)], 34⟩, ⟨[(3, 1)], 35⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 36)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩],
-      retM := [(3, ⟨[(0, 16)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 16)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
-        ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(3, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(3, 1)], 7⟩, ⟨[(3, 1)], 8⟩, ⟨[(3, 1)], 9⟩,
-        ⟨[(3, 1)], 10⟩, ⟨[(3, 1)], 11⟩, ⟨[(3, 1)], 12⟩, ⟨[(3, 1)], 13⟩, ⟨[(3, 1)], 14⟩, ⟨[(3, 1)], 15⟩,
-        ⟨[(3, 1)], 16⟩, ⟨[(3, 1)], 17⟩, ⟨[(3, 1)], 18⟩, ⟨[(3, 1)], 19⟩, ⟨[(3, 1)], 20⟩, ⟨[(3, 1)], 21⟩,
-        ⟨[(3, 1)], 22⟩, ⟨[(3, 1)], 23⟩, ⟨[(3, 1)], 24⟩, ⟨[(3, 1)], 25⟩, ⟨[(3, 1)], 26⟩, ⟨[(3, 1)], 27⟩,
-        ⟨[(3, 1)], 28⟩, ⟨[(3, 1)], 29⟩, ⟨[(3, 1)], 30⟩, ⟨[(3, 1)], 31⟩, ⟨[(3, 1)], 32⟩, ⟨[(3, 1)], 33⟩,
-        ⟨[(3, 1)], 34⟩, ⟨[(3, 1)], 35⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 17)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 36)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 17)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 17)⟩],
-      retM := [(3, ⟨[(0, 17)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 17)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 17)⟩, [0, 1, 2, 3])] }),
-    ("level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(3, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(3, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(3, 1)], 2⟩,
-        ⟨[(2, 1)], 3⟩, ⟨[(3, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(3, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(3, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(3, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(3, 1)], 7⟩, ⟨[(3, 1)], 8⟩, ⟨[(3, 1)], 9⟩,
-        ⟨[(3, 1)], 10⟩, ⟨[(3, 1)], 11⟩, ⟨[(3, 1)], 12⟩, ⟨[(3, 1)], 13⟩, ⟨[(3, 1)], 14⟩, ⟨[(3, 1)], 15⟩,
-        ⟨[(3, 1)], 16⟩, ⟨[(3, 1)], 17⟩, ⟨[(3, 1)], 18⟩, ⟨[(3, 1)], 19⟩, ⟨[(3, 1)], 20⟩, ⟨[(3, 1)], 21⟩,
-        ⟨[(3, 1)], 22⟩, ⟨[(3, 1)], 23⟩, ⟨[(3, 1)], 24⟩, ⟨[(3, 1)], 25⟩, ⟨[(3, 1)], 26⟩, ⟨[(3, 1)], 27⟩,
-        ⟨[(3, 1)], 28⟩, ⟨[(3, 1)], 29⟩, ⟨[(3, 1)], 30⟩, ⟨[(3, 1)], 31⟩, ⟨[(3, 1)], 32⟩, ⟨[(3, 1)], 33⟩,
-        ⟨[(3, 1)], 34⟩, ⟨[(3, 1)], 35⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 36)⟩,
-        ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩],
-      retM := [(3, ⟨[(0, 18)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, [0, 1, 2, 3])] }),
-    ("level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 18)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩],
-      retM := [(3, ⟨[(0, 18)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 18)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 19)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 19)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 19)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 19)⟩],
-      retM := [(3, ⟨[(0, 19)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 19)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 19)⟩, [0, 1, 2, 3, 4])] }),
+    ("level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1", CoreMode.HcSig.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig),
+    ("level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1", CoreMode.HcSig.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig),
+    ("level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1", CoreMode.HcSig.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig),
+    ("level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1", CoreMode.HcSig.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig),
+    ("level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig),
+    ("level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig),
     ("level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0", 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
         ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(2, 1)], 8⟩, ⟨[(2, 1)], 9⟩, ⟨[(2, 1)], 10⟩, ⟨[(2, 1)], 11⟩],
@@ -1901,96 +1441,16 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(5, 1)], 0⟩, 2, (.num 0), (.num 109)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(5, 1)], 1⟩, 2, (.num 0), (.num 109)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 21)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩],
-      retM := [(3, ⟨[(0, 21)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 23)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩],
-      retM := [(3, ⟨[(0, 23)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, [0, 1, 2, 3])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, [0, 1, 2, 3])] }),
-    ("level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 23)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩],
-      retM := [(3, ⟨[(0, 23)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 23)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 25)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 25)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 25)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 25)⟩],
-      retM := [(3, ⟨[(0, 25)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 25)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 25)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 28)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 28)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 28)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 28)⟩],
-      retM := [(3, ⟨[(0, 28)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 28)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 28)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 32)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
-      retM := [(3, ⟨[(0, 32)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 32)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩],
-      retM := [(3, ⟨[(0, 32)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 37)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 37)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 37)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 37)⟩],
-      retM := [(3, ⟨[(0, 37)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 37)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 37)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 44)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩],
-      retM := [(3, ⟨[(0, 44)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 44)⟩, [0, 1, 2, 3, 4])] }),
-    ("level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0", 
-    { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
-        ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 55)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩],
-      postR := [⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 55)⟩,
-        ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩],
-      retM := [(3, ⟨[(0, 55)], 0⟩)],
-      prePR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩, [0, 1, 2, 3, 4])],
-      postPR := [(⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 55)⟩, [0, 1, 2, 3, 4])] }),
+    ("level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig),
+    ("level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig),
+    ("level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig),
+    ("level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig),
+    ("level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig),
+    ("level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig),
+    ("level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig),
+    ("level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig),
+    ("level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig),
+    ("level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0", CoreMode.HcSig.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig),
     ("level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0", 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩,
         ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩, ⟨[(2, 1)], 6⟩, ⟨[(2, 1)], 7⟩, ⟨[(2, 1)], 8⟩, ⟨[(2, 1)], 9⟩,
@@ -2121,21 +1581,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 2)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 2)⟩,
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 13)⟩, ⟨⟨[(0, 1)], 16⟩, 1, (.num 0), (.num 7)⟩] }),
-    ("level_residual__L23_L9_L4_L2", 
-    { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩,
-        ⟨[(1, 1)], 8⟩],
-      post := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 16⟩, 1, (.num 0), (.num 7)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 2)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 2)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 9)⟩, ⟨⟨[(0, 1)], 16⟩, 1, (.num 0), (.num 7)⟩] }),
+    ("level_residual__L23_L9_L4_L2", CoreMode.HcSig.«level_residual__L23_L9_L4_L2».csig),
     ("level_residual__L25_L13_L4_L2", 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
         ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩,
@@ -2166,20 +1612,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 3)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 3)⟩,
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 13)⟩, ⟨⟨[(0, 1)], 24⟩, 1, (.num 0), (.num 4)⟩] }),
-    ("level_residual__L32_L13_L4_L2", 
-    { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
-        ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩,
-        ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩, ⟨[(1, 1)], 12⟩],
-      post := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩],
-      preR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 4)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 1⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 3⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 4)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 4)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 13)⟩] }),
+    ("level_residual__L32_L13_L4_L2", CoreMode.HcSig.«level_residual__L32_L13_L4_L2».csig),
     ("level_residual__L32_L17_L4_L2", 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
         ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩, ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩,
@@ -2277,53 +1710,18 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(0, 1)], 4⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(0, 1)], 5⟩, 8, (.num 0), (.num 9)⟩,
         ⟨⟨[(0, 1)], 6⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(0, 1)], 7⟩, 8, (.num 0), (.num 9)⟩,
         ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 21)⟩, ⟨⟨[(0, 1)], 72⟩, 1, (.num 0), (.num 1)⟩] }),
-    ("opening_message__L36_L1", 
-    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(5, 1)], 5⟩,
-        ⟨[(5, 1)], 6⟩, ⟨[(5, 1)], 7⟩, ⟨[(5, 1)], 8⟩, ⟨[(5, 1)], 9⟩, ⟨[(5, 1)], 10⟩, ⟨[(5, 1)], 11⟩,
-        ⟨[(5, 1)], 12⟩, ⟨[(5, 1)], 13⟩, ⟨[(5, 1)], 14⟩, ⟨[(5, 1)], 15⟩, ⟨[(5, 1)], 16⟩, ⟨[(5, 1)], 17⟩,
-        ⟨[(5, 1)], 18⟩, ⟨[(5, 1)], 19⟩, ⟨[(5, 1)], 20⟩, ⟨[(5, 1)], 21⟩, ⟨[(5, 1)], 22⟩, ⟨[(5, 1)], 23⟩,
-        ⟨[(5, 1)], 24⟩, ⟨[(5, 1)], 25⟩, ⟨[(5, 1)], 26⟩, ⟨[(5, 1)], 27⟩, ⟨[(5, 1)], 28⟩, ⟨[(5, 1)], 29⟩,
-        ⟨[(5, 1)], 30⟩, ⟨[(5, 1)], 31⟩, ⟨[(5, 1)], 32⟩, ⟨[(5, 1)], 33⟩, ⟨[(5, 1)], 34⟩, ⟨[(5, 1)], 35⟩,
-        ⟨[(5, 1)], 36⟩],
-      postR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 37)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 36)⟩],
-      retM := [(7, ⟨[(5, 1)], 37⟩)] }),
-    ("opening_message__L6_L1", 
-    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(5, 1)], 5⟩,
-        ⟨[(5, 1)], 6⟩],
-      post := [⟨[(5, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(6, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(6, 1)], 2⟩,
-        ⟨[(5, 1)], 3⟩, ⟨[(6, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(6, 1)], 4⟩, ⟨[(5, 1)], 5⟩, ⟨[(6, 1)], 5⟩,
-        ⟨[(5, 1)], 6⟩],
-      retM := [(7, ⟨[(5, 1)], 7⟩)] }),
-    ("opening_message__L8_L1", 
-    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(5, 1)], 5⟩,
-        ⟨[(5, 1)], 6⟩, ⟨[(5, 1)], 7⟩, ⟨[(5, 1)], 8⟩],
-      postR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 9)⟩, ⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 8)⟩],
-      retM := [(7, ⟨[(5, 1)], 9⟩)] }),
-    ("opening_round", 
-    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
-      post := [⟨[(5, 1)], 0⟩, ⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(9, 1)], 1⟩, ⟨[(5, 1)], 2⟩,
-        ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
-      preR := [⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      postR := [⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, ⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
-      retM := [(5, ⟨[(5, 1)], 5⟩)] }),
-    ("opening_tail_round", 
-    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩],
-      post := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩],
-      retM := [(5, ⟨[(5, 1)], 2⟩)] }),
-    ("squeeze_point_from__L13", 
-    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 13)⟩] }),
-    ("squeeze_point_from__L17", 
-    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 17)⟩] }),
-    ("squeeze_point_from__L21", 
-    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 21)⟩] }),
-    ("squeeze_point_from__L9", 
-    { postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 9)⟩] })]
-/-- `open_stacked__L7`: each dispatch's callees by its call site's callee frame cell. -/
+    ("opening_message__L36_L1", CoreMode.HcSig.«opening_message__L36_L1».csig),
+    ("opening_message__L6_L1", CoreMode.HcSig.«opening_message__L6_L1».csig),
+    ("opening_message__L8_L1", CoreMode.HcSig.«opening_message__L8_L1».csig),
+    ("opening_round", CoreMode.HcSig.«opening_round».sig),
+    ("opening_tail_round", CoreMode.HcSig.«opening_tail_round».csig),
+    ("squeeze_point_from__L13", CoreMode.HcSig.«squeeze_point_from__L13».csig),
+    ("squeeze_point_from__L17", CoreMode.HcSig.«squeeze_point_from__L17».csig),
+    ("squeeze_point_from__L21", CoreMode.HcSig.«squeeze_point_from__L21».csig),
+    ("squeeze_point_from__L9", CoreMode.HcSig.«squeeze_point_from__L9».csig)]
 def dsp : List (ℕ × List String) :=
   [(174, ["level_positions__L44_L22_L4", "level_positions__L22_L23_L5", "level_positions__L15_L24_L6", "level_positions__L11_L25_L7"]), (228, ["level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0", "level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0", "level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0", "level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0"]), (349, ["level_positions__L10_L21_L3", "level_positions__L9_L22_L4", "level_positions__L8_L23_L5", "level_positions__L7_L24_L6"]), (399, ["level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0", "level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0", "level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0"]), (518, ["level_positions__L6_L20_L2", "level_positions__L5_L21_L3", "level_positions__L5_L22_L4", "level_positions__L5_L23_L5"]), (568, ["level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0", "level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0", "level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0"]), (687, ["level_positions__L4_L19_L7", "level_positions__L4_L20_L2", "level_positions__L4_L21_L3", "level_positions__L4_L22_L4"]), (737, ["level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0", "level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", "level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0"]), (810, ["level_positions__L3_L18_L6", "level_positions__L3_L19_L7", "level_positions__L3_L20_L2", "level_positions__L3_L21_L3"]), (905, ["level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1", "level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1", "level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1", "level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1"]), (1263, ["level_residual__L218_L21_L6_L3", "level_residual__L109_L21_L6_L3", "level_residual__L73_L21_L6_L3", "level_residual__L55_L21_L6_L3"]), (1274, ["level_residual__L55_L17_L4_L2", "level_residual__L44_L17_L4_L2", "level_residual__L37_L17_L4_L2", "level_residual__L32_L17_L4_L2"]), (1285, ["level_residual__L32_L13_L4_L2", "level_residual__L28_L13_L4_L2", "level_residual__L25_L13_L4_L2", "level_residual__L23_L13_L4_L2"]), (1296, ["level_residual__L23_L9_L4_L2", "level_residual__L21_L9_L4_L2", "level_residual__L19_L9_L4_L2", "level_residual__L18_L9_L4_L2"])]
-/-- `open_stacked__L7`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `open_stacked__L7`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 

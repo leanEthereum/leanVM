@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRVtP
+public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecRVtSt
 public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort

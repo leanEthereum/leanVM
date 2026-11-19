@@ -27,7 +27,7 @@ theorem pairEndOk : Bridge.chainEnd Fn.«sp_wots».code.code pairK6 = true := by
   decide +kernel
 
 /-- `sp_wots`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«sp_wots».core.body Fn.«sp_wots».code.code Data.adviceFn20 = true :=
+theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«sp_wots».core.body Fn.«sp_wots».code.code Fn.«sp_wots».advice = true :=
   CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2, pairK3, pairK4, pairK5, pairK6])
     (And.intro pairWin0 (And.intro pairWin1 (And.intro pairWin2 (And.intro pairWin3 (And.intro pairWin4 (And.intro pairWin5 pairEndOk))))))
 

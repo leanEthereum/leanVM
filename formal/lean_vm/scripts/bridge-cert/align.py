@@ -386,29 +386,30 @@ def ns(k, body):
     return f'namespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n{body}\nend LeanVM.Guest.Fn.«{k}»\n'
 
 
+def ctx_line(f):
+    """`alignCtx` as one declaration of the pack's section (`progal.CTX1` reads it back)."""
+    k = f['key']
+    cells = '[' + ', '.join(f'({v}, {c})' for v, c in f['extra']) + ']'
+    ents = '[' + ', '.join(f'("{n}", {e})' for n, e in f['ents']) + ']'
+    return cells, (f'noncomputable def Fn.«{k}».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs {cells} '
+                   f'code.entryPc {"true" if f["main"] else "false"} plumb Data.powTree Data.jtTrie {ents} {HALT} '
+                   f'code.instructionCount\n')
+
+
 def render(pack, fns):
-    out = [HEAD.format(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
-                       what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies."),
-           imports(m for f in fns for m in bases(f, pack))]
-    for f in fns:
+    ctxs = [ctx_line(f) for f in fns]
+    thms = []
+    for f, (cells, _) in zip(fns, ctxs):
         k = f['key']
-        cells, ctx = ctx_def(f)
-        out.append(ns(k, f'''@[expose] public section
-
-{ctx}
-end
-
-public section
-
-{cells_thm(f, cells)}
-/-- `{k}` aligns with its body. -/
-theorem alignOk :
-    Bridge.alignOk alignCtx Fn.«{k}».core.body Fn.«{k}».code.code Data.adviceFn{f["j"]} = true := by
-  decide +kernel
-
-end
-'''))
-    return '\n'.join(out)
+        thms += [(k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
+                  'decide +kernel'),
+                 (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Data.adviceFn{f["j"]} = true',
+                  'decide +kernel')]
+    return (HEAD.format(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
+                        what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies.")
+            + imports(m for f in fns for m in bases(f, pack))
+            + 'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
+            + ''.join(c for _, c in ctxs) + '\nend\n\nend LeanVM.Guest\n\n' + data.fn_thms(thms))
 
 
 def cur_lit(c):

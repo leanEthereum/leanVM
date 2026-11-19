@@ -11,17 +11,14 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«P22».Core
 public import LeanVM.Guest.Pack.«open_stacked__L5».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L5»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L5`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«open_stacked__L5».cert.locs Fn.«open_stacked__L5».fs Fn.«open_stacked__L5».core.body = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L5».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L5»
+end LeanVM.Guest

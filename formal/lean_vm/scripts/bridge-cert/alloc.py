@@ -536,60 +536,27 @@ def run(check):
         imps = pair.pack_imports(cm)
 
         def shape(k):
-            return f'''/-- `{k}`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«{k}».core.body = true := by
-  decide +kernel
+            return [(k, 'allocShapeOk', 'Bridge.allocShape core.body = true', 'decide +kernel')]
 
-'''
-
-        def ns(k, txt):
-            return f'''namespace LeanVM.Guest.Fn.«{k}»
-
-open LeanVM.Guest
-
-public section
-
-{txt}end
-
-end LeanVM.Guest.Fn.«{k}»
-
-'''
+        def ns(k, thms):
+            return data.fn_thms(thms)
 
         def body_thm(j, k):
-            return f'''/-- `{k}`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«{k}».plumb Fn.«{k}».core.body Fn.«{k}».code.code Data.adviceFn{j} = true := by
-  {prf}
-
-'''
+            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn{j} = true', prf)]
 
         def fr_thm(j, k):
             cs = '[' + ', '.join(str(c) for c in frd[j][0]) + ']'
-            return f'''/-- `{k}`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«{k}».fs {cs} Fn.«{k}».core.params Fn.«{k}».core.body
-      Data.adviceFn{j} = true := by
-  {prf}
-
-'''
+            return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Data.adviceFn{j} = true', prf)]
 
         def thm(j, k):
-            pre = '' if win else body_thm(j, k) + fr_thm(j, k)
+            pre = [] if win else body_thm(j, k) + fr_thm(j, k)
             if j in failed:
-                return pre + f'''/-- `{k}`'s allocation hints pass the bump pointer's check on the code. -/
-theorem curCodeOk :
-    Bridge.curCode alignCtx Fn.«{k}».fs Fn.«{k}».core.loop Fn.«{k}».plumb Fn.«{k}».code.code Data.adviceFn{j} = true := by
-  {prf}
-
-'''
-            return (shape(k) if not win else '') + pre + f'''/-- `{k}`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«{k}».fs Fn.«{k}».core.loop Fn.«{k}».plumb Fn.«{k}».core.body Fn.«{k}».code.code
-      Data.adviceFn{j} = true := by
-  {prf}
-
-'''
-        body = ''.join(ns(k, thm(j, k)) for j, k in jks)
+                return pre + [(k, 'curCodeOk', f'Bridge.curCode alignCtx fs core.loop plumb code.code Data.adviceFn{j} = true',
+                               prf)]
+            return (shape(k) if not win else []) + pre + [
+                (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn{j} = true',
+                 prf)]
+        body = data.fn_thms([t for j, k in jks for t in thm(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
             + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
@@ -642,19 +609,15 @@ theorem allocOk :
             if j not in fsq:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
-            body.append(f'''theorem fok{j} : Bridge.FrJ {j} :=
-  Bridge.frJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».frOk
-''')
+            body.append(f'theorem fok{j} : Bridge.FrJ {j} := Bridge.frJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} '
+                        f'Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».frOk\n')
             if j in failed:
-                body.append(f'''theorem cok{j} : Bridge.CurJ {j} :=
-  Bridge.curJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
-    Fn.«{k}».curBodyOk Fn.«{k}».curCodeOk
-''')
+                body.append(f'theorem cok{j} : Bridge.CurJ {j} := Bridge.curJ_of Checked.code{j} Checked.core{j} '
+                            f'Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».curBodyOk Fn.«{k}».curCodeOk\n')
                 continue
-            body.append(f'''theorem aok{j} : Bridge.AllocJ {j} :=
-  Bridge.allocJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
-    Fn.«{k}».allocShapeOk Fn.«{k}».curBodyOk Fn.«{k}».allocOk
-''')
+            body.append(f'theorem aok{j} : Bridge.AllocJ {j} := Bridge.allocJ_of Checked.code{j} Checked.core{j} '
+                        f'Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».allocShapeOk Fn.«{k}».curBodyOk '
+                        f'Fn.«{k}».allocOk\n')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.AllocChk.{lmod}',
                         what=f"The functions of `Checked.{lmod}` pass the allocation hints' check over their alignment's context.")
@@ -666,7 +629,7 @@ open LeanVM.Guest
 
 public section
 
-''' + '\n'.join(body) + '''
+''' + ''.join(body) + '''
 end
 
 end LeanVM.Guest.Bridge.AllocChk

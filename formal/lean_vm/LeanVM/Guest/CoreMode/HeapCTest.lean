@@ -19,10 +19,10 @@ public import LeanVM.Guest.Pack.«P56».Core
 Certificates written by hand, each checked by the kernel (`decide +kernel`), and a wrong witness
 rejected.
 
-* `__loop7` (`verify_bus_gkr_loop1`): reads `p3·i` (its own `preR`, at its counter by the
+* `__loop1_verify_bus_gkr` (`verify_bus_gkr_loop1`): reads `p3·i` (its own `preR`, at its counter by the
   termination fact), stores at `p2·i` (its `postR`, accumulated), its tail call's `preR` one further
   (the shifted lower bound).
-* `__loop23` (`da_pad_loop0`): two accumulated runs of stride 2 over `p2·p3²`.
+* `__loop0_da_pad` (`da_pad_loop0`): two accumulated runs of stride 2 over `p2·p3²`.
 * `opening_round`: reads `p5[0..4]` (preconditions), calls `grind_check__L7` (empty signature here),
   stores `p8[0]`, `p9[0]`, `p9[1]` (its guarantees).
 * `mk`, `useMk`: a guarantee over a returned word, read by the caller after the call; `useMk2`, the
@@ -62,7 +62,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Loop helpers of the guest -/
 
-/-- `__loop7`'s certificate. -/
+/-- `__loop1_verify_bus_gkr`'s certificate. -/
 def h7 : HCert where
   sig :=
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
@@ -80,7 +80,7 @@ theorem loop7_bad :
     heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop1».core { h7 with rets := [[.ev 0]] } = false := by
   decide +kernel
 
-/-- `__loop23`'s certificate. -/
+/-- `__loop0_da_pad`'s certificate. -/
 def h23 : HCert where
   sig :=
     { postR := [⟨⟨[(2, 1), (3, 2)], 0⟩, 2, .val 0, .val 1⟩, ⟨⟨[(2, 1), (3, 2)], 1⟩, 2, .val 0, .val 1⟩],

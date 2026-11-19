@@ -8,8 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenCW.«verify_keccak».S0
-public import LeanVM.Guest.CoreMode.GenCW.«verify_keccak».S1
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P3»
 public import LeanVM.Guest.Pack.«P3».Core
 
 set_option Elab.async false
@@ -21,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 0 to 1378. -/
-theorem win0 : winOkF Data.powTree sigW core hcert ((core.body.drop 0).take (1379 - 0)) st0 st1 = true := by
+theorem win0 : winOkF Fn.«verify_keccak».pows sigW core hcert ((core.body.drop 0).take (1379 - 0)) st0 st1 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

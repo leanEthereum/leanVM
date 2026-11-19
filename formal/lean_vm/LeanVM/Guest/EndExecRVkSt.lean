@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecRVk
-public import LeanVM.Guest.EndExecRKid
+public import LeanVM.Guest.CoreMode.Fam.Kid
 public import LeanVM.Guest.EndExecRVtB
 
 /-!

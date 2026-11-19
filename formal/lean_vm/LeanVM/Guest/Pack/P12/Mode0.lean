@@ -8,11 +8,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P12»
+public import LeanVM.Guest.CoreMode.Sig.«P53»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P12».Bundle
-public import LeanVM.Guest.Pack.«P12».ModeSig
-public import LeanVM.Guest.Pack.«P53».ModeSig
 
 set_option Elab.async false
 
@@ -27,12 +27,12 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_pad_loop0».modeSig) .nil .nil)))) .nil) .nil)) .nil))) .nil)) .nil) .nil)
+    (.node (some Fn.«da_pad_loop0».csig) .nil .nil)))) .nil) .nil)) .nil))) .nil)) .nil) .nil)
     .nil) .nil) .nil) .nil), 524287⟩
 
 /-- `da_pad`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨63147, 12, Fn.«da_pad».modeSig, (.node none (.node none (.node (some [(.allocFrames 7 20 4
+  ⟨63147, 12, Fn.«da_pad».csig, (.node none (.node none (.node (some [(.allocFrames 7 20 4
     (LeanVM.Parameters.K.ofBits 0x1) 20)]) .nil .nil) .nil) .nil), .nil, .nil, false, .nil⟩
 
 /-- `da_pad`: its mode walk accepts its code. -/

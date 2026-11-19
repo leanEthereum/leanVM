@@ -97,11 +97,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop21`, window 0, part 0. -/
+/-- `__loop1_child_claim_list_mono`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(389, Fn.«child_claim_list_mono_loop1».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_mono_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop21`: every part of every window. -/
+/-- `__loop1_child_claim_list_mono`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(389, Fn.«child_claim_list_mono_loop1».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_mono_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
@@ -145,11 +145,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop24`, window 0, part 0. -/
+/-- `__loop0_da_verify_blob`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(33, Fn.«da_verify_cell».sig), (411, Fn.«da_verify_blob_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_blob_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop24`: every part of every window. -/
+/-- `__loop0_da_verify_blob`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(33, Fn.«da_verify_cell».sig), (411, Fn.«da_verify_blob_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_blob_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel

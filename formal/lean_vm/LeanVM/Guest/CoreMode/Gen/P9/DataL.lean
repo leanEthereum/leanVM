@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«da_column_offsets_loop6»
-
 @[expose] public section
-
-/-- `da_column_offsets_loop6`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩, ⟨[(3, 1)], 6⟩],
@@ -41,10 +38,7 @@ end
 end LeanVM.Guest.Fn.«da_column_offsets_loop6»
 
 namespace LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop0»
-
 @[expose] public section
-
-/-- `level_residual__L25_L12_L4_L2_loop0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(5, 1)], 1⟩,
@@ -99,10 +93,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop0»
 
 namespace LeanVM.Guest.Fn.«level_residual__L37_L12_L4_L2_loop1»
-
 @[expose] public section
-
-/-- `level_residual__L37_L12_L4_L2_loop1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(0, 2), (2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (2, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(5, 1)], 1⟩,
@@ -124,10 +115,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L37_L12_L4_L2_loop1»
 
 namespace LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2_loop0»
-
 @[expose] public section
-
-/-- `level_residual__L44_L11_L4_L2_loop0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(5, 1)], 1⟩,
@@ -180,10 +168,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2_loop0»
 
 namespace LeanVM.Guest.Fn.«level_residual__L73_L20_L6_L3_loop1»
-
 @[expose] public section
-
-/-- `level_residual__L73_L20_L6_L3_loop1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig :=
     { pre := [⟨[(0, 2), (2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (2, 1)], 1⟩, ⟨[(4, 1)], 1⟩, ⟨[(5, 1)], 1⟩,

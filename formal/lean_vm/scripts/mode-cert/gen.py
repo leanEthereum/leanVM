@@ -1,6 +1,7 @@
-"""Writes the mode walk's certificates into each pack: `Pack/*/ModeSig.lean`, every function's
-signature (`Mode.Sig`), and `Pack/*/Mode{k}.lean`, every passing function's hints, residuals and
-table sizes (`Mode.Fun`) with the kernel's check of its walk (`Mode.walk`, `Guest/Mode/Abs.lean`).
+"""Writes the mode walk's certificates into each pack: `Pack/*/Mode{k}.lean`, every passing function's hints, residuals and
+table sizes (`Mode.Fun`) with the kernel's check of its walk (`Mode.walk`, `Guest/Mode/Abs.lean`), each function's
+signature its callers are told the core route's (`Fn.«k».csig`, `CoreMode/Sig/<pack>.lean`, written by
+`scripts/core-mode/frame_gen.py` from this inference).
 A function whose check is estimated to need more than `KBUDGET` of the kernel's memory
 (`kprofile`) is checked in windows (`Guest/Mode/Win.lean`): its data in `ModeD{k}`, the snapshots at
 its cuts in `ModeD{k}S{j}`, each window's check in `ModeD{k}W{m}`, their chain in `ModeL{k}`. Hints
@@ -203,18 +204,6 @@ def termFr(G):
     return all(ok(p) and ok(q) for p, q in G.term)
 
 
-def sigFile(p, ns, sigs):
-    out = [header('LeanVM.Guest.Pack.«%s».ModeSig' % p, 'What a caller knows of compiled functions, for the mode walk.')]
-    out.append('public import LeanVM.Guest.Mode.Abs\n')
-    for n in ns:
-        out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\n@[expose] public section\n\n' % I.fns[n]['ns'])
-        out.append('/-- `%s`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/\n' % n)
-        assert termFr(sigs[n]), n
-        out.append('noncomputable def modeSig : Mode.Sig :=\n  %s\n\n' % sig(sigs[n]))
-        out.append('theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns'])
-    return ''.join(out)
-
-
 def calleesOf(n): return sorted(I.calls[n])
 
 
@@ -253,9 +242,9 @@ def snapLit(S):
 
 def imports(p, ns):
     imps = {'LeanVM.Guest.Mode.Abs', 'LeanVM.Guest.Data.Pows', 'LeanVM.Guest.Pack.«%s».Bundle' % p,
-            'LeanVM.Guest.Pack.«%s».ModeSig' % p}
+            'LeanVM.Guest.CoreMode.Sig.«%s»' % p}
     for n in ns:
-        for m in calleesOf(n): imps.add('LeanVM.Guest.Pack.«%s».ModeSig' % I.fns[m]['pack'])
+        for m in calleesOf(n): imps.add('LeanVM.Guest.CoreMode.Sig.«%s»' % I.fns[m]['pack'])
     return imps
 
 
@@ -319,11 +308,11 @@ def dataDefs(n, res, cuts=None, inline=True):
     f = I.fns[n]
     sigt = {I.fns[m]['entry']: m for m in calleesOf(n)}
     env = '⟨Data.powTree, Data.jtTrie, %d, %d, %s, %d⟩' % (
-        I.JT_LO, I.JT_HI, trie(sigt, lambda m: '%s.modeSig' % fnq(m)), I.HALT)
+        I.JT_LO, I.JT_HI, trie(sigt, lambda m: '%s.csig' % fnq(m)), I.HALT)
     hs = {i: h for i, h in f['hints'].items() if h}
     rs = {i: r for i, r in res.get(n, {}).items() if r}
     defs = []
-    fun = '⟨%d, %d, %s.modeSig, %s, %s, %s, %s, %s⟩' % (
+    fun = '⟨%d, %d, %s.csig, %s, %s, %s, %s, %s⟩' % (
         f['entry'], f['count'], fnq(n), bigTrie('modeHints', 'List LeanVM.Prover.Exec.Hint', hs, lambda l: lst(l, hint), defs),
         bigTrie('modeRes', 'List Mode.Res', rs, lambda l: lst(l, res_), defs),
         bigTrie('modeTabs', 'ℕ', f['tabs'], nat, defs), 'true' if n == 'main' else 'false',
@@ -643,7 +632,7 @@ def certFile(p, ns, mods, walkH, hintsH):
     functions whose walks or hints are not checked as hypotheses."""
     mod = 'LeanVM.Guest.Pack.«%s».ModeCert' % p
     out = [header(mod, "The mode walk's certificates of compiled functions, with what each contributes to `ModeCerts`.")]
-    cs = [n for n in ns if onRoute(n)]
+    cs = sorted((n for n in ns if onRoute(n)), key=lambda n: I.fns[n]['ns'])
     out.append(importLines({'LeanVM.Guest.Mode.CertDefs', 'LeanVM.Guest.CoreMode.Gen.HcTab'} |
                            {'LeanVM.Guest.Pack.«%s».%s' % (p, m) for m in mods} |
                            ({'LeanVM.Guest.CoreMode.Gen.«%s».Core' % p} if cs else set())))
@@ -651,16 +640,19 @@ def certFile(p, ns, mods, walkH, hintsH):
     out.append('\nset_option Elab.async false\n')
     for n in ns:
         out.append(nsOpen(n))
-        out.append('/-- `%s`: its mode walk certificate. -/\nnoncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩\n\n' % n)
+        if n in cs:
+            out.append('/-- `%s`: its frame interface\'s certificate, the core route\'s. -/\nnoncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩\n\n' % n)
+        else:
+            out.append('/-- `%s`: its mode walk certificate. -/\nnoncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩\n\n' % n)
         out.append('end\n\n')
         es = calleeEntries(n)
         out.append('/-- `%s`: the callee signatures its walk reads. -/\nkernel_rfl modeSigs : modeCert.E.sigs.entries = %s\n\n' % (
-            n, lst(es, lambda e: '(%d, %s.modeSig)' % (e[0], fnq(e[1])))))
+            n, lst(es, lambda e: '(%d, %s.csig)' % (e[0], fnq(e[1])))))
 
         out.append('end LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns'])
     out.append('\nnamespace LeanVM.Guest.ModePack.«%s»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n' % p)
     out.append('/-- The pack\'s certificates. -/\nnoncomputable def certs : List Mode.Cert :=\n  %s\n\n' % lst(ns, lambda n: '%s.modeCert' % fnq(n)))
-    out.append('/-- The core data of the pack\'s functions on the core route. -/\nnoncomputable def coreFns : List CoreMode.CFun :=\n  %s\n\nend\n\npublic section\n\n' % lst(cs, lambda n: '%s.cfun' % fnq(n)))
+    out.append('end\n\npublic section\n\n')
     for k, n in enumerate(ns):
         out.append('theorem mem%d : %s.modeCert ∈ certs := %s\n\n' % (k, fnq(n), memProof(k)))
     out.append('/-- The certificates\' static facts. -/\ntheorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=\n  %s\n\n' % chain(
@@ -672,8 +664,8 @@ def certFile(p, ns, mods, walkH, hintsH):
         if n in cs: return 'Mode.fnSpec_core (hT _ (%s)) rfl %s.fnSpecC' % (memProof(cs.index(n)), fnq(n))
         return 'Mode.fnSpec_walk (certs_st _ mem%d) ⟨%s.modeOk, %s.modeHintsOk⟩' % (k, fnq(n), fnq(n))
     out.append('/-- The certificates\' frame interfaces: by their walks and hints, by the core route, or hypotheses. -/\n'
-               'theorem certs_spec {T : List CoreMode.CFun} (%s : ∀ Cf ∈ coreFns, Cf ∈ T)%s :\n    ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=\n  %s\n\n' % (
-        'hT' if cs else '_hT', args, chain([sp(k, n) for k, n in enumerate(ns)])))
+               'theorem certs_spec {T : List CoreMode.CFun} (%s : ∀ Cf ∈ %s, Cf ∈ T)%s :\n    ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=\n  %s\n\n' % (
+        'hT' if cs else '_hT', 'coreFns' if cs else '([] : List CoreMode.CFun)', args, chain([sp(k, n) for k, n in enumerate(ns)])))
     out.append('end\n\nend LeanVM.Guest.ModePack.«%s»\n' % p)
     return ''.join(out)
 
@@ -831,31 +823,6 @@ def loadRoute():
 def onRoute(n): return I.fns[n]['ns'] in ROUTE
 
 
-def coreDataFile(p, ns, R=None):
-    """The mode certificates' data of the pack's functions on the core route: their program and signature, no
-    walk (`Mode.Fun` with no hints, tables or cuts; of the residuals, the nonzero ones, the frame walk's divisors
-    `FFun.nzr`, which `CoreMode.nzrOk` checks there)."""
-    mod = 'LeanVM.Guest.Pack.«%s».ModeC' % p
-    out = [header(mod, "The mode certificates' data of compiled functions on the core route, checked there.")]
-    out.append(importLines(imports(p, ns)))
-    for n in ns:
-        f = I.fns[n]
-        sigt = {I.fns[m]['entry']: m for m in calleesOf(n)}
-        env = '⟨Data.powTree, Data.jtTrie, %d, %d, %s, %d⟩' % (
-            I.JT_LO, I.JT_HI, trie(sigt, lambda m: '%s.modeSig' % fnq(m)), I.HALT)
-        out.append(nsOpen(n))
-        out.append('/-- `%s`: the program its certificate shares. -/\nnoncomputable def modeEnv : Mode.Env :=\n  %s\n\n' % (n, env))
-        nz = {i: [r for r in rs if r[0] == 'nz'] for i, rs in (R or {}).get(n, {}).items()}
-        nz = {i: rs for i, rs in nz.items() if rs}
-        out.append('/-- `%s`: its entry, length and signature; on the core route, nothing for a walk but its nonzero '
-                   'residuals. -/\n'
-                   'noncomputable def modeFun : Mode.Fun :=\n  ⟨%d, %d, %s.modeSig, .nil, %s, .nil, %s, .nil⟩\n\n' % (
-                       n, f['entry'], f['count'], fnq(n), trie(nz, lambda l: lst(l, res_)) if nz else '.nil',
-                       'true' if n == 'main' else 'false'))
-        out.append(nsClose(n))
-    return ''.join(out)
-
-
 def main(argv):
     check = '--check' in argv
     only = argv[argv.index('--only') + 1:] if '--only' in argv else None
@@ -891,7 +858,6 @@ def main(argv):
     walkH = set(); hintsH = set(); packList = {}
     for p, ns in packs().items():
         if only and p not in only: continue
-        files[os.path.join(PACKS, p, 'ModeSig.lean')] = sigFile(p, ns, sigs)
         groups = []; cur = []; size = 0; mem = KBASE; long_ = []
         for n in ns:
             if not checkable(n, fails) or onRoute(n): continue
@@ -906,8 +872,6 @@ def main(argv):
             for name, text in winFiles(p, k, n, sigs, R, cuts[n]).items():
                 files[os.path.join(PACKS, p, name)] = text; nwin += name.startswith('ModeD') and 'W' in name
         xs = [n for n in ns if not checkable(n, fails) and not onRoute(n)]
-        cs = [n for n in ns if onRoute(n)]
-        if cs: files[os.path.join(PACKS, p, 'ModeC.lean')] = coreDataFile(p, cs, R)
         if xs: files[os.path.join(PACKS, p, 'ModeX.lean')] = dataFile(p, xs, R)
         mods = ['Mode%d' % k for k in range(len(groups))] + ['ModeD%d' % k for k in range(len(long_))] + (['ModeX'] if xs else [])
         hs = [n for g in groups for n in g] + long_ + xs
@@ -917,14 +881,13 @@ def main(argv):
             for name, text in hintsFiles(p, mods, hs, fnMod).items(): files[os.path.join(PACKS, p, name)] = text
         walkH.update(xs)
         cmods = ['Mode%d' % k for k in range(len(groups))] + ['ModeL%d' % k for k in range(len(long_))] + \
-            (['ModeX'] if xs else []) + (['ModeH'] if hs else []) + (['ModeC'] if cs else [])
+            (['ModeX'] if xs else []) + (['ModeH'] if hs else [])
         files[os.path.join(PACKS, p, 'ModeCert.lean')] = certFile(p, ns, cmods, walkH, hintsH)
         packList[p] = ns
     if not only: files.update(assemblyFiles(packList, walkH, hintsH, R))
     import glob
     bad = []
     for path in glob.glob(os.path.join(PACKS, '*', 'Mode*.lean')):
-        if path.endswith('ModeSig.lean'): continue
         if path in files or (only and path.split(os.sep)[-2] not in only): continue
         if check: bad.append(path)
         else: os.remove(path)

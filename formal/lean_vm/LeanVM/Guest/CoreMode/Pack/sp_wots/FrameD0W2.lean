@@ -12,15 +12,10 @@ public import LeanVM.Guest.CoreMode.Pack.«sp_wots».FrameD0
 set_option Elab.async false
 
 namespace LeanVM.Guest.Fn.«sp_wots»
-
 open LeanVM.Guest LeanVM.Guest.Exec
-
 @[expose] public section
-
 /-- `sp_wots`: its frame walk accepts offsets 14000 to 21000. -/
 theorem frameWin2 : CoreMode.frameWin frameFun code.chunks.flatten 14000 21000 = true := by
   decide +kernel
-
 end
-
 end LeanVM.Guest.Fn.«sp_wots»

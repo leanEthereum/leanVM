@@ -7,261 +7,100 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_tables.verify_tables.Ok
 public import LeanVM.Guest.CoreMode.Gen.«verify_tables».DataC
 public import LeanVM.Guest.CoreMode.GenW.verify_tables.Ok
+public import LeanVM.Guest.CoreMode.GlueC.«verify_tables»
 public import LeanVM.Guest.CoreMode.Pack.verify_tables.Frame0
+public import LeanVM.Guest.CoreMode.Pows.«verify_tables»
 public import LeanVM.Guest.CoreMode.SigSplit
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«verify_tables».Core
-public import LeanVM.Guest.Pack.«verify_tables».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_tables»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_tables`: what the core route knows of it. -/
-noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn12, Data.powTree, [], csigs, dsp, hcFlag, hcCallees, []⟩
+noncomputable def Fn.«verify_tables».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«verify_tables».advice, Fn.«verify_tables».pows, [], csigs, dsp, hcFlag, hcCallees, []⟩
 
 end
 
 public section
 
-attribute [local irreducible] pairO pairS
+attribute [local irreducible] Fn.«verify_tables».pairO Fn.«verify_tables».pairS
 
-/-- `verify_tables`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
-
-/-- `verify_tables`: no heap contract. -/
-theorem core_hc : cfun.hc = false := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's preconditions translated. -/
-theorem core_sigP : CoreMode.sigOkPre modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised cells. -/
-theorem core_sigC : CoreMode.sigOkPost modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's ghost slots. -/
-theorem core_sigG : CoreMode.sigOkGh cfun cfun.fn.params.length = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 0. -/
-theorem core_sigR0 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 0 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 1. -/
-theorem core_sigR1 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 1 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 2. -/
-theorem core_sigR2 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 2 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 3. -/
-theorem core_sigR3 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 3 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 4. -/
-theorem core_sigR4 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 4 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 5. -/
-theorem core_sigR5 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 5 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 6. -/
-theorem core_sigR6 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 6 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 7. -/
-theorem core_sigR7 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 7 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 8. -/
-theorem core_sigR8 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 8 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 9. -/
-theorem core_sigR9 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 9 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 10. -/
-theorem core_sigR10 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 10 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 11. -/
-theorem core_sigR11 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 11 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 12. -/
-theorem core_sigR12 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 12 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 13. -/
-theorem core_sigR13 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 13 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 14. -/
-theorem core_sigR14 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 14 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 15. -/
-theorem core_sigR15 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 15 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 16. -/
-theorem core_sigR16 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 16 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 17. -/
-theorem core_sigR17 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 17 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 18. -/
-theorem core_sigR18 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 18 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 19. -/
-theorem core_sigR19 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 19 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 20. -/
-theorem core_sigR20 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 20 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 21. -/
-theorem core_sigR21 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 21 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 22. -/
-theorem core_sigR22 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 22 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 23. -/
-theorem core_sigR23 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 23 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 24. -/
-theorem core_sigR24 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 24 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 25. -/
-theorem core_sigR25 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 25 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 26. -/
-theorem core_sigR26 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 26 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 27. -/
-theorem core_sigR27 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 27 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 28. -/
-theorem core_sigR28 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 28 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 29. -/
-theorem core_sigR29 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 29 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 30. -/
-theorem core_sigR30 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 30 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 31. -/
-theorem core_sigR31 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 31 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 32. -/
-theorem core_sigR32 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 32 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised run 33. -/
-theorem core_sigR33 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 33 = true := by
-  decide +kernel
-
-/-- `verify_tables`: its signature's promised runs. -/
-theorem core_sigR : CoreMode.sigOkPostR modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true :=
+theorem Fn.«verify_tables».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
+theorem Fn.«verify_tables».core_hc : cfun.hc = false := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigP : CoreMode.sigOkPre funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigC : CoreMode.sigOkPost funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigG : CoreMode.sigOkGh cfun cfun.fn.params.length = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR0 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 0 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR1 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 1 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR2 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 2 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR3 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 3 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR4 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 4 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR5 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 5 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR6 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 6 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR7 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 7 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR8 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 8 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR9 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 9 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR10 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 10 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR11 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 11 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR12 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 12 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR13 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 13 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR14 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 14 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR15 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 15 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR16 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 16 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR17 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 17 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR18 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 18 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR19 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 19 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR20 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 20 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR21 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 21 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR22 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 22 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR23 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 23 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR24 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 24 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR25 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 25 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR26 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 26 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR27 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 27 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR28 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 28 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR29 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 29 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR30 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 30 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR31 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 31 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR32 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 32 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR33 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 33 = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_sigR : CoreMode.sigOkPostR funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := 
   CoreMode.all_of_chunks 34 (by decide +kernel) fun i hi ↦ by
     interval_cases i
     exacts [core_sigR0, core_sigR1, core_sigR2, core_sigR3, core_sigR4, core_sigR5, core_sigR6, core_sigR7, core_sigR8, core_sigR9, core_sigR10, core_sigR11, core_sigR12, core_sigR13, core_sigR14, core_sigR15, core_sigR16, core_sigR17, core_sigR18, core_sigR19, core_sigR20, core_sigR21, core_sigR22, core_sigR23, core_sigR24, core_sigR25, core_sigR26, core_sigR27, core_sigR28, core_sigR29, core_sigR30, core_sigR31, core_sigR32, core_sigR33]
-
-/-- `verify_tables`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
-    (Mode.jtRng modeEnv) = true :=
-  CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG
-
-/-- `verify_tables`: its returned products. -/
-theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
-  decide +kernel
-
-/-- `verify_tables`: its body's statements. -/
-theorem core_body : CoreMode.bodyCore cfun.fn.body = true := by
-  decide +kernel
-
-/-- `verify_tables`: its tables' jumps. -/
-theorem core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_tables`: the rest of its shape. -/
-theorem core_rest : CoreMode.shapeRest cfun = true := by
-  decide +kernel
-
-/-- `verify_tables`: its shape. -/
-theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true :=
-  CoreMode.shapeOk_of core_body core_tgt core_rest
-
-/-- `verify_tables`: its calls' jumps. -/
-theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by
-  decide +kernel
-
-/-- `verify_tables`: its reads of the jump table. -/
-theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_tables`: the kernel's checks of the core route, tied to its mode certificate. -/
-theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl
-  pair := pair_ok
-  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
-  sig := core_sig
-  retv := core_retv
-  shape := core_shape
-  calls := core_calls
-  jtd := core_jtd
-  fsig := rfl
-  fsigs := rfl
-  fmain := by decide +kernel
-  fhalt := by decide +kernel
-  xhalt := by decide +kernel
-  fentry := rfl
-  flen := by decide +kernel
-  xentry := by decide +kernel
-  dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 12) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code12 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code12 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  faret := by decide +kernel
-  nzrc := by decide +kernel
-
-/-- `verify_tables`: its frame interface, by the core route. -/
-theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
+theorem Fn.«verify_tables».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG
+theorem Fn.«verify_tables».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_body : CoreMode.bodyCore cfun.fn.body = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_rest : CoreMode.shapeRest cfun = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := CoreMode.shapeOk_of core_body core_tgt core_rest
+theorem Fn.«verify_tables».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
+theorem Fn.«verify_tables».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_tables».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«verify_tables».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«verify_tables».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_tables».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«verify_tables».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«verify_tables».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest
+
+namespace LeanVM.Guest.ModePack.«verify_tables»
+
+@[expose] public section
+
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [LeanVM.Guest.Fn.«verify_tables».cfun]
+
+end
+
+end LeanVM.Guest.ModePack.«verify_tables»

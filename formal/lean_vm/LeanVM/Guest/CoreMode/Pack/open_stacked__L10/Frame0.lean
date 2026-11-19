@@ -8,388 +8,248 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueP.«open_stacked__L10»
+public import LeanVM.Guest.CoreMode.Env
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
 public import LeanVM.Guest.Pack.«open_stacked__L10».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
-public import LeanVM.Guest.Pack.«P0».ModeSig
-public import LeanVM.Guest.Pack.«P1».ModeSig
-public import LeanVM.Guest.Pack.«P10».ModeSig
-public import LeanVM.Guest.Pack.«P12».ModeSig
-public import LeanVM.Guest.Pack.«P13».ModeSig
-public import LeanVM.Guest.Pack.«P14».ModeSig
-public import LeanVM.Guest.Pack.«P15».ModeSig
-public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P17».ModeSig
-public import LeanVM.Guest.Pack.«P19».ModeSig
-public import LeanVM.Guest.Pack.«P20».ModeSig
-public import LeanVM.Guest.Pack.«P21».ModeSig
-public import LeanVM.Guest.Pack.«P22».ModeSig
-public import LeanVM.Guest.Pack.«P24».ModeSig
-public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P29».ModeSig
-public import LeanVM.Guest.Pack.«P3».ModeSig
-public import LeanVM.Guest.Pack.«P31».ModeSig
-public import LeanVM.Guest.Pack.«P32».ModeSig
-public import LeanVM.Guest.Pack.«P33».ModeSig
-public import LeanVM.Guest.Pack.«P34».ModeSig
-public import LeanVM.Guest.Pack.«P35».ModeSig
-public import LeanVM.Guest.Pack.«P36».ModeSig
-public import LeanVM.Guest.Pack.«P37».ModeSig
-public import LeanVM.Guest.Pack.«P38».ModeSig
-public import LeanVM.Guest.Pack.«P41».ModeSig
-public import LeanVM.Guest.Pack.«P42».ModeSig
-public import LeanVM.Guest.Pack.«P43».ModeSig
-public import LeanVM.Guest.Pack.«P44».ModeSig
-public import LeanVM.Guest.Pack.«P45».ModeSig
-public import LeanVM.Guest.Pack.«P46».ModeSig
-public import LeanVM.Guest.Pack.«P5».ModeSig
-public import LeanVM.Guest.Pack.«P54».ModeSig
-public import LeanVM.Guest.Pack.«P55».ModeSig
-public import LeanVM.Guest.Pack.«P56».ModeSig
-public import LeanVM.Guest.Pack.«P58».ModeSig
-public import LeanVM.Guest.Pack.«P59».ModeSig
-public import LeanVM.Guest.Pack.«P60».ModeSig
-public import LeanVM.Guest.Pack.«P62».ModeSig
-public import LeanVM.Guest.Pack.«P63».ModeSig
-public import LeanVM.Guest.Pack.«P7».ModeSig
-public import LeanVM.Guest.Pack.«P9».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«P0»
+public import LeanVM.Guest.CoreMode.Sig.«P1»
+public import LeanVM.Guest.CoreMode.Sig.«P10»
+public import LeanVM.Guest.CoreMode.Sig.«P12»
+public import LeanVM.Guest.CoreMode.Sig.«P13»
+public import LeanVM.Guest.CoreMode.Sig.«P14»
+public import LeanVM.Guest.CoreMode.Sig.«P15»
+public import LeanVM.Guest.CoreMode.Sig.«P16»
+public import LeanVM.Guest.CoreMode.Sig.«P17»
+public import LeanVM.Guest.CoreMode.Sig.«P19»
+public import LeanVM.Guest.CoreMode.Sig.«P20»
+public import LeanVM.Guest.CoreMode.Sig.«P21»
+public import LeanVM.Guest.CoreMode.Sig.«P22»
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P29»
+public import LeanVM.Guest.CoreMode.Sig.«P3»
+public import LeanVM.Guest.CoreMode.Sig.«P31»
+public import LeanVM.Guest.CoreMode.Sig.«P32»
+public import LeanVM.Guest.CoreMode.Sig.«P33»
+public import LeanVM.Guest.CoreMode.Sig.«P34»
+public import LeanVM.Guest.CoreMode.Sig.«P35»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
+public import LeanVM.Guest.CoreMode.Sig.«P37»
+public import LeanVM.Guest.CoreMode.Sig.«P38»
+public import LeanVM.Guest.CoreMode.Sig.«P41»
+public import LeanVM.Guest.CoreMode.Sig.«P42»
+public import LeanVM.Guest.CoreMode.Sig.«P43»
+public import LeanVM.Guest.CoreMode.Sig.«P44»
+public import LeanVM.Guest.CoreMode.Sig.«P45»
+public import LeanVM.Guest.CoreMode.Sig.«P46»
+public import LeanVM.Guest.CoreMode.Sig.«P5»
+public import LeanVM.Guest.CoreMode.Sig.«P54»
+public import LeanVM.Guest.CoreMode.Sig.«P55»
+public import LeanVM.Guest.CoreMode.Sig.«P56»
+public import LeanVM.Guest.CoreMode.Sig.«P58»
+public import LeanVM.Guest.CoreMode.Sig.«P59»
+public import LeanVM.Guest.CoreMode.Sig.«P60»
+public import LeanVM.Guest.CoreMode.Sig.«P62»
+public import LeanVM.Guest.CoreMode.Sig.«P63»
+public import LeanVM.Guest.CoreMode.Sig.«P7»
+public import LeanVM.Guest.CoreMode.Sig.«P9»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L10»
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«open_stacked__L10»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee0 : List ℕ :=
-  [272839, 272881, 272923, 272965]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee1 : List ℕ :=
-  [273007, 273048, 273088, 273126]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee2 : List ℕ :=
-  [265966, 273165, 273207, 273249]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee3 : List ℕ :=
-  [273291, 273330, 273367, 273404]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee4 : List ℕ :=
-  [266250, 271657, 273438, 273480]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee5 : List ℕ :=
-  [266405, 273522, 273558, 273594]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee6 : List ℕ :=
-  [266481, 268091, 271808, 273631]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee7 : List ℕ :=
-  [266595, 273673, 273709, 273745]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee8 : List ℕ :=
-  [266632, 268242, 269893, 271808]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee9 : List ℕ :=
-  [266746, 272025, 273780, 273815]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee10 : List ℕ :=
-  [264981, 266632, 270042, 273849]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee11 : List ℕ :=
-  [266850, 273891, 273927, 273963]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee12 : List ℕ :=
-  [273998, 274043, 274088, 274133]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee13 : List ℕ :=
-  [274178, 274223, 274268, 274313]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee14 : List ℕ :=
-  [267201, 274337, 274382, 274427]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee15 : List ℕ :=
-  [267315, 274471, 274516, 274561]
-
-/-- `open_stacked__L10`: a table call's callees' pcs. -/
-def frameCallee16 : List ℕ :=
-  [267449, 274603, 274648]
-
-/-- `open_stacked__L10`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 231760, 2496,
-    Fn.«open_stacked__L10».modeSig, (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«grind_check__L17».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil) .nil)) (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node (some Fn.«level_positions__L4_L25_L7».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil)) .nil))) .nil) .nil)))) (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L44_L20_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil))))) .nil)
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)))) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«opening_message__L8_L1».modeSig) .nil .nil))))) .nil) .nil) .nil)) (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_positions__L44_L25_L7».modeSig) .nil .nil) .nil) .nil) .nil) .nil))
-    .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L21_L12_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)
-    .nil) .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil)) .nil))) .nil))) (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil)) .nil)) .nil))))) (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node (some Fn.«level_positions__L10_L26_L2».modeSig) .nil .nil) .nil)
-    .nil) .nil) .nil)) .nil)) .nil))) .nil) .nil)))) (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil) .nil)
-    .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil))) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«squeeze_point_from__L16».modeSig) .nil .nil)))))) .nil) .nil)
-    .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L23_L12_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil))
-    .nil) .nil) .nil) .nil))) (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node (some
-    Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)))) .nil) (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».modeSig) .nil .nil)
-    .nil) .nil) .nil) .nil)) .nil)))) .nil) (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L17_L8_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)
-    .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L24».modeSig) .nil .nil)) .nil) .nil)))) .nil)))))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L19_L27_L3».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)) .nil))
-    .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
-    (some Fn.«level_positions__L5_L23_L5».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil))
-    .nil)))) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L109_L24_L6_L3».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil)
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L23_L16_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)))))))))))
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_residual__L18_L12_L4_L2».modeSig) .nil .nil) .nil) .nil)
-    .nil) .nil))) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node (some Fn.«opening_tail_round».modeSig) .nil
-    .nil) .nil) .nil))) .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L32_L16_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)
-    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
-    (some Fn.«level_residual__L28_L16_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil))))))
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L8_L27_L3».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)) .nil)))
-    .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig) .nil .nil) .nil)
-    .nil) .nil) .nil)) .nil))) .nil)) (.node none (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L8».modeSig) .nil .nil)))))) .nil)) .nil) .nil))) (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L5_L22_L4».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil) .nil)
-    .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node (some Fn.«level_positions__L28_L26_L2».modeSig) .nil .nil)
-    .nil) .nil) .nil) .nil)) .nil)) .nil) .nil)))))) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L32_L20_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)))))) .nil)
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L5_L25_L7».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil) .nil)) .nil))
-    .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«squeeze_point_from__L20».modeSig) .nil .nil)) .nil) .nil)))) (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil) .nil))) .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_residual__L18_L8_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L3_L23_L5».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil))) .nil)))
-    .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some
-    Fn.«opening_round».modeSig) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node (some Fn.«level_positions__L14_L28_L4».modeSig) .nil .nil)
-    .nil) .nil) .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node none (.node (some Fn.«level_positions__L4_L23_L5».modeSig) .nil .nil)
-    .nil) .nil) .nil) .nil) .nil))))) .nil) .nil)) (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none (.node (some Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil) .nil)) .nil) .nil) .nil) .nil)) .nil)) (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L3_L20_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))
-    .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L55_L24_L6_L3».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil)))
-    .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_positions__L9_L25_L7».modeSig) .nil .nil) .nil) .nil) .nil) .nil))
-    .nil)) .nil))) .nil) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig) .nil .nil) .nil)
-    .nil) .nil) .nil)) .nil))) .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«squeeze_point_from__L12».modeSig) .nil
-    .nil)))))) .nil) .nil))) .nil)) .nil))))) (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L4_L24_L6».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil) .nil))
-    .nil)))) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«opening_message__L6_L1».modeSig) .nil .nil))))) .nil) .nil))
-    .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none (.node (some Fn.«level_positions__L3_L21_L3».modeSig) .nil .nil) .nil)
-    .nil) .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_positions__L6_L26_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil))
-    .nil))) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_residual__L73_L24_L6_L3».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)))) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil)) (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_residual__L16_L8_L4_L2».modeSig) .nil .nil) .nil) .nil)
-    .nil) .nil))) .nil) .nil) .nil) .nil))) .nil))) (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L19_L12_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil))) .nil) .nil)
-    .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSig) .nil .nil) .nil)
-    .nil) .nil) .nil)) .nil))) .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«grind_check__L15».modeSig) .nil .nil))
-    .nil) .nil)))) .nil)) .nil) .nil))) (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none (.node (some Fn.«level_residual__L37_L20_L4_L2».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«fold_final_msg__L4».modeSig) .nil .nil)))))) .nil))) .nil))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil))))))))) (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_residual__L55_L20_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil) .nil)) .nil))))) .nil)
-    .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil) .nil)) .nil) .nil)) .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node (some Fn.«level_positions__L4_L22_L4».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))))) (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node (some
-    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil))) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_positions__L7_L23_L5».modeSig) .nil .nil) .nil) .nil)
-    .nil) .nil) .nil)) .nil) .nil) .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_positions__L3_L22_L4».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil))))) .nil)))
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil))) .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil) .nil)
-    .nil)) .nil) .nil) .nil))))))) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some
-    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil)) .nil))) .nil) .nil)) .nil) (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«opening_message__L20_L1».modeSig) .nil
-    .nil)))))) .nil)) .nil))) .nil))) (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none (.node (some Fn.«level_residual__L218_L24_L6_L3».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node (some Fn.«level_residual__L25_L16_L4_L2».modeSig) .nil .nil) .nil) .nil) .nil)
-    .nil)) .nil))))))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node (some Fn.«level_positions__L11_L24_L6».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil)))) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some Fn.«level_positions__L6_L24_L6».modeSig) .nil .nil) .nil) .nil) .nil) .nil))
-    .nil))) .nil) .nil) .nil) .nil) .nil)))))), 524287, Data.adviceFn349.2.2, .nil, (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node (some 9) .nil .nil) .nil) .nil)) .nil)) (.node none (.node
-    none .nil (.node none .nil (.node (some 2) .nil .nil))) (.node none (.node none (.node none
-    (.node none (.node none (.node (some 13) .nil .nil) .nil) .nil) .nil) .nil) .nil))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some 11) .nil
-    .nil) .nil))) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node (some 0) .nil .nil))) (.node none (.node none (.node none .nil (.node
-    none .nil (.node (some 6) .nil .nil))) (.node none (.node none (.node none (.node none (.node
-    (some 15) .nil .nil) .nil) .nil) .nil) .nil)) .nil))) (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node (some 5) .nil .nil) .nil))) .nil)))))
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some 7) .nil .nil)))) (.node none (.node none (.node none (.node none
-    (.node none (.node (some 12) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil) (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node (some 10) .nil
-    .nil) .nil)) .nil) .nil)))) (.node none .nil (.node none (.node none .nil (.node none .nil
+def Fn.«open_stacked__L10».frameCallee0 : List ℕ := [Fn.«level_positions__L44_L25_L7».entry,
+    Fn.«level_positions__L28_L26_L2».entry, Fn.«level_positions__L19_L27_L3».entry,
+    Fn.«level_positions__L14_L28_L4».entry]
+def Fn.«open_stacked__L10».frameCallee1 : List ℕ :=
+    [Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L10».frameCallee2 : List ℕ := [Fn.«level_positions__L11_L24_L6».entry,
+    Fn.«level_positions__L9_L25_L7».entry, Fn.«level_positions__L10_L26_L2».entry,
+    Fn.«level_positions__L8_L27_L3».entry]
+def Fn.«open_stacked__L10».frameCallee3 : List ℕ :=
+    [Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L10».frameCallee4 : List ℕ := [Fn.«level_positions__L7_L23_L5».entry,
+    Fn.«level_positions__L5_L25_L7».entry, Fn.«level_positions__L6_L24_L6».entry,
+    Fn.«level_positions__L6_L26_L2».entry]
+def Fn.«open_stacked__L10».frameCallee5 : List ℕ :=
+    [Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L10».frameCallee6 : List ℕ := [Fn.«level_positions__L5_L22_L4».entry,
+    Fn.«level_positions__L5_L23_L5».entry, Fn.«level_positions__L4_L24_L6».entry,
+    Fn.«level_positions__L4_L25_L7».entry]
+def Fn.«open_stacked__L10».frameCallee7 : List ℕ :=
+    [Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L10».frameCallee8 : List ℕ := [Fn.«level_positions__L3_L21_L3».entry,
+    Fn.«level_positions__L4_L22_L4».entry, Fn.«level_positions__L4_L23_L5».entry,
+    Fn.«level_positions__L4_L24_L6».entry]
+def Fn.«open_stacked__L10».frameCallee9 : List ℕ :=
+    [Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L10».frameCallee10 : List ℕ := [Fn.«level_positions__L3_L20_L2».entry,
+    Fn.«level_positions__L3_L21_L3».entry, Fn.«level_positions__L3_L22_L4».entry,
+    Fn.«level_positions__L3_L23_L5».entry]
+def Fn.«open_stacked__L10».frameCallee11 : List ℕ :=
+    [Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».entry,
+    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».entry,
+    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».entry,
+    Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».entry]
+def Fn.«open_stacked__L10».frameCallee12 : List ℕ := [Fn.«level_residual__L218_L24_L6_L3».entry,
+    Fn.«level_residual__L109_L24_L6_L3».entry, Fn.«level_residual__L73_L24_L6_L3».entry,
+    Fn.«level_residual__L55_L24_L6_L3».entry]
+def Fn.«open_stacked__L10».frameCallee13 : List ℕ := [Fn.«level_residual__L55_L20_L4_L2».entry,
+    Fn.«level_residual__L44_L20_L4_L2».entry, Fn.«level_residual__L37_L20_L4_L2».entry,
+    Fn.«level_residual__L32_L20_L4_L2».entry]
+def Fn.«open_stacked__L10».frameCallee14 : List ℕ := [Fn.«level_residual__L32_L16_L4_L2».entry,
+    Fn.«level_residual__L28_L16_L4_L2».entry, Fn.«level_residual__L25_L16_L4_L2».entry,
+    Fn.«level_residual__L23_L16_L4_L2».entry]
+def Fn.«open_stacked__L10».frameCallee15 : List ℕ := [Fn.«level_residual__L23_L12_L4_L2».entry,
+    Fn.«level_residual__L21_L12_L4_L2».entry, Fn.«level_residual__L19_L12_L4_L2».entry,
+    Fn.«level_residual__L18_L12_L4_L2».entry]
+def Fn.«open_stacked__L10».frameCallee16 : List ℕ := [Fn.«level_residual__L18_L8_L4_L2».entry,
+    Fn.«level_residual__L17_L8_L4_L2».entry, Fn.«level_residual__L16_L8_L4_L2».entry]
+noncomputable def Fn.«open_stacked__L10».envC : Mode.Env := CoreMode.envOf
+    [Fn.«fold_final_msg__L4».csig, Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig,
+    Fn.«level_positions__L10_L26_L2».csig, Fn.«level_positions__L11_L24_L6».csig,
+    Fn.«level_positions__L14_L28_L4».csig, Fn.«level_positions__L19_L27_L3».csig,
+    Fn.«level_positions__L28_L26_L2».csig, Fn.«level_positions__L3_L20_L2».csig,
+    Fn.«level_positions__L3_L21_L3».csig, Fn.«level_positions__L3_L22_L4».csig,
+    Fn.«level_positions__L3_L23_L5».csig, Fn.«level_positions__L44_L25_L7».csig,
+    Fn.«level_positions__L4_L22_L4».csig, Fn.«level_positions__L4_L23_L5».csig,
+    Fn.«level_positions__L4_L24_L6».csig, Fn.«level_positions__L4_L25_L7».csig,
+    Fn.«level_positions__L5_L22_L4».csig, Fn.«level_positions__L5_L23_L5».csig,
+    Fn.«level_positions__L5_L25_L7».csig, Fn.«level_positions__L6_L24_L6».csig,
+    Fn.«level_positions__L6_L26_L2».csig, Fn.«level_positions__L7_L23_L5».csig,
+    Fn.«level_positions__L8_L27_L3».csig, Fn.«level_positions__L9_L25_L7».csig,
+    Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».csig,
+    Fn.«level_residual__L109_L24_L6_L3».csig, Fn.«level_residual__L16_L8_L4_L2».csig,
+    Fn.«level_residual__L17_L8_L4_L2».csig, Fn.«level_residual__L18_L12_L4_L2».csig,
+    Fn.«level_residual__L18_L8_L4_L2».csig, Fn.«level_residual__L19_L12_L4_L2».csig,
+    Fn.«level_residual__L218_L24_L6_L3».csig, Fn.«level_residual__L21_L12_L4_L2».csig,
+    Fn.«level_residual__L23_L12_L4_L2».csig, Fn.«level_residual__L23_L16_L4_L2».csig,
+    Fn.«level_residual__L25_L16_L4_L2».csig, Fn.«level_residual__L28_L16_L4_L2».csig,
+    Fn.«level_residual__L32_L16_L4_L2».csig, Fn.«level_residual__L32_L20_L4_L2».csig,
+    Fn.«level_residual__L37_L20_L4_L2».csig, Fn.«level_residual__L44_L20_L4_L2».csig,
+    Fn.«level_residual__L55_L20_L4_L2».csig, Fn.«level_residual__L55_L24_L6_L3».csig,
+    Fn.«level_residual__L73_L24_L6_L3».csig, Fn.«opening_message__L20_L1».csig,
+    Fn.«opening_message__L6_L1».csig, Fn.«opening_message__L8_L1».csig, Fn.«opening_round».csig,
+    Fn.«opening_tail_round».csig, Fn.«squeeze_point_from__L12».csig,
+    Fn.«squeeze_point_from__L16».csig, Fn.«squeeze_point_from__L20».csig,
+    Fn.«squeeze_point_from__L24».csig, Fn.«squeeze_point_from__L8».csig]
+noncomputable def Fn.«open_stacked__L10».funC : Mode.Fun := ⟨Fn.«open_stacked__L10».entry, 2496,
+    Fn.«open_stacked__L10».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«open_stacked__L10».frameFun : CoreMode.FFun :=
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«open_stacked__L10».entry, 2496,
+    Fn.«open_stacked__L10».csig, (CoreMode.sigTrie [Fn.«fold_final_msg__L4».csig,
+    Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig, Fn.«level_positions__L10_L26_L2».csig,
+    Fn.«level_positions__L11_L24_L6».csig, Fn.«level_positions__L14_L28_L4».csig,
+    Fn.«level_positions__L19_L27_L3».csig, Fn.«level_positions__L28_L26_L2».csig,
+    Fn.«level_positions__L3_L20_L2».csig, Fn.«level_positions__L3_L21_L3».csig,
+    Fn.«level_positions__L3_L22_L4».csig, Fn.«level_positions__L3_L23_L5».csig,
+    Fn.«level_positions__L44_L25_L7».csig, Fn.«level_positions__L4_L22_L4».csig,
+    Fn.«level_positions__L4_L23_L5».csig, Fn.«level_positions__L4_L24_L6».csig,
+    Fn.«level_positions__L4_L25_L7».csig, Fn.«level_positions__L5_L22_L4».csig,
+    Fn.«level_positions__L5_L23_L5».csig, Fn.«level_positions__L5_L25_L7».csig,
+    Fn.«level_positions__L6_L24_L6».csig, Fn.«level_positions__L6_L26_L2».csig,
+    Fn.«level_positions__L7_L23_L5».csig, Fn.«level_positions__L8_L27_L3».csig,
+    Fn.«level_positions__L9_L25_L7».csig,
+    Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».csig,
+    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».csig,
+    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».csig,
+    Fn.«level_residual__L109_L24_L6_L3».csig, Fn.«level_residual__L16_L8_L4_L2».csig,
+    Fn.«level_residual__L17_L8_L4_L2».csig, Fn.«level_residual__L18_L12_L4_L2».csig,
+    Fn.«level_residual__L18_L8_L4_L2».csig, Fn.«level_residual__L19_L12_L4_L2».csig,
+    Fn.«level_residual__L218_L24_L6_L3».csig, Fn.«level_residual__L21_L12_L4_L2».csig,
+    Fn.«level_residual__L23_L12_L4_L2».csig, Fn.«level_residual__L23_L16_L4_L2».csig,
+    Fn.«level_residual__L25_L16_L4_L2».csig, Fn.«level_residual__L28_L16_L4_L2».csig,
+    Fn.«level_residual__L32_L16_L4_L2».csig, Fn.«level_residual__L32_L20_L4_L2».csig,
+    Fn.«level_residual__L37_L20_L4_L2».csig, Fn.«level_residual__L44_L20_L4_L2».csig,
+    Fn.«level_residual__L55_L20_L4_L2».csig, Fn.«level_residual__L55_L24_L6_L3».csig,
+    Fn.«level_residual__L73_L24_L6_L3».csig, Fn.«opening_message__L20_L1».csig,
+    Fn.«opening_message__L6_L1».csig, Fn.«opening_message__L8_L1».csig, Fn.«opening_round».csig,
+    Fn.«opening_tail_round».csig, Fn.«squeeze_point_from__L12».csig,
+    Fn.«squeeze_point_from__L16».csig, Fn.«squeeze_point_from__L20».csig,
+    Fn.«squeeze_point_from__L24».csig, Fn.«squeeze_point_from__L8».csig]), 524287, advice.2.2, .nil,
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node (some 9) .nil .nil) .nil) .nil)) .nil)) (.node
+    none (.node none .nil (.node none .nil (.node (some 2) .nil .nil))) (.node none (.node none
+    (.node none (.node none (.node none (.node (some 13) .nil .nil) .nil) .nil) .nil) .nil) .nil)))
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    11) .nil .nil) .nil))) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node (some 0) .nil .nil))) (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some 6) .nil .nil))) (.node none (.node none (.node none (.node none
+    (.node (some 15) .nil .nil) .nil) .nil) .nil) .nil)) .nil))) (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node (some 5) .nil .nil) .nil)))
+    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some 7) .nil .nil)))) (.node none (.node none (.node none
+    (.node none (.node none (.node (some 12) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil) (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node (some 10)
+    .nil .nil) .nil)) .nil) .nil)))) (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none (.node (some 16) .nil .nil) .nil) .nil) .nil)
     .nil))) (.node none .nil (.node none .nil (.node none (.node none (.node none (.node (some 8)
     .nil .nil) .nil) .nil) .nil)))))) (.node none (.node none .nil (.node none .nil (.node none .nil
@@ -406,10 +266,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil) (.node (some frameCallee14) .nil .nil)))), Fn.«open_stacked__L10».pairO,
     Fn.«open_stacked__L10».pairS, .nil⟩
 
-/-- `open_stacked__L10`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«open_stacked__L10».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L10»
+end LeanVM.Guest

@@ -7,129 +7,67 @@
 
 module
 
-public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
 public import LeanVM.Guest.CoreMode.GenW.verify_sig_lean_sphincs.Ok
+public import LeanVM.Guest.CoreMode.GlueC.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
+public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.SigSplit
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
-public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`: what the core route knows of it. -/
-noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn21, Data.powTree, [], csigs, [], hcFlag, hcCallees, []⟩
+noncomputable def Fn.«verify_sig_lean_sphincs».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«verify_sig_lean_sphincs».advice, Fn.«verify_sig_lean_sphincs».pows, [], csigs, [], hcFlag, hcCallees, []⟩
 
 end
 
 public section
 
-attribute [local irreducible] pairO pairS
+attribute [local irreducible] Fn.«verify_sig_lean_sphincs».pairO Fn.«verify_sig_lean_sphincs».pairS
 
-/-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
-
-/-- `verify_sig_lean_sphincs`: no heap contract. -/
-theorem core_hc : cfun.hc = false := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its signature's preconditions translated. -/
-theorem core_sigP : CoreMode.sigOkPre modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its signature's promised cells. -/
-theorem core_sigC : CoreMode.sigOkPost modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its signature's ghost slots. -/
-theorem core_sigG : CoreMode.sigOkGh cfun cfun.fn.params.length = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its signature's promised run 0. -/
-theorem core_sigR0 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 0 = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its signature's promised runs. -/
-theorem core_sigR : CoreMode.sigOkPostR modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true :=
+theorem Fn.«verify_sig_lean_sphincs».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
+theorem Fn.«verify_sig_lean_sphincs».core_hc : cfun.hc = false := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_sigP : CoreMode.sigOkPre funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_sigC : CoreMode.sigOkPost funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_sigG : CoreMode.sigOkGh cfun cfun.fn.params.length = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_sigR0 : CoreMode.chunkAll (CoreMode.postRP funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) funC.sig.postR 0 = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_sigR : CoreMode.sigOkPostR funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := 
   CoreMode.all_of_chunks 1 (by decide +kernel) fun i hi ↦ by
     interval_cases i
     exacts [core_sigR0]
-
-/-- `verify_sig_lean_sphincs`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
-    (Mode.jtRng modeEnv) = true :=
-  CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG
-
-/-- `verify_sig_lean_sphincs`: its returned products. -/
-theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its body's statements. -/
-theorem core_body : CoreMode.bodyCore cfun.fn.body = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its tables' jumps. -/
-theorem core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: the rest of its shape. -/
-theorem core_rest : CoreMode.shapeRest cfun = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its shape. -/
-theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true :=
-  CoreMode.shapeOk_of core_body core_tgt core_rest
-
-/-- `verify_sig_lean_sphincs`: its calls' jumps. -/
-theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its reads of the jump table. -/
-theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `verify_sig_lean_sphincs`: the kernel's checks of the core route, tied to its mode certificate. -/
-theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .c heap_okC rfl (by decide +kernel) rfl rfl
-  pair := pair_ok
-  frame := CoreMode.frameAcc_of (by decide +kernel) frameOk
-  sig := core_sig
-  retv := core_retv
-  shape := core_shape
-  calls := core_calls
-  jtd := core_jtd
-  fsig := rfl
-  fsigs := rfl
-  fmain := by decide +kernel
-  fhalt := by decide +kernel
-  xhalt := by decide +kernel
-  fentry := rfl
-  flen := by decide +kernel
-  xentry := by decide +kernel
-  dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := 21) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches (Checked.code21 ▸ End.fnOf_mem (by decide))
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code21 ▸ End.fnOf_mem (by decide)))
-  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok
-  faret := by decide +kernel
-  nzrc := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`: its frame interface, by the core route. -/
-theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
+theorem Fn.«verify_sig_lean_sphincs».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG
+theorem Fn.«verify_sig_lean_sphincs».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_body : CoreMode.bodyCore cfun.fn.body = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_rest : CoreMode.shapeRest cfun = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := CoreMode.shapeOk_of core_body core_tgt core_rest
+theorem Fn.«verify_sig_lean_sphincs».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+  { heap := .c heap_okC rfl (by decide +kernel) rfl rfl, pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«verify_sig_lean_sphincs».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«verify_sig_lean_sphincs».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«verify_sig_lean_sphincs».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«verify_sig_lean_sphincs».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest
+
+namespace LeanVM.Guest.ModePack.«verify_sig_lean_sphincs»
+
+@[expose] public section
+
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [LeanVM.Guest.Fn.«verify_sig_lean_sphincs».cfun]
+
+end
+
+end LeanVM.Guest.ModePack.«verify_sig_lean_sphincs»

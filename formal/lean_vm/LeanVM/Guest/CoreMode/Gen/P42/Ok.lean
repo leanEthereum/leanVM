@@ -8,74 +8,25 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 public import LeanVM.Guest.CoreMode.Gen.«P42».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `child_claim_list_mono_last__L0`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»
-
-namespace LeanVM.Guest.Fn.«index_mle__L31»
-
-@[expose] public section
-
-/-- `index_mle__L31`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«child_claim_list_mono_last__L0».heap_ok : CoreMode.heapOk Fn.«child_claim_list_mono_last__L0».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L31».heap_ok : CoreMode.heapOk Fn.«index_mle__L31».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«list_split».heap_ok : CoreMode.heapOk Fn.«list_split».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L10».heap_ok : CoreMode.heapOk Fn.«padding_weight__L10».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L5».heap_ok : CoreMode.heapOk Fn.«padding_weight__L5».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L18».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L18».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«index_mle__L31»
 
-namespace LeanVM.Guest.Fn.«list_split»
-
-@[expose] public section
-
-/-- `list_split`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«list_split»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L10»
-
-@[expose] public section
-
-/-- `padding_weight__L10`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L10»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L5»
-
-@[expose] public section
-
-/-- `padding_weight__L5`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L5»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L18»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L18`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L18»
+end LeanVM.Guest

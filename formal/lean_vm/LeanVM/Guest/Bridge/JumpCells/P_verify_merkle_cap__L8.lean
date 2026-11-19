@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_merkle_cap__L8`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».fs (Fn.«verify_merkle_cap__L8».cert.withPows Data.powTree) []
-    Fn.«verify_merkle_cap__L8».core Fn.«verify_merkle_cap__L8».code.code (1182 == 1) = true := by
-  decide +kernel
+theorem Fn.«verify_merkle_cap__L8».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1182 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

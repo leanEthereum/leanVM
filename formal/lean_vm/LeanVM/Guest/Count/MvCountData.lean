@@ -26,7 +26,7 @@ def dvStNames : List String := ["da_padding", "da_vector", "da_weights"]
 def dvStJ : List ℕ := [30, 33, 28]
 
 /-- `da_verify`'s blob loop and the padding loop. -/
-def dvLpNames : List String := ["__loop22", "__loop23"]
+def dvLpNames : List String := ["__loop0_da_verify", "__loop0_da_pad"]
 
 /-- Their core indices. -/
 def dvLpJ : List ℕ := [406, 409]
@@ -38,7 +38,7 @@ def dlJ : ℕ := 407
 def clJ : List ℕ := [351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367]
 
 /-- `claim_list_digest`'s loops, per `136` and per `17` claims. -/
-def clLpNames : List String := ["__loop16", "__loop17"]
+def clLpNames : List String := ["__loop0_claim_list_digest", "__loop1_claim_list_digest"]
 
 /-- Their core indices. -/
 def clLpJ : List ℕ := [349, 350]

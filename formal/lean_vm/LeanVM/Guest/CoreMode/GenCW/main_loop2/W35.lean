@@ -7,13 +7,12 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S35
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S36
+public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S0
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W35A0
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W35A1
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W35A2
 public import LeanVM.Guest.CoreMode.HeapCWinM
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option Elab.async false
@@ -33,7 +32,7 @@ theorem nr35 : nrL (((Memory.loopBody core).drop 315).take 1) = true := by
   decide +kernel
 
 /-- Statement 315, from 3 windows of its arms. -/
-theorem win35 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 315).take (316 - 315)) st35 st36 = true :=
+theorem win35 : winOk Fn.«main_loop2».pows sigW core hcert (((Memory.loopBody core).drop 315).take (316 - 315)) st35 st36 = true :=
   winOk_of_arms (a := 315) (ss := [sum35_0, sum35_1, sum35_2]) (l := [(101, (4, 1, 0, 0)), (202, (4, 1, 0, 0)), (256, (4, 1, 0, 0))]) join35 nr35
     ⟨arms35_0, by omega,
     arms35_1, by omega,

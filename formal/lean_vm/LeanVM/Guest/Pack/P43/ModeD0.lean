@@ -7,12 +7,12 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P43»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Mode.Win
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«P43».ModeD0S0
-public import LeanVM.Guest.Pack.«P43».ModeSig
 
 namespace LeanVM.Guest.Fn.«main_loop2»
 
@@ -33939,16 +33939,16 @@ noncomputable def modeTabs56 : Exec.Trie (ℕ) :=
     none .nil (.node (some 256) (.node none (.node (some 256) .nil .nil) .nil) (.node none (.node
     (some 256) .nil .nil) .nil))) .nil) .nil)))))))))
 
-/-- `__loop2`: the program its walk shares. -/
+/-- `__loop2_main`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«main_loop2».modeSig) .nil .nil))))) .nil))) .nil) .nil)))) .nil)) .nil), 524287⟩
+    Fn.«main_loop2».csig) .nil .nil))))) .nil))) .nil) .nil)))) .nil)) .nil), 524287⟩
 
-/-- `__loop2`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop2_main`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨64313, 114219, Fn.«main_loop2».modeSig, (.node (some [(.witnessStack "raw_index" 59 1)]) (.node
+  ⟨64313, 114219, Fn.«main_loop2».csig, (.node (some [(.witnessStack "raw_index" 59 1)]) (.node
     none (.node none (.node none (.node none (.node none modeHints0 modeHints1) (.node none
     modeHints2 modeHints3)) (.node none (.node none modeHints4 modeHints5) (.node none modeHints6
     modeHints7))) (.node (some [(.witnessStack "lx_index" 70 4), (.witnessStack "lx_windows" 74

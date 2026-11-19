@@ -7,11 +7,10 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S20
-public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S21
+public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».S0
 public import LeanVM.Guest.CoreMode.GenCW.«main_loop2».W20A0
 public import LeanVM.Guest.CoreMode.HeapCWinM
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option Elab.async false
@@ -31,7 +30,7 @@ theorem nr20 : nrL (((Memory.loopBody core).drop 222).take 1) = true := by
   decide +kernel
 
 /-- Statement 222, from 1 windows of its arms. -/
-theorem win20 : winOk Data.powTree sigW core hcert (((Memory.loopBody core).drop 222).take (223 - 222)) st20 st21 = true :=
+theorem win20 : winOk Fn.«main_loop2».pows sigW core hcert (((Memory.loopBody core).drop 222).take (223 - 222)) st20 st21 = true :=
   winOk_of_arms (a := 222) (ss := [sum20_0]) (l := [(256, (4, 1, 0, 0))]) join20 nr20
     ⟨arms20_0, by omega,
     trivial⟩ rfl

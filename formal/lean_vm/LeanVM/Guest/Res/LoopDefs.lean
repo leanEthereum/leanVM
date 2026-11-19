@@ -18,7 +18,7 @@ end `endOfFn` finds (a parameter, or a constant `g^e`, `e < 256`); and every cal
 in the function, but a loop helper's own tail call, passes as counter a value set to `g^0` or `g^1`
 by a top-level `SET` before it, in its block or an enclosing one (`entL`, checked by ranges of
 statements with `entL_drop`). The kernel checks it over
-the core IR by ranges (`RangeOk`, `Res/LoopCheck*.lean`).
+the core IR by ranges (`RangeOk`, `CoreMode/Gen/LoopCheck*.lean`).
 -/
 
 namespace LeanVM.Guest.Res

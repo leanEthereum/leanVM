@@ -15,22 +15,22 @@ namespace LeanVM.Guest.B2C.Chained
 
 @[expose] public section
 
-/-- `__loop2`, window 30. -/
+/-- `__loop2_main`, window 30. -/
 theorem cw39_30 : chainWin 39 30 = true := by decide +kernel
 
-/-- `__loop2`, window 31. -/
+/-- `__loop2_main`, window 31. -/
 theorem cw39_31 : chainWin 39 31 = true := by decide +kernel
 
-/-- `__loop2`, window 32. -/
+/-- `__loop2_main`, window 32. -/
 theorem cw39_32 : chainWin 39 32 = true := by decide +kernel
 
-/-- `__loop2`, window 33. -/
+/-- `__loop2_main`, window 33. -/
 theorem cw39_33 : chainWin 39 33 = true := by decide +kernel
 
-/-- `__loop2`, window 34. -/
+/-- `__loop2_main`, window 34. -/
 theorem cw39_34 : chainWin 39 34 = true := by decide +kernel
 
-/-- `__loop2`, window 35. -/
+/-- `__loop2_main`, window 35. -/
 theorem cw39_35 : chainWin 39 35 = true := by decide +kernel
 
 end

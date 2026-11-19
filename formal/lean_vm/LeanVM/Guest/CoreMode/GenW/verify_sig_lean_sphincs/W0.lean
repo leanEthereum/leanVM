@@ -8,8 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«verify_sig_lean_sphincs».S0
-public import LeanVM.Guest.CoreMode.GenW.«verify_sig_lean_sphincs».S1
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
 
 set_option Elab.async false
@@ -21,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 0 to 3165. -/
-theorem win0 : winOkF Data.powTree sigW core hcert ((core.body.drop 0).take (3166 - 0)) st0 st1 = true := by
+theorem win0 : winOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert ((core.body.drop 0).take (3166 - 0)) st0 st1 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

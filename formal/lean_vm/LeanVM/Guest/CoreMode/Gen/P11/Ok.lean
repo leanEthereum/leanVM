@@ -8,30 +8,21 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P11»
 public import LeanVM.Guest.Pack.«P11».Core
 public import LeanVM.Guest.CoreMode.Gen.«P11».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«padding_weight__L17»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `padding_weight__L17`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«padding_weight__L17»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L2»
-
-@[expose] public section
-
-/-- `padding_weight__L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«padding_weight__L17».heap_ok : CoreMode.heapOk Fn.«padding_weight__L17».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L2».heap_ok : CoreMode.heapOk Fn.«padding_weight__L2».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«padding_weight__L2»
+
+end LeanVM.Guest

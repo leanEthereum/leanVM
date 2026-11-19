@@ -17,7 +17,7 @@ set_option maxRecDepth 20000
 
 @[expose] public section
 
-/-- `__loop22` from offset 0. -/
+/-- `__loop0_da_verify` from offset 0. -/
 def f407c0 : List OffsetInstruction := [
   .set 11 1 0,
   .set 10 17240097168648414516 0,
@@ -765,7 +765,7 @@ def f409c0 : List OffsetInstruction := [
   .mul 662 663 6,
   .jump 263 0 1]
 
-/-- `__loop23` from offset 0. -/
+/-- `__loop0_da_pad` from offset 0. -/
 def f410c0 : List OffsetInstruction := [
   .mul 5 5 7,
   .mul 4 7 8,
@@ -792,7 +792,7 @@ def f410c0 : List OffsetInstruction := [
   .jump 15 18 17,
   .jump 19 0 1]
 
-/-- `__loop24` from offset 0. -/
+/-- `__loop0_da_verify_blob` from offset 0. -/
 def f411c0 : List OffsetInstruction := [
   .mul 3 2 9,
   .deref 9 0 10 .cell,
@@ -2589,7 +2589,7 @@ def f415c0 : List OffsetInstruction := [
   .mul 4 8 3,
   .jump 8 0 1]
 
-/-- `__loop25` from offset 0. -/
+/-- `__loop0_da_column_offsets` from offset 0. -/
 def f416c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2641,7 +2641,7 @@ def f416c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop26` from offset 0. -/
+/-- `__loop1_da_column_offsets` from offset 0. -/
 def f417c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2693,7 +2693,7 @@ def f417c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop27` from offset 0. -/
+/-- `__loop2_da_column_offsets` from offset 0. -/
 def f418c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2745,7 +2745,7 @@ def f418c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop28` from offset 0. -/
+/-- `__loop3_da_column_offsets` from offset 0. -/
 def f419c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2797,7 +2797,7 @@ def f419c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop29` from offset 0. -/
+/-- `__loop4_da_column_offsets` from offset 0. -/
 def f420c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2849,7 +2849,7 @@ def f420c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop30` from offset 0. -/
+/-- `__loop5_da_column_offsets` from offset 0. -/
 def f421c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2901,7 +2901,7 @@ def f421c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop31` from offset 0. -/
+/-- `__loop6_da_column_offsets` from offset 0. -/
 def f422c0 : List OffsetInstruction := [
   .mul 2 2 7,
   .mul 7 2 8,
@@ -2953,7 +2953,7 @@ def f422c0 : List OffsetInstruction := [
   .jump 35 38 37,
   .jump 39 0 1]
 
-/-- `__loop32` from offset 0. -/
+/-- `__loop0_aggregate_claims` from offset 0. -/
 def f423c0 : List OffsetInstruction := [
   .mul 2 2 11,
   .mul 11 2 12,
@@ -3239,7 +3239,7 @@ def f424c0 : List OffsetInstruction := [
   .set 59 1 0,
   .jump 59 0 1]
 
-/-- `__loop33` from offset 0. -/
+/-- `__loop1_aggregate_claims` from offset 0. -/
 def f425c0 : List OffsetInstruction := [
   .mul 2 2 10,
   .mul 4 10 11,
@@ -3667,7 +3667,7 @@ def f426c0 : List OffsetInstruction := [
   .mul 902 23 16,
   .jump 23 0 1]
 
-/-- `__loop34` from offset 0. -/
+/-- `__loop2_aggregate_claims` from offset 0. -/
 def f427c0 : List OffsetInstruction := [
   .mul 4 2 11,
   .deref 11 0 12 .cell,
@@ -5543,7 +5543,7 @@ def f428c0 : List OffsetInstruction := [
   .mul 1615 1616 5,
   .jump 1616 0 1]
 
-/-- `__loop35` from offset 0. -/
+/-- `__loop0___loop0_verify_bus_gkr` from offset 0. -/
 def f429c0 : List OffsetInstruction := [
   .mul 4 2 8,
   .mul 5 2 9,
@@ -5826,7 +5826,7 @@ def f432c0 : List OffsetInstruction := [
   .set 59 1 0,
   .jump 59 0 1]
 
-/-- `__loop36` from offset 0. -/
+/-- `__loop0_keccak_layer__L1` from offset 0. -/
 def f433c0 : List OffsetInstruction := [
   .mul 4 2 9,
   .mul 2 2 10,
@@ -6010,7 +6010,7 @@ def f433c0 : List OffsetInstruction := [
   .jump 345 348 347,
   .jump 35 0 1]
 
-/-- `__loop37` from offset 0. -/
+/-- `__loop1_keccak_layer__L1` from offset 0. -/
 def f434c0 : List OffsetInstruction := [
   .mul 4 2 9,
   .mul 5 2 10,
@@ -6072,7 +6072,7 @@ def f434c0 : List OffsetInstruction := [
   .jump 69 72 71,
   .jump 30 0 1]
 
-/-- `__loop38` from offset 0. -/
+/-- `__loop0_keccak_layer__L0` from offset 0. -/
 def f435c0 : List OffsetInstruction := [
   .mul 4 2 9,
   .mul 2 2 10,
@@ -6256,7 +6256,7 @@ def f435c0 : List OffsetInstruction := [
   .jump 345 348 347,
   .jump 35 0 1]
 
-/-- `__loop39` from offset 0. -/
+/-- `__loop1_keccak_layer__L0` from offset 0. -/
 def f436c0 : List OffsetInstruction := [
   .mul 4 2 9,
   .mul 5 2 10,

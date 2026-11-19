@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
 
-namespace LeanVM.Guest.Fn.«verify_tables»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `verify_tables`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«verify_tables».plumb Fn.«verify_tables».fs (Fn.«verify_tables».cert.withPows Data.powTree) []
-    Fn.«verify_tables».core Fn.«verify_tables».code.code (12 == 1) = true := by
-  decide +kernel
+theorem Fn.«verify_tables».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (12 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest

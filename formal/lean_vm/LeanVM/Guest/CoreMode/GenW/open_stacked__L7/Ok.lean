@@ -19,12 +19,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«open_stacked__L7».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 583 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 583 st1 = true := by
+theorem last_ok : lastOkF Fn.«open_stacked__L7».pows sigW core hcert 583 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -36,7 +36,7 @@ namespace LeanVM.Guest.Fn.«open_stacked__L7»
 @[expose] public section
 
 /-- `open_stacked__L7`: the heap check, in 1 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«open_stacked__L7».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(583, HeapWG.st1)]) HeapWG.head_ok

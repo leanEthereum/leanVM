@@ -8,52 +8,23 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P62»
 public import LeanVM.Guest.Pack.«P62».Core
 public import LeanVM.Guest.CoreMode.Gen.«P62».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L2»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L2»
-
-namespace LeanVM.Guest.Fn.«block_selector__L24»
-
-@[expose] public section
-
-/-- `block_selector__L24`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L2».heap_ok : CoreMode.heapOk Fn.«block_selector__L2».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L24».heap_ok : CoreMode.heapOk Fn.«block_selector__L24».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L20».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L20».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L31».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L31».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«block_selector__L24»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L20»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L20`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L20»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L31»
-
-@[expose] public section
-
-/-- `plus_one_run__L31`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L31»
+end LeanVM.Guest

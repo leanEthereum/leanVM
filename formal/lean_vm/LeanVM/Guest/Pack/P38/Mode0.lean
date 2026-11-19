@@ -8,12 +8,12 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P11»
+public import LeanVM.Guest.CoreMode.Sig.«P38»
+public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P38».Bundle
-public import LeanVM.Guest.Pack.«P38».ModeSig
-public import LeanVM.Guest.Pack.«P56».ModeSig
 
 set_option Elab.async false
 
@@ -28,31 +28,31 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«verify_bus_gkr_loop1».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil) .nil)) .nil)
-    .nil) .nil))) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«verify_bus_gkr_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)))) .nil)) .nil)) .nil)
+    (some Fn.«verify_bus_gkr_loop1».csig) .nil .nil) .nil)))) .nil) .nil)) .nil) .nil)) .nil) .nil)
+    .nil))) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«verify_bus_gkr_loop0».csig) .nil .nil) .nil)))) .nil) .nil) .nil)))) .nil)) .nil)) .nil)
     .nil)), 524287⟩
 
 /-- `verify_bus_gkr`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨19555, 363, Fn.«verify_bus_gkr».modeSig, (.node none (.node none (.node none .nil (.node none
-    .nil (.node (some [(.inverse 57 58)]) .nil .nil))) (.node none (.node none (.node none (.node
-    none (.node none (.node (some [(.cellAddress 112 113)]) .nil .nil) .nil) .nil) .nil) .nil)
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    [(.allocFrames 419 17 8 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil)) .nil)) .nil)))
-    (.node none (.node none (.node none .nil (.node none (.node (some [(.alloc 87 33), (.alloc 88
-    33)]) .nil .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node (some [(.alloc 421 3), (.allocFrames 400 298 398 (LeanVM.Parameters.K.ofBits 0x1) 298)])
-    .nil .nil) .nil) .nil))) .nil)) (.node (some [(.allocDyn 25 24), (.alloc 26 6034), (.alloc 27
-    1640)]) .nil .nil))), (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node (some [(.sub ⟨⟨0, 40, [((.fr 27), 1),
-    ((.fr 398), 40)]⟩, (.num 0), (.ex (.fr 8) 0), 1, 0⟩ [⟨⟨0, 40, [((.fr 27), 1), ((.fr 398),
-    40)]⟩, (.num 0), (.ex (.fr 398) 0), 2, 0⟩, ⟨⟨0, 40, [((.fr 27), 1), ((.fr 398), 40)]⟩, (.num
-    0), (.ex (.fr 398) 0), 2, 1⟩, ⟨⟨0, 40, [((.fr 27), 1), ((.fr 398), 42)]⟩, (.num 0), (.num 1),
-    1, 0⟩, ⟨⟨0, 41, [((.fr 27), 1), ((.fr 398), 42)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil .nil)
-    .nil)) .nil)))) .nil)), .nil, false, .nil⟩
+  ⟨19555, 363, Fn.«verify_bus_gkr».csig, (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some [(.inverse 57 58)]) .nil .nil))) (.node none (.node none (.node none (.node none
+    (.node none (.node (some [(.cellAddress 112 113)]) .nil .nil) .nil) .nil) .nil) .nil) (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node (some [(.allocFrames 419
+    17 8 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil)) .nil)) .nil))) (.node none (.node
+    none (.node none .nil (.node none (.node (some [(.alloc 87 33), (.alloc 88 33)]) .nil .nil)
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some
+    [(.alloc 421 3), (.allocFrames 400 298 398 (LeanVM.Parameters.K.ofBits 0x1) 298)]) .nil .nil)
+    .nil) .nil))) .nil)) (.node (some [(.allocDyn 25 24), (.alloc 26 6034), (.alloc 27 1640)]) .nil
+    .nil))), (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node (some [(.sub ⟨⟨0, 40, [((.fr 27), 1), ((.fr 398),
+    40)]⟩, (.num 0), (.ex (.fr 8) 0), 1, 0⟩ [⟨⟨0, 40, [((.fr 27), 1), ((.fr 398), 40)]⟩, (.num 0),
+    (.ex (.fr 398) 0), 2, 0⟩, ⟨⟨0, 40, [((.fr 27), 1), ((.fr 398), 40)]⟩, (.num 0), (.ex (.fr 398)
+    0), 2, 1⟩, ⟨⟨0, 40, [((.fr 27), 1), ((.fr 398), 42)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 41,
+    [((.fr 27), 1), ((.fr 398), 42)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil .nil) .nil)) .nil))))
+    .nil)), .nil, false, .nil⟩
 
 /-- `verify_bus_gkr`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

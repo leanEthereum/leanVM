@@ -8,19 +8,20 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P31»
 public import LeanVM.Guest.Pack.«P31».Core
 public import LeanVM.Guest.CoreMode.Gen.«P31».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«index_mle__L3»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `index_mle__L3`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
+
+theorem Fn.«index_mle__L3».heap_ok : CoreMode.heapOk Fn.«index_mle__L3».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«index_mle__L3»
+
+end LeanVM.Guest

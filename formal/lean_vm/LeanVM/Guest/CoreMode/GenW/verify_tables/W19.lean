@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.GenW.«verify_tables».S19
-public import LeanVM.Guest.CoreMode.GenW.«verify_tables».S20
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.GenW.«verify_tables».S0
+public import LeanVM.Guest.CoreMode.Pows.«verify_tables»
 public import LeanVM.Guest.Pack.«verify_tables».Core
 
 set_option Elab.async false
@@ -21,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 1148 to 1167. -/
-theorem win19 : winOkF Data.powTree sigW core hcert ((core.body.drop 1148).take (1168 - 1148)) st19 st20 = true := by
+theorem win19 : winOkF Fn.«verify_tables».pows sigW core hcert ((core.body.drop 1148).take (1168 - 1148)) st19 st20 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

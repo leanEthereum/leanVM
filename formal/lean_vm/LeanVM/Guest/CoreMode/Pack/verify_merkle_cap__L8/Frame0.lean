@@ -8,30 +8,34 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueP.«verify_merkle_cap__L8»
+public import LeanVM.Guest.CoreMode.Env
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«P6».Pair
-public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«verify_merkle_cap__L8»
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L8`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 327352, 2810,
-    Fn.«verify_merkle_cap__L8».modeSig, .nil, 524287, Data.adviceFn1182.2.2, .nil, .nil, .nil, .nil,
+noncomputable def Fn.«verify_merkle_cap__L8».envC : Mode.Env := CoreMode.envOf []
+noncomputable def Fn.«verify_merkle_cap__L8».funC : Mode.Fun := ⟨Fn.«verify_merkle_cap__L8».entry,
+    2810, Fn.«verify_merkle_cap__L8».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«verify_merkle_cap__L8».frameFun : CoreMode.FFun :=
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«verify_merkle_cap__L8».entry,
+    2810, Fn.«verify_merkle_cap__L8».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«verify_merkle_cap__L8».pairO, Fn.«verify_merkle_cap__L8».pairS, .nil⟩
 
-/-- `verify_merkle_cap__L8`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«verify_merkle_cap__L8».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
+    by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

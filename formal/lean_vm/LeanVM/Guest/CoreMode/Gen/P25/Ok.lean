@@ -8,52 +8,23 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P25»
 public import LeanVM.Guest.Pack.«P25».Core
 public import LeanVM.Guest.CoreMode.Gen.«P25».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L32»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L32`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L32»
-
-namespace LeanVM.Guest.Fn.«claim_list_last__L13»
-
-@[expose] public section
-
-/-- `claim_list_last__L13`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L32».heap_ok : CoreMode.heapOk Fn.«block_selector__L32».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«claim_list_last__L13».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L13».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L8».heap_ok : CoreMode.heapOk Fn.«padding_weight__L8».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L15».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L15».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«claim_list_last__L13»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L8»
-
-@[expose] public section
-
-/-- `padding_weight__L8`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L8»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L15»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L15`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L15»
+end LeanVM.Guest

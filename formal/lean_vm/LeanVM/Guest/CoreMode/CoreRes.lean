@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
-public import LeanVM.Guest.Res.AnyData
+public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.CoreMode.LoopLink
@@ -41,7 +41,13 @@ function's own code whose soundness at its honest instances is proved once, in `
   addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
+* `rcn`: `e(x) < e(p)` (`.lt (.val x) (.val p)`), the value `x` range checked against `k = p·w`, `w` the constant
+  `g⁻¹`, among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `split` (`splitFam`): a function's `g`-power `n = q^S·r` split from hinted bits (`splitsC`: `rs_eq_run`,
+  `shared_selector_tables`), from the bits' booleanity on its path (`EndExecCoreSplit`): exponent bounds of `q`, `q^S`
+  and `r` times constants, of `q^S·g^c` below `n` under an arm `j > c` of the selector `r`, and the loop's strided
+  runs below `e(q)` inside `[0, e(n))`.
 * `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
   `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
@@ -194,6 +200,14 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
         | _ => false
     | _, _ => false
+  | .lt (.val x) (.val p) => (Res.topAtoms fn.body).any fun
+      | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && (Res.topAtoms fn.body).any fun
+          | .mul k' p' w => decide (k' = k) && decide (p' = V.n p) &&
+              (match Res.constOf (Res.topAtoms fn.body) w with
+              | some w' => invG w'
+              | none => false)
+          | _ => false
+      | _ => false
   | .lt (.mono c) (.num n) => match c.bases with
     | [(x, 1)] => decide (n < capE) &&
         ((Res.topSels fn.body).any (fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)) ||
@@ -404,6 +418,47 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
     | [(x, 1)], [(p, 1)] => dimLt fn (V.n x) a.off (V.n p) c.off
     | _, _ => false
   | _ => false
+
+/-! ## Split `g`-powers -/
+
+/-- **A function's `g`-power split from hinted bits** (`split`): `n = q^S·r`, on every returning path the monomial `q`
+naming `g^a`, the selector `rv` and the monomial `r` naming `g^b`, `a < A`, `b < S`. -/
+structure SplitC where
+  q : List (ℕ × ℕ)
+  r : List (ℕ × ℕ)
+  rv : ℕ
+  n : ℕ
+  S : ℕ
+  A : ℕ
+
+/-- The splits: `rs_eq_run`'s `count = q^8·r` and `shared_selector_tables`' `len = q^4·r` (`EndExecCoreSplit`). -/
+def splitsC : List (String × SplitC) :=
+  [(name% «rs_eq_run», ⟨[(27, 1), (31, 1), (36, 1)], [(13, 1), (17, 1), (22, 1)], 23, 3, 8, 8⟩),
+    (name% «shared_selector_tables», ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], [(15, 1), (19, 1)], 20, 5, 4, 16⟩)]
+
+/-- A monomial's bases to the `k`-th power. -/
+def powB (k : ℕ) (bs : List (ℕ × ℕ)) : List (ℕ × ℕ) := bs.map fun p ↦ (p.1, k * p.2)
+
+/-- **The residuals a split gives**, under the branch conditions `cs`: the exponent of `q·g^c`, `q^S·g^c` or `r·g^c`
+below a constant past its largest; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run
+`[b]·g^i·g^(S·[0, e(q)))`, `i < S`, inside `[b]·[0, e(n))`. -/
+def splitRes (sp : SplitC) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num N) => decide (N < capE) &&
+      ((decide (c.bases = sp.q) && decide (sp.A - 1 + c.off < N)) ||
+        (decide (c.bases = powB sp.S sp.q) && decide (sp.S * (sp.A - 1) + c.off < N)) ||
+        (decide (c.bases = sp.r) && decide (sp.S - 1 + c.off < N)))
+  | .lt (.mono c) (.val n) => decide (n = sp.n) && decide (c.bases = powB sp.S sp.q) &&
+      cs.any fun
+        | .arm x j => decide (x = sp.rv) && decide (c.off < j) && decide (j < capE)
+        | _ => false
+  | .subR q r => decide (q.stride = sp.S) && decide (q.lo = .num 0) && decide (q.hi = .mono ⟨sp.q, 0⟩) &&
+      decide (q.base.off < sp.S) && decide (r = ⟨⟨q.base.bases, 0⟩, 1, .num 0, .val sp.n⟩)
+  | .under cs' r => splitRes sp (cs ++ cs') r
+  | _ => false
+
+/-- **A residual of a split** of the function (`splitsC`). -/
+def splitFam (fn : Fn) (r : CRes) : Bool :=
+  splitsC.any fun p ↦ fn.name == p.1 && splitRes p.2 [] r
 
 /-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
 core names): the cell `c` words past the cursor, the value `2652`, `c < 153`, one of its stream's, parameter `20`'s
@@ -675,10 +730,11 @@ def vsExp (fn : Fn) : CRes → Bool
   | .under _ r => vsExp fn r
   | _ => false
 
-/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, `rcPts`, `cpPerm`,
+`vsExp`, its values below `GB`), or the ghost families `ml`, `st` and `verify_tables`' exponent family. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r || vsExp fn r) &&
-    r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r || vtExp fn gw r
+  ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
+      vsExp fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)
@@ -688,6 +744,14 @@ table) its one ghost slot, after its four parameters, and cell `5` its parameter
 ghost value. -/
 noncomputable def mlGl (Cf : CFun) : Bool :=
   (mlK Cf.fn).isSome && decide (Cf.gl = [(2, 4, 0), (5, 3, 0)]) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
+
+/-- **A loop callee of `anyLink`'s links**: its caller's cell `2` its entries parameter, cell `5` its bound parameter
+times `g` (`anyLink`'s), its caller's frame address its one ghost slot, after its parameters; it names no ghost
+value. -/
+noncomputable def alGl (Cf : CFun) : Bool :=
+  Res.anyLink.fams.any (fun F ↦ Cf.fn.name == F.1 &&
+    decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1), (0, Cf.fn.params.length, 0)])) &&
+    Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn && Cf.H.sig.gw.isEmpty
 
 /-- **Own parameter words as the ghost slots** (`HSig.gw`): ghost `j` the word at the `j`-th cell, one per ghost, over
 values below `GB`, and the function naming no ghost value (`ngB`). -/
@@ -725,13 +789,14 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
 
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a
-stream-cursor loop its caller's stream and frame (`stGl`); or none, the ghost slots own parameter words (`gwSlots`). -/
+parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
+(`alGl`); for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a stream-cursor loop its caller's
+stream and frame (`stGl`); or none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
   bif (stK Cf.fn).isSome then stGl Cf && Cf.H.sig.gw.isEmpty else
   bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
     ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
-      && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf)
+      && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf) || alGl Cf
 
 theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
   simp [resOk, h]

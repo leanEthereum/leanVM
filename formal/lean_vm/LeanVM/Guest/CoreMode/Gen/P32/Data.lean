@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«block_selector__L31»
-
 @[expose] public section
-
-/-- `block_selector__L31`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
     ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩,
@@ -66,7 +63,6 @@ def hcert : CoreMode.HCert where
     (301, [(0, 30, .pre 90)]), (303, [(1, 30, .pre 91)]), (307, [(2, 30, .pre 92)])]
   res := []
 
-/-- `block_selector__L31`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 2⟩, .ev 9), (⟨[(0, 1)], 3⟩, .ev 13),
     (⟨[(0, 1)], 4⟩, .ev 17), (⟨[(0, 1)], 5⟩, .ev 21), (⟨[(0, 1)], 6⟩, .ev 25),
@@ -103,10 +99,7 @@ end
 end LeanVM.Guest.Fn.«block_selector__L31»
 
 namespace LeanVM.Guest.Fn.«claim_list_last__L10»
-
 @[expose] public section
-
-/-- `claim_list_last__L10`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
     ⟨[(0, 1)], 6⟩, ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(0, 1)], 10⟩, ⟨[(0, 1)], 11⟩,
@@ -129,7 +122,6 @@ def hcert : CoreMode.HCert where
     (53, [(0, 11, .pre 11)]), (54, [(0, 12, .pre 12)])]
   res := []
 
-/-- `claim_list_last__L10`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 80), (⟨[(0, 1)], 1⟩, .ev 81), (⟨[(0, 1)], 2⟩, .ev 82),
     (⟨[(0, 1)], 3⟩, .ev 83), (⟨[(0, 1)], 4⟩, .ev 84), (⟨[(0, 1)], 5⟩, .ev 85),
@@ -167,10 +159,7 @@ end
 end LeanVM.Guest.Fn.«claim_list_last__L10»
 
 namespace LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
-
 @[expose] public section
-
-/-- `keccak_plain_rounds__L4_L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(7, 1)], 0⟩, ⟨[(7, 1)], 1⟩, ⟨[(7, 1)], 2⟩, ⟨[(7, 1)], 3⟩, ⟨[(7, 1)], 4⟩, ⟨[(7, 1)], 5⟩,
     ⟨[(7, 1)], 6⟩, ⟨[(7, 1)], 7⟩] }
@@ -178,7 +167,6 @@ def hcert : CoreMode.HCert where
     (75, [(7, 4, .pre 4)]), (78, [(7, 5, .pre 5)]), (100, [(7, 6, .pre 6)]), (103, [(7, 7, .pre 7)])]
   res := []
 
-/-- `keccak_plain_rounds__L4_L1`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(9, 1)], 0⟩, .ev 2), (⟨[(9, 1)], 1⟩, .ev 5), (⟨[(9, 1)], 2⟩, .ev 8), (⟨[(9, 1)], 3⟩, .ev 11),
     (⟨[(7, 1)], 0⟩, .ev 0), (⟨[(7, 1)], 1⟩, .ev 1), (⟨[(7, 1)], 2⟩, .ev 3), (⟨[(7, 1)], 3⟩, .ev 4),
@@ -188,10 +176,7 @@ end
 end LeanVM.Guest.Fn.«keccak_plain_rounds__L4_L1»
 
 namespace LeanVM.Guest.Fn.«selector_tables»
-
 @[expose] public section
-
-/-- `selector_tables`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 3⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩,
     ⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 7⟩, ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 6⟩, ⟨[(1, 1)], 6⟩,
@@ -227,7 +212,6 @@ def hcert : CoreMode.HCert where
     (274, [(1, 28, .pre 63)])]
   res := []
 
-/-- `selector_tables`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(291, 1)], 0⟩, .ev 8), (⟨[(291, 1)], 8⟩, .ev 9), (⟨[(291, 1)], 16⟩, .ev 10),
     (⟨[(291, 1)], 20⟩, .ev 11), (⟨[(291, 1)], 24⟩, .ev 12), (⟨[(291, 1)], 28⟩, .ev 13),
@@ -335,16 +319,12 @@ end
 end LeanVM.Guest.Fn.«selector_tables»
 
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L16»
-
 @[expose] public section
-
-/-- `squeeze_point_from__L16`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
 
-/-- `squeeze_point_from__L16`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
     (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),

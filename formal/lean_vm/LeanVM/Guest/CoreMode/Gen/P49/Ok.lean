@@ -8,41 +8,22 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P49»
 public import LeanVM.Guest.Pack.«P49».Core
 public import LeanVM.Guest.CoreMode.Gen.«P49».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `gkr_rounds__L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L0»
-
-@[expose] public section
-
-/-- `padding_weight__L0`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«gkr_rounds__L2».heap_ok : CoreMode.heapOk Fn.«gkr_rounds__L2».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L0».heap_ok : CoreMode.heapOk Fn.«padding_weight__L0».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L15».heap_ok : CoreMode.heapOk Fn.«padding_weight__L15».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«padding_weight__L0»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L15»
-
-@[expose] public section
-
-/-- `padding_weight__L15`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L15»
+end LeanVM.Guest
