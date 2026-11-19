@@ -30,7 +30,7 @@ The x86_64 builds require a CPU with AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
-pip install py-lean-pq==0.11.0
+pip install py-lean-pq==0.11.1
 ```
 <!-- x-release-please-end -->
 
@@ -38,7 +38,7 @@ pip install py-lean-pq==0.11.0
 
 <!-- x-release-please-start-version -->
 ```sh
-npm install @kevaundray/lean-pq@0.11.0
+npm install @kevaundray/lean-pq@0.11.1
 ```
 <!-- x-release-please-end -->
 
@@ -51,7 +51,7 @@ Gradle (Kotlin DSL):
 
 <!-- x-release-please-start-version -->
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.11.0")
+implementation("io.github.crate-crypto:lean-pq:0.11.1")
 ```
 <!-- x-release-please-end -->
 
@@ -62,7 +62,7 @@ Maven:
 <dependency>
   <groupId>io.github.crate-crypto</groupId>
   <artifactId>lean-pq</artifactId>
-  <version>0.11.0</version>
+  <version>0.11.1</version>
 </dependency>
 ```
 <!-- x-release-please-end -->
@@ -74,7 +74,7 @@ The jar bundles the native library for each platform. Run with
 
 <!-- x-release-please-start-version -->
 ```sh
-go get leanvm.org/go@v0.11.0
+go get leanvm.org/go@v0.11.1
 ```
 <!-- x-release-please-end -->
 
@@ -86,7 +86,7 @@ Windows.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.11.0
+version=0.11.1
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
@@ -106,7 +106,7 @@ In your `.nimble` file:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
 ```
 <!-- x-release-please-end -->
 
@@ -121,7 +121,7 @@ The crate is not on crates.io because the leanVM crates it builds are not publis
 <!-- x-release-please-start-version -->
 ```toml
 [dependencies]
-lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.0" }
+lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-v0.11.1" }
 ```
 <!-- x-release-please-end -->
 
@@ -167,7 +167,7 @@ from the conventional commits on `main` that touch `bindings/` (pull requests to
 need a conventional title). Merging it bumps the version everywhere it appears, including the
 install instructions above, and tags `bindings-vX.Y.Z`. That tag runs
 `.github/workflows/bindings-release.yml`, which builds and tests every package on each platform
-before publishing it. See [CHANGELOG.md](CHANGELOG.md). Versions up to 0.11.0 were released from
+before publishing it. See [CHANGELOG.md](CHANGELOG.md). Versions up to 0.11.1 were released from
 [ethereum/lean-pq-bindings](https://github.com/ethereum/lean-pq-bindings) as `vX.Y.Z`.
 
 ## License

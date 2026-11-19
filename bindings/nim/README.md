@@ -32,7 +32,7 @@ installing needs no Rust toolchain. Nim 2.2.12 or newer, with Nimble:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
 ```
 <!-- x-release-please-end -->
 
@@ -40,7 +40,7 @@ or, from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.0"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
 ```
 <!-- x-release-please-end -->
 
@@ -51,7 +51,7 @@ at the same tag as a submodule and add `--path:"vendor/leanVM/bindings/nim"` to 
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.11.0
+git -C vendor/leanVM checkout bindings-v0.11.1
 ```
 <!-- x-release-please-end -->
 

@@ -17,7 +17,7 @@ decoding return Promises so their native work does not block the JavaScript even
 
 <!-- x-release-please-start-version -->
 ```sh
-npm install @kevaundray/lean-pq@0.11.0
+npm install @kevaundray/lean-pq@0.11.1
 ```
 <!-- x-release-please-end -->
 
@@ -138,7 +138,7 @@ npm can attach a trusted publisher only to a package that already exists, so the
 publishes the eight packages with a short-lived token, and later releases use trusted publishing.
 A platform package added later, such as `@kevaundray/lean-pq-win32-x64-msvc`, goes through the
 same steps on the first release that includes it; `node-package` warns about every package not
-yet on npm. The packages released up to 0.11.0 were published from `ethereum/lean-pq-bindings`;
+yet on npm. The packages released up to 0.11.1 were published from `ethereum/lean-pq-bindings`;
 point their trusted publishers at this repository and workflow (step 4) before the next release.
 
 1. From the npm account that owns the `@kevaundray` scope, create a **granular access token** on
