@@ -105,6 +105,14 @@ def eqPartner (v : V) : Atom → Option V
   | .assertEq a b => if a == v then some b else if b == v then some a else none
   | _ => none
 
+/-- The source lines of a function's statements, `(n, line)` with `n` the events of a trace
+before the statement, moved to the positions of the trace whose event `i` a pass replaced by
+`parts[i]` (flattened). -/
+def partsLines (parts : List (List Event)) (lines : Array (Nat × Nat)) : Array (Nat × Nat) :=
+  let (pos, n) := parts.foldl (init := (#[], 0)) fun (pos, n) p => (pos.push n, n + p.length)
+  let pos := pos.push n
+  lines.map fun (k, line) => (pos.getD k k, line)
+
 /-- A lowered function: its core function and its trace, and what the back end takes from its
 source as the expansion queued it: the cells of its returned values and its `loopSource`; and,
 for a loop helper, its constant parameters (`Consts.lean`, `withConstTable`). -/

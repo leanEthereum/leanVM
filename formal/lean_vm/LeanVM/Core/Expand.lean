@@ -78,8 +78,9 @@ expanded, every value its core function never names is marked `Kind.unnamed` in 
 otherwise only read as one cell in its block is made `Kind.pooled` at its `const`
 (`Compiler.markPooled`), so that it reads the scope's pooled cell of its word, then the values a
 copy or an `assert ==` may place in the cell of the other are made `Kind.joined` at the statement
-first naming them (`Compiler.markJoined`); its source lines move with the events
-(`Compiler.markLines`, `Compiler.markPooledLines`, `Compiler.markJoinedLines`).
+first naming them (`Compiler.markJoined`); its source lines move with the events, each pass
+run once for both (`Compiler.markUnnamedLines`, `Compiler.markPooledLines`,
+`Compiler.markJoinedLines`).
 -/
 
 namespace LeanVM.Core.Expand
@@ -2019,13 +2020,12 @@ def expandQueue (p : Source.Program) : Nat → Nat → Array Func → Nat →
           if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
           else do
             let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
-            let named := Compiler.markUnnamed fn trace
-            let namedLines := Compiler.markLines fn trace lines
-            let pooled := Compiler.markPooled fn named
-            let pooledLines := Compiler.markPooledLines fn named namedLines
+            let (named, namedLines) := Compiler.markUnnamedLines fn trace lines
+            let (pooled, pooledLines) := Compiler.markPooledLines fn named namedLines
+            let (joined, joinedLines) := Compiler.markJoinedLines fn pooled pooledLines
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              (⟨fn, Compiler.markJoined fn pooled, (f.returnShapes.map Shape.cells).sum,
-                Compiler.loopSource f, []⟩, Compiler.markJoinedLines fn pooled pooledLines))
+              (⟨fn, joined, (f.returnShapes.map Shape.cells).sum, Compiler.loopSource f, []⟩,
+                joinedLines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
 and what the back end reads of its source as queued (`Compiler.TracedFn`), and the source lines

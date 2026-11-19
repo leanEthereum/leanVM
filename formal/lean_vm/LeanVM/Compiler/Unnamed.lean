@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Compiler.Trace
-public import LeanVM.Compiler.Map
+public import Std.Data.HashSet
 public import LeanVM.Core.Renumber
 
 /-!
@@ -36,8 +36,8 @@ open LeanVM.Core
 @[expose] public section
 
 /-- The values a core function names: its parameters and every value of its statements. -/
-def namedVals (f : Fn) : VMap Unit :=
-  (f.params ++ Stmt.valsList f.body).foldl (fun m v => m.insert v ()) {}
+def namedVals (f : Fn) : Std.HashSet V :=
+  Std.HashSet.ofList (f.params ++ Stmt.valsList f.body)
 
 /-- A list's maximal segments of values on one side of `p`, each with its side. -/
 def segments (p : V → Bool) : List V → List (Bool × List V)
@@ -57,34 +57,26 @@ not name marked `Kind.unnamed`. -/
 def markUnnamed (f : Fn) (trace : Array Event) : Array Event :=
   (trace.toList.flatMap (markEvent (namedVals f).contains)).toArray
 
-/-- The source lines of a function's statements, `(n, line)` with `n` the events of the trace
-before the statement, moved to the positions of `markUnnamed f trace`. -/
-def markLines (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) : Array (Nat × Nat) :=
-  let p := (namedVals f).contains
-  let (pos, n) := trace.foldl (init := (#[], 0)) fun (pos, n) e =>
-    (pos.push n, n + (markEvent p e).length)
-  let pos := pos.push n
-  lines.map fun (k, line) => (pos.getD k k, line)
+/-- What replaces each event of the trace under `markUnnamed`. -/
+def markUnnamedParts (f : Fn) (trace : Array Event) : List (List Event) :=
+  let named := namedVals f
+  trace.toList.map (markEvent named.contains)
 
-theorem foldl_insert_contains (l : List V) (m : VMap Unit) (v : V)
-    (h : v ∈ l ∨ m.contains v = true) :
-    (l.foldl (fun m v => m.insert v ()) m).contains v = true := by
-  induction l generalizing m with
-  | nil => simpa using h
-  | cons w ws ih =>
-    apply ih
-    rcases h with h | h
-    · rcases List.mem_cons.mp h with rfl | h
-      · exact .inr (by simp [KMap.contains, KMap.get?_insert])
-      · exact .inl h
-    · refine .inr ?_
-      simp only [KMap.contains, KMap.get?_insert] at h ⊢
-      split <;> simp_all
+/-- `markUnnamed f trace`, and the source lines of the function's statements, `(n, line)` with
+`n` the events of the trace before the statement, moved to its positions: the pass run once. -/
+def markUnnamedLines (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
+    Array Event × Array (Nat × Nat) :=
+  let parts := markUnnamedParts f trace
+  (parts.flatten.toArray, partsLines parts lines)
+
+theorem markUnnamedLines_fst (f : Fn) (trace : Array Event) (lines : Array (Nat × Nat)) :
+    (markUnnamedLines f trace lines).1 = markUnnamed f trace := rfl
 
 /-- Every value the core function names is in `namedVals`. -/
 theorem namedVals_contains {f : Fn} {v : V} (h : v ∈ f.params ++ Stmt.valsList f.body) :
-    (namedVals f).contains v = true :=
-  foldl_insert_contains _ _ v (.inl h)
+    (namedVals f).contains v = true := by
+  rw [namedVals, Std.HashSet.contains_ofList]
+  exact List.contains_iff_mem.mpr h
 
 /-- Each segment's values are on its side. -/
 theorem segments_side (p : V → Bool) (vs : List V) :
