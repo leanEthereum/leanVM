@@ -643,45 +643,62 @@ theorem expect_grows (e : Event → Bool) (what : String) :
 theorem endStmt_grows : Grows ctx endStmt (fun _ _ => True) := fun _ _ hg =>
   GrowsAt.quiet hg rfl rfl rfl rfl (fun _ h => h) trivial
 
-theorem spongeInPlace_cells {vs : List V} {up : List Stmt} (hg : Good ctx n st) :
-    wpP (spongeInPlace vs up) ctx st fun r st' => st' = st ∧
+/-- **A partner's cell**: one of the next statements, reached through atoms only, equates `v`
+with a value placed in it. -/
+theorem partnerCell_spec {locs : VMap Loc} {v : V} : ∀ {up : List Stmt} {n : Cell},
+    partnerCell locs v up = some n → ∃ (k : ℕ) (a : Atom) (y : V),
+      (∀ j < k, ∃ b, up[j]? = some (Stmt.atom b)) ∧
+      up[k]? = some (Stmt.atom a) ∧ eqPartner v a = some y ∧ locs[y]? = some (.cell n)
+  | [], _, h => by simp [partnerCell] at h
+  | s :: up, n, h => by
+    cases s with
+    | atom a =>
+      simp only [partnerCell] at h
+      split at h
+      · next n' hb =>
+        cases h
+        cases he : eqPartner v a with
+        | none => rw [he] at hb; cases hb
+        | some y =>
+          rw [he] at hb
+          exact ⟨0, a, y, fun j hj => absurd hj (Nat.not_lt_zero _), rfl, he, hb⟩
+      · obtain ⟨k, b, y, hj, hk, he, hl⟩ := partnerCell_spec h
+        refine ⟨k + 1, b, y, fun j hj' => ?_, by simpa using hk, he, hl⟩
+        cases j with
+        | zero => exact ⟨a, rfl⟩
+        | succ j => simpa using hj j (by omega)
+    | _ => simp [partnerCell] at h
+
+/-- The cell of each value of a joined run is the cell its partner was placed in, `base + k`. -/
+theorem joinedAt_partner {vs : List V} {up : List Stmt} {locs : VMap Loc} {base : Cell}
+    (hc : (vs.zipIdx.all fun (v, k) => partnerCell locs v up == some (base + k)) = true)
+    {k : ℕ} (hk : k < vs.length) : partnerCell locs vs[k] up = some (base + k) := by
+  rw [List.all_eq_true] at hc
+  have hm : (vs[k], k) ∈ vs.zipIdx :=
+    List.mem_iff_getElem.mpr ⟨k, by simpa using hk, by simp [List.getElem_zipIdx]⟩
+  have h1 := hc _ hm
+  simpa only [beq_iff_eq] using h1
+
+theorem joinedAt_cells {vs : List V} {up : List Stmt} (hg : Good ctx n st) :
+    wpP (joinedAt vs up) ctx st fun r st' => st' = st ∧
       ∀ base, r = some base → ∀ k < vs.length, GoodCell n (base + k) := by
-  unfold spongeInPlace
+  unfold joinedAt
   refine wp_bind.mpr (wp_get.mpr ?_)
   dsimp only
   split
   · exact wp_pure.mpr ⟨rfl, fun _ h => nomatch h⟩
-  · next base srcs hsrcs =>
-    refine wp_pure.mpr ⟨rfl, fun b hb k hk => ?_⟩
+  · refine wp_pure.mpr ⟨rfl, fun b hb k hk => ?_⟩
     split at hb
     · next hc =>
       cases hb
-      have hmem : ∀ c ∈ base :: srcs, GoodCell n c := by
-        intro c hcm
-        rw [← hsrcs, List.mem_filterMap] at hcm
-        obtain ⟨⟨s, k'⟩, -, hf⟩ := hcm
-        split at hf
-        · split at hf
-          · split at hf
-            · next c' hl => cases hf; exact hg.locs _ _ hl
-            · cases hf
-          · cases hf
-        · cases hf
-      rw [hsrcs] at hc
-      simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
-      obtain ⟨⟨_, hlen⟩, hall⟩ := hc
-      have hk' : k < (base :: srcs).length := by rw [hlen]; exact hk
-      have hz : ((base :: srcs)[k], k) ∈ (base :: srcs).zipIdx :=
-        List.mem_iff_getElem.mpr ⟨k, by simpa using hk', by rw [List.getElem_zipIdx]; simp only [Nat.zero_add]⟩
-      have he := hall _ hz
-      rw [← he]
-      exact hmem _ (List.getElem_mem hk')
+      obtain ⟨_, _, _, _, _, _, hl⟩ := partnerCell_spec (joinedAt_partner hc hk)
+      exact hg.locs _ _ hl
     · cases hb
 
-theorem spongeInPlace_grows {vs : List V} {up : List Stmt} (hg : Good ctx n st) :
-    GrowsAt ctx n st (spongeInPlace vs up)
+theorem joinedAt_grows {vs : List V} {up : List Stmt} (hg : Good ctx n st) :
+    GrowsAt ctx n st (joinedAt vs up)
       (fun n r => ∀ base, r = some base → ∀ k < vs.length, GoodCell n (base + k)) :=
-  GrowsAt.ofSame hg (wp_mono (spongeInPlace_cells hg) fun _ _ h => ⟨h.1 ▸ hg, by rw [h.1], h.2⟩)
+  GrowsAt.ofSame hg (wp_mono (joinedAt_cells hg) fun _ _ h => ⟨h.1 ▸ hg, by rw [h.1], h.2⟩)
 
 theorem onAlloc_grows {vs : List V} {kind : Kind} (up : List Stmt)
     (hret : kind = .ret → vs.length ≤ ctx.retCells) :
@@ -701,14 +718,11 @@ theorem onAlloc_grows {vs : List V} {kind : Kind} (up : List Stmt)
   | padRun =>
       refine GrowsAt.call hg (takeRun_grows vs) fun _ st₁ n₁ hg₁ _ _ _ => ?_
       exact GrowsAt.quiet hg₁ rfl rfl rfl rfl (fun _ h => h) trivial
-  | spongeRun =>
-      refine GrowsAt.bind (spongeInPlace_grows (vs := vs) (up := up) hg)
+  | joined =>
+      refine GrowsAt.bind (joinedAt_grows (vs := vs) (up := up) hg)
         fun r st₁ n₁ hg₁ hr _ _ => ?_
       split
-      · next _ base =>
-        refine GrowsAt.bind (GrowsAt.ofSame (R := fun _ _ => True) hg₁
-          (bindRun_same hg₁ (hr base rfl))) fun _ st₂ n₂ hg₂ _ _ _ => ?_
-        exact GrowsAt.quiet hg₂ rfl rfl rfl rfl (fun _ h => h) trivial
+      · next _ base => exact GrowsAt.ofSame (R := fun _ _ => True) hg₁ (bindRun_same hg₁ (hr base rfl))
       · exact takeRun_grows vs n₁ st₁ hg₁
 
 theorem GrowsAt.discard {α : Type} {m : P α} {R : ℕ → α → Prop} (h : GrowsAt ctx n st m R) :
@@ -910,15 +924,11 @@ theorem place_copy_grows (d s' : V) : Grows ctx (placeAtom (.copy d s')) (fun _ 
     unfold placeAtom
     dsimp only
     refine GrowsAt.call hg (cellOf_grows s') fun ls st₁ n₁ hg₁ hs hn₁ _ => ?_
-    refine GrowsAt.get_bind ?_
+    refine GrowsAt.call hg₁ (cellAt_grows' d) fun o st₂ n₂ hg₂ ho hn₂ _ => ?_
     split
-    · refine GrowsAt.call hg₁ (cellAt_grows' d) fun o st₂ n₂ hg₂ _ _ _ => ?_
-      split
-      · exact GrowsAt.fail_bind
-      · exact GrowsAt.ofPure hg₂ trivial
-    · refine GrowsAt.call hg₁ oneCell_grows fun one st₂ n₂ hg₂ h1 hn₂ _ => ?_
-      refine GrowsAt.call hg₂ (cellAt_grows' d) fun o st₃ n₃ hg₃ ho hn₃ _ => ?_
-      exact emitOp_grows hg₃ (cells3 (hs.lt (by comega)) (h1.lt hn₃) ho.2)
+    · exact GrowsAt.ofPure hg₂ trivial
+    · refine GrowsAt.call hg₂ oneCell_grows fun one st₃ n₃ hg₃ h1 hn₃ _ => ?_
+      exact emitOp_grows hg₃ (cells3 (hs.lt (by comega)) h1.2 (ho.lt hn₃))
 
 theorem place_load_grows (d p : V) (off : ℕ) :
     Grows ctx (placeAtom (.load d p off)) (fun _ _ => True) := fun n st hg => by
@@ -940,8 +950,10 @@ theorem place_assertEq_grows (a b : V) :
   dsimp only
   refine GrowsAt.call hg (cellOf_grows a) fun la st₁ n₁ hg₁ ha hn₁ _ => ?_
   refine GrowsAt.call hg₁ (cellOf_grows b) fun lb st₂ n₂ hg₂ hb hn₂ _ => ?_
-  refine GrowsAt.call hg₂ oneCell_grows fun one st₃ n₃ hg₃ h1 hn₃ _ => ?_
-  exact emitOp_grows hg₃ (cells3 (ha.lt (by comega)) h1.2 (hb.lt hn₃))
+  split
+  · exact GrowsAt.ofPure hg₂ trivial
+  · refine GrowsAt.call hg₂ oneCell_grows fun one st₃ n₃ hg₃ h1 hn₃ _ => ?_
+    exact emitOp_grows hg₃ (cells3 (ha.lt (by comega)) h1.2 (hb.lt hn₃))
 
 theorem place_assertNe_grows (x inv p : V) :
     Grows ctx (placeAtom (.assertNe x inv p)) (fun _ _ => True) := fun n st hg => by

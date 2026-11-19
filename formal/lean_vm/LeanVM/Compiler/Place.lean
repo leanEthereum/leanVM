@@ -47,7 +47,9 @@ is proved here):
 * a cell below `next` is never given to two `Kind.cell` values of one path of the control flow
   (the arms of a `match` share cells, one arm running);
 * two values share a cell only through a pool, whose entry was written by an instruction that
-  runs before the reuse on every path, the scope reverting at each join: so they hold one word;
+  runs before the reuse on every path, the scope reverting at each join, or through a joined
+  allocation, whose values a copy or an `assert ==` that runs next equates with the cell's: so
+  they hold one word;
 * `(placeFn …).frameSize` is past every cell the placed statements name.
 
 Placement fails, rather than guess, when the trace and the core function part (`expect`) or a
@@ -167,8 +169,6 @@ structure St where
   chainIn : Option (Nat × Cell) := none
   /-- The padding run being set. -/
   padRun : Option (List V) := none
-  /-- The message run read in place, whose copies are dropped. -/
-  aliasRun : Option (List V) := none
   /-- The constant of each value a `SET` made. -/
   constOf : VMap (Nat × Nat) := {}
 
@@ -378,23 +378,23 @@ def peek : P (Option Event) := do
 def advance : P Unit :=
   modify fun s => { s with rest := s.rest.tail }
 
-/-- Four message cells already in consecutive frame cells are read in place (`sponge_run`): the
-next statements copy them into the run `vs`, cell by cell. -/
-def spongeInPlace (vs : List V) (upcoming : List Stmt) : P (Option Cell) := do
+/-- The cell of a value placed in one that one of the next statements, reached through atoms
+only, equates with `v`. -/
+def partnerCell (locs : VMap Loc) (v : V) : List Stmt → Option Cell
+  | .atom a :: rest =>
+      match (eqPartner v a).bind (locs[·]?) with
+      | some (.cell n) => some n
+      | _ => partnerCell locs v rest
+  | _ => none
+
+/-- The run `vs` shares cells with values already placed (`Kind.joined`): the first of the
+consecutive cells of the values the next atoms equate with its values, in order. -/
+def joinedAt (vs : List V) (upcoming : List Stmt) : P (Option Cell) := do
   let st ← get
-  let srcs := (upcoming.take vs.length).zipIdx.filterMap fun
-    | (.atom (.copy d s), k) =>
-        if vs[k]? == some d then
-          match st.locs[s]? with
-          | some (.cell n) => some n
-          | _ => none
-        else none
-    | _ => none
-  match srcs with
-  | [] => return none
-  | base :: _ =>
-      return if vs.length != 0 && srcs.length == vs.length &&
-          srcs.zipIdx.all (fun (n, k) => n == base + k)
+  match vs.head?.bind (partnerCell st.locs · upcoming) with
+  | none => return none
+  | some base =>
+      return if vs.zipIdx.all (fun (v, k) => partnerCell st.locs v upcoming == some (base + k))
         then some base else none
 
 /-- A value is made (`Event.alloc`). -/
@@ -407,11 +407,9 @@ def onAlloc (vs : List V) (kind : Kind) (upcoming : List Stmt) : P Unit := do
   | .padRun =>
       takeRun vs
       modify fun s => { s with padRun := some vs }
-  | .spongeRun =>
-      match ← spongeInPlace vs upcoming with
-      | some base =>
-          bindRun vs base
-          modify fun s => { s with aliasRun := some vs }
+  | .joined =>
+      match ← joinedAt vs upcoming with
+      | some base => bindRun vs base
       | none => takeRun vs
 
 /-- Take the cells of the values made before the next statement or the end of the block; at most
@@ -571,12 +569,11 @@ def placeAtom (a : Atom) : P Unit := do
         emitOp (.mul la lb (← cellAt d))
   | .copy d s =>
       let ls ← cellOf s
-      if (← get).aliasRun.any (·.contains d) then
-        -- The copy is dropped: both values are one cell.
-        if (← cellAt d) != ls then failP "a dropped copy between two cells"
-        return
+      let ld ← cellAt d
+      -- Both values are one cell (`Kind.joined`): the copy is dropped.
+      if ld == ls then return
       let one ← oneCell
-      emitOp (.mul ls one (← cellAt d))
+      emitOp (.mul ls one ld)
   | .load d p off =>
       if ← isLazy d .pooled then
         let (ptr, o2) ← pointer p off
@@ -591,6 +588,8 @@ def placeAtom (a : Atom) : P Unit := do
   | .assertEq a b =>
       let la ← cellOf a
       let lb ← cellOf b
+      -- Both values are one cell (`Kind.joined`): nothing to check.
+      if la == lb then return
       let one ← oneCell
       emitOp (.mul la one lb)
   | .assertNe x inv p =>

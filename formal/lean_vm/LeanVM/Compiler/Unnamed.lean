@@ -161,7 +161,7 @@ theorem markUnnamed_named {f : Fn} {trace : Array Event} {vs : List V} {v : V}
       simp only [markEvent, List.mem_singleton] at hm
       exact ⟨_, by rw [← hm] at het; exact het, hv⟩
   | .alloc _ .pooled, hm | .alloc _ .addr, hm | .alloc _ .ret, hm | .alloc _ .padRun, hm
-  | .alloc _ .spongeRun, hm | .emit, hm | .enter, hm | .leave, hm | .use _, hm | .shift _ _, hm
+  | .alloc _ .joined, hm | .emit, hm | .enter, hm | .leave, hm | .use _, hm | .shift _ _, hm
   | .chain, hm | .note _, hm =>
       simp [markEvent] at hm
 

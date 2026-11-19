@@ -33,7 +33,7 @@ statements) and the trace's allocations:
 * every other statement names it only as one cell it reads (an operand, a pointer, a branch's
   condition, a selector, a call's argument, a KECCAK message cell `m0..m3` or `b8`), never as a
   destination, a cell of a run, a returned value or a parameter, nor as the source of a copy into
-  a sponge run (`Kind.spongeRun`), whose copies are dropped only when their sources lie in
+  a sponge run (`Kind.joined`), whose copies are dropped only when their sources lie in
   consecutive cells;
 * every statement naming it is in the block of its `const` or in a block inside it, so the value
   is in scope wherever it is named.
@@ -68,7 +68,7 @@ structure PoolScan where
   blocks : List Nat := []
   /-- The blocks entered so far. -/
   count : Nat := 0
-  /-- The values of the trace's sponge runs (`Kind.spongeRun`). -/
+  /-- The values of the trace's sponge runs (`Kind.joined`). -/
   sponge : VMap Unit := {}
 
 namespace PoolScan
@@ -152,7 +152,7 @@ end
 def spongeVals (trace : Array Event) : VMap Unit :=
   trace.foldl (init := {}) fun m e =>
     match e with
-    | .alloc vs .spongeRun => vs.foldl (fun m v => m.insert v ()) m
+    | .alloc vs .joined => vs.foldl (fun m v => m.insert v ()) m
     | _ => m
 
 /-- The scan of a function: its parameters, then its body. -/

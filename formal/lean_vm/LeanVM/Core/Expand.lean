@@ -13,6 +13,7 @@ public import LeanVM.Core
 public import LeanVM.Compiler.Trace
 public import LeanVM.Compiler.Unnamed
 public import LeanVM.Compiler.Pooled
+public import LeanVM.Compiler.Joined
 
 /-!
 # Expansion
@@ -75,8 +76,10 @@ the back end's input, and `expandProgram`, its core functions, the same pass. Wh
 expanded, every value its core function never names is marked `Kind.unnamed` in its trace
 (`Compiler.markUnnamed`), so that it takes no frame cell, then every constant set once and
 otherwise only read as one cell in its block is made `Kind.pooled` at its `const`
-(`Compiler.markPooled`), so that it reads the scope's pooled cell of its word; its source lines
-move with the events (`Compiler.markLines`, `Compiler.markPooledLines`).
+(`Compiler.markPooled`), so that it reads the scope's pooled cell of its word, then the values a
+copy or an `assert ==` may place in the cell of the other are made `Kind.joined` at the statement
+first naming them (`Compiler.markJoined`); its source lines move with the events
+(`Compiler.markLines`, `Compiler.markPooledLines`, `Compiler.markJoinedLines`).
 -/
 
 namespace LeanVM.Core.Expand
@@ -809,7 +812,7 @@ def spongeRun (cells : List SpongeCell) : M (List V) := do
   if cells.all (·.isZero) then return (← keccakPadRun).drop 1
   if let .const c :: rest := cells then
     if c == keccakPadValue && rest.all (·.isZero) then return (← keccakPadRun).take 4
-  let t ← freshRun cells.length .spongeRun
+  let t ← freshRun cells.length .joined
   for (c, d) in cells.zip t do
     match c with
     | .zero => emitAtom (.const d 0)
@@ -2018,9 +2021,11 @@ def expandQueue (p : Source.Program) : Nat → Nat → Array Func → Nat →
             let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
             let named := Compiler.markUnnamed fn trace
             let namedLines := Compiler.markLines fn trace lines
+            let pooled := Compiler.markPooled fn named
+            let pooledLines := Compiler.markPooledLines fn named namedLines
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              (⟨fn, Compiler.markPooled fn named, (f.returnShapes.map Shape.cells).sum,
-                Compiler.loopSource f, []⟩, Compiler.markPooledLines fn named namedLines))
+              (⟨fn, Compiler.markJoined fn pooled, (f.returnShapes.map Shape.cells).sum,
+                Compiler.loopSource f, []⟩, Compiler.markJoinedLines fn pooled pooledLines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
 and what the back end reads of its source as queued (`Compiler.TracedFn`), and the source lines

@@ -191,8 +191,8 @@ macro_rules | `(tactic| op_prim) => `(tactic| first
   | with_reducible exact bindRun_op
   | with_reducible refine OpAt.bind takeRun_op fun _ _ _ => ?_
   | with_reducible exact takeRun_op
-  | with_reducible refine OpAt.bind spongeInPlace_op fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_op
+  | with_reducible refine OpAt.bind joinedAt_op fun _ _ _ => ?_
+  | with_reducible exact joinedAt_op
   | with_reducible refine OpAt.bind onAlloc_op fun _ _ _ => ?_
   | with_reducible exact onAlloc_op
   | with_reducible refine OpAt.bind flushN_op fun _ _ _ => ?_
@@ -363,8 +363,8 @@ theorem takeRun_op {vs : List V} : OpAt ctx st (takeRun vs) := by
   unfold takeRun
   op_straight
 
-theorem spongeInPlace_op {vs : List V} {up : List Stmt} : OpAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_op {vs : List V} {up : List Stmt} : OpAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   op_straight
 
 

@@ -49,7 +49,7 @@ def pN (v : V) : String := s!".n {v.idx}"
 
 def pKind : Kind → String
   | .cell => ".cell" | .pooled => ".pooled" | .unnamed => ".unnamed" | .addr => ".addr"
-  | .ret => ".ret" | .padRun => ".padRun" | .spongeRun => ".spongeRun"
+  | .ret => ".ret" | .padRun => ".padRun" | .joined => ".joined"
 
 def pEvent : Event → String
   | .alloc vs k => s!".alloc {pList (vs.map pN)} {pKind k}"

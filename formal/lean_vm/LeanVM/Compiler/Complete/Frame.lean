@@ -347,6 +347,73 @@ def holdsNT (rd : Reader) (σ : Val) : Atom → Prop
   | .touch _ p => IsInK (σ p)
   | a => a.Holds rd σ
 
+/-- An atom names both values it equates. -/
+theorem eqPartner_uses {v y : V} {a : Atom} (h : eqPartner v a = some y) :
+    v ∈ Memory.atomUses a ∧ y ∈ Memory.atomUses a := by
+  cases a with
+  | copy d s =>
+    simp only [eqPartner] at h
+    split at h
+    · next he => cases h; rw [beq_iff_eq] at he; subst he; simp [Memory.atomUses]
+    · split at h
+      · next he => cases h; rw [beq_iff_eq] at he; subst he; simp [Memory.atomUses]
+      · cases h
+  | assertEq a b =>
+    simp only [eqPartner] at h
+    split at h
+    · next he => cases h; rw [beq_iff_eq] at he; subst he; simp [Memory.atomUses]
+    · split at h
+      · next he => cases h; rw [beq_iff_eq] at he; subst he; simp [Memory.atomUses]
+      · cases h
+  | _ => simp [eqPartner] at h
+
+/-- **The values an atom equates hold one word** where it holds. -/
+theorem eqPartner_holds {v y : V} {a : Atom} {rd : Reader} {σ : Val}
+    (h : eqPartner v a = some y) (hh : holdsNT rd σ a) : σ v = σ y := by
+  cases a with
+  | copy d s =>
+    have hh' : σ d = σ s := hh
+    simp only [eqPartner] at h
+    split at h
+    · next he => cases h; rw [beq_iff_eq] at he; subst he; exact hh'
+    · split at h
+      · next he => cases h; rw [beq_iff_eq] at he; subst he; exact hh'.symm
+      · cases h
+  | assertEq a b =>
+    have hh' : σ a + σ b = 0 := hh
+    have hab : σ a = σ b := by
+      rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at hh'
+      exact hh'
+    simp only [eqPartner] at h
+    split at h
+    · next he => cases h; rw [beq_iff_eq] at he; subst he; exact hab
+    · split at h
+      · next he => cases h; rw [beq_iff_eq] at he; subst he; exact hab.symm
+      · cases h
+  | _ => simp [eqPartner] at h
+
+/-- **The values the next atoms equate are known and equal**: for every atom among the next
+statements reached through atoms only, a value it equates with `x` is known (`ok`) and holds the
+word of `x`. -/
+def EqAhead (I : Inst) (ok : V → Prop) (up : List Stmt) : Prop :=
+  ∀ (k : ℕ) (a : Atom) (x y : V), (∀ j < k, ∃ b, up[j]? = some (Stmt.atom b)) →
+    up[k]? = some (Stmt.atom a) → eqPartner x a = some y → ok y ∧ I.σ x = I.σ y
+
+theorem EqAhead.mono {I : Inst} {ok ok' : V → Prop} {up : List Stmt} (h : EqAhead I ok up)
+    (hok : ∀ v, ok v → ok' v) : EqAhead I ok' up := fun k a x y hj hk he =>
+  let ⟨h1, h2⟩ := h k a x y hj hk he
+  ⟨hok y h1, h2⟩
+
+/-- No atom is reached through atoms from a statement that is no atom. -/
+theorem eqAhead_head {I : Inst} {ok : V → Prop} {s : Stmt} {rest : List Stmt}
+    (hs : ∀ a, s ≠ .atom a) : EqAhead I ok (s :: rest) := by
+  intro k a x y hj hk _
+  cases k with
+  | zero => exact absurd (by simpa using hk) (hs a)
+  | succ k =>
+    obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
+    exact absurd (by simpa using hb) (hs b)
+
 /-- The events a flush passes: those before the next statement, block or block end. -/
 def flushSeg : List Event → List Event
   | [] => []
@@ -356,8 +423,8 @@ def flushSeg : List Event → List Event
       | _ => e :: flushSeg es
 
 /-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
-include the atom's (a copy dropped into a sponge alias apart) and whose multiplied pool cells are
-no temporary's, the atom an event of the path, its relation without its temporaries on every
+include the atom's and whose multiplied pool cells are no temporary's, the atom an event of the
+path, its relation without its temporaries on every
 reader `Rd`, its own values no temporaries and its temporaries the instance's, an address's word
 being the frame address of its run's first cell, placing the atom keeps the known values' words
 and knows the atom's values (once the final placement extends the state reached), leaves the
@@ -373,8 +440,7 @@ def AtomFAt (a : Atom) : Prop :=
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
     (Fits I st → ∀ d p off, a = .load d p off → ∀ n, st.locs[d]? ≠ some (.shifted n 0)) →
     2 ≤ st.next → VW I C st ok → (OutOps I st → PoolNT I st.scope) →
-    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
-      ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
+    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v) →
     FAt ctx I C st (placeAtom a) fun _ C' st' =>
       (Fits I st' → VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a)) ∧
         st'.rest = st.rest ∧

@@ -188,54 +188,9 @@ theorem vw_bind {ok : V → Prop} {L : List V} {C' : (ℕ → E) → Prop} {st' 
     · rw [h0] at hl'
       cases hl'
 
-theorem pooledCell_alias {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
-    {mk : Cell → LOp} :
-    wpP (pooledCell find learn mk) ctx st fun _ st' => st'.aliasRun = st.aliasRun := by
-  unfold pooledCell fresh emitOp takeHints push
-  refine wp_bind.mpr (wp_get.mpr ?_)
-  split
-  · exact wp_pure.mpr rfl
-  · simp only [wp_bind, wp_modifyGet, wp_modify, wp_pure]
-
-theorem materialize_alias (c e : Cell) :
-    wpP (materialize c e) ctx st fun _ st' => st'.aliasRun = st.aliasRun := by
-  unfold materialize
-  dsimp only
-  split
-  · exact wp_pure.mpr rfl
-  · split
-    · exact wp_bind.mpr wp_failP
-    · refine wp_bind.mpr (wp_get.mpr ?_)
-      split
-      · exact wp_pure.mpr rfl
-      · generalize matStart _ _ _ _ = pr
-        obtain ⟨src, dist⟩ := pr
-        dsimp only
-        simp only [constCell_eq, mulCell_eq]
-        exact wp_bind.mpr (wp_mono pooledCell_alias fun _ st₁ h₁ => wp_bind.mpr
-          (wp_mono pooledCell_alias fun _ st₂ h₂ => wp_bind.mpr (wp_modify.mpr
-            (wp_pure.mpr (h₂.trans h₁)))))
-
-theorem cellOf_alias (v : V) :
-    wpP (cellOf v) ctx st fun _ st' => st'.aliasRun = st.aliasRun := by
-  unfold cellOf
-  refine wp_bind.mpr (wp_get.mpr ?_)
-  split
-  · exact wp_pure.mpr rfl
-  · exact materialize_alias _ _
-  · exact wp_failP
-
-/-- The values of an atom, known (a copy into a message run read in place apart). -/
-theorem atom_ok {a : Atom} {ok : V → Prop}
-    (hops : ∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
-      ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true)
-    (hnc : ∀ v s, a ≠ .copy v s) : ∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v :=
-  fun v hv => (hops v hv).resolve_right fun ⟨s, _, h, _⟩ => hnc v s h
-
 /-- **`SET` of a constant**: a pooled constant's cell, or the value's cell holding it. -/
 theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ d = c := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   have hkd : ok d := hL d (by simp [Memory.atomUses])
   have hwk : Core.word (limbsOf c).1 (limbsOf c).2 = I.σ d := by rw [word_limbsOf, hev]
@@ -278,8 +233,7 @@ theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
 
 /-- **`XOR`**: a pooled sum's cell, or the value's cell holding the sum. -/
 theorem place_add_fat (d a b : V) : AtomFAt (.add d a b) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ d = I.σ a + I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
   dsimp only
@@ -330,8 +284,7 @@ theorem place_add_fat (d a b : V) : AtomFAt (.add d a b) := by
 /-- **`MUL`**: a pooled product of the factors (an address's shift kept), or the value's cell
 holding the product (a store, a check, a back-solved quotient). -/
 theorem place_mul_fat (d a b : V) : AtomFAt (.mul d a b) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ d = I.σ a * I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
   dsimp only
@@ -397,10 +350,10 @@ theorem place_mul_fat (d a b : V) : AtomFAt (.mul d a b) := by
       exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁,
         newp_same (hlo₂.trans hlo₁), hk₁.trans hk₂ hn₁⟩
 
-/-- **`assert a == b`**: `MUL` by the pooled `1`, the two words equal in characteristic `2`. -/
+/-- **`assert a == b`**: nothing when both values are one cell, else `MUL` by the pooled `1`, the
+two words equal in characteristic `2`. -/
 theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ b = I.σ a := by
     have h : I.σ a + I.σ b = 0 := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
     rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at h
@@ -413,6 +366,9 @@ theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
   refine FAt.bind (cellOf_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
     fun lb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb, hk₂⟩ => ?_
   have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  split
+  · exact FAt.pure ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁,
+      newp_same (hlo₂.trans hlo₁), hk₁.trans hk₂ hn₁⟩
   refine FAt.bind (constCell_fatB (1, 0) (hok.kconst _ _) (le_trans h2 (le_trans hn₁ hn₂)))
     fun one st₃ C₃ hs₃ hn₃ _ ⟨o2, _, hlo₃, hr₃, how, hk₃⟩ => ?_
   refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
@@ -426,8 +382,7 @@ theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
 
 /-- **`assert a != b`**: `p = x · inv` and `p = 1`. -/
 theorem place_assertNe_fat (x inv p : V) : AtomFAt (.assertNe x inv p) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ p = I.σ x * I.σ inv ∧ I.σ p = 1 := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
   dsimp only
@@ -454,8 +409,7 @@ theorem place_assertNe_fat (x inv p : V) : AtomFAt (.assertNe x inv p) := by
 
 /-- **`assert_in_k`**: a `JUMP` on the pooled `0`. -/
 theorem place_assertInK_fat (a b : V) : AtomFAt (.assertInK a b) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : IsInK (I.σ a) ∧ IsInK (I.σ b) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
   dsimp only
@@ -502,8 +456,7 @@ theorem tmpDeref_fat {t pv : V} {lp dst : Cell} {a : Atom} (hes : Memory.Ev.atom
 
 /-- **`assert_gpow`**: a load into the touch cell. -/
 theorem place_touch_fat (t p : V) : AtomFAt (.touch t p) := by
-  intro ctx I C st ok hok _ hes hh hus hts _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ hes hh hus hts _ _ _ h2 hv _ hL
   have hK : IsInK (I.σ p) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
   dsimp only
@@ -522,8 +475,7 @@ theorem place_touch_fat (t p : V) : AtomFAt (.touch t p) := by
 
 /-- **A range check**: two loads into its temporaries and `k = x · y`. -/
 theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt (.rangeCheck x y t1 t2 k) := by
-  intro ctx I C st ok hok _ hes hh hus hts _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ hes hh hus hts _ _ _ h2 hv _ hL
   have hev : IsInK (I.σ x) ∧ I.σ k = I.σ x * I.σ y ∧ IsInK (I.σ y) :=
     let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   unfold placeAtom
@@ -561,62 +513,32 @@ theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt (.rangeCheck x y t1 t2 
     hr.trans (hr₄.trans (hr₂.trans hr₁)), newp_same (hl.trans (hl₄.trans (hlo₂.trans hlo₁))),
     hk₁.trans hk₂ hn₁⟩
 
-/-- **A copy**: `MUL` by the pooled `1`, or dropped when both values are one cell of a message run
-read in place (the copy's event giving the destination its word). -/
+/-- **A copy**: nothing when both values are one cell (a joined allocation), else `MUL` by the
+pooled `1`. -/
 theorem place_copy_fat (d s : V) : AtomFAt (.copy d s) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   have hev : I.σ d = I.σ s := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
-  have hks : ok s := (hops s (by simp [Memory.atomUses])).resolve_right fun ⟨_, hne, h, _⟩ => by
-    cases h
-    exact hne rfl
+  have hks : ok s := hL s (by simp [Memory.atomUses])
+  have hkd : ok d := hL d (by simp [Memory.atomUses])
   unfold placeAtom
   dsimp only
-  refine FAt.bind (FAt.and_wp (cellOf_fat s hok hv hks) (cellOf_alias s))
-    fun ls st₁ C₁ hs₁ hn₁ _ ⟨⟨l2, l1, hlo₁, hr₁, hws, hk₁⟩, hal⟩ => ?_
+  refine FAt.bind (cellOf_fat s hok hv hks)
+    fun ls st₁ C₁ hs₁ hn₁ _ ⟨l2, l1, hlo₁, hr₁, hws, hk₁⟩ => ?_
   have hv₁ := hv.step hs₁ hn₁ hlo₁
-  refine FAt.get_bind ?_
+  refine FAt.bind (cellAt_fat d) fun ld st₂ C₂ _ _ _ ⟨hC₂, hst₂, hld⟩ => ?_
+  subst C₂ st₂
+  obtain ⟨d2, _, hwd⟩ := hv₁ d _ hkd hld
   split
-  · refine FAt.bind (cellAt_fat d) fun c st₂ C₂ _ _ _ ⟨hC₂, hst₂, hlc⟩ => ?_
-    subst C₂ st₂
-    split
-    · exact FAt.fail_bind
-    · next hne =>
-      have hc : c = ls := by simpa using hne
-      subst hc
-      refine FAt.pure ⟨fun _ v l hv' hl' => ?_, hr₁, newp_same hlo₁, hk₁⟩
-      by_cases hvd : v = d
-      · subst hvd
-        rw [hlc] at hl'
-        cases hl'
-        exact ⟨l2, l1, fun Ψ hΨ => (hws Ψ hΨ).trans hev.symm⟩
-      · rcases hv' with h | h
-        · exact hv₁ v l h hl'
-        · have hvs : v = s := by simp [Memory.atomUses, Memory.atomTmps, hvd] at h; exact h
-          subst hvs
-          exact hv₁ _ l hks hl'
-  · next hna =>
-    have hkd : ok d := (hops d (by simp [Memory.atomUses])).resolve_right fun ⟨_, _, _, h⟩ => by
-      rw [← hal] at h
-      exact hna h
-    have hL : ∀ v ∈ Memory.atomUses (.copy d s) ++ Memory.atomTmps (.copy d s), ok v := by
-      intro v hv'
-      simp [Memory.atomUses, Memory.atomTmps] at hv'
-      rcases hv' with rfl | rfl
-      · exact hkd
-      · exact hks
-    refine FAt.bind (constCell_fatB (1, 0) (hok.kconst _ _) (le_trans h2 hn₁))
-      fun one st₂ C₂ hs₂ hn₂ _ ⟨o2, _, hlo₂, hr₂, how, hk₂⟩ => ?_
-    have hv₂ := hv₁.step hs₂ hn₂ hlo₂
-    refine FAt.bind (cellAt_fat d) fun ld st₃ C₃ _ _ _ ⟨hC₃, hst₃, hld⟩ => ?_
-    subst C₃ st₃
-    obtain ⟨d2, _, hwd⟩ := hv₂ d _ hkd hld
-    refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
-    · show fw I Ψ ld = fw I Ψ ls * fw I Ψ one
-      rw [fw_of_two (n := ld) d2, fw_of_two l2, fw_of_two o2, how Ψ hΨ, word_one, mul_one,
-        show Ψ ld = I.σ d from hwd Ψ hΨ, hws Ψ (hs₂ Ψ hΨ), hev]
-    · subst C' st'
-      exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁,
-        newp_same (hlo₂.trans hlo₁), hk₁.trans hk₂ hn₁⟩
+  · exact FAt.pure ⟨fun _ => vw_same hv₁ hL (Stronger.refl _) le_rfl rfl, hr₁, newp_same hlo₁, hk₁⟩
+  refine FAt.bind (constCell_fatB (1, 0) (hok.kconst _ _) (le_trans h2 hn₁))
+    fun one st₃ C₃ hs₃ hn₃ _ ⟨o2, _, hlo₃, hr₃, how, hk₃⟩ => ?_
+  refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+  · show fw I Ψ ld = fw I Ψ ls * fw I Ψ one
+    rw [fw_of_two (n := ld) d2, fw_of_two l2, fw_of_two o2, how Ψ hΨ, word_one, mul_one,
+      show Ψ ld = I.σ d from hwd Ψ (hs₃ Ψ hΨ), hws Ψ (hs₃ Ψ hΨ), hev]
+  · subst C' st'
+    exact ⟨fun _ => vw_same (hv₁.step hs₃ hn₃ hlo₃) hL (Stronger.refl _) le_rfl rfl,
+      hr₃.trans hr₁, newp_same (hlo₃.trans hlo₁), hk₁.trans hk₃ hn₁⟩
 
 theorem cellOf_cell {v : V} {n : Cell} (h : st.locs[v]? = some (.cell n)) :
     FAt ctx I C st (cellOf v) (fun c C' st' => c = n ∧ C' = C ∧ st' = st) := by
@@ -716,9 +638,8 @@ theorem cellOf_nt {v : V} {n e : ℕ} (hok : I.Ok) (h : st.locs[v]? = some (.shi
 the value's cell (a read, or a store of the value, whose place is a cell once the final
 placement extends the state). -/
 theorem place_load_fat (d p : V) (off : ℕ) : AtomFAt (.load d p off) := by
-  intro ctx I C st ok hok _ _ hh hus _ hnm _ hz0 h2 hv hpnt hops
+  intro ctx I C st ok hok _ _ hh hus _ hnm _ hz0 h2 hv hpnt hL
   have hnd : d ∈ I.named := hnm d (by simp [Memory.atomUses])
-  have hL := atom_ok hops fun _ _ h => by cases h
   have hkd : ok d := hL d (by simp [Memory.atomUses])
   have hdt : d ∉ I.tmps := hus d (by simp [Memory.atomUses])
   unfold placeAtom
@@ -932,8 +853,7 @@ theorem placeHint_ro (h : Hint) (hok : I.Ok) {ok : V → Prop}
     | (apply hk; simp_all [Memory.hintUses, Memory.destUses])
 
 theorem place_hint_fat (h : Hint) : AtomFAt (.hint h) := by
-  intro ctx I C st ok hok _ _ _ _ _ _ _ _ _ hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ _ _ _ _ _ _ _ hv _ hL
   unfold placeAtom
   exact FAt.mono (placeHint_ro h hok (fun v hv' => hL v (by simp [Memory.atomUses, hv'])) C st hv)
     fun _ C' st' hs hn _ ⟨hlo, hr, hk⟩ => ⟨fun _ => vw_same hv hL hs hn hlo, hr, newp_same hlo,
@@ -998,8 +918,7 @@ theorem consecutiveFrom_head {base : ℕ} {cs : List ℕ} {c0 : ℕ}
 /-- **`addr(run)`**: the address stays symbolic, the frame's own pointer shifted by the run's
 first cell; or, an address shifted as a value, the product made in a cell. -/
 theorem place_frameAddr_fat (p : V) (run : List V) : AtomFAt (.frameAddr p run) := by
-  intro ctx I C st ok hok hmain _ _ _ _ _ hadr _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok hmain _ _ _ _ _ hadr _ h2 hv _ hL
   unfold placeAtom
   dsimp only
   refine FAt.bind (isLazy_fat p .addr) fun z st₀ C₀ _ _ _ ⟨hC₀, hst₀⟩ => ?_
@@ -1135,8 +1054,7 @@ theorem cells13_eq {l : List V} {cs : List Cell} {Ψ : ℕ → E} (hlen : cs.len
 /-- **`KECCAK`**: one instruction on the runs of its operands' cells. -/
 theorem place_keccak_fat (ins outs : List V) (inOdd outOdd : Bool) :
     AtomFAt (.keccak ins outs inOdd outOdd) := by
-  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hops
-  have hL := atom_ok hops fun _ _ h => by cases h
+  intro ctx I C st ok hok _ _ hh _ _ _ _ _ h2 hv _ hL
   obtain ⟨_, oc', hoc', hrel⟩ : ins.length = 13 ∧ ∃ outCells : KeccakOutputCells,
       outs.length = outCells.cellCount ∧ KeccakCellsRelation (cells13 (ins.map I.σ)) inOdd
         (cells13 (outs.map I.σ)) outOdd outCells := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd

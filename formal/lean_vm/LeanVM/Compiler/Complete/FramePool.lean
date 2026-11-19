@@ -257,8 +257,8 @@ macro_rules | `(tactic| pk_prim) => `(tactic| first
   | with_reducible exact bindRun_pk
   | with_reducible refine PKAt.bind takeRun_pk fun _ _ _ => ?_
   | with_reducible exact takeRun_pk
-  | with_reducible refine PKAt.bind spongeInPlace_pk fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_pk
+  | with_reducible refine PKAt.bind joinedAt_pk fun _ _ _ => ?_
+  | with_reducible exact joinedAt_pk
   | with_reducible refine PKAt.bind onAlloc_pk fun _ _ _ => ?_
   | with_reducible exact onAlloc_pk
   | with_reducible refine PKAt.bind flushN_pk fun _ _ _ => ?_
@@ -497,8 +497,8 @@ theorem takeRun_pk {vs : List V} : PKAt ctx st (takeRun vs) := by
   unfold takeRun
   pk_straight
 
-theorem spongeInPlace_pk {vs : List V} {up : List Stmt} : PKAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_pk {vs : List V} {up : List Stmt} : PKAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   pk_straight
 
 

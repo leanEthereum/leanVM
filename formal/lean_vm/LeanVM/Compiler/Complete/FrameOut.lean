@@ -191,8 +191,8 @@ macro_rules | `(tactic| app_prim) => `(tactic| first
   | with_reducible exact bindRun_app
   | with_reducible refine AppAt.bind takeRun_app fun _ _ _ => ?_
   | with_reducible exact takeRun_app
-  | with_reducible refine AppAt.bind spongeInPlace_app fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_app
+  | with_reducible refine AppAt.bind joinedAt_app fun _ _ _ => ?_
+  | with_reducible exact joinedAt_app
   | with_reducible refine AppAt.bind onAlloc_app fun _ _ _ => ?_
   | with_reducible exact onAlloc_app
   | with_reducible refine AppAt.bind flushN_app fun _ _ _ => ?_
@@ -380,8 +380,8 @@ theorem takeRun_app {vs : List V} : AppAt ctx st (takeRun vs) := by
   unfold takeRun
   app_straight
 
-theorem spongeInPlace_app {vs : List V} {up : List Stmt} : AppAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_app {vs : List V} {up : List Stmt} : AppAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   app_straight
 
 
