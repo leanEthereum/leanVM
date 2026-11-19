@@ -51,7 +51,7 @@ rustup target add x86_64-unknown-linux-gnu
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
 cd bindings/nim
-nimble test
+LEANVM_SIDECAR_SOCKET=~/.leanvm/sidecar.sock LEANVM_SIDECAR_BIN=/path/to/leanvm-sidecar nimble test
 ```
 
 `stage-static.sh` needs [Zig](https://ziglang.org/) 0.15.2 for `cargo-zigbuild`. Each platform stages its archive from one Rust target:
@@ -104,7 +104,7 @@ Do not `close` a value while another thread uses it.
 
 Aggregation runs in a leanVM sidecar, a process of its own on Linux and macOS: see [the sidecar](../README.md#sidecar) for how to get and run it.
 
-`LeanPqSidecar.connect(socketPath)` connects to a running sidecar; `LeanPqSidecar.start(binaryPath, socketPath)` launches one, waits until it listens and connects, and `close` (or collection) stops it. Calls on one `LeanPqSidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` return an error. With the keys and signatures of the example above:
+`LeanPqSidecar.connect(socketPath)` connects to a running sidecar; `LeanPqSidecar.start(binaryPath, socketPath)` launches one, waits until it listens and connects, and `close` stops it. Calls on one `LeanPqSidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` return an error. With the keys and signatures of the example above:
 
 ```nim
 let
@@ -128,5 +128,4 @@ doAssert sidecar.verify(encoded, expectedXmss).isErr()
 ```
 
 - `aggregate` verifies every raw signature before proving, and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
-- `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them.
 - `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `verify` takes.

@@ -81,7 +81,7 @@ mkdir -p -m 700 ~/.leanvm
 
 It warms up, then creates the socket and serves; connect with `Sidecar.connect("<home>/.leanvm/sidecar.sock")`. Keep it running, for example as a service; `--threads N` caps its threads.
 
-Or let your program launch it: `Sidecar.start("./leanvm-sidecar", "/tmp/leanvm/sidecar.sock")` starts it, waits until it listens, and stops it when the `Sidecar` is closed.
+Or let your program launch it: `Sidecar.start("./leanvm-sidecar", "/tmp/leanvm/sidecar.sock")` starts it, waits until it listens, and stops it when the `Sidecar` is closed or the program exits.
 
 [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
 

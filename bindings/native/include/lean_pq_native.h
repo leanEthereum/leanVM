@@ -60,17 +60,17 @@ int32_t lpq_sidecar_start(const uint8_t *binary, size_t binary_len, const uint8_
 void lpq_sidecar_destroy(lpq_sidecar *sidecar);
 
 /*
- * Proves through the sidecar. Raw signatures are concatenated fixed-width records of public key (32) | message (32) |
- * signature: 2468-byte records for leanXMSS and 7804-byte records for leanSPHINCS. Children are
- * at most 16 aggregates; the call neither consumes nor retains them.
+ * Proves through the sidecar. Raw signatures are concatenated fixed-width records of public key
+ * (32) | message (32) | signature: 2468-byte records for leanXMSS and 7804-byte records for
+ * leanSPHINCS. Children are at most 16 aggregates; the call neither consumes nor retains them.
  */
-int32_t lpq_aggregate_create(lpq_sidecar *sidecar, lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
+int32_t lpq_sidecar_aggregate(lpq_sidecar *sidecar, lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
 /*
- * Verifies through the sidecar that a proof proves exactly these claims, given as concatenated 64-byte
- * public key (32) | message (32) records in any order; a repeated claim counts once. A returned
- * handle is always a verified aggregate.
+ * Verifies through the sidecar that a proof proves exactly these claims, given as concatenated
+ * 64-byte public key (32) | message (32) records in any order; a repeated claim counts once. A
+ * returned handle is always a verified aggregate.
  */
-int32_t lpq_aggregate_from_bytes(lpq_sidecar *sidecar, const uint8_t *data, size_t len, const uint8_t *xmss_claims, size_t xmss_count, const uint8_t *sphincs_claims, size_t sphincs_count, lpq_aggregate **out);
+int32_t lpq_sidecar_verify(lpq_sidecar *sidecar, const uint8_t *data, size_t len, const uint8_t *xmss_claims, size_t xmss_count, const uint8_t *sphincs_claims, size_t sphincs_count, lpq_aggregate **out);
 /* The proof alone, without its claims. */
 int32_t lpq_aggregate_to_bytes(lpq_aggregate *aggregate, lpq_buffer *out);
 /* Claims are concatenated 64-byte public key (32) | message (32) records, strictly sorted. */

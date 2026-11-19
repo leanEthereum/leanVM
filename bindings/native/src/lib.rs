@@ -396,7 +396,7 @@ pub unsafe extern "C" fn lpq_sphincs_verify(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lpq_aggregate_create(
+pub unsafe extern "C" fn lpq_sidecar_aggregate(
     sidecar: *mut SidecarHandle,
     children: *const *mut AggregateHandle,
     child_count: usize,
@@ -459,7 +459,7 @@ pub unsafe extern "C" fn lpq_aggregate_create(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lpq_aggregate_from_bytes(
+pub unsafe extern "C" fn lpq_sidecar_verify(
     sidecar: *mut SidecarHandle,
     data: *const u8,
     len: usize,

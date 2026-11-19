@@ -140,7 +140,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let sphincs_record = [&sphincs_pk[..], &message, &sphincs_sig].concat();
             let mut aggregate = ptr::null_mut();
             assert_eq!(
-                lpq_aggregate_create(
+                lpq_sidecar_aggregate(
                     sidecar,
                     ptr::null(),
                     0,
@@ -162,7 +162,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let sphincs_claim = [&sphincs_pk[..], &message].concat();
             let mut decoded = ptr::null_mut();
             assert_eq!(
-                lpq_aggregate_from_bytes(
+                lpq_sidecar_verify(
                     sidecar,
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),
@@ -185,7 +185,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             // The same proof against one claim short fails, and leaves no handle.
             let mut rejected = ptr::null_mut();
             assert_eq!(
-                lpq_aggregate_from_bytes(
+                lpq_sidecar_verify(
                     sidecar,
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),

@@ -337,7 +337,7 @@ func (sidecar *Sidecar) Aggregate(children []*Aggregate, xmss []XmssSignedMessag
 	}
 	var output *C.lpq_aggregate
 	if err := call(func() C.int32_t {
-		return C.lpq_aggregate_create(
+		return C.lpq_sidecar_aggregate(
 			sidecarHandle,
 			aggregatePointer(handles), C.size_t(len(handles)),
 			bytesPointer(xmssRecords), C.size_t(len(xmss)),
@@ -363,7 +363,7 @@ func (sidecar *Sidecar) Verify(bytes []byte, xmssClaims, sphincsClaims []Claim) 
 	sphincsRecords := claimRecords(sphincsClaims)
 	var handle *C.lpq_aggregate
 	if err := call(func() C.int32_t {
-		return C.lpq_aggregate_from_bytes(
+		return C.lpq_sidecar_verify(
 			sidecarHandle,
 			bytesPointer(bytes), C.size_t(len(bytes)),
 			bytesPointer(xmssRecords), C.size_t(len(xmssClaims)),

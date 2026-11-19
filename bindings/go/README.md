@@ -112,7 +112,7 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `ConnectSidecar(socketPath)` connects to a running sidecar; `StartSidecar(binaryPath, socketPath)` launches one, and `Close` stops it. A `Sidecar` is safe for concurrent use.
 
-Continuing the example above:
+Continuing the example above (importing `os` and `path/filepath`):
 
 ```go
 home, err := os.UserHomeDir()
@@ -158,4 +158,6 @@ defer received.Close()
 
 - `Sidecar.Aggregate` verifies every raw signature before proving, and accepts at most 16 children.
 - `Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects.
-- `Sidecar.Verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set, so every `Aggregate` is proven.
+- `Sidecar.Verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set.
+
+Every `Aggregate` was proven or verified by a sidecar.

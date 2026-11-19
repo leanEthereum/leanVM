@@ -44,19 +44,23 @@ test "secret keys round trip through bytes" {
     try std.testing.expectEqual(sphincs_bytes, try sphincs_restored.toBytes());
 }
 
-/// The sidecar at `$LEANVM_SIDECAR_SOCKET`.
-fn connectSidecar() !lpq.Sidecar {
-    if (builtin.os.tag == .windows) return error.SkipZigTest;
-    const socket = std.testing.environ.getPosix("LEANVM_SIDECAR_SOCKET") orelse {
-        std.debug.print("set LEANVM_SIDECAR_SOCKET to the socket of a running leanvm-sidecar\n", .{});
-        return error.MissingLeanvmSidecarSocket;
+fn requiredEnv(name: []const u8, meaning: []const u8) ![]const u8 {
+    return std.testing.environ.getPosix(name) orelse {
+        std.debug.print("set {s} to {s}\n", .{ name, meaning });
+        return error.MissingEnvironmentVariable;
     };
-    return lpq.Sidecar.connect(socket);
+}
+
+fn expectLastError(expected: []const u8) !void {
+    const reason = try lpq.lastError(std.testing.allocator);
+    defer std.testing.allocator.free(reason);
+    try std.testing.expectEqualStrings(expected, reason);
 }
 
 test "aggregates recursively and round trips through bytes" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
     const allocator = std.testing.allocator;
-    var sidecar = try connectSidecar();
+    var sidecar = try lpq.Sidecar.connect(try requiredEnv("LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar"));
     defer sidecar.deinit();
 
     var xmss_key = try lpq.XmssSecretKey.fromSeed([_]u8{3} ** 32);
@@ -130,21 +134,13 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectError(error.NativeFailure, sidecar.verify(tampered, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded[0 .. encoded.len - 1], &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, sidecar.verify(&.{}, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
-}
-
-test "aggregating nothing fails" {
-    var sidecar = try connectSidecar();
-    defer sidecar.deinit();
     try std.testing.expectError(error.NativeFailure, sidecar.aggregate(&.{}, &.{}, &.{}));
 }
 
 test "starts and stops its own sidecar" {
     if (builtin.os.tag == .windows) return error.SkipZigTest;
     const allocator = std.testing.allocator;
-    const binary = std.testing.environ.getPosix("LEANVM_SIDECAR_BIN") orelse {
-        std.debug.print("set LEANVM_SIDECAR_BIN to a leanvm-sidecar executable\n", .{});
-        return error.MissingLeanvmSidecarBin;
-    };
+    const binary = try requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable");
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     // Relative, so short whatever the working directory: macOS limits a socket path to 104 bytes.
@@ -156,9 +152,7 @@ test "starts and stops its own sidecar" {
         errdefer started.deinit();
         // Bytes that are no proof: the sidecar answers that they prove nothing.
         try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
-        const reason = try lpq.lastError(allocator);
-        defer allocator.free(reason);
-        try std.testing.expectEqualStrings("the aggregate does not prove the given claims", reason);
+        try expectLastError("the aggregate does not prove the given claims");
     }
 
     // Closing it stops the sidecar.
@@ -168,8 +162,11 @@ test "starts and stops its own sidecar" {
 
 test "the sidecar needs Unix sockets" {
     if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const unsupported = "the leanVM sidecar needs Unix sockets, which this platform lacks";
     try std.testing.expectError(error.NativeFailure, lpq.Sidecar.connect("sidecar.sock"));
+    try expectLastError(unsupported);
     try std.testing.expectError(error.NativeFailure, lpq.Sidecar.start("leanvm-sidecar.exe", "sidecar.sock"));
+    try expectLastError(unsupported);
 }
 
 fn claimLessThan(_: void, a: lpq.Claim, b: lpq.Claim) bool {

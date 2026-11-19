@@ -40,8 +40,10 @@ rustup target add x86_64-unknown-linux-gnu
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
 cd bindings/zig
-zig build test -Dnative-dir=.native
+LEANVM_SIDECAR_SOCKET=~/.leanvm/sidecar.sock LEANVM_SIDECAR_BIN=/path/to/leanvm-sidecar zig build test -Dnative-dir=.native
 ```
+
+The aggregation tests prove through the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and one starts its own from the executable at `LEANVM_SIDECAR_BIN`.
 
 For Linux aarch64, stage `aarch64-unknown-linux-gnu`; for macOS, stage `universal2-apple-darwin` on macOS after adding both Apple Rust targets; for Windows, stage `x86_64-pc-windows-gnu` (cross-builds from Linux). `scripts/package.sh` assembles a release package from staged archives, and `scripts/consumer-smoke.sh` proves one works as a `zig fetch` dependency.
 
@@ -77,6 +79,7 @@ Aggregation runs in a leanVM sidecar, a process of its own on Linux and macOS: s
 `Sidecar.connect(socket_path)` connects to a running sidecar; `Sidecar.start(binary_path, socket_path)` launches one, waits until it listens and connects, and its `deinit` stops it. Calls on one `Sidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` fail with `error.NativeFailure`. With the keys and signatures of the example above:
 
 ```zig
+const allocator = std.heap.page_allocator;
 var sidecar = try lpq.Sidecar.connect("/home/me/.leanvm/sidecar.sock");
 defer sidecar.deinit();
 
@@ -107,5 +110,4 @@ defer received.deinit();
 ```
 
 - `aggregate` verifies every raw signature before proving, and takes at most `max_children` (16) children, which it neither consumes nor retains.
-- `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them.
-- `verify(bytes, xmss_claims, sphincs_claims)` checks that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `verify` takes.
+- `verify(data, xmss_claims, sphincs_claims)` checks that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` otherwise, so every `Aggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the slice type `verify` takes.

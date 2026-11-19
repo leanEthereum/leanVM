@@ -6,17 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 
 class LeanPqTest {
     @Test
@@ -113,27 +111,22 @@ class LeanPqTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void startsAndStopsItsOwnSidecar() throws IOException {
-        // Directly under the temp dir: macOS limits socket paths to 104 bytes.
-        Path directory = Files.createTempDirectory("lpq");
+    void startsAndStopsItsOwnSidecar(@TempDir Path directory) {
         Path socket = directory.resolve("s.sock");
         byte[] proof = Shared.LEAF.toBytes();
         List<SignatureClaim> claims = Shared.LEAF.xmssClaims();
         Path binary = Path.of(environment("LEANVM_SIDECAR_BIN"));
-        try (Sidecar started = Sidecar.start(binary, socket)) {
+        Sidecar started = Sidecar.start(binary, socket);
+        try (started) {
             try (Aggregate verified = started.verify(proof, claims, List.of())) {
                 assertEquals(claims, verified.xmssClaims());
             }
-            assertThrows(LeanPqException.class, () -> Sidecar.start(binary, socket));
+            assertTrue(assertThrows(LeanPqException.class, () -> Sidecar.start(binary, socket))
+                .getMessage().contains("already listens"));
         }
+        assertThrows(IllegalStateException.class, () -> started.verify(proof, claims, List.of()));
         // Closing it stopped the sidecar.
         assertThrows(LeanPqException.class, () -> Sidecar.connect(socket));
-        try (Stream<Path> files = Files.list(directory)) {
-            for (Path file : files.toList()) {
-                Files.delete(file);
-            }
-        }
-        Files.delete(directory);
     }
 
     @Test

@@ -217,7 +217,7 @@ pub const Sidecar = struct {
     }
 
     /// Verifies the raw signatures, then proves the union of their claims and the children's.
-    /// Children are neither consumed nor retained.
+    /// At least one input is required. Children are neither consumed nor retained.
     pub fn aggregate(
         self: *const Sidecar,
         children: []const *const Aggregate,
@@ -229,7 +229,7 @@ pub const Sidecar = struct {
         for (children, handles[0..children.len]) |child, *handle| handle.* = child.handle;
 
         var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_aggregate_create(
+        try checkStatus(c.lpq_sidecar_aggregate(
             self.handle,
             if (children.len == 0) null else &handles,
             children.len,
@@ -252,7 +252,7 @@ pub const Sidecar = struct {
         sphincs_claims: []const Claim,
     ) Error!Aggregate {
         var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_aggregate_from_bytes(
+        try checkStatus(c.lpq_sidecar_verify(
             self.handle,
             bytesPtr(data),
             data.len,

@@ -54,11 +54,13 @@ pub struct Sidecar {
 }
 
 /// A sidecar process this value launched, and the process that launched it: a forked child
-/// inherits the value but must not stop the parent's sidecar.
+/// inherits the value but must not stop the parent's sidecar. The child also exits when `_stdin`
+/// closes, which the launching process's exit does however it exits.
 #[cfg(unix)]
 #[derive(Debug)]
 struct Owned {
     child: Child,
+    _stdin: Option<std::process::ChildStdin>,
     owner: u32,
 }
 
@@ -104,7 +106,7 @@ impl Sidecar {
     ///
     /// - The socket's directory is created, readable by this user only, if it does not exist.
     /// - The sidecar's log goes to the socket's path with `.log` appended.
-    /// - Warming up takes a few seconds to a minute, depending on the machine.
+    /// - The sidecar also stops when this process exits without dropping the value.
     ///
     /// # Errors
     ///
@@ -149,10 +151,11 @@ impl Sidecar {
         let log_path = PathBuf::from(log_path);
         let log = std::fs::File::create(&log_path)
             .map_err(|e| failure(format!("cannot create {}: {e}", log_path.display())))?;
-        let child = Command::new(binary)
+        let mut child = Command::new(binary)
             .arg("--socket")
             .arg(socket)
-            .stdin(Stdio::null())
+            .arg("--exit-with-stdin")
+            .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(log)
             .spawn()
@@ -162,6 +165,7 @@ impl Sidecar {
             socket: socket.to_path_buf(),
             client: Mutex::new(None),
             process: Some(Owned {
+                _stdin: child.stdin.take(),
                 child,
                 owner: std::process::id(),
             }),

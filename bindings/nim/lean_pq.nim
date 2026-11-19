@@ -344,8 +344,8 @@ proc start*(
     T: type LeanPqSidecar, binaryPath, socketPath: string
 ): Result[LeanPqSidecar, string] =
   ## Launches the `leanvm-sidecar` executable at `binaryPath` on `socketPath`, waits until it
-  ## listens, and connects; `close` or collection stops it. Its log goes to `socketPath` plus
-  ## `.log`. Fails when a sidecar already listens there, and on Windows.
+  ## listens, and connects; `close` stops it. Its log goes to `socketPath` plus `.log`. Fails
+  ## when a sidecar already listens there, and on Windows.
   var handle: ptr LpqSidecar
   ? check(lpqSidecarStart(
     pathPtr(binaryPath), csize_t(binaryPath.len),
@@ -354,13 +354,6 @@ proc start*(
   if handle.isNil:
     return err("native sidecar is null")
   ok(LeanPqSidecar(handle: handle))
-
-proc close*(sidecar: LeanPqSidecar) =
-  ## Closes the connection now, and stops the sidecar if `start` launched it. Safe to call more
-  ## than once.
-  if not sidecar.isNil and not sidecar.handle.isNil:
-    lpqSidecarDestroy(sidecar.handle)
-    sidecar.handle = nil
 
 proc aggregate*(
     sidecar: LeanPqSidecar,
@@ -382,7 +375,7 @@ proc aggregate*(
     xmssPtr = if xmss.len == 0: nil else: cast[ptr byte](addr xmss[0])
     sphincsPtr = if sphincs.len == 0: nil else: cast[ptr byte](addr sphincs[0])
   var handle: ptr LpqAggregate
-  ? check(lpqAggregateCreate(
+  ? check(lpqSidecarAggregate(
     sidecarHandle,
     childrenPtr, csize_t(children.len),
     xmssPtr, csize_t(xmss.len),
@@ -401,12 +394,12 @@ proc verify*(
   ## Verifies that a proof from `toBytes` proves exactly `xmssClaims` and `sphincsClaims`, in any
   ## order, a repeated claim counting once. The encoding holds no claims: send them alongside the
   ## proof or rebuild them on the receiving side. Every `LeanPqAggregate` is proven.
-  let sidecarHandle = ? sidecar.nativeHandle()
   let
+    sidecarHandle = ? sidecar.nativeHandle()
     xmssPtr = if xmssClaims.len == 0: nil else: cast[ptr byte](addr xmssClaims[0])
     sphincsPtr = if sphincsClaims.len == 0: nil else: cast[ptr byte](addr sphincsClaims[0])
   var handle: ptr LpqAggregate
-  ? check(lpqAggregateFromBytes(
+  ? check(lpqSidecarVerify(
     sidecarHandle,
     bytesPtr(bytes), csize_t(bytes.len),
     xmssPtr, csize_t(xmssClaims.len),
@@ -415,6 +408,13 @@ proc verify*(
   if handle.isNil:
     return err("native aggregate is null")
   ok(LeanPqAggregate(handle: handle))
+
+proc close*(sidecar: LeanPqSidecar) =
+  ## Closes the connection now, and stops the sidecar if `start` launched it. Safe to call more
+  ## than once.
+  if not sidecar.isNil and not sidecar.handle.isNil:
+    lpqSidecarDestroy(sidecar.handle)
+    sidecar.handle = nil
 
 proc toBytes*(aggregate: LeanPqAggregate): Result[seq[byte], string] =
   ## The proof alone, without its claims.

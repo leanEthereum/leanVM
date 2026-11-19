@@ -263,6 +263,9 @@ func TestStartSidecar(t *testing.T) {
 	}
 
 	started.Close()
+	if _, err := started.Verify(proof, claims, nil); err == nil {
+		t.Fatal("a closed sidecar must refuse calls")
+	}
 	if connected, err := ConnectSidecar(socket); err == nil {
 		connected.Close()
 		t.Fatal("Close must stop the sidecar StartSidecar launched")

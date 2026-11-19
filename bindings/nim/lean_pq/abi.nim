@@ -141,20 +141,20 @@ proc lpqSidecarStart*(
 proc lpqSidecarDestroy*(sidecar: ptr LpqSidecar) {.
   importc: "lpq_sidecar_destroy", header: lpqHeader.}
 
-proc lpqAggregateCreate*(
+proc lpqSidecarAggregate*(
   sidecar: ptr LpqSidecar,
   children: ptr ptr LpqAggregate, childCount: csize_t,
   xmss: ptr byte, xmssCount: csize_t,
   sphincs: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_aggregate_create", header: lpqHeader.}
-proc lpqAggregateFromBytes*(
+  importc: "lpq_sidecar_aggregate", header: lpqHeader.}
+proc lpqSidecarVerify*(
   sidecar: ptr LpqSidecar,
   data: ptr byte, len: csize_t,
   xmssClaims: ptr byte, xmssCount: csize_t,
   sphincsClaims: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_aggregate_from_bytes", header: lpqHeader.}
+  importc: "lpq_sidecar_verify", header: lpqHeader.}
 proc lpqAggregateToBytes*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.
   importc: "lpq_aggregate_to_bytes", header: lpqHeader.}
 proc lpqAggregateXmssClaims*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.

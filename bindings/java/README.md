@@ -151,4 +151,6 @@ try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), 
 
 - `aggregate(children, xmss, sphincs)` verifies every raw signature before proving, and accepts at most 16 children.
 - `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
-- `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven.
+- `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof.
+
+Every `Aggregate` was proven or verified by a sidecar.

@@ -26,6 +26,7 @@ import java.util.Objects;
 final class Native {
     static final int PUBLIC_KEY_LENGTH = 32;
     static final int MESSAGE_LENGTH = 32;
+    static final int CLAIM_LENGTH = PUBLIC_KEY_LENGTH + MESSAGE_LENGTH;
     static final int SEED_LENGTH = 32;
     static final int XMSS_SIGNATURE_LENGTH = 2404;
     static final int SPHINCS_SIGNATURE_LENGTH = 7740;
@@ -70,8 +71,8 @@ final class Native {
     private static final MethodHandle SIDECAR_START = downcall("lpq_sidecar_start", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle SIDECAR_DESTROY = downcall("lpq_sidecar_destroy", DESTROY);
 
-    private static final MethodHandle AGGREGATE_CREATE = downcall("lpq_aggregate_create", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
-    private static final MethodHandle AGGREGATE_FROM_BYTES = downcall("lpq_aggregate_from_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_AGGREGATE = downcall("lpq_sidecar_aggregate", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_VERIFY = downcall("lpq_sidecar_verify", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle AGGREGATE_TO_BYTES = downcall("lpq_aggregate_to_bytes", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_XMSS_CLAIMS = downcall("lpq_aggregate_xmss_claims", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_SPHINCS_CLAIMS = downcall("lpq_aggregate_sphincs_claims", HANDLE_TO_BUFFER);
@@ -187,7 +188,7 @@ final class Native {
     /** Records are concatenated {@code pk|msg|sig} entries of the scheme's fixed record width. */
     static MemorySegment aggregate(MemorySegment sidecar, List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount) {
         try (Arena arena = Arena.ofConfined()) {
-            return handle(AGGREGATE_CREATE, sidecar,
+            return handle(SIDECAR_AGGREGATE, sidecar,
                 pointerArray(arena, children), (long) children.size(),
                 copy(arena, xmss), xmssCount,
                 copy(arena, sphincs), sphincsCount);
@@ -197,7 +198,7 @@ final class Native {
     /** Claims are concatenated 64-byte {@code pk|msg} records. */
     static MemorySegment verifyAggregate(MemorySegment sidecar, byte[] bytes, byte[] xmssClaims, long xmssCount, byte[] sphincsClaims, long sphincsCount) {
         try (Arena arena = Arena.ofConfined()) {
-            return handle(AGGREGATE_FROM_BYTES, sidecar,
+            return handle(SIDECAR_VERIFY, sidecar,
                 copy(arena, bytes), (long) bytes.length,
                 copy(arena, xmssClaims), xmssCount,
                 copy(arena, sphincsClaims), sphincsCount);

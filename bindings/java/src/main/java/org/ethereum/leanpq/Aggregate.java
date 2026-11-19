@@ -11,8 +11,6 @@ import java.util.List;
  * rebuild them, and check it with {@link Sidecar#verify(byte[], List, List)}.
  */
 public final class Aggregate implements AutoCloseable {
-    private static final int CLAIM_LENGTH = Native.PUBLIC_KEY_LENGTH + Native.MESSAGE_LENGTH;
-
     private final NativeHandle handle;
 
     Aggregate(MemorySegment pointer) {
@@ -50,14 +48,14 @@ public final class Aggregate implements AutoCloseable {
     }
 
     private static List<SignatureClaim> claims(byte[] records) {
-        if (records.length % CLAIM_LENGTH != 0) {
-            throw new LeanPqException("native claim data is not a multiple of " + CLAIM_LENGTH + " bytes");
+        if (records.length % Native.CLAIM_LENGTH != 0) {
+            throw new LeanPqException("native claim data is not a multiple of " + Native.CLAIM_LENGTH + " bytes");
         }
-        List<SignatureClaim> claims = new ArrayList<>(records.length / CLAIM_LENGTH);
-        for (int offset = 0; offset < records.length; offset += CLAIM_LENGTH) {
+        List<SignatureClaim> claims = new ArrayList<>(records.length / Native.CLAIM_LENGTH);
+        for (int offset = 0; offset < records.length; offset += Native.CLAIM_LENGTH) {
             claims.add(new SignatureClaim(
                 Arrays.copyOfRange(records, offset, offset + Native.PUBLIC_KEY_LENGTH),
-                Arrays.copyOfRange(records, offset + Native.PUBLIC_KEY_LENGTH, offset + CLAIM_LENGTH)));
+                Arrays.copyOfRange(records, offset + Native.PUBLIC_KEY_LENGTH, offset + Native.CLAIM_LENGTH)));
         }
         return List.copyOf(claims);
     }

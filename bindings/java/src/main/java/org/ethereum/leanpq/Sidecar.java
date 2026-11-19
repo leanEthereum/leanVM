@@ -13,8 +13,6 @@ import java.util.Objects;
  * throw {@link LeanPqException}.
  */
 public final class Sidecar implements AutoCloseable {
-    private static final int CLAIM_LENGTH = Native.PUBLIC_KEY_LENGTH + Native.MESSAGE_LENGTH;
-
     private final NativeHandle handle;
 
     private Sidecar(MemorySegment pointer) {
@@ -54,8 +52,8 @@ public final class Sidecar implements AutoCloseable {
             return new Aggregate(Native.aggregate(
                 sidecar.pointer(),
                 pointers,
-                xmssRecords, xmssRecords.length / (CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
-                sphincsRecords, sphincsRecords.length / (CLAIM_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
+                xmssRecords, xmssRecords.length / (Native.CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
+                sphincsRecords, sphincsRecords.length / (Native.CLAIM_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
         } finally {
             for (int index = borrowed.size() - 1; index >= 0; index--) {
                 borrowed.get(index).close();
@@ -74,18 +72,21 @@ public final class Sidecar implements AutoCloseable {
         byte[] sphincsRecords = claimRecords(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
         try (NativeHandle.Borrow borrowed = handle.borrow()) {
             return new Aggregate(Native.verifyAggregate(borrowed.pointer(),
-                bytes, xmssRecords, xmssRecords.length / CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / CLAIM_LENGTH));
+                bytes, xmssRecords, xmssRecords.length / Native.CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / Native.CLAIM_LENGTH));
         }
     }
 
-    /** Closes the connection, and stops the sidecar if {@link #start(Path, Path)} launched it. */
+    /**
+     * Closes the connection once calls in progress return, and stops the sidecar if
+     * {@link #start(Path, Path)} launched it.
+     */
     @Override
     public void close() {
         handle.close();
     }
 
     private static byte[] signedRecords(List<SignedMessage> entries, int signatureLength, String scheme) {
-        int recordLength = CLAIM_LENGTH + signatureLength;
+        int recordLength = Native.CLAIM_LENGTH + signatureLength;
         int count = entries.size();
         byte[] records = new byte[Math.multiplyExact(count, recordLength)];
         for (int index = 0; index < count; index++) {
@@ -97,9 +98,9 @@ public final class Sidecar implements AutoCloseable {
 
     private static byte[] claimRecords(List<SignatureClaim> claims) {
         int count = claims.size();
-        byte[] records = new byte[Math.multiplyExact(count, CLAIM_LENGTH)];
+        byte[] records = new byte[Math.multiplyExact(count, Native.CLAIM_LENGTH)];
         for (int index = 0; index < count; index++) {
-            Objects.requireNonNull(claims.get(index), "claim").writeRecord(records, index * CLAIM_LENGTH);
+            Objects.requireNonNull(claims.get(index), "claim").writeRecord(records, index * Native.CLAIM_LENGTH);
         }
         return records;
     }

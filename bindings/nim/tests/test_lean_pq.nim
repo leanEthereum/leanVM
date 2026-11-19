@@ -30,12 +30,6 @@ when not defined(windows):
     if result.len == 0:
       raise newException(ValueError, "set " & name & " to " & meaning)
 
-  proc connectSidecar(): LeanPqSidecar {.raises: [ValueError].} =
-    ## The sidecar at `$LEANVM_SIDECAR_SOCKET`.
-    let socket = requiredEnv("LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar")
-    LeanPqSidecar.connect(socket).valueOr:
-      raise newException(ValueError, "cannot connect to " & socket & ": " & error)
-
 const
   message = filled(0x42)
   otherMessage = filled(0x43)
@@ -135,13 +129,15 @@ suite "lean_pq":
 
   when defined(windows):
     test "the sidecar needs Unix sockets":
+      const unsupported = "the leanVM sidecar needs Unix sockets, which this platform lacks"
       check:
-        LeanPqSidecar.connect("sidecar.sock").isErr()
-        LeanPqSidecar.start("leanvm-sidecar.exe", "sidecar.sock").isErr()
+        LeanPqSidecar.connect("sidecar.sock").error() == unsupported
+        LeanPqSidecar.start("leanvm-sidecar.exe", "sidecar.sock").error() == unsupported
   else:
     test "aggregates recursively and round trips through bytes":
       let
-        sidecar = connectSidecar()
+        sidecar = LeanPqSidecar.connect(requiredEnv(
+          "LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar")).expect("sidecar")
         xmssKey = XmssSecretKey.fromSeed(filled(3)).expect("key")
         sphincsKey = SphincsSecretKey.fromSeed(filled(4)).expect("key")
         extraKey = XmssSecretKey.fromSeed(filled(5)).expect("key")
@@ -206,12 +202,13 @@ suite "lean_pq":
         sidecar.aggregate([root, restored]).error() == "aggregate is closed"
 
     test "starts and stops its own sidecar":
+      # Short: macOS limits a socket path to 104 bytes.
+      let directory = getTempDir() / ("lpq-" & $getCurrentProcessId())
+      defer: removeDir(directory)
       let
-        binary = requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable")
-        # Short: macOS limits a socket path to 104 bytes.
-        directory = getTempDir() / ("lpq-" & $getCurrentProcessId())
         socket = directory / "s.sock"
-        sidecar = LeanPqSidecar.start(binary, socket).expect("started")
+        sidecar = LeanPqSidecar.start(
+          requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable"), socket).expect("started")
       # Bytes that are no proof: the sidecar answers that they prove nothing.
       check sidecar.verify([0'u8]).error() == "the aggregate does not prove the given claims"
 
@@ -220,4 +217,3 @@ suite "lean_pq":
       check:
         sidecar.verify([0'u8]).error() == "sidecar is closed"
         LeanPqSidecar.connect(socket).isErr()
-      removeDir(directory)

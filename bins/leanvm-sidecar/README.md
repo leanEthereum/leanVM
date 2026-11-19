@@ -16,6 +16,7 @@ Built so, it runs the experimental prover; without `--features experimental_prov
 | --- | --- | --- |
 | `--socket` | required | the socket to listen on, in a directory that exists |
 | `--threads` | 0 | thread count, 0 for one per core |
+| `--exit-with-stdin` | off | exit when standard input closes, so a program that launches it through a pipe stops it by exiting |
 
 - It warms up (two discarded proofs) before listening, so the socket appears once it is ready. It logs to standard error.
 - One sidecar per socket: it locks `<socket>.lock`, and replaces a stale socket left by one that stopped.
