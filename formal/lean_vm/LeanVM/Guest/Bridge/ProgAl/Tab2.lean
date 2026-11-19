@@ -9,6 +9,15 @@ module
 
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Checked.Link2
+public import LeanVM.Guest.CoreMode.GlueE.«P1»
+public import LeanVM.Guest.CoreMode.GlueE.«P26»
+public import LeanVM.Guest.CoreMode.GlueE.«P33»
+public import LeanVM.Guest.CoreMode.GlueE.«P34»
+public import LeanVM.Guest.CoreMode.GlueE.«P45»
+public import LeanVM.Guest.CoreMode.GlueE.«P46»
+public import LeanVM.Guest.CoreMode.GlueE.«P53»
+public import LeanVM.Guest.CoreMode.GlueE.«P56»
+public import LeanVM.Guest.CoreMode.GlueE.«P8»
 meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.Bridge.ProgAl
@@ -83,17 +92,17 @@ kernel_rfl tab263 : (Bridge.extraOf 263, Bridge.entsOf 263, Bridge.adviceOf 263)
 kernel_rfl tab264 : (Bridge.extraOf 264, Bridge.entsOf 264, Bridge.adviceOf 264) = ([], [], Data.adviceFn264)
 kernel_rfl tab265 : (Bridge.extraOf 265, Bridge.entsOf 265, Bridge.adviceOf 265) = ([], [], Data.adviceFn265)
 kernel_rfl tab266 : (Bridge.extraOf 266, Bridge.entsOf 266, Bridge.adviceOf 266) = ([], [], Data.adviceFn266)
-kernel_rfl tab267 : (Bridge.extraOf 267, Bridge.entsOf 267, Bridge.adviceOf 267) = ([], [("__loop0_verify_tables", 206180), ("sumcheck_round4", 19425)], Data.adviceFn267)
-kernel_rfl tab268 : (Bridge.extraOf 268, Bridge.entsOf 268, Bridge.adviceOf 268) = ([], [("__loop1_verify_tables", 206224)], Data.adviceFn268)
-kernel_rfl tab269 : (Bridge.extraOf 269, Bridge.entsOf 269, Bridge.adviceOf 269) = ([], [("__loop0_verify_keccak", 206248)], Data.adviceFn269)
-kernel_rfl tab270 : (Bridge.extraOf 270, Bridge.entsOf 270, Bridge.adviceOf 270) = ([], [("__loop0_keccak_layer__L1", 253631), ("__loop1_keccak_layer__L1", 253812), ("grind_check__L3", 253579)], Data.adviceFn270)
-kernel_rfl tab271 : (Bridge.extraOf 271, Bridge.entsOf 271, Bridge.adviceOf 271) = ([], [("__loop0_keccak_layer__L0", 253871), ("__loop1_keccak_layer__L0", 254052), ("grind_check__L3", 253579)], Data.adviceFn271)
+kernel_rfl tab267 : (Bridge.extraOf 267, Bridge.entsOf 267, Bridge.adviceOf 267) = ([], [("__loop0_verify_tables", Fn.«verify_tables_loop0».entry), ("sumcheck_round4", Fn.«sumcheck_round4».entry)], Data.adviceFn267)
+kernel_rfl tab268 : (Bridge.extraOf 268, Bridge.entsOf 268, Bridge.adviceOf 268) = ([], [("__loop1_verify_tables", Fn.«verify_tables_loop1».entry)], Data.adviceFn268)
+kernel_rfl tab269 : (Bridge.extraOf 269, Bridge.entsOf 269, Bridge.adviceOf 269) = ([], [("__loop0_verify_keccak", Fn.«verify_keccak_loop0».entry)], Data.adviceFn269)
+kernel_rfl tab270 : (Bridge.extraOf 270, Bridge.entsOf 270, Bridge.adviceOf 270) = ([], [("__loop0_keccak_layer__L1", Fn.«keccak_layer__L1_loop0».entry), ("__loop1_keccak_layer__L1", Fn.«keccak_layer__L1_loop1».entry), ("grind_check__L3", Fn.«grind_check__L3».entry)], Data.adviceFn270)
+kernel_rfl tab271 : (Bridge.extraOf 271, Bridge.entsOf 271, Bridge.adviceOf 271) = ([], [("__loop0_keccak_layer__L0", Fn.«keccak_layer__L0_loop0».entry), ("__loop1_keccak_layer__L0", Fn.«keccak_layer__L0_loop1».entry), ("grind_check__L3", Fn.«grind_check__L3».entry)], Data.adviceFn271)
 kernel_rfl tab272 : (Bridge.extraOf 272, Bridge.entsOf 272, Bridge.adviceOf 272) = ([], [], Data.adviceFn272)
-kernel_rfl tab273 : (Bridge.extraOf 273, Bridge.entsOf 273, Bridge.adviceOf 273) = ([], [("__loop1_verify_keccak", 209594)], Data.adviceFn273)
+kernel_rfl tab273 : (Bridge.extraOf 273, Bridge.entsOf 273, Bridge.adviceOf 273) = ([], [("__loop1_verify_keccak", Fn.«verify_keccak_loop1».entry)], Data.adviceFn273)
 kernel_rfl tab274 : (Bridge.extraOf 274, Bridge.entsOf 274, Bridge.adviceOf 274) = ([], [], Data.adviceFn274)
-kernel_rfl tab275 : (Bridge.extraOf 275, Bridge.entsOf 275, Bridge.adviceOf 275) = ([], [("__loop2_verify_keccak", 209695)], Data.adviceFn275)
-kernel_rfl tab276 : (Bridge.extraOf 276, Bridge.entsOf 276, Bridge.adviceOf 276) = ([], [("__loop0_ring_switch_target", 209715)], Data.adviceFn276)
-kernel_rfl tab277 : (Bridge.extraOf 277, Bridge.entsOf 277, Bridge.adviceOf 277) = ([], [("__loop0_check_opening_terminal", 210081)], Data.adviceFn277)
+kernel_rfl tab275 : (Bridge.extraOf 275, Bridge.entsOf 275, Bridge.adviceOf 275) = ([], [("__loop2_verify_keccak", Fn.«verify_keccak_loop2».entry)], Data.adviceFn275)
+kernel_rfl tab276 : (Bridge.extraOf 276, Bridge.entsOf 276, Bridge.adviceOf 276) = ([], [("__loop0_ring_switch_target", Fn.«ring_switch_target_loop0».entry)], Data.adviceFn276)
+kernel_rfl tab277 : (Bridge.extraOf 277, Bridge.entsOf 277, Bridge.adviceOf 277) = ([], [("__loop0_check_opening_terminal", Fn.«check_opening_terminal_loop0».entry)], Data.adviceFn277)
 kernel_rfl tab278 : (Bridge.extraOf 278, Bridge.entsOf 278, Bridge.adviceOf 278) = ([], [], Data.adviceFn278)
 kernel_rfl tab279 : (Bridge.extraOf 279, Bridge.entsOf 279, Bridge.adviceOf 279) = ([], [], Data.adviceFn279)
 kernel_rfl tab280 : (Bridge.extraOf 280, Bridge.entsOf 280, Bridge.adviceOf 280) = ([], [], Data.adviceFn280)

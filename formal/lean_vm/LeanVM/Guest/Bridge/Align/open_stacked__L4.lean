@@ -8,6 +8,45 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.CoreMode.GlueE.«P0»
+public import LeanVM.Guest.CoreMode.GlueE.«P10»
+public import LeanVM.Guest.CoreMode.GlueE.«P11»
+public import LeanVM.Guest.CoreMode.GlueE.«P12»
+public import LeanVM.Guest.CoreMode.GlueE.«P15»
+public import LeanVM.Guest.CoreMode.GlueE.«P16»
+public import LeanVM.Guest.CoreMode.GlueE.«P18»
+public import LeanVM.Guest.CoreMode.GlueE.«P19»
+public import LeanVM.Guest.CoreMode.GlueE.«P21»
+public import LeanVM.Guest.CoreMode.GlueE.«P22»
+public import LeanVM.Guest.CoreMode.GlueE.«P25»
+public import LeanVM.Guest.CoreMode.GlueE.«P26»
+public import LeanVM.Guest.CoreMode.GlueE.«P2»
+public import LeanVM.Guest.CoreMode.GlueE.«P31»
+public import LeanVM.Guest.CoreMode.GlueE.«P33»
+public import LeanVM.Guest.CoreMode.GlueE.«P34»
+public import LeanVM.Guest.CoreMode.GlueE.«P35»
+public import LeanVM.Guest.CoreMode.GlueE.«P36»
+public import LeanVM.Guest.CoreMode.GlueE.«P37»
+public import LeanVM.Guest.CoreMode.GlueE.«P39»
+public import LeanVM.Guest.CoreMode.GlueE.«P40»
+public import LeanVM.Guest.CoreMode.GlueE.«P41»
+public import LeanVM.Guest.CoreMode.GlueE.«P42»
+public import LeanVM.Guest.CoreMode.GlueE.«P44»
+public import LeanVM.Guest.CoreMode.GlueE.«P45»
+public import LeanVM.Guest.CoreMode.GlueE.«P46»
+public import LeanVM.Guest.CoreMode.GlueE.«P48»
+public import LeanVM.Guest.CoreMode.GlueE.«P49»
+public import LeanVM.Guest.CoreMode.GlueE.«P51»
+public import LeanVM.Guest.CoreMode.GlueE.«P52»
+public import LeanVM.Guest.CoreMode.GlueE.«P53»
+public import LeanVM.Guest.CoreMode.GlueE.«P57»
+public import LeanVM.Guest.CoreMode.GlueE.«P59»
+public import LeanVM.Guest.CoreMode.GlueE.«P61»
+public import LeanVM.Guest.CoreMode.GlueE.«P62»
+public import LeanVM.Guest.CoreMode.GlueE.«P63»
+public import LeanVM.Guest.CoreMode.GlueE.«P6»
+public import LeanVM.Guest.CoreMode.GlueE.«P8»
+public import LeanVM.Guest.CoreMode.GlueE.«P9»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P41».Core
 public import LeanVM.Guest.Pack.«open_stacked__L4».Bundle
@@ -19,7 +58,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-noncomputable def Fn.«open_stacked__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("fold_final_msg__L2", 256188), ("grind_check__L15", 211564), ("grind_check__L17", 254111), ("level_positions__L11_L22_L4", 262587), ("level_positions__L13_L21_L3", 262545), ("level_positions__L19_L20_L2", 262503), ("level_positions__L37_L19_L7", 262461), ("level_positions__L3_L15_L3", 256003), ("level_positions__L3_L16_L4", 255689), ("level_positions__L3_L17_L5", 259621), ("level_positions__L3_L18_L6", 261561), ("level_positions__L3_L19_L7", 263253), ("level_positions__L4_L18_L6", 259325), ("level_positions__L4_L20_L2", 263102), ("level_positions__L5_L17_L5", 255336), ("level_positions__L5_L19_L7", 263060), ("level_positions__L6_L21_L3", 262871), ("level_positions__L7_L20_L2", 262829), ("level_positions__L8_L18_L6", 254911), ("level_positions__L8_L19_L7", 262787), ("level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0", 262670), ("level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1", 263472), ("level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1", 263437), ("level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1", 263402), ("level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0", 263367), ("level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0", 263331), ("level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1", 256153), ("level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0", 262629), ("level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0", 263295), ("level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0", 255840), ("level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0", 263216), ("level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0", 263180), ("level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0", 263144), ("level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0", 255491), ("level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0", 263026), ("level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0", 262989), ("level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0", 262952), ("level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0", 262913), ("level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0", 262748), ("level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0", 262710), ("level_residual__L109_L18_L6_L3", 263551), ("level_residual__L18_L6_L4_L2", 264069), ("level_residual__L19_L6_L4_L2", 264024), ("level_residual__L218_L18_L6_L3", 263506), ("level_residual__L21_L6_L4_L2", 263979), ("level_residual__L23_L10_L4_L2", 263935), ("level_residual__L23_L6_L4_L2", 256683), ("level_residual__L25_L10_L4_L2", 263890), ("level_residual__L28_L10_L4_L2", 263845), ("level_residual__L32_L10_L4_L2", 256525), ("level_residual__L32_L14_L4_L2", 263821), ("level_residual__L37_L14_L4_L2", 263776), ("level_residual__L44_L14_L4_L2", 263731), ("level_residual__L55_L14_L4_L2", 263686), ("level_residual__L55_L18_L6_L3", 263641), ("level_residual__L73_L18_L6_L3", 263596), ("opening_message__L6_L1", 255112), ("opening_message__L8_L1", 254663), ("opening_round", 19461), ("opening_tail_round", 19521), ("squeeze_point_from__L10", 255160), ("squeeze_point_from__L14", 254723), ("squeeze_point_from__L18", 262387), ("squeeze_point_from__L6", 255525)] 524287 code.instructionCount
+noncomputable def Fn.«open_stacked__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("fold_final_msg__L2", Fn.«fold_final_msg__L2».entry), ("grind_check__L15", Fn.«grind_check__L15».entry), ("grind_check__L17", Fn.«grind_check__L17».entry), ("level_positions__L11_L22_L4", Fn.«level_positions__L11_L22_L4».entry), ("level_positions__L13_L21_L3", Fn.«level_positions__L13_L21_L3».entry), ("level_positions__L19_L20_L2", Fn.«level_positions__L19_L20_L2».entry), ("level_positions__L37_L19_L7", Fn.«level_positions__L37_L19_L7».entry), ("level_positions__L3_L15_L3", Fn.«level_positions__L3_L15_L3».entry), ("level_positions__L3_L16_L4", Fn.«level_positions__L3_L16_L4».entry), ("level_positions__L3_L17_L5", Fn.«level_positions__L3_L17_L5».entry), ("level_positions__L3_L18_L6", Fn.«level_positions__L3_L18_L6».entry), ("level_positions__L3_L19_L7", Fn.«level_positions__L3_L19_L7».entry), ("level_positions__L4_L18_L6", Fn.«level_positions__L4_L18_L6».entry), ("level_positions__L4_L20_L2", Fn.«level_positions__L4_L20_L2».entry), ("level_positions__L5_L17_L5", Fn.«level_positions__L5_L17_L5».entry), ("level_positions__L5_L19_L7", Fn.«level_positions__L5_L19_L7».entry), ("level_positions__L6_L21_L3", Fn.«level_positions__L6_L21_L3».entry), ("level_positions__L7_L20_L2", Fn.«level_positions__L7_L20_L2».entry), ("level_positions__L8_L18_L6", Fn.«level_positions__L8_L18_L6».entry), ("level_positions__L8_L19_L7", Fn.«level_positions__L8_L19_L7».entry), ("level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0", Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry), ("level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1", Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».entry), ("level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1", Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».entry), ("level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1", Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».entry), ("level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0", Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».entry), ("level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0", Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry), ("level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1", Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».entry), ("level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0", Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».entry), ("level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0", Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry), ("level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0", Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».entry), ("level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0", Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».entry), ("level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0", Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».entry), ("level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0", Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry), ("level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0", Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry), ("level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0", Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry), ("level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0", Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».entry), ("level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0", Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».entry), ("level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0", Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry), ("level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0", Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».entry), ("level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0", Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».entry), ("level_residual__L109_L18_L6_L3", Fn.«level_residual__L109_L18_L6_L3».entry), ("level_residual__L18_L6_L4_L2", Fn.«level_residual__L18_L6_L4_L2».entry), ("level_residual__L19_L6_L4_L2", Fn.«level_residual__L19_L6_L4_L2».entry), ("level_residual__L218_L18_L6_L3", Fn.«level_residual__L218_L18_L6_L3».entry), ("level_residual__L21_L6_L4_L2", Fn.«level_residual__L21_L6_L4_L2».entry), ("level_residual__L23_L10_L4_L2", Fn.«level_residual__L23_L10_L4_L2».entry), ("level_residual__L23_L6_L4_L2", Fn.«level_residual__L23_L6_L4_L2».entry), ("level_residual__L25_L10_L4_L2", Fn.«level_residual__L25_L10_L4_L2».entry), ("level_residual__L28_L10_L4_L2", Fn.«level_residual__L28_L10_L4_L2».entry), ("level_residual__L32_L10_L4_L2", Fn.«level_residual__L32_L10_L4_L2».entry), ("level_residual__L32_L14_L4_L2", Fn.«level_residual__L32_L14_L4_L2».entry), ("level_residual__L37_L14_L4_L2", Fn.«level_residual__L37_L14_L4_L2».entry), ("level_residual__L44_L14_L4_L2", Fn.«level_residual__L44_L14_L4_L2».entry), ("level_residual__L55_L14_L4_L2", Fn.«level_residual__L55_L14_L4_L2».entry), ("level_residual__L55_L18_L6_L3", Fn.«level_residual__L55_L18_L6_L3».entry), ("level_residual__L73_L18_L6_L3", Fn.«level_residual__L73_L18_L6_L3».entry), ("opening_message__L6_L1", Fn.«opening_message__L6_L1».entry), ("opening_message__L8_L1", Fn.«opening_message__L8_L1».entry), ("opening_round", Fn.«opening_round».entry), ("opening_tail_round", Fn.«opening_tail_round».entry), ("squeeze_point_from__L10", Fn.«squeeze_point_from__L10».entry), ("squeeze_point_from__L14", Fn.«squeeze_point_from__L14».entry), ("squeeze_point_from__L18", Fn.«squeeze_point_from__L18».entry), ("squeeze_point_from__L6", Fn.«squeeze_point_from__L6».entry)] 524287 code.instructionCount
 
 end
 

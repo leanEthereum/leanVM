@@ -3105,13 +3105,21 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     let js := ((List.range I.size).drop 1).filter fun j => packOf packCount I[j]!.key == k
     if js.isEmpty then none else
     let dir := s!"P{k}"
+    -- the entry by its stable name (`CoreMode/GlueE/<pack>.lean`'s `Fn.«k».entry`, the glue), not as a number
+    let sigText (j : ℕ) : String :=
+      let lit := s!"⟨\"{fns[j]!.name}\", {fns[j]!.entryPc}, "
+      if I[j]!.sig.startsWith lit then
+        s!"⟨\"{fns[j]!.name}\", Fn.«{I[j]!.key}».entry, " ++ (I[j]!.sig.drop lit.length).toString
+      else I[j]!.sig
     some (packPath dir "Sig", packHeader dir "Sig" s!"What a caller knows of compiled functions {names js}." ++
-      "public import LeanVM.Guest.Check\n\n" ++ dataOptions ++
+      "public import LeanVM.Guest.Check\n" ++
+      String.join ((js.map fun j => dirOf j).eraseDups.mergeSort.map fun d =>
+        s!"public import LeanVM.Guest.CoreMode.GlueE.«{d}»\n") ++ "\n" ++ dataOptions ++
       String.join (js.map fun j =>
         let k := I[j]!.key
         s!"namespace {fnNs k}\n\n@[expose] public section\n\n" ++
         s!"/-- `{fns[j]!.name}`: name, entry, arguments, return words, entry environment, bounds, memory and\n" ++
-        s!"semantic relations it assumes. -/\ndef sig : Check.Sig :=\n  {I[j]!.sig}\nend\nend {fnNs k}\n\n"))
+        s!"semantic relations it assumes. -/\ndef sig : Check.Sig :=\n  {sigText j}\nend\nend {fnNs k}\n\n"))
   let powFiles := (chunksOf powsPerFile (List.range nPow)).map fun (is, c) =>
     (powName (c / powsPerFile), checkedHeader (powName (c / powsPerFile)) "The kernel's checks of subtrees of the powers of `g`." ++
       "public import LeanVM.Guest.Pow\n\n" ++ asyncOff ++ "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++

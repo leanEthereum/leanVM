@@ -32,7 +32,7 @@ def load():
             fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
     for b in sorted(glob.glob(ROOT+'/Pack/*/Sig.lean')):
         s=open(b).read()
-        for m in re.finditer(r'def sig : Check.Sig :=\s*⟨"([^"]*)", (\d+), (\d+), (\d+),',s):
+        for m in re.finditer(r'def sig : Check.Sig :=\s*⟨"([^"]*)", (\d+|Fn\.«[^»]+»\.entry), (\d+), (\d+),',s):
             fns[m.group(1)]['nargs']=int(m.group(3)); fns[m.group(1)]['nret']=int(m.group(4))
     # advice
     t=open(ROOT+'/Data/Advice.lean').read()
