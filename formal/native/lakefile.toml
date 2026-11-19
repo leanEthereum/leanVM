@@ -129,3 +129,24 @@ srcDir = "cli"
 name = "vm-ring-test"
 root = "VmRingTest"
 srcDir = "cli"
+
+# Phase 6's code against the word model on fixture directories (cli/VmPhase6Test.lean); not a default
+# target.
+[[lean_exe]]
+name = "vm-phase6-test"
+root = "VmPhase6Test"
+srcDir = "cli"
+
+# Phase 4's code against the word model on fixture directories (cli/VmPhase4Test.lean); not a default
+# target.
+[[lean_exe]]
+name = "vm-phase4-test"
+root = "VmPhase4Test"
+srcDir = "cli"
+
+# Phase 7's code against the word model on fixture directories (cli/VmPhase7Test.lean); not a default
+# target.
+[[lean_exe]]
+name = "vm-phase7-test"
+root = "VmPhase7Test"
+srcDir = "cli"
