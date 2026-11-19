@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRTm
+public import LeanVM.Guest.CoreMode.Fam.TermQ
 public import LeanVM.Guest.Child.Reads
 
 /-!

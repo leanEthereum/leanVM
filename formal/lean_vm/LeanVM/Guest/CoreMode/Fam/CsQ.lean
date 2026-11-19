@@ -1,12 +1,12 @@
 /-
-  LeanVM.Guest.EndExecRCq
+  LeanVM.Guest.CoreMode.Fam.CsQ
 
   `column_selector`'s arguments at its instances (`CsQ`), carried down from the terminal's dispatch.
 -/
 
 module
 
-public import LeanVM.Guest.EndExecRTm
+public import LeanVM.Guest.CoreMode.Fam.TermQ
 public import LeanVM.Guest.B1.Terminal.TermFacts
 
 /-!

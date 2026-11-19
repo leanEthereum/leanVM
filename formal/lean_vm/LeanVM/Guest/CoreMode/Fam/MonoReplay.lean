@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.Res.MonoReplay
+  LeanVM.Guest.CoreMode.Fam.MonoReplay
 
   `child_claim_list_mono`'s walk at the node's own valuation: every record of its two frame loops
   holds the walk's pointers at an offset below the bound's exponent.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Res.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.B1.Digest.ChildMono
 public import LeanVM.Guest.EndExecRT
 

@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecRVtP
+  LeanVM.Guest.CoreMode.Fam.ExpQv
 
   `verify_tables`' precondition (`B1.Tables.TablesPre`) at its honest instances (`VtPQ`), carried down
   from `verify_sub`'s front.

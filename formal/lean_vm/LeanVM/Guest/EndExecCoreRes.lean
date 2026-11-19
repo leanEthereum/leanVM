@@ -10,10 +10,10 @@ module
 
 public import LeanVM.Guest.EndExecRF
 public import LeanVM.Guest.EndExecRCs
-public import LeanVM.Guest.EndExecRCq
+public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
-public import LeanVM.Guest.EndExecRVtP
+public import LeanVM.Guest.CoreMode.Fam.ExpQv
 
 /-!
 # The residual families, sound

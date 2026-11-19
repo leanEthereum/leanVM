@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.Res.MonoChain
+  LeanVM.Guest.CoreMode.Fam.MonoChain
 
   A valid node's body holding at its own valuation, its callees as trees within its words; a loop's
   iterations times its frame within its tree's words.

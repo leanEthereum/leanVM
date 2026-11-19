@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecRTm
+  LeanVM.Guest.CoreMode.Fam.TermQ
 
   What `verify_sub` hands `check_opening_terminal` (`Res.TermFront`), carried to every honest
   instance of it (`TermQ`).

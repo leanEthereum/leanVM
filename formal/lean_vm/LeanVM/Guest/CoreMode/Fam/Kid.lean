@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecRKid
+  LeanVM.Guest.CoreMode.Fam.Kid
 
   A callee's returned values in its frame's cells on the reference memory.
 -/
