@@ -20,6 +20,7 @@ namespace LeanVM.Guest
 
 abbrev Fn.«sp_wots».advice := Data.adviceFn20
 abbrev Fn.«sp_wots».idx : ℕ := 20
+abbrev Fn.«sp_wots».jt0 : ℕ := 717
 
 end
 

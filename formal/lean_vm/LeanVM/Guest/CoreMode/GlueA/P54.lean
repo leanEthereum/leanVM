@@ -76,6 +76,7 @@ abbrev Fn.«verify_bus_gkr_loop0_loop0».advice := Data.adviceFn429
 abbrev Fn.«verify_bus_gkr_loop0_loop0».idx : ℕ := 429
 abbrev Fn.«walk_path__L12_L2».advice := Data.adviceFn1544
 abbrev Fn.«walk_path__L12_L2».idx : ℕ := 1544
+abbrev Fn.«walk_path__L12_L2».jt0 : ℕ := 13968
 
 end
 
