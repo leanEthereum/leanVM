@@ -19,6 +19,15 @@ final class NativeHandle implements AutoCloseable {
     }
 
     Borrow borrow() {
+        Borrow borrowed = borrowIfOpen();
+        if (borrowed == null) {
+            throw new IllegalStateException("native object is closed");
+        }
+        return borrowed;
+    }
+
+    /** Like {@link #borrow()}, but returns null once {@link #close()} was called. */
+    Borrow borrowIfOpen() {
         // Until the borrow is counted, the Cleaner may run once this handle is unreachable, even
         // while its owner is mid-call.
         try {
@@ -68,7 +77,7 @@ final class NativeHandle implements AutoCloseable {
 
         synchronized Borrow borrow() {
             if (closeRequested) {
-                throw new IllegalStateException("native object is closed");
+                return null;
             }
             borrows++;
             return new Borrow(this, pointer);

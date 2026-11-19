@@ -1,12 +1,6 @@
-# lean-pq Node.js bindings
+# @kevaundray/lean-pq
 
-Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures, their recursive aggregation, and the consensus VRF tree, built with `napi-rs` over the Rust facade `lean-pq`.
-
-- **leanXMSS** is stateful: a key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
-- **leanSPHINCS** is stateless: a key signs at most `2^30` messages, and signing is deterministic.
-- **VRF** is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
-
-Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Key generation, preparation, signing, building a VRF key, setup, aggregation, and aggregate decoding return Promises so their native work does not block the JavaScript event loop.
+Node.js bindings for the leanXMSS and leanSPHINCS post-quantum signatures, their aggregation into one proof, and the consensus VRF tree.
 
 ## Install
 
@@ -16,19 +10,7 @@ npm install @kevaundray/lean-pq@0.12.0
 ```
 <!-- x-release-please-end -->
 
-npm installs a prebuilt binary through a per-platform optional dependency, so installing needs no Rust toolchain. Prebuilt binaries cover Node.js 18.17 or later on:
-
-| Platform                 | Package                              |
-| ------------------------ | ------------------------------------ |
-| Linux x64, glibc 2.17+   | `@kevaundray/lean-pq-linux-x64-gnu`    |
-| Linux arm64, glibc 2.17+ | `@kevaundray/lean-pq-linux-arm64-gnu`  |
-| Linux x64, musl          | `@kevaundray/lean-pq-linux-x64-musl`   |
-| Linux arm64, musl        | `@kevaundray/lean-pq-linux-arm64-musl` |
-| macOS x64                | `@kevaundray/lean-pq-darwin-x64`       |
-| macOS arm64              | `@kevaundray/lean-pq-darwin-arm64`     |
-| Windows x64              | `@kevaundray/lean-pq-win32-x64-msvc`   |
-
-The x64 binaries require a CPU with AVX2 and PCLMULQDQ. The Windows binary links the C runtime statically, so it needs no Visual C++ redistributable. Installing with `--omit=optional` or `--no-optional` skips the binary and leaves the package unable to load.
+Node.js 18.17 or newer. Prebuilt for Linux x64 and arm64 (glibc 2.17+, musl), macOS x64 and arm64 and Windows x64; x64 needs AVX2 and PCLMULQDQ. The binary comes as an optional dependency, so `--omit=optional` leaves the package unable to load.
 
 ## Sign and verify
 
@@ -37,16 +19,20 @@ const lpq = require('@kevaundray/lean-pq')
 
 const message = Buffer.alloc(32, 0x42)
 
-const xmssKey = await lpq.XmssSecretKey.fromSeed(Buffer.alloc(32, 1))
-const xmssSignature = await xmssKey.sign(message, 7)
-lpq.xmssVerify(xmssKey.publicKey, message, xmssSignature) // throws if invalid
+const xmssKey = await lpq.XmssSecretKey.fromSeed(Buffer.alloc(32, 1)) // or XmssSecretKey.generate()
+const xmssSig = await xmssKey.sign(message, 7) // at leaf index 7
+lpq.xmssVerify(xmssKey.publicKey, message, xmssSig) // throws if invalid
 
 const sphincsKey = await lpq.SphincsSecretKey.fromSeed(Buffer.alloc(32, 2))
-const sphincsSignature = await sphincsKey.sign(message)
-lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSignature)
+const sphincsSig = await sphincsKey.sign(message)
+lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSig)
 ```
 
-Persist your own durable high-water leaf index alongside a leanXMSS key's `toBytes()` and advance it before publishing a signature. `toBytes()` is secret material: the key's 32-byte seed. `XmssSecretKey.prepare(leafIndex)` builds the bottom tree a leaf index falls in ahead of signing there; a key keeps the 8 bottom trees it used last.
+- Public keys and messages are 32-byte `Buffer`s; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
+- Creating a key, `prepare`, `sign` and every sidecar call return Promises and run off the event loop; `xmssVerify` and `sphincsVerify` are synchronous.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
+- `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
 
 ## VRF
 
@@ -61,84 +47,46 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 `cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, cache)` rebuilds the key from its seed and that cache without hashing the range (a Promise, which rejects malformed bytes). The cache is not checked: compare `root()` with the registered root before revealing a proof.
 
-## Aggregation
+## Aggregate
 
-`aggregate` verifies every raw signature before proving and runs one proof at a time per process. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
-
-An aggregate's encoding is the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, { xmss, sphincs })` verifies the proof against exactly the claims you give it and rejects any other claim set, so every `Aggregate` is proven. The claims may come in any order, a repeated claim counts once, and an omitted list means no claims of that scheme.
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
 
 ```js
-const leaf = await lpq.aggregate({
-  xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSignature }],
-  sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSignature }],
-})
-const root = await lpq.aggregate({ children: [leaf] })
+const os = require('os')
 
-const received = await lpq.Aggregate.fromBytes(root.toBytes(), {
-  xmss: [{ publicKey: xmssKey.publicKey, message }],
-  sphincs: [{ publicKey: sphincsKey.publicKey, message }],
+const sidecar = await lpq.Sidecar.connect(`${os.homedir()}/.leanvm/sidecar.sock`)
+// or: await lpq.Sidecar.start(binary, socket, threads), which launches one
+
+const leaf = await sidecar.aggregate({
+  xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSig }],
+  sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSig }],
 })
-received.xmssClaims // [{ publicKey: xmssKey.publicKey, message }]
-received.sphincsClaims // [{ publicKey: sphincsKey.publicKey, message }]
+const root = await sidecar.aggregate({ children: [leaf] })
+const proof = root.toBytes()
+
+const received = await sidecar.verify(proof, { xmss: root.xmssClaims, sphincs: root.sphincsClaims })
+await sidecar.close()
 ```
 
-One aggregation takes seconds and over a gigabyte of memory.
+- `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `verify(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
+- `Sidecar.start` uses one thread per core when `threads` is 0 or omitted. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
+- Share one `Sidecar` per process: a sidecar serves at most 16 connections.
+- Calls on one `Sidecar` run one at a time.
 
-## Development
+## Build and test
 
-Install Node.js 18.17 or later and Rust, then run:
+Needs Node.js 18.17 or newer and Rust. From `bindings/node`:
 
 ```sh
-cd bindings/node
 npm ci
 npm run build
 npm test
 ```
 
-`npm/` holds the per-platform package manifests. `napi create-npm-dirs` generates them from `package.json`'s `napi.targets`; rerun it and commit the result after changing the targets.
+The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`. Publishing is in [RELEASING.md](../RELEASING.md#npm).
 
-## Releasing
+## License
 
-Each `bindings-vX.Y.Z` tag publishes `@kevaundray/lean-pq` and every platform package at `X.Y.Z` through `.github/workflows/bindings-release.yml`:
-
-1. `node-build` stamps the version and builds one addon per target.
-2. `node-package` fills the platform packages, sets the root package's `optionalDependencies` with `napi pre-publish --skip-optional-publish`, and packs every tarball.
-3. `node-test` installs the root and platform tarball on each platform and signs, verifies and aggregates through them (`scripts/install-check.sh`).
-4. `node-publish` publishes the platform packages, then the root package, with npm trusted publishing. npm adds provenance automatically. Versions already on npm are skipped, so a failed run can be re-dispatched on the same tag: `gh workflow run bindings-release.yml --ref bindings-vX.Y.Z`.
-
-CI checks the packaging without publishing: it packs the root and Linux x64 packages, installs both tarballs into a fresh project, and runs `scripts/smoke.js` against them. To run it locally after `npm run build`:
-
-```sh
-pack=$(mktemp -d)
-cp lean_pq_node.linux-x64-gnu.node npm/linux-x64-gnu/
-npm pack --ignore-scripts --pack-destination "$pack"
-npm pack --ignore-scripts --pack-destination "$pack" ./npm/linux-x64-gnu
-sh scripts/install-check.sh "$pack/kevaundray-lean-pq-0.0.0-dev.tgz" \
-  "$pack/kevaundray-lean-pq-linux-x64-gnu-0.0.0-dev.tgz" --aggregate
-```
-
-### One-time npm setup
-
-npm can attach a trusted publisher only to a package that already exists, so the first release publishes the eight packages with a short-lived token, and later releases use trusted publishing. A platform package added later, such as `@kevaundray/lean-pq-win32-x64-msvc`, goes through the same steps on the first release that includes it; `node-package` warns about every package not yet on npm. Packages up to 0.11.1 were published from `ethereum/lean-pq-bindings`: point their trusted publishers at `leanEthereum/leanVM` (step 4) before the next release.
-
-1. From the npm account that owns the `@kevaundray` scope, create a **granular access token** on npmjs.com (**Access Tokens → Generate New Token → Granular Access Token**) with read and write access to packages, a short expiry such as 7 days, and no other permissions. If your account requires two-factor authentication for publishing, allow the token to bypass it; CI cannot answer a 2FA prompt.
-2. Store it as a repository secret:
-
-   ```sh
-   gh secret set NPM_TOKEN -R leanEthereum/leanVM
-   ```
-
-3. Cut a release. `node-publish` tries trusted publishing first, falls back to the token, and publishes `@kevaundray/lean-pq` and the seven platform packages with provenance.
-4. Add a trusted publisher to each of the eight packages, on npmjs.com under the package's **Settings → Trusted publishing**, or with npm 11.15 or later:
-
-   ```sh
-   npm trust github <package> --repo leanEthereum/leanVM --file bindings-release.yml --env npm --allow-publish --yes
-   ```
-
-   The fields are repository `leanEthereum/leanVM`, workflow `bindings-release.yml`, environment `npm`, with `npm publish` allowed.
-5. Delete the secret and revoke the token, then set each package's **Settings → Publishing access** to "Require two-factor authentication and disallow tokens":
-
-   ```sh
-   gh secret delete NPM_TOKEN -R leanEthereum/leanVM
-   ```
-
+MIT OR Apache-2.0

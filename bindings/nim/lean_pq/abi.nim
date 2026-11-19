@@ -75,6 +75,7 @@ type
     incompleteStruct.} = object
   LpqAggregate* {.importc: "lpq_aggregate", header: lpqHeader, incompleteStruct.} = object
   LpqVrfKey* {.importc: "lpq_vrf_key", header: lpqHeader, incompleteStruct.} = object
+  LpqSidecar* {.importc: "lpq_sidecar", header: lpqHeader, incompleteStruct.} = object
 
 const
   LpqOk* = 0'i32
@@ -85,7 +86,6 @@ const
   LpqPanic* = 2'i32
     ## The bridge caught a Rust panic.
 
-proc lpqSetup*(): int32 {.importc: "lpq_setup", header: lpqHeader.}
 proc lpqLastError*(output: ptr LpqBuffer): int32 {.importc: "lpq_last_error", header: lpqHeader.}
 proc lpqBufferFree*(data: ptr byte, len: csize_t) {.importc: "lpq_buffer_free", header: lpqHeader.}
 
@@ -134,18 +134,33 @@ proc lpqSphincsVerify*(
   signature: ptr byte, signatureLen: csize_t): int32 {.
   importc: "lpq_sphincs_verify", header: lpqHeader.}
 
-proc lpqAggregateCreate*(
+proc lpqSidecarConnect*(path: ptr byte, len: csize_t, output: ptr ptr LpqSidecar): int32 {.
+  importc: "lpq_sidecar_connect", header: lpqHeader.}
+proc lpqSidecarStart*(
+  binary: ptr byte, binaryLen: csize_t, path: ptr byte, len: csize_t, threads: csize_t,
+  output: ptr ptr LpqSidecar): int32 {.
+  importc: "lpq_sidecar_start", header: lpqHeader.}
+proc lpqSidecarProver*(sidecar: ptr LpqSidecar, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_sidecar_prover", header: lpqHeader.}
+proc lpqSidecarClose*(sidecar: ptr LpqSidecar): int32 {.
+  importc: "lpq_sidecar_close", header: lpqHeader.}
+proc lpqSidecarDestroy*(sidecar: ptr LpqSidecar) {.
+  importc: "lpq_sidecar_destroy", header: lpqHeader.}
+
+proc lpqSidecarAggregate*(
+  sidecar: ptr LpqSidecar,
   children: ptr ptr LpqAggregate, childCount: csize_t,
   xmss: ptr byte, xmssCount: csize_t,
   sphincs: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_aggregate_create", header: lpqHeader.}
-proc lpqAggregateFromBytes*(
+  importc: "lpq_sidecar_aggregate", header: lpqHeader.}
+proc lpqSidecarVerify*(
+  sidecar: ptr LpqSidecar,
   data: ptr byte, len: csize_t,
   xmssClaims: ptr byte, xmssCount: csize_t,
   sphincsClaims: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_aggregate_from_bytes", header: lpqHeader.}
+  importc: "lpq_sidecar_verify", header: lpqHeader.}
 proc lpqAggregateToBytes*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.
   importc: "lpq_aggregate_to_bytes", header: lpqHeader.}
 proc lpqAggregateXmssClaims*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.

@@ -10,19 +10,17 @@ readme = "README.md"
 keywords = ["cryptography", "signature", "xmss", "sphincs", "post-quantum"]
 categories = ["cryptography"]
 
-[features]
-default = ["aggregation"]
-# Recursive aggregation. Without it the crate builds only `lean_xmss`, `lean_sphincs` and `lean_vrf`.
-aggregation = ["dep:lean_vm"]
-
 [dependencies]
 getrandom = "0.3"
 lean_sphincs = { workspace = true }
-# The experimental prover: the stable one's proofs (bench/tests/identical_proofs.rs), faster.
-lean_vm = { workspace = true, optional = true, features = ["experimental_prover"] }
+claims = { workspace = true }
 lean_vrf = { workspace = true }
 lean_xmss = { workspace = true }
 thiserror = "2.0.21"
+
+# The sidecar's client, which proves and verifies aggregates in another process over a Unix socket.
+[target.'cfg(unix)'.dependencies]
+sidecar = { workspace = true }
 
 [dev-dependencies]
 proptest = { version = "1.12", default-features = false, features = ["std"] }

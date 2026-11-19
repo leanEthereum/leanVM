@@ -14,8 +14,8 @@ resolver = "2"
 version = "0.12.0"
 
 [workspace.dependencies]
-# The signature schemes, and `lean_vm`, which re-exports them beside the aggregation prover.
-lean_vm = { path = "../crates/lean_vm" }
+claims = { path = "../crates/claims" }
+sidecar = { path = "../crates/sidecar" }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
 lean_vrf = { path = "../crates/lean_vrf" }
