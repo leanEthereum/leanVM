@@ -5,9 +5,9 @@ import LeanVM.Cost.DecoderSpec
 
 The compiled guest decoder's program (`LeanVM.Cost.compiledGuestWitnessDecoder`,
 `Cost/DecoderSpec.lean`): its
-exact size, `564497`, of which the guest's place codes are `517271`, and its top's index;
+exact size, `561705`, of which the guest's place codes are `515352`, and its top's index;
 `Cost/DecoderSize.lean` proves the size at most
-the conservative bound `563327 + 2·(decTopC.costIdx - decTopC.costDeps.length)`, within
+`561351 + 2·(decTopC.costIdx - decTopC.costDeps.length)`, its exact size, within
 `guestWitnessDecoderSizeBound`, as `LeanVMTests/Cost/Efficient.lean` records the extractor's.
 -/
 
@@ -15,9 +15,9 @@ namespace LeanVMTests.Cost.DecoderSize
 
 open LeanVM.Cost LeanVM.Cost.Decoder
 
-#guard compiledGuestWitnessDecoder.size == 564497
-#guard decTopC.costIdx == 1041
-#guard 563327 + 2 * (decTopC.costIdx - decTopC.costDeps.length) == 564579
+#guard compiledGuestWitnessDecoder.size == 561705
+#guard decTopC.costIdx == 592
+#guard 561351 + 2 * (decTopC.costIdx - decTopC.costDeps.length) == 561705
 #guard compiledGuestWitnessDecoder.size ≤ LeanVM.Node.guestWitnessDecoderSizeBound
 
 end LeanVMTests.Cost.DecoderSize
