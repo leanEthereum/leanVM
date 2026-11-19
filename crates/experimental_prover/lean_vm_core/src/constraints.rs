@@ -40,7 +40,7 @@
 use crate::leaf::BusForm;
 use crate::transcript::ProverState;
 use primitives::field::{F64, F64x8, F128, F128x8, Prod8};
-use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval, shrink_eq_high};
+use primitives::multilinear::{eq_table, interp, mle_eval_padded, poly_eval, shrink_eq_high};
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -52,8 +52,12 @@ pub struct Claims {
 /// One table's place in the shared batch.
 pub struct Air<'a> {
     pub tau: usize,
+    /// Its executed rows: every row from here on holds `padding`.
+    pub rows: usize,
     /// Its committed columns, `2^tau` values each, read in place.
     pub cols: &'a [&'a [F64]],
+    /// Its padding row (§sec:e2e-pad), one value per column.
+    pub padding: Vec<F64>,
     /// Its summand, a degree-2 form over `cols`.
     pub form: BusForm,
 }
@@ -172,6 +176,40 @@ fn splat(terms: &Lin) -> Vec<(usize, F128x8)> {
 /// per column holds them all.
 type State = Vec<F128x8>;
 
+/// A table's padding row as the state sees it. Every row from the table's `rows` on holds it, and so does
+/// every fold of two such rows, so a state stores only its blocks of eight rows that reach a real row and
+/// takes the rest from here: the expansion never reads the padding rows' columns, and a message sums the
+/// padding's blocks in closed form, their two halves being equal.
+struct Pad {
+    /// Blocks of eight rows holding a real row.
+    blocks: usize,
+    /// Its `K` columns.
+    cols: Vec<F64x8>,
+    /// Its state entries.
+    state: Vec<F128x8>,
+    /// Its summand less the form's constant, at either endpoint.
+    end: F128x8,
+}
+
+impl Pad {
+    fn new(form: &Form, rows: usize, padding: &[F64]) -> Self {
+        let dot = |terms: &Lin| terms.iter().map(|&(c, w)| w.mul_base(padding[c])).sum::<F128>();
+        let lin = dot(&form.lin);
+        let (mut state, mut end) = (vec![F128x8::splat(lin)], lin);
+        for (left, right) in &form.groups {
+            let right = dot(right);
+            state.extend([F128x8::splat(F128::from(padding[*left])), F128x8::splat(right)]);
+            end += right.mul_base(padding[*left]);
+        }
+        Self {
+            blocks: rows.div_ceil(8),
+            cols: padding.iter().map(|&v| F64x8::from_array(&[v; 8])).collect(),
+            state,
+            end: F128x8::splat(end),
+        }
+    }
+}
+
 /// The blocks task `t` covers out of `n`, `per` a task.
 fn task_blocks(t: usize, n: usize, per: usize) -> std::ops::Range<usize> {
     t * per..((t + 1) * per).min(n)
@@ -190,8 +228,9 @@ fn finish([endpoint, slope]: [Prod8; 2], constant: F128) -> [F128; 2] {
 /// The first round a table is active: its state over all its rows, unfolded, and its message with both
 /// endpoints, `[p(0), p(1), quadratic]`, in one pass over the `K` columns, which no later round reads.
 /// The linear forms are `E x K` mixed dots, and every product of the summand is one mixed product
-/// against a reduced `right_g`.
-fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F128; 3]) {
+/// against a reduced `right_g`. From eight rows per half, the blocks of `pad` are neither read nor
+/// stored.
+fn expand(form: &Form, pad: &Pad, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F128; 3]) {
     let lin = splat(&form.lin);
     let rights: Vec<_> = form.groups.iter().map(|(_, right)| splat(right)).collect();
     let dot = |terms: &[(usize, F128x8)], vals: &[F64x8]| {
@@ -220,7 +259,8 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
     let (blocks, n) = (half / 8, cols.len());
     let zero = F64x8::from_array(&[F64::ZERO; 8]);
     let mut acc = [Prod8::ZERO; 3];
-    // SAFETY: every task writes all `width` entries of each of its blocks in both halves.
+    // SAFETY: every task writes all `width` entries of each of its blocks, in either half, that holds a
+    // real row. The rest are the padding's, which no kernel reads (`Pad`).
     let state = unsafe {
         primitives::filled_vec(2 * blocks * width, |state| {
             let (lows, highs) = state.split_at_mut(blocks * width);
@@ -230,26 +270,46 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
                 || vec![zero; 2 * n * TASK_BLOCKS],
                 || [Prod8::ZERO; 3],
                 |vals, acc, t, [lows, highs]| {
-                    let rows = task_blocks(t, blocks, TASK_BLOCKS).map(|b| 8 * b);
+                    let task = task_blocks(t, blocks, TASK_BLOCKS);
                     for &c in &form.used {
-                        for (v, i) in vals.chunks_exact_mut(2 * n).zip(rows.clone()) {
-                            (v[c], v[n + c]) = (load_k(cols[c], i), load_k(cols[c], i + half));
+                        for (v, b) in vals.chunks_exact_mut(2 * n).zip(task.clone()) {
+                            if b < pad.blocks {
+                                v[c] = load_k(cols[c], 8 * b);
+                            }
+                            if blocks + b < pad.blocks {
+                                v[n + c] = load_k(cols[c], 8 * b + half);
+                            }
                         }
                     }
                     let outs = lows.chunks_exact_mut(width).zip(highs.chunks_exact_mut(width));
-                    for ((i, (lo, hi)), v) in rows.zip(outs).zip(vals.chunks_exact(2 * n)) {
+                    for ((b, (lo, hi)), v) in task.zip(outs).zip(vals.chunks_exact(2 * n)) {
+                        let eq = load_e(eqr, 8 * b);
+                        if b >= pad.blocks {
+                            // Both halves are the padding's: equal, so the slope vanishes.
+                            let end = pad.end.mul_unreduced(eq);
+                            acc[0] ^= end;
+                            acc[1] ^= end;
+                            continue;
+                        }
                         let (lo_k, hi_k) = v.split_at(n);
                         entries(lo_k, lo);
-                        entries(hi_k, hi);
+                        let real_hi = blocks + b < pad.blocks;
+                        let (hi, hi_k): (&[F128x8], &[F64x8]) = if real_hi {
+                            entries(hi_k, hi);
+                            (hi, hi_k)
+                        } else {
+                            (&pad.state, &pad.cols)
+                        };
                         let (mut p0, mut p1, mut slope) = (Prod8::ZERO, Prod8::ZERO, Prod8::ZERO);
                         for (g, (left, _)) in form.groups.iter().enumerate() {
                             p0 ^= lo[2 + 2 * g].mul_base_unreduced(lo_k[*left]);
-                            p1 ^= hi[2 + 2 * g].mul_base_unreduced(hi_k[*left]);
+                            if real_hi {
+                                p1 ^= hi[2 + 2 * g].mul_base_unreduced(hi_k[*left]);
+                            }
                             slope ^= (lo[2 + 2 * g] + hi[2 + 2 * g]).mul_base_unreduced(lo_k[*left] + hi_k[*left]);
                         }
-                        let eq = load_e(eqr, i);
                         acc[0] ^= (p0.reduce_lanes() + lo[0]).mul_unreduced(eq);
-                        acc[1] ^= (p1.reduce_lanes() + hi[0]).mul_unreduced(eq);
+                        acc[1] ^= if real_hi { p1.reduce_lanes() + hi[0] } else { pad.end }.mul_unreduced(eq);
                         acc[2] ^= slope.reduce_lanes().mul_unreduced(eq);
                     }
                 },
@@ -292,14 +352,37 @@ fn block_message(lo: &[F128x8], hi: &[F128x8], eq: F128x8, at_one: bool, acc: &m
 /// The state folded by `r`, `v[i] = v[i] + r·(v[i] + v[i + half])` in every column, the upper half
 /// dropped, and the next round's message from the folded state, against that round's `eqr` and
 /// `at_one`. From sixteen rows per half, in one pass: a task folds block `k` of every quarter into
-/// block `k` of both next halves, the pair that message reads.
-fn fold_and_message(form: &Form, state: &mut State, r: F128, half: usize, eqr: &[F128], at_one: bool) -> [F128; 2] {
+/// block `k` of both next halves, the pair that message reads. The state stores its first `stored`
+/// blocks, the rest being `pad`'s, and the small kernels below sixteen rows get them all.
+fn fold_and_message(
+    form: &Form,
+    pad: &Pad,
+    stored: &mut usize,
+    state: &mut State,
+    r: F128,
+    half: usize,
+    eqr: &[F128],
+    at_one: bool,
+) -> [F128; 2] {
+    let width = form.width();
     if half < 16 {
+        if half == 8 {
+            for block in state.chunks_exact_mut(width).skip(*stored) {
+                block.copy_from_slice(&pad.state);
+            }
+            *stored = usize::MAX;
+        }
         fold_small(state, r, half);
         return message_small(form, state, eqr, half / 2, at_one);
     }
-    let (blocks, width) = (half / 16, form.width());
+    let blocks = half / 16;
     let r8 = F128x8::splat(r);
+    let fold = |v: &mut [F128x8], upper: &[F128x8]| {
+        for (v, &u) in v.iter_mut().zip(upper) {
+            *v = *v + (*v + u) * r8;
+        }
+    };
+    let real = *stored;
     let (left, right) = state.split_at_mut(2 * blocks * width);
     let (q0, q1) = left.split_at_mut(blocks * width);
     let (q2, q3) = right.split_at_mut(blocks * width);
@@ -312,15 +395,28 @@ fn fold_and_message(form: &Form, state: &mut State, r: F128, half: usize, eqr: &
             let halves = lo.chunks_exact_mut(width).zip(hi.chunks_exact_mut(width));
             let uppers = upper_lo.chunks_exact(width).zip(upper_hi.chunks_exact(width));
             for (k, ((lo, hi), (upper_lo, upper_hi))) in task_blocks(t, blocks, FOLD_BLOCKS).zip(halves.zip(uppers)) {
-                for (v, &u) in lo.iter_mut().zip(upper_lo).chain(hi.iter_mut().zip(upper_hi)) {
-                    *v = *v + (*v + u) * r8;
+                // Block `k` of quarter `q` is stored, or the padding's.
+                let stored = |q: usize| q * blocks + k < real;
+                let eq = load_e(eqr, 8 * k);
+                if !stored(0) {
+                    // Every quarter's is the padding's, and so are both folds: equal, so the slope vanishes.
+                    acc[0] ^= pad.end.mul_unreduced(eq);
+                    continue;
                 }
-                block_message(lo, hi, load_e(eqr, 8 * k), at_one, acc);
+                fold(lo, if stored(2) { upper_lo } else { &pad.state });
+                let hi: &[F128x8] = if stored(1) {
+                    fold(hi, if stored(3) { upper_hi } else { &pad.state });
+                    hi
+                } else {
+                    &pad.state
+                };
+                block_message(lo, hi, eq, at_one, acc);
             }
         },
         xor,
     );
     state.truncate(2 * blocks * width);
+    *stored = real.min(2 * blocks);
     finish(acc, form.constant)
 }
 
@@ -348,8 +444,13 @@ struct Table<'a> {
     weight: F128,
     form: Form,
     cols: &'a [&'a [F64]],
+    rows: usize,
+    padding: &'a [F64],
+    pad: Pad,
     /// The state, from the table's first active round: a few `E` columns, the batch's largest transients.
     state: Option<State>,
+    /// The state's stored blocks of eight rows, the rest being `pad`'s.
+    stored: usize,
     /// The next round's message, built by the last fold.
     next_message: Option<[F128; 2]>,
 }
@@ -362,8 +463,9 @@ impl Table<'_> {
         if let Some(p) = self.next_message.take() {
             return p;
         }
-        let (state, [p0, p1, quadratic]) = expand(&self.form, self.cols, eqr, 1 << m);
+        let (state, [p0, p1, quadratic]) = expand(&self.form, &self.pad, self.cols, eqr, 1 << m);
         self.state = Some(state);
+        self.stored = self.pad.blocks;
         *waiting += (F128::ONE + zeta) * p0 + zeta * p1;
         [if zeta.is_zero() { p1 } else { p0 }, quadratic]
     }
@@ -372,7 +474,16 @@ impl Table<'_> {
     /// way against its `eqr` and `at_one`.
     fn bind(&mut self, r: F128, m: usize, eqr: &[F128], at_one: bool) {
         let state = self.state.as_mut().expect("an active table has its state");
-        self.next_message = Some(fold_and_message(&self.form, state, r, 1 << m, eqr, at_one));
+        self.next_message = Some(fold_and_message(
+            &self.form,
+            &self.pad,
+            &mut self.stored,
+            state,
+            r,
+            1 << m,
+            eqr,
+            at_one,
+        ));
     }
 }
 
@@ -396,13 +507,27 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
     let mut tables: Vec<Table> = airs
         .iter()
-        .map(|air| Table {
-            tau: air.tau,
-            weight: F128::ONE,
-            form: Form::new(&air.form),
-            cols: air.cols,
-            state: None,
-            next_message: None,
+        .map(|air| {
+            debug_assert!(
+                air.cols
+                    .iter()
+                    .zip(&air.padding)
+                    .all(|(col, pad)| col[air.rows..].iter().all(|v| v == pad)),
+                "every row past a table's rows holds its padding row"
+            );
+            let form = Form::new(&air.form);
+            Table {
+                tau: air.tau,
+                weight: F128::ONE,
+                pad: Pad::new(&form, air.rows, &air.padding),
+                form,
+                cols: air.cols,
+                rows: air.rows,
+                padding: &air.padding,
+                state: None,
+                stored: 0,
+                next_message: None,
+            }
         })
         .collect();
     // ONE eq table over the low (still free) variables serves every active table.
@@ -458,7 +583,8 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
             .iter()
             .map(|t| {
                 let chi = &chi[..t.tau];
-                let evals = parallel::map_collect(t.cols.len(), |c| mle_eval(t.cols[c], chi));
+                let evals =
+                    parallel::map_collect(t.cols.len(), |c| mle_eval_padded(t.cols[c], t.rows, t.padding[c], chi));
                 ps.add_scalars(&evals);
                 Claims {
                     chi: chi.to_vec(),
@@ -542,40 +668,52 @@ mod tests {
         })
     }
 
-    /// Every round of a table's life, at row counts on both sides of one vector, at both endpoints: the
-    /// expanded state's message, then each fold's message for the round after it, against the naive formula.
+    /// Every round of a table's life, at row counts on both sides of one vector, at both endpoints and with
+    /// padding rows from either half on or none: the expanded state's message, then each fold's message for
+    /// the round after it, against the naive formula.
     #[test]
     fn round_messages_match_naive_evaluation() {
         let mut s = 7;
         let pows: Vec<F128> = (0..3).map(|_| random_e(&mut s)).collect();
         let form = Form::new(&synth(&pows));
         for m in [1usize, 3, 4, 5, 11] {
-            let kcols = random_columns(&mut s, 2 << m);
-            let views: Vec<&[F64]> = kcols.iter().map(|c| &c[..]).collect();
-            let mut naive_cols: Vec<Vec<F128>> = kcols
-                .iter()
-                .map(|c| c.iter().map(|&x| F128::from(x)).collect())
-                .collect();
-            let mut eqr = eq_table(&(0..m).map(|_| random_e(&mut s)).collect::<Vec<_>>());
-            let mut half = 1usize << m;
-            let (state, [p0, p1, quadratic]) = expand(&form, &views, &eqr, half);
-            for (at_one, end) in [(false, p0), (true, p1)] {
-                let want = naive_message(&pows, &naive_cols, &eqr, half, at_one);
-                assert_eq!([end, quadratic], want, "expand, m {m}");
-            }
-            let mut states = [state.clone(), state];
-            while half > 1 {
-                let r = random_e(&mut s);
-                shrink_eq_high(&mut eqr);
-                for c in &mut naive_cols {
-                    *c = (0..half).map(|i| interp(c[i], c[i + half], r)).collect();
+            let height = 2usize << m;
+            for rows in [height, 3 * height / 4 + 1, (height / 2).saturating_sub(3), 0] {
+                let padding: Vec<F64> = (0..COLS).map(|_| F64(splitmix(&mut s))).collect();
+                let mut kcols = random_columns(&mut s, height);
+                for (col, &pad) in kcols.iter_mut().zip(&padding) {
+                    col[rows..].fill(pad);
                 }
-                for (state, at_one) in states.iter_mut().zip([false, true]) {
-                    let p = fold_and_message(&form, state, r, half, &eqr, at_one);
-                    let want = naive_message(&pows, &naive_cols, &eqr, half / 2, at_one);
-                    assert_eq!(p, want, "m {m} half {half}");
+                let pad = Pad::new(&form, rows, &padding);
+                let views: Vec<&[F64]> = kcols.iter().map(|c| &c[..]).collect();
+                let zeta: Vec<F128> = (0..m).map(|_| random_e(&mut s)).collect();
+                let challenges: Vec<F128> = (0..m).map(|_| random_e(&mut s)).collect();
+                for at_one in [false, true] {
+                    let mut naive_cols: Vec<Vec<F128>> = kcols
+                        .iter()
+                        .map(|c| c.iter().map(|&x| F128::from(x)).collect())
+                        .collect();
+                    let mut eqr = eq_table(&zeta);
+                    let mut half = 1usize << m;
+                    let (mut state, [p0, p1, quadratic]) = expand(&form, &pad, &views, &eqr, half);
+                    let want = naive_message(&pows, &naive_cols, &eqr, half, at_one);
+                    assert_eq!(
+                        [if at_one { p1 } else { p0 }, quadratic],
+                        want,
+                        "expand, m {m} rows {rows}"
+                    );
+                    let mut stored = pad.blocks;
+                    for &r in &challenges {
+                        shrink_eq_high(&mut eqr);
+                        for c in &mut naive_cols {
+                            *c = (0..half).map(|i| interp(c[i], c[i + half], r)).collect();
+                        }
+                        let p = fold_and_message(&form, &pad, &mut stored, &mut state, r, half, &eqr, at_one);
+                        let want = naive_message(&pows, &naive_cols, &eqr, half / 2, at_one);
+                        assert_eq!(p, want, "m {m} rows {rows} half {half}");
+                        half /= 2;
+                    }
                 }
-                half /= 2;
             }
         }
     }

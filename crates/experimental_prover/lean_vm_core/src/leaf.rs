@@ -288,6 +288,21 @@ fn padded_products(src: &[F128], dst: &mut [F128]) {
     }
 }
 
+/// The leaves of a block of `2^kappa` leaves and `rows` real rows that [`build_leaves`] writes to its
+/// `values` and `fours`. Past them its identity run covers every group of sixteen rows the GKR's two lowest
+/// layers would read, so with [`gkr::SKIP_IDENTITY`] nothing reads them. A block shorter than such a
+/// group, which could share one with the next block, is written in full.
+pub(crate) fn written(kappa: usize, rows: usize) -> usize {
+    /// Leaves under a group of sixteen rows of the second layer, over `fours`.
+    const GROUP: usize = 256;
+    let height = 1usize << kappa;
+    if gkr::SKIP_IDENTITY && height >= GROUP {
+        rows.next_multiple_of(GROUP).min(height)
+    } else {
+        height
+    }
+}
+
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
 /// tree's fingerprint weights `w`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
@@ -346,10 +361,11 @@ pub(crate) fn build_leaves(
     }
 
     // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
-    // without blocks, below) before anything reads it.
+    // without blocks, below) before anything reads it, but those past a block's
+    // `written`, which nothing reads.
     let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n) });
     // SAFETY: the chunks write the products of the tuples inside blocks of height
-    // `CHUNKED` or more, and the serial pass below the rest.
+    // `CHUNKED` or more, the fours but past a block's `written`, and the serial pass below the rest.
     let mut fours: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
     let mut sixteens: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
 
@@ -392,6 +408,7 @@ pub(crate) fn build_leaves(
         .map(|level| level.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr())));
     parallel::for_each(tasks.len(), |task| {
         let (group, ref rows) = tasks[task];
+        let written = written(shapes[group].0, shapes[group].1);
         let mut stage = [F128::ZERO; CHUNK];
         let mut stage4 = [F128::ZERO; CHUNK / 4];
         let mut stage16 = [F128::ZERO; CHUNK / 16];
@@ -399,15 +416,17 @@ pub(crate) fn build_leaves(
         let stream = primitives::stream::Stream::new();
         for z0 in rows.clone().step_by(CHUNK) {
             let len = CHUNK.min(rows.len());
-            let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
+            // The leaves and fours past the block's written ones are never read, the sixteens are.
+            let own = written.saturating_sub(z0).min(len);
+            let (leaves, fours, sixteens) = (&mut stage[..own], &mut stage4[..len / 4], &mut stage16[..len / 16]);
             // In order: an `onto` block adds onto the previous block's leaves, still in `leaves`.
             for blk in &groups[group] {
                 blk.fill(z0, leaves, cols);
                 // Past the block's real rows every leaf, and so every tuple's product, is the identity.
                 let live = if gkr::SKIP_IDENTITY {
-                    blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
+                    blk.rows.saturating_sub(z0).next_multiple_of(16).min(own)
                 } else {
-                    len
+                    own
                 };
                 gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
                 gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
@@ -418,8 +437,8 @@ pub(crate) fn build_leaves(
                 // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple
                 // of sixteen.
                 unsafe {
-                    stream.copy(ptrs[0][blk.side].slice(at, len), leaves);
-                    stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours);
+                    stream.copy(ptrs[0][blk.side].slice(at, own), leaves);
+                    stream.copy(ptrs[1][blk.side].slice(at / 4, own / 4), &fours[..own / 4]);
                     stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens);
                 }
             }
@@ -840,21 +859,32 @@ mod tests {
         );
         let want = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, &public, w, beta));
 
-        let built = build_leaves(sides, &cols, &public);
-        for (got, want) in built.iter().zip(&want) {
-            let reference = Leaves::new(want.clone());
+        let mut built = build_leaves(sides, &cols, &public);
+        // The leaves and fours a block leaves unwritten hold zeros here, which no GKR below may read.
+        let mut unwritten = 0;
+        for ((got, want), &(blocks, lay, _, _)) in built.iter_mut().zip(&want).zip(&sides) {
+            let mut reference = Leaves::new(want.clone());
+            for (blk, &offset) in blocks.iter().zip(&lay.offsets) {
+                let skipped = offset + written(blk.kappa, blk.rows)..offset + (1 << blk.kappa);
+                unwritten += skipped.len();
+                for leaves in [&mut got.values, &mut reference.values] {
+                    leaves[skipped.clone()].fill(F128::ZERO);
+                }
+                for fours in [&mut got.fours, &mut reference.fours] {
+                    fours[skipped.start / 4..skipped.end / 4].fill(F128::ZERO);
+                }
+            }
             assert_eq!(
                 (&got.values, &got.fours, &got.sixteens),
                 (&reference.values, &reference.fours, &reference.sixteens)
             );
-            assert!(
-                got.ones
-                    .iter()
-                    .flat_map(Clone::clone)
-                    .all(|i| got.values[i] == F128::ONE)
-            );
+            assert!(got.ones.iter().flat_map(Clone::clone).all(|i| want[i] == F128::ONE));
         }
         assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
+        assert!(
+            unwritten > 0 || !gkr::SKIP_IDENTITY,
+            "a block leaves its padding unwritten"
+        );
         // The GKR wants its first two products equal, so each side is paired with itself.
         let reference = want.map(Leaves::new);
         for side in [0, 1] {

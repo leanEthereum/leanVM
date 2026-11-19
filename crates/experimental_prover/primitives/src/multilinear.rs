@@ -148,6 +148,12 @@ pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
 /// Each row's inner sum is one [`dot_base`] against the packed low table, reduced once.
 /// The table is read once and never lifted into `E`.
 pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
+    mle_eval_padded(table, table.len(), F64::ZERO, point)
+}
+
+/// [`mle_eval`] of a table whose entries from `rows` on all hold `pad`: a row of the low `eq` table's
+/// width past `rows` is `pad` throughout, and the `eq` weights sum to one, so it is never read.
+pub fn mle_eval_padded(table: &[F64], rows: usize, pad: F64, point: &[F128]) -> F128 {
     assert_eq!(table.len(), 1 << point.len());
     if point.len() < 3 {
         return match point.split_first() {
@@ -157,9 +163,17 @@ pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
     }
     let low_vars = point.len().min(MLE_LOW_VARS);
     let low = packed_eq(&point[..low_vars]);
+    let real = rows.div_ceil(1 << low_vars);
     let rows = table
         .chunks_exact(1 << low_vars)
-        .map(|row| dot_base(&low, row).reduce())
+        .enumerate()
+        .map(|(h, row)| {
+            if h < real {
+                dot_base(&low, row).reduce()
+            } else {
+                F128::from(pad)
+            }
+        })
         .collect();
     fold_ladder(rows, &point[low_vars..])
 }
@@ -221,6 +235,26 @@ mod tests {
             let point: Vec<_> = (0..n).map(|i| F128::from(F64(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
+        }
+    }
+
+    #[test]
+    fn padded_mle_matches_the_full_table() {
+        let pad = F64(0xDEAD_BEEF);
+        for n in [0, 2, 3, 10, 12, 13] {
+            let point: Vec<_> = (0..n).map(|i| F128::new(5 + i, 77 + 7 * i)).collect();
+            for rows in [0, 1, (1 << n) / 3, 1 << n.saturating_sub(1), (1 << n) - 1, 1 << n] {
+                let table: Vec<_> = (0..1usize << n)
+                    .map(|i| {
+                        if i < rows {
+                            F64((i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
+                        } else {
+                            pad
+                        }
+                    })
+                    .collect();
+                assert_eq!(mle_eval_padded(&table, rows, pad, &point), mle_eval(&table, &point));
+            }
         }
     }
 }

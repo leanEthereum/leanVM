@@ -100,6 +100,8 @@ fn next_level(current: &[F128]) -> Vec<F128> {
 /// the leaves are in cache, and its runs of identity leaves.
 #[derive(Clone)]
 pub struct Leaves {
+    /// The leaves. Inside `ones`, past the sixteen-row groups of the two layers above them that reach
+    /// outside it, they and `fours` may be unwritten: with [`SKIP_IDENTITY`] no kernel reads them.
     pub values: Vec<F128>,
     /// `fours[i] = ∏ values[4i..4i+4]`, and `sixteens` likewise over `fours`, an
     /// incomplete last four-tuple padded with the identity.

@@ -129,6 +129,7 @@ fn table_spans() -> TableSpans {
 /// [`xi_form_base`]).
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
+    rows: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
     cols: &'a [&'a [F64]],
     spans: &[(usize, usize)],
@@ -139,14 +140,16 @@ fn airs<'a>(
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     tables::tables()
         .iter()
-        .zip(taus.iter().zip(spans))
+        .zip(taus.iter().zip(rows).zip(spans))
         .enumerate()
-        .map(|(t, (&table, (&tau, &(start, n))))| {
+        .map(|(t, (&table, ((&tau, &rows), &(start, n))))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
             let bus_forms = (0..verifier::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
+                rows,
                 cols: &cols[start..start + n],
+                padding: table.padding(),
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
             }
         })
@@ -270,7 +273,7 @@ pub fn prove(
             // batch settle the bus forms alongside the constraints.
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
-            constraints::prove(&airs(&l.taus, &bus, &cols, &spans, xi), &bus.point, &mut ps)
+            constraints::prove(&airs(&l.taus, &l.rows, &bus, &cols, &spans, xi), &bus.point, &mut ps)
         });
         (bus, table_claims)
     };
