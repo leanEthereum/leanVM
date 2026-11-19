@@ -8,10 +8,11 @@ it needs, `pts`, `cat`, `mrg`, `word`, `skip`), so serials, joins and selector g
 taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost words (`gargs`) follow the inference's
 values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
 
-Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
+With `--out DIR` (nothing is written without it: the end theorem reads the core route's own checks, `callc.py`),
+per pack: `DIR/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
 `def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC pows sigOf core hcert =
 true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
-(the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
+(the others are windowed: `heapwin.py`, `GenCW/<fn>/` beside `DIR`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
 carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
 exponent gets one stated (`exp`).
 
@@ -2003,6 +2004,9 @@ def emit(out, res, check_only, only=None):
     off = set(certs) - routed()
     lean = off | {c for k in off for c in cal(k)}
     wins = [k for k in wins if k in off]
+    if out is None:
+        # no Lean (no `--out`): the report only
+        lean, wins = set(), []
     packs = collections.defaultdict(list)
     for k in sorted(lean):
         packs[po[k][0]].append(k)
@@ -2044,7 +2048,9 @@ def emit(out, res, check_only, only=None):
                 os.makedirs(d, exist_ok=True)
                 with open(path, 'w', encoding='utf-8') as fh:
                     fh.write(text)
-    if check_only and not only:
+    if out is None:
+        pass
+    elif check_only and not only:
         have = set(glob.glob(os.path.join(out, '*', '*.lean')))
         want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
         stale += sorted(have - want)
@@ -2095,7 +2101,7 @@ def main():
     I.set_features(argv)
     res, dt = I.run_all()
     print(f'inferred {len(res)} functions in {dt:.1f} s, features: {",".join(sorted(I.F)) or "(none)"}')
-    out = argv[argv.index('--out') + 1] if '--out' in argv else os.path.join(GUEST, 'CoreMode', 'GenC')
+    out = argv[argv.index('--out') + 1] if '--out' in argv else None
     only = set(argv[argv.index('--fn') + 1].split(',')) if '--fn' in argv else None
     mods, certs, why = emit(out, res, '--check' in argv or only is not None, only)
     if only:

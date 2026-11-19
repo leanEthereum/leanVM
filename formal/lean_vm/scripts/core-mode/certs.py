@@ -20,8 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 CM = os.path.join(ROOT, 'CoreMode')
 OUT = os.path.join(CM, 'Gen')
-# packs per group of `coreCerts`, functions per `Sig<k>` module
-GROUP = 16
+# functions per `Sig<k>` module
 SIGCHUNK = 160
 
 
@@ -33,23 +32,21 @@ def imports(ms):
     return ''.join('public import %s\n' % m for m in sorted(ms))
 
 
-def mem(i):
-    pr = 'List.mem_cons_self'
-    for _ in range(i): pr = 'List.mem_cons_of_mem _ (%s)' % pr
-    return pr
-
-
-def chain(ps):
-    out = 'Mode.fa_nil'
-    for q in reversed(ps): out = 'Mode.fa_cons (%s)\n    (%s)' % (q, out)
-    return out
-
-
 def lst(xs):
     return '[%s]' % ',\n    '.join(xs)
 
 
 def fq(k): return 'Fn.«%s»' % k
+
+
+def wrap(xs, ind=2, width=100):
+    """A list literal of `xs`, its lines at most `width` wide where the items allow."""
+    lines, cur = [], ''
+    for x in xs:
+        if cur and len(cur) + len(x) + 2 > width - ind: lines.append(cur + ','); cur = ''
+        cur = cur + ', ' + x if cur else x
+    lines.append(cur)
+    return '[' + ('\n' + ' ' * (ind + 1)).join(lines) + ']'
 
 
 def by_ns(pattern, files):
@@ -64,6 +61,15 @@ def by_ns(pattern, files):
     return out
 
 
+def qualified(one, block, d):
+    """k -> the number each glue module `d` gives it, one declaration a line (`one`) or in `Fn.«k»` blocks (`block`)."""
+    files = glob.glob(os.path.join(CM, d, '*.lean'))
+    out = {k: int(v) for k, v in by_ns(block, files).items()}
+    for f in files:
+        out.update((k, int(v)) for k, v in re.findall(one, open(f, encoding='utf-8').read()))
+    return out
+
+
 def load():
     """Each pack's routed functions in its `coreFns` order; each one's callees, entry, index, residuals."""
     packs = {}
@@ -72,11 +78,12 @@ def load():
         if m:
             ks = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
             if ks: packs[f.split(os.sep)[-2]] = ks
-    entry = {k: int(v) for k, v in by_ns(r'abbrev entry : Nat := (\d+)', glob.glob(os.path.join(CM, 'GlueE', '*.lean'))).items()}
-    idx = {k: int(v) for k, v in by_ns(r'abbrev idx : ℕ := (\d+)', glob.glob(os.path.join(CM, 'GlueA', '*.lean'))).items()}
+    entry = qualified(r'abbrev (?:Fn\.)?«([^»]+)»\.entry : Nat := (\d+)', r'abbrev entry : Nat := (\d+)', 'GlueE')
+    idx = qualified(r'abbrev (?:Fn\.)?«([^»]+)»\.idx : ℕ := (\d+)', r'abbrev idx : ℕ := (\d+)', 'GlueA')
     glue = {}
     for f in glob.glob(os.path.join(CM, 'GlueC', '*.lean')):
-        for k in re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(f, encoding='utf-8').read(), re.M):
+        t = open(f, encoding='utf-8').read()
+        for k in re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', t, re.M) + re.findall(r'^theorem (?:Fn\.)?«([^»]+)»\.code_mem ', t, re.M):
             glue[k] = os.path.basename(f)[:-5]
     callees, nores = {}, set()
     for f in glob.glob(os.path.join(CM, 'Pack', '*', 'Frame*.lean')):
@@ -113,6 +120,7 @@ def render():
         sigs[k] = [by[e] for e in trie_order(by)]
     off = sorted({m for k in routed for m in callees[k] if m not in routed}, key=lambda m: entry[m])
     files = {}
+    CE = 'EndExec.CertE CoreMode.hcTab CoreMode.coreNzs'
     # each pack's certificates
     for p in pk:
         ks = packs[p]
@@ -120,68 +128,47 @@ def render():
         t = [header(mod, 'The core route\'s certificates of the pack\'s functions and their facts.')]
         t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p, 'LeanVM.Guest.CoreMode.Gen.HcTab',
                           'LeanVM.Guest.CoreMode.Nzs'} | {'LeanVM.Guest.CoreMode.GlueC.«%s»' % glue[k] for k in ks}))
-        t.append('meta import LeanVM.Guest.KernelLit\n\nset_option Elab.async false\n')
+        t.append('meta import LeanVM.Guest.KernelLit\n\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\n'
+                 '/-! Each function\'s certificate (`modeCert`: its `envC`, `funC` and code), its callees\' signatures\n'
+                 '(`modeSigs`), and the certificate with its facts (`ce`). -/\n\n'
+                 'namespace LeanVM.Guest.Fn\n\nopen LeanVM.Guest LeanVM.Guest.EndExec\n\n@[expose] public section\n\n')
         for k in ks:
-            t.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
-                     '/-- `%s`: its certificate, the core route\'s. -/\n'
-                     'noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩\n\nend\n\n'
-                     '/-- `%s`: its callees\' signatures. -/\nkernel_rfl modeSigs : modeCert.E.sigs.entries = %s\n\n'
-                     'end LeanVM.Guest.Fn.«%s»\n' % (k, k, k, lst(['(%s.entry, %s.csig)' % (fq(m), fq(m)) for m in sigs[k]])
-                                                   if sigs[k] else '[]', k))
-        t.append('\nnamespace LeanVM.Guest.CorePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.EndExec\n\n'
-                 '@[expose] public section\n\n/-- The pack\'s certificates. -/\nnoncomputable def certs : List Mode.Cert :=\n  %s\n\n'
-                 'end\n\npublic section\n\n' % (p, lst(['%s.modeCert' % fq(k) for k in ks])))
+            t.append('noncomputable def «%s».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩\n' % k)
+        t.append('\nend\n\n')
+        for k in ks:
+            t.append('kernel_rfl «%s».modeSigs : «%s».modeCert.E.sigs.entries =\n  %s\n' % (
+                k, k, lst(['(«%s».entry, «%s».csig)' % (m, m) for m in sigs[k]]) if sigs[k] else '[]'))
+        t.append('\n@[expose] public section\n\n')
         for i, k in enumerate(ks):
-            t.append('theorem mem%d : %s.modeCert ∈ certs := %s\n\n' % (i, fq(k), mem(i)))
-        t.append('/-- The certificates\' static facts. -/\ntheorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=\n  %s\n\n' % chain(
-            ['⟨by decide +kernel, rfl, rfl⟩'] * len(ks)))
-        t.append('/-- The certificates\' frame interfaces, the core route\'s. -/\ntheorem certs_spec {T : List CoreMode.CFun} '
-                 '(hT : ∀ Cf ∈ ModePack.«%s».coreFns, Cf ∈ T) :\n    ∀ K ∈ certs, Mode.FnSpec CoreMode.hcTab T K :=\n  %s\n\n' % (
-                     p, chain(['Mode.fnSpec_core (hT _ (%s)) rfl %s.fnSpecC' % (mem(i), fq(k)) for i, k in enumerate(ks)])))
-        t.append('/-- The certificates\' code, the program\'s. -/\ntheorem certs_fn : ∀ K ∈ certs, Mode.FnLink K :=\n  %s\n\n' % chain(
-            ['Mode.fnLink_of %s.code_mem rfl rfl rfl' % fq(k) for k in ks]))
-        t.append('/-- The certificates\' termination facts, their loop shapes\'. -/\ntheorem certs_term : ∀ K ∈ certs, TermOk K :=\n  %s\n\n' % chain(
-            ['termOk_of (j := %s.idx) (by decide +kernel)' % fq(k) for k in ks]))
-        t.append('/-- The certificates\' residuals: listed parameters\' nonzero values. -/\n'
-                 'theorem certs_nz : ∀ K ∈ certs, NzOnly CoreMode.coreNzs K :=\n  %s\n\n' % chain(
-                     ['nzOnly_nil rfl' if k in nores else 'nzOnly_of (j := %s.idx) (by decide +kernel)' % fq(k) for k in ks]))
-        t.append('end\n\nend LeanVM.Guest.CorePack.«%s»\n' % p)
+            nz = 'nzOnly_nil rfl' if k in nores else 'nzOnly_of (j := idx) (by decide +kernel)'
+            t.append('noncomputable def «%s».ce : %s :=\n  ⟨modeCert, cfun, ModePack.«%s».coreFns_ok _ (list_mem%% %d), ⟨by decide +kernel, rfl, rfl⟩, rfl, '
+                     'fnSpecC, by decide +kernel,\n    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), %s⟩\n' % (
+                         k, CE, p, i, nz))
+        t.append('\nend\n\nend LeanVM.Guest.Fn\n\nnamespace LeanVM.Guest.CorePack.«%s»\n\n@[expose] public section\n\n'
+                 '/-- The pack\'s certificates with their facts. -/\nnoncomputable def ces : List (%s) :=\n  %s\n\n'
+                 'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, CE, wrap(['Fn.«%s».ce' % k for k in ks]), p))
         files[os.path.join(OUT, p, 'Cert.lean')] = ''.join(t)
     # the list
-    G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
-    gi = {p: (g, i) for g, ps in enumerate(G) for i, p in enumerate(ps)}
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs.List'
     t = [header(mod, 'The core route\'s certificates, no entry twice, its core data and its callees off the route.')]
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Cert' % p for p in pk}))
-    t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\n'
-             '@[expose] public section\n\n')
-    two = lambda f: 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
-    t.append('/-- The core route\'s certificates by pack, packs in groups. -/\nnoncomputable def coreGroups : List (List (List Mode.Cert)) :=\n  [%s]\n\n' % ',\n   '.join(
-        '[%s]' % ', '.join('CorePack.«%s».certs' % p for p in ps) for ps in G))
-    t.append('/-- **The core route\'s certificates.** -/\nnoncomputable def coreCerts : List Mode.Cert := coreGroups.flatten.flatten\n\n')
-    t.append('/-- **The core route\'s data**, pack by pack. -/\nnoncomputable def coreTable : List CoreMode.CFun :=\n  List.flatten %s\n\n' % lst(
-        ['ModePack.«%s».coreFns' % p for p in pk]))
+    t.append('\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest.CoreMode\n\n'
+             'open LeanVM.Guest LeanVM.Guest.Mode\n\n@[expose] public section\n\n')
+    t.append('/-- The core route\'s certificates with their facts, by pack. -/\n'
+             'noncomputable def corePacks : List (List (%s)) :=\n  %s\n\n' % (CE, wrap(['CorePack.«%s».ces' % p for p in pk])))
+    t.append('/-- **The core route\'s certificates.** -/\nnoncomputable def coreCerts : List Mode.Cert := corePacks.flatten.map (·.K)\n\n')
+    t.append('/-- **The core route\'s data**, pack by pack. -/\nnoncomputable def coreTable : List CoreMode.CFun := corePacks.flatten.map (·.cf)\n\n')
     t.append('/-- **The routed functions\' callees off the route**, by entry and signature. -/\n'
              'noncomputable def offSigs : List (ℕ × Mode.Sig) :=\n  %s\n\nend\n\npublic section\n\n' % (
                  lst(['(%s.entry, %s.csig)' % (fq(m), fq(m)) for m in off]) if off else '[]'))
-    for k, p in enumerate(pk):
-        t.append('theorem corePacks_mem%d : CorePack.«%s».certs ∈ coreGroups.flatten :=\n  mem_flatten_of (%s) (%s)\n\n' % (
-            k, p, mem(gi[p][0]), mem(gi[p][1])))
     t.append('/-- No entry twice. -/\ntheorem coreCerts_nodup : nodupB (coreCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
-    t.append('theorem coreCerts_st : ∀ K ∈ coreCerts, CertSt K :=\n  %s\n\n' % two('CorePack.«%s».certs_st'))
-    t.append('theorem coreCerts_fn : ∀ K ∈ coreCerts, FnLink K :=\n  %s\n\n' % two('CorePack.«%s».certs_fn'))
-    t.append('theorem coreCerts_term : ∀ K ∈ coreCerts, EndExec.TermOk K :=\n  %s\n\n' % two('CorePack.«%s».certs_term'))
-    t.append('theorem coreCerts_nz : ∀ K ∈ coreCerts, EndExec.NzOnly coreNzs K :=\n  %s\n\n' % two('CorePack.«%s».certs_nz'))
-    t.append('/-- The core data, each the deployed guest\'s. -/\ntheorem coreTable_ok : ∀ Cf ∈ coreTable, CoreMode.CfOk Cf :=\n  fa_flatten (%s)\n\n' % chain(
-        ['ModePack.«%s».coreFns_ok' % p for p in pk]))
-    t.append('theorem coreCerts_spec : ∀ K ∈ coreCerts, FnSpec CoreMode.hcTab coreTable K :=\n  %s\n\n' % (
-        'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([
-            'CorePack.«%s».certs_spec (fun _ h ↦ List.mem_flatten.2 ⟨_, %s, h⟩)' % (p, mem(pk.index(p))) for p in ps]) for ps in G])))
-    t.append('end\n\nend LeanVM.Guest.CoreMode\n')
-    for k, p in enumerate(pk):
+    t.append('end\n\nend LeanVM.Guest.CoreMode\n\n/-! Each certificate is among them (`modeCert_in`). -/\n\n'
+             'namespace LeanVM.Guest.Fn\n\npublic section\n\n')
+    for j, p in enumerate(pk):
         for i, f in enumerate(packs[p]):
-            t.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\npublic section\n\ntheorem modeCert_in : modeCert ∈ CoreMode.coreCerts :=\n'
-                     '  List.mem_flatten.2 ⟨_, CoreMode.corePacks_mem%d, CorePack.«%s».mem%d⟩\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (f, k, p, i, f))
+            t.append('theorem «%s».modeCert_in : «%s».modeCert ∈ CoreMode.coreCerts :=\n'
+                     '  EndExec.CertE.mem (ls := CoreMode.corePacks) «%s».ce (list_mem%% %d) (list_mem%% %d)\n' % (f, f, f, j, i))
+    t.append('\nend\n\nend LeanVM.Guest.Fn\n')
     files[os.path.join(OUT, 'Certs', 'List.lean')] = ''.join(t)
     # the callee signatures
     chunks, cur, size = [], [], 0
@@ -197,26 +184,24 @@ def render():
         for p in ps:
             sp = []
             for k in packs[p]:
-                one = ['.inl ⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fq(m) if m in routed else '.inr (%s)' % mem(off.index(m))
+                one = ['.inl ⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fq(m) if m in routed else '.inr (list_mem%% %d)' % off.index(m)
                        for m in sigs[k]]
-                sp.append('sigsOr_of %s.modeSigs\n    (%s)' % (fq(k), chain(one)))
+                sp.append('sigsOr_of %s.modeSigs fa%%[%s]' % (fq(k), ',\n      '.join(one)))
             t.append('\nnamespace LeanVM.Guest.CorePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
-                     'public section\n\ntheorem certs_sigs : ∀ K ∈ certs, SigsOr CoreMode.coreCerts CoreMode.offSigs K :=\n  %s\n\n'
-                     'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, chain(sp), p))
+                     'public section\n\ntheorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%%[\n  %s]\n\n'
+                     'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, ',\n  '.join(sp), p))
         files[os.path.join(OUT, 'Certs', 'Sig%d.lean' % c)] = ''.join(t)
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs'
     t = [header(mod, 'What the core route\'s data gives of the end theorem\'s assembly (`EndExec.CoreFacts`).')]
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c for c in range(len(chunks))}))
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
              'public section\n\n')
-    t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsOr coreCerts offSigs K :=\n  %s\n\n' % (
-        'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain(['CorePack.«%s».certs_sigs' % p for p in ps]) for ps in G])))
+    t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsOr coreCerts offSigs K :=\n  CertE.fa (ls := corePacks) fa%%%s\n\n' % (
+        wrap(['CorePack.«%s».certs_sigs' % p for p in pk], 6)))
     t.append('/-- **What the core route gives of the end theorem\'s assembly.** -/\n'
-             'theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs offSigs Fn.«main».modeCert where\n'
-             '  table := coreTable_ok\n  st := coreCerts_st\n  spec := coreCerts_spec\n  fn := coreCerts_fn\n'
-             '  sigs := coreCerts_sigs\n  term := coreCerts_term\n  res := coreCerts_nz\n  nzs := coreNzs_ok\n'
-             '  nodup := coreCerts_nodup\n  main := Fn.«main».modeCert_in\n  mainF := rfl\n  mainR := by decide +kernel\n'
-             '  mainT := rfl\n  mainC := by decide +kernel\n\n')
+             'theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs offSigs Fn.«main».modeCert :=\n'
+             '  CoreFacts.of corePacks coreCerts_sigs coreNzs_ok coreCerts_nodup Fn.«main».modeCert_in rfl (by decide +kernel) rfl\n'
+             '    (by decide +kernel)\n\n')
     t.append('/-- **`main`\'s certificate starts as the prologue leaves it.** -/\n'
              'theorem mainOk_core : MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl\n\nend\n\nend LeanVM.Guest.CoreMode\n')
     files[os.path.join(OUT, 'Certs.lean')] = ''.join(t)
