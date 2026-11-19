@@ -1,12 +1,15 @@
 use lean_xmss::*;
-use sha2::{Digest as _, Sha256};
 
 fn node(left: &VrfNode, right: &VrfNode) -> VrfNode {
-    Sha256::new().chain_update(left).chain_update(right).finalize().into()
+    keccak256::hash_pair(left, right)
 }
 
+/// `SHA-256("leanxmss vrf test")`.
 fn seed() -> [u8; 32] {
-    Sha256::digest(b"leanxmss vrf test").into()
+    [
+        0xc1, 0x2c, 0x02, 0x72, 0x17, 0xe3, 0xdc, 0xc0, 0xfb, 0x70, 0x35, 0x19, 0x3b, 0x3f, 0x51, 0x84, 0xbd, 0x0f,
+        0xa6, 0xd5, 0x66, 0xdb, 0x50, 0x86, 0x9d, 0x73, 0x0d, 0x7f, 0x99, 0x08, 0x0d, 0x9b,
+    ]
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -28,11 +31,7 @@ impl Reference {
         }
         let mut layers = vec![vec![[0; VRF_NODE_LEN]; 1 << depth]];
         for i in 0..leaves {
-            layers[0][i as usize] = Sha256::new()
-                .chain_update(seed)
-                .chain_update(i.to_le_bytes())
-                .finalize()
-                .into();
+            layers[0][i as usize] = keccak256::hash(&[&seed[..], &i.to_le_bytes()].concat());
         }
         for level in 0..depth {
             let up = layers[level]
@@ -80,23 +79,19 @@ impl Reference {
 }
 
 /// The vector of the Lighthouse and ethPandaOps genesis tooling: the seed is
-/// `SHA-256("vrf-seed" | BLS secret key)` and the first `2^20` leaves are filled.
+/// `SHA-256("vrf-seed" | BLS secret key)`, here of the key `0x2892f3ba…ce8834`, and the first `2^20` leaves
+/// are filled.
 #[test]
 fn vrf_devnet_vector() {
-    let secret: [u8; 32] = [
-        0x28, 0x92, 0xf3, 0xba, 0x47, 0x5c, 0x36, 0x40, 0xa6, 0x7f, 0xe7, 0x30, 0x79, 0x8a, 0xd9, 0xc4, 0xee, 0xd3,
-        0xa6, 0xd9, 0x34, 0xdb, 0x85, 0xf9, 0x1c, 0x41, 0xcf, 0xc8, 0x37, 0xce, 0x88, 0x34,
+    let seed = [
+        0x8b, 0x6f, 0xe7, 0xf8, 0xe9, 0xb2, 0xa6, 0xe0, 0xeb, 0xf8, 0xfd, 0x5a, 0x7b, 0x39, 0x91, 0x32, 0x9a, 0xff,
+        0xcd, 0x3f, 0xf9, 0x1a, 0xec, 0x15, 0x9d, 0x33, 0xe4, 0xb4, 0xde, 0xda, 0xc9, 0x40,
     ];
-    let seed = Sha256::new()
-        .chain_update(b"vrf-seed")
-        .chain_update(secret)
-        .finalize()
-        .into();
     let key = VrfKey::new(seed, DEFAULT_VRF_LEAVES).unwrap();
     let root = key.root(&key.state(0).unwrap());
     assert_eq!(
         hex(&root),
-        "0fc00857fdae6d29c18f54563c64e166b1fff1c6d943bb2c43e8b096bb60585e"
+        "46f6772a35c14c7f8467e9d8791450ed3c6853191129876fc50e769ec9bac18d"
     );
 }
 
@@ -106,12 +101,12 @@ fn vrf_shared_vector() {
     let key = VrfKey::new(seed(), DEFAULT_VRF_LEAVES).unwrap();
     let state = key.state(777_777).unwrap();
     assert_eq!(
-        hex(&Sha256::digest(state.to_bytes())),
-        "e3e4bc109e1b45f4a20015719ed55cb3e1d507c85c76c9605abcd83afbaace1f"
+        hex(&keccak256::hash(&state.to_bytes())),
+        "63b553b8e581093f7c4631b22aba29bd0ce06d015872f910844ee09c6ca76546"
     );
     assert_eq!(
         hex(&key.root(&state)),
-        "85f4614748229923af260c44d82b3ac380c4b32e3e3bfd9f8a57684e2b90d93e"
+        "c2ea7ef9c148cbef3fae2b336c6772d7e815f3dba924abc25e1451ce196b9a37"
     );
 }
 
