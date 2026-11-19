@@ -8,6 +8,7 @@ import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
+from pmap import pmap  # noqa: E402
 sys.modules.setdefault('infer', I)
 
 CAPE = 2 ** 62
@@ -606,30 +607,33 @@ def extend(out, why, S, verbose=False):
     _, EM.Solver.fact = expq_facts(EM)
     _, EM.Solver.fact = vt_facts(EM)
     got, lost = {}, collections.Counter()
+    def one(k):
+        # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
+        # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
+        # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
+        # conditional entry (`callIfR`)
+        r, err = None, None
+        for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
+                      FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ()):
+            I.F.clear()
+            I.F.update(feats)
+            try:
+                r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
+                break
+            except callc.No as e:
+                err = err or e
+        I.F.clear()
+        I.F.update(FEATURES)
+        if r is not None:
+            r['text'] = callc.ldata(k, r)
+        return r, err
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
-        for k in cands:
-            # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
-            # (`armblock`, `ab`), each with residuals of families
-            r, err = None, None
-            # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
-            # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
-            # conditional entry (`callIfR`)
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ()):
-                I.F.clear()
-                I.F.update(feats)
-                try:
-                    r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
-                    break
-                except callc.No as e:
-                    err = err or e
-            I.F.clear()
-            I.F.update(FEATURES)
+        # each candidate on its own, in worker processes (`pmap.py`)
+        for k, (r, err) in zip(cands, pmap(one, cands)):
             if r is None:
                 lost[str(err).split(':')[0]] += 1
                 continue
-            r['text'] = callc.ldata(k, r)
             got[k] = r
     finally:
         I.F.clear()

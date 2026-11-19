@@ -14,6 +14,8 @@ PAST = 160
 
 
 def main():
+    import memo
+    memo.follow()
     req = json.load(sys.stdin)
     D = FD.load(os.environ['MODE_CERT_CACHE'], os.environ.get('FRAME_CACHE'))
     rets = []

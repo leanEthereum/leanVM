@@ -36,8 +36,9 @@ capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 # The mode walk's inference, computed once by the `mode` step and read by `core-mode`'s frame walks;
-# the core IR's parse, shared by the core-mode generators.
-export MODE_CERT_CACHE=$tmp/mode-cert.pkl CORE_MODE_CACHE=$tmp/core-mode.pkl
+# the core IR's parse, shared by the core-mode generators; their pairings, computed once while what they
+# read is unchanged (`scripts/core-mode/memo.py`).
+export MODE_CERT_CACHE=$tmp/mode-cert.pkl CORE_MODE_CACHE=$tmp/core-mode.pkl CORE_MEMO=$tmp/memo
 
 # A Lean build: skipped under `--check`, which builds every target first (`prebuild`).
 built=
