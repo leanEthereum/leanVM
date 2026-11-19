@@ -225,8 +225,8 @@ theorem indifferentiability {α : Type} (D : OracleComp (dSpec Msg Dg (SpState D
     (fun s ↦ s.1.diff = true) (fun t s _ r ↦ (comb_agree P iv t s r).symm)
     (fun t s hs z hz ↦ comb_mono P iv (fun _ p ↦ p.2) t s hs hz)
     (fun t s hs z hz ↦ comb_mono P iv (fun _ p ↦ p.1) t s hs hz) D s₀ p
-  have hbadEq := prEvent_run_bad_eq (spec' := unifSpec) (foldReal P iv) (foldIdeal P iv)
-    (fun s ↦ s.1.diff = true) (fun t s _ r ↦ comb_agree P iv t s r)
+  have hbadEq := ProgramLogic.Relational.prEvent_simulateQ_run_bad_eq (spec' := unifSpec)
+    (foldReal P iv) (foldIdeal P iv) (fun s ↦ s.1.diff = true) (fun t s _ r ↦ comb_agree P iv t s r)
     (fun t s hs z hz ↦ comb_mono P iv (fun _ p ↦ p.1) t s hs hz)
     (fun t s hs z hz ↦ comb_mono P iv (fun _ p ↦ p.2) t s hs hz) D s₀
   -- a differing answer needs a collision
