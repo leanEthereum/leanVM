@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Times leanVM's 16-to-1 aggregation (as in bench.sh) while an execution client runs on other cores.
+# Times leanVM's 16-to-1 aggregation (as in bench.sh) alone, then while an execution client runs on other cores, and
+# compares the two.
 #
 # - leanVM: 4 cores, 4 threads, the 16-to-1 aggregation 5 times (its 16 leaves are proven once before, untimed).
 # - Execution client (bench/el-load): the 4 other cores, validating mainnet blocks back to back as reth does, on 16
@@ -42,19 +43,30 @@ fi
 cd "$(dirname "$0")/.."
 mkdir -p .build
 EL_LOG=.build/el-load.log
+lean() {
+  $LEAN_PIN "${CARGO_TARGET_DIR:-target}"/release/leanvm-bench --prover "$PROVER" recursion \
+    --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 5 --threads 4 2>&1 | tee "$1"
+}
+seconds() { awk '/proving time/ {print $4}' "$1"; }
+PROVER=${1:-experimental}
 
-echo "==> 1/4 building leanvm-bench and el-load"
+echo "==> 1/5 building leanvm-bench and el-load"
 cargo build --release -p leanvm-bench
 cargo build --release --manifest-path bench/el-load/Cargo.toml
 
-echo "==> 2/4 starting the execution client: writing its 16 GiB database file (first run only), validating each block"
+echo "==> 2/5 leanVM alone: proving the 16 leaves (untimed), then the 16-to-1 aggregation 5 times"
+lean .build/lean-alone.log
+
+echo "==> 3/5 starting the execution client: writing its 16 GiB database file (first run only), validating each block"
 $EL_PIN bench/el-load/target/release/el-load bench/el-load/fixtures .build/el-load.db $EL_THREADS >"$EL_LOG" &
 EL_PID=$!
 trap 'kill $EL_PID 2>/dev/null' EXIT
 until grep -q Mgas/s "$EL_LOG"; do kill -0 $EL_PID || exit 1; sleep 1; done
 echo "    all $(grep -c valid "$EL_LOG") blocks valid; the execution client now runs without pause"
 
-echo "==> 3/4 leanVM: proving the 16 leaves (untimed), then the 16-to-1 aggregation 5 times"
-$LEAN_PIN "${CARGO_TARGET_DIR:-target}"/release/leanvm-bench --prover "${1:-experimental}" recursion \
-  --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 5 --threads 4
-echo "==> 4/4 done; the execution client meanwhile: $(tail -n 1 "$EL_LOG")"
+echo "==> 4/5 leanVM beside the execution client: the same"
+lean .build/lean-with-el.log
+
+ALONE=$(seconds .build/lean-alone.log) WITH=$(seconds .build/lean-with-el.log)
+echo "==> 5/5 the 16-to-1 aggregation: $ALONE s alone, $WITH s beside the execution client \
+($(awk "BEGIN {printf \"%+.1f\", 100 * ($WITH / $ALONE - 1)}")%); the execution client meanwhile: $(tail -n 1 "$EL_LOG")"
