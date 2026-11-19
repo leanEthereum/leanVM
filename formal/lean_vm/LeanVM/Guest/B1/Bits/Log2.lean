@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Bits.SmallGPower
 /-!
 # `log2_ceil_in_the_exponent` (lean_ethereum.py)
 
-`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)` hints `N`'s bits into a fresh run (only
-the hint reads them) and the log `g^L`, range checks `L < 34` and `L - floor < 34`, and asserts
+`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)` hints `N`'s bits into a run of its frame
+(only the hint reads them) and the log `g^L`, range checks `L < 34` and `L - floor < 34`, and asserts
 `g^(2^L) / g_N` a small g-power (`assert_small_g_power`, an exponent below `2^36`); unless
 `L = floor` also `g_N · g⁻¹ / g^(2^(L-1))`. It returns `g^L` (`MeaningLog2CeilExp`,
 `log2_holds`). On `g_N = g^N`, `N < 2^60`, the two bounds are `N ≤ 2^L` and `2^(L-1) < N`, so
@@ -48,25 +48,24 @@ theorem gen_pow_mul_invGen (L : ℕ) : gen ^ (L + 1) * invGenWord = gen ^ L := b
 
 /-- The check above the floor: `g_N · g⁻¹ / g_squares[g^(L-1)]` a small g-power. -/
 def lcMin : List Stmt :=
-  [.atom (.const (.n 20) invGenWord), .atom (.mul (.n 21) (.n 0) (.n 20)),
-    .atom (.const (.n 22) invGenWord), .atom (.mul (.n 23) (.n 4) (.n 22)),
-    .atom (.mul (.n 24) (.n 1) (.n 23)), .atom (.load (.n 25) (.n 24) 0),
-    .atom (.mul (.n 21) (.n 26) (.n 25)), .call "assert_small_g_power" [.n 26, .n 1] []]
+  [.atom (.const (.n 52) invGenWord), .atom (.mul (.n 53) (.n 0) (.n 52)),
+    .atom (.const (.n 54) invGenWord), .atom (.mul (.n 55) (.n 36) (.n 54)),
+    .atom (.mul (.n 56) (.n 1) (.n 55)), .atom (.load (.n 57) (.n 56) 0),
+    .atom (.mul (.n 53) (.n 58) (.n 57)), .call "assert_small_g_power" [.n 58, .n 1] []]
 
 /-- The expansion of `log2_ceil_in_the_exponent` at the floor `fl`, 34 bits. -/
 def lcBody (fl : ℕ) : List Stmt :=
-  [.atom (.const (.n 2) (word (2 ^ 34) 0)), .atom (.hint (.allocDyn (.n 3) (.n 2))),
-    .atom (.hint (.bitsExp (.n 0) 34 (.heap (.n 3) 0 34))),
-    .atom (.hint (.log2Ceil (.heap (.n 3) 0 34) 34 fl (.n 4))),
-    .atom (.const (.n 5) (word (2 ^ 33) 0)),
-    .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-    .atom (.const (.n 9) (word (2 ^ 33) 0)), .atom (.const (.n 10) (word (2 ^ fl) 0)),
-    .atom (.mul (.n 4) (.n 11) (.n 10)),
-    .atom (.rangeCheck (.n 11) (.n 12) (.n 13) (.n 14) (.n 9)),
-    .atom (.mul (.n 15) (.n 1) (.n 4)), .atom (.load (.n 16) (.n 15) 0),
-    .atom (.mul (.n 16) (.n 17) (.n 0)), .call "assert_small_g_power" [.n 17, .n 1] [],
-    .atom (.const (.n 18) (word (2 ^ fl) 0)), .atom (.add (.n 19) (.n 4) (.n 18)),
-    .ite (.n 19) [] lcMin, .atom (.copy (.n 27) (.n 4)), .ret [.n 27]]
+  [.atom (.hint (.bitsExp (.n 0) 34 (.stack ((List.range 34).map fun k => .n (2 + k))))),
+    .atom (.hint (.log2Ceil (.stack ((List.range 34).map fun k => .n (2 + k))) 34 fl (.n 36))),
+    .atom (.const (.n 37) (word (2 ^ 33) 0)),
+    .atom (.rangeCheck (.n 36) (.n 38) (.n 39) (.n 40) (.n 37)),
+    .atom (.const (.n 41) (word (2 ^ 33) 0)), .atom (.const (.n 42) (word (2 ^ fl) 0)),
+    .atom (.mul (.n 36) (.n 43) (.n 42)),
+    .atom (.rangeCheck (.n 43) (.n 44) (.n 45) (.n 46) (.n 41)),
+    .atom (.mul (.n 47) (.n 1) (.n 36)), .atom (.load (.n 48) (.n 47) 0),
+    .atom (.mul (.n 48) (.n 49) (.n 0)), .call "assert_small_g_power" [.n 49, .n 1] [],
+    .atom (.const (.n 50) (word (2 ^ fl) 0)), .atom (.add (.n 51) (.n 36) (.n 50)),
+    .ite (.n 51) [] lcMin, .atom (.copy (.n 59) (.n 36)), .ret [.n 59]]
 
 theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
     lcBody 0 := stmtsEqb_sound (by decide +kernel)
@@ -90,26 +89,26 @@ theorem lc_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find?
     (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = lcBody fl) (rd : Reader)
     (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1)] = args ∧
-      σ (.n 2) = word (2 ^ 34) 0 ∧ σ (.n 5) = word (2 ^ 33) 0 ∧
-      (LoadHolds rd (σ (.n 4)) 0 (σ (.n 7)) ∧ σ (.n 5) = σ (.n 4) * σ (.n 6) ∧
-        LoadHolds rd (σ (.n 6)) 0 (σ (.n 8))) ∧
-      σ (.n 9) = word (2 ^ 33) 0 ∧ σ (.n 10) = word (2 ^ fl) 0 ∧
-      σ (.n 4) = σ (.n 11) * σ (.n 10) ∧
-      (LoadHolds rd (σ (.n 11)) 0 (σ (.n 13)) ∧ σ (.n 9) = σ (.n 11) * σ (.n 12) ∧
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
-      σ (.n 15) = σ (.n 1) * σ (.n 4) ∧ LoadHolds rd (σ (.n 15)) 0 (σ (.n 16)) ∧
-      σ (.n 16) = σ (.n 17) * σ (.n 0) ∧
-      coreProgram.Rel rd "assert_small_g_power" [σ (.n 17), σ (.n 1)] [] ∧
-      σ (.n 18) = word (2 ^ fl) 0 ∧ σ (.n 19) = σ (.n 4) + σ (.n 18) ∧
-      (IsInK (σ (.n 19)) ∧ (σ (.n 19) ≠ 0 →
-        σ (.n 20) = invGenWord ∧ σ (.n 21) = σ (.n 0) * σ (.n 20) ∧ σ (.n 22) = invGenWord ∧
-        σ (.n 23) = σ (.n 4) * σ (.n 22) ∧ σ (.n 24) = σ (.n 1) * σ (.n 23) ∧
-        LoadHolds rd (σ (.n 24)) 0 (σ (.n 25)) ∧ σ (.n 21) = σ (.n 26) * σ (.n 25) ∧
-        coreProgram.Rel rd "assert_small_g_power" [σ (.n 26), σ (.n 1)] [])) ∧
-      σ (.n 27) = σ (.n 4) ∧ [σ (.n 27)] = rets := by
+      σ (.n 37) = word (2 ^ 33) 0 ∧
+      (LoadHolds rd (σ (.n 36)) 0 (σ (.n 39)) ∧ σ (.n 37) = σ (.n 36) * σ (.n 38) ∧
+        LoadHolds rd (σ (.n 38)) 0 (σ (.n 40))) ∧
+      σ (.n 41) = word (2 ^ 33) 0 ∧ σ (.n 42) = word (2 ^ fl) 0 ∧
+      σ (.n 36) = σ (.n 43) * σ (.n 42) ∧
+      (LoadHolds rd (σ (.n 43)) 0 (σ (.n 45)) ∧ σ (.n 41) = σ (.n 43) * σ (.n 44) ∧
+        LoadHolds rd (σ (.n 44)) 0 (σ (.n 46))) ∧
+      σ (.n 47) = σ (.n 1) * σ (.n 36) ∧ LoadHolds rd (σ (.n 47)) 0 (σ (.n 48)) ∧
+      σ (.n 48) = σ (.n 49) * σ (.n 0) ∧
+      coreProgram.Rel rd "assert_small_g_power" [σ (.n 49), σ (.n 1)] [] ∧
+      σ (.n 50) = word (2 ^ fl) 0 ∧ σ (.n 51) = σ (.n 36) + σ (.n 50) ∧
+      (IsInK (σ (.n 51)) ∧ (σ (.n 51) ≠ 0 →
+        σ (.n 52) = invGenWord ∧ σ (.n 53) = σ (.n 0) * σ (.n 52) ∧ σ (.n 54) = invGenWord ∧
+        σ (.n 55) = σ (.n 36) * σ (.n 54) ∧ σ (.n 56) = σ (.n 1) * σ (.n 55) ∧
+        LoadHolds rd (σ (.n 56)) 0 (σ (.n 57)) ∧ σ (.n 53) = σ (.n 58) * σ (.n 57) ∧
+        coreProgram.Rel rd "assert_small_g_power" [σ (.n 58), σ (.n 1)] [])) ∧
+      σ (.n 59) = σ (.n 36) ∧ [σ (.n 59)] = rets := by
   rw [rel_iff_sem hfind, hbody, hparams, lcBody]
   simp only [Stmt.HoldsList]
-  simp only [holds_ite_noRet (.n 19) [] lcMin rfl rfl]
+  simp only [holds_ite_noRet (.n 51) [] lcMin rfl rfl]
   simp only [lcMin, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     and_true, implies_true]
 
@@ -175,7 +174,7 @@ theorem log2_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
   have wfl : word (2 ^ fl) 0 = gen ^ fl := word_two_pow (by omega)
   rw [lc_unfold fl hfind hparams hbody]
   constructor
-  · rintro ⟨σ, hp, -, h5, r1, h9, h10, m4, r2, h15, l16, m16, c17, h18, h19, ⟨-, hmin⟩, h27,
+  · rintro ⟨σ, hp, h5, r1, h9, h10, m4, r2, h15, l16, m16, c17, h18, h19, ⟨-, hmin⟩, h27,
       hret⟩
     simp only [List.cons.injEq, and_true] at hp
     obtain ⟨rfl, rfl⟩ := hp
@@ -191,7 +190,7 @@ theorem log2_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
     have hs := lc_square ht hL l16
     refine ⟨L, by omega, hL, ⟨e, he, ?_⟩, fun hne ↦ ?_, ?_⟩
     · rw [← hs, m16, h17, mul_comm]
-    · have h19' : σ (.n 19) ≠ 0 := by
+    · have h19' : σ (.n 51) ≠ 0 := by
         rw [h19, h18, hxL, wfl]
         intro h0
         exact hne (gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0))
@@ -231,12 +230,12 @@ theorem log2_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
       · exact ⟨0, fun h ↦ absurd hne h⟩
       · obtain ⟨e', h⟩ := hmin hne
         exact ⟨e', fun _ ↦ h⟩
-    let w : ℕ → E := fun i ↦ [gN, q, word (2 ^ 34) 0, 0, gen ^ L, word (2 ^ 33) 0, y1, t1, t2,
+    let w : ℕ → E := fun i ↦ ([gN, q] ++ List.replicate 34 0 ++ [gen ^ L, word (2 ^ 33) 0, y1, t1, t2,
       word (2 ^ 33) 0, word (2 ^ fl) 0, gen ^ (L - fl), y2, u1, u2, q * gen ^ L,
       gen ^ 2 ^ L, gen ^ e, word (2 ^ fl) 0, gen ^ L + word (2 ^ fl) 0, invGenWord,
       gN * invGenWord, invGenWord, gen ^ L * invGenWord, q * (gen ^ L * invGenWord),
-      gen ^ 2 ^ (L - 1), gen ^ e', gen ^ L].getD i 0
-    refine ⟨fun v ↦ w v.idx, rfl, rfl, rfl, r1, rfl, rfl, ?_, r2, rfl, hsq, ?_, ?_, rfl, rfl,
+      gen ^ 2 ^ (L - 1), gen ^ e', gen ^ L]).getD i 0
+    refine ⟨fun v ↦ w v.idx, rfl, rfl, r1, rfl, rfl, ?_, r2, rfl, hsq, ?_, ?_, rfl, rfl,
       ⟨?_, fun h0 ↦ ?_⟩, rfl, rfl⟩
     · show gen ^ L = gen ^ (L - fl) * word (2 ^ fl) 0
       rw [wfl, ← pow_add, Nat.sub_add_cancel hfL]

@@ -40,20 +40,6 @@ end
 
 end LeanVM.Guest.ModePack.«P16»
 
-namespace LeanVM.Guest.ModePack.«P24»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
-  Mode.fa_cons (resOk_exc (by simp [resExc]))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P24»
-
 namespace LeanVM.Guest.ModePack.«P29»
 
 open LeanVM.Guest LeanVM.Guest.Res
@@ -137,20 +123,6 @@ theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
 end
 
 end LeanVM.Guest.ModePack.«P54»
-
-namespace LeanVM.Guest.ModePack.«P57»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
-  Mode.fa_cons (resOk_exc (by simp [resExc]))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P57»
 
 namespace LeanVM.Guest.ModePack.«P61»
 

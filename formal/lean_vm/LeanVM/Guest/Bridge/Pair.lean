@@ -233,13 +233,14 @@ theorem allocDsts_of_mem {es : List Ev} {a : Atom} {p : V} (ha : Ev.atom a ∈ e
   | _ => simp [allocOf] at hp
 
 /-- **What the data check gives of a computed hint on a path**: its frame values at their
-certificate cells in the frame, its buffer from offset `0`, of length in `(0, 2^30)`, its pointer at
+certificate cells in the frame or at hint-only cells in it, its buffer from offset `0`, of length in `(0, 2^30)`, its pointer at
 its certificate cell or a hint-only cell, allocated on the path and written whole by a heap hint on
 it. -/
 theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {body : List Stmt}
     (hc : pairChk extra locs n body = true) {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs)
     {h : Core.Hint} (hh : Ev.atom (.hint h) ∈ es) (hcomp : compHint h = true) :
-    (∀ v ∈ hintFrame h, extra.lookup v.idx = none ∧ v.idx < 2 ^ 30 ∧ 2 ≤ locs.getD v.idx 0 ∧ locs.getD v.idx 0 < n) ∧
+    (∀ v ∈ hintFrame h, (extra.lookup v.idx = none ∧ v.idx < 2 ^ 30 ∧ 2 ≤ locs.getD v.idx 0 ∧ locs.getD v.idx 0 < n) ∨
+      ∃ c, extra.lookup v.idx = some c ∧ 2 ≤ c ∧ c < n) ∧
     ∀ p off len, hintBuf h = some (p, off, len) → off = 0 ∧ 0 < len ∧ len < 2 ^ 30 ∧
       ((extra.lookup p.idx = none ∧ p.idx < 2 ^ 30 ∧ 2 ≤ locs.getD p.idx 0 ∧ locs.getD p.idx 0 < n) ∨
         (extra.lookup p.idx).isSome) ∧
@@ -250,7 +251,14 @@ theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {b
     exact ⟨hv.1.1.1, hv.1.1.2, hv.1.2, hv.2⟩
   have hok := blockAll_sound _ body hc _ (walk_atoms body (by rw [hw]; exact hh))
   simp only [pairAtomOk, hcomp, Bool.not_true, Bool.false_or, Bool.and_eq_true, List.all_eq_true] at hok
-  refine ⟨fun v hv ↦ hcell v (hok.1 v hv), fun p off len hb ↦ ?_⟩
+  have hextra : ∀ v, hintOnlyOk extra n v = true → ∃ c, extra.lookup v.idx = some c ∧ 2 ≤ c ∧ c < n := fun v hv ↦ by
+    unfold hintOnlyOk at hv
+    split at hv
+    · rename_i c hc
+      simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hv
+      exact ⟨c, hc, hv⟩
+    · cases hv
+  refine ⟨fun v hv ↦ (Bool.or_eq_true_iff.mp (hok.1 v hv)).imp (hcell v) (hextra v), fun p off len hb ↦ ?_⟩
   have h2 := hok.2
   rw [hb] at h2
   simp only [bufOk, Bool.and_eq_true, Nat.beq_eq, Nat.blt_eq, Bool.or_eq_true, List.any_eq_true,

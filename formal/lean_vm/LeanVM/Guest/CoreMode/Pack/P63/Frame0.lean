@@ -78,7 +78,7 @@ def Fn.«child_claim_list_mono».frameCallee0 : List ℕ := [Fn.«child_claim_li
     Fn.«child_claim_list_mono_last__L13».entry, Fn.«child_claim_list_mono_last__L14».entry,
     Fn.«child_claim_list_mono_last__L15».entry, Fn.«child_claim_list_mono_last__L16».entry]
 noncomputable def Fn.«child_claim_list_mono».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«child_claim_list_mono».entry, 74,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«child_claim_list_mono».entry, 76,
     Fn.«child_claim_list_mono».csig, (CoreMode.sigTrie [Fn.«child_claim_list_mono_last__L0».csig,
     Fn.«child_claim_list_mono_last__L10».csig, Fn.«child_claim_list_mono_last__L11».csig,
     Fn.«child_claim_list_mono_last__L12».csig, Fn.«child_claim_list_mono_last__L13».csig,

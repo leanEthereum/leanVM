@@ -606,8 +606,8 @@ def wcertTTllr : NTree (Cert) :=
     .leaf
     .leaf)
     .leaf)
-    (.node 309 (.stat [] ⟨206, []⟩ [(.n 2, 34)])
-    (.node 308 (.stat [] ⟨205, []⟩ [(.n 2, 34)])
+    (.node 309 (.stat [] ⟨204, []⟩ [])
+    (.node 308 (.stat [] ⟨203, []⟩ [])
     .leaf
     .leaf)
     .leaf))
@@ -3169,8 +3169,8 @@ def womegaTTlll : NTree (ℕ) :=
     (.node 36 (18)
     (.node 30 (13)
     (.node 27 (42)
-    (.node 26 (48)
-    (.node 25 (59)
+    (.node 26 (50)
+    (.node 25 (61)
     .leaf
     .leaf)
     .leaf)
@@ -3724,7 +3724,7 @@ def womegaTTllr : NTree (ℕ) :=
     .leaf
     .leaf)
     .leaf)))
-    (.node 308 (35)
+    (.node 308 (67)
     (.node 305 (23)
     (.node 304 (32)
     (.node 303 (32)
@@ -3738,7 +3738,7 @@ def womegaTTllr : NTree (ℕ) :=
     .leaf))
     (.node 311 (362)
     (.node 310 (53)
-    (.node 309 (36)
+    (.node 309 (68)
     .leaf
     .leaf)
     .leaf)

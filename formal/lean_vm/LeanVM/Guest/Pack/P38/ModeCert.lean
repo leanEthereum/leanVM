@@ -27,7 +27,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `verify_bus_gkr`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(189579, Fn.«verify_bus_gkr_loop1».csig), (189352,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(189583, Fn.«verify_bus_gkr_loop1».csig), (189356,
     Fn.«verify_bus_gkr_loop0».csig)]
 
 end LeanVM.Guest.Fn.«verify_bus_gkr»

@@ -27,17 +27,17 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `child_claim_list_any`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(242351,
-    Fn.«child_claim_list_last__L15».csig), (240663, Fn.«child_claim_list_last__L7».csig), (240151,
-    Fn.«child_claim_list_last__L1».csig), (240195, Fn.«child_claim_list_last__L2».csig), (240249,
-    Fn.«child_claim_list_last__L3».csig), (240533, Fn.«child_claim_list_last__L6».csig), (242077,
-    Fn.«child_claim_list_last__L14».csig), (241584, Fn.«child_claim_list_last__L12».csig), (237304,
-    Fn.«child_claim_list_any_loop0».csig), (240420, Fn.«child_claim_list_last__L5».csig), (241364,
-    Fn.«child_claim_list_last__L11».csig), (240812, Fn.«child_claim_list_last__L8».csig), (240978,
-    Fn.«child_claim_list_last__L9».csig), (242642, Fn.«child_claim_list_last__L16».csig), (241162,
-    Fn.«child_claim_list_last__L10».csig), (240330, Fn.«child_claim_list_last__L4».csig)],
-    [(239770, Fn.«child_claim_list_any_loop1».csig), (241822,
-    Fn.«child_claim_list_last__L13».csig), (240126, Fn.«child_claim_list_last__L0».csig)]])
+kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(242079,
+    Fn.«child_claim_list_last__L14».csig), (240535, Fn.«child_claim_list_last__L6».csig), (240251,
+    Fn.«child_claim_list_last__L3».csig), (242353, Fn.«child_claim_list_last__L15».csig), (240665,
+    Fn.«child_claim_list_last__L7».csig), (240153, Fn.«child_claim_list_last__L1».csig), (240197,
+    Fn.«child_claim_list_last__L2».csig), (240128, Fn.«child_claim_list_last__L0».csig), (241824,
+    Fn.«child_claim_list_last__L13».csig), (240980, Fn.«child_claim_list_last__L9».csig), (242644,
+    Fn.«child_claim_list_last__L16».csig), (241164, Fn.«child_claim_list_last__L10».csig), (240332,
+    Fn.«child_claim_list_last__L4».csig), (239772, Fn.«child_claim_list_any_loop1».csig), (241586,
+    Fn.«child_claim_list_last__L12».csig), (237306, Fn.«child_claim_list_any_loop0».csig)],
+    [(240422, Fn.«child_claim_list_last__L5».csig), (241366, Fn.«child_claim_list_last__L11».csig),
+    (240814, Fn.«child_claim_list_last__L8».csig)]])
 
 end LeanVM.Guest.Fn.«child_claim_list_any»
 

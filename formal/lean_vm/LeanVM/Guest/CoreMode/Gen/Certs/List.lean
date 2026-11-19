@@ -131,9 +131,7 @@ noncomputable def offSigs : List (ℕ × Mode.Sig) :=
     (Fn.«claim_list_digest».entry, Fn.«claim_list_digest».csig),
     (Fn.«child_claim_list_any».entry, Fn.«child_claim_list_any».csig),
     (Fn.«child_claim_list_mono».entry, Fn.«child_claim_list_mono».csig),
-    (Fn.«da_verify».entry, Fn.«da_verify».csig),
-    (Fn.«log2_ceil_in_the_exponent__L0_L34».entry, Fn.«log2_ceil_in_the_exponent__L0_L34».csig),
-    (Fn.«log2_ceil_in_the_exponent__L16_L34».entry, Fn.«log2_ceil_in_the_exponent__L16_L34».csig)]
+    (Fn.«da_verify».entry, Fn.«da_verify».csig)]
 
 end
 
@@ -972,14 +970,16 @@ theorem «level_residual__L25_L9_L4_L2_loop1».modeCert_in : «level_residual__L
   EndExec.CertE.mem (ls := CoreMode.corePacks) «level_residual__L25_L9_L4_L2_loop1».ce (list_mem% 17) (list_mem% 16)
 theorem «level_residual__L37_L15_L4_L2_loop1».modeCert_in : «level_residual__L37_L15_L4_L2_loop1».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «level_residual__L37_L15_L4_L2_loop1».ce (list_mem% 17) (list_mem% 17)
+theorem «log2_ceil_in_the_exponent__L16_L34».modeCert_in : «log2_ceil_in_the_exponent__L16_L34».modeCert ∈ CoreMode.coreCerts :=
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «log2_ceil_in_the_exponent__L16_L34».ce (list_mem% 17) (list_mem% 18)
 theorem «main_loop3».modeCert_in : «main_loop3».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «main_loop3».ce (list_mem% 17) (list_mem% 18)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «main_loop3».ce (list_mem% 17) (list_mem% 19)
 theorem «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in : «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».ce (list_mem% 17) (list_mem% 19)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».ce (list_mem% 17) (list_mem% 20)
 theorem «padding_weight__L30».modeCert_in : «padding_weight__L30».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «padding_weight__L30».ce (list_mem% 17) (list_mem% 20)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «padding_weight__L30».ce (list_mem% 17) (list_mem% 21)
 theorem «plus_one_run__L33».modeCert_in : «plus_one_run__L33».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «plus_one_run__L33».ce (list_mem% 17) (list_mem% 21)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «plus_one_run__L33».ce (list_mem% 17) (list_mem% 22)
 theorem «block_selector__L32».modeCert_in : «block_selector__L32».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «block_selector__L32».ce (list_mem% 18) (list_mem% 0)
 theorem «block_selector_tab__L21».modeCert_in : «block_selector_tab__L21».modeCert ∈ CoreMode.coreCerts :=
@@ -2696,10 +2696,12 @@ theorem «level_residual__L32_L12_L4_L2_loop0».modeCert_in : «level_residual__
   EndExec.CertE.mem (ls := CoreMode.corePacks) «level_residual__L32_L12_L4_L2_loop0».ce (list_mem% 53) (list_mem% 18)
 theorem «level_residual__L55_L18_L6_L3_loop0».modeCert_in : «level_residual__L55_L18_L6_L3_loop0».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «level_residual__L55_L18_L6_L3_loop0».ce (list_mem% 53) (list_mem% 19)
+theorem «log2_ceil_in_the_exponent__L0_L34».modeCert_in : «log2_ceil_in_the_exponent__L0_L34».modeCert ∈ CoreMode.coreCerts :=
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «log2_ceil_in_the_exponent__L0_L34».ce (list_mem% 53) (list_mem% 20)
 theorem «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».modeCert_in : «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».ce (list_mem% 53) (list_mem% 20)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».ce (list_mem% 53) (list_mem% 21)
 theorem «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».modeCert_in : «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».modeCert ∈ CoreMode.coreCerts :=
-  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».ce (list_mem% 53) (list_mem% 21)
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».ce (list_mem% 53) (list_mem% 22)
 theorem «aggregate_claims_loop1».modeCert_in : «aggregate_claims_loop1».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «aggregate_claims_loop1».ce (list_mem% 54) (list_mem% 0)
 theorem «block_selector__L15».modeCert_in : «block_selector__L15».modeCert ∈ CoreMode.coreCerts :=

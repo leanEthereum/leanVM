@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `da_padding`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨63159, 11, Fn.«da_padding».csig, (.node none .nil (.node (some [(.inverse 5 6)]) .nil .nil)),
+  ⟨63163, 11, Fn.«da_padding».csig, (.node none .nil (.node (some [(.inverse 5 6)]) .nil .nil)),
     .nil, .nil, false, .nil⟩
 
 /-- `da_padding`: its mode walk accepts its code. -/

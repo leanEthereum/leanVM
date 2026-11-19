@@ -27,10 +27,10 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `verify_keccak`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(209695, Fn.«verify_keccak_loop2».csig), (209489,
-    Fn.«keccak_plain_rounds__L6_L0».csig), (206248, Fn.«verify_keccak_loop0».csig), (206268,
-    Fn.«keccak_layer__L1».csig), (207714, Fn.«keccak_layer__L0».csig), (209594,
-    Fn.«verify_keccak_loop1».csig), (209614, Fn.«keccak_plain_rounds__L4_L1».csig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(209699, Fn.«verify_keccak_loop2».csig), (209493,
+    Fn.«keccak_plain_rounds__L6_L0».csig), (206272, Fn.«keccak_layer__L1».csig), (206252,
+    Fn.«verify_keccak_loop0».csig), (209618, Fn.«keccak_plain_rounds__L4_L1».csig), (207718,
+    Fn.«keccak_layer__L0».csig), (209598, Fn.«verify_keccak_loop1».csig)]
 
 end LeanVM.Guest.Fn.«verify_keccak»
 

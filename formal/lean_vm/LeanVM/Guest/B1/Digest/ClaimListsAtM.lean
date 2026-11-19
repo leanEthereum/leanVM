@@ -243,7 +243,7 @@ theorem child_claim_list_digest_completeAtTB_any (fs : String → ℕ) (cert : S
   have hok : KidsDTB fs cert κ (ccKidsM Lin eP rg L n base (keccak256 (cellsBytes cells)) false)
       (ccTsM false n) [SB "list_split", anyB fs n] :=
     ⟨fun _ => list_split_nB fs cert hκ hn hLS,
-      fun _ => child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtTB fs cert hκ hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonemptyM fs cert (by omega) hn (mono := false) (h := h) (fun h => absurd h (by simp))
       (fun _ => hh) fp (kidsAt_of_kidsDTB hok _)
@@ -276,7 +276,7 @@ theorem child_claim_list_digest_completeAtTB_mono (fs : String → ℕ) (cert : 
   have hok : KidsDTB fs cert κ (ccKidsM Lin eP rg L n base (keccak256 (cellsBytes cells)) true)
       (ccTsM true n) [SB "list_split", monoB fs n] :=
     ⟨fun _ => list_split_nB fs cert hκ hn hLS,
-      fun _ => child_claim_list_mono_completeAtTB fs cert hn hl hLκ hinc hend hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_mono_completeAtTB fs cert hκ hn hl hLκ hinc hend hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonemptyM fs cert (by omega) hn (mono := true) (h := gen) (fun _ => rfl)
       (fun h => absurd h (by simp)) fp (kidsAt_of_kidsDTB hok _)

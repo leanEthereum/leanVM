@@ -40,20 +40,6 @@ end
 
 end LeanVM.Guest.ModePack.«P16»
 
-namespace LeanVM.Guest.ModePack.«P24»
-
-open LeanVM.Guest LeanVM.Guest.EndExec
-
-public section
-
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := 310) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P24»
-
 namespace LeanVM.Guest.ModePack.«P29»
 
 open LeanVM.Guest LeanVM.Guest.EndExec
@@ -137,20 +123,6 @@ theorem certs_term : ∀ K ∈ certs, TermOk K :=
 end
 
 end LeanVM.Guest.ModePack.«P54»
-
-namespace LeanVM.Guest.ModePack.«P57»
-
-open LeanVM.Guest LeanVM.Guest.EndExec
-
-public section
-
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := 309) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P57»
 
 namespace LeanVM.Guest.ModePack.«P61»
 

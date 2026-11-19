@@ -27,17 +27,17 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `claim_list_digest`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(235701,
-    Fn.«claim_list_last__L0».csig), (236333, Fn.«claim_list_last__L10».csig), (236445,
-    Fn.«claim_list_last__L11».csig), (61181, Fn.«list_split».csig), (234256,
-    Fn.«claim_list_digest_loop0».csig), (236136, Fn.«claim_list_last__L8».csig), (236696,
-    Fn.«claim_list_last__L13».csig), (235852, Fn.«claim_list_last__L4».csig), (235906,
-    Fn.«claim_list_last__L5».csig), (236834, Fn.«claim_list_last__L14».csig), (236050,
-    Fn.«claim_list_last__L7».csig), (237138, Fn.«claim_list_last__L16».csig), (235762,
-    Fn.«claim_list_last__L2».csig), (235498, Fn.«claim_list_digest_loop1».csig), (236230,
-    Fn.«claim_list_last__L9».csig), (235974, Fn.«claim_list_last__L6».csig)], [(236566,
-    Fn.«claim_list_last__L12».csig), (235798, Fn.«claim_list_last__L3».csig), (236982,
-    Fn.«claim_list_last__L15».csig), (235726, Fn.«claim_list_last__L1».csig)]])
+kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(236447,
+    Fn.«claim_list_last__L11».csig), (236335, Fn.«claim_list_last__L10».csig), (235703,
+    Fn.«claim_list_last__L0».csig), (61181, Fn.«list_split».csig), (235728,
+    Fn.«claim_list_last__L1».csig), (236232, Fn.«claim_list_last__L9».csig), (235976,
+    Fn.«claim_list_last__L6».csig), (236568, Fn.«claim_list_last__L12».csig), (235800,
+    Fn.«claim_list_last__L3».csig), (236984, Fn.«claim_list_last__L15».csig), (235908,
+    Fn.«claim_list_last__L5».csig), (236836, Fn.«claim_list_last__L14».csig), (236052,
+    Fn.«claim_list_last__L7».csig), (237140, Fn.«claim_list_last__L16».csig), (235764,
+    Fn.«claim_list_last__L2».csig), (235500, Fn.«claim_list_digest_loop1».csig)], [(234258,
+    Fn.«claim_list_digest_loop0».csig), (236138, Fn.«claim_list_last__L8».csig), (236698,
+    Fn.«claim_list_last__L13».csig), (235854, Fn.«claim_list_last__L4».csig)]])
 
 end LeanVM.Guest.Fn.«claim_list_digest»
 

@@ -66,7 +66,8 @@ theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem anyPost_eq : anyPost = [.atom (.copy (.n 66) (.n 64)), .atom (.copy (.n 67) (.n 65))] :=
+theorem anyPost_eq : anyPost = [.atom (.touch (.n 66) (.n 4)), .atom (.touch (.n 67) (.n 5)),
+    .atom (.copy (.n 68) (.n 64)), .atom (.copy (.n 69) (.n 65))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem anyPost_straight : anyPost.all Main.Stmt.straight = true := by rw [anyPost_eq]; rfl
@@ -105,7 +106,7 @@ theorem any_param (σ : Val) : (Fn.params fn% «child_claim_list_any»).map σ =
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] := rfl
 
 theorem any_body : Fn.body fn% «child_claim_list_any» =
-    anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n 66, .n 67]]) := by
+    anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n 68, .n 69]]) := by
   rw [child_claim_list_any_shape, anyFlat_split]; simp
 
 theorem cclNames_get {r : ℕ} (hr : r < 17) : cclNames[r]! = cclNames.getD r "" := by
@@ -122,7 +123,8 @@ noncomputable def anyCOk : Bool :=
   (chk 7 anyFlat).isSome &&
   SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (18 + c)) (.n 17) c)) &&
   (atomsIn anyFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
-    atomEqb a (.mul (.n 3) (.n 8) (.n 7)))
+    atomEqb a (.mul (.n 3) (.n 8) (.n 7)) || atomEqb a (.touch (.n 66) (.n 4)) ||
+    atomEqb a (.touch (.n 67) (.n 5)))
 
 set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
@@ -162,16 +164,17 @@ structure AnyVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain : 
   v63 : σ (.n 63) = σ (.n 2) * gen ^ (136 * a + 17 * b)
   v64 : σ (.n 64) = (digestHalves D).1
   v65 : σ (.n 65) = (digestHalves D).2
-  v66 : σ (.n 66) = (digestHalves D).1
-  v67 : σ (.n 67) = (digestHalves D).2
+  v68 : σ (.n 68) = (digestHalves D).1
+  v69 : σ (.n 69) = (digestHalves D).2
 
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any`'s valuation**: on a memory holding the zero state at the chain
-buffer. -/
+buffer and defined below `2^20`, where its checks of `g^a` and `g^b` read. -/
 theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Digest)
-    (hz0 : StateAt rd chain 0 zeroState) :
+    (hz0 : StateAt rd chain 0 zeroState) (hlow : LowDef 20 rd) (ha : a < 2 ^ 20)
+    (hb20 : b < 2 ^ 20) :
     AnyVals rd (anyσ rd [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] chain D)
       [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] a b chain D := by
   have hk := anyc_ok
@@ -180,7 +183,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   have hb := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hb
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, hdis⟩, -⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,
-    hzs⟩, hm39⟩, hm48⟩, hm57⟩, hm63⟩, hc66⟩, hc67⟩ := hb
+    hzs⟩, hm39⟩, hm48⟩, hm57⟩, hm63⟩, hc68⟩, hc69⟩ := hb
   set w := anyw chain D with hw
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp hchk1
   let args : List E := [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c]
@@ -209,11 +212,13 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
     obtain ⟨rfl, he⟩ := hp
     have hgx' : σ (.n (18 + c)) = _ := hgx
     rw [hgx', eEqb_sound he, word_zero]
+  have e4 : σ (.n 4) = gen ^ a := par 4 (by omega)
+  have e5 : σ (.n 5) = gen ^ b := par 5 (by omega)
   have hat : ∀ x ∈ atomsIn anyFlat, x.Holds rd σ := by
     refine atoms_holds_stores hg (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
     · have := List.all_eq_true.mp hside x hx
       simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at this
-      rcases this with (h | h) | h
+      rcases this with (((h | h) | h) | h) | h
       · rw [hns] at h; exact absurd h (by simp)
       · exact absurd h hnS
       · rw [atomEqb_sound h]
@@ -221,6 +226,16 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
         show if (8 : ℕ) < 3 ∧ (7 : ℕ) < 3 then True else σ (.n 7) ≠ 0
         rw [ite_neg' (by omega), v7]
         exact gen_ne_zero
+      · right; rw [atomEqb_sound h]
+        obtain ⟨t, ht⟩ := Sig.load_gpow hlow ha
+        rw [← gen_pow_eq_ofK] at ht
+        show IsInK (σ (.n 4)) ∧ (rd ((σ (.n 4)).limb 0 * addressOfIndex 0)).isSome
+        rw [e4]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
+      · right; rw [atomEqb_sound h]
+        obtain ⟨t, ht⟩ := Sig.load_gpow hlow hb20
+        rw [← gen_pow_eq_ofK] at ht
+        show IsInK (σ (.n 5)) ∧ (rd ((σ (.n 5)).limb 0 * addressOfIndex 0)).isSome
+        rw [e5]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
     · obtain ⟨c, hc', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp hst x hxS)
       rw [atomEqb_sound he]
       have hc13 := List.mem_range.mp hc'
@@ -237,8 +252,6 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   have v65 : σ (.n 65) = (digestHalves D).2 := by
     rw [gd _ (by simp), hw]; simp [anyw]
   have e2 : σ (.n 2) = base := par 2 (by omega)
-  have e4 : σ (.n 4) = gen ^ a := par 4 (by omega)
-  have e5 : σ (.n 5) = gen ^ b := par 5 (by omega)
   have q3 : σ (.n 3) = σ (.n 8) * σ (.n 7) := hat _ s3
   have q9 : σ (.n 9) = σ (.n 4) * σ (.n 5) := hat _ s9
   have q10 : σ (.n 10) = word 2 0 := hat _ s10
@@ -266,8 +279,8 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   · rw [mono2Is_sound hm57 hat, v17, e4, e5, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add,
       Nat.mul_add]
   · rw [mono2Is_sound hm63 hat, e4, e5, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add]
-  · rw [copy_sound hc66 hat, v64]
-  · rw [copy_sound hc67 hat, v65]
+  · rw [copy_sound hc68 hat, v64]
+  · rw [copy_sound hc69 hat, v65]
 
 /-! ## The events of a body with a dispatch -/
 

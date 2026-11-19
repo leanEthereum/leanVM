@@ -23,15 +23,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop1_child_claim_list_mono`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
     none .nil (.node (some Fn.«child_claim_list_mono_loop1».csig) .nil .nil))) .nil))))) .nil))
-    .nil) .nil) .nil)) .nil) .nil)) .nil), 524287⟩
+    .nil) .nil) .nil)) .nil)) .nil) .nil), 524287⟩
 
 /-- `__loop1_child_claim_list_mono`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨245009, 307, Fn.«child_claim_list_mono_loop1».csig, (.node none (.node none (.node none (.node
+  ⟨245011, 307, Fn.«child_claim_list_mono_loop1».csig, (.node none (.node none (.node none (.node
     none (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_gap"
     176 1)]) .nil .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_gap" 128 1)])
     .nil .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_gap" 104 1)]) .nil

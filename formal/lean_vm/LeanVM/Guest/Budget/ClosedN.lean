@@ -45,7 +45,7 @@ elsewhere, where no child of a node within `Limits`, its caps agreeing and no ze
 (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [380471, 380074, 383039, 387088, 397705, 403017, 411604, 417635, 425182, 428481, 431456].getD (μ - 20) 0
+    [380467, 380070, 383035, 387084, 397701, 403013, 411600, 417631, 425178, 428477, 431452].getD (μ - 20) 0
   else 0
 
 /-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/

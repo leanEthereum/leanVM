@@ -27,7 +27,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop0_child_claim_list_mono`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(242952, Fn.«child_claim_list_mono_loop0».csig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(242954, Fn.«child_claim_list_mono_loop0».csig)]
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 

@@ -27,20 +27,21 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `child_claim_list_mono`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(246495,
-    Fn.«child_claim_list_mono_last__L11».csig), (245009, Fn.«child_claim_list_mono_loop1».csig),
-    (246313, Fn.«child_claim_list_mono_last__L10».csig), (245856,
-    Fn.«child_claim_list_mono_last__L7».csig), (245456, Fn.«child_claim_list_mono_last__L3».csig),
-    (242952, Fn.«child_claim_list_mono_loop0».csig), (246904,
-    Fn.«child_claim_list_mono_last__L13».csig), (245316, Fn.«child_claim_list_mono_last__L0».csig),
-    (246692, Fn.«child_claim_list_mono_last__L12».csig), (247372,
-    Fn.«child_claim_list_mono_last__L15».csig), (247628,
-    Fn.«child_claim_list_mono_last__L16».csig), (246146, Fn.«child_claim_list_mono_last__L9».csig),
-    (245538, Fn.«child_claim_list_mono_last__L4».csig), (245346,
-    Fn.«child_claim_list_mono_last__L1».csig), (245994, Fn.«child_claim_list_mono_last__L8».csig),
-    (247130, Fn.«child_claim_list_mono_last__L14».csig)], [(245626,
-    Fn.«child_claim_list_mono_last__L5».csig), (245734, Fn.«child_claim_list_mono_last__L6».csig),
-    (245398, Fn.«child_claim_list_mono_last__L2».csig)]])
+kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(245011,
+    Fn.«child_claim_list_mono_loop1».csig), (246315, Fn.«child_claim_list_mono_last__L10».csig),
+    (246497, Fn.«child_claim_list_mono_last__L11».csig), (245736,
+    Fn.«child_claim_list_mono_last__L6».csig), (245400, Fn.«child_claim_list_mono_last__L2».csig),
+    (246148, Fn.«child_claim_list_mono_last__L9».csig), (245540,
+    Fn.«child_claim_list_mono_last__L4».csig), (245348, Fn.«child_claim_list_mono_last__L1».csig),
+    (245996, Fn.«child_claim_list_mono_last__L8».csig), (247132,
+    Fn.«child_claim_list_mono_last__L14».csig), (245628, Fn.«child_claim_list_mono_last__L5».csig),
+    (245858, Fn.«child_claim_list_mono_last__L7».csig), (245458,
+    Fn.«child_claim_list_mono_last__L3».csig), (242954, Fn.«child_claim_list_mono_loop0».csig),
+    (246906, Fn.«child_claim_list_mono_last__L13».csig), (245318,
+    Fn.«child_claim_list_mono_last__L0».csig)], [(246694,
+    Fn.«child_claim_list_mono_last__L12».csig), (247374,
+    Fn.«child_claim_list_mono_last__L15».csig), (247630,
+    Fn.«child_claim_list_mono_last__L16».csig)]])
 
 end LeanVM.Guest.Fn.«child_claim_list_mono»
 

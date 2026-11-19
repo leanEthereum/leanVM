@@ -27,9 +27,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `da_verify`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(63159, Fn.«da_padding».csig), (247927,
-    Fn.«da_levels__L32_L5».csig), (63731, Fn.«da_vector».csig), (63147, Fn.«da_pad».csig), (61608,
-    Fn.«da_weights».csig), (247900, Fn.«da_verify_loop0».csig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(63151, Fn.«da_pad».csig), (63735,
+    Fn.«da_vector».csig), (63163, Fn.«da_padding».csig), (247929, Fn.«da_levels__L32_L5».csig),
+    (61612, Fn.«da_weights».csig), (247902, Fn.«da_verify_loop0».csig)]
 
 end LeanVM.Guest.Fn.«da_verify»
 

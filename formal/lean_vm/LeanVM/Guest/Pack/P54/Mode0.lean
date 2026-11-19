@@ -29,29 +29,30 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_verify`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_padding».csig) .nil .nil)))) .nil))) .nil)) (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_levels__L32_L5».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil)
-    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_vector».csig) .nil .nil))))) .nil) .nil) .nil))))) (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_pad».csig)
-    .nil .nil)))) .nil))) .nil)) .nil)) .nil))) .nil) (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_weights».csig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil)) (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_verify_loop0».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil))
-    .nil)))) .nil)), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_pad».csig) .nil .nil)))) .nil))) .nil)) .nil))) (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_vector».csig) .nil .nil))))) .nil)
+    .nil) .nil)))))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_padding».csig) .nil .nil)))) .nil))) .nil)) .nil)))))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_levels__L32_L5».csig) .nil .nil)))) .nil)
+    .nil)) .nil) .nil) .nil) .nil))))) .nil)) (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_weights».csig) .nil
+    .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil))) (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_verify_loop0».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil)) .nil)))))),
+    524287⟩
 
 /-- `da_verify`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61545, 63, Fn.«da_verify».csig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
+  ⟨61549, 63, Fn.«da_verify».csig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
     (.node none (.node (some [(.witnessStack "da_challenge" 11 1)]) .nil .nil) .nil) (.node none
     (.node none (.node (some [(.alloc 19 649)]) .nil .nil) .nil) (.node none (.node none (.node
     (some [(.alloc 26 9)]) .nil .nil) .nil) .nil))) (.node (some [(.alloc 22 128), (.alloc 8 13)])

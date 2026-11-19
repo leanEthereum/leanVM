@@ -38,11 +38,11 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«verify_bus_gkr_loop0».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_bus_gkr_loop0_loop0».modeCert_in, rfl, rfl,
-    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«gkr_rounds__L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«verify_bus_gkr_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«gkr_rounds__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«gkr_rounds__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_bus_gkr_loop0_loop0».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_nil))))))
     (Mode.fa_nil)
 
@@ -73,26 +73,6 @@ end
 
 end LeanVM.Guest.ModePack.«P16»
 
-namespace LeanVM.Guest.ModePack.«P24»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«log2_ceil_in_the_exponent__L16_L34».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«assert_small_g_power».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code310 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P24»
-
 namespace LeanVM.Guest.ModePack.«P29»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -101,26 +81,26 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«claim_list_digest».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L10».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«list_split».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_digest_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L14».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L16».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_digest_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_digest_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«claim_list_last__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -143,12 +123,12 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_plain_rounds__L6_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_plain_rounds__L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))
     (Mode.fa_nil)
 
@@ -168,6 +148,12 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_any».modeSigs
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L14».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L6».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L3».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L15».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L7».modeCert_in, rfl, rfl,
@@ -176,21 +162,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L2».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L3».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L6».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L14».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L12».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_any_loop0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L5».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L11».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L8».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L13».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L9».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -202,9 +176,15 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_any_loop1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L13».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L12».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_any_loop0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L5».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L11».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_last__L8».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
     (Mode.fa_nil)
@@ -267,10 +247,10 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«da_verify».modeSigs
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_vector».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«da_padding».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_levels__L32_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_vector».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_weights».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_verify_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))
@@ -283,26 +263,6 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
 end
 
 end LeanVM.Guest.ModePack.«P54»
-
-namespace LeanVM.Guest.ModePack.«P57»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«log2_ceil_in_the_exponent__L0_L34».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«assert_small_g_power».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code309 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P57»
 
 namespace LeanVM.Guest.ModePack.«P61»
 
@@ -333,11 +293,27 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_mono».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L11».modeCert_in, rfl,
-    rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«child_claim_list_mono_loop1».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L10».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L11».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L6».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L2».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L9».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L4».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L1».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L8».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L14».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L5».modeCert_in, rfl,
     rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L7».modeCert_in, rfl,
     rfl, rfl⟩)
@@ -354,22 +330,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L15».modeCert_in, rfl,
     rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L16».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L9».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L4».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L1».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L8».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L14».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L5».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L6».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«child_claim_list_mono_last__L2».modeCert_in, rfl,
     rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
     (Mode.fa_nil)

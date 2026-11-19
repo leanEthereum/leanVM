@@ -11,37 +11,37 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«child_claim_list_last__L9».entry : Nat := 240978
-abbrev Fn.«column_selector__L13».entry : Nat := 210943
-abbrev Fn.«eq_prefix_run__L32».entry : Nat := 181272
-abbrev Fn.«grind_check__L21».entry : Nat := 254283
-abbrev Fn.«grind_check__L7».entry : Nat := 189300
-abbrev Fn.«index_mle__L23».entry : Nat := 202963
-abbrev Fn.«keccak_layer__L1_loop0».entry : Nat := 253631
-abbrev Fn.«keccak_plain_rounds__L6_L0».entry : Nat := 209489
-abbrev Fn.«level_positions__L37_L19_L7».entry : Nat := 262461
-abbrev Fn.«level_positions__L3_L19_L7_loop0».entry : Nat := 317095
-abbrev Fn.«level_positions__L6_L26_L2_loop0».entry : Nat := 394178
-abbrev Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».entry : Nat := 264753
-abbrev Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».entry : Nat := 273404
-abbrev Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».entry : Nat := 264475
-abbrev Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».entry : Nat := 271264
-abbrev Fn.«level_residual__L19_L10_L4_L2».entry : Nat := 270814
-abbrev Fn.«level_residual__L23_L11_L4_L2_loop1».entry : Nat := 339476
-abbrev Fn.«level_residual__L28_L16_L4_L2_loop1».entry : Nat := 403490
-abbrev Fn.«level_residual__L29_L6_L4_L2_loop1».entry : Nat := 288111
-abbrev Fn.«level_residual__L37_L17_L4_L2_loop0».entry : Nat := 359715
-abbrev Fn.«level_residual__L55_L10_L4_L2».entry : Nat := 256390
-abbrev Fn.«level_residual__L55_L14_L6_L3_loop0».entry : Nat := 284417
-abbrev Fn.«level_residual__L73_L17_L6_L3».entry : Nat := 261980
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».entry : Nat := 307711
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1».entry : Nat := 307757
-abbrev Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».entry : Nat := 411041
+abbrev Fn.«child_claim_list_last__L9».entry : Nat := 240980
+abbrev Fn.«column_selector__L13».entry : Nat := 210947
+abbrev Fn.«eq_prefix_run__L32».entry : Nat := 181276
+abbrev Fn.«grind_check__L21».entry : Nat := 254285
+abbrev Fn.«grind_check__L7».entry : Nat := 189304
+abbrev Fn.«index_mle__L23».entry : Nat := 202967
+abbrev Fn.«keccak_layer__L1_loop0».entry : Nat := 253633
+abbrev Fn.«keccak_plain_rounds__L6_L0».entry : Nat := 209493
+abbrev Fn.«level_positions__L37_L19_L7».entry : Nat := 262463
+abbrev Fn.«level_positions__L3_L19_L7_loop0».entry : Nat := 317097
+abbrev Fn.«level_positions__L6_L26_L2_loop0».entry : Nat := 394180
+abbrev Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».entry : Nat := 264755
+abbrev Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».entry : Nat := 273406
+abbrev Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».entry : Nat := 264477
+abbrev Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».entry : Nat := 271266
+abbrev Fn.«level_residual__L19_L10_L4_L2».entry : Nat := 270816
+abbrev Fn.«level_residual__L23_L11_L4_L2_loop1».entry : Nat := 339478
+abbrev Fn.«level_residual__L28_L16_L4_L2_loop1».entry : Nat := 403492
+abbrev Fn.«level_residual__L29_L6_L4_L2_loop1».entry : Nat := 288113
+abbrev Fn.«level_residual__L37_L17_L4_L2_loop0».entry : Nat := 359717
+abbrev Fn.«level_residual__L55_L10_L4_L2».entry : Nat := 256392
+abbrev Fn.«level_residual__L55_L14_L6_L3_loop0».entry : Nat := 284419
+abbrev Fn.«level_residual__L73_L17_L6_L3».entry : Nat := 261982
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».entry : Nat := 307713
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1».entry : Nat := 307759
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».entry : Nat := 411043
 abbrev Fn.«opening_tail_round».entry : Nat := 19521
-abbrev Fn.«padding_weight__L24».entry : Nat := 192534
-abbrev Fn.«plus_one_run__L5».entry : Nat := 194231
-abbrev Fn.«rs_eq_rows__L8».entry : Nat := 251683
-abbrev Fn.«walk_path__L18_L5».entry : Nat := 431049
+abbrev Fn.«padding_weight__L24».entry : Nat := 192538
+abbrev Fn.«plus_one_run__L5».entry : Nat := 194235
+abbrev Fn.«rs_eq_rows__L8».entry : Nat := 251685
+abbrev Fn.«walk_path__L18_L5».entry : Nat := 431051
 
 end
 

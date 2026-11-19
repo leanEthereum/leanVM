@@ -11,15 +11,15 @@ namespace LeanVMTests.Guest.Manifest
 def logSize : Nat := 19
 
 /-- The compiled functions' instructions. -/
-def codeLen : Nat := 457072
+def codeLen : Nat := 457074
 
 /-- The compiled functions. -/
 def functionCount : Nat := 1548
 
 /-- The instructions of each opcode (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`), the padding included. -/
-def opcodeCounts : List Nat := [97701, 123763, 126538, 76864, 20427, 78995]
+def opcodeCounts : List Nat := [97701, 123763, 126534, 76868, 20427, 78995]
 
 /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1)` limbs. -/
-def fsSeed : List (Nat × Nat) := [(4403540474148477614, 18435807361635525711), (11940447140976156451, 3335071951361451429)]
+def fsSeed : List (Nat × Nat) := [(8871179597907621129, 5320521364634965770), (2758234497537430711, 13474883732329317910)]
 
 end LeanVMTests.Guest.Manifest

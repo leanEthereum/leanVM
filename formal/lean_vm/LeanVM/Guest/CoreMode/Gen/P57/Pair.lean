@@ -62,7 +62,7 @@ noncomputable def Fn.«level_residual__L32_L12_L4_L2_loop0».pairO : Exec.Trie U
 noncomputable def Fn.«level_residual__L32_L12_L4_L2_loop0».pairS : Exec.Trie Unit := CoreMode.offsT [516, 517]
 noncomputable def Fn.«level_residual__L55_L18_L6_L3_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [6, 7, 8, 11, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81, 87, 93, 99, 105, 111, 117, 118, 121, 122, 125, 126, 139, 228, 317, 406, 495, 584, 673]
 noncomputable def Fn.«level_residual__L55_L18_L6_L3_loop0».pairS : Exec.Trie Unit := CoreMode.offsT [762, 763]
-noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».pairO : Exec.Trie Unit := CoreMode.offsT [11, 30]
+noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».pairO : Exec.Trie Unit := CoreMode.offsT [10, 29]
 noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».pairS : Exec.Trie Unit := CoreMode.offsT []
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [1, 3, 30, 31, 50, 51, 62, 63, 70, 71, 88, 89, 92, 93, 96, 97, 100, 101, 104, 105, 108, 109, 112, 113, 116, 117, 120, 121, 124, 125]
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».pairS : Exec.Trie Unit := CoreMode.offsT []
