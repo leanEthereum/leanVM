@@ -50,15 +50,16 @@ def run(check):
     groups = {}
     for j, (k, _, _) in sorted(lk.items()):
         b, c, size = pk[k]
-        mod = f'H{j}' if size > LONG else f'P_{b}'
+        mod = f'H_{k}' if size > LONG else f'P_{b}'
         groups.setdefault(mod, []).append((j, k, b, c))
     for mod, fns in sorted(groups.items()):
         imps = {'LeanVM.Guest.Bridge.JumpCellsDefs', 'LeanVM.Guest.Data.Pows', 'LeanVM.Guest.CheckView'}
         thms = []
         for j, k, b, c in fns:
-            imps |= {f'LeanVM.Guest.Pack.«{b}».Bundle', f'LeanVM.Guest.Pack.«{c}».Core'}
+            imps |= {f'LeanVM.Guest.Pack.«{b}».Bundle', f'LeanVM.Guest.Pack.«{c}».Core', f'LeanVM.Guest.CoreMode.GlueA.«{c}»'}
+            # `main` by its index as the glue names it, not as a number
             thms.append((k, 'jcOk', f'Bridge.jcDataD plumb fs (cert.withPows Data.powTree) {ctxs[k][0]} core code.code '
-                         f'({j} == 1) = true', 'decide +kernel'))
+                         f'(Fn.«{k}».idx == 1) = true', 'decide +kernel'))
         files[os.path.join(OUT, f'{mod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.JumpCells.{mod}', what="Functions' data pass the jump cells' check.")
             + ''.join(f'public import {m}\n' for m in sorted(imps)) + '\n' + data.fn_thms(thms))
@@ -73,7 +74,7 @@ def run(check):
         for j in js:
             k, _, hp = lk[j]
             b, c, size = pk[k]
-            imps.add(f'LeanVM.Guest.Bridge.JumpCells.{"H" + str(j) if size > LONG else "P_" + b}')
+            imps.add(f'LeanVM.Guest.Bridge.JumpCells.{"H_" + k if size > LONG else "P_" + b}')
             pe, fq = f'Checked.plumbEq{j}', f'Checked.fsEq{j}'
             if not hp:
                 body.append(f'kernel_rfl plumbEq{j} : B2C.plumbOf {j} = Fn.«{k}».plumb\n')

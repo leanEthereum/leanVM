@@ -23,8 +23,8 @@ theorem head_ok : headOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert st
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 3166 to the end. -/
-theorem last_ok : lastOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert 3166 st1 = true := by
+/-- Statements 3167 to the end. -/
+theorem last_ok : lastOkF Fn.«verify_sig_lean_sphincs».pows sigW core hcert 3167 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -39,7 +39,7 @@ namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 theorem heap_okW : CoreMode.heapOkC Fn.«verify_sig_lean_sphincs».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(3166, HeapWG.st1)]) HeapWG.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(3167, HeapWG.st1)]) HeapWG.head_ok
     ⟨HeapWG.win0, by omega,
     trivial⟩ rfl HeapWG.last_ok
 

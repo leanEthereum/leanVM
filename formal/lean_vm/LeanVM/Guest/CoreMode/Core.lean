@@ -805,20 +805,74 @@ def rngXExt (G : Mode.Sig) (n : ℕ) (ms : List Mode.Mono) (r : Mode.Rng) (q : C
     | _, _ => false
   | none => false
 
+/-- A frame cell base. -/
+def isFrB : Mode.Base → Bool
+  | .fr _ => true
+  | .hp _ _ => false
+
+/-- **A product's one pointer base**: `.hp q d` of power one among frame cell bases, and the bases without it. -/
+def hpSplit : List (Mode.Base × ℕ) → Option ((ℕ × ℕ) × List (Mode.Base × ℕ))
+  | [] => none
+  | (.hp q d, e) :: bs => bif Nat.beq e 1 && bs.all (fun b ↦ isFrB b.1) then some ((q, d), bs) else none
+  | (.fr o, e) :: bs => (hpSplit bs).map fun p ↦ (p.1, (.fr o, e) :: p.2)
+
+/-- **A run over one pointer base as a run at its cell's word** (`postQ`): `r`'s product over frame cells and the
+word at `[q]·g^d` (`hpSplit`), the cell `⟨[(q - 2, 1)], d⟩` and the run `rngX` gives of `r` without that base. -/
+def rngQ (r : Mode.Rng) : Option (CCell × CRun) :=
+  match hpSplit r.q.bs with
+  | some ((q, d), bs) => bif decide (2 ≤ q) then
+      (rngX ⟨⟨r.q.fp, r.q.k, bs⟩, r.lo, r.hi, r.S, r.d⟩).map fun c ↦ (⟨[(q - 2, 1)], d⟩, c) else none
+  | none => none
+
+/-- **A callee's run at a cell's word** (`postQ`): one of its guaranteed runs over one pointer base (`rngQ`), its
+frame cells (the pointer's among them) slots below `n`. -/
+def rngQIn (G : Mode.Sig) (n : ℕ) (p : CCell × CRun) : Bool :=
+  G.postR.any fun r ↦ decide (rngQ r = some p) && match hpSplit r.q.bs with
+    | some ((q, _), bs) => monoS G n false ⟨0, 0, (.fr q, 1) :: (bs ++ idxB r.lo ++ idxB r.hi)⟩
+    | none => false
+
+/-- A run of `[[q]·g^d]` alone (no frame address, power one), of constant bounds `[lo, hi)`: `(q, d, lo, hi)`. -/
+def hpRunOf (r : Mode.Rng) : Option (ℕ × ℕ × ℕ × ℕ) :=
+  match r.q.fp, r.q.bs, r.lo, r.hi with
+  | 0, [(.hp q d, 1)], .num lo, .num hi => some (q, d, lo, hi)
+  | _, _, _, _ => none
+
+theorem hpRunOf_spec {r : Mode.Rng} {q d lo hi : ℕ} (h : hpRunOf r = some (q, d, lo, hi)) :
+    r.q = ⟨0, r.q.k, [(.hp q d, 1)]⟩ ∧ r.lo = .num lo ∧ r.hi = .num hi := by
+  obtain ⟨⟨fp, k, bs⟩, lo0, hi0, S, d0⟩ := r
+  unfold hpRunOf at h
+  split at h
+  · simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+    simp_all
+  · cases h
+
+/-- **A pointer fact a guaranteed run over one pointer base gives**: a run of `[[q]·g^d]` alone, of constant bounds
+`[lo, hi)`, each offset of `p` one of its cells `k + d' + S·j`, `p`'s cell `⟨[(q - 2, 1)], d⟩` over a slot below
+`n`. -/
+def hpRunIn (G : Mode.Sig) (n : ℕ) (p : CCell × List ℕ) : Bool :=
+  G.postR.any fun r ↦ match hpRunOf r with
+    | some (q, d, lo, hi) => hpSlot G n false q && p.1.beq ⟨[(q - 2, 1)], d⟩ &&
+        p.2.all fun o ↦ (List.range (hi - lo)).any fun t ↦ Nat.beq o (r.q.k + r.d + r.S * (lo + t))
+    | none => false
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
 each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
-loop's, or one of them extended by its next point, `rngXExt`); each returned word's monomial of `h` one `G` promises (`retMIn`); `h` with a ghost slot per caller's cell. -/
+loop's, or one of them extended by its next point, `rngXExt`; a run at a cell's word one of `G`'s over one pointer base,
+`rngQIn`; a pointer fact one such of constant bounds gives, `hpRunIn`); each returned word's monomial of `h` one `G` promises
+(`retMIn`); `h` with a ghost slot per caller's cell. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   (match G.self with
     | some o => decide (o < 2 ^ 28)
     | none => true) &&
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
-    G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
+    G.entry.contains 0 && G.entry.contains 1 &&
+    h.postP.all (fun p ↦ hpAll G (na + nr) G.post p || hpRunIn G (na + nr) p) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
-    (h.retM.all (retMIn G na nr) && h.postQ.isEmpty) &&
+    (h.retM.all (retMIn G na nr) && h.postQ.all (rngQIn G (na + nr))) &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
       | none => false) || hpIn G na true h.preP h.pre m ||

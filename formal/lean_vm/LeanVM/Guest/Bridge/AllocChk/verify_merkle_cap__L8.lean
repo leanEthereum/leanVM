@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.Align.«verify_merkle_cap__L8»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
 
@@ -20,9 +21,9 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«verify_merkle_cap__L8».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn1182 = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».frOk : Bridge.frChk alignCtx fs [] core.params core.body Data.adviceFn1182 = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn1182 = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
 
 end
 

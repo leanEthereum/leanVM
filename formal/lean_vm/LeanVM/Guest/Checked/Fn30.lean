@@ -171,7 +171,7 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-theorem link1501 : Link 1501 (Glob.ofSigs ([(1460, Fn.«walk_path__L12_L6».sig), (1501, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1501 : Link 1501 (Glob.ofSigs ([(Fn.«walk_path__L12_L6».idx, Fn.«walk_path__L12_L6».sig), (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1501 core1501 cert1501 
     (SigsOk.cons sig1460 rfl 
@@ -192,7 +192,7 @@ theorem ok1501 : CheckOk 1501 := fun i hi ↦ by
   · exact w1501_1
   · exact w1501_2
 
-theorem link1502 : Link 1502 (Glob.ofSigs ([(1502, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1547, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem)
+theorem link1502 : Link 1502 (Glob.ofSigs ([(Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (Fn.«walk_path__L12_L8».idx, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1502 core1502 cert1502 
     (SigsOk.cons sig1502 rfl 
@@ -238,7 +238,7 @@ theorem ok1503 : CheckOk 1503 := fun i hi ↦ by
   · exact w1503_2
   · exact w1503_3
 
-theorem link1504 : Link 1504 (Glob.ofSigs ([(1503, Fn.«walk_path__L18_L5».sig), (1504, Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1504 : Link 1504 (Glob.ofSigs ([(Fn.«walk_path__L18_L5».idx, Fn.«walk_path__L18_L5».sig), (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1504 core1504 cert1504 
     (SigsOk.cons sig1503 rfl 
@@ -262,7 +262,7 @@ theorem ok1504 : CheckOk 1504 := fun i hi ↦ by
   · exact w1504_2
   · exact w1504_3
 
-theorem link1505 : Link 1505 (Glob.ofSigs ([(1496, Fn.«walk_path__L18_L4».sig), (1505, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1505 : Link 1505 (Glob.ofSigs ([(Fn.«walk_path__L18_L4».idx, Fn.«walk_path__L18_L4».sig), (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1505 core1505 cert1505 
     (SigsOk.cons sig1496 rfl 
@@ -283,7 +283,7 @@ theorem ok1505 : CheckOk 1505 := fun i hi ↦ by
   · exact w1505_1
   · exact w1505_2
 
-theorem link1506 : Link 1506 (Glob.ofSigs ([(1458, Fn.«walk_path__L12_L5».sig), (1506, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1506 : Link 1506 (Glob.ofSigs ([(Fn.«walk_path__L12_L5».idx, Fn.«walk_path__L12_L5».sig), (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1506 core1506 cert1506 
     (SigsOk.cons sig1458 rfl 
@@ -304,7 +304,7 @@ theorem ok1506 : CheckOk 1506 := fun i hi ↦ by
   · exact w1506_1
   · exact w1506_2
 
-theorem link1507 : Link 1507 (Glob.ofSigs ([(1460, Fn.«walk_path__L12_L6».sig), (1507, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1507 : Link 1507 (Glob.ofSigs ([(Fn.«walk_path__L12_L6».idx, Fn.«walk_path__L12_L6».sig), (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1507 core1507 cert1507 
     (SigsOk.cons sig1460 rfl 
@@ -325,7 +325,7 @@ theorem ok1507 : CheckOk 1507 := fun i hi ↦ by
   · exact w1507_1
   · exact w1507_2
 
-theorem link1508 : Link 1508 (Glob.ofSigs ([(1472, Fn.«walk_path__L12_L7».sig), (1508, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1508 : Link 1508 (Glob.ofSigs ([(Fn.«walk_path__L12_L7».idx, Fn.«walk_path__L12_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1508 core1508 cert1508 
     (SigsOk.cons sig1472 rfl 
@@ -346,7 +346,7 @@ theorem ok1508 : CheckOk 1508 := fun i hi ↦ by
   · exact w1508_1
   · exact w1508_2
 
-theorem link1509 : Link 1509 (Glob.ofSigs ([(1488, Fn.«walk_path__L18_L3».sig), (1509, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1509 : Link 1509 (Glob.ofSigs ([(Fn.«walk_path__L18_L3».idx, Fn.«walk_path__L18_L3».sig), (Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1509 core1509 cert1509 
     (SigsOk.cons sig1488 rfl 
@@ -392,7 +392,7 @@ theorem ok1510 : CheckOk 1510 := fun i hi ↦ by
   · exact w1510_2
   · exact w1510_3
 
-theorem link1511 : Link 1511 (Glob.ofSigs ([(1510, Fn.«walk_path__L18_L6».sig), (1511, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1511 : Link 1511 (Glob.ofSigs ([(Fn.«walk_path__L18_L6».idx, Fn.«walk_path__L18_L6».sig), (Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1511 core1511 cert1511 
     (SigsOk.cons sig1510 rfl 
@@ -416,7 +416,7 @@ theorem ok1511 : CheckOk 1511 := fun i hi ↦ by
   · exact w1511_2
   · exact w1511_3
 
-theorem link1512 : Link 1512 (Glob.ofSigs ([(1503, Fn.«walk_path__L18_L5».sig), (1512, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1512 : Link 1512 (Glob.ofSigs ([(Fn.«walk_path__L18_L5».idx, Fn.«walk_path__L18_L5».sig), (Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1512 core1512 cert1512 
     (SigsOk.cons sig1503 rfl 
@@ -437,7 +437,7 @@ theorem ok1512 : CheckOk 1512 := fun i hi ↦ by
   · exact w1512_1
   · exact w1512_2
 
-theorem link1513 : Link 1513 (Glob.ofSigs ([(1460, Fn.«walk_path__L12_L6».sig), (1513, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1513 : Link 1513 (Glob.ofSigs ([(Fn.«walk_path__L12_L6».idx, Fn.«walk_path__L12_L6».sig), (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1513 core1513 cert1513 
     (SigsOk.cons sig1460 rfl 
@@ -458,7 +458,7 @@ theorem ok1513 : CheckOk 1513 := fun i hi ↦ by
   · exact w1513_1
   · exact w1513_2
 
-theorem link1514 : Link 1514 (Glob.ofSigs ([(1472, Fn.«walk_path__L12_L7».sig), (1514, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1514 : Link 1514 (Glob.ofSigs ([(Fn.«walk_path__L12_L7».idx, Fn.«walk_path__L12_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1514 core1514 cert1514 
     (SigsOk.cons sig1472 rfl 
@@ -479,7 +479,7 @@ theorem ok1514 : CheckOk 1514 := fun i hi ↦ by
   · exact w1514_1
   · exact w1514_2
 
-theorem link1515 : Link 1515 (Glob.ofSigs ([(1480, Fn.«walk_path__L18_L2».sig), (1515, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1515 : Link 1515 (Glob.ofSigs ([(Fn.«walk_path__L18_L2».idx, Fn.«walk_path__L18_L2».sig), (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1515 core1515 cert1515 
     (SigsOk.cons sig1480 rfl 
@@ -500,7 +500,7 @@ theorem ok1515 : CheckOk 1515 := fun i hi ↦ by
   · exact w1515_1
   · exact w1515_2
 
-theorem link1516 : Link 1516 (Glob.ofSigs ([(1496, Fn.«walk_path__L18_L4».sig), (1516, Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1516 : Link 1516 (Glob.ofSigs ([(Fn.«walk_path__L18_L4».idx, Fn.«walk_path__L18_L4».sig), (Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1516 core1516 cert1516 
     (SigsOk.cons sig1496 rfl 
@@ -546,7 +546,7 @@ theorem ok1517 : CheckOk 1517 := fun i hi ↦ by
   · exact w1517_2
   · exact w1517_3
 
-theorem link1518 : Link 1518 (Glob.ofSigs ([(1517, Fn.«walk_path__L18_L7».sig), (1518, Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1518 : Link 1518 (Glob.ofSigs ([(Fn.«walk_path__L18_L7».idx, Fn.«walk_path__L18_L7».sig), (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1518 core1518 cert1518 
     (SigsOk.cons sig1517 rfl 
@@ -570,7 +570,7 @@ theorem ok1518 : CheckOk 1518 := fun i hi ↦ by
   · exact w1518_2
   · exact w1518_3
 
-theorem link1519 : Link 1519 (Glob.ofSigs ([(1510, Fn.«walk_path__L18_L6».sig), (1519, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1519 : Link 1519 (Glob.ofSigs ([(Fn.«walk_path__L18_L6».idx, Fn.«walk_path__L18_L6».sig), (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1519 core1519 cert1519 
     (SigsOk.cons sig1510 rfl 
@@ -591,7 +591,7 @@ theorem ok1519 : CheckOk 1519 := fun i hi ↦ by
   · exact w1519_1
   · exact w1519_2
 
-theorem link1520 : Link 1520 (Glob.ofSigs ([(1472, Fn.«walk_path__L12_L7».sig), (1520, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1520 : Link 1520 (Glob.ofSigs ([(Fn.«walk_path__L12_L7».idx, Fn.«walk_path__L12_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1520 core1520 cert1520 
     (SigsOk.cons sig1472 rfl 
@@ -612,7 +612,7 @@ theorem ok1520 : CheckOk 1520 := fun i hi ↦ by
   · exact w1520_1
   · exact w1520_2
 
-theorem link1521 : Link 1521 (Glob.ofSigs ([(1480, Fn.«walk_path__L18_L2».sig), (1521, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1521 : Link 1521 (Glob.ofSigs ([(Fn.«walk_path__L18_L2».idx, Fn.«walk_path__L18_L2».sig), (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1521 core1521 cert1521 
     (SigsOk.cons sig1480 rfl 
@@ -633,7 +633,7 @@ theorem ok1521 : CheckOk 1521 := fun i hi ↦ by
   · exact w1521_1
   · exact w1521_2
 
-theorem link1522 : Link 1522 (Glob.ofSigs ([(1488, Fn.«walk_path__L18_L3».sig), (1522, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1522 : Link 1522 (Glob.ofSigs ([(Fn.«walk_path__L18_L3».idx, Fn.«walk_path__L18_L3».sig), (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1522 core1522 cert1522 
     (SigsOk.cons sig1488 rfl 
@@ -654,7 +654,7 @@ theorem ok1522 : CheckOk 1522 := fun i hi ↦ by
   · exact w1522_1
   · exact w1522_2
 
-theorem link1523 : Link 1523 (Glob.ofSigs ([(1503, Fn.«walk_path__L18_L5».sig), (1523, Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1523 : Link 1523 (Glob.ofSigs ([(Fn.«walk_path__L18_L5».idx, Fn.«walk_path__L18_L5».sig), (Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1523 core1523 cert1523 
     (SigsOk.cons sig1503 rfl 
@@ -703,7 +703,7 @@ theorem ok1524 : CheckOk 1524 := fun i hi ↦ by
   · exact w1524_3
   · exact w1524_4
 
-theorem link1525 : Link 1525 (Glob.ofSigs ([(1524, Fn.«walk_path__L24_L2».sig), (1525, Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1525 : Link 1525 (Glob.ofSigs ([(Fn.«walk_path__L24_L2».idx, Fn.«walk_path__L24_L2».sig), (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1525 core1525 cert1525 
     (SigsOk.cons sig1524 rfl 
@@ -727,7 +727,7 @@ theorem ok1525 : CheckOk 1525 := fun i hi ↦ by
   · exact w1525_2
   · exact w1525_3
 
-theorem link1526 : Link 1526 (Glob.ofSigs ([(1517, Fn.«walk_path__L18_L7».sig), (1526, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1526 : Link 1526 (Glob.ofSigs ([(Fn.«walk_path__L18_L7».idx, Fn.«walk_path__L18_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1526 core1526 cert1526 
     (SigsOk.cons sig1517 rfl 
@@ -748,7 +748,7 @@ theorem ok1526 : CheckOk 1526 := fun i hi ↦ by
   · exact w1526_1
   · exact w1526_2
 
-theorem link1527 : Link 1527 (Glob.ofSigs ([(1472, Fn.«walk_path__L12_L7».sig), (1527, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1527 : Link 1527 (Glob.ofSigs ([(Fn.«walk_path__L12_L7».idx, Fn.«walk_path__L12_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1527 core1527 cert1527 
     (SigsOk.cons sig1472 rfl 
@@ -769,7 +769,7 @@ theorem ok1527 : CheckOk 1527 := fun i hi ↦ by
   · exact w1527_1
   · exact w1527_2
 
-theorem link1528 : Link 1528 (Glob.ofSigs ([(1480, Fn.«walk_path__L18_L2».sig), (1528, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1528 : Link 1528 (Glob.ofSigs ([(Fn.«walk_path__L18_L2».idx, Fn.«walk_path__L18_L2».sig), (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1528 core1528 cert1528 
     (SigsOk.cons sig1480 rfl 
@@ -790,7 +790,7 @@ theorem ok1528 : CheckOk 1528 := fun i hi ↦ by
   · exact w1528_1
   · exact w1528_2
 
-theorem link1529 : Link 1529 (Glob.ofSigs ([(1488, Fn.«walk_path__L18_L3».sig), (1529, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1529 : Link 1529 (Glob.ofSigs ([(Fn.«walk_path__L18_L3».idx, Fn.«walk_path__L18_L3».sig), (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1529 core1529 cert1529 
     (SigsOk.cons sig1488 rfl 
@@ -811,7 +811,7 @@ theorem ok1529 : CheckOk 1529 := fun i hi ↦ by
   · exact w1529_1
   · exact w1529_2
 
-theorem link1530 : Link 1530 (Glob.ofSigs ([(1510, Fn.«walk_path__L18_L6».sig), (1530, Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1530 : Link 1530 (Glob.ofSigs ([(Fn.«walk_path__L18_L6».idx, Fn.«walk_path__L18_L6».sig), (Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1530 core1530 cert1530 
     (SigsOk.cons sig1510 rfl 
@@ -860,7 +860,7 @@ theorem ok1531 : CheckOk 1531 := fun i hi ↦ by
   · exact w1531_3
   · exact w1531_4
 
-theorem link1532 : Link 1532 (Glob.ofSigs ([(1531, Fn.«walk_path__L24_L3».sig), (1532, Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1532 : Link 1532 (Glob.ofSigs ([(Fn.«walk_path__L24_L3».idx, Fn.«walk_path__L24_L3».sig), (Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1532 core1532 cert1532 
     (SigsOk.cons sig1531 rfl 
@@ -884,7 +884,7 @@ theorem ok1532 : CheckOk 1532 := fun i hi ↦ by
   · exact w1532_2
   · exact w1532_3
 
-theorem link1533 : Link 1533 (Glob.ofSigs ([(1524, Fn.«walk_path__L24_L2».sig), (1533, Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1533 : Link 1533 (Glob.ofSigs ([(Fn.«walk_path__L24_L2».idx, Fn.«walk_path__L24_L2».sig), (Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1533 core1533 cert1533 
     (SigsOk.cons sig1524 rfl 
@@ -905,7 +905,7 @@ theorem ok1533 : CheckOk 1533 := fun i hi ↦ by
   · exact w1533_1
   · exact w1533_2
 
-theorem link1534 : Link 1534 (Glob.ofSigs ([(1480, Fn.«walk_path__L18_L2».sig), (1534, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1534 : Link 1534 (Glob.ofSigs ([(Fn.«walk_path__L18_L2».idx, Fn.«walk_path__L18_L2».sig), (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1534 core1534 cert1534 
     (SigsOk.cons sig1480 rfl 
@@ -926,7 +926,7 @@ theorem ok1534 : CheckOk 1534 := fun i hi ↦ by
   · exact w1534_1
   · exact w1534_2
 
-theorem link1535 : Link 1535 (Glob.ofSigs ([(1488, Fn.«walk_path__L18_L3».sig), (1535, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1535 : Link 1535 (Glob.ofSigs ([(Fn.«walk_path__L18_L3».idx, Fn.«walk_path__L18_L3».sig), (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1535 core1535 cert1535 
     (SigsOk.cons sig1488 rfl 
@@ -947,7 +947,7 @@ theorem ok1535 : CheckOk 1535 := fun i hi ↦ by
   · exact w1535_1
   · exact w1535_2
 
-theorem link1536 : Link 1536 (Glob.ofSigs ([(1496, Fn.«walk_path__L18_L4».sig), (1536, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1536 : Link 1536 (Glob.ofSigs ([(Fn.«walk_path__L18_L4».idx, Fn.«walk_path__L18_L4».sig), (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1536 core1536 cert1536 
     (SigsOk.cons sig1496 rfl 
@@ -968,7 +968,7 @@ theorem ok1536 : CheckOk 1536 := fun i hi ↦ by
   · exact w1536_1
   · exact w1536_2
 
-theorem link1537 : Link 1537 (Glob.ofSigs ([(1517, Fn.«walk_path__L18_L7».sig), (1537, Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1537 : Link 1537 (Glob.ofSigs ([(Fn.«walk_path__L18_L7».idx, Fn.«walk_path__L18_L7».sig), (Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1537 core1537 cert1537 
     (SigsOk.cons sig1517 rfl 
@@ -1017,7 +1017,7 @@ theorem ok1538 : CheckOk 1538 := fun i hi ↦ by
   · exact w1538_3
   · exact w1538_4
 
-theorem link1539 : Link 1539 (Glob.ofSigs ([(1538, Fn.«walk_path__L24_L4».sig), (1539, Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1539 : Link 1539 (Glob.ofSigs ([(Fn.«walk_path__L24_L4».idx, Fn.«walk_path__L24_L4».sig), (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1539 core1539 cert1539 
     (SigsOk.cons sig1538 rfl 
@@ -1041,7 +1041,7 @@ theorem ok1539 : CheckOk 1539 := fun i hi ↦ by
   · exact w1539_2
   · exact w1539_3
 
-theorem link1540 : Link 1540 (Glob.ofSigs ([(1531, Fn.«walk_path__L24_L3».sig), (1540, Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+theorem link1540 : Link 1540 (Glob.ofSigs ([(Fn.«walk_path__L24_L3».idx, Fn.«walk_path__L24_L3».sig), (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».cert.withPows Data.powTree) :=
   Link.of code1540 core1540 cert1540 
     (SigsOk.cons sig1531 rfl 
@@ -1062,7 +1062,7 @@ theorem ok1540 : CheckOk 1540 := fun i hi ↦ by
   · exact w1540_1
   · exact w1540_2
 
-theorem link1541 : Link 1541 (Glob.ofSigs ([(1488, Fn.«walk_path__L18_L3».sig), (1541, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1541 : Link 1541 (Glob.ofSigs ([(Fn.«walk_path__L18_L3».idx, Fn.«walk_path__L18_L3».sig), (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1541 core1541 cert1541 
     (SigsOk.cons sig1488 rfl 
@@ -1083,7 +1083,7 @@ theorem ok1541 : CheckOk 1541 := fun i hi ↦ by
   · exact w1541_1
   · exact w1541_2
 
-theorem link1542 : Link 1542 (Glob.ofSigs ([(1496, Fn.«walk_path__L18_L4».sig), (1542, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1542 : Link 1542 (Glob.ofSigs ([(Fn.«walk_path__L18_L4».idx, Fn.«walk_path__L18_L4».sig), (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1542 core1542 cert1542 
     (SigsOk.cons sig1496 rfl 
@@ -1104,7 +1104,7 @@ theorem ok1542 : CheckOk 1542 := fun i hi ↦ by
   · exact w1542_1
   · exact w1542_2
 
-theorem link1543 : Link 1543 (Glob.ofSigs ([(1503, Fn.«walk_path__L18_L5».sig), (1543, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
+theorem link1543 : Link 1543 (Glob.ofSigs ([(Fn.«walk_path__L18_L5».idx, Fn.«walk_path__L18_L5».sig), (Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem)
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».code Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».core (Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».cert.withPows Data.powTree) :=
   Link.of code1543 core1543 cert1543 
     (SigsOk.cons sig1503 rfl 

@@ -21,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(961, Fn.«verify_merkle_cap__L6».sig), (1023, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L6».idx, Fn.«verify_merkle_cap__L6».sig), (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».idx, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -45,7 +45,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_level_residual__L218_L19_L6_L3`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1195, Fn.«level_residual__L218_L19_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L218_L19_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«level_residual__L218_L19_L6_L3_loop0».idx, Fn.«level_residual__L218_L19_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L218_L19_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

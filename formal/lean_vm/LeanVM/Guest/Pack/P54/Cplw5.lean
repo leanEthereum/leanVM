@@ -24,7 +24,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0`, window 2, part 0. -/
-theorem cw2_0 : cplWinD (Glob.ofSigs ([(1517, Fn.«walk_path__L18_L7».sig), (1526, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 2 0 = true := by
+theorem cw2_0 : cplWinD (Glob.ofSigs ([(Fn.«walk_path__L18_L7».idx, Fn.«walk_path__L18_L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».idx, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 2 0 = true := by
   decide +kernel
 
 end

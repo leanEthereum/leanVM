@@ -368,7 +368,14 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«level_residual__L73_L23_L6_L3_loop0».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L73_L23_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«plus_one_run__L10».modeSigs fa%[],
-  sigsOr_of_list Fn.«plus_one_run__L29».modeSigs fa%[]]
+  sigsOr_of_list Fn.«plus_one_run__L29».modeSigs fa%[],
+  sigsOr_of_list Fn.«verify_keccak».modeSigs fa%[.inl ⟨_, Fn.«keccak_layer__L0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«keccak_layer__L1».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«keccak_plain_rounds__L4_L1».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«keccak_plain_rounds__L6_L0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_keccak_loop1».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_keccak_loop2».modeCert_in, rfl, rfl, rfl⟩]]
 
 end
 

@@ -46,6 +46,7 @@ noncomputable def «level_residual__L28_L8_L4_L2_loop1».modeCert : Mode.Cert :=
 noncomputable def «level_residual__L55_L18_L6_L3_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «verify_bus_gkr».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -99,6 +100,9 @@ kernel_rfl «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeS
 kernel_rfl «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs = CoreMode.sigTrie
   [«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».csig,
     «walk_path__L18_L3».csig]
+kernel_rfl «verify_bus_gkr».modeSigs : «verify_bus_gkr».modeCert.E.sigs = CoreMode.sigTrie
+  [«verify_bus_gkr_loop0».csig,
+    «verify_bus_gkr_loop1».csig]
 
 @[expose] public section
 
@@ -165,6 +169,9 @@ noncomputable def «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0�
 noncomputable def «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P38».coreFns_ok _ (list_mem% 20), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «verify_bus_gkr».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P38».coreFns_ok _ (list_mem% 21), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
 end
 
@@ -186,7 +193,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«level_residual__L28_L13_L4_L2_loop1».ce, Fn.«level_residual__L28_L8_L4_L2_loop1».ce,
    Fn.«level_residual__L55_L18_L6_L3_loop1».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».ce,
-   Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».ce]
+   Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».ce, Fn.«verify_bus_gkr».ce]
 
 end
 

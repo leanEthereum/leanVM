@@ -130,7 +130,7 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-theorem link351 : Link 351 (Glob.ofSigs ([(351, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem)
+theorem link351 : Link 351 (Glob.ofSigs ([(Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem)
     Fn.«claim_list_digest_loop1».code Fn.«claim_list_digest_loop1».core (Fn.«claim_list_digest_loop1».cert.withPows Data.powTree) :=
   Link.of code351 core351 cert351 
     (SigsOk.cons sig351 rfl SigsOk.nil)
@@ -329,7 +329,7 @@ theorem ok368 : CheckOk 368 := checkOk_one (by decide +kernel) w368_0
 
 theorem plain368 : Plain 368 := plain_of_nil (by decide +kernel)
 
-theorem link369 : Link 369 (Glob.ofSigs ([(369, Fn.«child_claim_list_any_loop0».sig)]) Data.jtTrie globSem)
+theorem link369 : Link 369 (Glob.ofSigs ([(Fn.«child_claim_list_any_loop0».idx, Fn.«child_claim_list_any_loop0».sig)]) Data.jtTrie globSem)
     Fn.«child_claim_list_any_loop0».code Fn.«child_claim_list_any_loop0».core (Fn.«child_claim_list_any_loop0».cert.withPows Data.powTree) :=
   Link.of code369 core369 cert369 
     (SigsOk.cons sig369 rfl SigsOk.nil)
@@ -356,7 +356,7 @@ theorem plain369 : Plain 369 := by
   unfold Plain
   decide +kernel
 
-theorem link370 : Link 370 (Glob.ofSigs ([(370, Fn.«child_claim_list_any_loop1».sig)]) Data.jtTrie globSem)
+theorem link370 : Link 370 (Glob.ofSigs ([(Fn.«child_claim_list_any_loop1».idx, Fn.«child_claim_list_any_loop1».sig)]) Data.jtTrie globSem)
     Fn.«child_claim_list_any_loop1».code Fn.«child_claim_list_any_loop1».core (Fn.«child_claim_list_any_loop1».cert.withPows Data.powTree) :=
   Link.of code370 core370 cert370 
     (SigsOk.cons sig370 rfl SigsOk.nil)
@@ -555,7 +555,7 @@ theorem ok387 : CheckOk 387 := checkOk_one (by decide +kernel) w387_0
 
 theorem plain387 : Plain 387 := plain_of_nil (by decide +kernel)
 
-theorem link388 : Link 388 (Glob.ofSigs ([(388, Fn.«child_claim_list_mono_loop0».sig)]) Data.jtTrie globSem)
+theorem link388 : Link 388 (Glob.ofSigs ([(Fn.«child_claim_list_mono_loop0».idx, Fn.«child_claim_list_mono_loop0».sig)]) Data.jtTrie globSem)
     Fn.«child_claim_list_mono_loop0».code Fn.«child_claim_list_mono_loop0».core (Fn.«child_claim_list_mono_loop0».cert.withPows Data.powTree) :=
   Link.of code388 core388 cert388 
     (SigsOk.cons sig388 rfl SigsOk.nil)
@@ -582,7 +582,7 @@ theorem plain388 : Plain 388 := by
   unfold Plain
   decide +kernel
 
-theorem link389 : Link 389 (Glob.ofSigs ([(389, Fn.«child_claim_list_mono_loop1».sig)]) Data.jtTrie globSem)
+theorem link389 : Link 389 (Glob.ofSigs ([(Fn.«child_claim_list_mono_loop1».idx, Fn.«child_claim_list_mono_loop1».sig)]) Data.jtTrie globSem)
     Fn.«child_claim_list_mono_loop1».code Fn.«child_claim_list_mono_loop1».core (Fn.«child_claim_list_mono_loop1».cert.withPows Data.powTree) :=
   Link.of code389 core389 cert389 
     (SigsOk.cons sig389 rfl SigsOk.nil)

@@ -178,6 +178,16 @@ inductive Wit where
   constant `lo`, the upper bound's exponent `y` by a fact of these residuals: in the run when `y ≥ lo + k`, else the
   write event `ns[y]`. -/
   | back (r : ℕ) (ns : List ℕ) (res : List ℕ)
+  /-- A cell of the run `⟨b, S, lo, hi⟩` by the facts of these residuals, the run not in scope but made up by the
+  witnesses of the chain `ws` (`wcons`, ending in `wnil`; `HeapC.lean`, `ptOkD`). -/
+  | der (b : CCell) (S : ℕ) (lo hi : CCell) (res : List ℕ) (ws : Wit)
+  /-- The end of a chain of witnesses (`der`'s). -/
+  | wnil
+  /-- A chain of witnesses: one, then the chain of the rest. -/
+  | wcons (w ws : Wit)
+  /-- Leading the witnesses of a run needed (`runOkD`): it lies in the run `⟨b, S, lo, hi⟩` (by these residuals'
+  facts, or a residual `subR`), whose witnesses follow. -/
+  | drv (b : CCell) (S : ℕ) (lo hi : CCell) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written

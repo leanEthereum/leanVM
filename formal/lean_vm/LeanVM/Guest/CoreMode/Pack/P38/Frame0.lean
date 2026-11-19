@@ -33,6 +33,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P23»
 public import LeanVM.Guest.CoreMode.Sig.«P24»
@@ -54,35 +55,15 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«verify_bus_gkr».envC : Mode.Env := CoreMode.envOf
+    [Fn.«verify_bus_gkr_loop0».csig, Fn.«verify_bus_gkr_loop1».csig]
+noncomputable def Fn.«verify_bus_gkr».funC : Mode.Fun := ⟨Fn.«verify_bus_gkr».entry, 363,
+    Fn.«verify_bus_gkr».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«verify_bus_gkr».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«verify_bus_gkr».entry, 363,
     Fn.«verify_bus_gkr».csig, (CoreMode.sigTrie [Fn.«verify_bus_gkr_loop0».csig,
-    Fn.«verify_bus_gkr_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node
-    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
-    (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) (.node none (.node (some
-    ()) .nil .nil) .nil))) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
-    .nil))) (.node none (.node none (.node none (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))) (.node none (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node (some
-    ()) .nil .nil))))))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) .nil) .nil)) (.node none (.node none (.node none (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil)) .nil) (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil))) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))
-    (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))))), .nil,
-    .nil⟩
+    Fn.«verify_bus_gkr_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«verify_bus_gkr».pairO, Fn.«verify_bus_gkr».pairS, .nil⟩
 
 theorem Fn.«verify_bus_gkr».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

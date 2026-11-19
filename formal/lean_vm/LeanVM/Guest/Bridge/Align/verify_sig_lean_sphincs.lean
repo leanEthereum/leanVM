@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.GlueE.«sp_wots»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
@@ -33,7 +34,7 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«verify_sig_lean_sphincs».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«verify_sig_lean_sphincs».alignOk : Bridge.alignOk alignCtx core.body code.code Data.adviceFn21 = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«verify_sig_lean_sphincs».advice = true := by decide +kernel
 
 end
 

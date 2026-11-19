@@ -659,6 +659,27 @@ def ptOk(X, st, c, w):
     return False
 
 
+def ptOkD(X, st, c, w):
+    """`ptOkD`: `ptOk`, or `der Q res ws`: the cell in the run `Q` (`ptRun`, these residuals' facts), `Q` witnessed by
+    `ws` (`runOk`)."""
+    if w[0] == 'der':
+        _, Q, res, ws = w
+        return ptRun(X.facts(st.env, res), Q, c) and runOk(X, st, Q, list(ws), 0) == len(ws)
+    return ptOk(X, st, c, w)
+
+
+def runOkD(X, st, Q, ws, i):
+    """`runOkD`: `drv R res` and `R`'s witnesses, `Q` inside `R` (`runRun`, or a residual `subR Q R`); else `runOk`."""
+    if i < len(ws) and ws[i][0] == 'drv':
+        _, R, res = ws[i]
+        j = runOk(X, st, R, ws, i + 1)
+        if j is None:
+            return None
+        F = X.facts(st.env, res)
+        return j if runRun(F, st.eqs, Q, R) or X.subRun(st.env, res, Q, R) else None
+    return runOk(X, st, Q, ws, i)
+
+
 def rnOk(X, st, Q, w):
     if w[0] == 'run':
         R = st.rs.get(w[1])
@@ -809,7 +830,7 @@ def reqR(X, st, ms, rs, ws, i):
         q = instR(ms, r)
         if q is None:
             return None
-        i = runOk(X, st, q, ws, i)
+        i = runOkD(X, st, q, ws, i)
         if i is None:
             return None
     return i
@@ -1075,7 +1096,7 @@ class Pass:
             else:
                 w = X.H.reads.get(key)
             if w is not None and w[0] != 'fail':
-                if not ptOk(X, st, c, w):
+                if not ptOkD(X, st, c, w):
                     self.fail('read-check', key, c, w)
                 elif w[0] == 'ev' and d in X.hv:
                     p2 = st.sv.get(w[1])

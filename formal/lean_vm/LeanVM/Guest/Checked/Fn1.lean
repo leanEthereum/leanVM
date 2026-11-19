@@ -520,7 +520,7 @@ theorem ok82 : CheckOk 82 := checkOk_one (by decide +kernel) w82_0
 
 theorem plain82 : Plain 82 := plain_of_nil (by decide +kernel)
 
-theorem link83 : Link 83 (Glob.ofSigs ([(83, Fn.«rs_eq_run_loop0».sig), (428, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
+theorem link83 : Link 83 (Glob.ofSigs ([(Fn.«rs_eq_run_loop0».idx, Fn.«rs_eq_run_loop0».sig), (Fn.«rs_eq_rows__L8».idx, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
     Fn.«rs_eq_run_loop0».code Fn.«rs_eq_run_loop0».core (Fn.«rs_eq_run_loop0».cert.withPows Data.powTree) :=
   Link.of code83 core83 cert83 
     (SigsOk.cons sig83 rfl 
@@ -671,7 +671,7 @@ theorem ok92 : CheckOk 92 := checkOk_one (by decide +kernel) w92_0
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 
-theorem link93 : Link 93 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (429, Fn.«verify_bus_gkr_loop0_loop0».sig), (430, Fn.«gkr_rounds__L2».sig), (431, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
+theorem link93 : Link 93 (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop0_loop0».idx, Fn.«verify_bus_gkr_loop0_loop0».sig), (Fn.«gkr_rounds__L2».idx, Fn.«gkr_rounds__L2».sig), (Fn.«gkr_rounds__L1».idx, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop0».code Fn.«verify_bus_gkr_loop0».core (Fn.«verify_bus_gkr_loop0».cert.withPows Data.powTree) :=
   Link.of code93 core93 cert93 
     (SigsOk.cons sig93 rfl 
@@ -686,7 +686,7 @@ theorem ok93 : CheckOk 93 := checkOk_one (by decide +kernel) w93_0
 
 theorem plain93 : Plain 93 := plain_of_nil (by decide +kernel)
 
-theorem link94 : Link 94 (Glob.ofSigs ([(94, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem)
+theorem link94 : Link 94 (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop1».idx, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop1».code Fn.«verify_bus_gkr_loop1».core (Fn.«verify_bus_gkr_loop1».cert.withPows Data.powTree) :=
   Link.of code94 core94 cert94 
     (SigsOk.cons sig94 rfl SigsOk.nil)
@@ -698,7 +698,7 @@ theorem ok94 : CheckOk 94 := checkOk_one (by decide +kernel) w94_0
 
 theorem plain94 : Plain 94 := plain_of_nil (by decide +kernel)
 
-theorem link95 : Link 95 (Glob.ofSigs ([(95, Fn.«shared_selector_tables_loop0».sig)]) Data.jtTrie globSem)
+theorem link95 : Link 95 (Glob.ofSigs ([(Fn.«shared_selector_tables_loop0».idx, Fn.«shared_selector_tables_loop0».sig)]) Data.jtTrie globSem)
     Fn.«shared_selector_tables_loop0».code Fn.«shared_selector_tables_loop0».core (Fn.«shared_selector_tables_loop0».cert.withPows Data.powTree) :=
   Link.of code95 core95 cert95 
     (SigsOk.cons sig95 rfl SigsOk.nil)

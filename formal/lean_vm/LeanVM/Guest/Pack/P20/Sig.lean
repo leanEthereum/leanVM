@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreMode.GlueE.«P20»
 public import LeanVM.Guest.CoreMode.GlueE.«sp_wots»
+public import LeanVM.Guest.CoreMode.GlueA.«P20»
+public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 
 set_option maxRecDepth 100000
 set_option linter.all false

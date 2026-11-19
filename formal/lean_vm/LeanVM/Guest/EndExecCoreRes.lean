@@ -16,6 +16,8 @@ public import LeanVM.Guest.CoreMode.HeapCSound
 public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.EndExecCoreVt
+public import LeanVM.Guest.EndExecCoreVk
+public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.EndExecRVs
 public import LeanVM.Guest.EndExecRCp
 public import LeanVM.Guest.EndExecCoreDa
@@ -1485,7 +1487,7 @@ theorem tabOf_row {r : Ref} (hr : r.Ok) {fn : Fn} {σ : Val} (hall : ∀ a ∈ R
   have hst : LoadHolds r.img.read (σ (V.n T')) t (σ (V.n c)) := hall _ (stAt_mem hc)
   have hcw : σ (V.n c) = w := hall _ (constOf_sound hw)
   rw [hmul, hJ, B1.Tables.tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
-  rw [B1.loadHolds_unique hld hst, hcw, powOf_sound hpw, Value.gen_pow_eq_ofK]
+  rw [B1.loadHolds_unique hld hst, hcw, powOf1_sound hpw, Value.gen_pow_eq_ofK]
 
 /-- **A range-checked table read's order holds** at an honest instance (`rcTab`): at the row its index names. -/
 theorem rcTab_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -1524,8 +1526,8 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ((⟨(((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb), -⟩ | hm) |
-    hs) | he
+  rcases this with ((⟨((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk), -⟩ |
+    hm) | hs) | he
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · exact splitFam_inst hr hI ht hf hsp
@@ -1538,6 +1540,7 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
   · exact vtCp_inst hr hI ht hf x hvc
   · exact daGap_inst hr hI ht hf x hdg
   · exact rcTab_inst hr hI ht hf x htb
+  · exact vkQC_inst hr hI ht hf x hvk
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
   · cases x <;> simp [CoreMode.stSub, hst] at hs
   · simp [CoreMode.vtExp, hgw, CoreMode.vtGw] at he
@@ -1555,8 +1558,8 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ((⟨(((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb), hv⟩ | hm) |
-    hs) | he
+  rcases this with ((⟨((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk), hv⟩ |
+    hm) | hs) | he
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (splitFam_inst hr hI ht hf hsp)
@@ -1569,6 +1572,7 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vtCp_inst hr hI ht hf x hvc)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (daGap_inst hr hI ht hf x hdg)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (rcTab_inst hr hI ht hf x htb)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vkQC_inst hr hI ht hf x hvk)
   · exact hml x hm
   · exact hst x hs
   · exact hvx x he

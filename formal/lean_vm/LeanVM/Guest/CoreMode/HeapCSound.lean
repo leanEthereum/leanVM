@@ -1486,6 +1486,10 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       · rw [addr_eq]
         exact ptRun_ok (facts_ok hX hs.env res) hR h
       · exact subPt_ok hX hs.env (facts_ok hX hs.env res) hR h
+  | der => simp [ptOk] at h
+  | wnil => simp [ptOk] at h
+  | wcons => simp [ptOk] at h
+  | drv => simp [ptOk] at h
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -1528,6 +1532,10 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | ab => simp [rnOk] at h
   | evs => simp [rnOk] at h
   | back => simp [rnOk] at h
+  | der => simp [rnOk] at h
+  | wnil => simp [rnOk] at h
+  | wcons => simp [rnOk] at h
+  | drv => simp [rnOk] at h
 
 /-- The cells past a word, each witnessed: written. -/
 theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -1984,6 +1992,44 @@ theorem runOk_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
         cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
     exact runOk0_ok hX hpre hs h'
 
+/-- **A read's witness** (`ptOkD`): the cell written. -/
+theorem ptOkD_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {c : CCell} {w : Wit} (h : ptOkD X st c w = true) : W (c.addr σ) := by
+  cases w with
+  | der b S lo hi res ws =>
+    simp only [ptOkD, Bool.and_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    split at h2
+    · rename_i hr
+      rw [addr_eq]
+      exact ptRun_ok (facts_ok hX hs.env res) (runOk_ok hX hpre hs hr) h1
+    · cases h2
+  | _ => exact ptOk_ok hX hpre hs h
+
+/-- **A run needed's witnesses** (`runOkD`): the run written. -/
+theorem runOkD_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOkD X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  by_cases hc : ∃ b S lo hi res wl1, wl = .drv b S lo hi res :: wl1
+  · obtain ⟨b, S, lo, hi, res, wl1, rfl⟩ := hc
+    simp only [runOkD] at h
+    split at h
+    · rename_i ws' hr
+      have hR := runOk_ok hX hpre hs hr
+      cases hb : (runRun (facts X st.env res) st.eqs Q ⟨b, S, lo, hi⟩ || subRun X st.env res Q ⟨b, S, lo, hi⟩) with
+      | false => rw [hb] at h; cases h
+      | true =>
+        rcases Bool.or_eq_true_iff.mp hb with hb | hb
+        · exact runRun_ok (facts_ok hX hs.env res) hs.eqs hR hb
+        · exact subRun_ok hX hs.env hR hb
+    · cases h
+  · have h' : runOk X st Q wl = some wl' := by
+      cases wl with
+      | nil => exact h
+      | cons w wl1 =>
+        cases w <;> first | exact absurd ⟨_, _, _, _, _, _, rfl⟩ hc | exact h
+    exact runOk_ok hX hpre hs h'
+
 theorem reqR_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st)
     {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws)) :
     ∀ {rs : List CRun} {wl wl' : List Wit}, reqR X st ms rs wl = some wl' → ∀ r ∈ rs, r.F W (slotW ws)
@@ -1994,12 +2040,12 @@ theorem reqR_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.a
     | none => simp [hi] at h
     | some q =>
       simp only [hi] at h
-      cases hp : runOk X st q wl with
+      cases hp : runOkD X st q wl with
       | none => simp [hp] at h
       | some wl1 =>
         simp only [hp] at h
         rcases List.mem_cons.mp hr0 with rfl | hr0
-        · exact (instR_runF hms hi).mp (runOk_ok hX hpre hs hp)
+        · exact (instR_runF hms hi).mp (runOkD_ok hX hpre hs hp)
         · exact reqR_ok hX hpre hs hms h r0 hr0
 
 theorem reqPP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
@@ -2503,6 +2549,10 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .ab _ _ _ => hs
   | .evs _ _ _ => hs
   | .back _ _ _ => hs
+  | .der _ _ _ _ _ _ => hs
+  | .wnil => hs
+  | .wcons _ _ => hs
+  | .drv _ _ _ _ _ => hs
 
 /-- **The runs at a word read**: the cell `c` holding `m`'s word, its runs at words into the run scope. -/
 theorem promoteQ_ok {st : CSt} (hs : StOk rd W σ st) {c m : CCell} (hm : rd (c.addr σ) = some (m.valW (vw σ))) :
@@ -2681,7 +2731,7 @@ theorem atomC0_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c
         cases hr
       | some wt =>
         simp only [hw] at h
-        cases hp : ptOk X st (m.shift off) wt with
+        cases hp : ptOkD X st (m.shift off) wt with
         | false => rw [hp] at h; cases h
         | true =>
           simp only [hp, Bool.cond_true, CSt.seq_eq, Option.some.injEq] at h
@@ -2689,7 +2739,7 @@ theorem atomC0_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c
           refine ⟨fun x hx ↦ ?_, loadPush_ok (gwDef_ok (by rw [hX.sig]; exact hX.gw) (hvDef_ok hs hrd' wt) hrd') (fun _ ↦ Or.inl) hW hrd'⟩
           obtain ⟨-, rfl⟩ := hx
           rw [hcell]
-          exact ptOk_ok hX hpre hs hp
+          exact ptOkD_ok hX hpre hs hp
   by_cases hd : ∃ d x y, a = .add d x y
   · obtain ⟨d, x, y, rfl⟩ := hd
     refine ⟨fun x hx ↦ by simp [Reads] at hx, ?_⟩
