@@ -496,6 +496,16 @@ class Pass:
             self.ltprov[(a, b)] = ('fam', fam, cidx)
 
     # -- coverage
+    def bases_in(self, cb, r):
+        """The cells over the bases `cb` can be cells of the run `r`: `idx_in`'s test on the bases alone."""
+        Q, S = r[0], r[1]
+        rest = dict(cb)
+        for b, e in Q[0]:
+            if rest.get(b, 0) < e:
+                return False
+            rest[b] -= e
+        return not any(e % S for e in rest.values())
+
     def idx_in(self, c, r):
         """The index of the cell `c` in the run `r = (Q, S, lo, hi)`: `c = Q·g^(S·j)`, `j` an index, or `None`."""
         Q, S = r[0], r[1]
@@ -1567,19 +1577,21 @@ class Pass:
                 if r[1] == 1 and r[0][0] and r[0][1] == 0 and r[0] not in st.pts:
                     by[r[0][0]].add(0)
 
-        def has(t, c):
+        def has(t, c, rs):
             if c in t.pts:
                 return True
             if not ARMRUN[0]:
                 return False
             u = []
-            b = self.find_run(t, c, t.runs, u)
+            b = self.find_run(t, c, rs, u)
             return b is not None and b[3] and b[4] and not u
         for Q, offs in by.items():
             ns = []
             for j, t in enumerate(outs):
+                # the runs whose cells can be over the bases `Q` (`idx_in`'s first test), once per arm
+                rs = [x for x in t.runs if self.bases_in(Q, x[0])] if ARMRUN[0] else []
                 n = 0
-                while n < 2 ** 12 and has(t, (Q, n)):
+                while n < 2 ** 12 and has(t, (Q, n), rs):
                     n += 1
                 ns.append(n)
             K = (ns[-1] - ns[0]) // (len(outs) - 1)

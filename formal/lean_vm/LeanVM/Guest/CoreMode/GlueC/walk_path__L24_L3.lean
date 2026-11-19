@@ -12,13 +12,16 @@ public import LeanVM.Guest.Checked.Link15
 public import LeanVM.Guest.Pack.«P58».Bundle
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L3»
+/-! Each function's code is the program's (`code_mem`). -/
+
+namespace LeanVM.Guest
 
 public section
 
-/-- `walk_path__L24_L3`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1531 ▸ End.fnOf_mem (by decide)
+theorem Fn.«walk_path__L24_L3».code_mem : code ∈ Data.functions := Checked.code1531 ▸ End.fnOf_mem (by decide)
 
 end
-end LeanVM.Guest.Fn.«walk_path__L24_L3»
+
+end LeanVM.Guest

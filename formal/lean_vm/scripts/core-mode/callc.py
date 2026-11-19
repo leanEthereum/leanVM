@@ -14,6 +14,7 @@ sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
 sys.modules.setdefault('infer', I)
 import route  # noqa: E402
+from pmap import pmap  # noqa: E402
 
 CORE, STABLE = I.CORE, I.STABLE
 
@@ -331,7 +332,7 @@ JT_RUN = [None]
 def jt_run():
     """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
     import importlib.util
-    spec = importlib.util.spec_from_file_location('mode_cert_data', os.path.join(HERE, '..', 'mode-cert', 'data.py'))
+    spec = importlib.util.spec_from_file_location('compiled', os.path.join(HERE, 'compiled.py'))
     md = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(md)
     jt = md.load()['jt']
@@ -776,15 +777,30 @@ def dsp_of(k, body):
 
 
 def results(verbose=False):
+    """`_results`, computed once while its inputs are unchanged (`memo.py`)."""
+    import memo
+    return memo.cached('callc.results', lambda: _results(verbose))
+
+
+def _results(verbose=False):
     I.F.clear()
     I.F.update({'ptr', 'pfr'})
     S = route.sigs()
     out, why = {}, collections.Counter()
-    for k in candidates():
+
+    def one(k):
         try:
-            out[k] = infer_one(k, S)
-            out[k]['text'] = ldata(k, out[k])
+            r = infer_one(k, S)
+            r['text'] = ldata(k, r)
+            return r, None
         except No as e:
+            return None, e
+    cs = candidates()
+    # each candidate on its own, in worker processes (`pmap.py`)
+    for k, (r, e) in zip(cs, pmap(one, cs)):
+        if e is None:
+            out[k] = r
+        else:
             why[str(e).split(':')[0]] += 1
             if verbose and '--why' in ARGV:
                 print(k, e)

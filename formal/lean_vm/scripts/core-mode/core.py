@@ -62,6 +62,10 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
+# a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
+# time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
+FA_RUN = 64
+FA_B = 32
 
 
 def nstmts(body):
@@ -78,6 +82,39 @@ def nstmts(body):
 
 def long_body(k):
     return nstmts(heap.CORE[k][1]) > SPLIT
+
+
+def max_run(ss):
+    """The longest frame run of a body's statements, nested ones included."""
+    m = 0
+    for s in ss:
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and len(s[1]) > 2:
+            m = max(m, len(s[1][2]))
+        elif s[0] == 'ite':
+            m = max(m, max_run(s[2]), max_run(s[3]))
+        elif s[0] == 'match':
+            m = max([m] + [max_run(a) for a in s[2]])
+    return m
+
+
+def fa_chunks(k):
+    """The number of `FA_B`-value chunks `k`'s frame run cells at returns are checked in, or None (one evaluation)."""
+    n = max_run(heap.CORE[k][1])
+    return -(-n // FA_B) if n > FA_RUN else None
+
+
+def faret(k):
+    """`CoreOk.faret`'s parts (`fa_chunks`), if any, and its proof."""
+    m = fa_chunks(k)
+    if m is None:
+        return '', DK
+    code = 'code.chunks.flatten'
+    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
+    out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
+    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(f'faret{c}' for c in range(m))
+    out += thm(k, 'faret', f'CoreMode.faRetOk cfun {code} = true',
+               f'\n  CoreMode.faRetOk_of_kchunks {FA_B} {m} (by decide) faret_runs {tail}')
+    return out, 'faret'
 
 
 def res_chunks(k, po):
@@ -163,7 +200,8 @@ def sig_check(k, split):
 def checks(k, j, frame, heap, split=False):
     """The kernel's checks of function `k` on the core route (`CoreMode.CoreOk`), each heavy one its own declaration
     (its own heartbeats), hence its frame interface."""
-    return (sig_check(k, split) +
+    fa, fap = faret(k)
+    return (sig_check(k, split) + fa +
             thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun funC.sig) = true') + shape(k) +
             thm(k, 'core_calls', 'code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true') +
             thm(k, 'core_jtd', 'CoreMode.jtdOk cfun envC code.chunks.flatten = true') +
@@ -171,7 +209,7 @@ def checks(k, j, frame, heap, split=False):
                 f'Mode.fnSpecC_of\n  {{ heap := {heap}, pair := pair_ok, frame := {frame}, sig := core_sig, retv := core_retv, '
                 f'shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := {DK}, '
                 f'fhalt := {DK}, xhalt := {DK}, fentry := rfl, flen := {DK}, xentry := {DK}, dhints := rfl, {common(k)}, '
-                f'faret := {DK}, nzrc := {DK} }}'))
+                f'faret := {fap}, nzrc := {DK} }}'))
 
 
 def dsp_arg(k):
@@ -496,6 +534,8 @@ def main():
             imps.add(quote(frames[k])); imps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
             imps.add(quote(pair_mod(po[k][0], k)))
             imps.add('LeanVM.Guest.CoreMode.Pows.«%s»' % po[k][0])
+            if R[k].get('kind') not in ('l', 'lc') and fa_chunks(k) is not None:
+                imps.add('LeanVM.Guest.CoreMode.FaRetSplit')
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             if R[k].get('kind') == 'l':

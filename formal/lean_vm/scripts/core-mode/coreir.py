@@ -12,6 +12,8 @@ the cache after a regen.
 """
 import os, sys, re, pickle
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import memo  # noqa: E402,F401  (first: it records what the process reads, `memo.py`)
 import importlib.util
 
 
@@ -114,7 +116,7 @@ def _fn(text):
 
 
 def _mode_data():
-    return _by_path('mode_data', 'mode-cert/data.py').load()
+    return _by_path('compiled', 'core-mode/compiled.py').load()
 
 
 def load():

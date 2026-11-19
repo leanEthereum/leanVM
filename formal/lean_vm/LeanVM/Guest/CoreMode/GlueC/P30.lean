@@ -23,193 +23,34 @@ public import LeanVM.Guest.Checked.Link9
 public import LeanVM.Guest.Pack.«P30».Bundle
 
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«block_selector_tab__L28»
+/-! Each function's code is the program's (`code_mem`). -/
 
-public section
-
-/-- `block_selector_tab__L28`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code261 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«block_selector_tab__L28»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L4»
+namespace LeanVM.Guest
 
 public section
 
-/-- `child_claim_list_mono_last__L4`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code394 ▸ End.fnOf_mem (by decide)
+theorem Fn.«block_selector_tab__L28».code_mem : code ∈ Data.functions := Checked.code261 ▸ End.fnOf_mem (by decide)
+theorem Fn.«child_claim_list_mono_last__L4».code_mem : code ∈ Data.functions := Checked.code394 ▸ End.fnOf_mem (by decide)
+theorem Fn.«da_levels__L128_L7_loop2».code_mem : code ∈ Data.functions := Checked.code942 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_positions__L15_L24_L6».code_mem : code ∈ Data.functions := Checked.code757 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_positions__L22_L23_L5».code_mem : code ∈ Data.functions := Checked.code756 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L109_L16_L6_L3».code_mem : code ∈ Data.functions := Checked.code576 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L109_L20_L6_L3_loop0».code_mem : code ∈ Data.functions := Checked.code1241 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L23_L15_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1395 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L25_L14_L4_L2».code_mem : code ∈ Data.functions := Checked.code835 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L25_L6_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1008 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L28_L12_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1254 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L28_L9_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1126 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L32_L13_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1124 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L44_L17_L4_L2».code_mem : code ∈ Data.functions := Checked.code786 ▸ End.fnOf_mem (by decide)
+theorem Fn.«level_residual__L55_L23_L6_L3».code_mem : code ∈ Data.functions := Checked.code876 ▸ End.fnOf_mem (by decide)
+theorem Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».code_mem : code ∈ Data.functions := Checked.code1486 ▸ End.fnOf_mem (by decide)
+theorem Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1».code_mem : code ∈ Data.functions := Checked.code1375 ▸ End.fnOf_mem (by decide)
+theorem Fn.«padding_weight__L1».code_mem : code ∈ Data.functions := Checked.code101 ▸ End.fnOf_mem (by decide)
+theorem Fn.«padding_weight__L14».code_mem : code ∈ Data.functions := Checked.code114 ▸ End.fnOf_mem (by decide)
 
 end
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L4»
 
-namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop2»
-
-public section
-
-/-- `da_levels__L128_L7_loop2`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code942 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«da_levels__L128_L7_loop2»
-
-namespace LeanVM.Guest.Fn.«level_positions__L15_L24_L6»
-
-public section
-
-/-- `level_positions__L15_L24_L6`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code757 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_positions__L15_L24_L6»
-
-namespace LeanVM.Guest.Fn.«level_positions__L22_L23_L5»
-
-public section
-
-/-- `level_positions__L22_L23_L5`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code756 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_positions__L22_L23_L5»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L16_L6_L3»
-
-public section
-
-/-- `level_residual__L109_L16_L6_L3`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code576 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L109_L16_L6_L3»
-
-namespace LeanVM.Guest.Fn.«level_residual__L109_L20_L6_L3_loop0»
-
-public section
-
-/-- `level_residual__L109_L20_L6_L3_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1241 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L109_L20_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L23_L15_L4_L2_loop0»
-
-public section
-
-/-- `level_residual__L23_L15_L4_L2_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1395 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L23_L15_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L14_L4_L2»
-
-public section
-
-/-- `level_residual__L25_L14_L4_L2`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code835 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L25_L14_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L6_L4_L2_loop0»
-
-public section
-
-/-- `level_residual__L25_L6_L4_L2_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1008 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L25_L6_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L28_L12_L4_L2_loop0»
-
-public section
-
-/-- `level_residual__L28_L12_L4_L2_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1254 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L28_L12_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L28_L9_L4_L2_loop0»
-
-public section
-
-/-- `level_residual__L28_L9_L4_L2_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1126 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L28_L9_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L32_L13_L4_L2_loop0»
-
-public section
-
-/-- `level_residual__L32_L13_L4_L2_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1124 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L32_L13_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L17_L4_L2»
-
-public section
-
-/-- `level_residual__L44_L17_L4_L2`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code786 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L44_L17_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L23_L6_L3»
-
-public section
-
-/-- `level_residual__L55_L23_L6_L3`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code876 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L55_L23_L6_L3»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0»
-
-public section
-
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1486 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1»
-
-public section
-
-/-- `opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code1375 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L1»
-
-public section
-
-/-- `padding_weight__L1`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code101 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L1»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L14»
-
-public section
-
-/-- `padding_weight__L14`: its code is the program's. -/
-theorem code_mem : code ∈ Data.functions := Checked.code114 ▸ End.fnOf_mem (by decide)
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L14»
+end LeanVM.Guest

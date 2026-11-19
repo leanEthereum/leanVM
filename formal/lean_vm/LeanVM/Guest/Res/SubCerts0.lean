@@ -12,106 +12,6 @@ public import LeanVM.Guest.Mode.Certs.List
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.ModePack.«P0»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 8) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 173) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 205) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 283) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 322) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 458) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 537) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 750) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 807) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 845) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 949) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1021) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1046) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1088) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1161) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1259) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1366) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1376) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1392) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1490) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P0»
-
-namespace LeanVM.Guest.ModePack.«P1»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 49) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 154) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 175) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 267) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 273) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 486) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 562) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 574) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 724) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 762) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 892) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 898) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1000) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1028) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1030) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1035) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1098) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1262) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1300) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1359) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1482) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P1»
-
-namespace LeanVM.Guest.ModePack.«P10»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 66) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 171) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 185) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 207) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 244) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 311) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 329) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 334) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 403) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 478) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 526) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 618) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 722) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 764) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1099) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1201) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1238) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1326) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1428) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1545) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P10»
-
 namespace LeanVM.Guest.ModePack.«P11»
 
 open LeanVM.Guest LeanVM.Guest.Res
@@ -120,29 +20,7 @@ public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
   Mode.fa_cons (subOk_exc (by simp [resExc]))
-    (Mode.fa_cons (subOk_of (j := 102) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 117) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 397) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 504) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 547) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 548) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 581) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 613) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 645) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 743) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 941) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 955) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1029) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1138) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1190) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1193) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1250) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1319) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1360) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1378) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1394) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1451) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))))))
+    (Mode.fa_nil)
 
 end
 
@@ -156,125 +34,11 @@ public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
   Mode.fa_cons (subOk_of (j := 30) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 201) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 279) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 490) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 647) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 668) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 748) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 758) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 784) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 867) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 919) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 965) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1043) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1260) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1264) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1467) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1479) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1495) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))
+    (Mode.fa_nil)
 
 end
 
 end LeanVM.Guest.ModePack.«P12»
-
-namespace LeanVM.Guest.ModePack.«P13»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 45) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 60) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 158) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 179) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 423) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 621) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 682) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 801) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 896) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 993) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1016) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1216) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1220) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1310) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1524) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P13»
-
-namespace LeanVM.Guest.ModePack.«P14»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 5) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 79) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 121) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 131) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 225) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 294) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 321) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 424) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 444) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 463) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 925) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 951) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1036) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1119) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1139) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1371) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1387) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1435) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1453) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P14»
-
-namespace LeanVM.Guest.ModePack.«P15»
-
-open LeanVM.Guest LeanVM.Guest.Res
-
-public section
-
-theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 51) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 54) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 145) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 263) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 471) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 498) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 523) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 570) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 640) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 710) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 788) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 813) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 927) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1011) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1081) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1106) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1110) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1213) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1229) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1274) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1332) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1336) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1515) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1529) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P15»
 
 namespace LeanVM.Guest.ModePack.«P16»
 
@@ -283,312 +47,192 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 25) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 31) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 91) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 214) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 303) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 315) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 353) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 377) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 421) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 459) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 518) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 542) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 546) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 582) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 584) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 661) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 673) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 681) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 715) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 725) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 736) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 789) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 812) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 836) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 901) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 917) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1073) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1157) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1235) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1293) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1345) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1383) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1397) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1401) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1421) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1504) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 31) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
 end LeanVM.Guest.ModePack.«P16»
 
-namespace LeanVM.Guest.ModePack.«P17»
+namespace LeanVM.Guest.ModePack.«P24»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 18) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 37) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 63) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 161) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 168) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 190) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 247) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 324) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 406) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 412) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 469) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 559) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 746) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 763) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 800) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 869) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 882) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 926) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1122) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1135) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1151) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1224) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1276) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1317) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1362) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1404) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1543) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))))))))))
+  Mode.fa_cons (subOk_exc (by simp [resExc]))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P17»
+end LeanVM.Guest.ModePack.«P24»
 
-namespace LeanVM.Guest.ModePack.«P18»
+namespace LeanVM.Guest.ModePack.«P29»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 83) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 96) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 118) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 235) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 257) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 368) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 384) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 398) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 462) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 479) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 543) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 566) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 623) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 667) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 779) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 810) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 877) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1187) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1196) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1251) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1426) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1484) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))
+  Mode.fa_cons (subOk_exc (by simp [resExc]))
+    (Mode.fa_cons (subOk_of (j := 41) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil))
 
 end
 
-end LeanVM.Guest.ModePack.«P18»
+end LeanVM.Guest.ModePack.«P29»
 
-namespace LeanVM.Guest.ModePack.«P19»
+namespace LeanVM.Guest.ModePack.«P3»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 174) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 206) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 282) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 499) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 625) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 627) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 635) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 638) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 742) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 749) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 760) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 883) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 894) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 895) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1047) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1069) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1089) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1100) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1162) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1163) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1258) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1322) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1377) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1391) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1502) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1509) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 13) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P19»
+end LeanVM.Guest.ModePack.«P3»
 
-namespace LeanVM.Guest.ModePack.«P2»
+namespace LeanVM.Guest.ModePack.«P33»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 85) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 212) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 301) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 317) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 359) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 371) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 419) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 448) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 470) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 612) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 615) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 649) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 792) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 794) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 826) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 842) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1018) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1104) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1287) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1460) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1471) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 19) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P2»
+end LeanVM.Guest.ModePack.«P33»
 
-namespace LeanVM.Guest.ModePack.«P20»
+namespace LeanVM.Guest.ModePack.«P34»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 32) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 42) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 155) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 182) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 370) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 489) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 509) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 531) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 545) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 607) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 629) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 782) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 785) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 863) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 930) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 932) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 962) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 972) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1116) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1186) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1211) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1281) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1389) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1444) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 26) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P20»
+end LeanVM.Guest.ModePack.«P34»
 
-namespace LeanVM.Guest.ModePack.«P21»
+namespace LeanVM.Guest.ModePack.«P36»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 84) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 211) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 300) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 316) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 358) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 372) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 418) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 449) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 456) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 500) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 506) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 557) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 580) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 592) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 637) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 696) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 709) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 805) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 811) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 828) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 830) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 908) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 915) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 966) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 988) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1065) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1178) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1188) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1266) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1286) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1472) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1535) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil))))))))))))))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 270) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P21»
+end LeanVM.Guest.ModePack.«P36»
 
-namespace LeanVM.Guest.ModePack.«P22»
+namespace LeanVM.Guest.ModePack.«P38»
 
 open LeanVM.Guest LeanVM.Guest.Res
 
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 57) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 144) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 184) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 481) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 577) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 593) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 626) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 634) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 655) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 824) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 872) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 888) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 902) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 913) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 935) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 960) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1025) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1032) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1191) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1233) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1245) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1280) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1323) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1422) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 1469) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_nil)))))))))))))))))))))))))
+  Mode.fa_cons (subOk_of (j := 10) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
 
 end
 
-end LeanVM.Guest.ModePack.«P22»
+end LeanVM.Guest.ModePack.«P38»
+
+namespace LeanVM.Guest.ModePack.«P42»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_of (j := 388) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P42»
+
+namespace LeanVM.Guest.ModePack.«P46»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_of (j := 268) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P46»
+
+namespace LeanVM.Guest.ModePack.«P51»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_exc (by simp [resExc]))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P51»
+
+namespace LeanVM.Guest.ModePack.«P54»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_of (j := 28) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P54»
+
+namespace LeanVM.Guest.ModePack.«P55»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_of (j := 271) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P55»
+
+namespace LeanVM.Guest.ModePack.«P57»
+
+open LeanVM.Guest LeanVM.Guest.Res
+
+public section
+
+theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
+  Mode.fa_cons (subOk_exc (by simp [resExc]))
+    (Mode.fa_nil)
+
+end
+
+end LeanVM.Guest.ModePack.«P57»
