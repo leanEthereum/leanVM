@@ -11,7 +11,7 @@ public import LeanVM.Guest.Lift.RegD
 public import LeanVM.Guest.B1.Fs.MessageComplete
 public import LeanVM.Guest.B1.Fs.SqueezePoint
 public import LeanVM.Guest.B1.Fs.TailRound
-public import LeanVM.Guest.B1.Merkle.CapAll
+public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Eq.FoldFinal
 public import LeanVM.Guest.B1.Bits.GrindPlaced
 public import LeanVM.Guest.B1.Whir.Round

@@ -161,8 +161,6 @@ import LeanVM.Guest.B1.Sig.XmssStep
 import LeanVM.Guest.B1.Sig.XmssT
 import LeanVM.Guest.B1.Sig.XmssWindows
 
-import LeanVM.Guest.B1.Merkle.Cap
-import LeanVM.Guest.B1.Merkle.CapAllP
 import LeanVM.Guest.B1.Merkle.CapLinks
 import LeanVM.Guest.B1.Merkle.CapRef
 import LeanVM.Guest.B1.Merkle.Climb
@@ -378,8 +376,6 @@ open Lean Elab Command in
   let Q := `LeanVM.Guest.B1.Bits
   -- single modules (not their numbered siblings), and the functions whose core modules each may read
   let single : List (Name × List Name) := [
-    (`LeanVM.Guest.B1.Merkle.Cap, []),
-    (`LeanVM.Guest.B1.Merkle.CapAllP, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.CapRef, []),
     (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
