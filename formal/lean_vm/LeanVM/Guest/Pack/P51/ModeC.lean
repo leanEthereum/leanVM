@@ -20,6 +20,27 @@ public import LeanVM.Guest.Pack.«P61».ModeSig
 public import LeanVM.Guest.Pack.«P62».ModeSig
 public import LeanVM.Guest.Pack.«P7».ModeSig
 
+namespace LeanVM.Guest.Fn.«certify_placement»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `certify_placement`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `certify_placement`: its entry, length and signature; on the core route, nothing for a walk but
+    its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨29098, 469, Fn.«certify_placement».modeSig, .nil, (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node (some [(.nz 141)]) .nil .nil)
+    .nil) .nil))) .nil) .nil)), .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«certify_placement»
+
 namespace LeanVM.Guest.Fn.«block_selector__L30»
 
 open LeanVM.Guest LeanVM.Guest.Exec

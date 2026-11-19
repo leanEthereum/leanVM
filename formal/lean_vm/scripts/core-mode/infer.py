@@ -1133,14 +1133,27 @@ class Pass:
             return ('preP', w[1])
         return None
 
+    def argword(self, st, args, a):
+        """The word at cell `d` past argument `q - 2`'s word: the value a top-level `load` names there
+        (`CoreMode.hpVal`), as its monomial."""
+        for s in self.body:
+            if s[0] == 'ret':
+                return None
+            if s[0] == 'a' and s[1][0] == 'load' and s[1][2] == args[a[1] - 2] and s[1][3] == a[2]:
+                return self.mono(st, s[1][1])
+        return None
+
     def call(self, st, f, args, rets, cond=None, conditional=False, conds=None, record=True):
         G = SIGS.get(f)
         ws = []
         site = ('call', f)
         self.ginst = None
-        if G is not None and G.ghosts and all(a[0] == 'hp1' for a in G.ghosts):
-            # a callee's caller cells, the caller's own parameters' words (`CoreMode.hpArgOk`)
-            self.ginst = [mk(((a[1] - 2, 1),), 0) for a in G.ghosts]
+        if G is not None and G.ghosts and all(a[0] in ('hp1', 'hpw') for a in G.ghosts):
+            # a callee's caller cells, the caller's own parameters' words; the words at its arguments' cells, the values
+            # a top-level `load` names (`CoreMode.hpArgOk`)
+            self.ginst = [mk(((a[1] - 2, 1),), 0) if a[0] == 'hp1' else self.argword(st, args, a) for a in G.ghosts]
+            if None in self.ginst:
+                self.ginst = None
         elif G is not None and G.ghosts and 'obj' in F:
             import objs
             self.ginst = self.gforce.get(f) if f in self.gforce else objs.inst(self, st, G, args, conds)

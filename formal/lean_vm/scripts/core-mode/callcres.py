@@ -14,7 +14,19 @@ CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
 # `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
 # values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
-VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},)}
+VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},),
+            'certify_placement': (FEATURES | {'rcpts', 'perm'},)}
+
+
+_SIGS = {}
+
+
+def vs_ok(k, r):
+    """A residual of a family at `verify_sub` (the pool's facts the solver may use there)."""
+    if not _SIGS:
+        import route
+        _SIGS.update(route.sigs())
+    return res_ok(k, [r], _SIGS)
 
 
 def top_atoms(body):
@@ -189,6 +201,9 @@ def expq_bound(k, x):
     """`CoreMode.expQB`: `expq0`, or the first top-level atom defining `x` of a product `x = a·w` of such a value `a`
     and a constant `g^c` (bound plus `c`) or a copy of such a value."""
     b = expq0(k, x)
+    if b is not None:
+        return b
+    b = vs_bound(k, x)
     if b is not None:
         return b
     atoms = top_atoms(I.CORE[k][1])
@@ -447,10 +462,90 @@ def st_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
 
 
+# `CoreMode.vsPows`, `vsMuls`, `vsLes`, `vsCurs`: `verify_sub`'s exponent family (`EndExec.VsQ`): its values' exponent
+# bounds, the products naming one, the orders `e(x) <= e(y) + c`, the cursors in its stream `[25]·[0, 8192)` with
+# room for `207` words
+VS_POWS = {86: (0, 30), 87: (0, 30), 88: (0, 30), 89: (0, 30), 90: (0, 30), 91: (9, 24), 583: (9, 24),
+           253: (20, 33), 579: (9, 33), 276: (20, 30), 278: (0, 10)}
+VS_MULS = {(276, 277): 278}
+VS_LES = [(91, 579, 0), (583, 579, 0), (276, 278, 20)]
+VS_CURS = [567, 578, 595]
+VS_STREAM, VS_ROOM = 25, 207
+
+
+def vs_iv(i):
+    """`CoreMode.vsIv`: an index's base (or None), offset and exponent bounds."""
+    if i[0] == 'num':
+        return (None, i[1], i[1], i[1])
+    if i[0] == 'val':
+        bs, off = ((i[1], 1),), 0
+    else:
+        bs, off = i[1]
+    if len(bs) == 1 and bs[0][1] == 1:
+        x = bs[0][0]
+    elif len(bs) == 2 and bs[0][1] == 1 and bs[1][1] == 1 and (bs[0][0], bs[1][0]) in VS_MULS:
+        x = VS_MULS[(bs[0][0], bs[1][0])]
+    else:
+        return None
+    if x not in VS_POWS:
+        return None
+    lo, hi = VS_POWS[x]
+    return (x, off, lo + off, hi + off)
+
+
+def vs_exp(k, r):
+    """`CoreMode.vsExp`: a residual of `verify_sub`'s exponent family."""
+    if k != 'verify_sub':
+        return False
+    if r[0] == 'under':
+        return vs_exp(k, r[2])
+    if r[0] == 'lt':
+        a, b = vs_iv(r[1]), vs_iv(r[2])
+        if a is None or b is None or not (a[3] < CAPE and b[3] < CAPE):
+            return False
+        return a[3] < b[2] or (a[0] is not None and b[0] is not None and
+                               any(x == a[0] and y == b[0] and a[1] + c < b[1] for x, y, c in VS_LES))
+    if r[0] == 'sub':
+        c, q = r[1], r[2]
+        return q == ((((VS_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)) and len(c[0]) == 1 and \
+            c[0][0][0] in VS_CURS and c[0][0][1] == 1 and c[1] < VS_ROOM
+    return False
+
+
+def vs_bound(k, x):
+    """`verify_sub`'s exponent bound of `x` (`vsExp`), plus one."""
+    return VS_POWS[x][1] + 1 if k == 'verify_sub' and x in VS_POWS else None
+
+
+# `CoreMode.cpRanks`: `certify_placement`'s ranks' group values (`B1.Tables.cpRB`)
+CP_RANKS = [138] + [131 + 18 * r for r in range(1, 9)]
+
+
+def cp_perm(k, r):
+    """`CoreMode.cpPerm`: `certify_placement`'s cell `[137]·g^j`, `j < 9`, one of `[137]·[v]` over its ranks' groups."""
+    return k == 'certify_placement' and r[0] == 'subP' and r[1][0] == ((137, 1),) and r[1][1] < 9 and \
+        tuple(r[2]) == tuple((((137, 1), (v, 1)), 0) for v in CP_RANKS)
+
+
+def rc_pts(k, r):
+    """`CoreMode.rcPts`: a cell `[B]·[J]·g^o`, `J` range checked below `g^N` at the top level (`Res.rcBound`), one of
+    the points `[B]·g^(o + t)`, `t < N`."""
+    if r[0] != 'subP' or len(r[1][0]) != 2 or any(e != 1 for _, e in r[1][0]):
+        return False
+    (a, _), (b, _) = r[1][0]
+    atoms = top_atoms(I.CORE[k][1])
+    for B, J in ((a, b), (b, a)):
+        N = rc_bound(atoms, J)
+        if N is not None and N <= 64 and all((((B, 1),), r[1][1] + t) in r[2] for t in range(N)):
+            return True
+    return False
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     import vtexp
-    return all(((res_fam(k, r, S[k]) or vtexp.vt_perm(k, r)) and all(v < I.GB for v in vals(r))) or
+    return all(((res_fam(k, r, S[k]) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or rc_pts(k, r)) and
+                all(v < I.GB for v in vals(r))) or
                (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
 
 
@@ -492,8 +587,9 @@ def vt_facts(EM):
     e(b)` stated under the site's path when the family proves it there."""
     import vtexp
     base = EM.Solver.fact
-    EM.RES_FILTER[0] = lambda k, r: k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or \
-        vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)
+    EM.RES_FILTER[0] = lambda k, r: (k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or
+                                     vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)) and \
+        (k != 'verify_sub' or vs_ok(k, r))
 
     def fact(self, st, a, b):
         f = base(self, st, a, b)

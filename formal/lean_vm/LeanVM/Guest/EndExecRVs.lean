@@ -125,33 +125,25 @@ theorem top_ret (t : TopAt A r K i e j) (hr : r.Ok) {f : String} {as bs : List V
   obtain ⟨-, hmx⟩ := ref_read hr (by have := hxn.2; unfold maxCells at this; omega) hret
   rw [← hxM, hmx]
 
-/-- **`verify_sub`'s values at an honest frame**: the tables' log-heights `hs` in `dims`, the stack's
-log `sl`, the bus depth `d`, the table sumcheck's depth `n`, the cursors past the bus's GKR walk, the
-tables' segment and `verify_keccak`, `gK + 207` words at most into the stream. -/
-theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_sub») :
-    j = fn_idx% «verify_sub» ∧ ∃ (hs : List ℕ) (lm sl d n gG gT gK : ℕ),
+/-- **`verify_sub`'s values at an honest instance**: the tables' log-heights `hs` in `dims`, the stack's log `sl`, the
+bus depth `d`, the table sumcheck's depth `n`, the cursors past the bus's GKR walk, the tables' segment and
+`verify_keccak`, `gK + 207` words at most into the stream. -/
+theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {σ : Core.Val}
+    {bufs : List ℕ} {kids : List Tree} (hIt : I.t = .node name% «verify_sub» σ bufs kids) :
+    ∃ (hs : List ℕ) (lm sl d n gG gT gK : ℕ),
       hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ 9 ≤ hs.getD 5 0 ∧ hs.getD 5 0 ≤ 24 ∧
-      ReadsAt r.img.read (e.σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
-      20 ≤ sl ∧ sl ≤ 30 ∧ e.σ (.n 278) = gen ^ (sl - 20) ∧ e.σ (.n 276) = gen ^ sl ∧
-      20 ≤ d ∧ d < 34 ∧ e.σ (.n 253) = gen ^ d ∧
-      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ e.σ (.n 579) = gen ^ n ∧
-      e.σ (.n 567) = e.σ (.n 25) * gen ^ gG ∧ e.σ (.n 578) = e.σ (.n 25) * gen ^ gT ∧
-      e.σ (.n 595) = e.σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
-  obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
-  rw [hname] at hfn
-  subst hfn
-  have hj : j = fn_idx% «verify_sub» := by
-    have := t.idx
-    rw [hJ] at this
-    exact Option.some.inj (this.symm.trans vs_idx)
-  refine ⟨hj, ?_⟩
-  have hcj : coreOf j = fn% «verify_sub» := Option.some.inj (hfj.symm.trans VerifySub.find_vs)
-  rw [hcj] at hfj
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
+      ReadsAt r.img.read (σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
+      20 ≤ sl ∧ sl ≤ 30 ∧ σ (.n 278) = gen ^ (sl - 20) ∧ σ (.n 276) = gen ^ sl ∧
+      20 ≤ d ∧ d < 34 ∧ σ (.n 253) = gen ^ d ∧
+      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ σ (.n 579) = gen ^ n ∧
+      σ (.n 567) = σ (.n 25) * gen ^ gG ∧ σ (.n 578) = σ (.n 25) * gen ^ gT ∧
+      σ (.n 595) = σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
+  have hfj : coreProgram.find? name% «verify_sub» = some (fn% «verify_sub») := VerifySub.find_vs
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv hfj
   rw [VerifySub.vs_body] at hb
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨hexp, hwin⟩ := carryQ_all hr e.I t.inst _ e.σ bufs kids hJ _ hfj (name% «verify_sub», 4, .tab)
+  obtain ⟨hexp, hwin⟩ := carryQ_all hr I hI _ σ bufs kids hIt _ hfj (name% «verify_sub», 4, .tab)
     (by decide) rfl (.n 4) (by rw [VerifySub.vs_params]; rfl)
   obtain ⟨⟨F⟩, -⟩ := VerifySub.vs_front (by omega) r.img (fun _ _ _ h ↦ Res.KidRel.rel h)
     (bytecode := List.replicate (2 ^ 23) 0) List.length_replicate hexp hwin hb
@@ -165,9 +157,9 @@ theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
     intro h hh'
     have := F.hh31 h hh'
     omega
-  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, e.σ (.n 580)⟩)
-    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, e.σ (.n 580)⟩ w p v) _ hhl F.pi F.weights
-    (e.σ (.n 559)) F.r.2.1 F.r.2.2
+  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 580)⟩)
+    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 580)⟩ w p v) _ hhl F.pi F.weights
+    (σ (.n 559)) F.r.2.1 F.r.2.2
   obtain ⟨hlT, sp'', hsp''⟩ := runsTo_reads hRT F.hT hsp'
   generalize (List.replicate (2 ^ 23) 0 : List LeanVM.Parameters.K) = bc at F hhl
   -- the tables' context
@@ -201,8 +193,8 @@ theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
   obtain ⟨xsK, op, point, slices, word, s', -, hrunK, -, -, -, -, -, -, -, hretK⟩ :=
     hK (by rw [F.h589]; exact VerifySub.winTabs_of hwin) ((Tables.tableHeightsOf F.rowsN).getD 5 0) chis _ hτ9
       (by omega) F.h583 hτc hchi hl25 (by rw [F.h587]; exact hlR)
-  obtain ⟨-, hK2⟩ := List.append_inj' (show [e.σ (.n 590), e.σ (.n 591), e.σ (.n 592), e.σ (.n 593),
-    e.σ (.n 594)] ++ [e.σ (.n 595), e.σ (.n 596)] = _ from hretK) rfl
+  obtain ⟨-, hK2⟩ := List.append_inj' (show [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593),
+    σ (.n 594)] ++ [σ (.n 595), σ (.n 596)] = _ from hretK) rfl
   simp only [List.cons.injEq, and_true] at hK2
   obtain ⟨e595, -⟩ := hK2
   obtain ⟨hlK, -⟩ := runsTo_reads (Child.reads_verifyKeccak _ _ _ (by simp only [List.length_take]; omega)) hrunK hsp''
@@ -224,6 +216,25 @@ theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
     simp only [mul_assoc, ← pow_add]
   · rw [e595, F.h578, F.h567, F.h320, F.h312]
     simp only [mul_assoc, ← pow_add]
+
+/-- **`verify_sub`'s values at an honest frame** (`vs_valsI`). -/
+theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_sub») :
+    j = fn_idx% «verify_sub» ∧ ∃ (hs : List ℕ) (lm sl d n gG gT gK : ℕ),
+      hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ 9 ≤ hs.getD 5 0 ∧ hs.getD 5 0 ≤ 24 ∧
+      ReadsAt r.img.read (e.σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
+      20 ≤ sl ∧ sl ≤ 30 ∧ e.σ (.n 278) = gen ^ (sl - 20) ∧ e.σ (.n 276) = gen ^ sl ∧
+      20 ≤ d ∧ d < 34 ∧ e.σ (.n 253) = gen ^ d ∧
+      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ e.σ (.n 579) = gen ^ n ∧
+      e.σ (.n 567) = e.σ (.n 25) * gen ^ gG ∧ e.σ (.n 578) = e.σ (.n 25) * gen ^ gT ∧
+      e.σ (.n 595) = e.σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
+  obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
+  rw [hname] at hfn
+  subst hfn
+  have hj : j = fn_idx% «verify_sub» := by
+    have := t.idx
+    rw [hJ] at this
+    exact Option.some.inj (this.symm.trans vs_idx)
+  exact ⟨hj, vs_valsI hr t.inst hJ⟩
 
 /-- A word `gen^x` as a listed power. -/
 theorem epow_of {M : ℕ → E} {fp : ℕ} {B : Base} {lo hi x : ℕ} {u : E} (hu : ∀ v, RBase M fp B v → v = u)

@@ -679,6 +679,13 @@ class Solver:
             if RES_FILTER[0] is not None and not RES_FILTER[0](self.k, wr):
                 continue
             cands.append((C.idxF(st.env, r[1]), C.idxF(st.env, r[2])))
+        if 'rcpts' in I.F:
+            # an index a top-level range check bounds (`CoreMode.rcPts`)
+            import callcres
+            for x, e in c[0]:
+                N = callcres.rc_bound(callcres.top_atoms(I.CORE[self.k][1]), x) if e == 1 else None
+                if N is not None and C.idxF(st.env, ('val', x)) == (((x, 1),), 0):
+                    cands.append(((((x, 1),), 0), ((), N)))
         for a, b in cands:
             if b[0] or not a[0] or not 0 < b[1] <= 64:
                 continue

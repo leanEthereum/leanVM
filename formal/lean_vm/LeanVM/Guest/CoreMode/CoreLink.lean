@@ -279,12 +279,13 @@ theorem rw_ptL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m : Mode.
 
 /-! ## A callee's caller cells, from the caller -/
 
-/-- **Each base has its slot's word** (`BaseL`, the caller's cells linked, no own parameter word). -/
-def SlotGetL (gl : List (ℕ × ℕ × ℕ)) (s : St) (ws : List E) (bs : List (Mode.Base × ℕ)) : Prop :=
-  ∀ b ∈ bs, ∃ w, BaseL gl [] ws b.1 = some w ∧ BaseVal s b.1 w
+/-- **Each base has its slot's word** (`BaseL`, the caller's cells linked, the words at arguments' cells `gp`). -/
+def SlotGetL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (s : St) (ws : List E) (bs : List (Mode.Base × ℕ)) :
+    Prop :=
+  ∀ b ∈ bs, ∃ w, BaseL gl gp ws b.1 = some w ∧ BaseVal s b.1 w
 
 theorem bsVal_slotL' {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} :
-    ∀ (bs : List (Mode.Base × ℕ)) (cb : List (ℕ × ℕ)), bs.mapM (baseOfL gl []) = some cb → SlotGetL gl s ws bs →
+    ∀ (bs : List (Mode.Base × ℕ)) (cb : List (ℕ × ℕ)), bs.mapM (baseOfL gl gp) = some cb → SlotGetL gl gp s ws bs →
       BsVal s bs (prodW (slotW ws) cb)
   | [], cb, h, _ => by
     simp only [List.mapM_nil, Option.pure_def, Option.some.injEq] at h
@@ -301,7 +302,7 @@ theorem bsVal_slotL' {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} :
     exact ⟨_, _, hv0, bsVal_slotL' bs xs hxs (fun b hb ↦ hc b (List.mem_cons_of_mem _ hb)), rfl⟩
 
 theorem monoVal_slotL' {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m : Mode.Mono} {c : CCell}
-    (hm : monoF (baseOfL gl []) m = some c) (hc : SlotGetL gl s ws m.bs) : MonoVal s m (c.valW (slotW ws)) := by
+    (hm : monoF (baseOfL gl gp) m = some c) (hc : SlotGetL gl gp s ws m.bs) : MonoVal s m (c.valW (slotW ws)) := by
   obtain ⟨h0, cb, hcb, rfl⟩ := monoF_specL hm
   refine ⟨_, bsVal_slotL' m.bs cb hcb hc, ?_⟩
   rw [h0]
@@ -310,7 +311,7 @@ theorem monoVal_slotL' {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m
 
 /-- **A run of constant bounds, the caller's cells linked: its heap run's cells written, it is written.** -/
 theorem slot_rwL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {r : Mode.Rng} {q : CRun}
-    (hr : rngL gl [] r = some q) (hn : numB r = true) (hc : SlotGetL gl s ws r.q.bs)
+    (hr : rngL gl gp r = some q) (hn : numB r = true) (hc : SlotGetL gl gp s ws r.q.bs)
     (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) : RW s r := by
   obtain ⟨lo, hi, c, hlo, hhi, hmc, rfl⟩ := rngL_spec hr
   unfold numB at hn
@@ -328,8 +329,24 @@ theorem slot_rwL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {r : Mod
       ⟨j, h1, h2, rfl⟩)
     obtain ⟨y, hy, hw⟩ := names_wrk hx
     refine ⟨y, ?_, hw⟩
-    rwa [run_cell] 
+    rwa [run_cell]
   · cases hn
+
+/-- **A one-point run at a product, the caller's cells linked** (`ptLIs`): its heap run's cell written, the product is
+written. -/
+theorem slot_hwL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m : Mode.Mono} {q : CRun}
+    (hq : ptLIs gl gp m q = true) (hc : SlotGetL gl gp s ws m.bs) (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) :
+    Mode.HW s m := by
+  unfold ptLIs at hq
+  split at hq
+  · rename_i c hmc
+    obtain rfl := of_decide_eq_true hq
+    have hx := h _ ((runSet_const (q := ⟨c, 1, .num 0, .num 1⟩) rfl rfl (by norm_num) (by norm_num)).mpr
+      ⟨0, le_rfl, by norm_num, rfl⟩)
+    obtain ⟨y, hy, hw⟩ := names_wrk hx
+    refine ⟨_, y, monoVal_slotL' hmc hc, ?_, hw⟩
+    simpa [addressOfIndex] using hy
+  · cases hq
 
 end
 
