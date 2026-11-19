@@ -18,9 +18,47 @@ public import LeanVM.Guest.Pack.«P28».ModeSig
 public import LeanVM.Guest.Pack.«P29».ModeSig
 public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P37».ModeSig
+public import LeanVM.Guest.Pack.«P44».ModeSig
 public import LeanVM.Guest.Pack.«P47».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
 public import LeanVM.Guest.Pack.«P56».ModeSig
+public import LeanVM.Guest.Pack.«P63».ModeSig
+
+namespace LeanVM.Guest.Fn.«shared_selector_tables»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `shared_selector_tables`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«shared_selector_tables_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil) .nil))
+    .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some Fn.«sel_partial_nibble__L1».modeSig) .nil .nil) .nil)))) .nil) .nil))
+    .nil)) .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«sel_partial_nibble__L2».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) .nil)))))
+    .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«sel_partial_nibble__L0».modeSig)
+    .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«sel_partial_nibble__L3».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil))
+    .nil))) .nil) .nil)) .nil)), 524287⟩
+
+/-- `shared_selector_tables`: its entry, length and signature; on the core route, nothing for a
+    walk but its nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨19918, 64, Fn.«shared_selector_tables».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«shared_selector_tables»
 
 namespace LeanVM.Guest.Fn.«da_weights»
 

@@ -38,6 +38,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P28».Pair
 public import LeanVM.Guest.Pack.«P10».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P18».ModeSig
@@ -84,9 +85,8 @@ noncomputable def Fn.«shared_selector_tables».frameFun : CoreMode.FFun :=
     Fn.«sel_partial_nibble__L3».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil))) .nil)
     .nil)) .nil)), 524287, Data.adviceFn11.2.2, .nil, (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node (some 0) .nil .nil))))) .nil), .nil, (.node (some
-    frameCallee0) .nil .nil), (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some ()) .nil .nil)))) (.node none .nil (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil)))))), .nil, .nil⟩
+    frameCallee0) .nil .nil), Fn.«shared_selector_tables».pairO, Fn.«shared_selector_tables».pairS,
+    .nil⟩
 
 theorem Fn.«shared_selector_tables».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
     := by

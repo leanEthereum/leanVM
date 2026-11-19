@@ -151,7 +151,16 @@ def results(verbose=False):
     try:
         for k in cs:
             try:
-                out[k] = infer_one(k, S)
+                try:
+                    out[k] = infer_one(k, S)
+                except No:
+                    # then with reads at any index of a run, their bounds residuals of families (`idx`, `rules`)
+                    I.F.update({'idx', 'rules'})
+                    try:
+                        out[k] = infer_one(k, S)
+                    finally:
+                        I.F.clear()
+                        I.F.update({'ptr', 'pfr'})
                 out[k]['text'] = callc.ldata(k, out[k])
             except No as e:
                 why[str(e).split(':')[0]] += 1

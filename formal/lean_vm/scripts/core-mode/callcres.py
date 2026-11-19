@@ -365,6 +365,16 @@ def res_fam(k, r, G):
         a, c = r[1][1], r[2][1]
         return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
             dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'val':
+        # `rcn`: `x` range checked against `k = p·w`, `w` the constant `g⁻¹`
+        x, p = r[1][1], r[2][1]
+        top = top_atoms(body)
+
+        def inv(w):
+            c = const_of(top, w)
+            return c is not None and c[1] == 0 and I.gf_mulx(c[0], 1) == 1
+        return any(a[0] == 'rangeCheck' and a[1] == x and
+                   any(b[0] == 'mul' and b[1] == a[5] and b[2] == p and inv(b[3]) for b in top) for a in top)
     if r[0] == 'subR':
         return sub_rc(r[1], r[2])
     if r[0] == 'sub':
@@ -426,9 +436,48 @@ def st_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
 
 
+# `CoreMode.splitsC`: a function's `g`-power `n = q^S·r` split from hinted bits, on every returning path `q` (a
+# monomial) names `g^a`, the selector `rv` and the monomial `r` name `g^b`, `a < A`, `b < S`
+SPLITS = {
+    'rs_eq_run': (((27, 1), (31, 1), (36, 1)), ((13, 1), (17, 1), (22, 1)), 23, 3, 8, 8),
+    'shared_selector_tables': (((24, 1), (28, 1), (33, 1), (38, 1)), ((15, 1), (19, 1)), 20, 5, 4, 16),
+}
+
+
+def pow_b(k, bs):
+    return tuple((b, k * e) for b, e in bs)
+
+
+def split_res(sp, cs, r):
+    """`CoreMode.splitRes`: under the branch conditions `cs`, an exponent bound of `q^k·g^c` (`k` one or `S`) or of
+    `r·g^c` below a constant; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run `[b·g^i]` over
+    `[0, e(q))`, `i < S`, inside `[b]·[0, e(n))`."""
+    q, rb, rv, n, S, A = sp
+    if r[0] == 'under':
+        return split_res(sp, cs + list(r[1]), r[2])
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
+        (bs, off), N = r[1][1], r[2][1]
+        return N < CAPE and ((bs == q and A - 1 + off < N) or (bs == pow_b(S, q) and S * (A - 1) + off < N) or
+                             (bs == rb and S - 1 + off < N))
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2] == ('val', n):
+        bs, off = r[1][1]
+        return bs == pow_b(S, q) and any(c[0] == 'arm' and c[1] == rv and off < c[2] < CAPE for c in cs)
+    if r[0] == 'subR':
+        (Q, S1, lo, hi), (R, S2, lo2, hi2) = r[1], r[2]
+        return S1 == S and lo == ('num', 0) and hi == ('mono', (q, 0)) and Q[1] < S and R == (Q[0], 0) and \
+            S2 == 1 and lo2 == ('num', 0) and hi2 == ('val', n)
+    return False
+
+
+def split_fam(k, r):
+    """`CoreMode.splitFam`."""
+    sp = SPLITS.get(k)
+    return sp is not None and split_res(sp, [], r)
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
+    return all(((res_fam(k, r, S[k]) or split_fam(k, r)) and all(v < I.GB for v in vals(r))) or
                (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
 
 
@@ -508,9 +557,10 @@ def extend(out, why, S, verbose=False):
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
             # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
-            # residual is of no family
+            # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
+            # conditional entry (`callIfR`)
             for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                          FEATURES | {'dup', 'nohs'}):
+                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

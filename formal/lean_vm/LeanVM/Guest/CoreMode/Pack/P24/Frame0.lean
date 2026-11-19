@@ -32,6 +32,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P20».ModeSig
@@ -82,8 +83,12 @@ noncomputable def Fn.«main_loop3».frameFun : CoreMode.FFun :=
     Fn.«main_loop3».modeSig, (.node none (.node none .nil (.node none .nil (.node none (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«verify_sig_lean_sphincs».modeSig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) .nil),
-    524287, Data.adviceFn40.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    Fn.«verify_sig_lean_sphincs».modeSig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop3».modeSig) .nil .nil) .nil))
+    .nil)))) .nil) .nil)) .nil))) .nil) .nil)) .nil)), 524287, Data.adviceFn40.2.2, .nil, .nil,
+    .nil, .nil, Fn.«main_loop3».pairO, Fn.«main_loop3».pairS, .nil⟩
 
 theorem Fn.«main_loop3».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

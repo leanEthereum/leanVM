@@ -38,6 +38,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P11».ModeSig
 public import LeanVM.Guest.Pack.«P16».ModeSig
@@ -101,9 +102,7 @@ noncomputable def Fn.«rs_eq_run».frameFun : CoreMode.FFun :=
     none (.node (some Fn.«rs_eq_rows__L4».modeSig) .nil .nil) .nil))) .nil)) .nil) .nil) .nil)
     .nil))) .nil) .nil)) .nil))), 524287, Data.adviceFn6.2.2, .nil, (.node none (.node none (.node
     none (.node none .nil (.node none .nil (.node (some 0) .nil .nil))) .nil) .nil) .nil), .nil,
-    (.node (some frameCallee0) .nil .nil), (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none .nil (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil)))), .nil, .nil⟩
+    (.node (some frameCallee0) .nil .nil), Fn.«rs_eq_run».pairO, Fn.«rs_eq_run».pairS, .nil⟩
 
 theorem Fn.«rs_eq_run».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

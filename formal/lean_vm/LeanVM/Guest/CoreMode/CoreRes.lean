@@ -40,7 +40,13 @@ function's own code whose soundness at its honest instances is proved once, in `
   addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
+* `rcn`: `e(x) < e(p)` (`.lt (.val x) (.val p)`), the value `x` range checked against `k = p·w`, `w` the constant
+  `g⁻¹`, among the top-level atoms;
 * `under g r`: a residual of a family, the branch conditions `g` aside.
+* `split` (`splitFam`): a function's `g`-power `n = q^S·r` split from hinted bits (`splitsC`: `rs_eq_run`,
+  `shared_selector_tables`), from the bits' booleanity on its path (`EndExecCoreSplit`): exponent bounds of `q`, `q^S`
+  and `r` times constants, of `q^S·g^c` below `n` under an arm `j > c` of the selector `r`, and the loop's strided
+  runs below `e(q)` inside `[0, e(n))`.
 * `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
   `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
 
@@ -193,6 +199,14 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
         | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
         | _ => false
     | _, _ => false
+  | .lt (.val x) (.val p) => (Res.topAtoms fn.body).any fun
+      | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && (Res.topAtoms fn.body).any fun
+          | .mul k' p' w => decide (k' = k) && decide (p' = V.n p) &&
+              (match Res.constOf (Res.topAtoms fn.body) w with
+              | some w' => invG w'
+              | none => false)
+          | _ => false
+      | _ => false
   | .lt (.mono c) (.num n) => match c.bases with
     | [(x, 1)] => decide (n < capE) &&
         ((Res.topSels fn.body).any (fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)) ||
@@ -392,9 +406,51 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
     | _, _ => false
   | _ => false
 
-/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
+/-! ## Split `g`-powers -/
+
+/-- **A function's `g`-power split from hinted bits** (`split`): `n = q^S·r`, on every returning path the monomial `q`
+naming `g^a`, the selector `rv` and the monomial `r` naming `g^b`, `a < A`, `b < S`. -/
+structure SplitC where
+  q : List (ℕ × ℕ)
+  r : List (ℕ × ℕ)
+  rv : ℕ
+  n : ℕ
+  S : ℕ
+  A : ℕ
+
+/-- The splits: `rs_eq_run`'s `count = q^8·r` and `shared_selector_tables`' `len = q^4·r` (`EndExecCoreSplit`). -/
+def splitsC : List (String × SplitC) :=
+  [(name% «rs_eq_run», ⟨[(27, 1), (31, 1), (36, 1)], [(13, 1), (17, 1), (22, 1)], 23, 3, 8, 8⟩),
+    (name% «shared_selector_tables», ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], [(15, 1), (19, 1)], 20, 5, 4, 16⟩)]
+
+/-- A monomial's bases to the `k`-th power. -/
+def powB (k : ℕ) (bs : List (ℕ × ℕ)) : List (ℕ × ℕ) := bs.map fun p ↦ (p.1, k * p.2)
+
+/-- **The residuals a split gives**, under the branch conditions `cs`: the exponent of `q·g^c`, `q^S·g^c` or `r·g^c`
+below a constant past its largest; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run
+`[b]·g^i·g^(S·[0, e(q)))`, `i < S`, inside `[b]·[0, e(n))`. -/
+def splitRes (sp : SplitC) (cs : List CCond) : CRes → Bool
+  | .lt (.mono c) (.num N) => decide (N < capE) &&
+      ((decide (c.bases = sp.q) && decide (sp.A - 1 + c.off < N)) ||
+        (decide (c.bases = powB sp.S sp.q) && decide (sp.S * (sp.A - 1) + c.off < N)) ||
+        (decide (c.bases = sp.r) && decide (sp.S - 1 + c.off < N)))
+  | .lt (.mono c) (.val n) => decide (n = sp.n) && decide (c.bases = powB sp.S sp.q) &&
+      cs.any fun
+        | .arm x j => decide (x = sp.rv) && decide (c.off < j) && decide (j < capE)
+        | _ => false
+  | .subR q r => decide (q.stride = sp.S) && decide (q.lo = .num 0) && decide (q.hi = .mono ⟨sp.q, 0⟩) &&
+      decide (q.base.off < sp.S) && decide (r = ⟨⟨q.base.bases, 0⟩, 1, .num 0, .val sp.n⟩)
+  | .under cs' r => splitRes sp (cs ++ cs') r
+  | _ => false
+
+/-- **A residual of a split** of the function (`splitsC`). -/
+def splitFam (fn : Fn) (r : CRes) : Bool :=
+  splitsC.any fun p ↦ fn.name == p.1 && splitRes p.2 [] r
+
+/-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, its values below `GB`), or the ghost family
+`ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r
+  ((resFam fn xc r || resQ fn r || splitFam fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r || stSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)

@@ -10,17 +10,71 @@ module
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P11».ModeSig
+public import LeanVM.Guest.Pack.«P16».ModeSig
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P18».ModeSig
 public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P21».ModeSig
 public import LeanVM.Guest.Pack.«P28».ModeSig
+public import LeanVM.Guest.Pack.«P2».ModeSig
+public import LeanVM.Guest.Pack.«P35».ModeSig
 public import LeanVM.Guest.Pack.«P37».ModeSig
 public import LeanVM.Guest.Pack.«P42».ModeSig
+public import LeanVM.Guest.Pack.«P47».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P50».ModeSig
+public import LeanVM.Guest.Pack.«P54».ModeSig
 public import LeanVM.Guest.Pack.«P7».Bundle
 public import LeanVM.Guest.Pack.«P7».ModeSig
+public import LeanVM.Guest.Pack.«P9».ModeSig
+
+namespace LeanVM.Guest.Fn.«rs_eq_run»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `rs_eq_run`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node (some Fn.«rs_eq_rows__L5».modeSig) .nil .nil) .nil))) .nil)) .nil)) .nil) .nil) .nil))
+    .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«rs_eq_rows__L2».modeSig) .nil .nil) .nil))) .nil) .nil))
+    .nil))))))))) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_rows__L1».modeSig) .nil
+    .nil) .nil))) .nil) .nil)) .nil)) .nil)) .nil))) (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_rows__L6».modeSig)
+    .nil .nil) .nil))) .nil))) .nil) .nil) .nil)) .nil) .nil))))) (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«rs_eq_run_loop0».modeSig) .nil .nil) .nil))) .nil) .nil)) .nil)) .nil))
+    .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«rs_eq_rows__L7».modeSig) .nil .nil) .nil))) .nil))))
+    .nil))) .nil)) .nil)) .nil) (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_rows__L3».modeSig) .nil
+    .nil) .nil))) .nil) .nil)))) .nil) .nil) .nil) .nil) (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_rows__L0».modeSig) .nil .nil)
+    .nil))) .nil) .nil)) .nil)) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_rows__L4».modeSig) .nil .nil) .nil)))
+    .nil)) .nil) .nil) .nil) .nil))) .nil) .nil)) .nil))), 524287⟩
+
+/-- `rs_eq_run`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨19366, 59, Fn.«rs_eq_run».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_run»
 
 namespace LeanVM.Guest.Fn.«da_verify_cell»
 

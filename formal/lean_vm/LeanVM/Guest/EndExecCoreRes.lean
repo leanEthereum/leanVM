@@ -14,6 +14,7 @@ public import LeanVM.Guest.EndExecRCq
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
 public import LeanVM.Guest.EndExecRVtP
+public import LeanVM.Guest.EndExecCoreSplit
 
 /-!
 # The residual families, sound
@@ -29,6 +30,8 @@ its arms (`topSels_sound`).
 
 `exp_lt` (`exp`): a parameter `g^e`, `e < 2^62` (`ExpW`), the quotient of two addresses the path
 dereferences, has `e < 2^28`.
+
+`splitFam_inst` (`split`, `EndExecCoreSplit`): a split `g`-power's residuals from its bits on the instance's path.
 
 `resFam_inst`: at an honest instance (a `node` of the honest tree), in a frame holding its parameters
 whose entry runs' exponent cells are powers, every residual of a family holds at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
@@ -283,6 +286,48 @@ theorem resLtM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
         exact rep_of (by omega)
     | _ => simp at hm
   · cases h
+
+/-- **The `rcn` family holds** (`e(x) < e(p)`, `x` range checked against `p·g⁻¹`) at a valuation along a returning
+path of the function whose events hold on a memory of at most `2^28` words: `x = g^i`, the check's other factor
+`g^j`, so `p = g^(i + j + 1)`. -/
+theorem resLtV_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {x p : ℕ}
+    (h : resFam fn xc (.lt (.val x) (.val p)) = true) : (CRes.lt (.val x) (.val p)).Holds σ := by
+  have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+  simp only [resFam, List.any_eq_true] at h
+  obtain ⟨a, ha, hm⟩ := h
+  cases a with
+  | rangeCheck x' y t1 t2 k =>
+    simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at hm
+    obtain ⟨rfl, b, hb, hbm⟩ := hm
+    obtain ⟨⟨hxK, hxr⟩, hk, ⟨hyK, hyr⟩⟩ := hall _ ha
+    obtain ⟨i, hi, hσx⟩ := Exec.deref0_addr (by omega) hxK hxr
+    obtain ⟨j, hj, hσy⟩ := Exec.deref0_addr (by omega) hyK hyr
+    have h28 : (2 : ℕ) ^ μ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hμ
+    have hcap : (2 : ℕ) ^ 28 + 2 ^ 28 + 1 < capE := by unfold capE; norm_num
+    cases b with
+    | mul k' p' w =>
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hbm
+      obtain ⟨⟨rfl, rfl⟩, hw'⟩ := hbm
+      split at hw'
+      · rename_i w' hc
+        simp only [CoreMode.invG, decide_eq_true_eq] at hw'
+        have hσw : σ w = w' := hall _ (EndExec.constOf_sound hc)
+        have hmul : σ k' = σ (V.n p) * σ w := hall _ hb
+        have hσp : σ (V.n p) = ofK (addressOfIndex (i + j + 1)) := by
+          have e1 : σ (V.n p) = σ k' * ofK (addressOfIndex 1) := by
+            rw [hmul, hσw, mul_assoc, hw', mul_one]
+          rw [e1, hk, hσx, hσy, ← ofK_mul, ← ofK_mul]
+          congr 1
+          simp only [addressOfIndex, ← pow_add]
+        refine ⟨i, i + j + 1, ?_, ?_, by omega⟩
+        · simp only [idxC, CoreMode.valW_baseC, vw, hσx]
+          exact rep_of (by omega)
+        · simp only [idxC, CoreMode.valW_baseC, vw, hσp]
+          exact rep_of (by omega)
+      · cases hw'
+    | _ => simp at hbm
+  | _ => simp at hm
 
 /-- **The `sel` and `rc` families of a value times a power of `g` hold** (`e(x·g^c) < n`, `x` a top-level selector
 of `m` arms, `m + c ≤ n`, or range checked against `g^(N - 1)`, `N + c ≤ n`) at a valuation along a returning path
@@ -640,7 +685,11 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   | .subR q r', h => by
     simp only [resFam] at h
     exact subRC_holds h σ
-  | .lt (.val _) (.val _), h | .lt (.num _) (.num _), h | .lt (.num _) (.val _), h | .lt (.mono _) (.val _), h
+  | .lt (.val x) (.val p), h => by
+    obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    exact resLtV_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
+  | .lt (.num _) (.num _), h | .lt (.num _) (.val _), h | .lt (.mono _) (.val _), h
   | .lt (.mono _) (.mono _), h | .nz _, h | .subP _ _, h => by simp [resFam] at h
 
 /-! ## The instance's exponent and dimension facts (`expQ`, `dim`) -/
@@ -848,6 +897,14 @@ theorem resQ_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   have hT := termQ_all hr I hI
   exact resQ_sound hT (expQ_of_termQ hT (expQv_all hr I hI)) (dimQ_of_termQ hT) ht hf hall x h
 
+/-- **The `split` family holds** at an honest instance (`splitFam_sound` on its path). -/
+theorem splitFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) {x : CRes} (h : CoreMode.splitFam fn x = true) : x.Holds σ := by
+  obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+  obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+  exact splitFam_sound (by rw [find_name' hf]; exact hf) hw hh h
+
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -858,9 +915,10 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with (⟨hf' | hq, -⟩ | hm) | hs
+  rcases this with (⟨(hf' | hq) | hsp, -⟩ | hm) | hs
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
+  · exact splitFam_inst hr hI ht hf hsp
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
   · cases x <;> simp [CoreMode.stSub, hst] at hs
 
@@ -876,9 +934,10 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with (⟨hf' | hq, hv⟩ | hm) | hs
+  rcases this with (⟨(hf' | hq) | hsp, hv⟩ | hm) | hs
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (splitFam_inst hr hI ht hf hsp)
   · exact hml x hm
   · exact hst x hs
 

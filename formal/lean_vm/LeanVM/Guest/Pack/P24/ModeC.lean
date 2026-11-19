@@ -23,6 +23,7 @@ public import LeanVM.Guest.Pack.«P46».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P61».ModeSig
 public import LeanVM.Guest.Pack.«P8».ModeSig
+public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeSig
 
 namespace LeanVM.Guest.Fn.«da_vector»
 
@@ -54,6 +55,32 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«da_vector»
+
+namespace LeanVM.Guest.Fn.«main_loop3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop3`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
+    Fn.«verify_sig_lean_sphincs».modeSig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop3».modeSig) .nil .nil)
+    .nil)) .nil)))) .nil) .nil)) .nil))) .nil) .nil)) .nil)), 524287⟩
+
+/-- `__loop3`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨178532, 36, Fn.«main_loop3».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«main_loop3»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L22»
 
