@@ -40,7 +40,9 @@ def candidates(S=None):
         nkinds = {s[0] for s in I.stmts(body[:-2])}
         if k in HELD:
             continue
-        if kinds & {'ite', 'match'} and nkinds <= {'a', 'call', 'ite', 'match'}:
+        # (`CoreMode.isBS`: conditional calls of other functions too)
+        if kinds & {'ite', 'match'} and nkinds <= {'a', 'call', 'ite', 'match', 'callIf'} and \
+                all(I.callee(s[2]) != k for s in I.stmts(body[:-2]) if s[0] == 'callIf'):
             out.append(k)
             continue
         G = (S or {}).get(k)
@@ -88,6 +90,9 @@ def infer_one(k, S):
         raise No('counter not 0')
     cs = {}
     for s in I.stmts(body[:-2]):
+        if s[0] == 'callIf':
+            # a conditional call of another function (`CoreMode.callsBL`): checked as a call returning nothing
+            s = ('call', s[2], s[3], [])
         if s[0] != 'call':
             continue
         f = s[1]
@@ -98,6 +103,9 @@ def infer_one(k, S):
             raise No('recursive')
         # `CoreMode.fitBL`: `callc.py`'s `fitB`; no pointer cell guaranteed (`calleePtrOk`)
         h = callc.callee_sig(Gf, len(s[2]), len(s[3]))
+        # `CoreMode.fitBL`: a callee naming no ghost
+        if h.ghosts:
+            raise No('callee ghosts')
         # `fitBL` and `callChk`: no returned word's monomial at a loop's call
         h.retM = {}
         if h.postP:

@@ -54,25 +54,6 @@ end
 
 end LeanVM.Guest.ModePack.«P11»
 
-namespace LeanVM.Guest.ModePack.«P16»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«da_padding».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code31 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P16»
-
 namespace LeanVM.Guest.ModePack.«P24»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -209,31 +190,6 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
 end
 
 end LeanVM.Guest.ModePack.«P42»
-
-namespace LeanVM.Guest.ModePack.«P54»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«da_verify».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«da_padding».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_levels__L32_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_vector».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_weights».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_verify_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))))))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code28 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P54»
 
 namespace LeanVM.Guest.ModePack.«P57»
 

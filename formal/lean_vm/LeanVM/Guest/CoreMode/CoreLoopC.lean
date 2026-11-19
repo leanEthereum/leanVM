@@ -100,13 +100,25 @@ theorem rw_of_pw {s : St} {r : Mode.Rng} {os : List ℕ} (h : Mode.PW s r os) : 
   obtain ⟨x, hx, p, hp, -⟩ := hall j h1 h2
   exact ⟨x, hx, written_of_get hp⟩
 
+/-- A conditional call's `JUMP`: its target the entry of a function other than the loop itself. -/
+noncomputable def callIfJ (Cf : CFun) (b : ℕ) : Bool :=
+  match Cf.X.pcAt b with
+  | some t => match getF Cf.X.ents t with
+    | some f => !(f == Cf.fn.name)
+    | none => false
+  | none => false
+
 /-- **A `JUMP` of a loop helper's code before its tail call**: on a constant `0` (never taken), or a
 call's: on a nonzero constant, not in the frame, not a return, to a callee whose mode signature holds
-of its heap signature (`jumpCallOkL`); or a jump in the frame (a branch's, a `match`'s), through no
-dispatch's target cell, to no callee (`jumpCallOkL`). -/
+of its heap signature (`jumpCallOkL`); or a conditional call's: on no constant, through a cell neither
+the own frame's nor a next frame's nor a dispatch's target, to the entry of another function
+(`callIfJ`, `jumpCallOkL`); or a jump in the frame (a branch's, a `match`'s), through no dispatch's
+target cell, to no callee (`jumpCallOkL`). -/
 noncomputable def callJ (Cf : CFun) : OffsetInstruction → Bool
   | .jump a b c => Cf.X.zeroAt a || (Cf.X.nzAt a && !Cf.X.selfAt c && !(Nat.beq b 0 && Nat.beq c 1) &&
-      jumpCallOkL Cf (.jump a b c)) || (Cf.X.selfAt c && dspNo Cf.X b c && jumpCallOkL Cf (.jump a b c))
+      jumpCallOkL Cf (.jump a b c)) || (Cf.X.selfAt c && dspNo Cf.X b c && jumpCallOkL Cf (.jump a b c)) ||
+      (!Cf.X.nzAt a && !Cf.X.selfAt c && !Cf.X.nextAt c && !(Nat.beq b 0 && Nat.beq c 1) && dspNo Cf.X b c &&
+        callIfJ Cf b && jumpCallOkL Cf (.jump a b c))
   | _ => true
 
 /-- **A loop helper's code with calls**: its last two instructions the tail call's `JUMP` (its
@@ -118,7 +130,8 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
     Nat.beq od' 0 && Nat.beq of' 1 && !Cf.X.zeroAt oc' && Cf.X.nzAt oc' && !Cf.X.zeroAt oc && !Cf.X.nzAt oc &&
       !Cf.X.selfAt of && Cf.X.nextAt of && (match Cf.X.statOf of with
         | some (.fpg S) => !Nat.beq S 0 && decide (S < 2 ^ 30)
-        | _ => false) && !Nat.beq od 0 && decide (Cf.X.pcAt od = some Cf.X.entry) && pre.all (callJ Cf)
+        | _ => false) && !Nat.beq od 0 && decide (Cf.X.pcAt od = some Cf.X.entry) && Cf.X.entOk Cf.X.entry Cf.fn.name &&
+      pre.all (callJ Cf)
   | _ => false
 
 /-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
@@ -200,6 +213,8 @@ theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {
 noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
   | .call g _ _ => (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postQ.isEmpty &&
       (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
+  | .callIf _ g _ => g == Cf.fn.name || (Cf.sigOf g).postP.isEmpty && (Cf.sigOf g).postQ.isEmpty &&
+      (Cf.sigOf g).postPR.all fun p ↦ runIn p.1 (Cf.sigOf g).postR
   | _ => true
 
 /-- **No pointer fact on the loop's path**: no pointer run of its own, no callee's pointer run (its pointer
@@ -208,21 +223,57 @@ noncomputable def noPtrL (Cf : CFun) : Bool :=
   Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty &&
     (stmtsOf Cf.fn.body).all fun s ↦ match s with
       | .call g _ _ => (Cf.sigOf g).postPR.isEmpty
+      | .callIf _ g _ => g == Cf.fn.name || (Cf.sigOf g).postPR.isEmpty
       | _ => true
 
-/-- **Each call of the body** (not its tail `callIf`) checked by `callChk`. -/
+/-- **Each call of the body** (a conditional one of another function, not its tail `callIf`) checked by
+`callChk`. -/
 noncomputable def callsBL (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
     | .call g args _ => callChk Cf g args
+    | .callIf _ g args => g == Cf.fn.name || callChk Cf g args
     | _ => true
+
+/-- A call statement of the body: a `call`, or a conditional call of another function. -/
+def CallSt (body : List Stmt) (nm : String) (f : String) (args rets : List V) : Prop :=
+  Stmt.call f args rets ∈ stmtsOf body ∨ (rets = [] ∧ (∃ c, Stmt.callIf c f args ∈ stmtsOf body) ∧ f ≠ nm)
+
+theorem callsBL_chk {Cf : CFun} (hcb : callsBL Cf = true) {f : String} {args rets : List V}
+    (hs : CallSt Cf.fn.body Cf.fn.name f args rets) : callChk Cf f args = true := by
+  rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
+  · exact List.all_eq_true.mp hcb _ hs
+  · have := List.all_eq_true.mp hcb _ hs
+    simp only [Bool.or_eq_true, beq_iff_eq] at this
+    exact this.resolve_left hne
+
+theorem cptr_of {Cf : CFun} (h : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true) {f : String}
+    {args rets : List V} (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
+    ((Cf.sigOf f).postP.isEmpty && (Cf.sigOf f).postQ.isEmpty &&
+      (Cf.sigOf f).postPR.all fun p ↦ runIn p.1 (Cf.sigOf f).postR) = true := by
+  rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
+  · exact List.all_eq_true.mp h _ hs
+  · have := List.all_eq_true.mp h _ hs
+    simp only [calleePtrOk, Bool.or_eq_true, beq_iff_eq] at this
+    exact this.resolve_left hne
+
+theorem noPtrL_of {Cf : CFun} (h : ((stmtsOf Cf.fn.body).all fun s ↦ match s with
+      | .call g _ _ => (Cf.sigOf g).postPR.isEmpty
+      | .callIf _ g _ => g == Cf.fn.name || (Cf.sigOf g).postPR.isEmpty
+      | _ => true) = true) {f : String} {args rets : List V} (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
+    (Cf.sigOf f).postPR.isEmpty = true := by
+  rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
+  · exact List.all_eq_true.mp h _ hs
+  · have := List.all_eq_true.mp h _ hs
+    simp only [Bool.or_eq_true, beq_iff_eq] at this
+    exact this.resolve_left hne
 
 /-- **A call's callee runs' bounds have exponents** (`callsBL`'s `idxPowC`). -/
 theorem callsBL_spec {Cf : CFun} (hcb : callsBL Cf = true) {f : String} {args rets : List V}
-    (hs : Stmt.call f args rets ∈ stmtsOf Cf.fn.body) :
+    (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
     (∀ q ∈ (Cf.sigOf f).preR, (idxPowC Cf args q.lo && idxPowC Cf args q.hi) = true) ∧
     ∀ p ∈ (Cf.sigOf f).prePR,
       (idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi) = true := by
-  have := List.all_eq_true.mp hcb _ hs
+  have := callsBL_chk hcb hs
   simp only [callChk, Bool.and_eq_true] at this
   exact ⟨List.all_eq_true.mp this.1.2, List.all_eq_true.mp this.2⟩
 
@@ -279,14 +330,27 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
 
 theorem callJ_spec {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true) (hz : Cf.X.zeroAt a = false)
     (hsf : Cf.X.selfAt c = false) :
-    Cf.X.nzAt a = true ∧ Cf.X.selfAt c = false ∧ ¬ (b = 0 ∧ c = 1) ∧
-      jumpCallOkL Cf (.jump a b c) = true := by
-  simp only [callJ, hz, hsf, Bool.false_or, Bool.false_and, Bool.or_false, Bool.and_eq_true,
-    Bool.not_eq_true'] at h
-  obtain ⟨⟨⟨h2, -⟩, h4⟩, h5⟩ := h
-  refine ⟨h2, hsf, fun ⟨hb, hc⟩ ↦ ?_, h5⟩
-  subst hb hc
-  simp at h4
+    Cf.X.selfAt c = false ∧ ¬ (b = 0 ∧ c = 1) ∧ jumpCallOkL Cf (.jump a b c) = true ∧
+      (Cf.X.nzAt a = true ∨ (Cf.X.nextAt c = false ∧ dspNo Cf.X b c = true ∧ callIfJ Cf b = true)) := by
+  have hr : ∀ (x : Bool), (!(Nat.beq b 0 && Nat.beq c 1) && x) = true → ¬ (b = 0 ∧ c = 1) ∧ x = true :=
+    fun x hx ↦ by
+      refine ⟨fun ⟨hb, hc⟩ ↦ ?_, by simp only [Bool.and_eq_true] at hx; exact hx.2⟩
+      subst hb hc
+      simp at hx
+  simp only [callJ, hz, hsf, Bool.false_or, Bool.false_and, Bool.or_false, Bool.not_false, Bool.and_true,
+    Bool.or_eq_true] at h
+  rcases h with h | h
+  · simp only [Bool.and_assoc] at h
+    obtain ⟨h2, h4⟩ := Bool.and_eq_true_iff.mp h
+    obtain ⟨h4, h5⟩ := hr _ h4
+    exact ⟨hsf, h4, h5, Or.inl h2⟩
+  · simp only [Bool.and_assoc] at h
+    obtain ⟨-, h⟩ := Bool.and_eq_true_iff.mp h
+    obtain ⟨hnx, h⟩ := Bool.and_eq_true_iff.mp h
+    obtain ⟨h4, h⟩ := hr _ h
+    obtain ⟨hdn, h⟩ := Bool.and_eq_true_iff.mp h
+    obtain ⟨hcj, h5⟩ := Bool.and_eq_true_iff.mp h
+    exact ⟨hsf, h4, h5, Or.inr ⟨by simpa using hnx, hdn, hcj⟩⟩
 
 /-- **A jump in the frame of a loop helper's code**: through no dispatch's target cell, to no callee. -/
 theorem callJ_self {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true) (hz : Cf.X.zeroAt a = false)
@@ -294,7 +358,7 @@ theorem callJ_self {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true)
     (∀ t f, Cf.X.pcAt b = some t → getF Cf.X.ents t = some f → Cf.X.selfAt c = false) ∧
       ∀ s, getF Cf.X.sites c = some s → s.tgt = b → Cf.X.selfAt c = false := by
   simp only [callJ, hz, hsf, Bool.false_or, Bool.not_true, Bool.and_false, Bool.false_and, Bool.true_and,
-    Bool.and_eq_true] at h
+    Bool.or_false, Bool.and_eq_true] at h
   obtain ⟨hd, hj⟩ := h
   refine ⟨fun t f ht hf ↦ (jumpCallOkL_spec hj ht hf).2.2.1, fun s hs he ↦ ?_⟩
   simp only [dspNo, hs, he, Nat.beq_refl, Bool.not_true, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true'] at hd
@@ -304,14 +368,15 @@ theorem loopCodeC_spec {Cf : CFun} {code : List OffsetInstruction} (h : loopCode
     ∃ pre oc od of oc', code = pre ++ [.jump oc od of, .jump oc' 0 1] ∧ (∀ ins ∈ pre, callJ Cf ins = true) ∧
       Cf.X.zeroAt oc' = false ∧ Cf.X.nzAt oc' = true ∧ Cf.X.zeroAt oc = false ∧ Cf.X.nzAt oc = false ∧
       Cf.X.selfAt of = false ∧ Cf.X.nextAt of = true ∧
-      (∃ S, Cf.X.statOf of = some (.fpg S) ∧ S ≠ 0 ∧ S < 2 ^ 30) ∧ od ≠ 0 ∧ Cf.X.pcAt od = some Cf.X.entry := by
+      (∃ S, Cf.X.statOf of = some (.fpg S) ∧ S ≠ 0 ∧ S < 2 ^ 30) ∧ od ≠ 0 ∧ Cf.X.pcAt od = some Cf.X.entry ∧
+      Cf.X.entOk Cf.X.entry Cf.fn.name = true := by
   unfold loopCodeC at h
   split at h
   · rename_i oc' od' of' oc od of pre hrev
     simp only [Bool.and_eq_true, Nat.beq_eq, Bool.not_eq_true', List.all_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, h1⟩, h2⟩, h3⟩, h3'⟩, h4⟩, h5⟩, hS⟩, h7⟩, hpt⟩, h8⟩ := h
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, h1⟩, h2⟩, h3⟩, h3'⟩, h4⟩, h5⟩, hS⟩, h7⟩, hpt⟩, hen⟩, h8⟩ := h
     refine ⟨pre.reverse, oc, od, of, oc', ?_, fun ins hi ↦ h8 ins (List.mem_reverse.mp hi), h1, h2, h3, h3', h4, h5,
-      ?_, fun h0 ↦ by simp [h0] at h7, hpt⟩
+      ?_, fun h0 ↦ by simp [h0] at h7, hpt, hen⟩
     · rw [← List.reverse_reverse code, hrev]
       simp
     · split at hS
@@ -355,7 +420,7 @@ theorem loopStmtC_of {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c 
   · rfl
   · rfl
 
-theorem loopStmtB_of {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS s = true) {c : V} {f : String}
+theorem loopStmtB_of {nm : String} {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS nm s = true) {c : V} {f : String}
     {args : List V} : ∀ s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
   rcases stmts_loopB hs with hs | rfl | rfl
   · have := hpre s hs
@@ -416,8 +481,9 @@ theorem loopC_evM {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} (r
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   cases e with
   | call f args rets =>
-    rcases loopB_callEv hok.body hw he with hmem | ⟨rfl, -⟩
-    · exact callChk_evM (List.all_eq_true.mp hok.calls _ hmem) (by rw [hok.hcs]; rfl) rd σ
+    rcases loopB_callEv hok.body hw he with hmem | hmem | ⟨rfl, -⟩
+    · exact callChk_evM (callsBL_chk hok.calls (Or.inl hmem)) (by rw [hok.hcs]; rfl) rd σ
+    · exact callChk_evM (callsBL_chk hok.calls (Or.inr hmem)) (by rw [hok.hcs]; rfl) rd σ
     · simp only [EvM, hself]
       refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
       · rw [hs.hretM] at hkc; cases hkc
@@ -612,22 +678,26 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
   have hpQ : Cf.H.sig.postQ = [] := postQ_of_loop hok.heap hs.term
   have hcalls : ∀ f a r, Ev.call f a r ∈ pre ++ es → ((Cf.sigOf f).postP = [] ∧ (Cf.sigOf f).postQ = []) ∧
       ∀ p ∈ (Cf.sigOf f).postPR, p.1 ∈ (Cf.sigOf f).postR := fun f a r he ↦ by
-    rcases loopB_callEv hok.body hb he with hm | ⟨rfl, -⟩
-    · have := List.all_eq_true.mp hok.cptr _ hm
-      simp only [calleePtrOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at this
+    rcases loopB_callEv hok.body hb he with hm | hm | ⟨rfl, -⟩
+    · have := cptr_of hok.cptr (Or.inl hm)
+      simp only [Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at this
+      exact ⟨this.1, fun p hp ↦ runIn_mem (this.2 p hp)⟩
+    · have := cptr_of hok.cptr (Or.inr hm)
+      simp only [Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at this
       exact ⟨this.1, fun p hp ↦ runIn_mem (this.2 p hp)⟩
     · rw [hsigf]
       exact ⟨⟨hs.hpostP, hpQ⟩, hs.inPost⟩
   have hposts : PostOkW Cf.sigOf Cf.H (memRd m' img.read) σ0 (Cf.fn.params.map σ0) (pre ++ es) [] := by
     rcases Bool.or_eq_true_iff.mp hok.rdFree with hrf | hnp
     · exact (loopC_heap hok hb (holds_memRd hok hrf hb hh0 heq hWc hcs hsame) hR0 hP0 hT).2
-    · simp only [noPtrL, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hnp
+    · simp only [noPtrL, Bool.and_eq_true, List.isEmpty_iff] at hnp
       obtain ⟨⟨hpPR, hqPR⟩, hcPR⟩ := hnp
       refine postOkW_rd hs.hpreP hpPR hs.hpostP hqPR hpQ
         (fun f a r he ↦ ⟨(hcalls f a r he).1.1, ?_, (hcalls f a r he).1.2⟩)
         (loopC_heap hok hb hh0 hR0 hP0 hT).2
-      rcases loopB_callEv hok.body hb he with hm | ⟨rfl, -⟩
-      · simpa using hcPR _ hm
+      rcases loopB_callEv hok.body hb he with hm | hm | ⟨rfl, -⟩
+      · simpa using noPtrL_of hcPR (Or.inl hm)
+      · simpa using noPtrL_of hcPR (Or.inr hm)
       · rw [hsigf]; exact hqPR
   simp only [PostOkW, List.map_nil, List.append_nil] at hposts
   -- what the path writes, at the later memory's reader
@@ -819,10 +889,11 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     {oc od of : ℕ} (hci : K.code[i]? = some (.jump oc od of)) (h0 : s1.mem.get (s1.fp + od) = some (ofK (g ^ s'.pc)))
     (h1 : s1.mem.get (s1.fp + of) = some (ofK (g ^ s'.fp))) (hpcs : s'.pc < C.ops.size)
     (hsz : C.ops.size ≤ 2 ^ 30) (hcj : callJ Cf (.jump oc od of) = true) (hz : Cf.X.zeroAt oc = false)
-    (hsfc : Cf.X.selfAt of = false) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    (hsfc : Cf.X.selfAt of = false) (hcn : ∃ v, s1.mem.get (s1.fp + oc) = some v ∧ v ≠ 0) {Ct : Mode.Cts}
+    (hCt : Mode.ModeCts Ct K) :
     Out Ct K (CoreAt img Cf K.code) i s1 s' := by
   obtain ⟨-, hentw, hheap⟩ := hat
-  obtain ⟨hnz, hsf', hr01, hcall⟩ := callJ_spec hcj hz hsfc
+  obtain ⟨hsf', hr01, hcall, hkind⟩ := callJ_spec hcj hz hsfc
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
@@ -860,8 +931,60 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   obtain ⟨soc, sod, sof⟩ := hsm
   have hfw : fwdJ Cf.X i oc od of = false := by simp [fwdJ, hsf']
   obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-  obtain ⟨f, args, rets, st, t, o, pos', hcS, hsite, hpt, hentF, hfo, hat', as, hpairs, hkC⟩ :=
-    pair_callLC hok.pair hpos hci hz hnz hfw hr01 hmainX hsf' hst hcif
+  -- the call's pairing: a `call` on a nonzero constant, or a conditional call (`callIfJ`), entered
+  obtain ⟨f, args, rets, st, t, o, pos', hcS, hsite, hpt, hentF, hfo, hat', as, hpairs, hkC⟩ :
+      ∃ f args rets st t o pos', CallSt Cf.fn.body Cf.fn.name f args rets ∧ Cf.X.siteAt of args rets = some st ∧
+        Cf.X.pcAt od = some t ∧ Cf.X.entOk t f = true ∧ Cf.X.fwdOff i st.r = some o ∧
+        pairAt Cf.P Cf.fn.body K.code Cf.d o = some pos' ∧ ∃ as : List Atom,
+        List.Forall₂ (Pairs Cf.X) (as.filter flowAtom)
+          (((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).filter isaFlowHint) ∧
+        ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ →
+          walk σ Cf.fn.body = .ret (pre ++ es) vs → walk σ pos = .ret es vs →
+          ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es →
+          ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev),
+            es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
+            (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
+            (∀ e ∈ evs, EvM Cf.sigOf rd σ e) ∧ ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+              WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
+              ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x := by
+    rcases hkind with hnz | ⟨hnx, hdn, hcj'⟩
+    · obtain ⟨f, args, rets, st, t, o, pos', hcS, hsite, hpt, hentF, hfo, hat', as, hpairs, hkC⟩ :=
+        pair_callLC hok.pair hpos hci hz hnz hfw hr01 hmainX hsf' hst hcif
+      exact ⟨f, args, rets, st, t, o, pos', Or.inl hcS, hsite, hpt, hentF, hfo, hat', as, hpairs,
+        fun _ _ hwp' hrw ↦ hkC hwp' hrw⟩
+    -- a conditional call: its target another function's entry
+    obtain ⟨t0, ht0, hf0⟩ : ∃ t0, Cf.X.pcAt od = some t0 ∧ getF Cf.X.ents t0 ≠ some Cf.fn.name := by
+      unfold callIfJ at hcj'
+      split at hcj'
+      · rename_i t0 ht0
+        refine ⟨t0, ht0, fun he ↦ ?_⟩
+        rw [he] at hcj'
+        simp at hcj'
+      · cases hcj'
+    have hd : ∀ s, getF Cf.X.sites of = some s → s.tgt ≠ od := fun s hs he ↦ by
+      simp [dspNo, hs, he, ht0] at hdn
+    obtain ⟨f, args, rets, st, t, o, pos', hsite, hpt, hentF, hfo, hat', as, hpairs, hkA⟩ :=
+      pair_callAny hok.pair hpos hci hz hfw hr01 hsf' (fun _ _ _ _ ↦ hnx) hd
+    have hfn : f ≠ Cf.fn.name := fun h ↦ by
+      rw [ht0, Option.some.injEq] at hpt
+      subst hpt
+      exact hf0 (h ▸ entOk_spec hentF)
+    rcases hkA with ⟨hcS, hkA⟩ | ⟨c, hcS, hloc, rfl, hkA⟩
+    · exact ⟨f, args, rets, st, t, o, pos', Or.inl hcS, hsite, hpt, hentF, hfo, hat', as, hpairs,
+        fun _ _ hwp' hrw ↦ hkA hwp' hrw⟩
+    refine ⟨f, args, [], st, t, o, pos', Or.inr ⟨rfl, ⟨c, hcS⟩, hfn⟩, hsite, hpt, hentF, hfo, hat', as, hpairs,
+      fun {σ pre es vs rd} hσ hb' hwp' hrw ↦ ?_⟩
+    obtain ⟨evs, cs, es', rfl, hwp2, hcs, hasin, hevM, hW'⟩ := hkA hwp' hrw
+    obtain ⟨v, hv, hv0⟩ := hcn
+    have hcond := hσ.jc.cond _ _ hb' c (by simp)
+    rw [hloc] at hcond
+    have hσc : σ c ≠ 0 := fun h0 ↦ hv0 (by rw [rd_get hκ hm.fine soc (by rw [hm.fp]; exact hcond) hv, h0])
+    refine ⟨evs ++ [Ev.inK c], cs, es', by simp [hσc], hwp2, hcs, fun a ha ↦ by simp [hasin a ha],
+      evM_app hevM (evM_inK_cons evM_nil), fun x hx ↦ ?_⟩
+    rcases hW' x (writtenC_noAtom (e := Ev.inK c) (pre := pre ++ evs) (fun a h ↦ by cases h)
+        (fun f a r h ↦ by cases h) (by simpa [List.append_assoc] using hx)) with h | ⟨a, ha, hfa, hma, hwa⟩
+    · exact Or.inl h
+    · exact Or.inr ⟨a, ha, hfa, by simp [hma], hwa⟩
   rw [hhd i] at hpairs
   obtain ⟨hout, ht30, -, G, st', hG, hst', hr30, hfit⟩ := jumpCallOkL_spec hcall hpt (entOk_spec hentF)
   obtain ⟨hst'', hna, hnr'⟩ := siteAt_spec hsite
@@ -889,7 +1012,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
           (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
           Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
     intro σ pre es vs rd hσ hp hb hwp hh0
-    obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hwp (hrwOf σ pre _ vs rd hσ hb hh0)
+    obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hσ hb hh0)
     have hreq := hrwOf σ pre _ vs rd hσ hb hh0 evs (.call f args rets) (cs.map Ev.atom ++ es')
       rfl hevM
     obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
@@ -1231,7 +1354,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
     | dispatch x fs a r => exact absurd hs (hnd x fs a r)
     | _ => rfl
   obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod,
-    htpc⟩ := loopCodeC_spec hok.code
+    htpc, hentS⟩ := loopCodeC_spec hok.code
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
@@ -1446,7 +1569,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         by_cases hsfc : Cf.X.selfAt of = true
         swap
         · exact k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (call_stepC hok hK hκ hU hi hpc hYs hs0 hat0 hxw hσ0 hT hjtR e1
-            (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc (by simpa using hsfc) hCt)
+            (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc (by simpa using hsfc) (hcn _ _ _ hci) hCt)
         -- a jump in the frame: a branch's side, a `match`'s arm
         obtain ⟨hcj', hdn⟩ := callJ_self hcj hzc hsfc
         have hof1 : of ≠ 1 := fun h ↦ by rw [h, hself1] at hsfc; cases hsfc
@@ -1532,13 +1655,21 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
             fun x hx ↦ W1 x (hposts.2.1 x hx)
       · -- the tail call
         obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-        obtain ⟨c, f, args, pos', hcm, hloc, -, hrn, as, hpairs, hsplit⟩ :=
+        obtain ⟨c, f, args, pos', hcm, hloc, ⟨t0, ht0, hentT⟩, -, hrn, as, hpairs, hsplit⟩ :=
           pair_tailLC hok.pair hpos hci htz htnz htsf htnx htod hst
         have hrw0 := hrwOf σ0 pre es vs img.read hσ0 hb hh0
         have hrw0C := (loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
         obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0
+        -- the tail `JUMP` enters the loop's own entry, which names it
+        have hfn : f = Cf.fn.name := by
+          rw [htpc, Option.some.injEq] at ht0
+          subst ht0
+          have := entOk_spec hentT
+          rw [entOk_spec hentS, Option.some.injEq] at this
+          exact this.symm
+        subst hfn
         rw [hbody] at hcm
-        obtain ⟨rfl, rfl, rfl⟩ := loopB_callIf hpre0 hcm
+        obtain ⟨rfl, rfl⟩ := loopB_callIf hpre0 hcm
         -- its condition nonzero: the call entered
         obtain ⟨v, hv, hv0⟩ := hcn _ _ _ hci
         have hcond := hσ0.jc.cond _ _ hb c (by rw [heq]; simp)

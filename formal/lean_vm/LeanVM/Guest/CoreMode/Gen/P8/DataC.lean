@@ -15,6 +15,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P25».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P27».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P3».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P4».Sig
+public import LeanVM.Guest.CoreMode.Gen.«P54».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P56».Sig
 public import LeanVM.Guest.CoreMode.Gen.«P8».Sig
 public import LeanVM.Guest.CoreMode.WitOf
@@ -465,9 +466,7 @@ def csigs : List (String × CoreMode.HSig) :=
     ("claim_list_digest", 
     { postR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 1)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 1)⟩,
         ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 1)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 1)⟩] }),
-    ("da_verify", 
-    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 1)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 33)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 1)⟩, ⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 33)⟩] }),
+    ("da_verify", CoreMode.HcSig.«da_verify».sig),
     ("exponent_tables", 
     { postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 2284)⟩],
       postPR := [(⟨⟨[(0, 1)], 0⟩, 1, (.num 9), (.num 14)⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,

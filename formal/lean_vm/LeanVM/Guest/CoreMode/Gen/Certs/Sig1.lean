@@ -25,6 +25,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«claim_list_last__L1».modeSigs fa%[],
   sigsOr_of_list Fn.«column_selector__L25».modeSigs fa%[],
   sigsOr_of_list Fn.«da_column_offsets_loop5».modeSigs fa%[.inl ⟨_, Fn.«da_column_offsets_loop5».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of_list Fn.«da_padding».modeSigs fa%[],
   sigsOr_of_list Fn.«index_mle__L15».modeSigs fa%[],
   sigsOr_of_list Fn.«level_positions__L16_L18_L6».modeSigs fa%[.inl ⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«level_positions__L16_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩],

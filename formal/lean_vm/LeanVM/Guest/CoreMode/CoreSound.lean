@@ -3343,7 +3343,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             refine ⟨f, args, rets, st, t, o, pos', hsite, hfo, hat', as, hpairs, ?_, ?_, hout, ht30, G, hG, hr30,
               entOk_spec hentF, hfit⟩
             · intro σ pre es vs rd hσ hb' hwp' hrw
-              rcases hkA with hkA | ⟨c, hloc, rfl, hkA⟩
+              rcases hkA with ⟨-, hkA⟩ | ⟨c, -, hloc, rfl, hkA⟩
               · exact hkA hwp' hrw
               obtain ⟨evs, cs, es', rfl, hwp2, hcs, hasin, hevM, hW'⟩ := hkA hwp' hrw
               have hcond := hσ.jc.cond _ _ hb' c (by simp)

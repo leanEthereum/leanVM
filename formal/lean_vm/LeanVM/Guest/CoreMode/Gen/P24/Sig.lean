@@ -20,6 +20,9 @@ namespace LeanVM.Guest.CoreMode.HcSig
 def «bus_grind_check__L3».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
+def «da_vector».sig : CoreMode.HSig := 
+    { postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 14)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 256)⟩,
+        ⟨⟨[(3, 1)], 0⟩, 1, (.num 1), (.num 128)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 896)⟩] }
 def «grind_check__L13».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 128)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }

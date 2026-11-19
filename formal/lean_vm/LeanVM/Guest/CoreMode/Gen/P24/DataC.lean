@@ -184,9 +184,7 @@ end LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
 namespace LeanVM.Guest.Fn.«da_vector»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 14)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 256)⟩,
-        ⟨⟨[(3, 1)], 0⟩, 1, (.num 1), (.num 128)⟩, ⟨⟨[(4, 1)], 0⟩, 1, (.num 0), (.num 896)⟩] }
+  sig := CoreMode.HcSig.«da_vector».sig
   reads := []
   res := []
   calls := [(List.flatten [CoreMode.evR 7 7]),

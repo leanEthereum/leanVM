@@ -47,7 +47,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«walk_path__L12_L5».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«walk_path__L18_L3».modeCert_in, rfl, rfl, rfl⟩],
-  sigsOr_of_list Fn.«verify_bus_gkr».modeSigs fa%[.inr (list_mem% 4),
+  sigsOr_of_list Fn.«verify_bus_gkr».modeSigs fa%[.inr (list_mem% 3),
       .inl ⟨_, Fn.«verify_bus_gkr_loop1».modeCert_in, rfl, rfl, rfl⟩]]
 
 end

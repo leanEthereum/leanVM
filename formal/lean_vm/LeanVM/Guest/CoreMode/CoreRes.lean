@@ -102,6 +102,19 @@ def subRC (q r : CRun) : Bool :=
         Nat.blt l' capE && Nat.blt h' capE
   | _, _, _, _ => false
 
+/-- **A run of constant bounds inside one of the same bases, its stride a multiple** (`subRCm`): `[b]·g^a·g^(S·j)`,
+`l ≤ j < h`, among `[b]·g^a'·g^(S'·j')`, `l' ≤ j' < h'`: `S' > 0`, `S' ∣ S`, `a' ≤ a`, `S' ∣ a - a'`, its cell `j` the
+cell `k + (S / S')·j` of the second (`k = (a - a') / S'`), inside its bounds. -/
+def subRCm (q r : CRun) : Bool :=
+  match q.lo, q.hi, r.lo, r.hi with
+  | .num l, .num h, .num l', .num h' =>
+      basesBeq q.base.bases r.base.bases && Nat.blt 0 r.stride && Nat.beq (q.stride % r.stride) 0 &&
+        Nat.ble r.base.off q.base.off && Nat.beq ((q.base.off - r.base.off) % r.stride) 0 &&
+        Nat.ble l' ((q.base.off - r.base.off) / r.stride + q.stride / r.stride * l) &&
+        Nat.blt ((q.base.off - r.base.off) / r.stride + q.stride / r.stride * (h - 1)) h' && Nat.blt l capE &&
+        Nat.blt h capE && Nat.blt l' capE && Nat.blt h' capE
+  | _, _, _, _ => false
+
 /-- A `DEREF` through `p` at offset `0` among the atoms: a `load` or a `touch`. -/
 def derefAt (as : List Atom) (p : V) : Bool := as.any fun
   | .load _ p' 0 => decide (p' = p)
@@ -221,7 +234,7 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
     | _ => false
   | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
       decide (CRes.sub c q = csSub κ)
-  | .subR q r => subRC q r
+  | .subR q r => subRC q r || subRCm q r
   | .under cs r => resFam fn xc r || negFam fn cs r
   | _ => false
 
@@ -752,11 +765,16 @@ def vtCp (fn : Fn) : CRes → Bool
   | .under _ r => vtCp fn r
   | _ => false
 
-/-- **`da_pad`'s gap** (`EndExec.DaPadQ`): its parameter `2`, the gap `g^(DA_MAX_ROWS - n)` `da_verify` hands it,
-has an exponent below `m`, `DA_MAX_ROWS ≤ m`, either under branch conditions (`EndExec.daGap_inst`). -/
+/-- **`da_pad`'s gap and `da_verify`'s blob count and gap** (`EndExec.DaPadQ`, `EndExec.daV_inst`): `da_pad`'s parameter
+`2`, the gap `g^(DA_MAX_ROWS - n)` `da_verify` hands it, has an exponent below `m`, `DA_MAX_ROWS ≤ m`; `da_verify`'s value
+`1`, the blob count `g^n`, below `m`, `DA_MAX_ROWS < m`, and its value `2`, the gap, below `m`, `DA_MAX_ROWS ≤ m`; either
+under branch conditions (`EndExec.daGap_inst`). -/
 def daGap (fn : Fn) : CRes → Bool
-  | .lt a b => fn.name == name% «da_pad» && decide (a = .val 2) && match b with
-    | .num m => decide (guest_const% DA_MAX_ROWS ≤ m) && decide (m < capE)
+  | .lt a b => match b with
+    | .num m => decide (m < capE) &&
+        ((fn.name == name% «da_pad» && decide (a = .val 2) && decide (guest_const% DA_MAX_ROWS ≤ m)) ||
+          (fn.name == name% «da_verify» && ((decide (a = .val 1) && decide (guest_const% DA_MAX_ROWS < m)) ||
+            (decide (a = .val 2) && decide (guest_const% DA_MAX_ROWS ≤ m)))))
     | _ => false
   | .under _ r => daGap fn r
   | _ => false
@@ -871,12 +889,22 @@ def vkQC (fn : Fn) : CRes → Bool
   | .under _ r => vkQC fn r
   | r => fn.name == name% «verify_keccak» && (List.range 20).all fun i ↦ vkAt (9 + i) r
 
+/-- **`verify_bus_gkr`'s layer loop's family** (`EndExec.LyQ`, `EndExec.ly_curs`): a read `c < 8` words past the cursor
+its pairs end at (value `65`), or `c < 12` past its last record's (value `80`), one of its stream's, parameter `9`'s
+`[0, 8192)`, either under branch conditions (`EndExec.lyQC_inst`). -/
+def lyQC (fn : Fn) : CRes → Bool
+  | .sub c q => fn.name == name% «verify_bus_gkr_loop0» && decide (q = ⟨⟨[(9, 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
+      ((decide (c.bases = [(65, 1)]) && decide (c.off < 8)) || (decide (c.bases = [(80, 1)]) && decide (c.off < 12)))
+  | .under _ r => lyQC fn r
+  | _ => false
+
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, `rcPts`, `cpPerm`,
-`vsExp`, `layQC`, `vtCp`, `daGap`, `rcTab`, `vkQC`, its values below `GB`), or the ghost families `ml`, `st` and
-`verify_tables`' exponent family. -/
+`vsExp`, `layQC`, `vtCp`, `daGap`, `rcTab`, `vkQC`, `lyQC`, its values below `GB`), or the ghost families `ml`, `st`
+and `verify_tables`' exponent family. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
   ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
-      vsExp fn r || layQC fn r || vtCp fn r || daGap fn r || rcTab fn r || vkQC fn r) && r.vals.all (Nat.blt · GB)) ||
+      vsExp fn r || layQC fn r || vtCp fn r || daGap fn r || rcTab fn r || vkQC fn r || lyQC fn r) &&
+      r.vals.all (Nat.blt · GB)) ||
     mlSub fn r || stSub fn r || vtExp fn gw r
 
 /-- **Every residual of the function's heap certificate of a family.** -/

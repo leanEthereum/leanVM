@@ -7,7 +7,7 @@ not grow.
 
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
-import os, sys, collections
+import os, re, sys, collections
 ARGV = list(sys.argv)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -1051,12 +1051,17 @@ def hcsig_ref(k):
     return f'CoreMode.HcSig.«{k}».sig'
 
 
+def lcsigK(h):
+    """A callee's heap signature as Lean, its auxiliary declarations (`def sig_…`) before it: the key of its copy."""
+    EM = _em()
+    ax = EM.Aux()
+    t = EM.lsig(h, ax)
+    return '\x00'.join(list(ax.defs) + [t])
+
+
 def self_sig(r):
-    """A function's own heap signature as Lean, if it needs no auxiliary declaration (as a callee's copy)."""
-    try:
-        return lcsig(r['cert'].sig)
-    except No:
-        return None
+    """A function's own heap signature as Lean, its auxiliary declarations before it (as a callee's copy's key)."""
+    return lcsigK(r['cert'].sig)
 
 
 def sig_shared(R):
@@ -1070,14 +1075,14 @@ def sig_shared(R):
         hcf = {f for f, _, _ in r.get('hcs', [])}
         for f, h in r['cs'].items():
             if f not in hcf:
-                copies[I.callee(f)][lcsig(h)] += 1
+                copies[I.callee(f)][lcsigK(h)] += 1
     shared, refs = set(), {}
     for c, cnt in copies.items():
         for t, n in cnt.items():
             if c in R and own[c] == t:
                 shared.add(c)
                 refs[(c, t)] = hcsig_ref(c)
-            elif n >= 2:
+            elif n >= 2 or '\x00' in t:
                 refs[(c, t)] = f'CoreMode.HcSig.«{c}».csig' if len(cnt) == 1 else None
     return shared, {ct: n for ct, n in refs.items() if n}
 
@@ -1100,7 +1105,10 @@ def sig_file(pack, ks, R, copies):
             t = EM.lsig(R[k]['cert'].sig, ax)
             out += [d.replace('def ', f'def «{k}».', 1) for d in ax.defs] + [f'def «{k}».sig : CoreMode.HSig := {t}\n']
         if k in cp:
-            out.append(f'def «{k}».csig : CoreMode.HSig := {cp[k]}\n')
+            # a copy with auxiliary declarations: theirs renamed `csig_…`
+            *defs, t = re.sub(r'\bsig_', 'csig_', cp[k]).split('\x00')
+            out += [d.replace('def ', f'def «{k}».', 1) + '\n' for d in defs]
+            out.append(f'def «{k}».csig : CoreMode.HSig := {t}\n')
     out.append('\nend\nend LeanVM.Guest.CoreMode.HcSig\n')
     return ''.join(out)
 
@@ -1148,10 +1156,12 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
         if f in hcf:
             used.add(c)
             return hcsig_ref(c)
-        t = lcsig(h)
+        t = lcsigK(h)
         if (c, t) in refs:
             used.add(c)
             return refs[(c, t)]
+        if '\x00' in t:
+            raise No('callee signature too long')
         return t
     cs = ',\n    '.join(f'("{f}", {entry(f, h)})' for f, h in sorted(r['cs'].items()))
     if sigs is not None:
