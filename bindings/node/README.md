@@ -11,7 +11,7 @@ Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404
 
 <!-- x-release-please-start-version -->
 ```sh
-npm install @kevaundray/lean-pq@0.11.1
+npm install @kevaundray/lean-pq@0.12.0
 ```
 <!-- x-release-please-end -->
 

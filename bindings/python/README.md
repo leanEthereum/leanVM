@@ -14,7 +14,7 @@ Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc + mu
 
 <!-- x-release-please-start-version -->
 ```bash
-pip install py-lean-pq==0.11.1
+pip install py-lean-pq==0.12.0
 ```
 <!-- x-release-please-end -->
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.12.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.11.1...bindings-v0.12.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* the Go module is leanvm.org/go, the Nim package is bindings/nim at tag bindings-vX.Y.Z (`?subdir=bindings/nim`), and an aggregate from 0.11.x and one from 0.12.0 reject each other.
+
+### Features
+
+* move the bindings into leanVM ([#789](https://github.com/leanEthereum/leanVM/issues/789)) ([39acb3f](https://github.com/leanEthereum/leanVM/commit/39acb3fe0c19586767075733496cb5ee6d7ce3c1))
+
 ## [0.11.1](https://github.com/ethereum/lean-pq-bindings/compare/v0.11.0...v0.11.1) (2026-11-19)
 
 

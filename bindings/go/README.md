@@ -8,7 +8,7 @@ Each release publishes `leanvm.org/go` with the native archives built in, so `go
 
 <!-- x-release-please-start-version -->
 ```sh
-go get leanvm.org/go@v0.11.1
+go get leanvm.org/go@v0.12.0
 ```
 <!-- x-release-please-end -->
 

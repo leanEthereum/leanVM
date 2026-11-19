@@ -15,7 +15,7 @@ Each GitHub release attaches `lean-pq-zig-<version>.tar.gz`, a Zig package with 
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.11.1
+version=0.12.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->

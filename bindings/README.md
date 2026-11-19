@@ -19,23 +19,23 @@ On x86_64, the CPU needs AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
-pip install py-lean-pq==0.11.1
-npm install @kevaundray/lean-pq@0.11.1
-go get leanvm.org/go@v0.11.1
-version=0.11.1
+pip install py-lean-pq==0.12.0
+npm install @kevaundray/lean-pq@0.12.0
+go get leanvm.org/go@v0.12.0
+version=0.12.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 
 Java (Gradle):
 
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.11.1")
+implementation("io.github.crate-crypto:lean-pq:0.12.0")
 ```
 
 Nim (`.nimble`):
 
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.11.1"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
 ```
 <!-- x-release-please-end -->
 
