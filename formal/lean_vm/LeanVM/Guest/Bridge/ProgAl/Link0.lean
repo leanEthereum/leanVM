@@ -63,11 +63,15 @@ public import LeanVM.Guest.Bridge.Align.«P7»
 public import LeanVM.Guest.Bridge.Align.«P8»
 public import LeanVM.Guest.Bridge.Align.«P9»
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
-public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
-public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
-public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ok
-public import LeanVM.Guest.Bridge.AlignWin.«verify_tables».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«main_loop2».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«sp_wots».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«verify_tables».Ok
 public import LeanVM.Guest.Bridge.ProgAl.Tab0
+public import LeanVM.Guest.CoreMode.AlignOk.«exponent_tables»
+public import LeanVM.Guest.CoreMode.AlignOk.«main_loop2»
+public import LeanVM.Guest.CoreMode.AlignOk.«sp_wots»
+public import LeanVM.Guest.CoreMode.AlignOk.«verify_tables»
 
 
 namespace LeanVM.Guest.Bridge.ProgAl

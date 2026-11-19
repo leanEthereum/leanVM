@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core

@@ -399,11 +399,14 @@ class Walk:
         for i, (op, a) in enumerate(code):
             if self.probe is not None: self.probe(i, cur, pend)
             if i in self.cutAt:
-                # past a cut the walk reads `hq`/`hs` only through cells some later instruction names: the rest (a
-                # table read's slot, say) is dropped, the cut a weakening of the state (`cutF`'s `curSub`)
-                live = {x for _, a2 in code[i:] for x in a2 if type(x) is int}
+                # past a cut the walk reads `hq`/`hs` only at a later `DEREF`'s pointer cell and offset or a later call's
+                # frame cell: the rest (a table read's slot, say) is dropped, the cut a weakening of the state (`cutF`'s
+                # `curSub`)
+                live = {(a2[0], a2[1]) for op2, a2 in code[i:] if op2 == 'deref'}
+                calls = {a2[2] for op2, a2 in code[i:] if op2 == 'jump'}
                 for X in ([cur] if cur is not None else []) + [B for _, _, B in pend]:
-                    X.hq = {p for p in X.hq if p[0] in live}; X.hs = {p for p in X.hs if p[0] in live}
+                    X.hq = {p for p in X.hq if p in live or p[0] in calls}
+                    X.hs = {p for p in X.hs if p in live or p[0] in calls}
                 self.cutSt[i] = (cur.copy() if cur is not None else None, [(k, list(ts), B.copy()) for k, ts, B in pend])
                 if cur is not None:
                     cur = cur.copy(); cur.st = XSt(cur.st.env)

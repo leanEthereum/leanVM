@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«main_loop2».Ok
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W0
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W1
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W10

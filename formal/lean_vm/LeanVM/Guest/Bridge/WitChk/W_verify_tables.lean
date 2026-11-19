@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.WitDefs
-public import LeanVM.Guest.Bridge.AlignWin.«verify_tables».Ok
+public import LeanVM.Guest.Bridge.AlignCtx.«verify_tables».Ok
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
 

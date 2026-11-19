@@ -1,6 +1,6 @@
 """The computed hints' data check of every compiled function (`LeanVM/Guest/Bridge/PairChk/*.lean`).
 
-Per module of alignment checks `align.py` writes (`Bridge/Align/*.lean`, `Bridge/AlignWin/*/Ctx.lean`), each
+Per module of alignment checks `align.py` writes (`Bridge/Align/*.lean`, `Bridge/AlignCtx/*/Ctx.lean`), each
 function's `Bridge.pairChk` over its pack data and its hint-only cells, by `decide +kernel`;
 per link module of `Guest/Checked`, each function's check over `Bridge.ctxOf` with its advice's entry
 (`Bridge.pairJ_of`, reusing the `Checked` and `ProgAl` link equations); and the assembly over every function
@@ -22,7 +22,7 @@ def check_module(ctx_mod):
     """The module of checks for the functions whose context `ctx_mod` holds."""
     if '.Align.«' in ctx_mod:
         return 'LeanVM.Guest.Bridge.PairChk.«' + ctx_mod.split('.Align.«')[1]
-    k = ctx_mod.split('.AlignWin.«')[1].split('»')[0]
+    k = ctx_mod.split('.AlignCtx.«')[1].split('»')[0]
     return f'LeanVM.Guest.Bridge.PairChk.«W_{k}»'
 
 

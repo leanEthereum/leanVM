@@ -1,7 +1,7 @@
 """The deployed guest's alignment by index (`LeanVM/Guest/Bridge/ProgAlData.lean`, `ProgAl/*.lean`).
 
 Reads each function's alignment context off the checks `align.py` writes (`Bridge/Align/*.lean`,
-`Bridge/AlignWin/*/Ctx.lean`): its hint-only cells and its callees with their entries. Writes them as
+`Bridge/AlignCtx/*/Ctx.lean`): its hint-only cells and its callees with their entries. Writes them as
 tables by compiled index (`Bridge.alignExtras`, `Bridge.alignCallees`, the callees by index), and per link
 module of `Guest/Checked` (whose `code`, `core`, `cert` and `plumbEq` equations it reuses) each function's
 check over `Bridge.ctxOf` (`Bridge.fnAlOk_of`), and the assembly over every function (`ProgAl/All.lean`).
@@ -30,10 +30,10 @@ def contexts():
         mod = f'LeanVM.Guest.Bridge.Align.«{os.path.basename(p)[:-5]}»'
         for m in CTX1.finditer(open(p, encoding='utf-8').read()):
             out[m.group(1)] = (m.group(2), m.group(4), mod)
-    for p in sorted(glob.glob(os.path.join(BR, 'AlignWin', '*', 'Ctx.lean'))):
+    for p in sorted(glob.glob(os.path.join(BR, 'AlignCtx', '*', 'Ctx.lean'))):
         k = os.path.basename(os.path.dirname(p))
         for m in CTX.finditer(open(p, encoding='utf-8').read()):
-            out[m.group(1)] = (m.group(2), m.group(4), f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ok')
+            out[m.group(1)] = (m.group(2), m.group(4), f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok')
     return out
 
 
@@ -134,6 +134,8 @@ end LeanVM.Guest.Bridge
         # the tables' entries (`Tab*`, what the core route's data reads) apart from the alignment checks
         tmod = 'Tab' + mod[len('Link'):]
         imps = {f'LeanVM.Guest.Bridge.ProgAl.{tmod}'} | {ctxs[lk[j][0]][2] for j in js}
+        # a long function's pass, checked in windows from the core route's pairing states (`core-mode/pair.py`)
+        imps |= {f'LeanVM.Guest.CoreMode.AlignOk.«{lk[j][0]}»' for j in js if '.AlignCtx.«' in ctxs[lk[j][0]][2]}
         body, tbody = [], []
         # the glue naming the callees' entries (`Fn.«k».entry`)
         glue = sorted({PACK[c] for j in js for c in re.findall(r'Fn\.«([^»]+)»\.entry', ctxs[lk[j][0]][1])})

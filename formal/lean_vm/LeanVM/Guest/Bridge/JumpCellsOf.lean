@@ -13,7 +13,7 @@ public import LeanVM.Guest.Bridge.ProgAl
 # The jump cells along the reference run
 
 `jumpCells_of` (`JumpCells.lean` states its parts): apart from them, since it reads the program's alignment
-`progAl`, whose checks (`ProgAl/Link*`, the windows of `AlignWin`) a reader of the parts need not import.
+`progAl`, whose checks (`ProgAl/Link*`, a long function's windows in `CoreMode/AlignOk`) a reader of the parts need not import.
 -/
 
 namespace LeanVM.Guest.Bridge
