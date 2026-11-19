@@ -22,13 +22,11 @@ use crate::{sphincs, xmss, Error, Message};
 /// The most children one aggregation recurses over.
 pub const MAX_CHILDREN: usize = 16;
 
-// Invariant: the limit above is the guest's, checked at compile time.
+// The limit above is the guest's.
 const _: () = assert!(MAX_CHILDREN == MAX_RECURSIONS);
 
-/// Exponent of the proof's Reed-Solomon code rate, `rho = 2^-2 = 1/4`.
-///
-/// - leanVM accepts exponents 1 to 4.
-/// - A larger exponent gives a smaller proof but slower proving.
+/// Exponent of the proof's Reed-Solomon code rate, `rho = 2^-2 = 1/4`: a larger one gives a smaller
+/// proof but slower proving.
 const LOG_INV_RATE: usize = 2;
 
 const _: () = assert!(MIN_LOG_INV_RATE <= LOG_INV_RATE && LOG_INV_RATE <= MAX_LOG_INV_RATE);
@@ -38,8 +36,7 @@ const _: () = assert!(MIN_LOG_INV_RATE <= LOG_INV_RATE && LOG_INV_RATE <= MAX_LO
 /// A child forked after the start inherits it but not the pool's threads.
 static SETUP: OnceLock<u32> = OnceLock::new();
 
-/// Starts leanVM's prover pool, one thread per core, and builds the aggregation guest, once per
-/// process.
+/// Starts the prover pool, one thread per core, and builds the aggregation guest, once per process.
 ///
 /// Aggregating and decoding call it themselves, so calling it only moves that cost earlier. A
 /// process forked after the start cannot aggregate: start it before, or without forking.
@@ -79,8 +76,6 @@ impl Aggregate {
         xmss_claims: &[(xmss::PublicKey, Message)],
         sphincs_claims: &[(sphincs::PublicKey, Message)],
     ) -> Result<Self, Error> {
-        // Verification needs the guest's tables.
-        setup();
         let proof = AggregateProof::from_bytes(bytes).ok_or(Error::MalformedAggregate)?;
         let claims = AggregateClaims {
             lean_xmss: sorted_claims(xmss_claims.iter().map(|(key, message)| (key.0, *message))),
@@ -175,9 +170,7 @@ pub fn aggregate(
         });
     }
 
-    // Why: the prover catches only some invalid signatures, and the rest make proving fail.
-    //
-    // Checking here turns every one into an error that names the culprit.
+    // An invalid signature would otherwise surface as a failed proof; checking first names it.
     for (index, (public_key, message, signature)) in xmss.iter().enumerate() {
         public_key
             .verify(message, signature)
