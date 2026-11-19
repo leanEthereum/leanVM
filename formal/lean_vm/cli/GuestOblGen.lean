@@ -621,11 +621,14 @@ def run (check : Bool) : IO UInt32 := do
     let old ← if ← p.pathExists then IO.FS.readFile p else pure ""
     if old != t then
       stale := stale.push s!"{if check then "stale" else "wrote"} {p}"
-      unless check do IO.FS.writeFile p t
-  for e in ← evalDir.readDir do
-    if e.path.extension == some "lean" && !written.contains e.path then
-      stale := stale.push s!"{if check then "not written here" else "removed"} {e.path}"
-      unless check do IO.FS.removeFile e.path
+      unless check do
+        if let some d := p.parent then IO.FS.createDirAll d
+        IO.FS.writeFile p t
+  if ← evalDir.pathExists then
+    for e in ← evalDir.readDir do
+      if e.path.extension == some "lean" && !written.contains e.path then
+        stale := stale.push s!"{if check then "not written here" else "removed"} {e.path}"
+        unless check do IO.FS.removeFile e.path
   IO.println s!"guest-oblgen: {count} functions, {eRuns.length} runs in {eNames.length} modules, \
     {T.xIdx.length} ext functions ({nM} opening_queries, {nL} loop helpers, {nQ} level_queries, \
     {nO} open_stacked)"
