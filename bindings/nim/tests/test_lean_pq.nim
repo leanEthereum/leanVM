@@ -25,7 +25,8 @@ func fromHex(text: string): seq[byte] =
 const
   message = filled(0x42)
   otherMessage = filled(0x43)
-  fixturesDir = currentSourcePath().parentDir() / ".." / ".." / "rust" / "tests" / "fixtures"
+  knownAnswer = currentSourcePath().parentDir() / ".." / ".." / ".." / "crates" / "lean_sphincs" / "tests" /
+    "lean_sphincs" / "known_answer.hex"
 
 suite "lean_pq":
   test "native record layouts":
@@ -57,12 +58,12 @@ suite "lean_pq":
       sphincsVerify(publicKey, message, signature)
       not sphincsVerify(publicKey, otherMessage, signature)
 
-  test "leanSPHINCS reproduces the known answer shared with EthLib and leanVM":
+  test "leanSPHINCS reproduces the known answer":
     var seed, knownMessage: array[32, byte]
     for index in 0 ..< 32:
       seed[index] = byte((37 * index + 11) mod 256)
       knownMessage[index] = byte((7 * index + 3) mod 256)
-    let lines = readFile(fixturesDir / "lean_sphincs_known_answer.hex").splitWhitespace()
+    let lines = readFile(knownAnswer).splitWhitespace()
     var
       publicKey: SphincsPublicKey
       signature: SphincsSignature

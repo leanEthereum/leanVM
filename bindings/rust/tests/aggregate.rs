@@ -153,7 +153,7 @@ fn rejects_empty_input() {
             reason: AggregateError::InvalidInput("nothing to publish"),
         }
     );
-    // Bindings match on this prefix; the reason after it is upstream's wording.
+    // Bindings match on this prefix; the reason after it is the underlying library's wording.
     assert!(error.to_string().starts_with("aggregation failed: "));
 }
 

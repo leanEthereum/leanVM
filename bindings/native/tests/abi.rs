@@ -40,7 +40,7 @@ fn native_abi_signs_verifies_and_aggregates() {
                 OK
             );
             let xmss_sig = take(buffer);
-            assert_eq!(xmss_sig.len(), 2404);
+            assert_eq!(xmss_sig.len(), lean_pq::xmss::SIGNATURE_LEN);
             assert_eq!(
                 lpq_xmss_verify(
                     xmss_pk.as_ptr(),
@@ -103,7 +103,7 @@ fn native_abi_signs_verifies_and_aggregates() {
                 OK
             );
             let sphincs_sig = take(buffer);
-            assert_eq!(sphincs_sig.len(), 7740);
+            assert_eq!(sphincs_sig.len(), lean_pq::sphincs::SIGNATURE_LEN);
             assert_eq!(
                 lpq_sphincs_verify(
                     sphincs_pk.as_ptr(),
