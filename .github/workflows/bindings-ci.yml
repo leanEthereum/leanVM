@@ -1,8 +1,8 @@
 name: Bindings CI
 
 # Changes to the bindings, or to the crates, guest, sidecar and build settings they and the sidecar
-# their aggregation tests run build from, run it, and so does every update of the release pull
-# request.
+# their aggregation tests run build from (the guest's Lean compilation among them), run it, and so
+# does every update of the release pull request.
 on:
   push:
     branches: [main]
@@ -15,6 +15,16 @@ on:
       - .cargo/config.toml
       - bins/leanvm-sidecar/**
       - .github/workflows/bindings-ci.yml
+      - .github/workflows/guest-artifact.yml
+      - formal/lean_vm/LeanVM/Compiler/**
+      - formal/lean_vm/LeanVM/Core/**
+      - formal/lean_vm/cli/GuestArtifact.lean
+      - formal/lean_vm/scripts/guest-artifact
+      - formal/lean_vm/scripts/guest-export/**
+      - formal/lean_vm/lakefile.toml
+      - formal/lean_vm/lake-manifest.json
+      - formal/lean_vm/lean-toolchain
+      - formal/Statement/**
   pull_request:
     paths:
       - bindings/**
@@ -25,6 +35,16 @@ on:
       - .cargo/config.toml
       - bins/leanvm-sidecar/**
       - .github/workflows/bindings-ci.yml
+      - .github/workflows/guest-artifact.yml
+      - formal/lean_vm/LeanVM/Compiler/**
+      - formal/lean_vm/LeanVM/Core/**
+      - formal/lean_vm/cli/GuestArtifact.lean
+      - formal/lean_vm/scripts/guest-artifact
+      - formal/lean_vm/scripts/guest-export/**
+      - formal/lean_vm/lakefile.toml
+      - formal/lean_vm/lake-manifest.json
+      - formal/lean_vm/lean-toolchain
+      - formal/Statement/**
   # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
   workflow_dispatch:
 
@@ -36,11 +56,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The compiled guest (guest-artifact.yml), which the sidecar's build (`aggregation`'s build script)
+  # reads instead of running Lean.
+  guest-artifact:
+    uses: ./.github/workflows/guest-artifact.yml
+
   # The sidecar the aggregation tests talk to, built once per OS for a CPU baseline every runner
   # has; the test jobs start it with bindings/scripts/start-sidecar.sh. They run (`!cancelled()`)
   # even when one OS's build failed, so the other OS's rows still report.
   sidecar:
     name: Sidecar / ${{ matrix.os }}
+    needs: guest-artifact
     strategy:
       matrix:
         include:
@@ -54,6 +80,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
@@ -61,6 +92,7 @@ jobs:
       - name: Build leanvm-sidecar
         env:
           RUSTFLAGS: ${{ matrix.rustflags }}
+          LEANVM_GUEST_ARTIFACT: ${{ github.workspace }}/guests/lean_ethereum.compiled
         run: cargo build --release --locked -p leanvm-sidecar --features experimental_prover
 
       - uses: actions/upload-artifact@v4
