@@ -524,13 +524,30 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     | none =>
     cases hmk : CoreMode.mlK Cf.fn with
     | none =>
-      -- no ghost: its residuals and linked cells at its valuation
       have hgl1 := hgl0
-      simp only [CoreMode.glOk, hsk, hmk, Option.isSome_none, Bool.cond_false, Bool.and_eq_true] at hgl1
-      refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_⟩
-      · exact resOk_inst hr hI hIt hfind hres0 hmk hsk hparF hxw
-      · rw [← hfpL]
-        exact glF_inst hr hI hIt hfind hpN hLk hgl1.1 hF.hdr1 _
+      simp only [CoreMode.glOk, hsk, hmk, Option.isSome_none, Bool.cond_false, Bool.or_eq_true,
+        Bool.and_eq_true] at hgl1
+      rcases hgl1 with hgl1 | hal
+      · -- no ghost: its residuals and linked cells at its valuation
+        refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_⟩
+        · exact resOk_inst hr hI hIt hfind hres0 hmk hsk hparF hxw
+        · rw [← hfpL]
+          exact glF_inst hr hI hIt hfind hpN hLk (Bool.or_eq_true_iff.mpr hgl1.1) hF.hdr1 _
+      · -- a loop callee of `anyLink`: its ghost word its caller's frame address
+        simp only [CoreMode.alGl, Bool.and_eq_true, Nat.beq_eq] at hal
+        obtain ⟨⟨hany, hgh⟩, hng⟩ := hal
+        have hnp : Cf.fn.params.length < CoreMode.GB := by
+          have := hng
+          simp only [CoreMode.ngB, Bool.and_eq_true, Nat.blt_eq] at this
+          exact this.1.1
+        obtain ⟨a, hglF⟩ := alGlF_inst hr hI hIt hfind hpN hLk hany hF.hdr1 hgh hnp
+        refine ⟨CoreMode.setG e.σ [ofK (Parameters.g ^ a)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_⟩
+        · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
+            (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
+            (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
+            (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+        · rw [← hfpL]
+          exact hglF
     | some k =>
       -- the ghost family: its ghost word the caller's entries table
       have hgl1 := hgl0

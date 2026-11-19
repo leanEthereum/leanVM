@@ -9,14 +9,12 @@ module
 
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.Pack.«P11».Mode0
-public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P33».ModeD0
 public import LeanVM.Guest.Pack.«P34».Mode0
 public import LeanVM.Guest.Pack.«P36».Mode0
 public import LeanVM.Guest.Pack.«P38».Mode0
-public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P42».Mode0
 public import LeanVM.Guest.Pack.«P42».ModeC
@@ -76,8 +74,6 @@ theorem ltFr_guest : ∀ p ∈ frFns, ltFr p.1 p.2.1.length p.2.2.1 p.2.2.2 = tr
 /-- The kernel-checked functions with residuals all in the families. -/
 noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_any».modeFun, Fn.«child_claim_list_any».code.chunks.flatten),
-  (Fn.«child_claim_list_any_loop0».modeFun, Fn.«child_claim_list_any_loop0».code.chunks.flatten),
-  (Fn.«child_claim_list_any_loop1».modeFun, Fn.«child_claim_list_any_loop1».code.chunks.flatten),
   (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».modeFun, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),

@@ -73,16 +73,25 @@ def idx_kx(G, ps, i):
 
 def run_h(r, np, gl):
     """`CoreMode.rngH`: a run over one linked caller's cell `[d]` (`.hp 1 d`, `d != 0`, linked to a slot with no power
-    of `g`), of constant bounds below `2^62`, as the heap run over that slot; else `None`."""
+    of `g`), of a constant lower bound and an upper bound `hiH` (a constant, or the exponent of a linked caller's cell
+    `d' != 0`, `idxL`), below `2^62`, as the heap run over that slot; else `None`."""
     q, lo, hi, S, d = r
     fp, k, bs = q
     if not gl or fp != 0 or len(bs) != 1 or bs[0][1] != 1 or bs[0][0][0] != 'hp' or bs[0][0][1] != 1:
         return None
     dd = bs[0][0][2]
-    if dd == 0 or dd not in gl or gl[dd][1] != 0 or lo[0] != 'num' or hi[0] != 'num' or \
-            not (lo[1] < 2 ** 62 and hi[1] < 2 ** 62):
+    if dd == 0 or dd not in gl or gl[dd][1] != 0 or lo[0] != 'num' or not lo[1] < 2 ** 62:
         return None
-    return (I.mk(((callc.gslot(gl[dd][0], np), 1),), k + d), S, I.num(lo[1]), I.num(hi[1]))
+    if hi[0] == 'num':
+        if not hi[1] < 2 ** 62:
+            return None
+        h = I.num(hi[1])
+    elif hi[0] == 'ex' and hi[1][0] == 'hp' and hi[1][1] == 1 and hi[2] == 0 and hi[1][2] != 0 and hi[1][2] in gl:
+        sl, kk = gl[hi[1][2]]
+        h = I.mk(((callc.gslot(sl, np), 1),), kk)
+    else:
+        return None
+    return (I.mk(((callc.gslot(gl[dd][0], np), 1),), k + d), S, I.num(lo[1]), h)
 
 
 def run(G, np, r, ps=None, gl=None):
@@ -99,10 +108,9 @@ def run(G, np, r, ps=None, gl=None):
 
 
 def addr_runs(np, gl):
-    """`CoreMode.addrRs`: for each linked caller's cell `d` (`loopGl`'s, but the frame's address `0`), the one cell at
-    the caller's frame address (the last ghost) times `g^d`."""
-    ds = [d for d in gl if d != 0]
-    return [(I.mk(((callc.gslot(np + len(ds), np), 1),), d), 1, I.num(0), I.num(1)) for d in ds]
+    """`CoreMode.addrRs`: for each linked caller's cell `d` (but the frame's address `0`), the one cell at the caller's
+    frame address (its slot `glFs`) times `g^d`."""
+    return [(I.mk(((callc.gslot(gl[0][0], np), 1),), d), 1, I.num(0), I.num(1)) for d in gl if d != 0]
 
 
 def own_sig(G, np, ps=None, gl=None):
@@ -124,10 +132,16 @@ def own_sig(G, np, ps=None, gl=None):
     post_ps = None if ps is None else exp_cells(G)
     h.preR = [run(G, np, r, ps, gl) for r in G['preR']] + (addr_runs(np, gl) if gl else [])
     if gl:
-        # the caller's cells and frame as ghosts (`CoreMode.loopGl`), each cell a run's base (`dsIn`)
-        h.ghosts = [('link', d) for d in gl if d != 0] + [('fp',)]
-        if any(not any(r[0][2] == [(('hp', 1, d), 1)] for r in G['preR']) for d in gl if d != 0):
+        # the caller's cells linked to ghosts (`CoreMode.loopGl`) or to parameters the tail call passes on (`sigOkLP`),
+        # the caller's frame address the last ghost; each cell a run's base or upper bound (`dsIn`)
+        h.ghosts = [('link', d) for d, (b, _) in gl.items() if d != 0 and b >= np] + [('fp',)]
+        if gl[0][0] != np + len(h.ghosts) - 1:
+            raise No('frame slot')
+        if any(not any(r[0][2] == [(('hp', 1, d), 1)] or r[2] == ('ex', ('hp', 1, d), 0) for r in G['preR'])
+               for d in gl if d != 0):
             raise No('link not a base')
+        if any(b < np and (ps is None or 2 + b not in ps) for d, (b, _) in gl.items()):
+            raise No('link not passed on')
     h.post = [mono(G, np, m) for m in G['post']]
     h.postR = [run(G, np, r, post_ps) for r in G['postR'] + G['postL']]
     if len(set(h.pre)) != len(h.pre) or len(set(h.preR)) != len(h.preR):

@@ -191,7 +191,14 @@ def gl_of(k):
         # frame address (`0`) its second
         np = len(CORE[k][0])
         return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
-    return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
+    if k in I.IS_LOOP:
+        if not _LINKS.get(k):
+            return {}
+        # a loop callee of `anyLink` (`CoreMode.alGl`): its links, then the caller's frame address its one ghost slot
+        g = dict(_LINKS[k])
+        g[0] = (len(CORE[k][0]), 0)
+        return g
+    return dict(_LINKS.get(k) or {})
 
 
 def ml_k(k):

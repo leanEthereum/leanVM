@@ -461,14 +461,23 @@ ghost value. -/
 noncomputable def mlGl (Cf : CFun) : Bool :=
   (mlK Cf.fn).isSome && decide (Cf.gl = [(2, 4, 0), (5, 3, 0)]) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
 
+/-- **A loop callee of `anyLink`'s links**: its caller's cell `2` its entries parameter, cell `5` its bound parameter
+times `g` (`anyLink`'s), its caller's frame address its one ghost slot, after its parameters; it names no ghost
+value. -/
+noncomputable def alGl (Cf : CFun) : Bool :=
+  Res.anyLink.fams.any (fun F ↦ Cf.fn.name == F.1 &&
+    decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1), (0, Cf.fn.params.length, 0)])) &&
+    Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
+
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
-parameter times `g`, with no ghost slot; for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a
-stream-cursor loop its caller's stream and frame (`stGl`). -/
+parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
+(`alGl`); for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a stream-cursor loop its caller's
+stream and frame (`stGl`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
   bif (stK Cf.fn).isSome then stGl Cf else bif (mlK Cf.fn).isSome then mlGl Cf else
-    (Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
-      && Nat.beq Cf.H.sig.ghosts 0
+    ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
+      && Nat.beq Cf.H.sig.ghosts 0) || alGl Cf
 
 theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
   simp [resOk, h]
