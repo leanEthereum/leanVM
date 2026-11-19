@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L10».Core
 public import LeanVM.Guest.Mode.CertDefs
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeC
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -21,74 +20,72 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `open_stacked__L10`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+/-- `open_stacked__L10`: its frame interface's certificate, the core route's. -/
+noncomputable def modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
 /-- `open_stacked__L10`: the callee signatures its walk reads. -/
 kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(254111,
-    Fn.«grind_check__L17».modeSig), (273631, Fn.«level_positions__L4_L25_L7».modeSig), (274223,
-    Fn.«level_residual__L44_L20_L4_L2».modeSig), (273007,
-    Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeSig), (273927,
-    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».modeSig), (254663,
-    Fn.«opening_message__L8_L1».modeSig), (272839, Fn.«level_positions__L44_L25_L7».modeSig),
-    (274471, Fn.«level_residual__L21_L12_L4_L2».modeSig), (273815,
-    Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig), (273367,
-    Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeSig), (273207,
-    Fn.«level_positions__L10_L26_L2».modeSig), (266595,
-    Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSig), (273891,
-    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».modeSig), (258515,
-    Fn.«squeeze_point_from__L16».modeSig), (267315, Fn.«level_residual__L23_L12_L4_L2».modeSig),
-    (273291, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig)], [(273963,
-    Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».modeSig), (274603,
-    Fn.«level_residual__L17_L8_L4_L2».modeSig), (211947, Fn.«squeeze_point_from__L24».modeSig),
-    (272923, Fn.«level_positions__L19_L27_L3».modeSig), (268091,
-    Fn.«level_positions__L5_L23_L5».modeSig), (274043,
-    Fn.«level_residual__L109_L24_L6_L3».modeSig), (274427,
-    Fn.«level_residual__L23_L16_L4_L2».modeSig), (274561,
-    Fn.«level_residual__L18_L12_L4_L2».modeSig), (19521, Fn.«opening_tail_round».modeSig), (267201,
-    Fn.«level_residual__L32_L16_L4_L2».modeSig), (274337,
-    Fn.«level_residual__L28_L16_L4_L2».modeSig), (273249, Fn.«level_positions__L8_L27_L3».modeSig),
-    (273745, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig), (259281,
-    Fn.«squeeze_point_from__L8».modeSig), (266481, Fn.«level_positions__L5_L22_L4».modeSig),
-    (272881, Fn.«level_positions__L28_L26_L2».modeSig)], [(273673,
-    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig), (274313,
-    Fn.«level_residual__L32_L20_L4_L2».modeSig), (271657, Fn.«level_positions__L5_L25_L7».modeSig),
-    (211609, Fn.«squeeze_point_from__L20».modeSig), (272025,
-    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig), (267449,
-    Fn.«level_residual__L18_L8_L4_L2».modeSig), (273849, Fn.«level_positions__L3_L23_L5».modeSig),
-    (19461, Fn.«opening_round».modeSig), (272965, Fn.«level_positions__L14_L28_L4».modeSig),
-    (269893, Fn.«level_positions__L4_L23_L5».modeSig), (266405,
-    Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSig), (264981,
-    Fn.«level_positions__L3_L20_L2».modeSig), (274133, Fn.«level_residual__L55_L24_L6_L3».modeSig),
-    (273165, Fn.«level_positions__L9_L25_L7».modeSig), (273709,
-    Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig), (258909,
-    Fn.«squeeze_point_from__L12».modeSig)], [(273088,
-    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeSig), (271808,
-    Fn.«level_positions__L4_L24_L6».modeSig), (255112, Fn.«opening_message__L6_L1».modeSig),
-    (266632, Fn.«level_positions__L3_L21_L3».modeSig), (273480,
-    Fn.«level_positions__L6_L26_L2».modeSig), (274088, Fn.«level_residual__L73_L24_L6_L3».modeSig),
-    (273048, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeSig), (274648,
-    Fn.«level_residual__L16_L8_L4_L2».modeSig), (274516,
-    Fn.«level_residual__L19_L12_L4_L2».modeSig), (273780,
-    Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSig), (211564,
-    Fn.«grind_check__L15».modeSig), (274268, Fn.«level_residual__L37_L20_L4_L2».modeSig), (259804,
-    Fn.«fold_final_msg__L4».modeSig), (273404,
-    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».modeSig), (274178,
-    Fn.«level_residual__L55_L20_L4_L2».modeSig), (266850,
-    Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeSig)], [(268242,
-    Fn.«level_positions__L4_L22_L4».modeSig), (273330,
-    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig), (273522,
-    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSig), (266250,
-    Fn.«level_positions__L7_L23_L5».modeSig), (270042, Fn.«level_positions__L3_L22_L4».modeSig),
-    (273594, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeSig), (266746,
-    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeSig), (273126,
-    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».modeSig), (273558,
-    Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSig), (259510,
-    Fn.«opening_message__L20_L1».modeSig), (273998, Fn.«level_residual__L218_L24_L6_L3».modeSig),
-    (274382, Fn.«level_residual__L25_L16_L4_L2».modeSig), (265966,
-    Fn.«level_positions__L11_L24_L6».modeSig), (273438, Fn.«level_positions__L6_L24_L6».modeSig)]])
+    Fn.«grind_check__L17».csig), (273631, Fn.«level_positions__L4_L25_L7».csig), (274223,
+    Fn.«level_residual__L44_L20_L4_L2».csig), (273007,
+    Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».csig), (273927,
+    Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».csig), (254663,
+    Fn.«opening_message__L8_L1».csig), (272839, Fn.«level_positions__L44_L25_L7».csig), (274471,
+    Fn.«level_residual__L21_L12_L4_L2».csig), (273815,
+    Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig), (273367,
+    Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig), (273207,
+    Fn.«level_positions__L10_L26_L2».csig), (266595,
+    Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig), (273891,
+    Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».csig), (258515,
+    Fn.«squeeze_point_from__L16».csig), (267315, Fn.«level_residual__L23_L12_L4_L2».csig), (273291,
+    Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig)], [(273963,
+    Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».csig), (274603,
+    Fn.«level_residual__L17_L8_L4_L2».csig), (211947, Fn.«squeeze_point_from__L24».csig), (272923,
+    Fn.«level_positions__L19_L27_L3».csig), (268091, Fn.«level_positions__L5_L23_L5».csig),
+    (274043, Fn.«level_residual__L109_L24_L6_L3».csig), (274427,
+    Fn.«level_residual__L23_L16_L4_L2».csig), (274561, Fn.«level_residual__L18_L12_L4_L2».csig),
+    (19521, Fn.«opening_tail_round».csig), (267201, Fn.«level_residual__L32_L16_L4_L2».csig),
+    (274337, Fn.«level_residual__L28_L16_L4_L2».csig), (273249,
+    Fn.«level_positions__L8_L27_L3».csig), (273745,
+    Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig), (259281,
+    Fn.«squeeze_point_from__L8».csig), (266481, Fn.«level_positions__L5_L22_L4».csig), (272881,
+    Fn.«level_positions__L28_L26_L2».csig)], [(273673,
+    Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig), (274313,
+    Fn.«level_residual__L32_L20_L4_L2».csig), (271657, Fn.«level_positions__L5_L25_L7».csig),
+    (211609, Fn.«squeeze_point_from__L20».csig), (272025,
+    Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig), (267449,
+    Fn.«level_residual__L18_L8_L4_L2».csig), (273849, Fn.«level_positions__L3_L23_L5».csig),
+    (19461, Fn.«opening_round».csig), (272965, Fn.«level_positions__L14_L28_L4».csig), (269893,
+    Fn.«level_positions__L4_L23_L5».csig), (266405,
+    Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».csig), (264981,
+    Fn.«level_positions__L3_L20_L2».csig), (274133, Fn.«level_residual__L55_L24_L6_L3».csig),
+    (273165, Fn.«level_positions__L9_L25_L7».csig), (273709,
+    Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig), (258909,
+    Fn.«squeeze_point_from__L12».csig)], [(273088,
+    Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».csig), (271808,
+    Fn.«level_positions__L4_L24_L6».csig), (255112, Fn.«opening_message__L6_L1».csig), (266632,
+    Fn.«level_positions__L3_L21_L3».csig), (273480, Fn.«level_positions__L6_L26_L2».csig), (274088,
+    Fn.«level_residual__L73_L24_L6_L3».csig), (273048,
+    Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».csig), (274648,
+    Fn.«level_residual__L16_L8_L4_L2».csig), (274516, Fn.«level_residual__L19_L12_L4_L2».csig),
+    (273780, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig), (211564,
+    Fn.«grind_check__L15».csig), (274268, Fn.«level_residual__L37_L20_L4_L2».csig), (259804,
+    Fn.«fold_final_msg__L4».csig), (273404,
+    Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».csig), (274178,
+    Fn.«level_residual__L55_L20_L4_L2».csig), (266850,
+    Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».csig)], [(268242,
+    Fn.«level_positions__L4_L22_L4».csig), (273330,
+    Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig), (273522,
+    Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».csig), (266250,
+    Fn.«level_positions__L7_L23_L5».csig), (270042, Fn.«level_positions__L3_L22_L4».csig), (273594,
+    Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».csig), (266746,
+    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig), (273126,
+    Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».csig), (273558,
+    Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig), (259510,
+    Fn.«opening_message__L20_L1».csig), (273998, Fn.«level_residual__L218_L24_L6_L3».csig),
+    (274382, Fn.«level_residual__L25_L16_L4_L2».csig), (265966,
+    Fn.«level_positions__L11_L24_L6».csig), (273438, Fn.«level_positions__L6_L24_L6».csig)]])
 
 end LeanVM.Guest.Fn.«open_stacked__L10»
 
@@ -101,10 +98,6 @@ open LeanVM.Guest
 /-- The pack's certificates. -/
 noncomputable def certs : List Mode.Cert :=
   [Fn.«open_stacked__L10».modeCert]
-
-/-- The core data of the pack's functions on the core route. -/
-noncomputable def coreFns : List CoreMode.CFun :=
-  [Fn.«open_stacked__L10».cfun]
 
 end
 

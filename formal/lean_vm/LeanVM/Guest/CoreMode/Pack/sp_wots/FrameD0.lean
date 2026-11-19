@@ -9,10 +9,11 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ok
-public import LeanVM.Guest.Pack.«sp_wots».ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«sp_wots»
 
 set_option Elab.async false
 
@@ -1649,8 +1650,11 @@ noncomputable def frameCut2 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil)
     .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩)])
 
+noncomputable def envC : Mode.Env := CoreMode.envOf []
+noncomputable def funC : Mode.Fun := ⟨33508, 23713, Fn.«sp_wots».csig, .nil, .nil, .nil, false,
+    .nil⟩
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 33508, 23713, Fn.«sp_wots».modeSig,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 33508, 23713, Fn.«sp_wots».csig,
     .nil, 524287, advice.2.2, .nil, (.node none (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node (some
     2) .nil .nil) .nil) .nil) .nil))) .nil) (.node none (.node none .nil (.node none (.node none

@@ -8,13 +8,13 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P16»
+public import LeanVM.Guest.CoreMode.Sig.«P27»
+public import LeanVM.Guest.CoreMode.Sig.«P29»
+public import LeanVM.Guest.CoreMode.Sig.«P33»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P27».ModeSig
 public import LeanVM.Guest.Pack.«P29».Bundle
-public import LeanVM.Guest.Pack.«P29».ModeSig
-public import LeanVM.Guest.Pack.«P33».ModeSig
 
 set_option Elab.async false
 
@@ -29,22 +29,22 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_digest».modeSig) .nil .nil))) .nil)))))) .nil) .nil) .nil)) .nil) .nil)
+    Fn.«child_claim_list_digest».csig) .nil .nil))) .nil)))))) .nil) .nil) .nil)) .nil) .nil)
     (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop4».modeSig) .nil .nil)
-    .nil)) .nil)))) .nil) .nil))) .nil) .nil) .nil)) (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node (some Fn.«statement_digest».modeSig) .nil
-    .nil))) .nil)))) .nil)) .nil))) .nil)) (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«verify_sub».modeSig) .nil .nil))))) .nil)
-    .nil) .nil)) .nil) .nil))))), 524287⟩
+    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop4».csig) .nil .nil) .nil))
+    .nil)))) .nil) .nil))) .nil) .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node (some Fn.«statement_digest».csig) .nil .nil)))
+    .nil)))) .nil)) .nil))) .nil)) (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«verify_sub».csig) .nil .nil))))) .nil) .nil) .nil))
+    .nil) .nil))))), 524287⟩
 
 /-- `__loop4_main`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨178568, 96, Fn.«main_loop4».modeSig, (.node none (.node none (.node none (.node (some [(.alloc
-    28 41)]) .nil (.node none (.node (some [(.alloc 47 120)]) .nil .nil) .nil)) (.node none (.node
+  ⟨178568, 96, Fn.«main_loop4».csig, (.node none (.node none (.node none (.node (some [(.alloc 28
+    41)]) .nil (.node none (.node (some [(.alloc 47 120)]) .nil .nil) .nil)) (.node none (.node
     (some [(.alloc 34 41)]) (.node (some [(.witnessHeap "child_defer" 41 0 24)]) .nil .nil) .nil)
     .nil)) (.node none (.node none .nil (.node none (.node none (.node (some [(.frameAddress 60)])
     .nil .nil) .nil) .nil)) .nil)) (.node (some [(.witnessStack "child_meta" 21 2)]) (.node none
@@ -72,7 +72,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `da_expand__L6_L7`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨247981, 658, Fn.«da_expand__L6_L7».modeSig, (.node none (.node none (.node none .nil (.node none
+  ⟨247981, 658, Fn.«da_expand__L6_L7».csig, (.node none (.node none (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node none .nil (.node none (.node (some
     [(.cellAddress 659 660)]) .nil .nil) .nil)) .nil) .nil) .nil))) .nil) .nil), .nil, .nil, false,
     .nil⟩
@@ -97,8 +97,8 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `da_expand__L13_L7`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨249283, 658, Fn.«da_expand__L13_L7».modeSig, (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node (some
+  ⟨249283, 658, Fn.«da_expand__L13_L7».csig, (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none (.node (some
     [(.cellAddress 659 660)]) .nil .nil) .nil)) .nil) .nil) .nil))) .nil) .nil), .nil, .nil, false,
     .nil⟩
 

@@ -125,8 +125,8 @@ part_mode() {
   python3 -I scripts/mode-cert/res.py "${check[@]}"
 }
 
-# The core route (`formal/notes/core-mode.md`): its functions' heap certificates, pairings, frame walks
-# and route data. Its frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
+# The core route (`formal/notes/core-mode.md`): its functions' signatures, heap certificates, pairings, frame
+# walks and route data. Its signatures and frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
 # changes which functions the mode walk checks, so the mode certificates are written again after it.
 # After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
@@ -136,6 +136,8 @@ part_core_mode() {
     esac
   fi
   [ -f "$MODE_CERT_CACHE" ] || part_mode
+  step "core-mode: each function's signature (scripts/core-mode/sigc.py)"
+  python3 -I scripts/core-mode/sigc.py "${check[@]}"
   step "core-mode: each function's powers of g (scripts/core-mode/pows.py)"
   python3 -I scripts/core-mode/pows.py "${check[@]}"
   step "core-mode: the functions' ties to their global index (scripts/core-mode/glue.py)"

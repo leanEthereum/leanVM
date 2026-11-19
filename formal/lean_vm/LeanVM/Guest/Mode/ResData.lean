@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.ResFam
+public import LeanVM.Guest.CoreMode.Pack.«P42».Frame0
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
@@ -22,7 +23,6 @@ public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P42».Mode0
-public import LeanVM.Guest.Pack.«P42».ModeC
 public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P51».Mode0
@@ -50,7 +50,7 @@ open LeanVM.Guest
 /-- The kernel-checked functions with nonzero residuals: their walks' data and code. -/
 noncomputable def nzFns : List (Fun × List OffsetInstruction) := [
   (Fn.«certify_placement».modeFun, Fn.«certify_placement».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L0».modeFun, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
+  (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables».modeFun, Fn.«verify_tables».code.chunks.flatten),
@@ -88,7 +88,7 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_any_loop0».modeFun, Fn.«child_claim_list_any_loop0».code.chunks.flatten),
   (Fn.«child_claim_list_any_loop1».modeFun, Fn.«child_claim_list_any_loop1».code.chunks.flatten),
   (Fn.«child_claim_list_mono».modeFun, Fn.«child_claim_list_mono».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L0».modeFun, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
+  (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
   (Fn.«keccak_layer__L0».modeFun, Fn.«keccak_layer__L0».code.chunks.flatten),

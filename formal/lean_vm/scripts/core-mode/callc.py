@@ -1,6 +1,6 @@
 """The core route's functions with calls (`formal/notes/core-mode.md`, `CoreMode/Core.lean`'s `HeapK.c`): bodies of
 atoms, calls and one return, checked by `heapOkC` with each callee's heap signature its mode signature's
-(`Pack/*/ModeSig.lean`) translated (`CoreMode.fitB`: preconditions all of the mode signature's, guarantees some of
+(`CoreMode/Sig/*.lean`, `Fn.«k».csig`) translated (`CoreMode.fitB`: preconditions all of the mode signature's, guarantees some of
 them), the function's own heap signature its own mode signature's translated (`CoreMode.sigOk`). The certificate's
 witnesses come from `infer.py`'s pass (`heapOkC`'s format, no extra feature) run once at those signatures, which must
 not grow.

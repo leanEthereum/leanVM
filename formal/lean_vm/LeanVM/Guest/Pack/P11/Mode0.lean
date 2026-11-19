@@ -8,13 +8,13 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P11»
+public import LeanVM.Guest.CoreMode.Sig.«P49»
+public import LeanVM.Guest.CoreMode.Sig.«P54»
+public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P11».Bundle
-public import LeanVM.Guest.Pack.«P11».ModeSig
-public import LeanVM.Guest.Pack.«P49».ModeSig
-public import LeanVM.Guest.Pack.«P54».ModeSig
-public import LeanVM.Guest.Pack.«P56».ModeSig
 
 set_option Elab.async false
 
@@ -29,22 +29,22 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil))))
-    .nil)))) .nil))) .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node (some Fn.«verify_bus_gkr_loop0».modeSig) .nil .nil)
-    .nil)))) .nil) .nil) .nil)))) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    .nil (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».csig) .nil .nil)))) .nil))))
+    .nil))) .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«verify_bus_gkr_loop0».csig) .nil .nil) .nil)))) .nil)
+    .nil) .nil)))) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«gkr_rounds__L1».csig) .nil .nil)))) .nil))))) .nil) .nil)) .nil))) (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«gkr_rounds__L1».modeSig) .nil .nil)))) .nil))))) .nil) .nil)) .nil))) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«gkr_rounds__L2».modeSig) .nil .nil)))) .nil))))) .nil) .nil)
-    .nil) .nil) .nil))))), 524287⟩
+    (.node (some Fn.«gkr_rounds__L2».csig) .nil .nil)))) .nil))))) .nil) .nil) .nil) .nil)
+    .nil))))), 524287⟩
 
 /-- `__loop0_verify_bus_gkr`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨189352, 227, Fn.«verify_bus_gkr_loop0».modeSig, (.node none (.node none (.node none (.node none
+  ⟨189352, 227, Fn.«verify_bus_gkr_loop0».csig, (.node none (.node none (.node none (.node none
     (.node none (.node none (.node (some [(.alloc 86 120)]) .nil .nil) .nil) (.node (some
     [(.allocFrames 78 130 2 (LeanVM.Parameters.K.ofBits 0x1) 130)]) .nil .nil)) .nil) .nil) (.node
     none (.node none (.node none .nil (.node none (.node none .nil (.node (some [(.frameAddress

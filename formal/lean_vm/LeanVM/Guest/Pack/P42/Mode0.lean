@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P42»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P42».Bundle
-public import LeanVM.Guest.Pack.«P42».ModeSig
 
 set_option Elab.async false
 
@@ -2151,14 +2151,14 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil))) .nil)) .nil)) .nil)
+    (.node (some Fn.«child_claim_list_mono_loop0».csig) .nil .nil))) .nil))) .nil)) .nil)) .nil)
     .nil) .nil) .nil)) .nil) .nil)), 524287⟩
 
 /-- `__loop0_child_claim_list_mono`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨242952, 2057, Fn.«child_claim_list_mono_loop0».modeSig, (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    (some [(.witnessStack "child_claim_gap" 1324 1)]) .nil .nil) .nil)) (.node none (.node (some
+  ⟨242952, 2057, Fn.«child_claim_list_mono_loop0».csig, (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node (some
+    [(.witnessStack "child_claim_gap" 1324 1)]) .nil .nil) .nil)) (.node none (.node (some
     [(.witnessStack "child_claim_gap" 940 1)]) .nil .nil) .nil)) (.node none (.node (some
     [(.witnessStack "child_claim_gap" 748 1)]) .nil .nil) (.node none .nil (.node (some
     [(.witnessStack "child_claim_gap" 1132 1)]) .nil .nil)))) (.node none (.node (some

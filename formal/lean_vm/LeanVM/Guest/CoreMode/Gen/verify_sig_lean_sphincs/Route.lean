@@ -7,10 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Link0
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
+public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Core
 public import LeanVM.Guest.CoreMode.Route
-public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeCert
 
 set_option Elab.async false
 
@@ -24,7 +24,7 @@ theorem cfOk0 : CoreMode.CfOk Fn.«verify_sig_lean_sphincs».cfun := CoreMode.cf
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0 (Mode.fa_nil)
+  List.forall_mem_cons.2 ⟨cfOk0, List.forall_mem_nil _⟩
 
 end
 

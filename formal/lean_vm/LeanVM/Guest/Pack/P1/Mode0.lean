@@ -8,11 +8,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P1»
+public import LeanVM.Guest.CoreMode.Sig.«P53»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P1».Bundle
-public import LeanVM.Guest.Pack.«P1».ModeSig
-public import LeanVM.Guest.Pack.«P53».ModeSig
 
 set_option Elab.async false
 
@@ -27,15 +27,15 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none (.node none (.node (some
-    Fn.«sumcheck_round4».modeSig) .nil .nil) .nil) .nil)) .nil)))))) .nil) .nil) .nil)) (.node none
+    Fn.«sumcheck_round4».csig) .nil .nil) .nil) .nil)) .nil)))))) .nil) .nil) .nil)) (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
     none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«verify_tables_loop0».modeSig) .nil .nil)) .nil)
+    (.node none (.node none .nil (.node (some Fn.«verify_tables_loop0».csig) .nil .nil)) .nil)
     .nil)) .nil) .nil)) .nil)) .nil))) .nil) .nil)) .nil)), 524287⟩
 
 /-- `__loop0_verify_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨206180, 44, Fn.«verify_tables_loop0».modeSig, (.node none (.node none (.node none (.node none
+  ⟨206180, 44, Fn.«verify_tables_loop0».csig, (.node none (.node none (.node none (.node none
     (.node none (.node (some [(.frameAddress 32)]) .nil .nil) .nil) .nil) .nil) (.node none (.node
     (some [(.alloc 19 58)]) .nil .nil) .nil)) .nil), (.node none (.node none (.node none (.node
     none (.node (some [(.sub ⟨⟨0, 0, [((.hp 19 3), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp

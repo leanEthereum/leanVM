@@ -8,16 +8,16 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P12»
+public import LeanVM.Guest.CoreMode.Sig.«P16»
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P43»
+public import LeanVM.Guest.CoreMode.Sig.«P54»
+public import LeanVM.Guest.CoreMode.Sig.«P59»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P12».ModeSig
-public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P24».ModeSig
-public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P43».ModeSig
 public import LeanVM.Guest.Pack.«P54».Bundle
-public import LeanVM.Guest.Pack.«P54».ModeSig
-public import LeanVM.Guest.Pack.«P59».ModeSig
 
 set_option Elab.async false
 
@@ -32,26 +32,26 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_padding».modeSig) .nil .nil)))) .nil))) .nil)) (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_levels__L32_L5».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil)
-    .nil) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    Fn.«da_padding».csig) .nil .nil)))) .nil))) .nil)) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_levels__L32_L5».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil)
+    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_vector».modeSig) .nil .nil))))) .nil) .nil) .nil))))) (.node none
+    none .nil (.node (some Fn.«da_vector».csig) .nil .nil))))) .nil) .nil) .nil))))) (.node none
     (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_pad».csig)
+    .nil .nil)))) .nil))) .nil)) .nil)) .nil))) .nil) (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_pad».modeSig) .nil .nil)))) .nil))) .nil)) .nil)) .nil))) .nil) (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_weights».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil)) (.node none .nil
+    Fn.«da_weights».csig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)) .nil)) (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil))
+    (.node (some Fn.«da_verify_loop0».csig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil) .nil))
     .nil)))) .nil)), 524287⟩
 
 /-- `da_verify`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61545, 63, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
+  ⟨61545, 63, Fn.«da_verify».csig, (.node (some [(.witnessStack "da_n_blobs" 6 1)]) (.node none
     (.node none (.node (some [(.witnessStack "da_challenge" 11 1)]) .nil .nil) .nil) (.node none
     (.node none (.node (some [(.alloc 19 649)]) .nil .nil) .nil) (.node none (.node none (.node
     (some [(.alloc 26 9)]) .nil .nil) .nil) .nil))) (.node (some [(.alloc 22 128), (.alloc 8 13)])
@@ -78,29 +78,28 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil))))
-    .nil)))) .nil))) .nil))) .nil) .nil) .nil)), 524287⟩
+    .nil (.node none .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».csig) .nil .nil)))) .nil))))
+    .nil))) .nil))) .nil) .nil) .nil)), 524287⟩
 
 /-- `__loop0___loop0_verify_bus_gkr`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨253360, 94, Fn.«verify_bus_gkr_loop0_loop0».modeSig, (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node (some [(.frameAddress 130)]) .nil .nil)
-    .nil)) .nil) .nil))), (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node (some [(.sub ⟨⟨0, 5, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11),
-    1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil))) (.node none (.node none (.node (some
-    [(.sub ⟨⟨0, 2, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num
-    0), (.num 8192), 1, 0⟩])]) .nil (.node (some [(.sub ⟨⟨0, 7, [((.fr 17), 1)]⟩, (.num 0), (.num
-    1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil)) .nil)
-    .nil)) (.node none (.node none (.node none .nil (.node none (.node (some [(.sub ⟨⟨0, 4, [((.fr
-    17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1,
-    0⟩])]) .nil .nil) .nil)) (.node none (.node (some [(.sub ⟨⟨0, 3, [((.fr 17), 1)]⟩, (.num 0),
-    (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil))
-    (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0,
-    [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) (.node (some [(.sub ⟨⟨0, 1,
-    [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192),
-    1, 0⟩])]) .nil (.node none (.node (some [(.sub ⟨⟨0, 6, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1,
-    0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil))))), .nil,
-    false, .nil⟩
+  ⟨253360, 94, Fn.«verify_bus_gkr_loop0_loop0».csig, (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node (some [(.frameAddress 130)]) .nil .nil) .nil))
+    .nil) .nil))), (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    (some [(.sub ⟨⟨0, 5, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩,
+    (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil))) (.node none (.node none (.node (some [(.sub
+    ⟨⟨0, 2, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0),
+    (.num 8192), 1, 0⟩])]) .nil (.node (some [(.sub ⟨⟨0, 7, [((.fr 17), 1)]⟩, (.num 0), (.num 1),
+    1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil)) .nil) .nil))
+    (.node none (.node none (.node none .nil (.node none (.node (some [(.sub ⟨⟨0, 4, [((.fr 17),
+    1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])])
+    .nil .nil) .nil)) (.node none (.node (some [(.sub ⟨⟨0, 3, [((.fr 17), 1)]⟩, (.num 0), (.num 1),
+    1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil)) (.node
+    none (.node (some [(.sub ⟨⟨0, 0, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1
+    11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) (.node (some [(.sub ⟨⟨0, 1, [((.fr 17),
+    1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])])
+    .nil (.node none (.node (some [(.sub ⟨⟨0, 6, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0,
+    0, [((.hp 1 11), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) .nil))))), .nil, false, .nil⟩
 
 /-- `__loop0___loop0_verify_bus_gkr`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

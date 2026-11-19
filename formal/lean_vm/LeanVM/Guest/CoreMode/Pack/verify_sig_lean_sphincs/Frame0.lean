@@ -9,11 +9,12 @@ module
 
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Pair
-public import LeanVM.Guest.Pack.«sp_wots».ModeSig
-public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«sp_wots»
+public import LeanVM.Guest.CoreMode.Sig.«verify_sig_lean_sphincs»
 
 set_option Elab.async false
 
@@ -40,12 +41,12 @@ noncomputable def Fn.«verify_sig_lean_sphincs».fpows : PowTree :=
 theorem Fn.«verify_sig_lean_sphincs».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
+noncomputable def Fn.«verify_sig_lean_sphincs».envC : Mode.Env := CoreMode.envOf [Fn.«sp_wots».csig]
+noncomputable def Fn.«verify_sig_lean_sphincs».funC : Mode.Fun := ⟨57221, 3887,
+    Fn.«verify_sig_lean_sphincs».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«verify_sig_lean_sphincs».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 57221, 3887,
-    Fn.«verify_sig_lean_sphincs».modeSig, (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node (some Fn.«sp_wots».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) .nil)) .nil)), 524287, advice.2.2,
+    Fn.«verify_sig_lean_sphincs».csig, (CoreMode.sigTrie [Fn.«sp_wots».csig]), 524287, advice.2.2,
     .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO, Fn.«verify_sig_lean_sphincs».pairS,
     .nil⟩
 

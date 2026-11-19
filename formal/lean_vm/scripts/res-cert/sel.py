@@ -31,7 +31,7 @@ def residuals():
     fns = {}
     for path in sorted(glob.glob(os.path.join(R.PACKS, '*', 'Mode*.lean'))):
         b = os.path.basename(path)[:-5]
-        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeX|ModeC', b): continue
+        if not re.fullmatch(r'Mode\d+|ModeD\d+|ModeX', b): continue
         t = open(path).read()
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
             n = blk.split('»', 1)[0]
@@ -39,6 +39,9 @@ def residuals():
             defs = R.defsOf(blk)
             fns[n] = {i: [R.res(r, defs) for r in R.flat(l, defs)]
                       for i, l in R.trie(defs['modeFun'][1][4], defs).items()}
+    # the core route's (`funC`)
+    for n, (_, fun) in R.core_funs(data.ROOT, R.parse, R.toks).items():
+        fns[n] = {i: [R.res(r, {}) for r in R.flat(l, {})] for i, l in R.trie(fun[1][4], {}).items()}
     return fns
 
 

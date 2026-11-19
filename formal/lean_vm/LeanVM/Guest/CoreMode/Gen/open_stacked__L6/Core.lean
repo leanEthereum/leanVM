@@ -18,7 +18,6 @@ public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
 public import LeanVM.Guest.Pack.«P3».Core
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
@@ -37,14 +36,26 @@ public section
 attribute [local irreducible] Fn.«open_stacked__L6».pairO Fn.«open_stacked__L6».pairS
 
 theorem Fn.«open_stacked__L6».heap_okC : CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true := heap_okW
-theorem Fn.«open_stacked__L6».core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := (by decide +kernel)
-theorem Fn.«open_stacked__L6».core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := (by decide +kernel)
+theorem Fn.«open_stacked__L6».core_sig : CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng envC) = true := (by decide +kernel)
+theorem Fn.«open_stacked__L6».core_retv : (cfun.hc || CoreMode.retVOk cfun funC.sig) = true := (by decide +kernel)
 theorem Fn.«open_stacked__L6».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := (by decide +kernel)
 theorem Fn.«open_stacked__L6».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
-theorem Fn.«open_stacked__L6».core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := (by decide +kernel)
-theorem Fn.«open_stacked__L6».fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+theorem Fn.«open_stacked__L6».core_jtd : CoreMode.jtdOk cfun envC code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«open_stacked__L6».fnSpecC : Mode.FnSpecC ⟨envC, funC, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
   { heap := .c heap_okC rfl (by decide +kernel) rfl rfl (by decide +kernel), pair := pair_ok, frame := CoreMode.frameAcc_of (by decide +kernel) frameOk, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«open_stacked__L6».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«open_stacked__L6».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«open_stacked__L6».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«open_stacked__L6».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«open_stacked__L6».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
 end LeanVM.Guest
+
+namespace LeanVM.Guest.ModePack.«open_stacked__L6»
+
+@[expose] public section
+
+/-- The core data of the pack's functions on the core route. -/
+noncomputable def coreFns : List CoreMode.CFun :=
+  [LeanVM.Guest.Fn.«open_stacked__L6».cfun]
+
+end
+
+end LeanVM.Guest.ModePack.«open_stacked__L6»

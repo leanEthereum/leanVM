@@ -8,12 +8,12 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P35»
+public import LeanVM.Guest.CoreMode.Sig.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P24».Bundle
-public import LeanVM.Guest.Pack.«P24».ModeSig
-public import LeanVM.Guest.Pack.«P35».ModeSig
-public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeSig
 
 set_option Elab.async false
 
@@ -28,15 +28,15 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«verify_sig_lean_sphincs».modeSig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) (.node
+    Fn.«verify_sig_lean_sphincs».csig) .nil .nil)) .nil))))))) .nil) .nil) .nil) .nil))) (.node
     none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop3».modeSig) .nil .nil)
-    .nil)) .nil)))) .nil) .nil)) .nil))) .nil) .nil)) .nil)), 524287⟩
+    (.node none (.node none .nil (.node none (.node (some Fn.«main_loop3».csig) .nil .nil) .nil))
+    .nil)))) .nil) .nil)) .nil))) .nil) .nil)) .nil)), 524287⟩
 
 /-- `__loop3_main`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨178532, 36, Fn.«main_loop3».modeSig, (.node (some [(.witnessStack "sp_raw_index" 10 1)]) (.node
+  ⟨178532, 36, Fn.«main_loop3».csig, (.node (some [(.witnessStack "sp_raw_index" 10 1)]) (.node
     none .nil (.node none .nil (.node (some [(.alloc 21 5330)]) .nil .nil))) (.node none .nil
     (.node none .nil (.node none (.node (some [(.frameAddress 30)]) .nil .nil) .nil)))), .nil,
     .nil, false, .nil⟩
@@ -60,19 +60,18 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
     .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none (.node none (.node (some
-    Fn.«assert_small_g_power».modeSig) .nil .nil) .nil) .nil)) .nil))) .nil)) .nil))))) .nil),
-    524287⟩
+    Fn.«assert_small_g_power».csig) .nil .nil) .nil) .nil)) .nil))) .nil)) .nil))))) .nil), 524287⟩
 
 /-- `log2_ceil_in_the_exponent__L16_L34`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨211523, 41, Fn.«log2_ceil_in_the_exponent__L16_L34».modeSig, (.node none (.node (some
-    [(.allocDyn 6 5), (.bitDecomposeExp 2 (.heap 6) 34), (.log2Ceil (.heap 6) 7 34 16)]) (.node
-    none (.node none (.node (some [(.alloc 20 68)]) .nil .nil) .nil) .nil) (.node none .nil (.node
-    none (.node (some [(.cellAddress 24 25)]) .nil .nil) .nil))) (.node none .nil (.node none
-    (.node none (.node none (.node (some [(.alloc 34 68)]) .nil .nil) .nil) .nil) .nil))), (.node
-    none (.node none (.node none (.node none (.node none (.node (some [(.lt (.num 0) (.ex (.fr 7)
-    0))]) .nil .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node (some [(.nz 2)])
-    .nil .nil)) .nil)), .nil, false, .nil⟩
+  ⟨211523, 41, Fn.«log2_ceil_in_the_exponent__L16_L34».csig, (.node none (.node (some [(.allocDyn 6
+    5), (.bitDecomposeExp 2 (.heap 6) 34), (.log2Ceil (.heap 6) 7 34 16)]) (.node none (.node none
+    (.node (some [(.alloc 20 68)]) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (some
+    [(.cellAddress 24 25)]) .nil .nil) .nil))) (.node none .nil (.node none (.node none (.node none
+    (.node (some [(.alloc 34 68)]) .nil .nil) .nil) .nil) .nil))), (.node none (.node none (.node
+    none (.node none (.node none (.node (some [(.lt (.num 0) (.ex (.fr 7) 0))]) .nil .nil) .nil)
+    .nil) .nil) .nil) (.node none (.node none .nil (.node (some [(.nz 2)]) .nil .nil)) .nil)),
+    .nil, false, .nil⟩
 
 /-- `log2_ceil_in_the_exponent__L16_L34`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

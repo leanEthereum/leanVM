@@ -78,7 +78,7 @@ def long_body(k):
 
 
 DK = '(by decide +kernel)'
-K = '⟨modeEnv, modeFun, code.chunks.flatten⟩'
+K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
 def thm(k, name, stmt, prf=DK):
@@ -109,11 +109,11 @@ def common(k):
 def checks(k, j, frame, heap):
     """The kernel's checks of function `k` on the core route (`CoreMode.CoreOk`), each heavy one its own declaration
     (its own heartbeats), hence its frame interface."""
-    return (thm(k, 'core_sig', 'CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) '
-                '(Mode.jtRng modeEnv) = true') +
-            thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true') + shape(k) +
+    return (thm(k, 'core_sig', 'CoreMode.ownOk funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) '
+                '(Mode.jtRng envC) = true') +
+            thm(k, 'core_retv', '(cfun.hc || CoreMode.retVOk cfun funC.sig) = true') + shape(k) +
             thm(k, 'core_calls', 'code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true') +
-            thm(k, 'core_jtd', 'CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true') +
+            thm(k, 'core_jtd', 'CoreMode.jtdOk cfun envC code.chunks.flatten = true') +
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                 f'Mode.fnSpecC_of\n  {{ heap := {heap}, pair := pair_ok, frame := {frame}, sig := core_sig, retv := core_retv, '
                 f'shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := {DK}, '
@@ -160,7 +160,7 @@ def cfun_l(k, j, frame):
     signature, code and shape)."""
     return (cfun_def(k, j, '[], [], [], false, [], []'),
             thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true') +
-            thm(k, 'loop_sig', 'CoreMode.sigOkL modeFun.sig hcert.sig core.params.length = true') +
+            thm(k, 'loop_sig', 'CoreMode.sigOkL funC.sig hcert.sig core.params.length = true') +
             thm(k, 'loop_code', 'CoreMode.loopCode alignCtx code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOk cfun = true') +
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
@@ -173,7 +173,7 @@ def cfun_lc(k, j, frame):
     callees' heap signatures `csigs`, its signature, code and shape)."""
     return (cfun_def(k, j, '[], csigs, [], false, [], []'),
             thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true') +
-            thm(k, 'loop_sig', 'CoreMode.sigOkLP modeFun.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true') +
+            thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +
             thm(k, 'loop_shape', 'CoreMode.loopShapeOkC cfun = true') +
             thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
@@ -214,24 +214,19 @@ def hctab_file(packs):
 def main():
     R = route.route_sub()
     po = heap.pack_of()
-    # by mode pack, in the order of the pack's `coreFns` (`scripts/mode-cert/gen.py`, its functions in order); a
-    # function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
+    # by the pack of its code, by key (the pack's `coreFns`, which `scripts/mode-cert/gen.py` lists in the same order);
+    # a function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
     packs = {}
-    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
-        m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
-        if m:
-            packs[os.path.basename(os.path.dirname(f))] = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
-    packs = {p: ks for p, ks in packs.items() if ks}
-    listed = sorted(k for ks in packs.values() for k in ks)
-    assert listed == sorted(R), (set(listed) ^ set(R))
+    for k in sorted(R):
+        packs.setdefault(R[k]['bpack'], []).append(k)
     frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.)«([^»]+)»(?:$|\.frameFun\b)', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
-    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Link*.lean')))
+    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
     files = {}
     S = route.sigs()
     for p, ks in sorted(packs.items()):
         imps = {'LeanVM.Guest.Mode.InvCert', 'LeanVM.Guest.CoreMode.Small',
-                'LeanVM.Guest.Pack.«%s».ModeC' % p, 'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
+                'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.Exec'}
         body = []
         for k in ks:
             j = R[k]['j']
@@ -264,8 +259,12 @@ def main():
         mod = 'LeanVM.Guest.CoreMode.Gen.«%s».Core' % p
         files[os.path.join(GEN, p, 'Core.lean')] = (
             HEADER.format(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
-            ''.join('public import %s\n' % m for m in sorted(imps)) + '\nset_option Elab.async false\n' + core_file(ks, body))
-        rimps = {'LeanVM.Guest.CoreMode.Route', 'LeanVM.Guest.Pack.«%s».ModeCert' % p}
+            ''.join('public import %s\n' % m for m in sorted(imps)) + '\nset_option Elab.async false\n' + core_file(ks, body) +
+            f'\nnamespace LeanVM.Guest.ModePack.«{p}»\n\n@[expose] public section\n\n'
+            f'/-- The core data of the pack\'s functions on the core route. -/\n'
+            f'noncomputable def coreFns : List CoreMode.CFun :=\n  [%s]\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n'
+            % ', '.join('LeanVM.Guest.Fn.«%s».cfun' % k for k in ks))
+        rimps = {'LeanVM.Guest.CoreMode.Route', mod}
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
@@ -286,9 +285,9 @@ def main():
             decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of (by decide) Checked.code{j} '
                          f'Checked.core{j} Checked.cert{j} Checked.plumbEq{j} Bridge.ProgAl.tab{j} rfl rfl rfl {hb}\n')
             oks.append(f'cfOk{i}')
-        chain = 'Mode.fa_nil'
+        chain = 'List.forall_mem_nil _'
         for q in reversed(oks):
-            chain = 'Mode.fa_cons %s (%s)' % (q, chain)
+            chain = 'List.forall_mem_cons.2 ⟨%s, %s⟩' % (q, chain)
         rmod = 'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p
         files[os.path.join(GEN, p, 'Route.lean')] = (
             HEADER.format(mod=rmod, what='The core route\'s data of `%s` and %d more, the deployed guest\'s.' % (ks[0], len(ks) - 1)) +

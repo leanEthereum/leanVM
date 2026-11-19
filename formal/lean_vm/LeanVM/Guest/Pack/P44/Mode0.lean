@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P44»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P44».Bundle
-public import LeanVM.Guest.Pack.«P44».ModeSig
 
 set_option Elab.async false
 
@@ -27,39 +27,39 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `decode_query_windows__L14_L2`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨278947, 322, Fn.«decode_query_windows__L14_L2».modeSig, (.node (some [(.cellAddress 42 43)])
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.windowsExp 2 (.stack
-    6) 7 27 1 1)]) (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 32 112 6 1)])
-    .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 24 84 6 1)]) .nil .nil)) (.node none
-    (.node (some [(.windowsExp 2 (.stack 6) 20 70 6 1)]) (.node (some [(.windowsExp 2 (.stack 336)
-    0 126 2 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 28 98 6 1)]) .nil
-    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.windowsExp 2 (.stack 6) 30 110 1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack
-    6) 22 82 1 1)]) .nil .nil)) (.node none (.node (some [(.windowsExp 2 (.stack 6) 19 69 1 1)])
-    (.node (some [(.windowsExp 2 (.stack 6) 34 124 1 1)]) .nil .nil) .nil) (.node (some
-    [(.windowsExp 2 (.stack 6) 26 96 1 1)]) .nil .nil))) .nil) (.node none .nil (.node none (.node
-    none (.node (some [(.windowsExp 2 (.stack 6) 18 68 1 1)]) .nil .nil) .nil) .nil)))) (.node none
-    (.node none (.node none .nil (.node none (.node (some [(.windowsExp 2 (.stack 6) 10 40 1 1)])
-    .nil .nil) (.node (some [(.windowsExp 2 (.stack 6) 14 54 1 1)]) .nil .nil))) (.node (some
-    [(.windowsExp 2 (.stack 6) 3 13 1 1)]) (.node (some [(.windowsExp 2 (.stack 6) 5 20 6 1)]) .nil
-    .nil) .nil)) (.node none (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 8 28 6
-    1)]) (.node (some [(.windowsExp 2 (.stack 6) 16 56 6 1)]) .nil .nil) .nil) (.node (some
-    [(.windowsExp 2 (.stack 6) 12 42 6 1)]) .nil .nil)) .nil) .nil))) (.node (some [(.windowsExp 2
-    (.stack 6) 0 0 6 1)]) (.node none (.node (some [(.windowsExp 2 (.stack 6) 1 6 6 1)]) (.node
-    (some [(.windowsExp 2 (.stack 6) 2 12 1 1)]) .nil (.node (some [(.windowsExp 2 (.stack 6) 6 26
-    1 1)]) .nil .nil)) (.node none .nil (.node none (.node (some [(.windowsExp 2 (.stack 6) 11 41 1
-    1)]) .nil .nil) (.node (some [(.windowsExp 2 (.stack 6) 15 55 1 1)]) .nil .nil)))) (.node none
-    (.node none (.node (some [(.windowsExp 2 (.stack 6) 4 14 6 1)]) .nil .nil) .nil) (.node none
-    .nil (.node none (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 33 118 6 1)])
-    .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 25 90 6 1)]) .nil .nil)) (.node none
-    (.node (some [(.windowsExp 2 (.stack 6) 21 76 6 1)]) .nil .nil) (.node (some [(.windowsExp 2
-    (.stack 6) 29 104 6 1)]) .nil .nil)))))) (.node none (.node none .nil (.node none (.node none
-    (.node (some [(.windowsExp 2 (.stack 6) 9 34 6 1)]) (.node (some [(.windowsExp 2 (.stack 172) 2
-    62 2 1), (.windowsExp 2 (.stack 172) 3 64 4 1)]) (.node (some [(.windowsExp 2 (.stack 6) 31 111
-    1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 23 83 1 1)]) .nil .nil)) (.node
-    (some [(.windowsExp 2 (.stack 6) 13 48 6 1)]) (.node none (.node (some [(.windowsExp 2 (.stack
-    6) 35 125 1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 27 97 1 1)]) .nil
-    .nil))) .nil)) .nil))), .nil, .nil, false, .nil⟩
+  ⟨278947, 322, Fn.«decode_query_windows__L14_L2».csig, (.node (some [(.cellAddress 42 43)]) (.node
+    none (.node none (.node none .nil (.node none .nil (.node (some [(.windowsExp 2 (.stack 6) 7 27
+    1 1)]) (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 32 112 6 1)]) .nil .nil)
+    .nil) (.node (some [(.windowsExp 2 (.stack 6) 24 84 6 1)]) .nil .nil)) (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 20 70 6 1)]) (.node (some [(.windowsExp 2 (.stack 336) 0 126 2 1)])
+    .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 28 98 6 1)]) .nil .nil))))) (.node
+    none (.node none (.node none (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 30
+    110 1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 22 82 1 1)]) .nil .nil))
+    (.node none (.node (some [(.windowsExp 2 (.stack 6) 19 69 1 1)]) (.node (some [(.windowsExp 2
+    (.stack 6) 34 124 1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 26 96 1 1)])
+    .nil .nil))) .nil) (.node none .nil (.node none (.node none (.node (some [(.windowsExp 2
+    (.stack 6) 18 68 1 1)]) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none .nil
+    (.node none (.node (some [(.windowsExp 2 (.stack 6) 10 40 1 1)]) .nil .nil) (.node (some
+    [(.windowsExp 2 (.stack 6) 14 54 1 1)]) .nil .nil))) (.node (some [(.windowsExp 2 (.stack 6) 3
+    13 1 1)]) (.node (some [(.windowsExp 2 (.stack 6) 5 20 6 1)]) .nil .nil) .nil)) (.node none
+    (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 8 28 6 1)]) (.node (some
+    [(.windowsExp 2 (.stack 6) 16 56 6 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack
+    6) 12 42 6 1)]) .nil .nil)) .nil) .nil))) (.node (some [(.windowsExp 2 (.stack 6) 0 0 6 1)])
+    (.node none (.node (some [(.windowsExp 2 (.stack 6) 1 6 6 1)]) (.node (some [(.windowsExp 2
+    (.stack 6) 2 12 1 1)]) .nil (.node (some [(.windowsExp 2 (.stack 6) 6 26 1 1)]) .nil .nil))
+    (.node none .nil (.node none (.node (some [(.windowsExp 2 (.stack 6) 11 41 1 1)]) .nil .nil)
+    (.node (some [(.windowsExp 2 (.stack 6) 15 55 1 1)]) .nil .nil)))) (.node none (.node none
+    (.node (some [(.windowsExp 2 (.stack 6) 4 14 6 1)]) .nil .nil) .nil) (.node none .nil (.node
+    none (.node none (.node none (.node (some [(.windowsExp 2 (.stack 6) 33 118 6 1)]) .nil .nil)
+    .nil) (.node (some [(.windowsExp 2 (.stack 6) 25 90 6 1)]) .nil .nil)) (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 21 76 6 1)]) .nil .nil) (.node (some [(.windowsExp 2 (.stack 6) 29
+    104 6 1)]) .nil .nil)))))) (.node none (.node none .nil (.node none (.node none (.node (some
+    [(.windowsExp 2 (.stack 6) 9 34 6 1)]) (.node (some [(.windowsExp 2 (.stack 172) 2 62 2 1),
+    (.windowsExp 2 (.stack 172) 3 64 4 1)]) (.node (some [(.windowsExp 2 (.stack 6) 31 111 1 1)])
+    .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 23 83 1 1)]) .nil .nil)) (.node (some
+    [(.windowsExp 2 (.stack 6) 13 48 6 1)]) (.node none (.node (some [(.windowsExp 2 (.stack 6) 35
+    125 1 1)]) .nil .nil) .nil) (.node (some [(.windowsExp 2 (.stack 6) 27 97 1 1)]) .nil .nil)))
+    .nil)) .nil))), .nil, .nil, false, .nil⟩
 
 /-- `decode_query_windows__L14_L2`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

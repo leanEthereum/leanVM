@@ -1745,9 +1745,9 @@ def sig_text(arms):
 
 
 def routed():
-    """The functions on the core route: each mode pack's `coreFns` (`Pack/*/ModeCert.lean`, as `core.py` reads them)."""
+    """The functions on the core route: each pack's `coreFns` (`CoreMode/Gen/*/Core.lean`, as `core.py` writes them)."""
     out = set()
-    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'Core.lean')):
         m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
         if m:
             out |= set(re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)))

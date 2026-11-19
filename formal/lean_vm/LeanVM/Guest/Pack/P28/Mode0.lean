@@ -8,14 +8,14 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P18»
+public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P37»
+public import LeanVM.Guest.CoreMode.Sig.«P44»
+public import LeanVM.Guest.CoreMode.Sig.«P63»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P18».ModeSig
 public import LeanVM.Guest.Pack.«P28».Bundle
-public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P37».ModeSig
-public import LeanVM.Guest.Pack.«P44».ModeSig
-public import LeanVM.Guest.Pack.«P63».ModeSig
 
 set_option Elab.async false
 
@@ -30,26 +30,26 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«shared_selector_tables_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil) .nil))
+    (some Fn.«shared_selector_tables_loop0».csig) .nil .nil) .nil)))) .nil) .nil)) .nil) .nil))
     .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«sel_partial_nibble__L1».modeSig) .nil .nil) .nil)))) .nil) .nil))
+    (.node none (.node (some Fn.«sel_partial_nibble__L1».csig) .nil .nil) .nil)))) .nil) .nil))
     .nil)) .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«sel_partial_nibble__L2».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) .nil)))))
-    .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«sel_partial_nibble__L0».modeSig)
-    .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«sel_partial_nibble__L3».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil))
-    .nil))) .nil) .nil)) .nil)), 524287⟩
+    Fn.«sel_partial_nibble__L2».csig) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) .nil))))) .nil)
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node (some Fn.«sel_partial_nibble__L0».csig) .nil
+    .nil) .nil)))) .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node (some Fn.«sel_partial_nibble__L3».csig) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil)))
+    .nil) .nil)) .nil)), 524287⟩
 
 /-- `shared_selector_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨19918, 64, Fn.«shared_selector_tables».modeSig, (.node (some [(.bitDecomposeExp 7 (.stack 8)
-    6)]) (.node none .nil (.node none (.node none (.node none (.node (some [(.allocFrames 39 117 34
+  ⟨19918, 64, Fn.«shared_selector_tables».csig, (.node (some [(.bitDecomposeExp 7 (.stack 8) 6)])
+    (.node none .nil (.node none (.node none (.node none (.node (some [(.allocFrames 39 117 34
     (LeanVM.Parameters.K.ofBits 0x1) 117)]) .nil .nil) .nil) .nil) .nil)) (.node none (.node none
     .nil (.node none (.node none .nil (.node (some [(.allocArm 50 21 [9, 90, 93, 96])]) .nil .nil))
     .nil)) .nil)), (.node none (.node none (.node none (.node none (.node none (.node none (.node
