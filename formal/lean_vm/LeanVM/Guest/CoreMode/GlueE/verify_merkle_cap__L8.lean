@@ -7,15 +7,12 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L8`: its entry pc. -/
-abbrev entry : Nat := 327352
+abbrev Fn.«verify_merkle_cap__L8».entry : Nat := 327352
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

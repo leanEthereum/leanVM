@@ -11,12 +11,15 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«open_stacked__L8»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `open_stacked__L8`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«open_stacked__L8».fpows : PowTree :=
   (.node 7442735078945713051 227959 (.node 281474976710656 48 (.node 4096 12 (.node 32 5 (.node 4 2
     (.node 2 1 .leaf .leaf) .leaf) (.node 256 8 (.node 64 6 .leaf .leaf) .leaf)) (.node 67108864 26
     (.node 21299200 144 (.node 16777216 24 .leaf .leaf) .leaf) (.node 32671816220672 224 .leaf
@@ -35,10 +38,9 @@ noncomputable def fpows : PowTree :=
     .leaf)) (.node 18052366753962031158 227732 (.node 17507127221548785060 227998 (.node
     17328546603010882655 228186 .leaf .leaf) .leaf) (.node 18211151686742468448 229003 .leaf
     .leaf)))))
-
-/-- `open_stacked__L8`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«open_stacked__L8».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«open_stacked__L8»
+
+end LeanVM.Guest

@@ -9,6 +9,58 @@ module
 
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Checked.Link8
+public import LeanVM.Guest.CoreMode.GlueE.«P0»
+public import LeanVM.Guest.CoreMode.GlueE.«P1»
+public import LeanVM.Guest.CoreMode.GlueE.«P10»
+public import LeanVM.Guest.CoreMode.GlueE.«P11»
+public import LeanVM.Guest.CoreMode.GlueE.«P14»
+public import LeanVM.Guest.CoreMode.GlueE.«P15»
+public import LeanVM.Guest.CoreMode.GlueE.«P16»
+public import LeanVM.Guest.CoreMode.GlueE.«P17»
+public import LeanVM.Guest.CoreMode.GlueE.«P19»
+public import LeanVM.Guest.CoreMode.GlueE.«P20»
+public import LeanVM.Guest.CoreMode.GlueE.«P21»
+public import LeanVM.Guest.CoreMode.GlueE.«P22»
+public import LeanVM.Guest.CoreMode.GlueE.«P23»
+public import LeanVM.Guest.CoreMode.GlueE.«P25»
+public import LeanVM.Guest.CoreMode.GlueE.«P27»
+public import LeanVM.Guest.CoreMode.GlueE.«P28»
+public import LeanVM.Guest.CoreMode.GlueE.«P29»
+public import LeanVM.Guest.CoreMode.GlueE.«P3»
+public import LeanVM.Guest.CoreMode.GlueE.«P30»
+public import LeanVM.Guest.CoreMode.GlueE.«P31»
+public import LeanVM.Guest.CoreMode.GlueE.«P33»
+public import LeanVM.Guest.CoreMode.GlueE.«P34»
+public import LeanVM.Guest.CoreMode.GlueE.«P35»
+public import LeanVM.Guest.CoreMode.GlueE.«P36»
+public import LeanVM.Guest.CoreMode.GlueE.«P37»
+public import LeanVM.Guest.CoreMode.GlueE.«P38»
+public import LeanVM.Guest.CoreMode.GlueE.«P39»
+public import LeanVM.Guest.CoreMode.GlueE.«P4»
+public import LeanVM.Guest.CoreMode.GlueE.«P40»
+public import LeanVM.Guest.CoreMode.GlueE.«P42»
+public import LeanVM.Guest.CoreMode.GlueE.«P44»
+public import LeanVM.Guest.CoreMode.GlueE.«P46»
+public import LeanVM.Guest.CoreMode.GlueE.«P47»
+public import LeanVM.Guest.CoreMode.GlueE.«P48»
+public import LeanVM.Guest.CoreMode.GlueE.«P49»
+public import LeanVM.Guest.CoreMode.GlueE.«P5»
+public import LeanVM.Guest.CoreMode.GlueE.«P51»
+public import LeanVM.Guest.CoreMode.GlueE.«P52»
+public import LeanVM.Guest.CoreMode.GlueE.«P53»
+public import LeanVM.Guest.CoreMode.GlueE.«P55»
+public import LeanVM.Guest.CoreMode.GlueE.«P56»
+public import LeanVM.Guest.CoreMode.GlueE.«P57»
+public import LeanVM.Guest.CoreMode.GlueE.«P58»
+public import LeanVM.Guest.CoreMode.GlueE.«P59»
+public import LeanVM.Guest.CoreMode.GlueE.«P6»
+public import LeanVM.Guest.CoreMode.GlueE.«P60»
+public import LeanVM.Guest.CoreMode.GlueE.«P61»
+public import LeanVM.Guest.CoreMode.GlueE.«P62»
+public import LeanVM.Guest.CoreMode.GlueE.«P63»
+public import LeanVM.Guest.CoreMode.GlueE.«P7»
+public import LeanVM.Guest.CoreMode.GlueE.«P8»
+public import LeanVM.Guest.CoreMode.GlueE.«P9»
 meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.Bridge.ProgAl
@@ -17,106 +69,106 @@ open LeanVM.Guest
 
 public section
 
-kernel_rfl tab801 : (Bridge.extraOf 801, Bridge.entsOf 801, Bridge.adviceOf 801) = ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 353131), ("verify_merkle_cap__L7", 280072)], Data.adviceFn801)
-kernel_rfl tab802 : (Bridge.extraOf 802, Bridge.entsOf 802, Bridge.adviceOf 802) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 365372), ("verify_merkle_cap__L2", 279468)], Data.adviceFn802)
-kernel_rfl tab803 : (Bridge.extraOf 803, Bridge.entsOf 803, Bridge.adviceOf 803) = ([], [("__loop0_level_positions__L9_L23_L5", 365692), ("decode_query_windows__L23_L5", 327078)], Data.adviceFn803)
-kernel_rfl tab804 : (Bridge.extraOf 804, Bridge.entsOf 804, Bridge.adviceOf 804) = ([], [("__loop0_level_positions__L8_L24_L6", 365740), ("decode_query_windows__L24_L6", 341076)], Data.adviceFn804)
-kernel_rfl tab805 : (Bridge.extraOf 805, Bridge.entsOf 805, Bridge.adviceOf 805) = ([], [("__loop0_level_positions__L7_L25_L7", 365788), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn805)
-kernel_rfl tab806 : (Bridge.extraOf 806, Bridge.entsOf 806, Bridge.adviceOf 806) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn806)
-kernel_rfl tab807 : (Bridge.extraOf 807, Bridge.entsOf 807, Bridge.adviceOf 807) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn807)
-kernel_rfl tab808 : (Bridge.extraOf 808, Bridge.entsOf 808, Bridge.adviceOf 808) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn808)
-kernel_rfl tab809 : (Bridge.extraOf 809, Bridge.entsOf 809, Bridge.adviceOf 809) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 365836), ("verify_merkle_cap__L7", 280072)], Data.adviceFn809)
-kernel_rfl tab810 : (Bridge.extraOf 810, Bridge.entsOf 810, Bridge.adviceOf 810) = ([], [("__loop0_level_positions__L6_L22_L4", 365861), ("decode_query_windows__L22_L4", 316180)], Data.adviceFn810)
-kernel_rfl tab811 : (Bridge.extraOf 811, Bridge.entsOf 811, Bridge.adviceOf 811) = ([], [("__loop0_level_positions__L5_L24_L6", 365909), ("decode_query_windows__L24_L6", 341076)], Data.adviceFn811)
-kernel_rfl tab812 : (Bridge.extraOf 812, Bridge.entsOf 812, Bridge.adviceOf 812) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn812)
-kernel_rfl tab813 : (Bridge.extraOf 813, Bridge.entsOf 813, Bridge.adviceOf 813) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn813)
-kernel_rfl tab814 : (Bridge.extraOf 814, Bridge.entsOf 814, Bridge.adviceOf 814) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn814)
-kernel_rfl tab815 : (Bridge.extraOf 815, Bridge.entsOf 815, Bridge.adviceOf 815) = ([], [("__loop0_level_positions__L4_L23_L5", 365957), ("decode_query_windows__L23_L5", 327078)], Data.adviceFn815)
-kernel_rfl tab816 : (Bridge.extraOf 816, Bridge.entsOf 816, Bridge.adviceOf 816) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 316970), ("verify_merkle_cap__L3", 276371)], Data.adviceFn816)
-kernel_rfl tab817 : (Bridge.extraOf 817, Bridge.entsOf 817, Bridge.adviceOf 817) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn817)
-kernel_rfl tab818 : (Bridge.extraOf 818, Bridge.entsOf 818, Bridge.adviceOf 818) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn818)
-kernel_rfl tab819 : (Bridge.extraOf 819, Bridge.entsOf 819, Bridge.adviceOf 819) = ([], [("__loop0_level_positions__L3_L22_L4", 366005), ("decode_query_windows__L22_L4", 316180)], Data.adviceFn819)
-kernel_rfl tab820 : (Bridge.extraOf 820, Bridge.entsOf 820, Bridge.adviceOf 820) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 307562), ("verify_merkle_cap__L2", 279468)], Data.adviceFn820)
-kernel_rfl tab821 : (Bridge.extraOf 821, Bridge.entsOf 821, Bridge.adviceOf 821) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 316970), ("verify_merkle_cap__L3", 276371)], Data.adviceFn821)
-kernel_rfl tab822 : (Bridge.extraOf 822, Bridge.entsOf 822, Bridge.adviceOf 822) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn822)
-kernel_rfl tab823 : (Bridge.extraOf 823, Bridge.entsOf 823, Bridge.adviceOf 823) = ([], [("opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1", 366053), ("verify_merkle_cap__L7", 280072)], Data.adviceFn823)
-kernel_rfl tab824 : (Bridge.extraOf 824, Bridge.entsOf 824, Bridge.adviceOf 824) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1", 366076), ("verify_merkle_cap__L2", 279468)], Data.adviceFn824)
-kernel_rfl tab825 : (Bridge.extraOf 825, Bridge.entsOf 825, Bridge.adviceOf 825) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", 366099), ("verify_merkle_cap__L3", 276371)], Data.adviceFn825)
-kernel_rfl tab826 : (Bridge.extraOf 826, Bridge.entsOf 826, Bridge.adviceOf 826) = ([], [("__loop0_level_residual__L218_L22_L6_L3", 366122), ("__loop1_level_residual__L218_L22_L6_L3", 367040)], Data.adviceFn826)
-kernel_rfl tab827 : (Bridge.extraOf 827, Bridge.entsOf 827, Bridge.adviceOf 827) = ([], [("__loop0_level_residual__L109_L22_L6_L3", 367220), ("__loop1_level_residual__L109_L22_L6_L3", 368138)], Data.adviceFn827)
-kernel_rfl tab828 : (Bridge.extraOf 828, Bridge.entsOf 828, Bridge.adviceOf 828) = ([], [("__loop0_level_residual__L73_L22_L6_L3", 368318), ("__loop1_level_residual__L73_L22_L6_L3", 369236)], Data.adviceFn828)
-kernel_rfl tab829 : (Bridge.extraOf 829, Bridge.entsOf 829, Bridge.adviceOf 829) = ([], [("__loop0_level_residual__L55_L22_L6_L3", 369416), ("__loop1_level_residual__L55_L22_L6_L3", 370334)], Data.adviceFn829)
-kernel_rfl tab830 : (Bridge.extraOf 830, Bridge.entsOf 830, Bridge.adviceOf 830) = ([], [("__loop0_level_residual__L55_L18_L4_L2", 370514), ("__loop1_level_residual__L55_L18_L4_L2", 371254)], Data.adviceFn830)
-kernel_rfl tab831 : (Bridge.extraOf 831, Bridge.entsOf 831, Bridge.adviceOf 831) = ([], [("__loop0_level_residual__L44_L18_L4_L2", 371403), ("__loop1_level_residual__L44_L18_L4_L2", 372143)], Data.adviceFn831)
-kernel_rfl tab832 : (Bridge.extraOf 832, Bridge.entsOf 832, Bridge.adviceOf 832) = ([], [("__loop0_level_residual__L37_L18_L4_L2", 372292), ("__loop1_level_residual__L37_L18_L4_L2", 373032)], Data.adviceFn832)
-kernel_rfl tab833 : (Bridge.extraOf 833, Bridge.entsOf 833, Bridge.adviceOf 833) = ([], [("__loop0_level_residual__L32_L18_L4_L2", 373181)], Data.adviceFn833)
-kernel_rfl tab834 : (Bridge.extraOf 834, Bridge.entsOf 834, Bridge.adviceOf 834) = ([], [("__loop0_level_residual__L28_L14_L4_L2", 373921), ("__loop1_level_residual__L28_L14_L4_L2", 374525)], Data.adviceFn834)
-kernel_rfl tab835 : (Bridge.extraOf 835, Bridge.entsOf 835, Bridge.adviceOf 835) = ([], [("__loop0_level_residual__L25_L14_L4_L2", 374650), ("__loop1_level_residual__L25_L14_L4_L2", 375254)], Data.adviceFn835)
-kernel_rfl tab836 : (Bridge.extraOf 836, Bridge.entsOf 836, Bridge.adviceOf 836) = ([], [("__loop0_level_residual__L23_L14_L4_L2", 375379), ("__loop1_level_residual__L23_L14_L4_L2", 375983)], Data.adviceFn836)
-kernel_rfl tab837 : (Bridge.extraOf 837, Bridge.entsOf 837, Bridge.adviceOf 837) = ([], [("__loop0_level_residual__L21_L10_L4_L2", 376108), ("__loop1_level_residual__L21_L10_L4_L2", 376576)], Data.adviceFn837)
-kernel_rfl tab838 : (Bridge.extraOf 838, Bridge.entsOf 838, Bridge.adviceOf 838) = ([], [("__loop0_level_residual__L19_L10_L4_L2", 376677), ("__loop1_level_residual__L19_L10_L4_L2", 377145)], Data.adviceFn838)
-kernel_rfl tab839 : (Bridge.extraOf 839, Bridge.entsOf 839, Bridge.adviceOf 839) = ([], [("__loop0_level_residual__L18_L10_L4_L2", 377246), ("__loop1_level_residual__L18_L10_L4_L2", 377714)], Data.adviceFn839)
-kernel_rfl tab840 : (Bridge.extraOf 840, Bridge.entsOf 840, Bridge.adviceOf 840) = ([], [("__loop0_level_residual__L17_L6_L4_L2", 377815), ("__loop1_level_residual__L17_L6_L4_L2", 378147)], Data.adviceFn840)
-kernel_rfl tab841 : (Bridge.extraOf 841, Bridge.entsOf 841, Bridge.adviceOf 841) = ([], [("__loop0_level_residual__L16_L6_L4_L2", 378224)], Data.adviceFn841)
-kernel_rfl tab842 : (Bridge.extraOf 842, Bridge.entsOf 842, Bridge.adviceOf 842) = ([], [("__loop0_level_residual__L15_L6_L4_L2", 378556), ("__loop1_level_residual__L15_L6_L4_L2", 378888)], Data.adviceFn842)
-kernel_rfl tab843 : (Bridge.extraOf 843, Bridge.entsOf 843, Bridge.adviceOf 843) = ([], [("__loop0_level_positions__L44_L24_L6", 378965), ("decode_query_windows__L24_L6", 341076)], Data.adviceFn843)
-kernel_rfl tab844 : (Bridge.extraOf 844, Bridge.entsOf 844, Bridge.adviceOf 844) = ([], [("__loop0_level_positions__L22_L25_L7", 379013), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn844)
-kernel_rfl tab845 : (Bridge.extraOf 845, Bridge.entsOf 845, Bridge.adviceOf 845) = ([], [("__loop0_level_positions__L19_L26_L2", 379061), ("decode_query_windows__L26_L2", 365068)], Data.adviceFn845)
-kernel_rfl tab846 : (Bridge.extraOf 846, Bridge.entsOf 846, Bridge.adviceOf 846) = ([], [("__loop0_level_positions__L14_L27_L3", 379348), ("decode_query_windows__L27_L3", 379109)], Data.adviceFn846)
-kernel_rfl tab847 : (Bridge.extraOf 847, Bridge.entsOf 847, Bridge.adviceOf 847) = ([], [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 379396), ("verify_merkle_cap__L6", 277929)], Data.adviceFn847)
-kernel_rfl tab848 : (Bridge.extraOf 848, Bridge.entsOf 848, Bridge.adviceOf 848) = ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 353131), ("verify_merkle_cap__L7", 280072)], Data.adviceFn848)
-kernel_rfl tab849 : (Bridge.extraOf 849, Bridge.entsOf 849, Bridge.adviceOf 849) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 365372), ("verify_merkle_cap__L2", 279468)], Data.adviceFn849)
-kernel_rfl tab850 : (Bridge.extraOf 850, Bridge.entsOf 850, Bridge.adviceOf 850) = ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 379421), ("verify_merkle_cap__L3", 276371)], Data.adviceFn850)
-kernel_rfl tab851 : (Bridge.extraOf 851, Bridge.entsOf 851, Bridge.adviceOf 851) = ([], [("__loop0_level_positions__L9_L24_L6", 379741), ("decode_query_windows__L24_L6", 341076)], Data.adviceFn851)
-kernel_rfl tab852 : (Bridge.extraOf 852, Bridge.entsOf 852, Bridge.adviceOf 852) = ([], [("__loop0_level_positions__L8_L25_L7", 379789), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn852)
-kernel_rfl tab853 : (Bridge.extraOf 853, Bridge.entsOf 853, Bridge.adviceOf 853) = ([], [("__loop0_level_positions__L8_L26_L2", 379837), ("decode_query_windows__L26_L2", 365068)], Data.adviceFn853)
-kernel_rfl tab854 : (Bridge.extraOf 854, Bridge.entsOf 854, Bridge.adviceOf 854) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn854)
-kernel_rfl tab855 : (Bridge.extraOf 855, Bridge.entsOf 855, Bridge.adviceOf 855) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn855)
-kernel_rfl tab856 : (Bridge.extraOf 856, Bridge.entsOf 856, Bridge.adviceOf 856) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 365836), ("verify_merkle_cap__L7", 280072)], Data.adviceFn856)
-kernel_rfl tab857 : (Bridge.extraOf 857, Bridge.entsOf 857, Bridge.adviceOf 857) = ([], [("opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", 379885), ("verify_merkle_cap__L2", 279468)], Data.adviceFn857)
-kernel_rfl tab858 : (Bridge.extraOf 858, Bridge.entsOf 858, Bridge.adviceOf 858) = ([], [("__loop0_level_positions__L6_L23_L5", 379910), ("decode_query_windows__L23_L5", 327078)], Data.adviceFn858)
-kernel_rfl tab859 : (Bridge.extraOf 859, Bridge.entsOf 859, Bridge.adviceOf 859) = ([], [("__loop0_level_positions__L5_L25_L7", 379958), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn859)
-kernel_rfl tab860 : (Bridge.extraOf 860, Bridge.entsOf 860, Bridge.adviceOf 860) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn860)
-kernel_rfl tab861 : (Bridge.extraOf 861, Bridge.entsOf 861, Bridge.adviceOf 861) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn861)
-kernel_rfl tab862 : (Bridge.extraOf 862, Bridge.entsOf 862, Bridge.adviceOf 862) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 365836), ("verify_merkle_cap__L7", 280072)], Data.adviceFn862)
-kernel_rfl tab863 : (Bridge.extraOf 863, Bridge.entsOf 863, Bridge.adviceOf 863) = ([], [("__loop0_level_positions__L4_L24_L6", 380006), ("decode_query_windows__L24_L6", 341076)], Data.adviceFn863)
-kernel_rfl tab864 : (Bridge.extraOf 864, Bridge.entsOf 864, Bridge.adviceOf 864) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn864)
-kernel_rfl tab865 : (Bridge.extraOf 865, Bridge.entsOf 865, Bridge.adviceOf 865) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn865)
-kernel_rfl tab866 : (Bridge.extraOf 866, Bridge.entsOf 866, Bridge.adviceOf 866) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn866)
-kernel_rfl tab867 : (Bridge.extraOf 867, Bridge.entsOf 867, Bridge.adviceOf 867) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 316970), ("verify_merkle_cap__L3", 276371)], Data.adviceFn867)
-kernel_rfl tab868 : (Bridge.extraOf 868, Bridge.entsOf 868, Bridge.adviceOf 868) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 330655), ("verify_merkle_cap__L4", 276773)], Data.adviceFn868)
-kernel_rfl tab869 : (Bridge.extraOf 869, Bridge.entsOf 869, Bridge.adviceOf 869) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 341856), ("verify_merkle_cap__L5", 277263)], Data.adviceFn869)
-kernel_rfl tab870 : (Bridge.extraOf 870, Bridge.entsOf 870, Bridge.adviceOf 870) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1", 380054), ("verify_merkle_cap__L2", 279468)], Data.adviceFn870)
-kernel_rfl tab871 : (Bridge.extraOf 871, Bridge.entsOf 871, Bridge.adviceOf 871) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1", 380077), ("verify_merkle_cap__L3", 276371)], Data.adviceFn871)
-kernel_rfl tab872 : (Bridge.extraOf 872, Bridge.entsOf 872, Bridge.adviceOf 872) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", 380100), ("verify_merkle_cap__L4", 276773)], Data.adviceFn872)
-kernel_rfl tab873 : (Bridge.extraOf 873, Bridge.entsOf 873, Bridge.adviceOf 873) = ([], [("__loop0_level_residual__L218_L23_L6_L3", 380123), ("__loop1_level_residual__L218_L23_L6_L3", 381075)], Data.adviceFn873)
-kernel_rfl tab874 : (Bridge.extraOf 874, Bridge.entsOf 874, Bridge.adviceOf 874) = ([], [("__loop0_level_residual__L109_L23_L6_L3", 381261), ("__loop1_level_residual__L109_L23_L6_L3", 382213)], Data.adviceFn874)
-kernel_rfl tab875 : (Bridge.extraOf 875, Bridge.entsOf 875, Bridge.adviceOf 875) = ([], [("__loop0_level_residual__L73_L23_L6_L3", 382399), ("__loop1_level_residual__L73_L23_L6_L3", 383351)], Data.adviceFn875)
-kernel_rfl tab876 : (Bridge.extraOf 876, Bridge.entsOf 876, Bridge.adviceOf 876) = ([], [("__loop0_level_residual__L55_L23_L6_L3", 383537), ("__loop1_level_residual__L55_L23_L6_L3", 384489)], Data.adviceFn876)
-kernel_rfl tab877 : (Bridge.extraOf 877, Bridge.entsOf 877, Bridge.adviceOf 877) = ([], [("__loop0_level_residual__L55_L19_L4_L2", 384675), ("__loop1_level_residual__L55_L19_L4_L2", 385449)], Data.adviceFn877)
-kernel_rfl tab878 : (Bridge.extraOf 878, Bridge.entsOf 878, Bridge.adviceOf 878) = ([], [("__loop0_level_residual__L44_L19_L4_L2", 385604), ("__loop1_level_residual__L44_L19_L4_L2", 386378)], Data.adviceFn878)
-kernel_rfl tab879 : (Bridge.extraOf 879, Bridge.entsOf 879, Bridge.adviceOf 879) = ([], [("__loop0_level_residual__L37_L19_L4_L2", 386533), ("__loop1_level_residual__L37_L19_L4_L2", 387307)], Data.adviceFn879)
-kernel_rfl tab880 : (Bridge.extraOf 880, Bridge.entsOf 880, Bridge.adviceOf 880) = ([], [("__loop0_level_residual__L32_L19_L4_L2", 387462)], Data.adviceFn880)
-kernel_rfl tab881 : (Bridge.extraOf 881, Bridge.entsOf 881, Bridge.adviceOf 881) = ([], [("__loop0_level_residual__L28_L15_L4_L2", 388236), ("__loop1_level_residual__L28_L15_L4_L2", 388874)], Data.adviceFn881)
-kernel_rfl tab882 : (Bridge.extraOf 882, Bridge.entsOf 882, Bridge.adviceOf 882) = ([], [("__loop0_level_residual__L25_L15_L4_L2", 389005), ("__loop1_level_residual__L25_L15_L4_L2", 389643)], Data.adviceFn882)
-kernel_rfl tab883 : (Bridge.extraOf 883, Bridge.entsOf 883, Bridge.adviceOf 883) = ([], [("__loop0_level_residual__L23_L15_L4_L2", 389774), ("__loop1_level_residual__L23_L15_L4_L2", 390412)], Data.adviceFn883)
-kernel_rfl tab884 : (Bridge.extraOf 884, Bridge.entsOf 884, Bridge.adviceOf 884) = ([], [("__loop0_level_residual__L21_L11_L4_L2", 390543), ("__loop1_level_residual__L21_L11_L4_L2", 391045)], Data.adviceFn884)
-kernel_rfl tab885 : (Bridge.extraOf 885, Bridge.entsOf 885, Bridge.adviceOf 885) = ([], [("__loop0_level_residual__L19_L11_L4_L2", 391152), ("__loop1_level_residual__L19_L11_L4_L2", 391654)], Data.adviceFn885)
-kernel_rfl tab886 : (Bridge.extraOf 886, Bridge.entsOf 886, Bridge.adviceOf 886) = ([], [("__loop0_level_residual__L18_L11_L4_L2", 391761), ("__loop1_level_residual__L18_L11_L4_L2", 392263)], Data.adviceFn886)
-kernel_rfl tab887 : (Bridge.extraOf 887, Bridge.entsOf 887, Bridge.adviceOf 887) = ([], [("__loop0_level_residual__L17_L7_L4_L2", 392370), ("__loop1_level_residual__L17_L7_L4_L2", 392736)], Data.adviceFn887)
-kernel_rfl tab888 : (Bridge.extraOf 888, Bridge.entsOf 888, Bridge.adviceOf 888) = ([], [("__loop0_level_residual__L16_L7_L4_L2", 392819)], Data.adviceFn888)
-kernel_rfl tab889 : (Bridge.extraOf 889, Bridge.entsOf 889, Bridge.adviceOf 889) = ([], [("__loop0_level_positions__L44_L25_L7", 393185), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn889)
-kernel_rfl tab890 : (Bridge.extraOf 890, Bridge.entsOf 890, Bridge.adviceOf 890) = ([], [("__loop0_level_positions__L28_L26_L2", 393233), ("decode_query_windows__L26_L2", 365068)], Data.adviceFn890)
-kernel_rfl tab891 : (Bridge.extraOf 891, Bridge.entsOf 891, Bridge.adviceOf 891) = ([], [("__loop0_level_positions__L19_L27_L3", 393281), ("decode_query_windows__L27_L3", 379109)], Data.adviceFn891)
-kernel_rfl tab892 : (Bridge.extraOf 892, Bridge.entsOf 892, Bridge.adviceOf 892) = ([], [("__loop0_level_positions__L14_L28_L4", 393568), ("decode_query_windows__L28_L4", 393329)], Data.adviceFn892)
-kernel_rfl tab893 : (Bridge.extraOf 893, Bridge.entsOf 893, Bridge.adviceOf 893) = ([], [("opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 393616), ("verify_merkle_cap__L7", 280072)], Data.adviceFn893)
-kernel_rfl tab894 : (Bridge.extraOf 894, Bridge.entsOf 894, Bridge.adviceOf 894) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 365372), ("verify_merkle_cap__L2", 279468)], Data.adviceFn894)
-kernel_rfl tab895 : (Bridge.extraOf 895, Bridge.entsOf 895, Bridge.adviceOf 895) = ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 379421), ("verify_merkle_cap__L3", 276371)], Data.adviceFn895)
-kernel_rfl tab896 : (Bridge.extraOf 896, Bridge.entsOf 896, Bridge.adviceOf 896) = ([], [("opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0", 393641), ("verify_merkle_cap__L4", 276773)], Data.adviceFn896)
-kernel_rfl tab897 : (Bridge.extraOf 897, Bridge.entsOf 897, Bridge.adviceOf 897) = ([], [("__loop0_level_positions__L9_L25_L7", 393961), ("decode_query_windows__L25_L7", 352827)], Data.adviceFn897)
-kernel_rfl tab898 : (Bridge.extraOf 898, Bridge.entsOf 898, Bridge.adviceOf 898) = ([], [("__loop0_level_positions__L10_L26_L2", 394009), ("decode_query_windows__L26_L2", 365068)], Data.adviceFn898)
-kernel_rfl tab899 : (Bridge.extraOf 899, Bridge.entsOf 899, Bridge.adviceOf 899) = ([], [("__loop0_level_positions__L8_L27_L3", 394057), ("decode_query_windows__L27_L3", 379109)], Data.adviceFn899)
-kernel_rfl tab900 : (Bridge.extraOf 900, Bridge.entsOf 900, Bridge.adviceOf 900) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 353595), ("verify_merkle_cap__L6", 277929)], Data.adviceFn900)
+kernel_rfl tab801 : (Bridge.extraOf 801, Bridge.entsOf 801, Bridge.adviceOf 801) = ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn801)
+kernel_rfl tab802 : (Bridge.extraOf 802, Bridge.entsOf 802, Bridge.adviceOf 802) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn802)
+kernel_rfl tab803 : (Bridge.extraOf 803, Bridge.entsOf 803, Bridge.adviceOf 803) = ([], [("__loop0_level_positions__L9_L23_L5", Fn.«level_positions__L9_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)], Data.adviceFn803)
+kernel_rfl tab804 : (Bridge.extraOf 804, Bridge.entsOf 804, Bridge.adviceOf 804) = ([], [("__loop0_level_positions__L8_L24_L6", Fn.«level_positions__L8_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], Data.adviceFn804)
+kernel_rfl tab805 : (Bridge.extraOf 805, Bridge.entsOf 805, Bridge.adviceOf 805) = ([], [("__loop0_level_positions__L7_L25_L7", Fn.«level_positions__L7_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn805)
+kernel_rfl tab806 : (Bridge.extraOf 806, Bridge.entsOf 806, Bridge.adviceOf 806) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn806)
+kernel_rfl tab807 : (Bridge.extraOf 807, Bridge.entsOf 807, Bridge.adviceOf 807) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn807)
+kernel_rfl tab808 : (Bridge.extraOf 808, Bridge.entsOf 808, Bridge.adviceOf 808) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn808)
+kernel_rfl tab809 : (Bridge.extraOf 809, Bridge.entsOf 809, Bridge.adviceOf 809) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn809)
+kernel_rfl tab810 : (Bridge.extraOf 810, Bridge.entsOf 810, Bridge.adviceOf 810) = ([], [("__loop0_level_positions__L6_L22_L4", Fn.«level_positions__L6_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)], Data.adviceFn810)
+kernel_rfl tab811 : (Bridge.extraOf 811, Bridge.entsOf 811, Bridge.adviceOf 811) = ([], [("__loop0_level_positions__L5_L24_L6", Fn.«level_positions__L5_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], Data.adviceFn811)
+kernel_rfl tab812 : (Bridge.extraOf 812, Bridge.entsOf 812, Bridge.adviceOf 812) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn812)
+kernel_rfl tab813 : (Bridge.extraOf 813, Bridge.entsOf 813, Bridge.adviceOf 813) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn813)
+kernel_rfl tab814 : (Bridge.extraOf 814, Bridge.entsOf 814, Bridge.adviceOf 814) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn814)
+kernel_rfl tab815 : (Bridge.extraOf 815, Bridge.entsOf 815, Bridge.adviceOf 815) = ([], [("__loop0_level_positions__L4_L23_L5", Fn.«level_positions__L4_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)], Data.adviceFn815)
+kernel_rfl tab816 : (Bridge.extraOf 816, Bridge.entsOf 816, Bridge.adviceOf 816) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn816)
+kernel_rfl tab817 : (Bridge.extraOf 817, Bridge.entsOf 817, Bridge.adviceOf 817) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn817)
+kernel_rfl tab818 : (Bridge.extraOf 818, Bridge.entsOf 818, Bridge.adviceOf 818) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn818)
+kernel_rfl tab819 : (Bridge.extraOf 819, Bridge.entsOf 819, Bridge.adviceOf 819) = ([], [("__loop0_level_positions__L3_L22_L4", Fn.«level_positions__L3_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)], Data.adviceFn819)
+kernel_rfl tab820 : (Bridge.extraOf 820, Bridge.entsOf 820, Bridge.adviceOf 820) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn820)
+kernel_rfl tab821 : (Bridge.extraOf 821, Bridge.entsOf 821, Bridge.adviceOf 821) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn821)
+kernel_rfl tab822 : (Bridge.extraOf 822, Bridge.entsOf 822, Bridge.adviceOf 822) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn822)
+kernel_rfl tab823 : (Bridge.extraOf 823, Bridge.entsOf 823, Bridge.adviceOf 823) = ([], [("opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1", Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn823)
+kernel_rfl tab824 : (Bridge.extraOf 824, Bridge.entsOf 824, Bridge.adviceOf 824) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1", Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn824)
+kernel_rfl tab825 : (Bridge.extraOf 825, Bridge.entsOf 825, Bridge.adviceOf 825) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn825)
+kernel_rfl tab826 : (Bridge.extraOf 826, Bridge.entsOf 826, Bridge.adviceOf 826) = ([], [("__loop0_level_residual__L218_L22_L6_L3", Fn.«level_residual__L218_L22_L6_L3_loop0».entry), ("__loop1_level_residual__L218_L22_L6_L3", Fn.«level_residual__L218_L22_L6_L3_loop1».entry)], Data.adviceFn826)
+kernel_rfl tab827 : (Bridge.extraOf 827, Bridge.entsOf 827, Bridge.adviceOf 827) = ([], [("__loop0_level_residual__L109_L22_L6_L3", Fn.«level_residual__L109_L22_L6_L3_loop0».entry), ("__loop1_level_residual__L109_L22_L6_L3", Fn.«level_residual__L109_L22_L6_L3_loop1».entry)], Data.adviceFn827)
+kernel_rfl tab828 : (Bridge.extraOf 828, Bridge.entsOf 828, Bridge.adviceOf 828) = ([], [("__loop0_level_residual__L73_L22_L6_L3", Fn.«level_residual__L73_L22_L6_L3_loop0».entry), ("__loop1_level_residual__L73_L22_L6_L3", Fn.«level_residual__L73_L22_L6_L3_loop1».entry)], Data.adviceFn828)
+kernel_rfl tab829 : (Bridge.extraOf 829, Bridge.entsOf 829, Bridge.adviceOf 829) = ([], [("__loop0_level_residual__L55_L22_L6_L3", Fn.«level_residual__L55_L22_L6_L3_loop0».entry), ("__loop1_level_residual__L55_L22_L6_L3", Fn.«level_residual__L55_L22_L6_L3_loop1».entry)], Data.adviceFn829)
+kernel_rfl tab830 : (Bridge.extraOf 830, Bridge.entsOf 830, Bridge.adviceOf 830) = ([], [("__loop0_level_residual__L55_L18_L4_L2", Fn.«level_residual__L55_L18_L4_L2_loop0».entry), ("__loop1_level_residual__L55_L18_L4_L2", Fn.«level_residual__L55_L18_L4_L2_loop1».entry)], Data.adviceFn830)
+kernel_rfl tab831 : (Bridge.extraOf 831, Bridge.entsOf 831, Bridge.adviceOf 831) = ([], [("__loop0_level_residual__L44_L18_L4_L2", Fn.«level_residual__L44_L18_L4_L2_loop0».entry), ("__loop1_level_residual__L44_L18_L4_L2", Fn.«level_residual__L44_L18_L4_L2_loop1».entry)], Data.adviceFn831)
+kernel_rfl tab832 : (Bridge.extraOf 832, Bridge.entsOf 832, Bridge.adviceOf 832) = ([], [("__loop0_level_residual__L37_L18_L4_L2", Fn.«level_residual__L37_L18_L4_L2_loop0».entry), ("__loop1_level_residual__L37_L18_L4_L2", Fn.«level_residual__L37_L18_L4_L2_loop1».entry)], Data.adviceFn832)
+kernel_rfl tab833 : (Bridge.extraOf 833, Bridge.entsOf 833, Bridge.adviceOf 833) = ([], [("__loop0_level_residual__L32_L18_L4_L2", Fn.«level_residual__L32_L18_L4_L2_loop0».entry)], Data.adviceFn833)
+kernel_rfl tab834 : (Bridge.extraOf 834, Bridge.entsOf 834, Bridge.adviceOf 834) = ([], [("__loop0_level_residual__L28_L14_L4_L2", Fn.«level_residual__L28_L14_L4_L2_loop0».entry), ("__loop1_level_residual__L28_L14_L4_L2", Fn.«level_residual__L28_L14_L4_L2_loop1».entry)], Data.adviceFn834)
+kernel_rfl tab835 : (Bridge.extraOf 835, Bridge.entsOf 835, Bridge.adviceOf 835) = ([], [("__loop0_level_residual__L25_L14_L4_L2", Fn.«level_residual__L25_L14_L4_L2_loop0».entry), ("__loop1_level_residual__L25_L14_L4_L2", Fn.«level_residual__L25_L14_L4_L2_loop1».entry)], Data.adviceFn835)
+kernel_rfl tab836 : (Bridge.extraOf 836, Bridge.entsOf 836, Bridge.adviceOf 836) = ([], [("__loop0_level_residual__L23_L14_L4_L2", Fn.«level_residual__L23_L14_L4_L2_loop0».entry), ("__loop1_level_residual__L23_L14_L4_L2", Fn.«level_residual__L23_L14_L4_L2_loop1».entry)], Data.adviceFn836)
+kernel_rfl tab837 : (Bridge.extraOf 837, Bridge.entsOf 837, Bridge.adviceOf 837) = ([], [("__loop0_level_residual__L21_L10_L4_L2", Fn.«level_residual__L21_L10_L4_L2_loop0».entry), ("__loop1_level_residual__L21_L10_L4_L2", Fn.«level_residual__L21_L10_L4_L2_loop1».entry)], Data.adviceFn837)
+kernel_rfl tab838 : (Bridge.extraOf 838, Bridge.entsOf 838, Bridge.adviceOf 838) = ([], [("__loop0_level_residual__L19_L10_L4_L2", Fn.«level_residual__L19_L10_L4_L2_loop0».entry), ("__loop1_level_residual__L19_L10_L4_L2", Fn.«level_residual__L19_L10_L4_L2_loop1».entry)], Data.adviceFn838)
+kernel_rfl tab839 : (Bridge.extraOf 839, Bridge.entsOf 839, Bridge.adviceOf 839) = ([], [("__loop0_level_residual__L18_L10_L4_L2", Fn.«level_residual__L18_L10_L4_L2_loop0».entry), ("__loop1_level_residual__L18_L10_L4_L2", Fn.«level_residual__L18_L10_L4_L2_loop1».entry)], Data.adviceFn839)
+kernel_rfl tab840 : (Bridge.extraOf 840, Bridge.entsOf 840, Bridge.adviceOf 840) = ([], [("__loop0_level_residual__L17_L6_L4_L2", Fn.«level_residual__L17_L6_L4_L2_loop0».entry), ("__loop1_level_residual__L17_L6_L4_L2", Fn.«level_residual__L17_L6_L4_L2_loop1».entry)], Data.adviceFn840)
+kernel_rfl tab841 : (Bridge.extraOf 841, Bridge.entsOf 841, Bridge.adviceOf 841) = ([], [("__loop0_level_residual__L16_L6_L4_L2", Fn.«level_residual__L16_L6_L4_L2_loop0».entry)], Data.adviceFn841)
+kernel_rfl tab842 : (Bridge.extraOf 842, Bridge.entsOf 842, Bridge.adviceOf 842) = ([], [("__loop0_level_residual__L15_L6_L4_L2", Fn.«level_residual__L15_L6_L4_L2_loop0».entry), ("__loop1_level_residual__L15_L6_L4_L2", Fn.«level_residual__L15_L6_L4_L2_loop1».entry)], Data.adviceFn842)
+kernel_rfl tab843 : (Bridge.extraOf 843, Bridge.entsOf 843, Bridge.adviceOf 843) = ([], [("__loop0_level_positions__L44_L24_L6", Fn.«level_positions__L44_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], Data.adviceFn843)
+kernel_rfl tab844 : (Bridge.extraOf 844, Bridge.entsOf 844, Bridge.adviceOf 844) = ([], [("__loop0_level_positions__L22_L25_L7", Fn.«level_positions__L22_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn844)
+kernel_rfl tab845 : (Bridge.extraOf 845, Bridge.entsOf 845, Bridge.adviceOf 845) = ([], [("__loop0_level_positions__L19_L26_L2", Fn.«level_positions__L19_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)], Data.adviceFn845)
+kernel_rfl tab846 : (Bridge.extraOf 846, Bridge.entsOf 846, Bridge.adviceOf 846) = ([], [("__loop0_level_positions__L14_L27_L3", Fn.«level_positions__L14_L27_L3_loop0».entry), ("decode_query_windows__L27_L3", Fn.«decode_query_windows__L27_L3».entry)], Data.adviceFn846)
+kernel_rfl tab847 : (Bridge.extraOf 847, Bridge.entsOf 847, Bridge.adviceOf 847) = ([], [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn847)
+kernel_rfl tab848 : (Bridge.extraOf 848, Bridge.entsOf 848, Bridge.adviceOf 848) = ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn848)
+kernel_rfl tab849 : (Bridge.extraOf 849, Bridge.entsOf 849, Bridge.adviceOf 849) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn849)
+kernel_rfl tab850 : (Bridge.extraOf 850, Bridge.entsOf 850, Bridge.adviceOf 850) = ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn850)
+kernel_rfl tab851 : (Bridge.extraOf 851, Bridge.entsOf 851, Bridge.adviceOf 851) = ([], [("__loop0_level_positions__L9_L24_L6", Fn.«level_positions__L9_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], Data.adviceFn851)
+kernel_rfl tab852 : (Bridge.extraOf 852, Bridge.entsOf 852, Bridge.adviceOf 852) = ([], [("__loop0_level_positions__L8_L25_L7", Fn.«level_positions__L8_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn852)
+kernel_rfl tab853 : (Bridge.extraOf 853, Bridge.entsOf 853, Bridge.adviceOf 853) = ([], [("__loop0_level_positions__L8_L26_L2", Fn.«level_positions__L8_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)], Data.adviceFn853)
+kernel_rfl tab854 : (Bridge.extraOf 854, Bridge.entsOf 854, Bridge.adviceOf 854) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn854)
+kernel_rfl tab855 : (Bridge.extraOf 855, Bridge.entsOf 855, Bridge.adviceOf 855) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn855)
+kernel_rfl tab856 : (Bridge.extraOf 856, Bridge.entsOf 856, Bridge.adviceOf 856) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn856)
+kernel_rfl tab857 : (Bridge.extraOf 857, Bridge.entsOf 857, Bridge.adviceOf 857) = ([], [("opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn857)
+kernel_rfl tab858 : (Bridge.extraOf 858, Bridge.entsOf 858, Bridge.adviceOf 858) = ([], [("__loop0_level_positions__L6_L23_L5", Fn.«level_positions__L6_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)], Data.adviceFn858)
+kernel_rfl tab859 : (Bridge.extraOf 859, Bridge.entsOf 859, Bridge.adviceOf 859) = ([], [("__loop0_level_positions__L5_L25_L7", Fn.«level_positions__L5_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn859)
+kernel_rfl tab860 : (Bridge.extraOf 860, Bridge.entsOf 860, Bridge.adviceOf 860) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn860)
+kernel_rfl tab861 : (Bridge.extraOf 861, Bridge.entsOf 861, Bridge.adviceOf 861) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn861)
+kernel_rfl tab862 : (Bridge.extraOf 862, Bridge.entsOf 862, Bridge.adviceOf 862) = ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn862)
+kernel_rfl tab863 : (Bridge.extraOf 863, Bridge.entsOf 863, Bridge.adviceOf 863) = ([], [("__loop0_level_positions__L4_L24_L6", Fn.«level_positions__L4_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], Data.adviceFn863)
+kernel_rfl tab864 : (Bridge.extraOf 864, Bridge.entsOf 864, Bridge.adviceOf 864) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn864)
+kernel_rfl tab865 : (Bridge.extraOf 865, Bridge.entsOf 865, Bridge.adviceOf 865) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn865)
+kernel_rfl tab866 : (Bridge.extraOf 866, Bridge.entsOf 866, Bridge.adviceOf 866) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn866)
+kernel_rfl tab867 : (Bridge.extraOf 867, Bridge.entsOf 867, Bridge.adviceOf 867) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn867)
+kernel_rfl tab868 : (Bridge.extraOf 868, Bridge.entsOf 868, Bridge.adviceOf 868) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn868)
+kernel_rfl tab869 : (Bridge.extraOf 869, Bridge.entsOf 869, Bridge.adviceOf 869) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], Data.adviceFn869)
+kernel_rfl tab870 : (Bridge.extraOf 870, Bridge.entsOf 870, Bridge.adviceOf 870) = ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1", Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn870)
+kernel_rfl tab871 : (Bridge.extraOf 871, Bridge.entsOf 871, Bridge.adviceOf 871) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn871)
+kernel_rfl tab872 : (Bridge.extraOf 872, Bridge.entsOf 872, Bridge.adviceOf 872) = ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn872)
+kernel_rfl tab873 : (Bridge.extraOf 873, Bridge.entsOf 873, Bridge.adviceOf 873) = ([], [("__loop0_level_residual__L218_L23_L6_L3", Fn.«level_residual__L218_L23_L6_L3_loop0».entry), ("__loop1_level_residual__L218_L23_L6_L3", Fn.«level_residual__L218_L23_L6_L3_loop1».entry)], Data.adviceFn873)
+kernel_rfl tab874 : (Bridge.extraOf 874, Bridge.entsOf 874, Bridge.adviceOf 874) = ([], [("__loop0_level_residual__L109_L23_L6_L3", Fn.«level_residual__L109_L23_L6_L3_loop0».entry), ("__loop1_level_residual__L109_L23_L6_L3", Fn.«level_residual__L109_L23_L6_L3_loop1».entry)], Data.adviceFn874)
+kernel_rfl tab875 : (Bridge.extraOf 875, Bridge.entsOf 875, Bridge.adviceOf 875) = ([], [("__loop0_level_residual__L73_L23_L6_L3", Fn.«level_residual__L73_L23_L6_L3_loop0».entry), ("__loop1_level_residual__L73_L23_L6_L3", Fn.«level_residual__L73_L23_L6_L3_loop1».entry)], Data.adviceFn875)
+kernel_rfl tab876 : (Bridge.extraOf 876, Bridge.entsOf 876, Bridge.adviceOf 876) = ([], [("__loop0_level_residual__L55_L23_L6_L3", Fn.«level_residual__L55_L23_L6_L3_loop0».entry), ("__loop1_level_residual__L55_L23_L6_L3", Fn.«level_residual__L55_L23_L6_L3_loop1».entry)], Data.adviceFn876)
+kernel_rfl tab877 : (Bridge.extraOf 877, Bridge.entsOf 877, Bridge.adviceOf 877) = ([], [("__loop0_level_residual__L55_L19_L4_L2", Fn.«level_residual__L55_L19_L4_L2_loop0».entry), ("__loop1_level_residual__L55_L19_L4_L2", Fn.«level_residual__L55_L19_L4_L2_loop1».entry)], Data.adviceFn877)
+kernel_rfl tab878 : (Bridge.extraOf 878, Bridge.entsOf 878, Bridge.adviceOf 878) = ([], [("__loop0_level_residual__L44_L19_L4_L2", Fn.«level_residual__L44_L19_L4_L2_loop0».entry), ("__loop1_level_residual__L44_L19_L4_L2", Fn.«level_residual__L44_L19_L4_L2_loop1».entry)], Data.adviceFn878)
+kernel_rfl tab879 : (Bridge.extraOf 879, Bridge.entsOf 879, Bridge.adviceOf 879) = ([], [("__loop0_level_residual__L37_L19_L4_L2", Fn.«level_residual__L37_L19_L4_L2_loop0».entry), ("__loop1_level_residual__L37_L19_L4_L2", Fn.«level_residual__L37_L19_L4_L2_loop1».entry)], Data.adviceFn879)
+kernel_rfl tab880 : (Bridge.extraOf 880, Bridge.entsOf 880, Bridge.adviceOf 880) = ([], [("__loop0_level_residual__L32_L19_L4_L2", Fn.«level_residual__L32_L19_L4_L2_loop0».entry)], Data.adviceFn880)
+kernel_rfl tab881 : (Bridge.extraOf 881, Bridge.entsOf 881, Bridge.adviceOf 881) = ([], [("__loop0_level_residual__L28_L15_L4_L2", Fn.«level_residual__L28_L15_L4_L2_loop0».entry), ("__loop1_level_residual__L28_L15_L4_L2", Fn.«level_residual__L28_L15_L4_L2_loop1».entry)], Data.adviceFn881)
+kernel_rfl tab882 : (Bridge.extraOf 882, Bridge.entsOf 882, Bridge.adviceOf 882) = ([], [("__loop0_level_residual__L25_L15_L4_L2", Fn.«level_residual__L25_L15_L4_L2_loop0».entry), ("__loop1_level_residual__L25_L15_L4_L2", Fn.«level_residual__L25_L15_L4_L2_loop1».entry)], Data.adviceFn882)
+kernel_rfl tab883 : (Bridge.extraOf 883, Bridge.entsOf 883, Bridge.adviceOf 883) = ([], [("__loop0_level_residual__L23_L15_L4_L2", Fn.«level_residual__L23_L15_L4_L2_loop0».entry), ("__loop1_level_residual__L23_L15_L4_L2", Fn.«level_residual__L23_L15_L4_L2_loop1».entry)], Data.adviceFn883)
+kernel_rfl tab884 : (Bridge.extraOf 884, Bridge.entsOf 884, Bridge.adviceOf 884) = ([], [("__loop0_level_residual__L21_L11_L4_L2", Fn.«level_residual__L21_L11_L4_L2_loop0».entry), ("__loop1_level_residual__L21_L11_L4_L2", Fn.«level_residual__L21_L11_L4_L2_loop1».entry)], Data.adviceFn884)
+kernel_rfl tab885 : (Bridge.extraOf 885, Bridge.entsOf 885, Bridge.adviceOf 885) = ([], [("__loop0_level_residual__L19_L11_L4_L2", Fn.«level_residual__L19_L11_L4_L2_loop0».entry), ("__loop1_level_residual__L19_L11_L4_L2", Fn.«level_residual__L19_L11_L4_L2_loop1».entry)], Data.adviceFn885)
+kernel_rfl tab886 : (Bridge.extraOf 886, Bridge.entsOf 886, Bridge.adviceOf 886) = ([], [("__loop0_level_residual__L18_L11_L4_L2", Fn.«level_residual__L18_L11_L4_L2_loop0».entry), ("__loop1_level_residual__L18_L11_L4_L2", Fn.«level_residual__L18_L11_L4_L2_loop1».entry)], Data.adviceFn886)
+kernel_rfl tab887 : (Bridge.extraOf 887, Bridge.entsOf 887, Bridge.adviceOf 887) = ([], [("__loop0_level_residual__L17_L7_L4_L2", Fn.«level_residual__L17_L7_L4_L2_loop0».entry), ("__loop1_level_residual__L17_L7_L4_L2", Fn.«level_residual__L17_L7_L4_L2_loop1».entry)], Data.adviceFn887)
+kernel_rfl tab888 : (Bridge.extraOf 888, Bridge.entsOf 888, Bridge.adviceOf 888) = ([], [("__loop0_level_residual__L16_L7_L4_L2", Fn.«level_residual__L16_L7_L4_L2_loop0».entry)], Data.adviceFn888)
+kernel_rfl tab889 : (Bridge.extraOf 889, Bridge.entsOf 889, Bridge.adviceOf 889) = ([], [("__loop0_level_positions__L44_L25_L7", Fn.«level_positions__L44_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn889)
+kernel_rfl tab890 : (Bridge.extraOf 890, Bridge.entsOf 890, Bridge.adviceOf 890) = ([], [("__loop0_level_positions__L28_L26_L2", Fn.«level_positions__L28_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)], Data.adviceFn890)
+kernel_rfl tab891 : (Bridge.extraOf 891, Bridge.entsOf 891, Bridge.adviceOf 891) = ([], [("__loop0_level_positions__L19_L27_L3", Fn.«level_positions__L19_L27_L3_loop0».entry), ("decode_query_windows__L27_L3", Fn.«decode_query_windows__L27_L3».entry)], Data.adviceFn891)
+kernel_rfl tab892 : (Bridge.extraOf 892, Bridge.entsOf 892, Bridge.adviceOf 892) = ([], [("__loop0_level_positions__L14_L28_L4", Fn.«level_positions__L14_L28_L4_loop0».entry), ("decode_query_windows__L28_L4", Fn.«decode_query_windows__L28_L4».entry)], Data.adviceFn892)
+kernel_rfl tab893 : (Bridge.extraOf 893, Bridge.entsOf 893, Bridge.adviceOf 893) = ([], [("opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)], Data.adviceFn893)
+kernel_rfl tab894 : (Bridge.extraOf 894, Bridge.entsOf 894, Bridge.adviceOf 894) = ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L2", Fn.«verify_merkle_cap__L2».entry)], Data.adviceFn894)
+kernel_rfl tab895 : (Bridge.extraOf 895, Bridge.entsOf 895, Bridge.adviceOf 895) = ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], Data.adviceFn895)
+kernel_rfl tab896 : (Bridge.extraOf 896, Bridge.entsOf 896, Bridge.adviceOf 896) = ([], [("opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)], Data.adviceFn896)
+kernel_rfl tab897 : (Bridge.extraOf 897, Bridge.entsOf 897, Bridge.adviceOf 897) = ([], [("__loop0_level_positions__L9_L25_L7", Fn.«level_positions__L9_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)], Data.adviceFn897)
+kernel_rfl tab898 : (Bridge.extraOf 898, Bridge.entsOf 898, Bridge.adviceOf 898) = ([], [("__loop0_level_positions__L10_L26_L2", Fn.«level_positions__L10_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)], Data.adviceFn898)
+kernel_rfl tab899 : (Bridge.extraOf 899, Bridge.entsOf 899, Bridge.adviceOf 899) = ([], [("__loop0_level_positions__L8_L27_L3", Fn.«level_positions__L8_L27_L3_loop0».entry), ("decode_query_windows__L27_L3", Fn.«decode_query_windows__L27_L3».entry)], Data.adviceFn899)
+kernel_rfl tab900 : (Bridge.extraOf 900, Bridge.entsOf 900, Bridge.adviceOf 900) = ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], Data.adviceFn900)
 
 end
 

@@ -50,13 +50,17 @@ def links():
     return out
 
 
+PACK = {}
+
+
 def names():
-    """Each function's compiled name, by stable name."""
+    """Each function's compiled name, by stable name (and its pack, `PACK`)."""
     out = {}
     for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Bundle.lean'))):
         for blk in open(p, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.')[1:]:
             key = blk.split('\n', 1)[0].strip().strip('«»')
             out[key] = re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)"', blk).group(1)
+            PACK[key] = os.path.basename(os.path.dirname(p))
     return out
 
 
@@ -92,7 +96,7 @@ def run(check):
     for j, (k, _, _) in lk.items():
         cells, ents, _ = ctxs[k]
         extras[j] = cells
-        callees[j] = [idx[c] for c in re.findall(r'\("([^"]*)", \d+\)', ents)]
+        callees[j] = [idx[c] for c in re.findall(r'\("([^"]*)", (?:\d+|Fn\.«[^»]+»\.entry)\)', ents)]
     files = {}
     files[os.path.join(BR, 'ProgAlData.lean')] = (
         HEAD.format(mod='LeanVM.Guest.Bridge.ProgAlData',
@@ -131,6 +135,8 @@ end LeanVM.Guest.Bridge
         tmod = 'Tab' + mod[len('Link'):]
         imps = {f'LeanVM.Guest.Bridge.ProgAl.{tmod}'} | {ctxs[lk[j][0]][2] for j in js}
         body, tbody = [], []
+        # the glue naming the callees' entries (`Fn.«k».entry`)
+        glue = sorted({PACK[c] for j in js for c in re.findall(r'Fn\.«([^»]+)»\.entry', ctxs[lk[j][0]][1])})
         for j in js:
             k, _, hp = lk[j]
             cells, ents, _ = ctxs[k]
@@ -146,6 +152,7 @@ end LeanVM.Guest.Bridge
             HEAD.format(mod=f'LeanVM.Guest.Bridge.ProgAl.{tmod}',
                         what=f"The alignment tables' entries of the functions of `Checked.{mod}`.")
             + f'public import LeanVM.Guest.Bridge.ProgAlDefs\npublic import LeanVM.Guest.Checked.{mod}\n'
+            + ''.join(f'public import LeanVM.Guest.CoreMode.GlueE.«{q}»\n' for q in glue)
             + '''meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.Bridge.ProgAl

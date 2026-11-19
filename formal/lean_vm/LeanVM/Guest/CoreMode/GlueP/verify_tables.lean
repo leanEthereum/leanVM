@@ -11,12 +11,15 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_tables»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `verify_tables`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«verify_tables».fpows : PowTree :=
   (.node 6686845316181103282 21923 (.node 747481329577371311 20819 (.node 8589934592 33 (.node 512 9
     (.node 32 5 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 16 4 .leaf .leaf))
     (.node 128 7 (.node 64 6 .leaf .leaf) (.node 256 8 .leaf .leaf))) (.node 8388608 23 (.node 4096
@@ -75,10 +78,9 @@ noncomputable def fpows : PowTree :=
     .leaf .leaf) (.node 17328569810678497290 21326 .leaf .leaf)) (.node 18140314896347470340 22014
     (.node 17970753786836876951 20831 .leaf .leaf) (.node 18156909736221508678 21547 .leaf
     .leaf)))))))
-
-/-- `verify_tables`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«verify_tables».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«verify_tables»
+
+end LeanVM.Guest

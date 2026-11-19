@@ -13,100 +13,29 @@ import os, re, sys, glob, json, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import heap  # noqa: E402
+from compiled import tokens, parse, split_top  # noqa: E402,F401
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 FIELDS = 'pc entry self pre preR term ret post postR postL preP postP postLP retV postT postC'.split()
-
-
-def tokens(s):
-    return re.findall(r'⟨|⟩|\[|\]|\(|\)|,|[A-Za-z_.][A-Za-z_.0-9]*|\d+', s)
-
-
-def parse(s):
-    """A printed Lean term of `Mode.Sig`'s parts as Python: anonymous constructors as tuples, lists as
-    lists, `.c a b` as `('c', a, b)`, `List.flatten l` flattened."""
-    ts = tokens(s); pos = [0]
-
-    def term():
-        t = ts[pos[0]]
-        if t == '⟨':
-            pos[0] += 1; out = []
-            while ts[pos[0]] != '⟩':
-                out.append(app())
-                if ts[pos[0]] == ',': pos[0] += 1
-            pos[0] += 1
-            return tuple(out)
-        if t == '[':
-            pos[0] += 1; out = []
-            while ts[pos[0]] != ']':
-                out.append(app())
-                if ts[pos[0]] == ',': pos[0] += 1
-            pos[0] += 1
-            return out
-        if t == '(':
-            pos[0] += 1; vs = [app()]
-            while ts[pos[0]] == ',':
-                pos[0] += 1; vs.append(app())
-            assert ts[pos[0]] == ')', (s, pos[0]); pos[0] += 1
-            return vs[0] if len(vs) == 1 else tuple(vs)
-        pos[0] += 1
-        if t.isdigit(): return int(t)
-        return ('id', t)
-
-    def app():
-        head = term()
-        args = []
-        while pos[0] < len(ts) and ts[pos[0]] not in (',', ')', ']', '⟩'):
-            args.append(term())
-        if not args: return head
-        h = head[1]
-        if h == 'List.flatten': return [x for l in args[0] for x in l]
-        return (h.lstrip('.'),) + tuple(args)
-
-    return app()
-
-
-def split_top(s):
-    out = []; depth = 0; cur = ''
-    for ch in s:
-        if ch in '⟨([{': depth += 1
-        if ch in '⟩)]}': depth -= 1
-        if ch == ',' and depth == 0: out.append(cur.strip()); cur = ''
-        else: cur += ch
-    out.append(cur.strip())
-    return out
 
 
 SIGS = None
 
 
 def sigs():
-    """Each function's `Mode.Sig`, by namespace name, fields parsed: the mode inference's (`MODE_CERT_CACHE`, as
-    `scripts/core-mode/frame_gen.py` writes them), or as written (`CoreMode/Sig/*.lean`, `Fn.«k».csig`)."""
+    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (a routed function's
+    signature as written, the others' the mode walk's inference's, `MODE_CERT_CACHE`), whether or not it has run."""
     global SIGS
     if SIGS is not None:
         return SIGS
-    cache = os.environ.get('MODE_CERT_CACHE')
-    texts = []
-    if cache and os.path.exists(cache):
-        # in a fresh interpreter (the mode walk's `infer`, `data` modules clash with the core route's), once per cache
-        dump = cache + '.sigs.json'
-        if not os.path.exists(dump) or os.path.getmtime(dump) < os.path.getmtime(cache):
-            import subprocess
-            subprocess.run([sys.executable, '-I', os.path.join(HERE, 'sigc.py'), '--dump', dump], check=True)
-        texts = sorted(json.load(open(dump)).items())
-    else:
-        for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Sig', '*.lean')):
-            t = open(f).read()
-            for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-                nm = blk.split('\n', 1)[0].strip().strip('«»')
-                m = re.search(r'def csig : Mode.Sig :=\s*⟨(.*?)⟩\n\nend', blk, re.S)
-                texts.append((nm, m.group(1)))
+    import sigc, compiled
+    lits, _ = sigc.signatures()
+    fns = compiled.code()['fns']
     out = {}
-    for nm, text in texts:
+    for n, text in lits.items():
         parts = split_top(text)
-        assert len(parts) == 16, nm
-        out[nm] = {k: parse(v) for k, v in zip(FIELDS, parts)}
+        assert len(parts) == 15, n
+        out[fns[n]['ns']] = dict(pc=fns[n]['entry'], **{k: parse(v) for k, v in zip(FIELDS[1:], parts)})
     SIGS = out
     return out
 

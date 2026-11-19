@@ -11,12 +11,15 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `verify_merkle_cap__L8`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«verify_merkle_cap__L8».fpows : PowTree :=
   (.node 9647317150085933251 328639 (.node 5388191013177310140 328910 (.node 3012533021736120984
     328550 (.node 1527742996884373702 329925 (.node 899498973827936660 329625 (.node
     498582230193035912 329420 (.node 287600097933284478 329087 (.node 143800048966642239 329086
@@ -255,10 +258,9 @@ noncomputable def fpows : PowTree :=
     (.node 18356891685403798898 329613 (.node 18267012625952550286 328991 (.node
     18231133010537043747 329078 .leaf .leaf) (.node 18285392849792171565 329095 .leaf .leaf)) (.node
     18380645332060599234 328703 (.node 18366068461750861595 329094 .leaf .leaf) .leaf))))))))
-
-/-- `verify_merkle_cap__L8`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«verify_merkle_cap__L8».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+
+end LeanVM.Guest

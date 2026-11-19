@@ -7,15 +7,12 @@
 
 module
 
-set_option linter.all false
-
-namespace LeanVM.Guest.Fn.«sp_wots»
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `sp_wots`: its entry pc. -/
-abbrev entry : Nat := 33508
+abbrev Fn.«sp_wots».entry : Nat := 33508
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

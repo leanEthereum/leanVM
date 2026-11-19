@@ -10,13 +10,13 @@ module
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.CoreMode.GlueE.«open_stacked__L3»
 
-namespace LeanVM.Guest.Fn.«open_stacked__L3»
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `open_stacked__L3`: its entry, the cells and heap facts it needs at entry and guarantees at
-    return. -/
-noncomputable def csig : Mode.Sig :=
+noncomputable def Fn.«open_stacked__L3».csig : Mode.Sig :=
   ⟨Fn.«open_stacked__L3».entry, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], none, (List.flatten
     [[⟨0, 0, [((.fr 11), 1)]⟩, ⟨0, 1, [((.fr 11), 1)]⟩, ⟨0, 2, [((.fr 11), 1)]⟩, ⟨0, 3, [((.fr 11),
     1)]⟩, ⟨0, 4, [((.fr 11), 1)]⟩, ⟨0, 5, [((.fr 11), 1)]⟩, ⟨0, 6, [((.fr 11), 1)]⟩, ⟨0, 7, [((.fr
@@ -82,4 +82,4 @@ noncomputable def csig : Mode.Sig :=
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L3»
+end LeanVM.Guest

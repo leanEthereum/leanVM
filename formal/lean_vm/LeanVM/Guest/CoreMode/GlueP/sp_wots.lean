@@ -11,12 +11,15 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«sp_wots»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `sp_wots`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«sp_wots».fpows : PowTree :=
   (.node 4398046511104 42 (.node 2097152 21 (.node 1024 10 (.node 108 66 (.node 16 4 (.node 4 2
     (.node 2 1 .leaf .leaf) (.node 8 3 .leaf .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf))
     (.node 256 8 (.node 216 67 (.node 128 7 .leaf .leaf) .leaf) (.node 512 9 (.node 325 128 .leaf
@@ -50,10 +53,9 @@ noncomputable def fpows : PowTree :=
     15685171161205734257 57099 (.node 15045031840652275845 36868 (.node 14855184898610538658 43612
     .leaf .leaf) .leaf) (.node 17495246479375854155 53727 (.node 16432587905651234487 55975 .leaf
     .leaf) .leaf))))))
-
-/-- `sp_wots`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«sp_wots».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«sp_wots»
+
+end LeanVM.Guest

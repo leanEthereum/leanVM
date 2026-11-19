@@ -11,281 +11,103 @@ public import LeanVM.Guest.Pow
 
 set_option Elab.async false
 set_option linter.all false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«column_selector__L16»
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
+
 @[expose] public section
-/-- `column_selector__L16`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+
+noncomputable def Fn.«column_selector__L16».fpows : PowTree :=
   (.node 32768 15 .leaf .leaf)
-
-/-- `column_selector__L16`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«column_selector__L16».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«column_selector__L16»
-
-namespace LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `decode_query_windows__L17_L5`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«decode_query_windows__L17_L5».fpows : PowTree :=
   (.node 16384 14 (.node 1024 10 (.node 8 3 (.node 2 1 .leaf .leaf) (.node 64 6 .leaf .leaf)) (.node
     8192 13 (.node 4096 12 .leaf .leaf) .leaf)) (.node 2251799813685248 51 (.node 131072 17 (.node
     32768 15 .leaf .leaf) (.node 17179869184 34 .leaf .leaf)) (.node 9223372036854775983 127 (.node
     9223372036854775808 63 .leaf .leaf) .leaf)))
-
-/-- `decode_query_windows__L17_L5`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«decode_query_windows__L17_L5».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_chain»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `eq_prefix_chain`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«eq_prefix_chain».fpows : PowTree :=
   (.node 14651122348443039352 19364 (.node 1099511627776 40 .leaf .leaf) .leaf)
-
-/-- `eq_prefix_chain`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«eq_prefix_chain».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_chain»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L37»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `eq_prefix_run__L37`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«eq_prefix_run__L37».fpows : PowTree :=
   .leaf
-
-/-- `eq_prefix_run__L37`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«eq_prefix_run__L37».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L37»
-
-namespace LeanVM.Guest.Fn.«grind_check__L2»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `grind_check__L2`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«grind_check__L2».fpows : PowTree :=
   (.node 55834575010 2047 (.node 2048 11 (.node 4 2 .leaf .leaf) .leaf) (.node 9223372036854775983
     127 .leaf .leaf))
-
-/-- `grind_check__L2`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«grind_check__L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«grind_check__L2»
-
-namespace LeanVM.Guest.Fn.«grind_check__L24»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `grind_check__L24`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«grind_check__L24».fpows : PowTree :=
   (.node 55834575010 2047 (.node 16777216 24 (.node 2048 11 .leaf .leaf) .leaf) (.node
     9223372036854775983 127 .leaf .leaf))
-
-/-- `grind_check__L24`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«grind_check__L24».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«grind_check__L24»
-
-namespace LeanVM.Guest.Fn.«index_mle__L26»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `index_mle__L26`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«index_mle__L26».fpows : PowTree :=
   .leaf
-
-/-- `index_mle__L26`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«index_mle__L26».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«index_mle__L26»
-
-namespace LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_positions__L5_L25_L7_loop0`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_positions__L5_L25_L7_loop0».fpows : PowTree :=
   (.node 3302996744921619055 352827 (.node 576460752303423488 59 (.node 2 1 .leaf .leaf) .leaf)
     (.node 16518330085859782347 379958 .leaf .leaf))
-
-/-- `level_positions__L5_L25_L7_loop0`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_positions__L5_L25_L7_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_positions__L5_L25_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_positions__L7_L14_L2»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_positions__L7_L14_L2`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_positions__L7_L14_L2».fpows : PowTree :=
   (.node 1099511627776 40 (.node 128 7 (.node 2 1 .leaf .leaf) (.node 34359738368 35 .leaf .leaf))
     (.node 15701004388869557995 278947 (.node 5002156232949458548 279269 .leaf .leaf) .leaf))
-
-/-- `level_positions__L7_L14_L2`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_positions__L7_L14_L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_positions__L7_L14_L2»
-
-namespace LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_positions__L8_L19_L7_loop0`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_positions__L8_L19_L7_loop0».fpows : PowTree :=
   (.node 6889792828080853391 316820 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
     (.node 11504948961575802722 289157 .leaf .leaf))
-
-/-- `level_positions__L8_L19_L7_loop0`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_positions__L8_L19_L7_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_positions__L8_L19_L7_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L16_L8_L4_L2_loop0»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L16_L8_L4_L2_loop0`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L16_L8_L4_L2_loop0».fpows : PowTree :=
   (.node 68987916304 516 (.node 2 1 .leaf .leaf) (.node 2784665595374068018 407681 .leaf .leaf))
-
-/-- `level_residual__L16_L8_L4_L2_loop0`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L16_L8_L4_L2_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L16_L8_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L37_L20_L4_L2`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L37_L20_L4_L2».fpows : PowTree :=
   (.node 4096 12 (.node 32 5 (.node 16 4 .leaf .leaf) (.node 1024 10 .leaf .leaf)) (.node
     9308535419636684496 401849 (.node 4294967296 32 .leaf .leaf) (.node 17894957028309704944 401041
     .leaf .leaf)))
-
-/-- `level_residual__L37_L20_L4_L2`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L37_L20_L4_L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2_loop1»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L44_L19_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L44_L19_L4_L2_loop1».fpows : PowTree :=
   (.node 89335319756800 166 (.node 2 1 .leaf .leaf) (.node 8156868070935941964 386378 .leaf .leaf))
-
-/-- `level_residual__L44_L19_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L44_L19_L4_L2_loop1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L44_L19_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2_loop1»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L44_L20_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L44_L20_L4_L2_loop1».fpows : PowTree :=
   (.node 5717460464435200 172 (.node 2 1 .leaf .leaf) (.node 17476389906892237599 400880 .leaf
     .leaf))
-
-/-- `level_residual__L44_L20_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L44_L20_L4_L2_loop1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L44_L20_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2_loop1»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L55_L13_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L55_L13_L4_L2_loop1».fpows : PowTree :=
   (.node 1300 130 (.node 2 1 .leaf .leaf) (.node 13633896669355921481 311942 .leaf .leaf))
-
-/-- `level_residual__L55_L13_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L55_L13_L4_L2_loop1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L55_L13_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L55_L15_L6_L3_loop0»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `level_residual__L55_L15_L6_L3_loop0`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«level_residual__L55_L15_L6_L3_loop0».fpows : PowTree :=
   (.node 4802739822399760 772 (.node 2 1 .leaf .leaf) (.node 9350611181326865727 292656 .leaf
     .leaf))
-
-/-- `level_residual__L55_L15_L6_L3_loop0`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«level_residual__L55_L15_L6_L3_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«level_residual__L55_L15_L6_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L21»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `padding_weight__L21`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«padding_weight__L21».fpows : PowTree :=
   (.node 1048576 20 (.node 2 1 .leaf .leaf) (.node 2097152 21 .leaf .leaf))
-
-/-- `padding_weight__L21`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«padding_weight__L21».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L21»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L0»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `plus_one_run__L0`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«plus_one_run__L0».fpows : PowTree :=
   .leaf
-
-/-- `plus_one_run__L0`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«plus_one_run__L0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L0»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L29»
-open LeanVM.Guest LeanVM.Guest.Exec
-@[expose] public section
-/-- `squeeze_point_from__L29`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«squeeze_point_from__L29».fpows : PowTree :=
   .leaf
-
-/-- `squeeze_point_from__L29`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW :=
+theorem Fn.«squeeze_point_from__L29».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 
 end
-end LeanVM.Guest.Fn.«squeeze_point_from__L29»
+
+end LeanVM.Guest

@@ -10,13 +10,13 @@ module
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.CoreMode.GlueE.«verify_merkle_cap__L8»
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+set_option linter.style.nameCheck false
+
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L8`: its entry, the cells and heap facts it needs at entry and guarantees
-    at return. -/
-noncomputable def csig : Mode.Sig :=
+noncomputable def Fn.«verify_merkle_cap__L8».csig : Mode.Sig :=
   ⟨Fn.«verify_merkle_cap__L8».entry, [0, 1, 2, 3], none, [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4),
     (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [], [4, 5], [],
     [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2),
@@ -24,4 +24,4 @@ noncomputable def csig : Mode.Sig :=
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L8»
+end LeanVM.Guest

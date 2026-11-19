@@ -8,6 +8,26 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.CoreMode.GlueE.«P11»
+public import LeanVM.Guest.CoreMode.GlueE.«P17»
+public import LeanVM.Guest.CoreMode.GlueE.«P23»
+public import LeanVM.Guest.CoreMode.GlueE.«P24»
+public import LeanVM.Guest.CoreMode.GlueE.«P25»
+public import LeanVM.Guest.CoreMode.GlueE.«P27»
+public import LeanVM.Guest.CoreMode.GlueE.«P29»
+public import LeanVM.Guest.CoreMode.GlueE.«P2»
+public import LeanVM.Guest.CoreMode.GlueE.«P3»
+public import LeanVM.Guest.CoreMode.GlueE.«P42»
+public import LeanVM.Guest.CoreMode.GlueE.«P43»
+public import LeanVM.Guest.CoreMode.GlueE.«P4»
+public import LeanVM.Guest.CoreMode.GlueE.«P51»
+public import LeanVM.Guest.CoreMode.GlueE.«P54»
+public import LeanVM.Guest.CoreMode.GlueE.«P55»
+public import LeanVM.Guest.CoreMode.GlueE.«P56»
+public import LeanVM.Guest.CoreMode.GlueE.«P59»
+public import LeanVM.Guest.CoreMode.GlueE.«P62»
+public import LeanVM.Guest.CoreMode.GlueE.«P8»
+public import LeanVM.Guest.CoreMode.GlueE.«P9»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P8».Bundle
 public import LeanVM.Guest.Pack.«P8».Core
@@ -22,24 +42,24 @@ namespace LeanVM.Guest
 noncomputable def Fn.«block_selector__L13».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_factors__L13_L7_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
-noncomputable def Fn.«level_positions__L10_L26_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L10_L26_L2", 394009), ("decode_query_windows__L26_L2", 365068)] 524287 code.instructionCount
-noncomputable def Fn.«level_positions__L14_L28_L4_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L14_L28_L4", 393568), ("decode_query_windows__L28_L4", 393329)] 524287 code.instructionCount
-noncomputable def Fn.«level_positions__L15_L23_L5».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L15_L23_L5", 341028), ("decode_query_windows__L23_L5", 327078)] 524287 code.instructionCount
-noncomputable def Fn.«level_positions__L7_L23_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L7_L23_L5", 341808), ("decode_query_windows__L23_L5", 327078)] 524287 code.instructionCount
-noncomputable def Fn.«level_positions__L8_L24_L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L8_L24_L6", 365740), ("decode_query_windows__L24_L6", 341076)] 524287 code.instructionCount
-noncomputable def Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 379396), ("verify_merkle_cap__L6", 277929)] 524287 code.instructionCount
-noncomputable def Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 316970), ("verify_merkle_cap__L3", 276371)] 524287 code.instructionCount
-noncomputable def Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0", 289465), ("verify_merkle_cap__L7", 280072)] 524287 code.instructionCount
-noncomputable def Fn.«level_residual__L109_L18_L6_L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L109_L18_L6_L3", 318152), ("__loop1_level_residual__L109_L18_L6_L3", 318934)] 524287 code.instructionCount
-noncomputable def Fn.«level_residual__L37_L13_L4_L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L37_L13_L4_L2", 312750), ("__loop1_level_residual__L37_L13_L4_L2", 313320)] 524287 code.instructionCount
-noncomputable def Fn.«level_residual__L73_L16_L6_L3_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_level_residual__L73_L16_L6_L3", 301195)] 524287 code.instructionCount
-noncomputable def Fn.«main».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc true plumb Data.powTree Data.jtTrie [("__loop0_main", 64273), ("__loop1_main", 64293), ("__loop2_main", 64313), ("__loop3_main", 178532), ("__loop4_main", 178568), ("aggregate_claims", 64040), ("claim_list_digest", 61211), ("da_verify", 61545), ("exponent_tables", 14755), ("statement_digest", 61108)] 524287 code.instructionCount
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", 419001), ("walk_path__L12_L3", 408081)] 524287 code.instructionCount
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1", 453347)] 524287 code.instructionCount
-noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 425399), ("walk_path__L18_L3", 423642)] 524287 code.instructionCount
+noncomputable def Fn.«level_positions__L10_L26_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L10_L26_L2", Fn.«level_positions__L10_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_positions__L14_L28_L4_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L14_L28_L4", Fn.«level_positions__L14_L28_L4_loop0».entry), ("decode_query_windows__L28_L4", Fn.«decode_query_windows__L28_L4».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_positions__L15_L23_L5».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L15_L23_L5", Fn.«level_positions__L15_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_positions__L7_L23_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L7_L23_L5", Fn.«level_positions__L7_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_positions__L8_L24_L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L8_L24_L6", Fn.«level_positions__L8_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L7", Fn.«verify_merkle_cap__L7».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_residual__L109_L18_L6_L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L109_L18_L6_L3", Fn.«level_residual__L109_L18_L6_L3_loop0».entry), ("__loop1_level_residual__L109_L18_L6_L3", Fn.«level_residual__L109_L18_L6_L3_loop1».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_residual__L37_L13_L4_L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_residual__L37_L13_L4_L2", Fn.«level_residual__L37_L13_L4_L2_loop0».entry), ("__loop1_level_residual__L37_L13_L4_L2", Fn.«level_residual__L37_L13_L4_L2_loop1».entry)] 524287 code.instructionCount
+noncomputable def Fn.«level_residual__L73_L16_L6_L3_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_level_residual__L73_L16_L6_L3", Fn.«level_residual__L73_L16_L6_L3_loop1».entry)] 524287 code.instructionCount
+noncomputable def Fn.«main».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc true plumb Data.powTree Data.jtTrie [("__loop0_main", Fn.«main_loop0».entry), ("__loop1_main", Fn.«main_loop1».entry), ("__loop2_main", Fn.«main_loop2».entry), ("__loop3_main", Fn.«main_loop3».entry), ("__loop4_main", Fn.«main_loop4».entry), ("aggregate_claims", Fn.«aggregate_claims».entry), ("claim_list_digest", Fn.«claim_list_digest».entry), ("da_verify", Fn.«da_verify».entry), ("exponent_tables", Fn.«exponent_tables».entry), ("statement_digest", Fn.«statement_digest».entry)] 524287 code.instructionCount
+noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0».entry), ("walk_path__L12_L3", Fn.«walk_path__L12_L3».entry)] 524287 code.instructionCount
+noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».entry)] 524287 code.instructionCount
+noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».entry), ("walk_path__L18_L3", Fn.«walk_path__L18_L3».entry)] 524287 code.instructionCount
 noncomputable def Fn.«plus_one_run__L19».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«plus_one_run__L20».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
-noncomputable def Fn.«verify_keccak_loop2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop2_verify_keccak", 209695)] 524287 code.instructionCount
+noncomputable def Fn.«verify_keccak_loop2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop2_verify_keccak", Fn.«verify_keccak_loop2».entry)] 524287 code.instructionCount
 
 end
 
