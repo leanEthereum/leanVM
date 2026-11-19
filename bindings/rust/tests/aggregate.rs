@@ -198,8 +198,9 @@ fn rejects_tampered_and_truncated_bytes() {
 fn starts_and_stops_its_own_sidecar() {
     let binary = std::env::var_os("LEANVM_SIDECAR_BIN")
         .expect("set LEANVM_SIDECAR_BIN to a leanvm-sidecar executable");
-    let directory = std::env::temp_dir().join(format!("lean-pq-start-{}", std::process::id()));
-    let socket = directory.join("sidecar.sock");
+    // Short: a Unix socket path holds at most 104 bytes on macOS.
+    let directory = std::env::temp_dir().join(format!("lpq{}", std::process::id()));
+    let socket = directory.join("s.sock");
 
     let started = Sidecar::start(&binary, &socket).unwrap();
     let claims = [(SIGNERS.xmss.public_key(), FIRST)];

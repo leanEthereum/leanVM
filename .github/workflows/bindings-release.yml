@@ -99,7 +99,7 @@ jobs:
           command: sdist
           args: --out ../../dist
           working-directory: bindings/python
-      - name: Add the guest program and the cargo config to the sdist
+      - name: Add the cargo config to the sdist
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
@@ -692,7 +692,7 @@ jobs:
           CONTAINER: ${{ matrix.platform.container }}
         run: |
           version=${RELEASE_TAG#bindings-v}
-          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz" --aggregate
+          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz"
           if [ -n "$CONTAINER" ]; then
             docker run --rm -v "$PWD:/w" -w /w "$CONTAINER" sh "$@"
           else
@@ -921,3 +921,40 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"
+
+  # The leanvm-sidecar executables the bindings' aggregation talks to, for a CPU baseline (x86_64:
+  # AVX2 and PCLMULQDQ, as the bindings), on the oldest glibc runners, checked to start.
+  sidecar:
+    name: Sidecar / ${{ matrix.asset }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - asset: leanvm-sidecar-x86_64-linux
+            runner: ubuntu-22.04
+            rustflags: -C target-cpu=x86-64-v3 -C target-feature=+pclmulqdq
+          - asset: leanvm-sidecar-aarch64-linux
+            runner: ubuntu-22.04-arm
+            rustflags: -C target-feature=+aes
+          - asset: leanvm-sidecar-aarch64-macos
+            runner: macos-15
+            rustflags: -C target-cpu=apple-m1
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+        run: |
+          cargo build --release --locked -p leanvm-sidecar --features experimental_prover
+          cp target/release/leanvm-sidecar "${{ matrix.asset }}"
+      - name: Check it starts
+        run: sh bindings/scripts/start-sidecar.sh "${{ matrix.asset }}" "$RUNNER_TEMP/sc"
+      - name: Attach to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/bindings-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: sh .github/scripts/attach-release-assets.sh "${{ matrix.asset }}"

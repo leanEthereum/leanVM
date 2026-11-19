@@ -1,7 +1,8 @@
 name: Bindings CI
 
-# Changes to the bindings, or to the crates, guest and build settings they build from, run it, and
-# so does every update of the release pull request.
+# Changes to the bindings, or to the crates, guest, sidecar and build settings they and the sidecar
+# their aggregation tests run build from, run it, and so does every update of the release pull
+# request.
 on:
   push:
     branches: [main]
@@ -12,6 +13,7 @@ on:
       - Cargo.toml
       - Cargo.lock
       - .cargo/config.toml
+      - bins/leanvm-sidecar/**
       - .github/workflows/bindings-ci.yml
   pull_request:
     paths:
@@ -21,6 +23,7 @@ on:
       - Cargo.toml
       - Cargo.lock
       - .cargo/config.toml
+      - bins/leanvm-sidecar/**
       - .github/workflows/bindings-ci.yml
   # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
   workflow_dispatch:
@@ -33,8 +36,41 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The sidecar the aggregation tests talk to, built once per OS for a CPU baseline every runner
+  # has; the test jobs start it with bindings/scripts/start-sidecar.sh.
+  sidecar:
+    name: Sidecar / ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: Linux
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=x86-64-v3 -C target-feature=+pclmulqdq
+          - os: macOS
+            runner: macos-15
+            rustflags: -C target-cpu=apple-m1
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build leanvm-sidecar
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+        run: cargo build --release --locked -p leanvm-sidecar --features experimental_prover
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.os }}
+          path: target/release/leanvm-sidecar
+          if-no-files-found: error
+
   rust:
     name: Rust
+    needs: sidecar
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,10 +78,21 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: x86_64-pc-windows-gnu
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: bindings
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -69,18 +116,14 @@ jobs:
         run: cargo clippy --release -p lean-pq --all-targets -- -D warnings
         working-directory: bindings
 
-      # Consumers that only sign and verify build without the prover.
-      # The README's aggregation example is a doctest, so only the lib and integration tests run.
-      - name: Test Rust bindings without aggregation
-        run: cargo test --release -p lean-pq --no-default-features --lib --tests
-        working-directory: bindings
-
-      - name: Lint Rust bindings without aggregation
-        run: cargo clippy --release -p lean-pq --no-default-features --all-targets -- -D warnings
+      # Without Unix sockets, connecting fails; the rest builds as on Unix.
+      - name: Lint the Windows build
+        run: cargo clippy --release -p lean-pq -p lean-pq-native --target x86_64-pc-windows-gnu -- -D warnings
         working-directory: bindings
 
   test:
     name: ${{ matrix.os }} / py${{ matrix.python }}
+    needs: sidecar
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +142,16 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - uses: astral-sh/setup-uv@v7
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       # rust-toolchain.toml pins the rustc version; this action honors it.
       - uses: dtolnay/rust-toolchain@stable
@@ -120,9 +173,20 @@ jobs:
 
   java:
     name: Java 25
+    needs: sidecar
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v5
         with:
@@ -183,9 +247,20 @@ jobs:
 
   node:
     name: Node.js
+    needs: sidecar
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v5
         with:
@@ -285,7 +360,7 @@ jobs:
 
   zig:
     name: Zig / ${{ matrix.platform.name }}
-    needs: native
+    needs: [native, sidecar]
     strategy:
       fail-fast: false
       matrix:
@@ -299,6 +374,16 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - uses: actions/checkout@v4
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v4
         with:
@@ -320,7 +405,7 @@ jobs:
 
   nim:
     name: Nim / ${{ matrix.platform.name }}
-    needs: native
+    needs: [native, sidecar]
     strategy:
       fail-fast: false
       matrix:
@@ -334,6 +419,16 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - uses: actions/checkout@v4
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v4
         with:
@@ -368,7 +463,7 @@ jobs:
 
   go:
     name: Go cgo / ${{ matrix.platform.name }}
-    needs: native
+    needs: [native, sidecar]
     strategy:
       fail-fast: false
       matrix:
@@ -400,6 +495,16 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      - if: runner.os != 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ runner.os }}
+          path: ${{ runner.temp }}/sidecar-bin
+
+      - name: Start a sidecar for the aggregation tests
+        if: runner.os != 'Windows'
+        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v4
         with:
