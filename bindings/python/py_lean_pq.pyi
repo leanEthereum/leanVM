@@ -1,5 +1,6 @@
 """Python bindings for leanXMSS and leanSPHINCS signatures and their aggregation."""
 
+import os
 from collections.abc import Sequence
 from typing import final
 
@@ -9,10 +10,9 @@ __all__ = [
     "XmssSecretKey",
     "SphincsSecretKey",
     "Aggregate",
-    "setup",
+    "Sidecar",
     "xmss_verify",
     "sphincs_verify",
-    "aggregate",
 ]
 
 __version__: str
@@ -51,24 +51,37 @@ class SphincsSecretKey:
 
 @final
 class Aggregate:
-    @classmethod
-    def from_bytes(
-        cls,
-        data: bytes,
-        xmss_claims: Sequence[tuple[bytes, bytes]] = (),
-        sphincs_claims: Sequence[tuple[bytes, bytes]] = (),
-    ) -> "Aggregate": ...
     def to_bytes(self) -> bytes: ...
     @property
     def xmss_claims(self) -> list[tuple[bytes, bytes]]: ...
     @property
     def sphincs_claims(self) -> list[tuple[bytes, bytes]]: ...
 
-def setup() -> None: ...
+@final
+class Sidecar:
+    @classmethod
+    def connect(cls, socket: str | os.PathLike[str]) -> "Sidecar": ...
+    @classmethod
+    def start(
+        cls, binary: str | os.PathLike[str], socket: str | os.PathLike[str], threads: int = 0
+    ) -> "Sidecar": ...
+    @property
+    def prover(self) -> str: ...
+    def aggregate(
+        self,
+        children: Sequence[Aggregate] = (),
+        xmss: Sequence[tuple[bytes, bytes, bytes]] = (),
+        sphincs: Sequence[tuple[bytes, bytes, bytes]] = (),
+    ) -> Aggregate: ...
+    def verify(
+        self,
+        data: bytes,
+        xmss_claims: Sequence[tuple[bytes, bytes]] = (),
+        sphincs_claims: Sequence[tuple[bytes, bytes]] = (),
+    ) -> Aggregate: ...
+    def close(self) -> None: ...
+    def __enter__(self) -> "Sidecar": ...
+    def __exit__(self, *args: object) -> None: ...
+
 def xmss_verify(public_key: bytes, message: bytes, signature: bytes) -> None: ...
 def sphincs_verify(public_key: bytes, message: bytes, signature: bytes) -> None: ...
-def aggregate(
-    children: Sequence[Aggregate] = (),
-    xmss: Sequence[tuple[bytes, bytes, bytes]] = (),
-    sphincs: Sequence[tuple[bytes, bytes, bytes]] = (),
-) -> Aggregate: ...

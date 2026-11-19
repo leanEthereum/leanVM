@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.12.0...bindings-v0.13.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* aggregate(), setup() and Aggregate.from_bytes are replaced by Sidecar.aggregate and Sidecar.verify on a running leanvm-sidecar (Unix only); the C ABI's aggregate calls take a sidecar handle.
+
+### Features
+
+* bindings: aggregate/verify through a leanVM sidecar instead of in-process ([#804](https://github.com/leanEthereum/leanVM/issues/804)) ([dbd30ec](https://github.com/leanEthereum/leanVM/commit/dbd30ec2c6f2475b4e996994f80b1ee5404ea1c2))
+
 ## [0.12.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.11.1...bindings-v0.12.0) (2026-11-19)
 
 

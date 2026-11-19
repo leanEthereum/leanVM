@@ -16,6 +16,7 @@ Built so, it runs the experimental prover; without `--features experimental_prov
 | --- | --- | --- |
 | `--socket` | required | the socket to listen on, in a directory that exists |
 | `--threads` | 0 | thread count, 0 for one per core |
+| `--exit-with-stdin` | off | exit when standard input closes, so a program that launches it through a pipe stops it by exiting |
 
 - It warms up (two discarded proofs) before listening, so the socket appears once it is ready. It logs to standard error.
 - One sidecar per socket: it locks `<socket>.lock`, and replaces a stale socket left by one that stopped.
@@ -37,7 +38,7 @@ assert!(sidecar.verify(&claims, &proof)?);
 
 A call waits as long as the sidecar takes, unless `set_timeout` bounds it; after a timeout, drop the client.
 
-From Go, `clients/go` (package `leanvmsidecar`) offers the same, `Dial`, then `Aggregate` and `Verify`, with claims, proofs, signatures and blobs in the byte forms below. From another language, implement the protocol below.
+From Go, `clients/go` (package `leanvmsidecar`) offers the same, `Dial`, then `Aggregate` and `Verify`, with claims, proofs, signatures and blobs in the byte forms below. The language bindings in [`bindings/`](../../bindings/README.md#sidecar) (Python, Node.js, Java, Go, Zig, Nim) aggregate and verify through this client too, and can launch the sidecar themselves. From another language, implement the protocol below.
 
 ## Protocol, version 1
 
