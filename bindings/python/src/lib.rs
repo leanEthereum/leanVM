@@ -9,7 +9,10 @@ use pyo3::wrap_pyfunction;
 create_exception!(py_lean_pq, LeanPqError, PyException);
 
 fn api_error(error: lean_pq::Error) -> PyErr {
-    LeanPqError::new_err(error.to_string())
+    match error {
+        lean_pq::Error::InvalidLength { .. } => PyValueError::new_err(error.to_string()),
+        _ => LeanPqError::new_err(error.to_string()),
+    }
 }
 
 fn fixed<const N: usize>(bytes: &[u8], name: &str) -> PyResult<[u8; N]> {
@@ -26,22 +29,18 @@ fn message(bytes: &[u8]) -> PyResult<Message> {
 }
 
 fn xmss_public_key(bytes: &[u8]) -> PyResult<xmss::PublicKey> {
-    fixed::<{ lean_pq::PUBLIC_KEY_LEN }>(bytes, "public key")?;
     xmss::PublicKey::from_bytes(bytes).map_err(api_error)
 }
 
 fn xmss_signature(bytes: &[u8]) -> PyResult<xmss::Signature> {
-    fixed::<{ xmss::SIGNATURE_LEN }>(bytes, "leanXMSS signature")?;
     xmss::Signature::from_bytes(bytes).map_err(api_error)
 }
 
 fn sphincs_public_key(bytes: &[u8]) -> PyResult<sphincs::PublicKey> {
-    fixed::<{ lean_pq::PUBLIC_KEY_LEN }>(bytes, "public key")?;
     sphincs::PublicKey::from_bytes(bytes).map_err(api_error)
 }
 
 fn sphincs_signature(bytes: &[u8]) -> PyResult<sphincs::Signature> {
-    fixed::<{ sphincs::SIGNATURE_LEN }>(bytes, "leanSPHINCS signature")?;
     sphincs::Signature::from_bytes(bytes).map_err(api_error)
 }
 
@@ -72,7 +71,6 @@ impl PyXmssSecretKey {
 
     #[classmethod]
     fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
-        fixed::<{ xmss::SECRET_KEY_LEN }>(data, "secret key")?;
         Ok(Self {
             inner: py
                 .detach(|| xmss::SecretKey::from_bytes(data))
@@ -129,7 +127,6 @@ impl PySphincsSecretKey {
 
     #[classmethod]
     fn from_bytes(_cls: &Bound<'_, PyType>, py: Python<'_>, data: &[u8]) -> PyResult<Self> {
-        fixed::<{ sphincs::SECRET_KEY_LEN }>(data, "secret key")?;
         Ok(Self {
             inner: py
                 .detach(|| sphincs::SecretKey::from_bytes(data))
