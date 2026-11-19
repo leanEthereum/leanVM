@@ -43,14 +43,29 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
     let mut e = *a;
     for &[rc0, rc1] in RC.as_chunks::<2>().0 {
-        round(a, &mut e, &mut c, rc0);
-        round(&e, a, &mut c, rc1);
+        round::<S, 5>(a, &mut e, &mut c, rc0);
+        round::<S, 5>(&e, a, &mut c, rc1);
     }
 }
 
-/// One round from `a` into `out`, `c` holding the column parities of `a` on entry and of `out` on exit.
+/// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
+/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
 #[inline(always)]
-fn round<S: Lane>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut e = *a;
+    for &[rc0, rc1] in RC[..RC.len() - 2].as_chunks::<2>().0 {
+        round::<S, 5>(a, &mut e, &mut c, rc0);
+        round::<S, 5>(&e, a, &mut c, rc1);
+    }
+    round::<S, 5>(a, &mut e, &mut c, RC[RC.len() - 2]);
+    round::<S, 1>(&e, a, &mut c, RC[RC.len() - 1]);
+}
+
+/// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
+/// whole round, of `out` on exit.
+#[inline(always)]
+fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
     let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
     let t = |i: usize| a[i].xor(d[i % 5]);
     // Row `y` of the output takes the lanes π sends there, each rotated by its ρ.
@@ -80,46 +95,54 @@ fn round<S: Lane>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 
             t(24).rotl::<14>(),
         ],
     );
-    row(
-        1,
-        [
-            t(3).rotl::<28>(),
-            t(9).rotl::<20>(),
-            t(10).rotl::<3>(),
-            t(16).rotl::<45>(),
-            t(22).rotl::<61>(),
-        ],
-    );
-    row(
-        2,
-        [
-            t(1).rotl::<1>(),
-            t(7).rotl::<6>(),
-            t(13).rotl::<25>(),
-            t(19).rotl::<8>(),
-            t(20).rotl::<18>(),
-        ],
-    );
-    row(
-        3,
-        [
-            t(4).rotl::<27>(),
-            t(5).rotl::<36>(),
-            t(11).rotl::<10>(),
-            t(17).rotl::<15>(),
-            t(23).rotl::<56>(),
-        ],
-    );
-    row(
-        4,
-        [
-            t(2).rotl::<62>(),
-            t(8).rotl::<55>(),
-            t(14).rotl::<39>(),
-            t(15).rotl::<41>(),
-            t(21).rotl::<2>(),
-        ],
-    );
+    if ROWS > 1 {
+        row(
+            1,
+            [
+                t(3).rotl::<28>(),
+                t(9).rotl::<20>(),
+                t(10).rotl::<3>(),
+                t(16).rotl::<45>(),
+                t(22).rotl::<61>(),
+            ],
+        );
+    }
+    if ROWS > 2 {
+        row(
+            2,
+            [
+                t(1).rotl::<1>(),
+                t(7).rotl::<6>(),
+                t(13).rotl::<25>(),
+                t(19).rotl::<8>(),
+                t(20).rotl::<18>(),
+            ],
+        );
+    }
+    if ROWS > 3 {
+        row(
+            3,
+            [
+                t(4).rotl::<27>(),
+                t(5).rotl::<36>(),
+                t(11).rotl::<10>(),
+                t(17).rotl::<15>(),
+                t(23).rotl::<56>(),
+            ],
+        );
+    }
+    if ROWS > 4 {
+        row(
+            4,
+            [
+                t(2).rotl::<62>(),
+                t(8).rotl::<55>(),
+                t(14).rotl::<39>(),
+                t(15).rotl::<41>(),
+                t(21).rotl::<2>(),
+            ],
+        );
+    }
 }
 
 /// One state: the scalar permutation, and the batched one where no vector backend applies.
@@ -197,7 +220,11 @@ pub fn first_nonce(template: &[u64; STATE_LANES], at: usize, nonces: Range<u64>,
     while first < nonces.end {
         let mut st = template;
         st[at] = Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| first.wrapping_add(l as u64)));
-        permute(&mut st);
+        if out < 5 {
+            permute_first_row(&mut st);
+        } else {
+            permute(&mut st);
+        }
         let mut words = [0; LANES];
         st[out].store(&mut words);
         let n = (nonces.end - first).min(LANES as u64) as usize;
@@ -244,7 +271,7 @@ fn hash_group(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [
     }
     st[words] = st[words].xor(Backend::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(Backend::splat(END_BIT));
-    permute(&mut st);
+    permute_first_row(&mut st);
     digests(&st, out);
 }
 
@@ -304,7 +331,7 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
         for (j, shift) in [(0, 0), (1, 64)] {
             st[at + j] = st[at + j].xor(Backend::load(&values.map(|v| (v >> shift) as u64)));
         }
-        permute(&mut st);
+        permute_first_row(&mut st);
         let mut words = [[0u64; LANES]; 2];
         st[0].store(&mut words[0]);
         st[1].store(&mut words[1]);
