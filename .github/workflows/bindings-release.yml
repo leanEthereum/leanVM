@@ -59,7 +59,6 @@ jobs:
           # tells maturin to discover the Pythons inside (mounted by the
           # action) instead of the runner-installed ones on PATH.
           manylinux: auto
-          sccache: true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
@@ -67,7 +66,7 @@ jobs:
 
   # musllinux wheels for Alpine / musl-based distros (Docker base images,
   # some CI runners, etc.). Without these, musl users would fall back to
-  # building from sdist on every install — slow but functional.
+  # building from sdist on every install: slow but functional.
   musllinux:
     name: musllinux / ${{ matrix.platform.target }}
     runs-on: ${{ matrix.platform.runner }}
@@ -92,7 +91,6 @@ jobs:
           args: --release --out ../../dist --find-interpreter
           working-directory: bindings/python
           manylinux: musllinux_1_2
-          sccache: true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}
@@ -169,10 +167,8 @@ jobs:
     name: Publish to PyPI
     needs: [build, musllinux, sdist, windows-wheel-test]
     runs-on: ubuntu-latest
-    # PyPI Trusted Publishing. Pending publisher configured at
-    # https://pypi.org/manage/account/publishing/  (account-level — used
-    # before the project exists on PyPI; flips to project-level after the
-    # first successful publish). Configured publisher claims:
+    # PyPI Trusted Publishing: py-lean-pq's trusted publishers on PyPI must
+    # include this one, which these claims name:
     #   repo:        leanEthereum/leanVM
     #   workflow:    bindings-release.yml
     #   environment: pypi          (must match `environment.name` below)
@@ -225,7 +221,7 @@ jobs:
         with:
           version: 0.15.2
       - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
       - name: Add Rust target support
         run: rustup target add ${{ matrix.platform.rust_targets }}
       - name: Stage static native bridge
@@ -556,13 +552,13 @@ jobs:
           version: 0.15.2
       - name: Install cargo-zigbuild
         if: endsWith(matrix.platform.target, '-musl')
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
       # llvm-tools provides llvm-objdump for the import check below.
       - name: Install cargo-xwin
         if: endsWith(matrix.platform.target, '-msvc')
         run: |
           rustup component add llvm-tools
-          cargo install cargo-xwin --locked
+          cargo install cargo-xwin --version 0.23.1 --locked
       - name: Build
         working-directory: bindings/node
         env:
@@ -760,7 +756,7 @@ jobs:
         run: |
           version=${RELEASE_TAG#bindings-v}
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
-          # Tarball paths need ./ — npm reads dist/name.tgz as the GitHub repository dist/name.tgz.
+          # Tarball paths need ./: npm reads dist/name.tgz as the GitHub repository dist/name.tgz.
           root="./dist/kevaundray-lean-pq-$version.tgz"
           publish() {
             name=$(tar -xzOf "$1" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')
@@ -814,7 +810,7 @@ jobs:
           version: 0.15.2
       - name: Install cargo-zigbuild
         if: runner.os == 'Linux'
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
       - name: Build the native library
         run: sh bindings/java/scripts/build-native.sh ${{ matrix.platform.name }} native
       - uses: actions/setup-java@v5

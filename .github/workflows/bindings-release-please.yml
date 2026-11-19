@@ -51,6 +51,22 @@ jobs:
           git commit -m "chore: sync Cargo.lock with the release version" -- Cargo.lock
           git push origin "HEAD:${{ needs.release-please.outputs.pr_branch }}"
 
+  # A pull request or push made with GITHUB_TOKEN starts no workflow, so the release pull request
+  # would get no CI; a dispatch is the one start that token allows. Its runs report on the pull
+  # request's head commit, after the lock sync above.
+  release-pr-ci:
+    needs: [release-please, sync-cargo-lock]
+    if: ${{ needs.release-please.outputs.pr_branch != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Run bindings CI on the release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.release-please.outputs.pr_branch }}
+        run: gh workflow run bindings-ci.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
+
   # GITHUB_TOKEN-driven tag pushes do NOT trigger workflows (GitHub anti-loop
   # protection), so we can't just rely on bindings-release.yml's `on: push: tags`
   # trigger. Instead, when RP cuts a release, dispatch bindings-release.yml directly

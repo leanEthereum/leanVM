@@ -1,7 +1,7 @@
 name: Bindings CI
 
 # Changes to the bindings, or to the leanVM crates, guest and build settings they build from as path
-# dependencies, run it.
+# dependencies, run it, and so does every update of the release pull request.
 on:
   push:
     branches: [main]
@@ -22,6 +22,11 @@ on:
       - Cargo.lock
       - .cargo/config.toml
       - .github/workflows/bindings-ci.yml
+  # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   rust:
@@ -252,7 +257,7 @@ jobs:
           version: 0.15.2
 
       - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
 
       - name: Add Rust target support
         run: rustup target add ${{ matrix.platform.rust_targets }}
@@ -311,7 +316,7 @@ jobs:
           version: 0.15.2
 
       - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
 
       - name: Add Rust target support
         run: rustup target add ${{ matrix.platform.rust_targets }}
@@ -407,7 +412,7 @@ jobs:
           version: 0.15.2
 
       - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild --locked
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
 
       - name: Add Rust target support
         run: rustup target add ${{ matrix.platform.rust_targets }}

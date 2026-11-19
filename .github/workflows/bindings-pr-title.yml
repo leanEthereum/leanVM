@@ -19,7 +19,7 @@ jobs:
     steps:
       # Validates the PR title against the conventional-commits spec
       # (https://www.conventionalcommits.org). When you squash-merge, the
-      # squash commit message defaults to the PR title — so enforcing a
+      # squash commit message defaults to the PR title, so enforcing a
       # conventional title here means the resulting commit on main is also
       # conventional, which is what Release Please needs to parse versions
       # + changelog entries.
