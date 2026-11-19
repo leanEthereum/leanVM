@@ -1,0 +1,1 @@
+error: in main: heap index is a plain integer or a constant that is no g-power: write `buf[GEN ** k]`

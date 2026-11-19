@@ -138,6 +138,8 @@ structure Ctx where
   defs : List Func
   arrays : List (String × List (Nat × Nat))
   fnName : String
+  /-- The function's parameters' names. -/
+  params : List String
   isMain : Bool
   returnShapes : List Shape
   deriving Inhabited
@@ -1068,9 +1070,6 @@ def exprInto : Nat → Expr → V → M Unit
         emitAtom (.mul dst la lb)
     | .call f args => do
         -- A function of the program; a builtin's value (`hint_log2_ceil`, `addr`, ...) is an expression.
-        if (← origDef f).isNone then
-          let v ← expr n e
-          return ← copy v dst
         if (← origDef f).isSome then return ← callInto n f args [dst]
         let v ← expr n e
         copy v dst
@@ -1361,6 +1360,12 @@ def lowerIf : Nat → Bool → Expr → Expr → List Source.Stmt → List Sourc
           if let some (i, _) := k.diverging then
             fail s!"a side reads as the integer {i} where a condition folds and as another field element where a value is wanted: write `if const(...)`"
       let taken := (ai == bi) == eq
+      -- `freeVars` knows only a `const(...)` or two-literal `if` folds: for any other it captured
+      -- the names this arm rebinds, and the loop's self-call would pass the new value on.
+      if (← ctx).fnName.startsWith "__loop" && !forceConst && !Source.bothLits lhs rhs then
+        let bound := (Source.Stmt.freeVarsList (if taken then thn else els) ([], [])).2
+        if let some p := (← ctx).params.find? bound.contains then
+          fail s!"a folded `if` assigns to `{p}`, from outside the `for` loop: the loop cannot carry it"
       return ← withSeg (if taken then .t else .e) (stmts n (if taken then thn else els))
     if forceConst then
       if let (some fa, some fb) := (a.field, b.field) then
@@ -1933,7 +1938,8 @@ def paramBindings (f : Func) : List (String × Bound) × List V := Id.run do
 
 /-- The state lowering `f` starts in. -/
 def initState (p : Source.Program) (f : Func) (queue : Array Func) (loopBase : Nat) : St :=
-  { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name, isMain := f.name == "main",
+  { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name,
+             params := f.params.map (·.name), isMain := f.name == "main",
              returnShapes := f.returnShapes },
     names := (paramBindings f).1, heapSizes := [], path := [], tag := 0, out := #[],
     pending := false, inlineCalls := [],

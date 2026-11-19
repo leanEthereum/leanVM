@@ -1,0 +1,1 @@
+error: in main: a normal function's StackBuf return cannot cross a match join; bind it with `let`
