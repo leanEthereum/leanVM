@@ -1,0 +1,56 @@
+name = "x86"
+version = "0.1.0"
+defaultTargets = ["X86"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+# The statement: leanXMSS's and leanSPHINCS's verification (`Statement/LeanXmss.lean`,
+# `Statement/LeanSphincs.lean`), which the x86 verifiers are proved equal to.
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# Kraken's x86-64 semantics (AeneasVerif/kraken), which the machine code is proved in. Only
+# `Kraken.X64.Semantics`, `Kraken.X64.OmniSemantics`, `Kraken.X64.WP`, `Kraken.Mem` and
+# `Kraken.X64.PrintATT` are imported: they build on this toolchain, while Kraken's parser targets a
+# newer nightly.
+[[require]]
+name = "Kraken"
+git = "https://github.com/AeneasVerif/kraken"
+rev = "bf9a5e33ac33cd40cd379121e658fce6f90f18e3"
+
+# Pinned as the statement pins them.
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "e28da34817c3775cfb935376acf5d416f555d64f"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.35.0"
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio.git"
+rev = "5f9baf12d29d25ef7e754765d28030d53e728aac"
+
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
+
+[[lean_lib]]
+name = "X86"
+globs = ["X86.+"]
+
+# A verifier's machine code, `Compile.program body onFail`, printed as an assembly file exporting
+# `xmss_verify` or `sphincs_verify` (cli/EmitAsm.lean); `run/check.sh` assembles it with the harness.
+[[lean_exe]]
+name = "emit-asm"
+root = "EmitAsm"
+srcDir = "cli"

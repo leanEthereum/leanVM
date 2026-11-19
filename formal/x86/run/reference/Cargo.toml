@@ -1,0 +1,16 @@
+[package]
+name = "x86-sig-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Its own workspace, outside the repository's: built only by `run/check.sh`.
+[workspace]
+
+[[bin]]
+name = "reference"
+path = "src/main.rs"
+
+[dependencies]
+lean_xmss = { path = "../../../../crates/lean_xmss" }
+lean_sphincs = { path = "../../../../crates/lean_sphincs" }
