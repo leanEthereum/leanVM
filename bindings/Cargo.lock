@@ -89,6 +89,59 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "914a755b7c2d4af2bdcff7ce1739e2db9a1b81a9b07123d8015786ae03c0980d"
 
 [[package]]
+name = "experimental_keccak_gkr"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs",
+ "experimental_primitives",
+ "fiat_shamir_prover",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr",
+ "experimental_parallel",
+ "experimental_pcs",
+ "experimental_primitives",
+ "fiat_shamir_prover",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_parallel"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "experimental_pcs"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives",
+ "fiat_shamir_prover",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_primitives"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover",
+ "keccak256",
+]
+
+[[package]]
 name = "fiat_shamir_prover"
 version = "0.1.0"
 dependencies = [
@@ -227,7 +280,7 @@ version = "0.1.0"
 
 [[package]]
 name = "lean-pq"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "getrandom 0.3.4",
  "lean_sphincs",
@@ -239,14 +292,14 @@ dependencies = [
 
 [[package]]
 name = "lean-pq-native"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "lean-pq",
 ]
 
 [[package]]
 name = "lean-pq-node"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "lean-pq",
  "napi",
@@ -278,6 +331,7 @@ version = "0.1.0"
 dependencies = [
  "aggregation",
  "claims",
+ "experimental_lean_vm_core",
  "isa",
  "lean_da",
  "lean_sphincs",
@@ -433,7 +487,7 @@ dependencies = [
 
 [[package]]
 name = "py-lean-pq"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "lean-pq",
  "pyo3",
