@@ -22,8 +22,8 @@ words and a `ret` hands its words to the return condition.
 `Fn.sem_iff_wp`: a function's relation is the condition of its body from the empty environment,
 its parameters read first, for every body. Its invariant (`Stmt.wpList_iff`): the condition of a
 block at an environment `ρ` holds exactly when some valuation agreeing with `ρ` satisfies the
-block's relational semantics. The equations `wp_*` and `wpList_*` unfold one statement without unfolding
-the rest of its block; the `vc` tactic (`VcTactic.lean`) applies them to a concrete body.
+block's relational semantics. The equations `wp_*` and `wpList_*` unfold one statement without
+unfolding the rest of its block; the `vc` tactic (`VcTactic.lean`) applies them to a concrete body.
 -/
 
 namespace LeanVM.Guest.Core
@@ -230,8 +230,7 @@ def armsDisj (xv : E) : Nat → List Prop → Prop
   | j, p :: ps => (xv = ofK (addressOfIndex j) ∧ p) ∨ armsDisj xv (j + 1) ps
 
 theorem armsDisj_cons (xv : E) (j : Nat) (p : Prop) (ps : List Prop) :
-    armsDisj xv j (p :: ps) = ((xv = ofK (addressOfIndex j) ∧ p) ∨ armsDisj xv (j + 1) ps) := by
-  rw [armsDisj]
+    armsDisj xv j (p :: ps) = ((xv = ofK (addressOfIndex j) ∧ p) ∨ armsDisj xv (j + 1) ps) := rfl
 
 /-! ## One statement at a time -/
 
@@ -239,20 +238,19 @@ section Equations
 
 variable (C : CallRel) (rd : Reader) (kret : List E → Prop) (ρ : Env) (Q : Env → Prop)
 
-theorem wpList_nil : Stmt.wpList C rd kret [] ρ Q = Q ρ := by rw [Stmt.wpList]
+theorem wpList_nil : Stmt.wpList C rd kret [] ρ Q = Q ρ := rfl
 
 theorem wpList_cons (s : Stmt) (ss : List Stmt) :
     Stmt.wpList C rd kret (s :: ss) ρ Q =
-      Stmt.wp C rd kret s ρ fun ρ => Stmt.wpList C rd kret ss ρ Q := by rw [Stmt.wpList]
+      Stmt.wp C rd kret s ρ fun ρ => Stmt.wpList C rd kret ss ρ Q := rfl
 
 theorem wp_atom (a : Atom) :
-    Stmt.wp C rd kret (.atom a) ρ Q = getvs ρ a.vars fun ρ xs => a.rel rd xs ∧ Q ρ := by
-  rw [Stmt.wp, Atom.wp]
+    Stmt.wp C rd kret (.atom a) ρ Q = getvs ρ a.vars fun ρ xs => a.rel rd xs ∧ Q ρ := rfl
 
 theorem wp_ite (c : V) (z n : List Stmt) :
     Stmt.wp C rd kret (.ite c z n) ρ Q = getv ρ c fun ρ x =>
-      IsInK x ∧ (x = 0 → Stmt.wpList C rd kret z ρ Q) ∧ (x ≠ 0 → Stmt.wpList C rd kret n ρ Q) := by
-  rw [Stmt.wp]
+      IsInK x ∧ (x = 0 → Stmt.wpList C rd kret z ρ Q) ∧ (x ≠ 0 → Stmt.wpList C rd kret n ρ Q) :=
+  rfl
 
 theorem wpArms_eq (xv : E) (arms : List (List Stmt)) :
     ∀ (j : Nat) (ρ : Env), Stmt.wpArms C rd kret xv j arms ρ Q =
@@ -269,23 +267,19 @@ theorem wp_match (x : V) (arms : List (List Stmt)) :
 
 theorem wp_call (f : String) (args rets : List V) :
     Stmt.wp C rd kret (.call f args rets) ρ Q =
-      getvs ρ args fun ρ as => getvs ρ rets fun ρ rs => C f as rs ∧ Q ρ := by
-  rw [Stmt.wp]
+      getvs ρ args fun ρ as => getvs ρ rets fun ρ rs => C f as rs ∧ Q ρ := rfl
 
 theorem wp_callIf (c : V) (f : String) (args : List V) :
     Stmt.wp C rd kret (.callIf c f args) ρ Q = getv ρ c fun ρ x => getvs ρ args fun ρ as =>
-      (IsInK x ∧ (x ≠ 0 → C f as [])) ∧ Q ρ := by
-  rw [Stmt.wp]
+      (IsInK x ∧ (x ≠ 0 → C f as [])) ∧ Q ρ := rfl
 
 theorem wp_dispatch (x : V) (fs : List String) (args rets : List V) :
     Stmt.wp C rd kret (.dispatch x fs args rets) ρ Q = getv ρ x fun ρ xv =>
       getvs ρ args fun ρ as => getvs ρ rets fun ρ rs =>
-        (∃ (j : Nat) (h : j < fs.length), xv = ofK (addressOfIndex j) ∧ C fs[j] as rs) ∧ Q ρ := by
-  rw [Stmt.wp]
+        (∃ (j : Nat) (h : j < fs.length), xv = ofK (addressOfIndex j) ∧ C fs[j] as rs) ∧ Q ρ := rfl
 
 theorem wp_ret (vs : List V) :
-    Stmt.wp C rd kret (.ret vs) ρ Q = getvs ρ vs fun _ xs => kret xs := by
-  rw [Stmt.wp]
+    Stmt.wp C rd kret (.ret vs) ρ Q = getvs ρ vs fun _ xs => kret xs := rfl
 
 end Equations
 
@@ -442,15 +436,7 @@ theorem Stmt.wp_iff (C : CallRel) (rd : Reader) (kret : List E → Prop) :
       (by simp only [Stmt.Holds])
     have hz := Stmt.wpList_iff C rd kret z (hQ.mono l1)
     have hn := Stmt.wpList_iff C rd kret n (hQ.mono l1)
-    constructor
-    · rintro ⟨hk, h0, h1⟩
-      by_cases hx0 : x = 0
-      · obtain ⟨σ, ag, h⟩ := hz.1 (h0 hx0)
-        exact ⟨σ, ag, hk, fun _ => h, fun hne => absurd hx0 hne⟩
-      · obtain ⟨σ, ag, h⟩ := hn.1 (h1 hx0)
-        exact ⟨σ, ag, hk, fun h0' => absurd h0' hx0, fun _ => h⟩
-    · rintro ⟨σ, ag, hk, h0, h1⟩
-      exact ⟨hk, fun hx0 => hz.2 ⟨σ, ag, h0 hx0⟩, fun hne => hn.2 ⟨σ, ag, h1 hne⟩⟩
+    by_cases hx0 : x = 0 <;> simp [hx0, hz, hn, and_left_comm]
   | .match_ x arms, ρ, Q, N, hQ => by
     rw [wp_match]
     refine (getv_iff (G := fun _ σ => Stmt.HoldsArms C rd σ x 0 arms (N σ) kret)

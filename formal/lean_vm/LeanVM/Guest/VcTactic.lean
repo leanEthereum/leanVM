@@ -87,8 +87,11 @@ partial def toList (e : Expr) : MetaM (List Expr) := do
 
 def eTy : Expr := mkConst ``E
 def envTy : Expr := mkConst ``Env
-def contTy : Expr := mkForall `ρ .default envTy (mkSort Level.zero)
+def propTy : Expr := mkSort Level.zero
+def contTy : Expr := mkForall `ρ .default envTy propTy
 def listTy : Expr := mkApp (mkConst ``List [Level.zero]) eTy
+
+def ofDefs (t : Expr) : Expr := mkApp (mkConst ``Env.ofDefs) t
 
 /-- `e` with every head redex reduced. -/
 partial def headBetaAll (e : Expr) : Expr :=
@@ -113,6 +116,12 @@ structure Ctx where
   simprocs : Simp.SimprocsArray
 
 abbrev M := ReaderT Ctx MetaM
+
+def Ctx.wp (ctx : Ctx) (s ρ Q : Expr) : Expr :=
+  mkApp6 (mkConst ``Stmt.wp) ctx.C ctx.rd ctx.kret s ρ Q
+
+def Ctx.wpList (ctx : Ctx) (ss ρ Q : Expr) : Expr :=
+  mkApp6 (mkConst ``Stmt.wpList) ctx.C ctx.rd ctx.kret ss ρ Q
 
 /-- The rest of a condition: its value, and its condition at the table and environment given
 (a proposition `P` and a proof of `value ρ ↔ P`). -/
@@ -161,18 +170,15 @@ partial def unfoldReads (blocks : Array Expr) (ℓs : Array Expr) (vals : Vals) 
     match blocks.findIdx? (· == z) with
     | some i => return mkApp ℓs[i]! ρ
     | none => throwError "vc: unexpected block{indentExpr z}"
-  | (``And, #[a, b]) => return mkApp2 (mkConst ``And) (← go vals a) (← go vals b)
-  | (``Or, #[a, b]) => return mkApp2 (mkConst ``Or) (← go vals a) (← go vals b)
+  | (``And, #[a, b]) | (``Or, #[a, b]) =>
+    return mkApp2 e.appFn!.appFn! (← go vals a) (← go vals b)
   | (``Exists, #[α, .lam n d b bi]) =>
     withLocalDecl n bi d fun x => do
-      let body ← go vals (b.instantiate1 x)
-      return mkApp2 e.getAppFn α (← mkLambdaFVars #[x] body)
+      return mkApp2 e.getAppFn α (← mkLambdaFVars #[x] (← go vals (b.instantiate1 x)))
   | _ =>
     match e with
     | .forallE n d b bi =>
-      if b.hasLooseBVars then
-        withLocalDecl n bi d fun x => do mkForallFVars #[x] (← go vals (b.instantiate1 x))
-      else return .forallE n (← go vals d) (← go vals b) bi
+      withLocalDecl n bi (← go vals d) fun x => do mkForallFVars #[x] (← go vals (b.instantiate1 x))
     | _ => return e
 
 /-- The value an environment `Env.upd … v #i …` defines as the loose variable `#i`. -/
@@ -199,8 +205,8 @@ partial def fixNames (e : Expr) : MetaM Expr := do
   | .forallE n d b bi => return .forallE n d (← fixNames b) bi
   | _ =>
     match e.getAppFnArgs with
-    | (``And, #[a, b]) => return mkApp2 e.appFn!.appFn! (← fixNames a) (← fixNames b)
-    | (``Or, #[a, b]) => return mkApp2 e.appFn!.appFn! (← fixNames a) (← fixNames b)
+    | (``And, #[a, b]) | (``Or, #[a, b]) =>
+      return mkApp2 e.appFn!.appFn! (← fixNames a) (← fixNames b)
     | (``Exists, #[α, .lam n d b bi]) =>
       let n ← match defOf? b 0 with
         | some v => binderName v
@@ -233,6 +239,9 @@ def iffTrans (a b c h₁ h₂ : Expr) : Expr := mkApp5 (mkConst ``Iff.trans) a b
 
 def iffRfl (a : Expr) : Expr := mkApp (mkConst ``Iff.rfl) a
 
+/-- `a ↔ P` from `h : a = b` and `hP : b ↔ P`. -/
+def eqIff (a b P h hP : Expr) : Expr := iffTrans a b P (mkApp3 (mkConst ``Iff.of_eq) a b h) hP
+
 /-- The condition of `e`, a statement's rewritten condition whose free variables `fvars`
 (environment, continuation, blocks, words) stand for `values`, and among them `leaves` (the
 continuation and the blocks) for `rests`: congruence down to each occurrence `ℓ ρ'` of a leaf,
@@ -240,9 +249,15 @@ where the rest is computed. Returns `P` and a proof of `e[fvars := values] ↔ P
 partial def assemble (ρ₀ ρ : Expr) (fvars values leaves : Array Expr) (rests : Array Rest)
     (vals : Vals) (e : Expr) : M (Expr × Expr) := do
   let inst (t : Expr) : Expr := t.replaceFVars fvars values
-  let ids := leaves.map (·.fvarId!)
   let go := assemble ρ₀ ρ fvars values leaves rests vals
-  if !e.hasAnyFVar ids.contains then
+  -- under a binder: its type, the body before and after as functions, and their equivalence
+  let under (n : Name) (bi : BinderInfo) (d b : Expr) : M (Level × Expr × Expr × Expr × Expr) := do
+    let d := inst d
+    withLocalDecl n bi d fun x => do
+      let (pb, hb) ← go (b.instantiate1 x)
+      return (← getLevel d, d, ← mkLambdaFVars #[x] (inst (b.instantiate1 x)),
+        ← mkLambdaFVars #[x] pb, ← mkLambdaFVars #[x] hb)
+  if !e.hasAnyFVar (leaves.map (·.fvarId!)).contains then
     let ei := inst e
     return (ei, iffRfl ei)
   if let .app (.fvar f) arg := e then
@@ -254,59 +269,41 @@ partial def assemble (ρ₀ ρ : Expr) (fvars values leaves : Array Expr) (rests
       let mut h := mkApp2 (mkConst ``Eq.refl [Level.one]) envTy ρ
       for (v, x) in ← envDefs ρ₀ arg do
         let x := inst x
-        vals' := vals'.insert (← keyOf v) x
+        let k ← keyOf v
+        vals' := vals'.insert k x
         let upd (r : Expr) := mkApp3 (mkConst ``Env.upd) r v x
-        let ofT := mkApp (mkConst ``Env.ofDefs) T
-        let T' := insertDefs T v x (← keyOf v).idx 64
+        let T' := insertDefs T v x k.idx 64
         let hc := mkAppN (mkConst ``congrArg [Level.one, Level.one])
-          #[envTy, envTy, env, ofT, .lam `r envTy (upd (.bvar 0)) .default, h]
-        h := mkAppN (mkConst ``Eq.trans [Level.one]) #[envTy, upd env, upd ofT,
-          mkApp (mkConst ``Env.ofDefs) T', hc, mkApp3 (mkConst ``Env.upd_ofDefs) T v x]
+          #[envTy, envTy, env, ofDefs T, .lam `r envTy (upd (.bvar 0)) .default, h]
+        h := mkAppN (mkConst ``Eq.trans [Level.one])
+          #[envTy, upd env, upd (ofDefs T), ofDefs T', hc, mkApp3 (mkConst ``Env.upd_ofDefs) T v x]
         env := upd env
         T := T'
-      let ofT := mkApp (mkConst ``Env.ofDefs) T
-      let (P, hP) ← rests[i]!.run vals' ofT
+      let (P, hP) ← rests[i]!.run vals' (ofDefs T)
       if env == ρ then return (P, hP)
       let value := rests[i]!.value
       let hv := mkAppN (mkConst ``congrArg [Level.one, Level.one])
-        #[envTy, mkSort Level.zero, env, ofT, value, h]
-      let a := value.beta #[env]
-      let b := value.beta #[ofT]
-      return (P, iffTrans a b P (mkApp3 (mkConst ``Iff.of_eq) a b hv) hP)
+        #[envTy, propTy, env, ofDefs T, value, h]
+      return (P, eqIff (value.beta #[env]) (value.beta #[ofDefs T]) P hv hP)
   match e.getAppFnArgs with
-  | (``And, #[a, b]) =>
-    let (pa, ha) ← go a; let (pb, hb) ← go b
-    return (mkApp2 (mkConst ``And) pa pb,
-      mkAppN (mkConst ``and_congr) #[inst a, pa, inst b, pb, ha, hb])
-  | (``Or, #[a, b]) =>
-    let (pa, ha) ← go a; let (pb, hb) ← go b
-    return (mkApp2 (mkConst ``Or) pa pb,
-      mkAppN (mkConst ``or_congr) #[inst a, pa, inst b, pb, ha, hb])
+  | (``And, #[a, b]) | (``Or, #[a, b]) =>
+    let (pa, ha) ← go a
+    let (pb, hb) ← go b
+    let congr := if e.isAppOf ``And then ``and_congr else ``or_congr
+    return (mkApp2 e.appFn!.appFn! pa pb, mkAppN (mkConst congr) #[inst a, pa, inst b, pb, ha, hb])
   | (``Exists, #[_, .lam n d b bi]) =>
-    let d := inst d
-    let u ← getLevel d
-    withLocalDecl n bi d fun x => do
-      let (pb, hb) ← go (b.instantiate1 x)
-      let p ← mkLambdaFVars #[x] (inst (b.instantiate1 x))
-      let q ← mkLambdaFVars #[x] pb
-      return (mkApp2 (mkConst ``Exists [u]) d q,
-        mkAppN (mkConst ``exists_congr [u]) #[d, p, q, ← mkLambdaFVars #[x] hb])
+    let (u, d, p, q, h) ← under n bi d b
+    return (mkApp2 (mkConst ``Exists [u]) d q, mkAppN (mkConst ``exists_congr [u]) #[d, p, q, h])
   | _ =>
     match e with
     | .forallE n d b bi =>
       if b.hasLooseBVars then
-        let d := inst d
-        let u ← getLevel d
-        withLocalDecl n bi d fun x => do
-          let (pb, hb) ← go (b.instantiate1 x)
-          let p ← mkLambdaFVars #[x] (inst (b.instantiate1 x))
-          let q ← mkLambdaFVars #[x] pb
-          return (← mkForallFVars #[x] pb,
-            mkAppN (mkConst ``forall_congr' [u]) #[d, p, q, ← mkLambdaFVars #[x] hb])
+        let (u, d, p, q, h) ← under n bi d b
+        return (.forallE n d q.bindingBody! bi, mkAppN (mkConst ``forall_congr' [u]) #[d, p, q, h])
       else
-        let (pd, hd) ← go d; let (pb, hb) ← go b
-        return (.forallE n pd pb bi,
-          mkAppN (mkConst ``imp_congr) #[inst d, inst b, pd, pb, hd, hb])
+        let (pd, hd) ← go d
+        let (pb, hb) ← go b
+        return (.forallE n pd pb bi, mkAppN (mkConst ``imp_congr) #[inst d, inst b, pd, pb, hd, hb])
     | _ => throwError "vc: a block or the rest of the body under{indentExpr e}"
 
 /-- The table's words in `e` that are not variables, outermost first. -/
@@ -343,17 +340,20 @@ def condOf (ρ₀ k₀ : Expr) (ρ : Expr) (cont : Rest) (blocks : Array Expr)
       let rhsI := rhs.replaceFVars #[ρ₀, k₀] #[ρ, cont.value]
       let rawI := rawG.replaceFVars fvars values
       let sgI := sgG.replaceFVars fvars values
-      let prop := mkSort Level.zero
       -- the reads: by definitional unfolding of the IR
-      let h₁ ← mkExpectedTypeHint (mkApp2 (mkConst ``Eq.refl [Level.one]) prop rawI)
-        (mkApp3 (mkConst ``Eq [Level.one]) prop rhsI rawI)
+      let h₁ ← mkExpectedTypeHint (mkApp2 (mkConst ``Eq.refl [Level.one]) propTy rawI)
+        (mkApp3 (mkConst ``Eq [Level.one]) propTy rhsI rawI)
       let h₂ := (← r.getProof).replaceFVars fvars values
-      let h := mkApp6 (mkConst ``Eq.trans [Level.one]) prop rhsI rawI sgI h₁ h₂
-      return (P, iffTrans rhsI sgI P (mkApp3 (mkConst ``Iff.of_eq) rhsI sgI h) hP)
+      let h := mkApp6 (mkConst ``Eq.trans [Level.one]) propTy rhsI rawI sgI h₁ h₂
+      return (P, eqIff rhsI sgI P h hP)
 
 mutual
+/-- The rest `ss` then `Q`: `fun ρ => Stmt.wpList C rd kret ss ρ Q.value`, computed by `vcBlock`. -/
+partial def blockRest (ctx : Ctx) (ss : Expr) (Q : Rest) : Rest :=
+  ⟨mkLambda `ρ .default envTy (ctx.wpList ss (.bvar 0) Q.value), fun vals ρ => vcBlock ss vals ρ Q⟩
+
 /-- The condition of statement `s` at the table `vals` and environment `ρ`, `K` the rest of its
-block: `P` and a proof of `Stmt.wp C rd kret s ρ K ↔ P`. -/
+block: `P` and a proof of `Stmt.wp C rd kret s ρ K.value ↔ P`. -/
 partial def vcStmt (s : Expr) (vals : Vals) (ρ : Expr) (K : Rest) : M (Expr × Expr) := do
   let ctx ← read
   let s' ← whnfD s
@@ -369,54 +369,42 @@ partial def vcStmt (s : Expr) (vals : Vals) (ρ : Expr) (K : Rest) : M (Expr × 
   let base := #[ctx.C, ctx.rd, ctx.kret]
   withLocalDeclD `ρ envTy fun ρ₀ => withLocalDeclD `k contTy fun k₀ => do
     let ty ← instantiateForall (← inferType (mkConst eqn)) (base ++ #[ρ₀, k₀] ++ args)
-    let blockRests := blocks.map fun z =>
-      ⟨mkLambda `ρ .default envTy (mkApp6 (mkConst ``Stmt.wpList) ctx.C ctx.rd ctx.kret z (.bvar 0)
-        K.value), fun vals ρ' => vcBlock z vals ρ' K⟩
-    let (P, hP) ← condOf ρ₀ k₀ ρ K blocks blockRests vals ty.appArg!
-    let lhs := mkApp6 (mkConst ``Stmt.wp) ctx.C ctx.rd ctx.kret s ρ K.value
-    let rhsI := ty.appArg!.replaceFVars #[ρ₀, k₀] #[ρ, K.value]
-    let h := mkAppN (mkConst eqn) (base ++ #[ρ, K.value] ++ args)
-    return (P, iffTrans lhs rhsI P (mkApp3 (mkConst ``Iff.of_eq) lhs rhsI h) hP)
+    let rhs := ty.appArg!
+    let (P, hP) ← condOf ρ₀ k₀ ρ K blocks (blocks.map (blockRest ctx · K)) vals rhs
+    return (P, eqIff (ctx.wp s ρ K.value) (rhs.replaceFVars #[ρ₀, k₀] #[ρ, K.value]) P
+      (mkAppN (mkConst eqn) (base ++ #[ρ, K.value] ++ args)) hP)
 
 /-- The condition of block `ss` at `vals` and `ρ`, `Q` what follows it: `P` and a proof of
 `Stmt.wpList C rd kret ss ρ Q.value ↔ P`. -/
 partial def vcBlock (ss : Expr) (vals : Vals) (ρ : Expr) (Q : Rest) : M (Expr × Expr) := do
   let ctx ← read
   let base := #[ctx.C, ctx.rd, ctx.kret, ρ, Q.value]
-  let lhs := mkApp6 (mkConst ``Stmt.wpList) ctx.C ctx.rd ctx.kret ss ρ Q.value
+  let lhs := ctx.wpList ss ρ Q.value
   let ss' ← whnfD ss
   if ss'.isAppOfArity ``List.nil 1 then
     let (P, hP) ← Q.run vals ρ
-    let rhs := Q.value.beta #[ρ]
-    return (P, iffTrans lhs rhs P (mkApp3 (mkConst ``Iff.of_eq) lhs rhs
-      (mkAppN (mkConst ``wpList_nil) base)) hP)
+    return (P, eqIff lhs (Q.value.beta #[ρ]) P (mkAppN (mkConst ``wpList_nil) base) hP)
   unless ss'.isAppOfArity ``List.cons 3 do throwError "vc: not a block{indentExpr ss'}"
   let s := ss'.appFn!.appArg!
   let rest := ss'.appArg!
-  let K : Rest := ⟨mkLambda `ρ .default envTy (mkApp6 (mkConst ``Stmt.wpList) ctx.C ctx.rd ctx.kret
-    rest (.bvar 0) Q.value), fun vals ρ' => vcBlock rest vals ρ' Q⟩
+  let K := blockRest ctx rest Q
   let (P, hP) ← vcStmt s vals ρ K
-  let rhs := mkApp6 (mkConst ``Stmt.wp) ctx.C ctx.rd ctx.kret s ρ K.value
-  return (P, iffTrans lhs rhs P (mkApp3 (mkConst ``Iff.of_eq) lhs rhs
-    (mkAppN (mkConst ``wpList_cons) (base ++ #[s, rest]))) hP)
+  return (P, eqIff lhs (ctx.wp s ρ K.value) P
+    (mkAppN (mkConst ``wpList_cons) (base ++ #[s, rest])) hP)
 end
 
-/-- The condition of `Fn.Sem C rd f args rets`: `P` and a proof of `Fn.Sem C rd f args rets ↔ P`. -/
-def vcSem (f args rets : Expr) : M (Expr × Expr) := do
+/-- The condition of `Fn.Sem C rd f args rets`, `h₀ : ty` its `Fn.sem_iff_wp`: `P` and a proof of
+`Fn.Sem C rd f args rets ↔ P`. -/
+def vcSem (f h₀ ty : Expr) : M (Expr × Expr) := do
   let ctx ← read
-  let h₀ := mkAppN (mkConst ``Fn.sem_iff_wp) #[ctx.C, ctx.rd, f, args, rets]
-  let ty ← inferType h₀
-  let lhs := ty.appFn!.appArg!
-  let rhs := ty.appArg!
   let body := mkApp (mkConst ``Fn.body) f
   let nothing : Rest := ⟨mkLambda `ρ .default envTy (mkConst ``False),
     fun _ _ => pure (mkConst ``False, iffRfl (mkConst ``False))⟩
   withLocalDeclD `ρ envTy fun ρ₀ => withLocalDeclD `k contTy fun k₀ => do
-    let rhsG := rhs.replace fun e => if e == mkConst ``Env.empty then some ρ₀ else none
-    let (P, hP) ← condOf ρ₀ k₀ (mkApp (mkConst ``Env.ofDefs) (mkConst ``Defs.nil)) nothing #[body]
-      #[⟨mkLambda `ρ .default envTy (mkApp6 (mkConst ``Stmt.wpList) ctx.C ctx.rd ctx.kret body
-        (.bvar 0) nothing.value), fun vals ρ' => vcBlock body vals ρ' nothing⟩] {} rhsG
-    return (P, iffTrans lhs rhs P h₀ hP)
+    let rhsG := ty.appArg!.replace fun e => if e == mkConst ``Env.empty then some ρ₀ else none
+    let (P, hP) ← condOf ρ₀ k₀ (ofDefs (mkConst ``Defs.nil)) nothing #[body]
+      #[blockRest ctx body nothing] {} rhsG
+    return (P, iffTrans ty.appFn!.appArg! ty.appArg! P h₀ hP)
 
 /-! ## The tactic -/
 
@@ -444,14 +432,14 @@ syntax (name := vcTac) "vc"
   let some sem := target.find? fun e => e.isAppOfArity ``Fn.Sem 5 && !e.hasLooseBVars
     | throwError "vc: no `Fn.Sem` in the goal"
   let a := sem.getAppArgs
-  let ty ← inferType (mkAppN (mkConst ``Fn.sem_iff_wp) a)
+  let h₀ := mkAppN (mkConst ``Fn.sem_iff_wp) a
+  let ty ← inferType h₀
   let some wl := ty.find? (·.isAppOfArity ``Stmt.wpList 6) | throwError "vc: `Fn.sem_iff_wp`"
-  let (P, h) ← (vcSem a[2]! a[3]! a[4]!).run
+  let (P, h) ← (vcSem a[2]! h₀ ty).run
     { C := a[0]!, rd := a[1]!, kret := wl.getAppArgs[2]!, simpCtx := ctx, simprocs }
   let motive ← kabstract target sem
-  let prop := mkSort Level.zero
-  let eq := mkApp6 (mkConst ``congrArg [Level.one, Level.one]) prop prop
-    sem P (.lam `X prop motive .default) (mkApp3 (mkConst ``propext) sem P h)
+  let eq := mkApp6 (mkConst ``congrArg [Level.one, Level.one]) propTy propTy
+    sem P (.lam `X propTy motive .default) (mkApp3 (mkConst ``propext) sem P h)
   replaceMainGoal [← goal.replaceTargetEq (motive.instantiate1 P) eq]
 
 end LeanVM.Guest.Core.VcTactic
