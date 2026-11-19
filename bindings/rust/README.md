@@ -21,8 +21,9 @@ lean-pq = { git = "https://github.com/leanEthereum/leanVM.git", tag = "bindings-
 
 Build in release mode: debug builds of leanVM prove far slower.
 
-Aggregation is the default `aggregation` feature, which pulls in leanVM's prover and verifier. To
-only sign and verify, add `default-features = false` to the dependency: the crate then builds from
+Aggregation is the default `aggregation` feature, which pulls in leanVM's prover and verifier. It
+proves with leanVM's experimental prover, which makes the same proofs as its stable reference
+prover, faster. To only sign and verify, add `default-features = false` to the dependency: the crate then builds from
 leanVM's `lean_xmss` and `lean_sphincs` crates alone, and `aggregate`, `setup`, `Aggregate` and
 `MAX_CHILDREN` are not compiled.
 
