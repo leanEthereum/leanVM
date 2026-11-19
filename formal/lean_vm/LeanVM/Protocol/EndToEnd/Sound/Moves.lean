@@ -77,11 +77,6 @@ namespace Moves
 
 variable {g : ℕ → Prop} {c : Prop} {Q G : α → Prop}
 
-theorem startsSample_mono {R R' : α → Prop} (hR : ∀ a, R a → R' a) :
-    ∀ {q : VerifierProgram α}, q.StartsSample R → q.StartsSample R'
-  | .sample _, _ => trivial
-  | .ret a, h => hR a h
-
 /-- Monotonicity. -/
 theorem mono {g' : ℕ → Prop} {c' : Prop} {Q' G' : α → Prop} (hg : ∀ b, g b → g' b)
     (hc : c → c') (hQ : ∀ a, Q a → Q' a) (hG : ∀ a, G a → G' a) :
@@ -90,7 +85,7 @@ theorem mono {g' : ℕ → Prop} {c' : Prop} {Q' G' : α → Prop} (hg : ∀ b, 
   | .fail, _ => trivial
   | .read _, h => fun x ↦ mono hg hc hQ hG (h x)
   | .sample _, h => fun x ↦ mono hg hc hQ hG (h x)
-  | .grind b _, h => ⟨hg b h.1, startsSample_mono hG h.2.1, mono hg hc hQ hG h.2.2⟩
+  | .grind b _, h => ⟨hg b h.1, h.2.1.mono hG, mono hg hc hQ hG h.2.2⟩
   | .commit _ _ _, h => ⟨hc h.1, mono hg hc hQ hG h.2⟩
   | .query _ _ _, h => fun rows ↦ mono hg hc hQ hG (h rows)
 
