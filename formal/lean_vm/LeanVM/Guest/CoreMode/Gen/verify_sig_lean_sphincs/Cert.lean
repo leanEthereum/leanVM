@@ -29,8 +29,8 @@ noncomputable def «verify_sig_lean_sphincs».modeCert : Mode.Cert := ⟨envC, f
 
 end
 
-kernel_rfl «verify_sig_lean_sphincs».modeSigs : «verify_sig_lean_sphincs».modeCert.E.sigs.entries =
-  [(«sp_wots».entry, «sp_wots».csig)]
+kernel_rfl «verify_sig_lean_sphincs».modeSigs : «verify_sig_lean_sphincs».modeCert.E.sigs = CoreMode.sigTrie
+  [«sp_wots».csig]
 
 @[expose] public section
 

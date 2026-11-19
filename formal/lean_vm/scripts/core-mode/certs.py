@@ -20,8 +20,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 CM = os.path.join(ROOT, 'CoreMode')
 OUT = os.path.join(CM, 'Gen')
-# functions per `Sig<k>` module
-SIGCHUNK = 160
+# packs per `Sig<k>` module
+SIGPACKS = 8
 
 
 def header(mod, what):
@@ -99,25 +99,13 @@ def load():
     return packs, entry, idx, callees, nores, glue
 
 
-def trie_order(keys):
-    """The keys in the order `Trie.entries` lists them (`scripts/mode-cert/gen.py`'s `trieOrder`)."""
-    def go(ks):
-        if not ks: return []
-        here = [0] if 0 in ks else []
-        left = go([k // 2 for k in ks if k % 2 == 1])
-        right = go([k // 2 - 1 for k in ks if k and k % 2 == 0])
-        return here + [2 * k + 1 for k in left] + [2 * k + 2 for k in right]
-    return go(sorted(keys))
-
-
 def render():
     packs, entry, idx, callees, nores, glue = load()
     routed = {k for ks in packs.values() for k in ks}
     pk = sorted(packs)
-    sigs = {}
-    for k in routed:
-        by = {entry[m]: m for m in callees[k]}
-        sigs[k] = [by[e] for e in trie_order(by)]
+    # each function's callees as its environment lists them (`envC`, by entry): the trie's order, which moves with the
+    # entries' bits, never printed (`sigsOr_of_list`)
+    sigs = {k: callees[k] for k in routed}
     off = sorted({m for k in routed for m in callees[k] if m not in routed}, key=lambda m: entry[m])
     files = {}
     CE = 'EndExec.CertE CoreMode.hcTab CoreMode.coreNzs'
@@ -136,8 +124,8 @@ def render():
             t.append('noncomputable def «%s».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩\n' % k)
         t.append('\nend\n\n')
         for k in ks:
-            t.append('kernel_rfl «%s».modeSigs : «%s».modeCert.E.sigs.entries =\n  %s\n' % (
-                k, k, lst(['(«%s».entry, «%s».csig)' % (m, m) for m in sigs[k]]) if sigs[k] else '[]'))
+            t.append('kernel_rfl «%s».modeSigs : «%s».modeCert.E.sigs = CoreMode.sigTrie\n  %s\n' % (
+                k, k, lst(['«%s».csig' % m for m in sigs[k]]) if sigs[k] else '[]'))
         t.append('\n@[expose] public section\n\n')
         for i, k in enumerate(ks):
             nz = 'nzOnly_nil rfl' if k in nores else 'nzOnly_of (j := idx) (by decide +kernel)'
@@ -171,11 +159,8 @@ def render():
     t.append('\nend\n\nend LeanVM.Guest.Fn\n')
     files[os.path.join(OUT, 'Certs', 'List.lean')] = ''.join(t)
     # the callee signatures
-    chunks, cur, size = [], [], 0
-    for p in pk:
-        if cur and size + len(packs[p]) > SIGCHUNK: chunks.append(cur); cur = []; size = 0
-        cur.append(p); size += len(packs[p])
-    if cur: chunks.append(cur)
+    # a fixed number of packs a module, so that a function added to or removed from a pack changes only its own
+    chunks = [pk[i:i + SIGPACKS] for i in range(0, len(pk), SIGPACKS)]
     for c, ps in enumerate(chunks):
         mod = 'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c
         t = [header(mod, 'The core route\'s certificates\' callee signatures, pack by pack.')]
@@ -186,7 +171,7 @@ def render():
             for k in packs[p]:
                 one = ['.inl ⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fq(m) if m in routed else '.inr (list_mem%% %d)' % off.index(m)
                        for m in sigs[k]]
-                sp.append('sigsOr_of %s.modeSigs fa%%[%s]' % (fq(k), ',\n      '.join(one)))
+                sp.append('sigsOr_of_list %s.modeSigs fa%%[%s]' % (fq(k), ',\n      '.join(one)))
             t.append('\nnamespace LeanVM.Guest.CorePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
                      'public section\n\ntheorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%%[\n  %s]\n\n'
                      'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, ',\n  '.join(sp), p))

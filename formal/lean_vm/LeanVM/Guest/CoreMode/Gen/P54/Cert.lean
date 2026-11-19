@@ -56,74 +56,74 @@ noncomputable def «walk_path__L12_L2».modeCert : Mode.Cert := ⟨envC, funC, c
 
 end
 
-kernel_rfl «child_claim_list_last__L4».modeSigs : «child_claim_list_last__L4».modeCert.E.sigs.entries =
+kernel_rfl «child_claim_list_last__L4».modeSigs : «child_claim_list_last__L4».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «claim_list_last__L3».modeSigs : «claim_list_last__L3».modeCert.E.sigs.entries =
+kernel_rfl «claim_list_last__L3».modeSigs : «claim_list_last__L3».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «column_selector__L27».modeSigs : «column_selector__L27».modeCert.E.sigs.entries =
+kernel_rfl «column_selector__L27».modeSigs : «column_selector__L27».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «index_mle__L17».modeSigs : «index_mle__L17».modeCert.E.sigs.entries =
+kernel_rfl «index_mle__L17».modeSigs : «index_mle__L17».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «level_positions__L10_L20_L2_loop0».modeSigs : «level_positions__L10_L20_L2_loop0».modeCert.E.sigs.entries =
-  [(«decode_query_windows__L20_L2».entry, «decode_query_windows__L20_L2».csig),
-    («level_positions__L10_L20_L2_loop0».entry, «level_positions__L10_L20_L2_loop0».csig)]
-kernel_rfl «level_positions__L11_L18_L6_loop0».modeSigs : «level_positions__L11_L18_L6_loop0».modeCert.E.sigs.entries =
-  [(«decode_query_windows__L18_L6».entry, «decode_query_windows__L18_L6».csig),
-    («level_positions__L11_L18_L6_loop0».entry, «level_positions__L11_L18_L6_loop0».csig)]
-kernel_rfl «level_positions__L13_L19_L7_loop0».modeSigs : «level_positions__L13_L19_L7_loop0».modeCert.E.sigs.entries =
-  [(«decode_query_windows__L19_L7».entry, «decode_query_windows__L19_L7».csig),
-    («level_positions__L13_L19_L7_loop0».entry, «level_positions__L13_L19_L7_loop0».csig)]
-kernel_rfl «level_positions__L4_L25_L7».modeSigs : «level_positions__L4_L25_L7».modeCert.E.sigs.entries =
-  [(«decode_query_windows__L25_L7».entry, «decode_query_windows__L25_L7».csig),
-    («level_positions__L4_L25_L7_loop0».entry, «level_positions__L4_L25_L7_loop0».csig)]
-kernel_rfl «level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSigs : «level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert.E.sigs.entries =
-  [(«verify_merkle_cap__L7».entry, «verify_merkle_cap__L7».csig),
-    («opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».entry, «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».csig)]
-kernel_rfl «level_residual__L18_L10_L4_L2».modeSigs : «level_residual__L18_L10_L4_L2».modeCert.E.sigs.entries =
-  [(«level_residual__L18_L10_L4_L2_loop1».entry, «level_residual__L18_L10_L4_L2_loop1».csig),
-    («level_residual__L18_L10_L4_L2_loop0».entry, «level_residual__L18_L10_L4_L2_loop0».csig)]
-kernel_rfl «level_residual__L21_L10_L4_L2».modeSigs : «level_residual__L21_L10_L4_L2».modeCert.E.sigs.entries =
-  [(«level_residual__L21_L10_L4_L2_loop1».entry, «level_residual__L21_L10_L4_L2_loop1».csig),
-    («level_residual__L21_L10_L4_L2_loop0».entry, «level_residual__L21_L10_L4_L2_loop0».csig)]
-kernel_rfl «level_residual__L25_L12_L4_L2_loop1».modeSigs : «level_residual__L25_L12_L4_L2_loop1».modeCert.E.sigs.entries =
-  [(«level_residual__L25_L12_L4_L2_loop1».entry, «level_residual__L25_L12_L4_L2_loop1».csig)]
-kernel_rfl «level_residual__L37_L12_L4_L2_loop0».modeSigs : «level_residual__L37_L12_L4_L2_loop0».modeCert.E.sigs.entries =
-  [(«level_residual__L37_L12_L4_L2_loop0».entry, «level_residual__L37_L12_L4_L2_loop0».csig)]
-kernel_rfl «level_residual__L44_L11_L4_L2_loop1».modeSigs : «level_residual__L44_L11_L4_L2_loop1».modeCert.E.sigs.entries =
-  [(«level_residual__L44_L11_L4_L2_loop1».entry, «level_residual__L44_L11_L4_L2_loop1».csig)]
-kernel_rfl «level_residual__L55_L15_L4_L2».modeSigs : «level_residual__L55_L15_L4_L2».modeCert.E.sigs.entries =
-  [(«level_residual__L55_L15_L4_L2_loop0».entry, «level_residual__L55_L15_L4_L2_loop0».csig),
-    («level_residual__L55_L15_L4_L2_loop1».entry, «level_residual__L55_L15_L4_L2_loop1».csig)]
-kernel_rfl «level_residual__L55_L16_L6_L3».modeSigs : «level_residual__L55_L16_L6_L3».modeCert.E.sigs.entries =
-  [(«level_residual__L55_L16_L6_L3_loop0».entry, «level_residual__L55_L16_L6_L3_loop0».csig),
-    («level_residual__L55_L16_L6_L3_loop1».entry, «level_residual__L55_L16_L6_L3_loop1».csig)]
-kernel_rfl «level_residual__L73_L20_L6_L3_loop0».modeSigs : «level_residual__L73_L20_L6_L3_loop0».modeCert.E.sigs.entries =
-  [(«level_residual__L73_L20_L6_L3_loop0».entry, «level_residual__L73_L20_L6_L3_loop0».csig)]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeSigs : «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeCert.E.sigs.entries =
-  [(«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».entry, «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig)]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeCert.E.sigs.entries =
-  [(«walk_path__L12_L4».entry, «walk_path__L12_L4».csig),
-    («opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».entry, «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».csig)]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeCert.E.sigs.entries =
-  [(«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».entry, «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».csig),
-    («walk_path__L12_L6».entry, «walk_path__L12_L6».csig)]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs.entries =
-  [(«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».entry, «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».csig),
-    («walk_path__L18_L7».entry, «walk_path__L18_L7».csig)]
-kernel_rfl «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs.entries =
-  [(«walk_path__L18_L4».entry, «walk_path__L18_L4».csig),
-    («opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».entry, «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».csig)]
-kernel_rfl «padding_weight__L29».modeSigs : «padding_weight__L29».modeCert.E.sigs.entries =
+kernel_rfl «level_positions__L10_L20_L2_loop0».modeSigs : «level_positions__L10_L20_L2_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«decode_query_windows__L20_L2».csig,
+    «level_positions__L10_L20_L2_loop0».csig]
+kernel_rfl «level_positions__L11_L18_L6_loop0».modeSigs : «level_positions__L11_L18_L6_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«decode_query_windows__L18_L6».csig,
+    «level_positions__L11_L18_L6_loop0».csig]
+kernel_rfl «level_positions__L13_L19_L7_loop0».modeSigs : «level_positions__L13_L19_L7_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«decode_query_windows__L19_L7».csig,
+    «level_positions__L13_L19_L7_loop0».csig]
+kernel_rfl «level_positions__L4_L25_L7».modeSigs : «level_positions__L4_L25_L7».modeCert.E.sigs = CoreMode.sigTrie
+  [«decode_query_windows__L25_L7».csig,
+    «level_positions__L4_L25_L7_loop0».csig]
+kernel_rfl «level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSigs : «level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».csig,
+    «verify_merkle_cap__L7».csig]
+kernel_rfl «level_residual__L18_L10_L4_L2».modeSigs : «level_residual__L18_L10_L4_L2».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L18_L10_L4_L2_loop0».csig,
+    «level_residual__L18_L10_L4_L2_loop1».csig]
+kernel_rfl «level_residual__L21_L10_L4_L2».modeSigs : «level_residual__L21_L10_L4_L2».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L21_L10_L4_L2_loop0».csig,
+    «level_residual__L21_L10_L4_L2_loop1».csig]
+kernel_rfl «level_residual__L25_L12_L4_L2_loop1».modeSigs : «level_residual__L25_L12_L4_L2_loop1».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L25_L12_L4_L2_loop1».csig]
+kernel_rfl «level_residual__L37_L12_L4_L2_loop0».modeSigs : «level_residual__L37_L12_L4_L2_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L37_L12_L4_L2_loop0».csig]
+kernel_rfl «level_residual__L44_L11_L4_L2_loop1».modeSigs : «level_residual__L44_L11_L4_L2_loop1».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L44_L11_L4_L2_loop1».csig]
+kernel_rfl «level_residual__L55_L15_L4_L2».modeSigs : «level_residual__L55_L15_L4_L2».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L55_L15_L4_L2_loop0».csig,
+    «level_residual__L55_L15_L4_L2_loop1».csig]
+kernel_rfl «level_residual__L55_L16_L6_L3».modeSigs : «level_residual__L55_L16_L6_L3».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L55_L16_L6_L3_loop0».csig,
+    «level_residual__L55_L16_L6_L3_loop1».csig]
+kernel_rfl «level_residual__L73_L20_L6_L3_loop0».modeSigs : «level_residual__L73_L20_L6_L3_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«level_residual__L73_L20_L6_L3_loop0».csig]
+kernel_rfl «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeSigs : «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig]
+kernel_rfl «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».csig,
+    «walk_path__L12_L4».csig]
+kernel_rfl «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».csig,
+    «walk_path__L12_L6».csig]
+kernel_rfl «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».csig,
+    «walk_path__L18_L7».csig]
+kernel_rfl «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».csig,
+    «walk_path__L18_L4».csig]
+kernel_rfl «padding_weight__L29».modeSigs : «padding_weight__L29».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «plus_one_run__L8».modeSigs : «plus_one_run__L8».modeCert.E.sigs.entries =
+kernel_rfl «plus_one_run__L8».modeSigs : «plus_one_run__L8».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «rs_eq_rows__L5».modeSigs : «rs_eq_rows__L5».modeCert.E.sigs.entries =
+kernel_rfl «rs_eq_rows__L5».modeSigs : «rs_eq_rows__L5».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «squeeze_point_from__L21».modeSigs : «squeeze_point_from__L21».modeCert.E.sigs.entries =
+kernel_rfl «squeeze_point_from__L21».modeSigs : «squeeze_point_from__L21».modeCert.E.sigs = CoreMode.sigTrie
   []
-kernel_rfl «verify_bus_gkr_loop0_loop0».modeSigs : «verify_bus_gkr_loop0_loop0».modeCert.E.sigs.entries =
-  [(«verify_bus_gkr_loop0_loop0».entry, «verify_bus_gkr_loop0_loop0».csig)]
-kernel_rfl «walk_path__L12_L2».modeSigs : «walk_path__L12_L2».modeCert.E.sigs.entries =
+kernel_rfl «verify_bus_gkr_loop0_loop0».modeSigs : «verify_bus_gkr_loop0_loop0».modeCert.E.sigs = CoreMode.sigTrie
+  [«verify_bus_gkr_loop0_loop0».csig]
+kernel_rfl «walk_path__L12_L2».modeSigs : «walk_path__L12_L2».modeCert.E.sigs = CoreMode.sigTrie
   []
 
 @[expose] public section

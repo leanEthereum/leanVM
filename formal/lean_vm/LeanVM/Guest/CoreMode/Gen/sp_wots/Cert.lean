@@ -29,7 +29,7 @@ noncomputable def «sp_wots».modeCert : Mode.Cert := ⟨envC, funC, code.chunks
 
 end
 
-kernel_rfl «sp_wots».modeSigs : «sp_wots».modeCert.E.sigs.entries =
+kernel_rfl «sp_wots».modeSigs : «sp_wots».modeCert.E.sigs = CoreMode.sigTrie
   []
 
 @[expose] public section
