@@ -626,6 +626,7 @@ def pRHint : RHint → String
   | .allocFrames p sz b si t => s!"(RHint.allocFrames {p} {sz} {b} {si} {t})"
   | .alloc p sz => s!"(RHint.alloc {p} {sz})"
   | .allocDyn p sz => s!"(RHint.allocDyn {p} {sz})"
+  | .allocSel p s szs => s!"(RHint.allocSel {p} {s} {pList (szs.map toString)})"
   | .witnessStack s b n => s!"(RHint.witnessStack {s.quote} {b} {n})"
   | .witnessHeap s p lo n => s!"(RHint.witnessHeap {s.quote} {p} {lo} {n})"
   | .log2Ceil b d nb fl => s!"(RHint.log2Ceil {pBits b} {d} {nb} {fl})"
@@ -645,7 +646,7 @@ def pLHint : LHint → String
   | .nextFrameAddress => "LHint.nextFrameAddress"
   | .allocLoopFrames p c n t => s!"(LHint.allocLoopFrames {p} {c.quote} {pCount n} {t})"
   | .allocFrame p c => s!"(LHint.allocFrame {p} {c.quote})"
-  | .allocFrameMax p cs => s!"(LHint.allocFrameMax {p} {pStrs cs})"
+  | .allocFrameSel p s cs => s!"(LHint.allocFrameSel {p} {s} {pStrs cs})"
   | .resolved h => s!"(LHint.resolved {pRHint h})"
 
 def pHints (hs : List LHint) : String := pList (hs.map pLHint)

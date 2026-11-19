@@ -977,6 +977,7 @@ pub(super) fn walk<M: Machine>(
                     RHint::AllocFrames { .. } => "AllocFrames",
                     RHint::Alloc { .. } => "Alloc",
                     RHint::AllocDyn { .. } => "AllocDyn",
+                    RHint::AllocSel { .. } => "AllocSel",
                     RHint::WitnessStack { .. } => "WitnessStack",
                     RHint::WitnessHeap { .. } => "WitnessHeap",
                     RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -994,10 +995,24 @@ pub(super) fn walk<M: Machine>(
                     }
                     // A fresh region: write its base `g^{next_free}` into the
                     // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                    // reads the size from a cell at runtime.
-                    RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                    // reads the size from a cell at runtime, `AllocSel` picks it
+                    // by a selector cell.
+                    RHint::Alloc { .. }
+                    | RHint::AllocDyn { .. }
+                    | RHint::AllocSel { .. }
+                    | RHint::AllocFrames { .. } => {
                         let (ptr, size) = match *h {
                             RHint::Alloc { ptr, size } => (ptr, size),
+                            RHint::AllocSel { ptr, sel, ref sizes } => {
+                                let x = in_k("dispatch selector", m.get(fp + sel)).map_err(fail)?;
+                                let size = m.g_log(x).and_then(|j| sizes.get(j as usize)).ok_or_else(|| {
+                                    fail(Fault::NotAGPower {
+                                        what: "dispatch selector",
+                                        value: x,
+                                    })
+                                })?;
+                                (ptr, *size)
+                            }
                             RHint::AllocFrames {
                                 ptr,
                                 size,

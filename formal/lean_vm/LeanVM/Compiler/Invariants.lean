@@ -58,6 +58,7 @@ def RHint.cells : RHint → List Cell
   | .allocFrames ptr _ bound _ _ => [ptr, bound]
   | .alloc ptr _ => [ptr]
   | .allocDyn ptr size => [ptr, size]
+  | .allocSel ptr sel _ => [ptr, sel]
   | .witnessStack _ base len => [base + len - 1]
   | .witnessHeap _ ptr _ _ => [ptr]
   | .log2Ceil bits dst nbits _ => dst :: bits.cells nbits
@@ -75,7 +76,7 @@ def LHint.cells : LHint → List Cell
       | .constant _ => [ptr]
       | .bound cell _ => [ptr, cell]
   | .allocFrame ptr _ => [ptr]
-  | .allocFrameMax ptr _ => [ptr]
+  | .allocFrameSel ptr sel _ => [ptr, sel]
   | .resolved h => h.cells
 
 /-- Every cell the function's instructions and hints name is in its frame. -/

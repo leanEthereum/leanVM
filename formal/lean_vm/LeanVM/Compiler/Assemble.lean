@@ -101,7 +101,7 @@ def resolveHint (l : Layout) (frameSize : Nat) : LHint → RHint
       | .bound cell start =>
           .allocFrames ptr size cell (gpowK (2 ^ 64 - 1 - start)).toBitVec.toNat tail
   | .allocFrame ptr callee => .alloc ptr (l.frame.getD callee 0)
-  | .allocFrameMax ptr callees => .alloc ptr (callees.foldl (fun m c => max m (l.frame.getD c 0)) 0)
+  | .allocFrameSel ptr sel callees => .allocSel ptr sel (callees.map (l.frame.getD · 0))
   | .resolved h => h
 
 /-- The functions with `__jump_tables` before them: `main`'s frame grows by the slots, and one

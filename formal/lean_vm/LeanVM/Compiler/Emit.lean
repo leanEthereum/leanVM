@@ -116,7 +116,7 @@ def emitDispatch (pos : Nat) (hints : List LHint) (callees : List String)
     (args.zipIdx.map fun (a, k) => LOp.deref nfp (argBase + k) a .cell) ++ [LOp.deref nfp 1 0 .fp]
   let stores : List LInstr := match stores with
     | [] => []
-    | s :: ss => ⟨s, hints ++ [.allocFrameMax nfp callees]⟩ :: ss.map bare
+    | s :: ss => ⟨s, hints ++ [.allocFrameSel nfp x callees]⟩ :: ss.map bare
   stores ++
     [bare (.set joinCell (.local (pos + n + 5))), bare (.deref nfp 0 joinCell .cell),
      bare (.slot x first entry), bare (.jump one entry nfp)] ++

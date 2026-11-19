@@ -33,8 +33,9 @@ The Rust runner allocates in execution order instead (`cpu/execute.rs`, `next_fr
 end of `main`'s frame): a callee frame when its call is set up, a loop's `n` frames at once and
 after them only the first `tail` cells of the untaken call's frame (`RHint::AllocFrames`,
 `Hint::AllocLoopFrames`: its return target, arguments and self frame pointer cell, the cells
-`0 ..< 2 + arguments + 1`, all its caller writes there), a dispatch's frame at the largest arm's
-size, a `HeapBuf` when its hint runs. Here a phantom takes its callee's whole frame (`fs f`
+`0 ..< 2 + arguments + 1`, all its caller writes there), a dispatch's frame at the size of the
+callee its selector picks (`RHint::AllocSel`, the frame this model gives that call too), a
+`HeapBuf` when its hint runs. Here a phantom takes its callee's whole frame (`fs f`
 words), more than the Rust's `tail`: the honest memory writes in it only what its caller writes
 (the parameters and the self frame pointer cells, which the back end's static test confirms the
 caller's code writes: the cells the compiler's `tail` counts), and the rest are words nothing
