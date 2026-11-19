@@ -15,6 +15,11 @@ concurrency:
   group: lean-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Pin the ISA, overriding `target-cpu=native` from the cargo configs, so a cached build (its proc
+# macros included) runs on any runner.
+env:
+  RUSTFLAGS: -C target-cpu=haswell
+
 jobs:
   # The statement: definitions and end statements only (`Statement/`), what every other job proves.
   statement:
