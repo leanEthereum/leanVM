@@ -105,6 +105,24 @@ __pycache__/
 /lean_vm/LeanVM/Guest/Memory/GuestWords.lean
 /lean_vm/tests/LeanVMTests/Guest/Manifest.lean
 /lean_vm/tests/LeanVMTests/Spec/NodeVectors.lean
+# ... and what the Lean back end's generators write from the guest (also `regen-guest.sh`'s steps)
+/lean_vm/LeanVM/Guest/Deployed/Data.lean
+/lean_vm/LeanVM/Cost/Decoder/GuestPlaces.lean
+/lean_vm/LeanVM/Cost/Decoder/GuestPlaces/
+/lean_vm/LeanVM/Cost/DecoderSize/Places.lean
+/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestPlacesOk/
+/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestPlacesOk.lean
+/lean_vm/LeanVM/Guest/B1/Bits/QueryWindowsBody[0-9]*.lean
+/lean_vm/LeanVM/Guest/Compiled/Obl/GuestXTab.lean
+/lean_vm/LeanVM/Guest/Compiled/Obl/Eval/
+/lean_vm/LeanVM/Guest/Compiled/Trace/
+/lean_vm/LeanVM/Guest/Compiled/Traced.lean
+/lean_vm/LeanVM/Guest/Compiled/Piece/
+/lean_vm/LeanVM/Guest/Compiled/Compiled.lean
+/lean_vm/LeanVM/Guest/Compiled/Cpl/Eval/R[0-9]*.lean
+/lean_vm/LeanVM/Guest/Compiled/Cpl/Eval/B[0-9]*.lean
+/lean_vm/LeanVM/Guest/Compiled/Cpl/Eval/All.lean
+/lean_vm/tests/LeanVMTests/Compiler/Pieces.lean
 
 # The verifier fixtures, the Rust prover's proofs: written by `lean_vm/scripts/export-verifier-fixtures-rust.sh`
 # before the differential tests that read them
