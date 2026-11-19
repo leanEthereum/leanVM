@@ -21,18 +21,68 @@ env:
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
-  # The statement: definitions and end statements only (`Statement/`), what every other job proves.
-  statement:
+  # The compiled guest (`guests/lean_ethereum.compiled`, not committed), which `guest-export` reads to write the
+  # statement's bytecode: the Lean back end's compilation (`scripts/guest-artifact`), as in rust.yml, whose Lean
+  # build cache this job shares.
+  guest-artifact:
+    name: The compiled guest (Lean)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # The Lean build `guest-artifact` needs, Mathlib's fetched by the script (`lake exe cache get`); only `main` saves.
+      - name: Restore the Lean build
+        id: lean-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/LeanVM/Compiler/**', 'formal/lean_vm/LeanVM/Core/**', 'formal/lean_vm/cli/GuestArtifact.lean', 'formal/Statement/**/*.lean', 'guests/lean_ethereum.py', 'crates/aggregation/src/**') }}
+          restore-keys: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: formal/lean_vm/scripts/guest-export
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # The guest's bytecode (`Statement/Data`) is not committed: `guest-export` writes it from this
-      # repository's sources, as `regen-guest.sh`'s first step does, before the checks below read it.
+      - name: Compile the guest (guest-artifact)
+        run: formal/lean_vm/scripts/guest-artifact
+      - name: Save the Lean build
+        if: github.ref == 'refs/heads/main' && steps.lean-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: ${{ steps.lean-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests/lean_ethereum.compiled
+          retention-days: 3
+
+  # The statement: definitions and end statements only (`Statement/`), what every other job proves.
+  statement:
+    needs: guest-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formal/lean_vm/scripts/guest-export
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The guest's bytecode (`Statement/Data`) is not committed: `guest-export` writes it from the compiled
+      # guest just downloaded, as `regen-guest.sh`'s first step does, before the checks below read it.
       - name: Write the guest's bytecode (guest-export)
         working-directory: formal/lean_vm
         run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
@@ -469,15 +519,15 @@ jobs:
             formal/lean_vm/scripts/guest-export
             formal/lean_vm/scripts/whir-fold-table
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # Every file derived from the guest is what its generator writes, byte for byte: the compiled
-      # guest (`guests/lean_ethereum.compiled`, `scripts/guest-artifact`, the Lean back end), the guest's
-      # bytecode, source, manifest, test programs and node vectors (`scripts/guest-export`, from this
-      # repository's sources), the test programs' compilations and the core IR of the front end's
-      # corpus (`tests/frontend/`), the guest's core IR, the back end's tables, the memory layer's checks, the
-      # templates, the walks, the count families, the call tables, the decoder tables and the back
-      # end's obligations.
-      - name: Every file derived from the guest is current (regen-guest.sh --check)
-        run: scripts/regen-guest.sh --check
+      # Every file derived from the guest, which the honest hints' check below reads, is not committed: written
+      # here from this repository's sources (the compiled guest by the Lean back end first), and what is
+      # committed of it (the test programs' compilations, the front end's corpus, the generated regions of
+      # hand-written files) must come out unchanged.
+      - name: Write every file derived from the guest (regen-guest.sh)
+        run: scripts/regen-guest.sh
+      - name: The regeneration changed nothing committed
+        run: |
+          ! git status --porcelain --untracked-files=all | grep .
       # The fold rounds' table is what `scripts/whir-fold-table` exports from `whir_config.rs`.
       - name: The fold rounds' table is the prover's
         run: |
@@ -546,8 +596,12 @@ jobs:
             formal/lean_vm/scripts/wire-diff
             . -> target
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # The Lean verifier and the Rust verifier must agree on the committed proofs and on
-      # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
+      # The verifier fixtures (`tests/fixtures/verifier`, not committed): the Rust prover's proofs of
+      # twelve small programs, each verified by the Rust verifier before it is written.
+      - name: Write the verifier fixtures (export-verifier-fixtures-rust.sh)
+        run: scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier
+      # The Lean verifier and the Rust verifier must agree on the fixtures and on mutations of
+      # them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
         if: matrix.check == 'verifier'
         run: |
@@ -563,7 +617,7 @@ jobs:
           python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 4
       # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
       # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
-      # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and
+      # the fixture's byte for byte, accepted by the Lean and the Rust verifier, and
       # every mutation of it rejected by both (`fuzz-verifier.py`, hence the Rust verifier's build).
       - name: The statement's prover against both verifiers (prover-diff)
         if: matrix.check == 'prover'
