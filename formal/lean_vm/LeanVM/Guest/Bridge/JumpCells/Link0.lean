@@ -67,7 +67,7 @@ public import LeanVM.Guest.Bridge.JumpCells.P_P9
 public import LeanVM.Guest.Bridge.JumpCells.P_verify_sig_lean_sphincs
 public import LeanVM.Guest.Bridge.JumpCells.P_verify_tables
 public import LeanVM.Guest.Bridge.JumpCellsIdx
-public import LeanVM.Guest.Bridge.ProgAl.Link0
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
 meta import LeanVM.Guest.KernelLit
 

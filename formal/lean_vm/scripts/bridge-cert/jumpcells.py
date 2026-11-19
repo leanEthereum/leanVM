@@ -66,7 +66,9 @@ def run(check):
     for j in sorted(lk):
         links.setdefault(lk[j][1], []).append(j)
     for lmod, js in sorted(links.items()):
-        imps = {'LeanVM.Guest.Bridge.JumpCellsIdx', f'LeanVM.Guest.Checked.{lmod}', f'LeanVM.Guest.Bridge.ProgAl.{lmod}'}
+        # the alignment tables' entries (`ProgAl/Tab*`), not the alignment checks (`ProgAl/Link*`, the windows)
+        imps = {'LeanVM.Guest.Bridge.JumpCellsIdx', f'LeanVM.Guest.Checked.{lmod}',
+                f'LeanVM.Guest.Bridge.ProgAl.Tab{lmod[len("Link"):]}'}
         body = []
         for j in js:
             k, _, hp = lk[j]

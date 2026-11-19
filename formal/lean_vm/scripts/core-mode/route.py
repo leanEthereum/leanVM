@@ -23,22 +23,19 @@ SIGS = None
 
 
 def sigs():
-    """Each function's `Mode.Sig`, by namespace name, fields parsed, as written (`CoreMode/Sig/*.lean`, `Fn.«k».csig`,
-    which `sigc.py` writes first)."""
+    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (a routed function's
+    signature as written, the others' the mode walk's inference's, `MODE_CERT_CACHE`), whether or not it has run."""
     global SIGS
     if SIGS is not None:
         return SIGS
-    texts = []
-    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Sig', '*.lean')):
-        t = open(f).read()
-        # one section per pack: `def Fn.«k».csig : Mode.Sig := ⟨..⟩`, up to the next declaration or the end
-        for m in re.finditer(r'def Fn\.«([^»]+)»\.csig\s*:\s*Mode\.Sig\s*:=\s*⟨(.*?)⟩\n(?=noncomputable|\nend)', t, re.S):
-            texts.append((m.group(1), m.group(2)))
+    import sigc, compiled
+    lits, _ = sigc.signatures()
+    fns = compiled.code()['fns']
     out = {}
-    for nm, text in texts:
+    for n, text in lits.items():
         parts = split_top(text)
-        assert len(parts) == 16, nm
-        out[nm] = {k: parse(v) for k, v in zip(FIELDS, parts)}
+        assert len(parts) == 15, n
+        out[fns[n]['ns']] = dict(pc=fns[n]['entry'], **{k: parse(v) for k, v in zip(FIELDS[1:], parts)})
     SIGS = out
     return out
 
