@@ -211,14 +211,14 @@ def familyT (T : RiderTrack μ riders ρ m) :
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The honest polynomials of the tracked family are consistent: the same as `family`'s. -/
-private theorem familyT_consistent (T : RiderTrack μ riders ρ m) :
+theorem familyT_consistent (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Consistent m :=
   ⟨(family_honest nside μ leaves riders ρ m).check, (family_honest nside μ leaves riders ρ m).next⟩
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The tracked family's invariant is sound: a round's challenge restores it at one value at
 most, within the polynomial degree. -/
-private theorem familyT_sound (T : RiderTrack μ riders ρ m) :
+theorem familyT_sound (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Sound m :=
   fun _ _ cv _ hinv ↦ (T.inv_escape _ _ _ cv hinv).trans Nat.one_le_two_pow
 
@@ -320,7 +320,7 @@ omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInte
 /-- A statement outside the relation after `i` combination challenges is inside it after one
 more at one challenge at most: the riders' predicate or some tree's agreement was broken, and
 each is restored at one value at most. -/
-private theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
+theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
     (s : InterpStmt X F nside m ρ i) (o : ∀ j, O j)
     (hs : ((s, o), ()) ∉ childRelT nside μ leaves riders ρ m T i) :
     Nat.card {c // ((interpNext nside ρ m s c, o), ()) ∈
@@ -373,7 +373,7 @@ def stepOutT (T : RiderTrack μ riders ρ m) :
 omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The interpolated statement is in the step's output relation exactly when the statement before
 it is in the relation after all `ρ` combination challenges. -/
-private theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
+theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
     (s : InterpStmt X F nside m ρ ρ) (o : ∀ i, O i) :
     ((interpDone nside ρ m s, o), ()) ∈ stepOutT nside μ leaves riders ρ m T ↔
       ((s, o), ()) ∈ childRelT nside μ leaves riders ρ m T ρ := by
@@ -388,6 +388,30 @@ private theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
       (fun k hk ↦ by simp [combPartial, Partial.ofVector, hk]), evalMle_diffTable,
     sub_eq_zero, evalMle_cast_append, eq_comm]
   exact Iff.rfl
+
+omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
+  [∀ i, OracleInterface (O i)] in
+/-- Inside the argument, a step's output relation is the next layer's relation. -/
+theorem stepOutT_constTrack_iff (s : LayerStmt X F nside (m + ρ)) (o : ∀ i, O i) :
+    ((s, o), ()) ∈ stepOutT nside μ leaves riders ρ m (constTrack μ riders ρ m) ↔
+      ((s, o), ()) ∈ layerRel nside μ leaves riders (m + ρ) :=
+  Iff.rfl
+
+omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
+  [∀ i, OracleInterface (O i)] in
+/-- At the last step, a step's output relation is the argument's output relation, across the
+equality of layers. -/
+theorem stepOutT_progTrack_iff (h : m + ρ = μ) (s : LayerStmt X F nside (m + ρ)) (o : ∀ i, O i) :
+    ((s, o), ()) ∈ stepOutT nside μ leaves riders ρ m (progTrack μ riders ρ m h) ↔
+      (((s.1, (Vector.cast h s.2.1, s.2.2)), o), ()) ∈ relOut nside μ leaves riders := by
+  show ((∀ r ∈ riders s.1 o, evalMle r.2 (lowPoint (Vector.cast h s.2.1) r.1) = 0) ∧
+    ∀ t, evalMle (layerTable (leaves s.1 o t) (m + ρ)) s.2.1 = s.2.2 t) ↔
+    ((∀ t, evalMle (leaves s.1 o t) (Vector.cast h s.2.1) = s.2.2 t) ∧
+      ∀ r ∈ riders s.1 o, evalMle r.2 (lowPoint (Vector.cast h s.2.1) r.1) = 0)
+  rw [and_comm]
+  refine and_congr (forall_congr' fun t ↦ ?_) Iff.rfl
+  subst h
+  simp
 
 /-- The typed security half of the combination challenges, at `1 / |F|` each. -/
 def interpolateSecurity (T : RiderTrack μ riders ρ m) :

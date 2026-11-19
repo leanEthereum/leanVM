@@ -10,7 +10,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.BusSpec
-public import LeanVM.Protocol.EndToEnd.Front.BusGkrArk
+public import LeanVM.Protocol.ToArkLib.GrandProductSecurity
 public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 public import LeanVM.Protocol.Verifier
 
@@ -34,9 +34,9 @@ the walk takes (`step ≤ 2`), so the step is `gkrStepCore`, the step without th
 * through the rounds (`wireSumcheckSpec`, equality mode against the point);
 * after the descendants and their check: doom on `childRelT … 0` (the descendants' security);
 * through the combination challenges: doom on `childRelT … i`, each challenge charged
-  `L₀ / |E|` (`card_interpNext_le'`);
+  `L₀ / |E|` (`card_interpNext_le`);
 * after the step: doom on the step's output relation `stepOutT`
-  (`interpDone_mem_stepOutT_iff'`), which is the next layer's relation inside the walk and the
+  (`interpDone_mem_stepOutT_iff`), which is the next layer's relation inside the walk and the
   argument's output relation after the last step (`layersPre_of_stepPost`).
 
 The wire's state and the protocol's statement agree because the program computes what the
@@ -214,7 +214,7 @@ theorem interp_escape_le {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     exact hc ⟨W, firstWord_append hW _, fun o ho hin ↦ hno ⟨o, ho, hin⟩⟩
   refine le_trans (by gcongr) (card_exists_le (e := (Fintype.card E : ℝ≥0∞)⁻¹) (hfin W)
     (hcard W) _ fun o ho ↦ ?_)
-  have h1 := Gkr.card_interpNext_le' 3 μ leaves riders ρ m T s o (hR o ho)
+  have h1 := Gkr.card_interpNext_le 3 μ leaves riders ρ m T s o (hR o ho)
   rw [natCard_subtype_eq_card_filter] at h1
   calc (Fintype.card E : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦
         ((Gkr.interpNext 3 ρ m s c, o), ()) ∈ Gkr.childRelT 3 μ leaves riders ρ m T (i + 1)).card :
@@ -362,7 +362,7 @@ noncomputable def stepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
         intro hD
         exact ⟨W, firstWord_append hW _, hD⟩)).bind' fun combiner ↦
     ((wireSumcheckSpec (T := 0) (Gkr.familyT 3 μ leaves riders ρ m T) cands
-      (Gkr.familyT_consistent' 3 μ leaves riders ρ m T) (Gkr.familyT_sound' 3 μ leaves riders ρ m T)
+      (Gkr.familyT_consistent 3 μ leaves riders ρ m T) (Gkr.familyT_sound 3 μ leaves riders ρ m T)
       hfin hcard Nat.one_le_two_pow he (layerStmtOf data m s, combiner) (s.point.map some) 0
       #v[] (polyEval s.values combiner) (by simp [hs.1])
       (weights_eq_wireDomain data s hs.1 _)).mono
@@ -413,7 +413,7 @@ noncomputable def stepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
               exact key (0 + ρ) (Nat.zero_add ρ) hR
             have hR'' : RelDoom (cands W) (Gkr.stepOutT 3 μ leaves riders ρ m T)
                 (Gkr.interpDone 3 ρ m (base, vecOf ρ y)) := fun o ho hin ↦
-              hR' o ho ((Gkr.interpDone_mem_stepOutT_iff' 3 μ leaves riders ρ m T _ o).mp hin)
+              hR' o ho ((Gkr.interpDone_mem_stepOutT_iff 3 μ leaves riders ρ m T _ o).mp hin)
             rw [interpDone_eq data x y [child0, child1, child2] hy rfl hch] at hR''
             exact ⟨by simp [hy, hq.1]; omega, by simp, W, hW, hR''⟩)
           (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
