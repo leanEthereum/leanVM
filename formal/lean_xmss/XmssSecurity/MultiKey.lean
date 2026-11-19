@@ -460,7 +460,11 @@ theorem keygenRest_parameter {key : SchemeSeedKey}
 theorem shape_of_rest {s u₁ u₂ : BitVec 256} {y : KeyRec HashSig.PublicKey LeanXmss.SecretKey}
     (hy : y ∈ support (restLog s u₁ u₂)) :
     Shape (y.1, seedHashInput s :: paramInput u₁ :: y.2) s u₁ (truncateHash u₂) := by
-  obtain ⟨h1, h2⟩ := logged_support _ hy
+  -- `restLog` equated outside `support` (`convert`): given `hy` itself, the kernel unfolds
+  -- `support` on the two sides before comparing the computations.
+  obtain ⟨h1, h2⟩ := logged_support
+    ((fun keys ↦ (keys.1, (⟨s, truncateHash u₂⟩ : LeanXmss.SecretKey))) <$>
+      keygenRest ⟨u₁, truncateHash u₂⟩) (by convert hy using 2; rfl)
   have hown := h2 _ (queriesIn_map _ (queriesIn_keygenRest ⟨u₁, truncateHash u₂⟩))
   rw [support_map] at h1
   obtain ⟨keys, hkeys, hy1⟩ := h1
@@ -480,12 +484,12 @@ theorem shape_of_isKey {s : MasterSeed} {z : KeyRec HashSig.PublicKey LeanXmss.S
     (hz : z ∈ support (loggedKeygen schemeWithHashFromSeed s)) : ∃ S P, Shape z s S P := by
   rw [loggedKeygen_eq, mem_support_bind_iff] at hz
   obtain ⟨u₁, -, hz⟩ := hz
-  rw [support_map] at hz
-  obtain ⟨w, hw, rfl⟩ := hz
+  -- `support_map` applied as an inclusion of the sets: rewriting `hz` itself makes the kernel
+  -- compare two memberships, and unfold `support` on the two sides.
+  obtain ⟨w, hw, rfl⟩ := Set.mem_of_mem_of_subset hz (support_map _ _).subset
   rw [mem_support_bind_iff] at hw
   obtain ⟨u₂, -, hw⟩ := hw
-  rw [support_map] at hw
-  obtain ⟨y, hy, rfl⟩ := hw
+  obtain ⟨y, hy, rfl⟩ := Set.mem_of_mem_of_subset hw (support_map _ _).subset
   exact ⟨u₁, truncateHash u₂, shape_of_rest hy⟩
 
 /-! ## The separation facts -/
