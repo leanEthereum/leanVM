@@ -201,8 +201,14 @@ impl LeanXmssExpandedSecretKey {
         out
     }
 
-    /// For development only: the key with the trees of [`Self::cache_to_bytes`],
-    /// unchecked. `None` on a wrong length.
+    /// Loads a key from its seed and the bytes of [`Self::cache_to_bytes`]. `None` if
+    /// the length is wrong.
+    ///
+    /// The bytes are not checked, so this function is mostly useful for testing.
+    /// 
+    /// # Safety
+    /// 
+    /// Should NOT be used in production when the bytes come from an untrusted source.
     pub fn from_cache_bytes(key_seed: &SecretKey, bytes: &[u8]) -> Option<Self> {
         let (top, bottoms) = bytes.split_at_checked(CACHED_TREE_SIZE)?;
         let (bottoms, []) = bottoms.as_chunks::<CACHED_BOTTOM_SIZE>() else {
