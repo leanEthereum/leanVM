@@ -131,12 +131,27 @@ jobs:
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
 
   common:
+    needs: guest-artifact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/common
+      # `Common/Compose` imports the statement's composition, which reads the guest's bytecode (`Statement/Data`, not
+      # committed): written from the compiled guest, as in the `statement` job.
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formal/lean_vm/scripts/guest-export
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Write the guest's bytecode (guest-export)
+        working-directory: formal/lean_vm
+        run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
       # No GitHub cache: lean-action's saves one of about 2.1 GB on every ref, pull requests' too, which evicts the
       # other jobs' entries from the repository's 10 GB; this one never hit for the same reason. The build is minutes.
       - uses: leanprover/lean-action@v1
