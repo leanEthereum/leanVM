@@ -73,7 +73,7 @@ fn key_loads_from_its_tree_cache() {
     // The cache holds the top tree, and the bottom tree prepared here.
     key.prepare(leaf_index);
     let cache = key.cache_to_bytes();
-    let loaded = SecretKey::from_cache_bytes(seed, &cache).unwrap();
+    let loaded = SecretKey::from_cache_bytes(seed, &key.public_key(), &cache).unwrap();
 
     // The loaded key is the same key: same public key, same cache, same signature.
     assert_eq!(loaded.public_key(), key.public_key());
@@ -82,14 +82,20 @@ fn key_loads_from_its_tree_cache() {
     assert_eq!(signature, key.sign(&message, leaf_index));
     key.public_key().verify(&message, &signature).unwrap();
 
-    // A cache of any other length is refused.
-    let error = SecretKey::from_cache_bytes(seed, &cache[1..]).unwrap_err();
-    assert_eq!(
-        error,
-        Error::InvalidXmssCacheLength {
-            actual: cache.len() - 1
-        }
-    );
+    // A truncated cache, a tampered one, or another key's is refused.
+    let mut tampered = cache.clone();
+    tampered[0] ^= 1;
+    let other = SecretKey::from_seed([6; 32]).public_key();
+    for (public_key, bytes) in [
+        (key.public_key(), &cache[1..]),
+        (key.public_key(), &tampered[..]),
+        (other, &cache[..]),
+    ] {
+        assert_eq!(
+            SecretKey::from_cache_bytes(seed, &public_key, bytes).unwrap_err(),
+            Error::InvalidXmssCache
+        );
+    }
 }
 
 #[test]

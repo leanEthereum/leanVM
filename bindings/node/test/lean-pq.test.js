@@ -44,14 +44,20 @@ test('loads a leanXMSS key from its tree cache', async () => {
   await key.prepare(3)
   const cache = key.cacheToBytes()
 
-  const loaded = await lpq.XmssSecretKey.fromCacheBytes(seed(7), cache)
+  const loaded = await lpq.XmssSecretKey.fromCacheBytes(seed(7), key.publicKey, cache)
   assert.deepEqual(loaded.publicKey, key.publicKey)
   assert.deepEqual(loaded.cacheToBytes(), cache)
   const signature = await loaded.sign(message, 3)
   assert.deepEqual(signature, await key.sign(message, 3))
   lpq.xmssVerify(key.publicKey, message, signature)
 
-  await assert.rejects(lpq.XmssSecretKey.fromCacheBytes(seed(7), cache.subarray(1)), /tree cache has an invalid length/)
+  // A truncated cache, a tampered one, or another key's is refused.
+  const tampered = Buffer.from(cache)
+  tampered[0] ^= 1
+  const other = (await lpq.XmssSecretKey.fromSeed(seed(8))).publicKey
+  for (const [publicKey, bytes] of [[key.publicKey, cache.subarray(1)], [key.publicKey, tampered], [other, cache]]) {
+    await assert.rejects(lpq.XmssSecretKey.fromCacheBytes(seed(7), publicKey, bytes), /not this leanXMSS key's tree cache/)
+  }
 })
 
 test('aggregates both schemes recursively', async () => {

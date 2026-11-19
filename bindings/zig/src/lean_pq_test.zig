@@ -36,15 +36,22 @@ test "leanXMSS key loads from its tree cache" {
     const cache = try key.cacheToBytes(allocator);
     defer allocator.free(cache);
 
-    var loaded = try lpq.XmssSecretKey.fromCacheBytes(seed, cache);
-    defer loaded.deinit();
     const public_key = try key.publicKey();
+    var loaded = try lpq.XmssSecretKey.fromCacheBytes(seed, public_key, cache);
+    defer loaded.deinit();
     try std.testing.expectEqual(public_key, try loaded.publicKey());
     const signature = try loaded.sign(message, 3);
     try std.testing.expectEqual(try key.sign(message, 3), signature);
     try lpq.xmssVerify(public_key, message, &signature);
 
-    try std.testing.expectError(error.NativeFailure, lpq.XmssSecretKey.fromCacheBytes(seed, cache[1..]));
+    try std.testing.expectError(error.NativeFailure, lpq.XmssSecretKey.fromCacheBytes(seed, public_key, cache[1..]));
+    const tampered = try allocator.dupe(u8, cache);
+    defer allocator.free(tampered);
+    tampered[0] ^= 1;
+    try std.testing.expectError(error.NativeFailure, lpq.XmssSecretKey.fromCacheBytes(seed, public_key, tampered));
+    var other = try lpq.XmssSecretKey.fromSeed([_]u8{7} ** 32);
+    defer other.deinit();
+    try std.testing.expectError(error.NativeFailure, lpq.XmssSecretKey.fromCacheBytes(seed, try other.publicKey(), cache));
 }
 
 test "secret keys round trip through bytes" {

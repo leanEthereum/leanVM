@@ -124,7 +124,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` builds the signing state ahead of time. Secret-key bytes are secret material: the key's 32-byte seed.
 
-`cacheToBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.fromCacheBytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+`cacheToBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is checked against the public key.
 
 ## Aggregation
 

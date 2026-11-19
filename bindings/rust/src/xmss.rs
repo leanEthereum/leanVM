@@ -194,20 +194,22 @@ impl SecretKey {
         self.expanded.cache_to_bytes()
     }
 
-    /// Loads a key from its seed and the bytes of [`Self::cache_to_bytes`], building no tree.
+    /// Loads a key from its seed, its public key and the bytes of [`Self::cache_to_bytes`],
+    /// building no tree.
     ///
-    /// The cache is not checked, and a wrong one gives invalid signatures, so this is mostly
-    /// useful for testing: never load a cache from an untrusted source in production.
+    /// The cache is checked against the public key, cheaply: a loaded key signs exactly as a
+    /// built one, whatever the bytes' source.
     ///
     /// # Errors
     ///
-    /// Fails when the cache does not have a cache's length.
-    pub fn from_cache_bytes(seed: Seed, cache: &[u8]) -> Result<Self, Error> {
-        let expanded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, cache).ok_or(
-            Error::InvalidXmssCacheLength {
-                actual: cache.len(),
-            },
-        )?;
+    /// Fails when the bytes are not this key's tree cache.
+    pub fn from_cache_bytes(
+        seed: Seed,
+        public_key: &PublicKey,
+        cache: &[u8],
+    ) -> Result<Self, Error> {
+        let expanded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &public_key.0, cache)
+            .ok_or(Error::InvalidXmssCache)?;
         Ok(Self { seed, expanded })
     }
 

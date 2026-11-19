@@ -97,12 +97,11 @@ pub const XmssSecretKey = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
-    /// Loads a key from its seed and the bytes of `cacheToBytes`, building no tree. The cache is
-    /// not checked, and a wrong one gives invalid signatures, so this is mostly useful for
-    /// testing: never load a cache from an untrusted source in production.
-    pub fn fromCacheBytes(seed: Seed, cache: []const u8) Error!XmssSecretKey {
+    /// Loads a key from its seed, its public key and the bytes of `cacheToBytes`, building no
+    /// tree. The cache is checked against the public key.
+    pub fn fromCacheBytes(seed: Seed, public_key: PublicKey, cache: []const u8) Error!XmssSecretKey {
         var output: ?*c.lpq_xmss_secret_key = null;
-        try checkStatus(c.lpq_xmss_secret_key_from_cache_bytes(&seed, seed.len, bytesPtr(cache), cache.len, &output));
+        try checkStatus(c.lpq_xmss_secret_key_from_cache_bytes(&seed, seed.len, &public_key, public_key.len, bytesPtr(cache), cache.len, &output));
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 

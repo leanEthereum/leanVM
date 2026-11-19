@@ -106,14 +106,17 @@ func XmssSecretKeyFromBytes(bytes []byte) (*XmssSecretKey, error) {
 	return &XmssSecretKey{handle: handle}, nil
 }
 
-// XmssSecretKeyFromCacheBytes loads a leanXMSS key from its seed and the bytes returned by
-// CacheBytes, building no tree. The cache is not checked, and a wrong one gives invalid
-// signatures, so this is mostly useful for testing: never load a cache from an untrusted source in
-// production.
-func XmssSecretKeyFromCacheBytes(seed [32]byte, cache []byte) (*XmssSecretKey, error) {
+// XmssSecretKeyFromCacheBytes loads a leanXMSS key from its seed, its public key and the bytes
+// returned by CacheBytes, building no tree. The cache is checked against the public key.
+func XmssSecretKeyFromCacheBytes(seed, publicKey [32]byte, cache []byte) (*XmssSecretKey, error) {
 	var handle *C.lpq_xmss_secret_key
 	if err := call(func() C.int32_t {
-		return C.lpq_xmss_secret_key_from_cache_bytes(arrayPointer(&seed), C.size_t(len(seed)), bytesPointer(cache), C.size_t(len(cache)), &handle)
+		return C.lpq_xmss_secret_key_from_cache_bytes(
+			arrayPointer(&seed), C.size_t(len(seed)),
+			arrayPointer(&publicKey), C.size_t(len(publicKey)),
+			bytesPointer(cache), C.size_t(len(cache)),
+			&handle,
+		)
 	}); err != nil {
 		return nil, err
 	}

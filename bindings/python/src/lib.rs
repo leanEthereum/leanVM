@@ -10,7 +10,7 @@ create_exception!(py_lean_pq, LeanPqError, PyException);
 
 fn api_error(error: lean_pq::Error) -> PyErr {
     match error {
-        lean_pq::Error::InvalidLength { .. } | lean_pq::Error::InvalidXmssCacheLength { .. } => {
+        lean_pq::Error::InvalidLength { .. } | lean_pq::Error::InvalidXmssCache => {
             PyValueError::new_err(error.to_string())
         }
         _ => LeanPqError::new_err(error.to_string()),
@@ -85,12 +85,14 @@ impl PyXmssSecretKey {
         _cls: &Bound<'_, PyType>,
         py: Python<'_>,
         seed: &[u8],
+        public_key: &[u8],
         cache: &[u8],
     ) -> PyResult<Self> {
         let seed = fixed(seed, "seed")?;
+        let public_key = xmss_public_key(public_key)?;
         Ok(Self {
             inner: py
-                .detach(move || xmss::SecretKey::from_cache_bytes(seed, cache))
+                .detach(move || xmss::SecretKey::from_cache_bytes(seed, &public_key, cache))
                 .map_err(api_error)?,
         })
     }

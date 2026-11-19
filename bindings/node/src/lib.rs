@@ -225,7 +225,11 @@ pub enum XmssKeySource {
     Random,
     Seed(Vec<u8>),
     Bytes(Vec<u8>),
-    Cache { seed: Vec<u8>, cache: Vec<u8> },
+    Cache {
+        seed: Vec<u8>,
+        public_key: Vec<u8>,
+        cache: Vec<u8>,
+    },
 }
 
 pub struct XmssKeyTask {
@@ -241,8 +245,14 @@ impl Task for XmssKeyTask {
             XmssKeySource::Random => Ok(xmss::SecretKey::generate()),
             XmssKeySource::Seed(seed) => Ok(xmss::SecretKey::from_seed(bytes32(seed, "seed")?)),
             XmssKeySource::Bytes(bytes) => xmss::SecretKey::from_bytes(bytes).map_err(api_error),
-            XmssKeySource::Cache { seed, cache } => {
-                xmss::SecretKey::from_cache_bytes(bytes32(seed, "seed")?, cache).map_err(api_error)
+            XmssKeySource::Cache {
+                seed,
+                public_key,
+                cache,
+            } => {
+                let public_key = xmss::PublicKey::from_bytes(public_key).map_err(api_error)?;
+                xmss::SecretKey::from_cache_bytes(bytes32(seed, "seed")?, &public_key, cache)
+                    .map_err(api_error)
             }
         }
     }
@@ -459,10 +469,15 @@ pub fn xmss_secret_key_from_bytes(data: Buffer) -> AsyncTask<XmssKeyTask> {
 }
 
 #[napi(ts_return_type = "Promise<XmssSecretKey>")]
-pub fn xmss_secret_key_from_cache_bytes(seed: Buffer, cache: Buffer) -> AsyncTask<XmssKeyTask> {
+pub fn xmss_secret_key_from_cache_bytes(
+    seed: Buffer,
+    public_key: Buffer,
+    cache: Buffer,
+) -> AsyncTask<XmssKeyTask> {
     AsyncTask::new(XmssKeyTask {
         source: XmssKeySource::Cache {
             seed: seed.to_vec(),
+            public_key: public_key.to_vec(),
             cache: cache.to_vec(),
         },
     })

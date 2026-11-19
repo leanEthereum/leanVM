@@ -37,7 +37,7 @@ restored = lpq.XmssSecretKey.from_bytes(key.to_bytes())
 
 leanXMSS keys are stateful: never sign two different messages at the same leaf index. Persist your own durable high-water leaf index alongside `XmssSecretKey.to_bytes()` (the key's seed, secret material) and advance it before publishing a signature.
 
-`XmssSecretKey.cache_to_bytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.from_cache_bytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+`XmssSecretKey.cache_to_bytes()` returns the trees a key holds, which are not secret, and `XmssSecretKey.from_cache_bytes(seed, public_key, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is checked against the public key, cheaply, so a loaded key signs exactly as a built one.
 
 ## leanSPHINCS
 

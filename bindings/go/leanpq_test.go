@@ -65,12 +65,12 @@ func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := XmssSecretKeyFromCacheBytes(seed, cache)
+	publicKey := mustXmssPublicKey(t, key)
+	loaded, err := XmssSecretKeyFromCacheBytes(seed, publicKey, cache)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer loaded.Close()
-	publicKey := mustXmssPublicKey(t, key)
 	if mustXmssPublicKey(t, loaded) != publicKey {
 		t.Fatal("loaded leanXMSS key must keep its public key")
 	}
@@ -88,8 +88,17 @@ func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
 	if err := XmssVerify(publicKey, message, got); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := XmssSecretKeyFromCacheBytes(seed, cache[1:]); err == nil {
+	if _, err := XmssSecretKeyFromCacheBytes(seed, publicKey, cache[1:]); err == nil {
 		t.Fatal("a cache of another length must be rejected")
+	}
+	tampered := append([]byte(nil), cache...)
+	tampered[0] ^= 1
+	if _, err := XmssSecretKeyFromCacheBytes(seed, publicKey, tampered); err == nil {
+		t.Fatal("a tampered cache must be rejected")
+	}
+	otherKey := mustXmssPublicKey(t, mustXmssKey(t, bytes32(9)))
+	if _, err := XmssSecretKeyFromCacheBytes(seed, otherKey, cache); err == nil {
+		t.Fatal("a cache under another key's public key must be rejected")
 	}
 }
 

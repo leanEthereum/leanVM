@@ -207,14 +207,15 @@ proc fromSeed*(T: type XmssSecretKey, seed: LeanPqSeed): Result[XmssSecretKey, s
   XmssSecretKey.fromBytes(seed)
 
 proc fromCacheBytes*(
-    T: type XmssSecretKey, seed: LeanPqSeed, cache: openArray[byte]
+    T: type XmssSecretKey, seed: LeanPqSeed, publicKey: XmssPublicKey, cache: openArray[byte]
 ): Result[XmssSecretKey, string] =
-  ## Loads a key from its seed and the bytes of `cacheToBytes`, building no tree. The cache is
-  ## not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing:
-  ## never load a cache from an untrusted source in production.
+  ## Loads a key from its seed, its public key and the bytes of `cacheToBytes`, building no
+  ## tree. The cache is checked against the public key.
   var handle: ptr LpqXmssSecretKey
   ? check(lpqXmssSecretKeyFromCacheBytes(
-    bytesPtr(seed), csize_t(seed.len), bytesPtr(cache), csize_t(cache.len), addr handle))
+    bytesPtr(seed), csize_t(seed.len),
+    bytesPtr(publicKey), csize_t(publicKey.len),
+    bytesPtr(cache), csize_t(cache.len), addr handle))
   if handle.isNil:
     return err("native leanXMSS secret key is null")
   ok(XmssSecretKey(handle: handle))

@@ -30,13 +30,13 @@ public final class XmssSecretKey implements AutoCloseable {
     }
 
     /**
-     * Loads a key from its 32-byte seed and the bytes of {@link #cacheToBytes()}, building no tree.
-     * The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful
-     * for testing: never load a cache from an untrusted source in production.
+     * Loads a key from its 32-byte seed, its 32-byte public key and the bytes of
+     * {@link #cacheToBytes()}, building no tree. The cache is checked against the public key.
      */
-    public static XmssSecretKey fromCacheBytes(byte[] seed, byte[] cache) {
+    public static XmssSecretKey fromCacheBytes(byte[] seed, byte[] publicKey, byte[] cache) {
         Native.requireLength(seed, Native.SEED_LENGTH, "seed");
-        return new XmssSecretKey(Native.xmssFromCacheBytes(seed, Objects.requireNonNull(cache, "cache")));
+        Native.requireLength(publicKey, Native.PUBLIC_KEY_LENGTH, "publicKey");
+        return new XmssSecretKey(Native.xmssFromCacheBytes(seed, publicKey, Objects.requireNonNull(cache, "cache")));
     }
 
     /** Returns the 32-byte secret seed. */

@@ -45,7 +45,7 @@ fn cache_round_trip() {
     sk.prepare(first);
     sk.prepare(other);
     let bytes = sk.cache_to_bytes();
-    let loaded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &bytes).unwrap();
+    let loaded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes).unwrap();
     assert_eq!(loaded.public_key(), pk);
     assert_eq!(loaded.cache_to_bytes(), bytes);
     for leaf_index in [first, other] {
@@ -54,7 +54,22 @@ fn cache_round_trip() {
             sign(&sk, &test_message(), leaf_index)
         );
     }
-    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &bytes[1..]).is_none());
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes[1..]).is_none());
+
+    // Tampered bytes are refused: a top node, a bottom tree's index, a bottom node, its signature.
+    let top_len = 1 << 14;
+    let bottom_len = (bytes.len() - top_len) / 2;
+    for at in [0, top_len, top_len + bottom_len - 1, top_len + 4] {
+        let mut tampered = bytes.clone();
+        tampered[at] ^= 1;
+        assert!(
+            LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &tampered).is_none(),
+            "byte {at}"
+        );
+    }
+    // So is another key's cache.
+    let (_, other_pk) = key_gen(&[9; 32]);
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &other_pk, &bytes).is_none());
 }
 
 /// Pins a full key's public key and one signature's bytes, so that a change to the

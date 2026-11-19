@@ -201,25 +201,33 @@ impl LeanXmssExpandedSecretKey {
         out
     }
 
-    /// Loads a key from its seed and the bytes of [`Self::cache_to_bytes`]. `None` if
-    /// the length is wrong.
+    /// Loads a key from its seed, its public key and the bytes of [`Self::cache_to_bytes`].
+    /// `None` if the length is wrong or the bytes do not match the key.
     ///
-    /// The bytes are not checked, so this function is mostly useful for testing.
-    ///
-    /// # Safety
-    ///
-    /// Should NOT be used in production when the bytes come from an untrusted source.
-    pub fn from_cache_bytes(key_seed: &SecretKey, bytes: &[u8]) -> Option<Self> {
+    /// Each tree's stored level is checked: the top tree's must hash to the public key's root, and
+    /// each bottom tree's to a root its top-layer signature signs under the public key. The levels
+    /// below are recomputed from the seed, so a loaded key signs as a built one.
+    pub fn from_cache_bytes(key_seed: &SecretKey, public_key: &LeanXmssPublicKey, bytes: &[u8]) -> Option<Self> {
         let (top, bottoms) = bytes.split_at_checked(CACHED_TREE_SIZE)?;
         let (bottoms, []) = bottoms.as_chunks::<CACHED_BOTTOM_SIZE>() else {
             return None;
         };
         let sk = Self::new(key_seed, LayerTree::from_bytes(1, 0, top));
+        if sk.public_key != *public_key {
+            return None;
+        }
+        let pp = &public_key.public_param;
         for bottom in bottoms {
             let mut rest = &bottom[..];
             let index = u32::from_le_bytes(take(&mut rest));
             let top_signature = LayerSignature::read(&mut rest);
             let tree = LayerTree::from_bytes(0, index, rest);
+            let signed = index >> LAYER_HEIGHT == 0
+                && layer_root(pp, 1, index, &tree.root(pp), &top_signature, |_| {})
+                    .is_some_and(|(_, root)| root == public_key.merkle_root);
+            if !signed {
+                return None;
+            }
             sk.cache(Arc::new(BottomTree { tree, top_signature }));
         }
         Some(sk)

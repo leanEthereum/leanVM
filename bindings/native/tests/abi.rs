@@ -79,6 +79,8 @@ fn native_abi_signs_verifies_and_aggregates() {
                 lpq_xmss_secret_key_from_cache_bytes(
                     [7; 32].as_ptr(),
                     32,
+                    xmss_pk.as_ptr(),
+                    xmss_pk.len(),
                     cache.as_ptr(),
                     cache.len(),
                     &mut loaded
@@ -97,6 +99,8 @@ fn native_abi_signs_verifies_and_aggregates() {
                 lpq_xmss_secret_key_from_cache_bytes(
                     [7; 32].as_ptr(),
                     32,
+                    xmss_pk.as_ptr(),
+                    xmss_pk.len(),
                     cache.as_ptr(),
                     cache.len() - 1,
                     &mut rejected

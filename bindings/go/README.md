@@ -139,6 +139,6 @@ func main() {
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.Bytes()` and never sign two different messages at the same leaf index. leanSPHINCS keys are stateless and deterministic: `SphincsSecretKey.Bytes()` is the 32-byte seed, and a key signs at most 2^30 messages.
 
-`XmssSecretKey.CacheBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKeyFromCacheBytes(seed, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+`XmssSecretKey.CacheBytes()` returns the trees a key holds, which are not secret, and `XmssSecretKeyFromCacheBytes(seed, publicKey, cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is checked against the public key.
 
 `Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects. `AggregateFromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set. `AggregateSignatures` verifies every raw signature before proving, so every `Aggregate` is proven. `Setup` moves the one-time setup ahead of the first proof; calling it is optional.

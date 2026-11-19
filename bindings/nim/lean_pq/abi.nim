@@ -97,8 +97,8 @@ proc lpqXmssSecretKeyToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer):
 proc lpqXmssSecretKeyCacheToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_cache_to_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyFromCacheBytes*(
-  seed: ptr byte, seedLen: csize_t, cache: ptr byte, cacheLen: csize_t,
-  output: ptr ptr LpqXmssSecretKey): int32 {.
+  seed: ptr byte, seedLen: csize_t, publicKey: ptr byte, publicKeyLen: csize_t,
+  cache: ptr byte, cacheLen: csize_t, output: ptr ptr LpqXmssSecretKey): int32 {.
   importc: "lpq_xmss_secret_key_from_cache_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}

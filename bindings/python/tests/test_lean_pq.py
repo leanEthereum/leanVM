@@ -52,17 +52,21 @@ def test_xmss_key_loads_from_its_tree_cache():
     key.prepare(3)
     cache = key.cache_to_bytes()
 
-    loaded = lpq.XmssSecretKey.from_cache_bytes(seed, cache)
+    loaded = lpq.XmssSecretKey.from_cache_bytes(seed, key.public_key, cache)
     assert loaded.public_key == key.public_key
     assert loaded.cache_to_bytes() == cache
     signature = loaded.sign(MESSAGE, 3)
     assert signature == key.sign(MESSAGE, 3)
     lpq.xmss_verify(key.public_key, MESSAGE, signature)
 
-    with pytest.raises(ValueError, match="tree cache has an invalid length"):
-        lpq.XmssSecretKey.from_cache_bytes(seed, cache[1:])
+    # A truncated cache, a tampered one, or another key's is refused.
+    tampered = bytes([cache[0] ^ 1]) + cache[1:]
+    other = lpq.XmssSecretKey.from_seed(b"\x08" * 32).public_key
+    for public_key, data in [(key.public_key, cache[1:]), (key.public_key, tampered), (other, cache)]:
+        with pytest.raises(ValueError, match="not this leanXMSS key's tree cache"):
+            lpq.XmssSecretKey.from_cache_bytes(seed, public_key, data)
     with pytest.raises(ValueError, match="seed must be exactly 32 bytes"):
-        lpq.XmssSecretKey.from_cache_bytes(seed[1:], cache)
+        lpq.XmssSecretKey.from_cache_bytes(seed[1:], key.public_key, cache)
 
 
 def test_aggregates_both_schemes_recursively():

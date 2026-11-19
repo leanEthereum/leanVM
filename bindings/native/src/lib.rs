@@ -188,14 +188,20 @@ pub unsafe extern "C" fn lpq_xmss_secret_key_to_bytes(
 pub unsafe extern "C" fn lpq_xmss_secret_key_from_cache_bytes(
     seed: *const u8,
     seed_len: usize,
+    public_key: *const u8,
+    public_key_len: usize,
     cache: *const u8,
     cache_len: usize,
     out: *mut *mut XmssSecretKeyHandle,
 ) -> c_int {
     ffi(|| {
         let seed = bytes32(seed, seed_len, "seed")?;
-        let key = xmss::SecretKey::from_cache_bytes(seed, bytes(cache, cache_len, "cache")?)
-            .map_err(|e| e.to_string())?;
+        let public_key =
+            xmss::PublicKey::from_bytes(bytes(public_key, public_key_len, "public key")?)
+                .map_err(|e| e.to_string())?;
+        let key =
+            xmss::SecretKey::from_cache_bytes(seed, &public_key, bytes(cache, cache_len, "cache")?)
+                .map_err(|e| e.to_string())?;
         put_handle(out, XmssSecretKeyHandle(key), "secret-key")
     })
 }

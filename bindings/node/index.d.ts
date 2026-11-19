@@ -54,7 +54,7 @@ export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signat
 
 export declare function xmssSecretKeyFromBytes(data: Buffer): Promise<XmssSecretKey>
 
-export declare function xmssSecretKeyFromCacheBytes(seed: Buffer, cache: Buffer): Promise<XmssSecretKey>
+export declare function xmssSecretKeyFromCacheBytes(seed: Buffer, publicKey: Buffer, cache: Buffer): Promise<XmssSecretKey>
 
 export declare function xmssSecretKeyFromSeed(seed: Buffer): Promise<XmssSecretKey>
 

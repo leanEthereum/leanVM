@@ -53,15 +53,20 @@ suite "lean_pq":
     check key.prepare(3).isOk()
     let
       cache = key.cacheToBytes().expect("cache")
-      loaded = XmssSecretKey.fromCacheBytes(seed, cache).expect("loaded key")
       publicKey = key.publicKey().expect("public key")
+      loaded = XmssSecretKey.fromCacheBytes(seed, publicKey, cache).expect("loaded key")
       signature = loaded.sign(message, 3).expect("signature")
+      otherKey = XmssSecretKey.fromSeed(filled(7)).expect("key").publicKey().expect("public key")
+    var tampered = cache
+    tampered[0] = tampered[0] xor 1
 
     check:
       loaded.publicKey().expect("public key") == publicKey
       signature == key.sign(message, 3).expect("signature")
       xmssVerify(publicKey, message, signature)
-      XmssSecretKey.fromCacheBytes(seed, cache.toOpenArray(1, cache.high)).isErr()
+      XmssSecretKey.fromCacheBytes(seed, publicKey, cache.toOpenArray(1, cache.high)).isErr()
+      XmssSecretKey.fromCacheBytes(seed, publicKey, tampered).isErr()
+      XmssSecretKey.fromCacheBytes(seed, otherKey, cache).isErr()
 
   test "leanSPHINCS signs and verifies":
     let

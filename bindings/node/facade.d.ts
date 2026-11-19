@@ -24,11 +24,10 @@ export declare class XmssSecretKey {
   static fromSeed(seed: Buffer): Promise<XmssSecretKey>
   static fromBytes(data: Buffer): Promise<XmssSecretKey>
   /**
-   * Loads a key from its 32-byte seed and the bytes of `cacheToBytes()`, building no tree. The
-   * cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for
-   * testing: never load a cache from an untrusted source in production.
+   * Loads a key from its 32-byte seed, its 32-byte public key and the bytes of `cacheToBytes()`,
+   * building no tree. The cache is checked against the public key; any other bytes reject.
    */
-  static fromCacheBytes(seed: Buffer, cache: Buffer): Promise<XmssSecretKey>
+  static fromCacheBytes(seed: Buffer, publicKey: Buffer, cache: Buffer): Promise<XmssSecretKey>
   /** SECRET KEY MATERIAL: the 32-byte seed. */
   toBytes(): Buffer
   /** The trees the key holds, without any secret. */

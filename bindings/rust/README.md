@@ -33,7 +33,7 @@ sphincs_key.public_key().verify(&message, &signature)?;
 
 A leanXMSS key keeps no record of the leaf indices it used: persist a durable high-water leaf index next to the key's bytes, and advance it before publishing a signature. Secret key bytes are secret material, the key's 32-byte seed in both schemes.
 
-`xmss::SecretKey::cache_to_bytes()` returns the trees a key holds, which are not secret, and `xmss::SecretKey::from_cache_bytes(seed, &cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is not checked, and a wrong one gives invalid signatures, so this is mostly useful for testing: never load a cache from an untrusted source in production.
+`xmss::SecretKey::cache_to_bytes()` returns the trees a key holds, which are not secret, and `xmss::SecretKey::from_cache_bytes(seed, &public_key, &cache)` loads a key from them in place of building the trees, which is what key generation spends its time on. The cache is checked against the public key, cheaply, so a loaded key signs exactly as a built one.
 
 ## Aggregate
 
