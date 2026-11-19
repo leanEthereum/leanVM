@@ -19,10 +19,15 @@ open LeanVM.Guest
 
 public section
 
+theorem hon3_body : (CoreMode.bodyCore Fn.«exponent_tables».cfun.fn.body || CoreMode.loopBC Fn.«exponent_tables».cfun.fn) = true := by decide +kernel
+theorem hon3_ptr : (Bridge.stmtsOf Fn.«exponent_tables».cfun.fn.body).all (CoreMode.ptrCellB Fn.«exponent_tables».idx) = true := by decide +kernel
+theorem hon3_ret : (Bridge.stmtsOf Fn.«exponent_tables».cfun.fn.body).all (CoreMode.retCellB Fn.«exponent_tables».idx) = true := by decide +kernel
+theorem hon3_sel : (CoreMode.selGo Fn.«exponent_tables».idx Fn.«exponent_tables».cfun.fn.params [] Fn.«exponent_tables».cfun.fn.body || CoreMode.loopBC Fn.«exponent_tables».cfun.fn) = true := by decide +kernel
+theorem hon3_rest : CoreMode.honRest Fn.«exponent_tables».idx Fn.«exponent_tables».cfun.fn = true := by decide +kernel
 theorem cfOk0 : CoreMode.CfOk Fn.«child_claim_list_mono_last__L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_mono_last__L0».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk1 : CoreMode.CfOk Fn.«da_column_offsets».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«da_column_offsets».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk2 : CoreMode.CfOk Fn.«da_levels__L128_L7_loop6».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«da_levels__L128_L7_loop6».tie rfl rfl rfl (by decide +kernel)
-theorem cfOk3 : CoreMode.CfOk Fn.«exponent_tables».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«exponent_tables».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk3 : CoreMode.CfOk Fn.«exponent_tables».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«exponent_tables».tie rfl rfl rfl (by rw [CoreMode.honB_of hon3_body hon3_ptr hon3_ret hon3_sel hon3_rest]; decide +kernel)
 theorem cfOk4 : CoreMode.CfOk Fn.«index_mle__L31».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«index_mle__L31».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk5 : CoreMode.CfOk Fn.«level_positions__L11_L24_L6».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L11_L24_L6».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk6 : CoreMode.CfOk Fn.«level_positions__L19_L20_L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L19_L20_L2».tie rfl rfl rfl (by decide +kernel)

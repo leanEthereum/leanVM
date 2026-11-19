@@ -26,8 +26,8 @@ HELD = set()
 def candidates(S=None):
     """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
     call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`), runs over its caller's cells, or
-    residuals of a family; or (`CoreMode.loopBB`) a body with branches and `match`es, its statements before the tail
-    (nested ones included) atoms, calls, branches, `match`es."""
+    residuals of a family; or (`CoreMode.loopBB`) a body with
+    branches and `match`es, its statements before the tail (nested ones included) atoms, calls, branches, `match`es."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]

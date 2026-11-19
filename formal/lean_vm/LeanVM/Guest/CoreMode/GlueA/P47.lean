@@ -72,6 +72,7 @@ abbrev Fn.«squeeze_point_from__L26».advice := Data.adviceFn318
 abbrev Fn.«squeeze_point_from__L26».idx : ℕ := 318
 abbrev Fn.«walk_path__L12_L5».advice := Data.adviceFn1458
 abbrev Fn.«walk_path__L12_L5».idx : ℕ := 1458
+abbrev Fn.«walk_path__L12_L5».jt0 : ℕ := 11664
 
 end
 

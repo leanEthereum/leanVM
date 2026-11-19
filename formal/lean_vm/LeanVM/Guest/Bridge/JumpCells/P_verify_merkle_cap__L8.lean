@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.CheckView
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
@@ -19,7 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_merkle_cap__L8».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1182 == 1) = true := by decide +kernel
+theorem Fn.«verify_merkle_cap__L8».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_merkle_cap__L8».idx == 1) = true := by decide +kernel
 
 end
 

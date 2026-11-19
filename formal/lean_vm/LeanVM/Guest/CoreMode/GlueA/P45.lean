@@ -80,6 +80,7 @@ abbrev Fn.«rs_eq_rows__L8».advice := Data.adviceFn428
 abbrev Fn.«rs_eq_rows__L8».idx : ℕ := 428
 abbrev Fn.«walk_path__L18_L5».advice := Data.adviceFn1503
 abbrev Fn.«walk_path__L18_L5».idx : ℕ := 1503
+abbrev Fn.«walk_path__L18_L5».jt0 : ℕ := 12624
 
 end
 

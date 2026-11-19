@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.CheckView
+public import LeanVM.Guest.CoreMode.GlueA.«P14»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P14».Bundle
 public import LeanVM.Guest.Pack.«P14».Core
@@ -19,25 +20,25 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«eq_prefix_chain».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (5 == 1) = true := by decide +kernel
-theorem Fn.«eq_prefix_run__L37».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (79 == 1) = true := by decide +kernel
-theorem Fn.«padding_weight__L21».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (121 == 1) = true := by decide +kernel
-theorem Fn.«plus_one_run__L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (131 == 1) = true := by decide +kernel
-theorem Fn.«index_mle__L26».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (225 == 1) = true := by decide +kernel
-theorem Fn.«column_selector__L16».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (294 == 1) = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L29».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (321 == 1) = true := by decide +kernel
-theorem Fn.«grind_check__L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (424 == 1) = true := by decide +kernel
-theorem Fn.«grind_check__L24».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (444 == 1) = true := by decide +kernel
-theorem Fn.«level_positions__L7_L14_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (463 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L37_L20_L4_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (925 == 1) = true := by decide +kernel
-theorem Fn.«decode_query_windows__L17_L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (951 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L55_L15_L6_L3_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1036 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L55_L13_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1119 == 1) = true := by decide +kernel
-theorem Fn.«level_positions__L8_L19_L7_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1139 == 1) = true := by decide +kernel
-theorem Fn.«level_positions__L5_L25_L7_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1371 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L44_L19_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1387 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L44_L20_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1435 == 1) = true := by decide +kernel
-theorem Fn.«level_residual__L16_L8_L4_L2_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (1453 == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_chain».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_chain».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L37».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L37».idx == 1) = true := by decide +kernel
+theorem Fn.«padding_weight__L21».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«padding_weight__L21».idx == 1) = true := by decide +kernel
+theorem Fn.«plus_one_run__L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«plus_one_run__L0».idx == 1) = true := by decide +kernel
+theorem Fn.«index_mle__L26».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L26».idx == 1) = true := by decide +kernel
+theorem Fn.«column_selector__L16».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L16».idx == 1) = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L29».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«squeeze_point_from__L29».idx == 1) = true := by decide +kernel
+theorem Fn.«grind_check__L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«grind_check__L2».idx == 1) = true := by decide +kernel
+theorem Fn.«grind_check__L24».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«grind_check__L24».idx == 1) = true := by decide +kernel
+theorem Fn.«level_positions__L7_L14_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_positions__L7_L14_L2».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L37_L20_L4_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L37_L20_L4_L2».idx == 1) = true := by decide +kernel
+theorem Fn.«decode_query_windows__L17_L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«decode_query_windows__L17_L5».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L55_L15_L6_L3_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L55_L15_L6_L3_loop0».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L55_L13_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L55_L13_L4_L2_loop1».idx == 1) = true := by decide +kernel
+theorem Fn.«level_positions__L8_L19_L7_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_positions__L8_L19_L7_loop0».idx == 1) = true := by decide +kernel
+theorem Fn.«level_positions__L5_L25_L7_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_positions__L5_L25_L7_loop0».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L44_L19_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L44_L19_L4_L2_loop1».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L44_L20_L4_L2_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L44_L20_L4_L2_loop1».idx == 1) = true := by decide +kernel
+theorem Fn.«level_residual__L16_L8_L4_L2_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L16_L8_L4_L2_loop0».idx == 1) = true := by decide +kernel
 
 end
 

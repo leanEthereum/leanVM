@@ -11,6 +11,9 @@ public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreMode.GlueE.«P24»
 public import LeanVM.Guest.CoreMode.GlueE.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.GlueE.«verify_tables»
+public import LeanVM.Guest.CoreMode.GlueA.«P24»
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
+public import LeanVM.Guest.CoreMode.GlueA.«verify_tables»
 
 set_option maxRecDepth 100000
 set_option linter.all false

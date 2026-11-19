@@ -28,11 +28,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_verify`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(29, Fn.«da_weights».sig), (30, Fn.«da_pad».sig), (31, Fn.«da_padding».sig), (34, Fn.«da_vector».sig), (407, Fn.«da_verify_loop0».sig), (408, Fn.«da_levels__L32_L5».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«da_weights».idx, Fn.«da_weights».sig), (Fn.«da_pad».idx, Fn.«da_pad».sig), (Fn.«da_padding».idx, Fn.«da_padding».sig), (Fn.«da_vector».idx, Fn.«da_vector».sig), (Fn.«da_verify_loop0».idx, Fn.«da_verify_loop0».sig), (Fn.«da_levels__L32_L5».idx, Fn.«da_levels__L32_L5».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_verify`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(29, Fn.«da_weights».sig), (30, Fn.«da_pad».sig), (31, Fn.«da_padding».sig), (34, Fn.«da_vector».sig), (407, Fn.«da_verify_loop0».sig), (408, Fn.«da_levels__L32_L5».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«da_weights».idx, Fn.«da_weights».sig), (Fn.«da_pad».idx, Fn.«da_pad».sig), (Fn.«da_padding».idx, Fn.«da_padding».sig), (Fn.«da_vector».idx, Fn.«da_vector».sig), (Fn.«da_verify_loop0».idx, Fn.«da_verify_loop0».sig), (Fn.«da_levels__L32_L5».idx, Fn.«da_levels__L32_L5».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

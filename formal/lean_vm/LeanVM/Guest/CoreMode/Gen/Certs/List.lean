@@ -126,12 +126,11 @@ noncomputable def coreTable : List CoreMode.CFun := corePacks.flatten.map (·.cf
 
 /-- **The routed functions' callees off the route**, by entry and signature. -/
 noncomputable def offSigs : List (ℕ × Mode.Sig) :=
-  [(Fn.«verify_bus_gkr».entry, Fn.«verify_bus_gkr».csig),
-    (Fn.«verify_keccak».entry, Fn.«verify_keccak».csig),
-    (Fn.«claim_list_digest».entry, Fn.«claim_list_digest».csig),
+  [(Fn.«claim_list_digest».entry, Fn.«claim_list_digest».csig),
     (Fn.«child_claim_list_any».entry, Fn.«child_claim_list_any».csig),
     (Fn.«child_claim_list_mono».entry, Fn.«child_claim_list_mono».csig),
-    (Fn.«da_verify».entry, Fn.«da_verify».csig)]
+    (Fn.«da_verify».entry, Fn.«da_verify».csig),
+    (Fn.«verify_bus_gkr_loop0».entry, Fn.«verify_bus_gkr_loop0».csig)]
 
 end
 
@@ -1262,6 +1261,8 @@ theorem «plus_one_run__L10».modeCert_in : «plus_one_run__L10».modeCert ∈ C
   EndExec.CertE.mem (ls := CoreMode.corePacks) «plus_one_run__L10».ce (list_mem% 23) (list_mem% 18)
 theorem «plus_one_run__L29».modeCert_in : «plus_one_run__L29».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «plus_one_run__L29».ce (list_mem% 23) (list_mem% 19)
+theorem «verify_keccak».modeCert_in : «verify_keccak».modeCert ∈ CoreMode.coreCerts :=
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «verify_keccak».ce (list_mem% 23) (list_mem% 20)
 theorem «block_selector_tab__L28».modeCert_in : «block_selector_tab__L28».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «block_selector_tab__L28».ce (list_mem% 24) (list_mem% 0)
 theorem «child_claim_list_mono_last__L4».modeCert_in : «child_claim_list_mono_last__L4».modeCert ∈ CoreMode.coreCerts :=
@@ -1704,6 +1705,8 @@ theorem «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeCert
   EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».ce (list_mem% 32) (list_mem% 19)
 theorem «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert_in : «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».ce (list_mem% 32) (list_mem% 20)
+theorem «verify_bus_gkr».modeCert_in : «verify_bus_gkr».modeCert ∈ CoreMode.coreCerts :=
+  EndExec.CertE.mem (ls := CoreMode.corePacks) «verify_bus_gkr».ce (list_mem% 32) (list_mem% 21)
 theorem «aggregate_claims_loop2».modeCert_in : «aggregate_claims_loop2».modeCert ∈ CoreMode.coreCerts :=
   EndExec.CertE.mem (ls := CoreMode.corePacks) «aggregate_claims_loop2».ce (list_mem% 33) (list_mem% 0)
 theorem «block_selector__L16».modeCert_in : «block_selector__L16».modeCert ∈ CoreMode.coreCerts :=

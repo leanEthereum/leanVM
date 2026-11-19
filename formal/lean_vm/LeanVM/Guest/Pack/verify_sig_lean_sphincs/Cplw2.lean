@@ -23,35 +23,35 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`, window 16, part 0. -/
-theorem cw16_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 16 0 = true := by
+theorem cw16_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 16 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 17, part 0. -/
-theorem cw17_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 17 0 = true := by
+theorem cw17_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 17 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 18, part 0. -/
-theorem cw18_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 18 0 = true := by
+theorem cw18_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 18 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 19, part 0. -/
-theorem cw19_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 19 0 = true := by
+theorem cw19_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 19 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 20, part 0. -/
-theorem cw20_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 20 0 = true := by
+theorem cw20_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 20 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 21, part 0. -/
-theorem cw21_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 21 0 = true := by
+theorem cw21_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 21 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 22, part 0. -/
-theorem cw22_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 22 0 = true := by
+theorem cw22_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 22 0 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 23, part 0. -/
-theorem cw23_0 : cplWinD (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 23 0 = true := by
+theorem cw23_0 : cplWinD (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) plumb fs parts arms false 23 0 = true := by
   decide +kernel
 
 end

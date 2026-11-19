@@ -22,42 +22,42 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`, window 16. -/
-theorem w16 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w16 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 16 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 17. -/
-theorem w17 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w17 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 17 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 18. -/
-theorem w18 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w18 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 18 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 19. -/
-theorem w19 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w19 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 19 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 20. -/
-theorem w20 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w20 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 20 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 21. -/
-theorem w21 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w21 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 21 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 22. -/
-theorem w22 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w22 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 22 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`, window 23. -/
-theorem w23 : checkWinCF (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
+theorem w23 : checkWinCF (Glob.ofSigs ([(Fn.«sp_wots».idx, Fn.«sp_wots».sig)]) Data.jtTrie globSem) code
     Fn.«verify_sig_lean_sphincs».core (cert.withPows Data.powTree) false 23 = true := by
   decide +kernel
 

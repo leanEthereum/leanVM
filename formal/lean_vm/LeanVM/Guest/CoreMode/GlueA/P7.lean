@@ -74,6 +74,7 @@ abbrev Fn.«rs_eq_run».advice := Data.adviceFn6
 abbrev Fn.«rs_eq_run».idx : ℕ := 6
 abbrev Fn.«walk_path__L18_L7».advice := Data.adviceFn1517
 abbrev Fn.«walk_path__L18_L7».idx : ℕ := 1517
+abbrev Fn.«walk_path__L18_L7».jt0 : ℕ := 13008
 
 end
 

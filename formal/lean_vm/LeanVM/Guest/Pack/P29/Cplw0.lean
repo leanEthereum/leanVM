@@ -46,11 +46,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `claim_list_digest`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(23, Fn.«list_split».sig), (350, Fn.«claim_list_digest_loop0».sig), (351, Fn.«claim_list_digest_loop1».sig), (352, Fn.«claim_list_last__L0».sig), (353, Fn.«claim_list_last__L1».sig), (354, Fn.«claim_list_last__L2».sig), (355, Fn.«claim_list_last__L3».sig), (356, Fn.«claim_list_last__L4».sig), (357, Fn.«claim_list_last__L5».sig), (358, Fn.«claim_list_last__L6».sig), (359, Fn.«claim_list_last__L7».sig), (360, Fn.«claim_list_last__L8».sig), (361, Fn.«claim_list_last__L9».sig), (362, Fn.«claim_list_last__L10».sig), (363, Fn.«claim_list_last__L11».sig), (364, Fn.«claim_list_last__L12».sig)] ++ [(365, Fn.«claim_list_last__L13».sig), (366, Fn.«claim_list_last__L14».sig), (367, Fn.«claim_list_last__L15».sig), (368, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig), (Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig)] ++ [(Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig), (Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `claim_list_digest`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(23, Fn.«list_split».sig), (350, Fn.«claim_list_digest_loop0».sig), (351, Fn.«claim_list_digest_loop1».sig), (352, Fn.«claim_list_last__L0».sig), (353, Fn.«claim_list_last__L1».sig), (354, Fn.«claim_list_last__L2».sig), (355, Fn.«claim_list_last__L3».sig), (356, Fn.«claim_list_last__L4».sig), (357, Fn.«claim_list_last__L5».sig), (358, Fn.«claim_list_last__L6».sig), (359, Fn.«claim_list_last__L7».sig), (360, Fn.«claim_list_last__L8».sig), (361, Fn.«claim_list_last__L9».sig), (362, Fn.«claim_list_last__L10».sig), (363, Fn.«claim_list_last__L11».sig), (364, Fn.«claim_list_last__L12».sig)] ++ [(365, Fn.«claim_list_last__L13».sig), (366, Fn.«claim_list_last__L14».sig), (367, Fn.«claim_list_last__L15».sig), (368, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig), (Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig)] ++ [(Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig), (Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -70,11 +70,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop4_main`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(19, Fn.«verify_sub».sig), (22, Fn.«statement_digest».sig), (25, Fn.«child_claim_list_digest».sig), (41, Fn.«main_loop4».sig)]) Data.jtTrie globSem) code Fn.«main_loop4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_sub».idx, Fn.«verify_sub».sig), (Fn.«statement_digest».idx, Fn.«statement_digest».sig), (Fn.«child_claim_list_digest».idx, Fn.«child_claim_list_digest».sig), (Fn.«main_loop4».idx, Fn.«main_loop4».sig)]) Data.jtTrie globSem) code Fn.«main_loop4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `__loop4_main`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(19, Fn.«verify_sub».sig), (22, Fn.«statement_digest».sig), (25, Fn.«child_claim_list_digest».sig), (41, Fn.«main_loop4».sig)]) Data.jtTrie globSem) code Fn.«main_loop4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_sub».idx, Fn.«verify_sub».sig), (Fn.«statement_digest».idx, Fn.«statement_digest».sig), (Fn.«child_claim_list_digest».idx, Fn.«child_claim_list_digest».sig), (Fn.«main_loop4».idx, Fn.«main_loop4».sig)]) Data.jtTrie globSem) code Fn.«main_loop4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -214,11 +214,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `bus_grind_check__L4`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(441, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«grind_check__L21».idx, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `bus_grind_check__L4`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(441, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«grind_check__L21».idx, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

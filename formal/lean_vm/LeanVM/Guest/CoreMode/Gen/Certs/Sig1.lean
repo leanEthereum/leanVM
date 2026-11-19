@@ -18,8 +18,8 @@ open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
 public section
 
 theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
-  sigsOr_of_list Fn.«child_claim_list_digest».modeSigs fa%[.inr (list_mem% 3),
-      .inr (list_mem% 4),
+  sigsOr_of_list Fn.«child_claim_list_digest».modeSigs fa%[.inr (list_mem% 1),
+      .inr (list_mem% 2),
       .inl ⟨_, Fn.«list_split».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«child_claim_list_last__L6».modeSigs fa%[],
   sigsOr_of_list Fn.«claim_list_last__L1».modeSigs fa%[],

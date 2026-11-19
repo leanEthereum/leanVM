@@ -20,6 +20,7 @@ namespace LeanVM.Guest
 
 abbrev Fn.«walk_path__L24_L4».advice := Data.adviceFn1538
 abbrev Fn.«walk_path__L24_L4».idx : ℕ := 1538
+abbrev Fn.«walk_path__L24_L4».jt0 : ℕ := 13712
 
 end
 

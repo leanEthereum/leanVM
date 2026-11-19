@@ -28,11 +28,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `aggregate_claims`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(423, Fn.«aggregate_claims_loop0».sig), (424, Fn.«grind_check__L2».sig), (425, Fn.«aggregate_claims_loop1».sig), (426, Fn.«batch_sumcheck__L23».sig), (427, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«aggregate_claims_loop0».idx, Fn.«aggregate_claims_loop0».sig), (Fn.«grind_check__L2».idx, Fn.«grind_check__L2».sig), (Fn.«aggregate_claims_loop1».idx, Fn.«aggregate_claims_loop1».sig), (Fn.«batch_sumcheck__L23».idx, Fn.«batch_sumcheck__L23».sig), (Fn.«aggregate_claims_loop2».idx, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `aggregate_claims`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(423, Fn.«aggregate_claims_loop0».sig), (424, Fn.«grind_check__L2».sig), (425, Fn.«aggregate_claims_loop1».sig), (426, Fn.«batch_sumcheck__L23».sig), (427, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«aggregate_claims_loop0».idx, Fn.«aggregate_claims_loop0».sig), (Fn.«grind_check__L2».idx, Fn.«grind_check__L2».sig), (Fn.«aggregate_claims_loop1».idx, Fn.«aggregate_claims_loop1».sig), (Fn.«batch_sumcheck__L23».idx, Fn.«batch_sumcheck__L23».sig), (Fn.«aggregate_claims_loop2».idx, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -148,19 +148,19 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_claim_list_digest`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(350, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `__loop0_claim_list_digest`, window 1, part 0. -/
-theorem cw1_0 : cplWinD (Glob.ofSigs ([(350, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
+theorem cw1_0 : cplWinD (Glob.ofSigs ([(Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
   decide +kernel
 
 /-- `__loop0_claim_list_digest`, window 1, part 1. -/
-theorem cw1_1 : cplWinD (Glob.ofSigs ([(350, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 1 = true := by
+theorem cw1_1 : cplWinD (Glob.ofSigs ([(Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 1 = true := by
   decide +kernel
 
 /-- `__loop0_claim_list_digest`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(350, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 1 := by decide +kernel
   rw [hc] at hi

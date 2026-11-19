@@ -38,8 +38,8 @@ theorem head_ok : headOkF Fn.«check_opening_terminal».pows sigW core hcert st0
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 1434 to the end. -/
-theorem last_ok : lastOkF Fn.«check_opening_terminal».pows sigW core hcert 1434 st16 = true := by
+/-- Statements 816 to the end. -/
+theorem last_ok : lastOkF Fn.«check_opening_terminal».pows sigW core hcert 816 st16 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -54,7 +54,7 @@ namespace LeanVM.Guest.Fn.«check_opening_terminal»
 theorem heap_okW : CoreMode.heapOkC Fn.«check_opening_terminal».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(72, HeapWG.st1), (104, HeapWG.st2), (136, HeapWG.st3), (164, HeapWG.st4), (196, HeapWG.st5), (224, HeapWG.st6), (248, HeapWG.st7), (276, HeapWG.st8), (296, HeapWG.st9), (320, HeapWG.st10), (340, HeapWG.st11), (360, HeapWG.st12), (376, HeapWG.st13), (392, HeapWG.st14), (404, HeapWG.st15), (1434, HeapWG.st16)]) HeapWG.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(72, HeapWG.st1), (104, HeapWG.st2), (136, HeapWG.st3), (164, HeapWG.st4), (192, HeapWG.st5), (220, HeapWG.st6), (244, HeapWG.st7), (272, HeapWG.st8), (292, HeapWG.st9), (316, HeapWG.st10), (336, HeapWG.st11), (356, HeapWG.st12), (372, HeapWG.st13), (388, HeapWG.st14), (400, HeapWG.st15), (816, HeapWG.st16)]) HeapWG.head_ok
     ⟨HeapWG.win0, by omega,
     HeapWG.win1, by omega,
     HeapWG.win2, by omega,

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
+public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
 
@@ -20,9 +22,9 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«verify_sig_lean_sphincs».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«verify_sig_lean_sphincs».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn21 = true := by decide +kernel
-theorem Fn.«verify_sig_lean_sphincs».frOk : Bridge.frChk alignCtx fs [20] core.params core.body Data.adviceFn21 = true := by decide +kernel
-theorem Fn.«verify_sig_lean_sphincs».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn21 = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«verify_sig_lean_sphincs».advice = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».frOk : Bridge.frChk alignCtx fs [Fn.«sp_wots».idx] core.params core.body Fn.«verify_sig_lean_sphincs».advice = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«verify_sig_lean_sphincs».advice = true := by decide +kernel
 
 end
 

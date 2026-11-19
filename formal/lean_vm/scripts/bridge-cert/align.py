@@ -385,6 +385,19 @@ def bases(f, pack):
         [f'LeanVM.Guest.CoreMode.GlueE.«{q}»' for _, _, q in f['entk']]
 
 
+HOME = {}
+
+
+def glue_a(k):
+    """The glue module naming function `k`'s advice and index (`CoreMode/GlueA/<pack>.lean`, by the pack holding its
+    core, as `scripts/core-mode/glue.py` writes it)."""
+    if not HOME:
+        for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Core*.lean'))):
+            for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
+                HOME.setdefault(m.group(1), p.split(os.sep)[-2])
+    return f'LeanVM.Guest.CoreMode.GlueA.«{HOME[k]}»'
+
+
 def imports(ms):
     return ''.join(f'public import {m}\n' for m in sorted(set(ms))) + '\n'
 
@@ -410,11 +423,11 @@ def render(pack, fns):
         k = f['key']
         thms += [(k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
                   'decide +kernel'),
-                 (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Data.adviceFn{f["j"]} = true',
+                 (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Fn.«{k}».advice = true',
                   'decide +kernel')]
     return (HEAD.format(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
                         what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies.")
-            + imports(m for f in fns for m in bases(f, pack))
+            + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns])
             + 'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
             + ''.join(c for _, c in ctxs) + '\nend\n\nend LeanVM.Guest\n\n' + data.fn_thms(thms))
 

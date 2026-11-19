@@ -45,6 +45,7 @@ noncomputable def «level_residual__L73_L23_L6_L3_loop0».modeCert : Mode.Cert :
 noncomputable def «opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «plus_one_run__L10».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 noncomputable def «plus_one_run__L29».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
+noncomputable def «verify_keccak».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
 
 end
 
@@ -98,6 +99,14 @@ kernel_rfl «plus_one_run__L10».modeSigs : «plus_one_run__L10».modeCert.E.sig
   []
 kernel_rfl «plus_one_run__L29».modeSigs : «plus_one_run__L29».modeCert.E.sigs = CoreMode.sigTrie
   []
+kernel_rfl «verify_keccak».modeSigs : «verify_keccak».modeCert.E.sigs = CoreMode.sigTrie
+  [«keccak_layer__L0».csig,
+    «keccak_layer__L1».csig,
+    «keccak_plain_rounds__L4_L1».csig,
+    «keccak_plain_rounds__L6_L0».csig,
+    «verify_keccak_loop0».csig,
+    «verify_keccak_loop1».csig,
+    «verify_keccak_loop2».csig]
 
 @[expose] public section
 
@@ -161,6 +170,9 @@ noncomputable def «plus_one_run__L10».ce : EndExec.CertE CoreMode.hcTab CoreMo
 noncomputable def «plus_one_run__L29».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
   ⟨modeCert, cfun, ModePack.«P3».coreFns_ok _ (list_mem% 19), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
     Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+noncomputable def «verify_keccak».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
+  ⟨modeCert, cfun, ModePack.«P3».coreFns_ok _ (list_mem% 20), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
+    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
 
 end
 
@@ -183,7 +195,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«level_residual__L44_L10_L4_L2».ce, Fn.«level_residual__L55_L20_L4_L2_loop0».ce,
    Fn.«level_residual__L73_L15_L6_L3».ce, Fn.«level_residual__L73_L23_L6_L3_loop0».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».ce, Fn.«plus_one_run__L10».ce,
-   Fn.«plus_one_run__L29».ce]
+   Fn.«plus_one_run__L29».ce, Fn.«verify_keccak».ce]
 
 end
 

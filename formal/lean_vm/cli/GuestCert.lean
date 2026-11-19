@@ -2784,6 +2784,13 @@ def fnRoot : System.FilePath := "LeanVM/Guest/Fn"
 
 def fnNs (key : String) : String := s!"LeanVM.Guest.Fn.«{key}»"
 
+/-- The glue module naming the index of the function whose core IR is module `m` (`CoreMode/GlueA/<pack>.lean`, by
+the pack of its core: `scripts/core-mode/glue.py`). -/
+def glueAOf (m : String) : String :=
+  match (m.splitOn "«").drop 1 with
+  | t :: _ => s!"LeanVM.Guest.CoreMode.GlueA.«{(t.splitOn "»").headD ""}»"
+  | [] => m
+
 /-- The packs: a function's is `packOf packCount` of its stable name. -/
 def packCount : ℕ := 64
 
@@ -2822,11 +2829,12 @@ def fnTail (key : String) : String := s!"\nend\nend {fnNs key}\n"
 callee, past the elaborator's depth for a function of many callees. -/
 def viewChunk : ℕ := 16
 
-/-- Function `j`'s callees with their signatures, in lists of `viewChunk` appended. -/
+/-- Function `j`'s callees with their signatures, in lists of `viewChunk` appended: each callee by its index as the
+glue names it (`CoreMode/GlueA/<pack>.lean`'s `Fn.«k».idx`, which its `Sig` module imports), not as a number. -/
 def viewChunks (I : Array FnInfo) (j : ℕ) : List (List ℕ × String) :=
   let cs := I[j]!.callees
   ((List.range ((cs.length + viewChunk - 1) / viewChunk)).map fun k => (cs.drop (viewChunk * k)).take viewChunk).map
-    fun l => (l, listText (l.map fun c => s!"({c}, Fn.«{I[c]!.key}».sig)"))
+    fun l => (l, listText (l.map fun c => s!"(Fn.«{I[c]!.key}».idx, Fn.«{I[c]!.key}».sig)"))
 
 def viewList (I : Array FnInfo) (j : ℕ) : String :=
   match viewChunks I j with
@@ -3114,7 +3122,9 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     some (packPath dir "Sig", packHeader dir "Sig" s!"What a caller knows of compiled functions {names js}." ++
       "public import LeanVM.Guest.Check\n" ++
       String.join ((js.map fun j => dirOf j).eraseDups.mergeSort.map fun d =>
-        s!"public import LeanVM.Guest.CoreMode.GlueE.«{d}»\n") ++ "\n" ++ dataOptions ++
+        s!"public import LeanVM.Guest.CoreMode.GlueE.«{d}»\n") ++
+      String.join ((js.map fun j => glueAOf I[j]!.coreMod).eraseDups.mergeSort.map fun m =>
+        s!"public import {m}\n") ++ "\n" ++ dataOptions ++
       String.join (js.map fun j =>
         let k := I[j]!.key
         s!"namespace {fnNs k}\n\n@[expose] public section\n\n" ++

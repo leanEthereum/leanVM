@@ -334,7 +334,7 @@ theorem ok266 : CheckOk 266 := checkOk_one (by decide +kernel) w266_0
 
 theorem plain266 : Plain 266 := plain_of_nil (by decide +kernel)
 
-theorem link267 : Link 267 (Glob.ofSigs ([(7, Fn.«sumcheck_round4».sig), (267, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem)
+theorem link267 : Link 267 (Glob.ofSigs ([(Fn.«sumcheck_round4».idx, Fn.«sumcheck_round4».sig), (Fn.«verify_tables_loop0».idx, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem)
     Fn.«verify_tables_loop0».code Fn.«verify_tables_loop0».core (Fn.«verify_tables_loop0».cert.withPows Data.powTree) :=
   Link.of code267 core267 cert267 
     (SigsOk.cons sig7 rfl 
@@ -347,7 +347,7 @@ theorem ok267 : CheckOk 267 := checkOk_one (by decide +kernel) w267_0
 
 theorem plain267 : Plain 267 := plain_of_nil (by decide +kernel)
 
-theorem link268 : Link 268 (Glob.ofSigs ([(268, Fn.«verify_tables_loop1».sig)]) Data.jtTrie globSem)
+theorem link268 : Link 268 (Glob.ofSigs ([(Fn.«verify_tables_loop1».idx, Fn.«verify_tables_loop1».sig)]) Data.jtTrie globSem)
     Fn.«verify_tables_loop1».code Fn.«verify_tables_loop1».core (Fn.«verify_tables_loop1».cert.withPows Data.powTree) :=
   Link.of code268 core268 cert268 
     (SigsOk.cons sig268 rfl SigsOk.nil)
@@ -359,7 +359,7 @@ theorem ok268 : CheckOk 268 := checkOk_one (by decide +kernel) w268_0
 
 theorem plain268 : Plain 268 := plain_of_nil (by decide +kernel)
 
-theorem link269 : Link 269 (Glob.ofSigs ([(269, Fn.«verify_keccak_loop0».sig)]) Data.jtTrie globSem)
+theorem link269 : Link 269 (Glob.ofSigs ([(Fn.«verify_keccak_loop0».idx, Fn.«verify_keccak_loop0».sig)]) Data.jtTrie globSem)
     Fn.«verify_keccak_loop0».code Fn.«verify_keccak_loop0».core (Fn.«verify_keccak_loop0».cert.withPows Data.powTree) :=
   Link.of code269 core269 cert269 
     (SigsOk.cons sig269 rfl SigsOk.nil)
@@ -371,7 +371,7 @@ theorem ok269 : CheckOk 269 := checkOk_one (by decide +kernel) w269_0
 
 theorem plain269 : Plain 269 := plain_of_nil (by decide +kernel)
 
-theorem link270 : Link 270 (Glob.ofSigs ([(432, Fn.«grind_check__L3».sig), (433, Fn.«keccak_layer__L1_loop0».sig), (434, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
+theorem link270 : Link 270 (Glob.ofSigs ([(Fn.«grind_check__L3».idx, Fn.«grind_check__L3».sig), (Fn.«keccak_layer__L1_loop0».idx, Fn.«keccak_layer__L1_loop0».sig), (Fn.«keccak_layer__L1_loop1».idx, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) :=
   Link.of code270 core270 cert270 
     (SigsOk.cons sig432 rfl 
@@ -397,7 +397,7 @@ theorem plain270 : Plain 270 := by
   unfold Plain
   decide +kernel
 
-theorem link271 : Link 271 (Glob.ofSigs ([(432, Fn.«grind_check__L3».sig), (435, Fn.«keccak_layer__L0_loop0».sig), (436, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
+theorem link271 : Link 271 (Glob.ofSigs ([(Fn.«grind_check__L3».idx, Fn.«grind_check__L3».sig), (Fn.«keccak_layer__L0_loop0».idx, Fn.«keccak_layer__L0_loop0».sig), (Fn.«keccak_layer__L0_loop1».idx, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) :=
   Link.of code271 core271 cert271 
     (SigsOk.cons sig432 rfl 
@@ -434,7 +434,7 @@ theorem ok272 : CheckOk 272 := checkOk_one (by decide +kernel) w272_0
 
 theorem plain272 : Plain 272 := plain_of_nil (by decide +kernel)
 
-theorem link273 : Link 273 (Glob.ofSigs ([(273, Fn.«verify_keccak_loop1».sig)]) Data.jtTrie globSem)
+theorem link273 : Link 273 (Glob.ofSigs ([(Fn.«verify_keccak_loop1».idx, Fn.«verify_keccak_loop1».sig)]) Data.jtTrie globSem)
     Fn.«verify_keccak_loop1».code Fn.«verify_keccak_loop1».core (Fn.«verify_keccak_loop1».cert.withPows Data.powTree) :=
   Link.of code273 core273 cert273 
     (SigsOk.cons sig273 rfl SigsOk.nil)
@@ -457,7 +457,7 @@ theorem ok274 : CheckOk 274 := checkOk_one (by decide +kernel) w274_0
 
 theorem plain274 : Plain 274 := plain_of_nil (by decide +kernel)
 
-theorem link275 : Link 275 (Glob.ofSigs ([(275, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem)
+theorem link275 : Link 275 (Glob.ofSigs ([(Fn.«verify_keccak_loop2».idx, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem)
     Fn.«verify_keccak_loop2».code Fn.«verify_keccak_loop2».core (Fn.«verify_keccak_loop2».cert.withPows Data.powTree) :=
   Link.of code275 core275 cert275 
     (SigsOk.cons sig275 rfl SigsOk.nil)
@@ -469,7 +469,7 @@ theorem ok275 : CheckOk 275 := checkOk_one (by decide +kernel) w275_0
 
 theorem plain275 : Plain 275 := plain_of_nil (by decide +kernel)
 
-theorem link276 : Link 276 (Glob.ofSigs ([(276, Fn.«ring_switch_target_loop0».sig)]) Data.jtTrie globSem)
+theorem link276 : Link 276 (Glob.ofSigs ([(Fn.«ring_switch_target_loop0».idx, Fn.«ring_switch_target_loop0».sig)]) Data.jtTrie globSem)
     Fn.«ring_switch_target_loop0».code Fn.«ring_switch_target_loop0».core (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree) :=
   Link.of code276 core276 cert276 
     (SigsOk.cons sig276 rfl SigsOk.nil)
@@ -481,7 +481,7 @@ theorem ok276 : CheckOk 276 := checkOk_one (by decide +kernel) w276_0
 
 theorem plain276 : Plain 276 := plain_of_nil (by decide +kernel)
 
-theorem link277 : Link 277 (Glob.ofSigs ([(277, Fn.«check_opening_terminal_loop0».sig)]) Data.jtTrie globSem)
+theorem link277 : Link 277 (Glob.ofSigs ([(Fn.«check_opening_terminal_loop0».idx, Fn.«check_opening_terminal_loop0».sig)]) Data.jtTrie globSem)
     Fn.«check_opening_terminal_loop0».code Fn.«check_opening_terminal_loop0».core (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree) :=
   Link.of code277 core277 cert277 
     (SigsOk.cons sig277 rfl SigsOk.nil)

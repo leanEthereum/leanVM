@@ -23,14 +23,12 @@ theorem offCerts_res : ∀ K ∈ offCerts, ResOk resExc nzVals K :=
   fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P11».certs_res)
     (Mode.fa_cons (ModePack.«P16».certs_res)
     (Mode.fa_cons (ModePack.«P29».certs_res)
-    (Mode.fa_cons (ModePack.«P3».certs_res)
     (Mode.fa_cons (ModePack.«P34».certs_res)
-    (Mode.fa_cons (ModePack.«P38».certs_res)
     (Mode.fa_cons (ModePack.«P42».certs_res)
     (Mode.fa_cons (ModePack.«P54».certs_res)
     (Mode.fa_cons (ModePack.«P61».certs_res)
     (Mode.fa_cons (ModePack.«P63».certs_res)
-    (Mode.fa_nil))))))))))))
+    (Mode.fa_nil))))))))))
     (Mode.fa_nil)))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed

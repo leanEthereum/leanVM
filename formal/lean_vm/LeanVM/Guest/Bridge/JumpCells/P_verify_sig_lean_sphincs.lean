@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.CheckView
+public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
@@ -19,7 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_sig_lean_sphincs».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (21 == 1) = true := by decide +kernel
+theorem Fn.«verify_sig_lean_sphincs».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_sig_lean_sphincs».idx == 1) = true := by decide +kernel
 
 end
 

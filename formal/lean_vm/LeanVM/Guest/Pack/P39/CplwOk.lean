@@ -19,7 +19,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_child_claim_list_any`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(369, Fn.«child_claim_list_any_loop0».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«child_claim_list_any_loop0».idx, Fn.«child_claim_list_any_loop0».sig)]) Data.jtTrie globSem) code Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 3 := by decide +kernel
   rw [hc] at hi

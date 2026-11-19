@@ -267,7 +267,7 @@ def base_c1(G, na, ps, b):
     return (b[1], b[2]) in ps and (b[1] == 1 or (2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry']))
 
 
-def callee_sig(G, na, nr):
+def callee_sig(G, na, nr, postq=False):
     """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words; a loop's
     runs (`postL`, `postLP`) among its guarantees."""
     if G['self'] != ('id', 'none') and not (G['self'][0] == 'some' and G['self'][1] < 2 ** 28):
@@ -338,6 +338,30 @@ def callee_sig(G, na, nr):
             h.postPR.append(prun(p, na + nr))
         except No:
             pass
+    # a run over one pointer base `.hp q d` past an argument's entry cell: a run at the word that cell holds
+    # (`CoreMode.rngQIn`), which a later load of the cell names (`postQ`, `promoteQ`)
+    for r in (G['postR'] if postq else []):
+        q0, lo, hi, S, d = r
+        fp, k, bs = q0
+        hb = [(b, e) for b, e in bs if b[0] == 'hp']
+        if fp != 0 or len(hb) != 1 or hb[0][1] != 1:
+            continue
+        _, qq, dd = hb[0][0]
+        if not (qq != 1 and 2 <= qq and qq - 2 < na and qq < 2 ** 28 and qq in G['entry']):
+            continue
+        try:
+            rest = cell((0, k + d, tuple((b, e) for b, e in bs if b[0] != 'hp')), na + nr)
+            p = (I.mk(((qq - 2, 1),), dd), (rest, S, bound(lo, na + nr, None), bound(hi, na + nr, None)))
+        except No:
+            continue
+        if p not in h.postQ:
+            h.postQ.append(p)
+        # of constant bounds, stride and its own base: a pointer fact at the cell (`CoreMode.hpRun`)
+        if len(bs) == 1 and lo[0] == 'num' and hi[0] == 'num' and hi[1] <= 64 and S > 0:
+            offs = tuple(k + d + S * j for j in range(lo[1], hi[1]))
+            c = I.mk(((qq - 2, 1),), dd)
+            if offs and not any(pp[0] == c and set(offs) <= set(pp[1]) for pp in h.postP):
+                h.postP.append((c, offs))
     # a run whose upper bound is a slot's exponent extended by its next point, a promised cell (`CoreMode.rngXExt`)
     import heapc
     for r in G['postR'] + G['postL']:
@@ -759,6 +783,8 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                 if B is None and b[1] == 0:
                     B = (callcres.addr_bound(k, a) if k is not None else None) or \
                         callcres.rc_bound(callcres.top_atoms(body), a)
+                if B is None and b[1] == 0 and k is not None:
+                    B = callcres.vk_bound(k, a)
                 if B is None and b[1] > 0 and k is not None:
                     # an argument times `g^c`, its bound plus `c` an exponent (`CoreMode.resArg`'s `.mono`)
                     B = callcres.vs_bound(k, a)
@@ -807,7 +833,7 @@ def infer_one(k, S, allow=None, hcsig=None):
                 h = hcsig[I.callee(f)].clone()
                 hcs.add((f, len(args), nr))
             else:
-                h = callee_sig(Gf, len(args), nr)
+                h = callee_sig(Gf, len(args), nr, postq=True)
             for a in h.ghosts:
                 # the caller's cells, its own parameters' entry cells; the words at an argument's cells, values a
                 # top-level `load` names (`CoreMode.hpArgOk`)
@@ -862,8 +888,9 @@ def infer_one(k, S, allow=None, hcsig=None):
         r = ('lt', ('val', x), ('num', m))
         if r not in H.res:
             H.res.append(r)
-    if EM.check(k, H, sigOf) is not None:
-        raise No('recheck')
+    _ck = EM.check(k, H, sigOf)
+    if _ck is not None:
+        raise No('recheck ' + str(_ck)[:300])
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
     hk = sigs[k]
@@ -881,13 +908,10 @@ FA_PAST = {}
 
 
 def fa_past(k):
-    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`, which needs
-    `MODE_CERT_CACHE`), as `(kp, i)`; none without it."""
+    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`), as `(kp, i)`."""
     if k in FA_PAST:
         return FA_PAST[k]
     FA_PAST[k] = []
-    if not os.environ.get('MODE_CERT_CACHE'):
-        return []
     import subprocess, json, heapc
     body = CORE[k][1]
     locs = I.D['comp'][k]['locs']

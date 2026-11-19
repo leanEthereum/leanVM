@@ -19,6 +19,11 @@ open LeanVM.Guest
 
 public section
 
+theorem hon30_body : (CoreMode.bodyCore Fn.«walk_path__L18_L5».cfun.fn.body || CoreMode.loopBC Fn.«walk_path__L18_L5».cfun.fn) = true := by decide +kernel
+theorem hon30_ptr : (Bridge.stmtsOf Fn.«walk_path__L18_L5».cfun.fn.body).all (CoreMode.ptrCellB Fn.«walk_path__L18_L5».idx) = true := by decide +kernel
+theorem hon30_ret : (Bridge.stmtsOf Fn.«walk_path__L18_L5».cfun.fn.body).all (CoreMode.retCellB Fn.«walk_path__L18_L5».idx) = true := by decide +kernel
+theorem hon30_sel : (CoreMode.selGo Fn.«walk_path__L18_L5».idx Fn.«walk_path__L18_L5».cfun.fn.params [] Fn.«walk_path__L18_L5».cfun.fn.body || CoreMode.loopBC Fn.«walk_path__L18_L5».cfun.fn) = true := by decide +kernel
+theorem hon30_rest : CoreMode.honRest Fn.«walk_path__L18_L5».idx Fn.«walk_path__L18_L5».cfun.fn = true := by decide +kernel
 theorem cfOk0 : CoreMode.CfOk Fn.«child_claim_list_last__L9».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_last__L9».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk1 : CoreMode.CfOk Fn.«column_selector__L13».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«column_selector__L13».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk2 : CoreMode.CfOk Fn.«eq_prefix_run__L32».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«eq_prefix_run__L32».tie rfl rfl rfl (by decide +kernel)
@@ -49,7 +54,7 @@ theorem cfOk26 : CoreMode.CfOk Fn.«opening_tail_round».cfun := CoreMode.cfOk_o
 theorem cfOk27 : CoreMode.CfOk Fn.«padding_weight__L24».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«padding_weight__L24».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk28 : CoreMode.CfOk Fn.«plus_one_run__L5».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«plus_one_run__L5».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk29 : CoreMode.CfOk Fn.«rs_eq_rows__L8».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«rs_eq_rows__L8».tie rfl rfl rfl (by decide +kernel)
-theorem cfOk30 : CoreMode.CfOk Fn.«walk_path__L18_L5».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«walk_path__L18_L5».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk30 : CoreMode.CfOk Fn.«walk_path__L18_L5».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«walk_path__L18_L5».tie rfl rfl rfl (by rw [CoreMode.honB_of hon30_body hon30_ptr hon30_ret hon30_sel hon30_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

@@ -188,9 +188,9 @@ noncomputable def loopShapeRest0 (Cf : CFun) : Bool :=
     Cf.frame.sig.entry.contains 0 && Cf.frame.sig.entry.contains 1 &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
-/-- **`loopShapeOkC` but its pass over the body.** -/
+/-- **`loopShapeOkC` but its pass over the body**, and no residual divisors of the frame walk. -/
 noncomputable def loopShapeRest (Cf : CFun) : Bool :=
-  loopShapeRest0 Cf && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res
+  loopShapeRest0 Cf && trieNil Cf.frame.nzr && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res
 
 /-- **A long loop helper's passes, in windows**: the body's statements before the tail call (`LWins`,
 their `match`es' lengths `ml`), its tail (`tailL`), the code (`CWins`), the rest of the shape, the
@@ -289,13 +289,21 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   · have e : loopShapeOkC Cf = ((loopShapeRest0 Cf && (stmtsOf Cf.fn.body).all fun s ↦ match s with
         | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
         | _ => true) && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.res) := rfl
-    rw [loopShapeRest, Bool.and_eq_true] at hr
+    rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
     rw [e, Bool.and_eq_true, Bool.and_eq_true]
-    refine ⟨⟨hr.1, List.all_eq_true.mpr fun s hs ↦ ?_⟩, hr.2⟩
+    refine ⟨⟨hr.1.1, List.all_eq_true.mpr fun s hs ↦ ?_⟩, hr.2⟩
     have := hP s hs
     cases s with
     | callIf c' g' a' => simp only [winP, Bool.and_eq_true] at this; simpa using this.2
     | _ => rfl
+
+/-- **A long loop helper's residual divisors**: none (`loopShapeRest`), so `LoopOkC.nzrc`. -/
+theorem nzr_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} {cs : List (ℕ × List (ℕ × ℕ))}
+    {ccs : List ℕ} (h : LoopWins K Cf ml cs ccs) : nzrOk Cf K.F.res K.code = true := by
+  have hr := h.rest
+  rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
+  unfold nzrOk
+  exact List.all_eq_true.mpr fun i _ ↦ by rw [trieNil_get hr.1.2]
 
 end
 
