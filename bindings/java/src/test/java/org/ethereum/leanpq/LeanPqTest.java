@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,33 @@ class LeanPqTest {
             assertArrayEquals(sphincs.publicKey(), restored.publicKey());
             assertTrue(LeanPq.sphincsVerify(sphincs.publicKey(), message, restored.sign(message)));
         }
+    }
+
+    @Test
+    void vrfMatchesThePinnedVector() {
+        byte[] root = HexFormat.of().parseHex("577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6");
+        try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {
+            assertArrayEquals(root, key.root());
+            byte[] proof = key.proof(150);
+            assertEquals(1024, proof.length);
+            assertTrue(LeanPq.vrfVerify(root, 150, proof));
+            assertFalse(LeanPq.vrfVerify(root, 151, proof));
+            assertFalse(LeanPq.vrfVerify(root, 150, Arrays.copyOf(proof, proof.length - 1)));
+            for (long slot : new long[] {100, 199}) {
+                assertTrue(LeanPq.vrfVerify(root, slot, key.proof(slot)));
+            }
+        }
+    }
+
+    @Test
+    void vrfRejectsBadInput() {
+        try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {
+            assertThrows(LeanPqException.class, () -> key.proof(99));
+            assertThrows(LeanPqException.class, () -> key.proof(200));
+        }
+        assertThrows(LeanPqException.class, () -> VrfKey.fromSeed(bytes(9), 100, 100));
+        assertThrows(LeanPqException.class, () -> VrfKey.fromSeed(bytes(9), 0, (1L << 31) + 1));
+        assertThrows(IllegalArgumentException.class, () -> VrfKey.fromSeed(new byte[31], 100, 200));
     }
 
     @Test

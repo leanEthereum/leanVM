@@ -1,6 +1,6 @@
 # lean-pq Go bindings
 
-Go bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation, over a Rust static archive that cgo links into the program. The API exposes Go values with `Close` methods, never C pointers.
+Go bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and the consensus VRF, over a Rust static archive that cgo links into the program. The API exposes Go values with `Close` methods, never C pointers.
 
 ## Install
 
@@ -140,3 +140,29 @@ func main() {
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.Bytes()` and never sign two different messages at the same leaf index. leanSPHINCS keys are stateless and deterministic: `SphincsSecretKey.Bytes()` is the 32-byte seed, and a key signs at most 2^30 messages.
 
 `Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects. `AggregateFromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set. `AggregateSignatures` verifies every raw signature before proving, so every `Aggregate` is proven. `Setup` moves the one-time setup ahead of the first proof; calling it is optional.
+
+## VRF
+
+The VRF is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
+
+```go
+// The seed and the range fix the root: keep both.
+vrfKey, err := leanpq.VrfKeyFromSeed([32]byte{0x03}, 1000, 2000)
+if err != nil {
+    log.Fatal(err)
+}
+defer vrfKey.Close()
+root, err := vrfKey.Root()
+if err != nil {
+    log.Fatal(err)
+}
+proof, err := vrfKey.Proof(1500)
+if err != nil {
+    log.Fatal(err)
+}
+if err := leanpq.VrfVerify(root, 1500, proof); err != nil {
+    log.Fatal(err)
+}
+```
+
+`VrfKeyFromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `Proof` is cheap: keep the key open for as long as the validator proposes from it. `VrfKeyFromSeed` rejects an empty range and one that ends past 2^31, and `Proof` rejects a slot outside the range. A proof is 1024 bytes, the leaf then its 31 siblings, and `VrfVerify` counts only the 31 low bits of the slot, as the consensus specifications do.

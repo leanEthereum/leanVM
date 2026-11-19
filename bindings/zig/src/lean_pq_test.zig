@@ -43,6 +43,28 @@ test "secret keys round trip through bytes" {
     try std.testing.expectEqual(sphincs_bytes, try sphincs_restored.toBytes());
 }
 
+test "VRF key opens its slots" {
+    const seed: lpq.Seed = [_]u8{9} ** 32;
+    var key = try lpq.VrfKey.init(seed, 100, 200);
+    defer key.deinit();
+    var expected_root: lpq.VrfRoot = undefined;
+    _ = try std.fmt.hexToBytes(&expected_root, "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6");
+
+    const root = try key.root();
+    try std.testing.expectEqual(expected_root, root);
+
+    const proof = try key.proof(150);
+    try lpq.vrfVerify(root, 150, &proof);
+    try std.testing.expectError(error.InvalidSignature, lpq.vrfVerify(root, 151, &proof));
+    try lpq.vrfVerify(root, 100, &try key.proof(100));
+    try lpq.vrfVerify(root, 199, &try key.proof(199));
+
+    try std.testing.expectError(error.NativeFailure, key.proof(99));
+    try std.testing.expectError(error.NativeFailure, key.proof(200));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.init(seed, 5, 5));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.init(seed, 0, (1 << 31) + 1));
+}
+
 test "aggregates recursively and round trips through bytes" {
     const allocator = std.testing.allocator;
     try lpq.setup();

@@ -5,6 +5,7 @@ The safe Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wr
 - **leanXMSS** is synchronized: a key signs at `2^32` leaf indices, one message per leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, with no state kept between them.
 - **Aggregation** proves many signatures of both schemes in one recursive leanVM proof.
+- **VRF** is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
 Public keys and messages are 32 bytes in both schemes.
 
@@ -12,7 +13,7 @@ Public keys and messages are 32 bytes in both schemes.
 
 Build in release mode: debug builds prove far slower.
 
-Aggregation is the default `aggregation` feature, which pulls in the verifier and the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds from `lean_xmss` and `lean_sphincs` alone, without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
+Aggregation is the default `aggregation` feature, which pulls in the verifier and the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds from `lean_xmss`, `lean_sphincs` and `lean_vrf` alone, without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
 
 ## Sign and verify
 
@@ -32,6 +33,18 @@ sphincs_key.public_key().verify(&message, &signature)?;
 ```
 
 A leanXMSS key keeps no record of the leaf indices it used: persist a durable high-water leaf index next to the key's bytes, and advance it before publishing a signature. Secret key bytes are secret material, the key's 32-byte seed in both schemes.
+
+## VRF
+
+```rust
+use lean_pq::vrf;
+
+// The seed and the range fix the root: keep both. Building the key hashes every leaf of the range.
+let key = vrf::Key::new([0x03; 32], 1000..2000)?;
+let root = key.root();
+vrf::verify(&root, 1500, &key.proof(1500)?)?;
+# Ok::<(), lean_pq::Error>(())
+```
 
 ## Aggregate
 

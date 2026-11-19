@@ -82,6 +82,23 @@ suite "lean_pq":
       key.sign(knownMessage).expect("signature") == signature
       sphincsVerify(publicKey, knownMessage, signature)
 
+  test "VRF key opens its slots":
+    let
+      seed = filled(9)
+      key = VrfKey.init(seed, 100, 200).expect("key")
+      vrfRoot = key.root().expect("root")
+      vrfProof = key.proof(150).expect("proof")
+    check:
+      @vrfRoot == fromHex("577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6")
+      vrfVerify(vrfRoot, 150, vrfProof)
+      not vrfVerify(vrfRoot, 151, vrfProof)
+      vrfVerify(vrfRoot, 100, key.proof(100).expect("proof"))
+      vrfVerify(vrfRoot, 199, key.proof(199).expect("proof"))
+      key.proof(99).isErr()
+      key.proof(200).isErr()
+      VrfKey.init(seed, 5, 5).isErr()
+      VrfKey.init(seed, 0, (1'u32 shl 31) + 1).isErr()
+
   test "secret keys round trip through bytes":
     let
       xmss = XmssSecretKey.generate().expect("key")
@@ -107,13 +124,18 @@ suite "lean_pq":
     let
       xmss = XmssSecretKey.fromSeed(filled(8)).expect("key")
       sphincs = SphincsSecretKey.fromSeed(filled(9)).expect("key")
+      vrf = VrfKey.init(filled(10), 0, 1).expect("key")
     xmss.close()
     xmss.close()
     sphincs.close()
+    vrf.close()
+    vrf.close()
     check:
       xmss.publicKey().error() == "leanXMSS secret key is closed"
       xmss.sign(message, 0).isErr()
       sphincs.sign(message).isErr()
+      vrf.root().error() == "VRF key is closed"
+      vrf.proof(0).isErr()
     let nilKey: XmssSecretKey = nil
     nilKey.close()
     check nilKey.toBytes().isErr()

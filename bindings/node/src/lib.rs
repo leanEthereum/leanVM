@@ -2,7 +2,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 use std::thread;
 
-use lean_pq::{sphincs, xmss, Message};
+use lean_pq::{sphincs, vrf, xmss, Message};
 use napi::bindgen_prelude::{AsyncTask, Buffer, Error, Object, Result, Status, Task};
 use napi::Env;
 use napi_derive::napi;
@@ -50,6 +50,18 @@ fn uint32(value: f64, what: &str) -> Result<u32> {
         Err(invalid_arg(format!(
             "{what} must be an integer in [0, {}], got {value}",
             u32::MAX
+        )))
+    }
+}
+
+/// Slots are `u64` in Rust; a JavaScript number is exact only up to `2^53 - 1`.
+fn uint53(value: f64, what: &str) -> Result<u64> {
+    const MAX: f64 = 9_007_199_254_740_991.0;
+    if value.fract() == 0.0 && (0.0..=MAX).contains(&value) {
+        Ok(value as u64)
+    } else {
+        Err(invalid_arg(format!(
+            "{what} must be an integer in [0, {MAX}], got {value}"
         )))
     }
 }
@@ -159,6 +171,25 @@ impl SphincsSecretKey {
             key: self.inner.clone(),
             message: message.to_vec(),
         })
+    }
+}
+
+#[napi]
+pub struct VrfKey {
+    inner: Arc<vrf::Key>,
+}
+
+#[napi]
+impl VrfKey {
+    #[napi]
+    pub fn root(&self) -> Buffer {
+        self.inner.root().to_vec().into()
+    }
+
+    #[napi]
+    pub fn proof(&self, slot: f64) -> Result<Buffer> {
+        let proof = self.inner.proof(uint32(slot, "slot")?).map_err(api_error)?;
+        Ok(proof.as_flattened().to_vec().into())
     }
 }
 
@@ -337,6 +368,29 @@ impl Task for SphincsSignTask {
     }
 }
 
+pub struct VrfKeyTask {
+    seed: Vec<u8>,
+    start: f64,
+    end: f64,
+}
+
+impl Task for VrfKeyTask {
+    type Output = vrf::Key;
+    type JsValue = VrfKey;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        let seed = bytes32(&self.seed, "seed")?;
+        let slots = uint32(self.start, "start")?..uint32(self.end, "end")?;
+        vrf::Key::new(seed, slots).map_err(api_error)
+    }
+
+    fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(VrfKey {
+            inner: Arc::new(output),
+        })
+    }
+}
+
 pub struct AggregateFromBytesTask {
     data: Vec<u8>,
     xmss: Vec<RawClaim>,
@@ -485,6 +539,31 @@ pub fn sphincs_verify(public_key: Buffer, message: Buffer, signature: Buffer) ->
     public_key
         .verify(&to_message(&message)?, &signature)
         .map_err(api_error)
+}
+
+#[napi(ts_return_type = "Promise<VrfKey>")]
+pub fn vrf_key_from_seed(seed: Buffer, start: f64, end: f64) -> AsyncTask<VrfKeyTask> {
+    AsyncTask::new(VrfKeyTask {
+        seed: seed.to_vec(),
+        start,
+        end,
+    })
+}
+
+#[napi]
+pub fn vrf_verify(root: Buffer, slot: f64, proof: Buffer) -> Result<()> {
+    let root = bytes32(&root, "root")?;
+    let slot = uint53(slot, "slot")?;
+    let proof: &[u8; vrf::PROOF_LEN] = proof.as_ref().try_into().map_err(|_| {
+        invalid_arg(format!(
+            "proof must be {} bytes, got {}",
+            vrf::PROOF_LEN,
+            proof.len()
+        ))
+    })?;
+    let (nodes, _) = proof.as_chunks::<32>();
+    let proof: vrf::Proof = nodes.try_into().expect("a proof is 32 nodes");
+    vrf::verify(&root, slot, &proof).map_err(api_error)
 }
 
 #[napi(ts_return_type = "Promise<Aggregate>")]

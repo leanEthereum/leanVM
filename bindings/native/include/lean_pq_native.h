@@ -8,6 +8,9 @@
  *
  * Public keys and messages are 32 bytes. Secret keys in both schemes are their 32-byte seed.
  * leanXMSS signatures are 2404 bytes and leanSPHINCS signatures are 7740 bytes.
+ *
+ * A VRF key is a 32-byte seed and a slot range [start, end) with end <= 2^31. VRF roots are
+ * 32 bytes and proofs 1024 bytes: the leaf, then its 31 siblings.
  */
 #ifndef LEAN_PQ_NATIVE_H
 #define LEAN_PQ_NATIVE_H
@@ -19,6 +22,7 @@ typedef struct { uint8_t *data; size_t len; } lpq_buffer;
 typedef struct lpq_xmss_secret_key lpq_xmss_secret_key;
 typedef struct lpq_sphincs_secret_key lpq_sphincs_secret_key;
 typedef struct lpq_aggregate lpq_aggregate;
+typedef struct lpq_vrf_key lpq_vrf_key;
 
 /* Returns 0 on success, 1 for a checked error, and 2 when Rust caught a panic. */
 int32_t lpq_setup(void);
@@ -63,5 +67,14 @@ int32_t lpq_aggregate_to_bytes(lpq_aggregate *aggregate, lpq_buffer *out);
 int32_t lpq_aggregate_xmss_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 int32_t lpq_aggregate_sphincs_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 void lpq_aggregate_destroy(lpq_aggregate *aggregate);
+
+/* Hashes every leaf of the range once, and keeps about sqrt(end - start) nodes of the tree. */
+int32_t lpq_vrf_key_new(const uint8_t *seed, size_t seed_len, uint32_t start, uint32_t end, lpq_vrf_key **out);
+int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);
+/* The proof at a slot of the key's range, hashing about 3 sqrt(end - start) nodes. */
+int32_t lpq_vrf_key_proof(lpq_vrf_key *key, uint32_t slot, lpq_buffer *out);
+void lpq_vrf_key_destroy(lpq_vrf_key *key);
+/* Returns 0 when the proof opens under the root at the slot's 31 low bits and 1, with lpq_last_error set, when it does not. */
+int32_t lpq_vrf_verify(const uint8_t *root, size_t root_len, uint64_t slot, const uint8_t *proof, size_t proof_len);
 
 #endif

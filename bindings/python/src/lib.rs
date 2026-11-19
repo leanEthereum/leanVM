@@ -1,4 +1,4 @@
-use lean_pq::{sphincs, xmss, Message};
+use lean_pq::{sphincs, vrf, xmss, Message};
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
@@ -150,6 +150,39 @@ impl PySphincsSecretKey {
     }
 }
 
+#[pyclass(name = "VrfKey", frozen, module = "py_lean_pq")]
+struct PyVrfKey {
+    inner: vrf::Key,
+}
+
+#[pymethods]
+impl PyVrfKey {
+    #[classmethod]
+    fn from_seed(
+        _cls: &Bound<'_, PyType>,
+        py: Python<'_>,
+        seed: &[u8],
+        start: vrf::Slot,
+        end: vrf::Slot,
+    ) -> PyResult<Self> {
+        let seed = fixed(seed, "seed")?;
+        Ok(Self {
+            inner: py
+                .detach(move || vrf::Key::new(seed, start..end))
+                .map_err(api_error)?,
+        })
+    }
+
+    fn root<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.inner.root())
+    }
+
+    fn proof<'py>(&self, py: Python<'py>, slot: vrf::Slot) -> PyResult<Bound<'py, PyBytes>> {
+        let proof = py.detach(|| self.inner.proof(slot)).map_err(api_error)?;
+        Ok(PyBytes::new(py, proof.as_flattened()))
+    }
+}
+
 #[pyclass(name = "Aggregate", frozen, module = "py_lean_pq")]
 struct PyAggregate {
     inner: lean_pq::Aggregate,
@@ -262,6 +295,16 @@ fn sphincs_verify(
 }
 
 #[pyfunction]
+fn vrf_verify(py: Python<'_>, root: &[u8], slot: u64, proof: &[u8]) -> PyResult<()> {
+    let root = fixed(root, "root")?;
+    let proof: [u8; vrf::PROOF_LEN] = fixed(proof, "proof")?;
+    let (nodes, _) = proof.as_chunks::<32>();
+    let proof: vrf::Proof = nodes.try_into().expect("a proof is 32 nodes");
+    py.detach(|| vrf::verify(&root, slot, &proof))
+        .map_err(api_error)
+}
+
+#[pyfunction]
 #[pyo3(
     signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
     text_signature = "(children=(), xmss=(), sphincs=())"
@@ -307,10 +350,12 @@ fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("LeanPqError", py.get_type::<LeanPqError>())?;
     module.add_class::<PyXmssSecretKey>()?;
     module.add_class::<PySphincsSecretKey>()?;
+    module.add_class::<PyVrfKey>()?;
     module.add_class::<PyAggregate>()?;
     module.add_function(wrap_pyfunction!(setup, module)?)?;
     module.add_function(wrap_pyfunction!(xmss_verify, module)?)?;
     module.add_function(wrap_pyfunction!(sphincs_verify, module)?)?;
+    module.add_function(wrap_pyfunction!(vrf_verify, module)?)?;
     module.add_function(wrap_pyfunction!(aggregate, module)?)?;
     Ok(())
 }

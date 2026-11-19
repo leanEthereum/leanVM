@@ -1,6 +1,6 @@
 # Bindings
 
-leanXMSS and leanSPHINCS signatures, and their aggregation into one proof, for Python, Node.js, Java, Go, Zig and Nim.
+leanXMSS and leanSPHINCS signatures, their aggregation into one proof, and the consensus VRF tree, for Python, Node.js, Java, Go, Zig and Nim.
 
 An aggregate's bytes are the proof only: send its claims (public key, message) alongside it.
 

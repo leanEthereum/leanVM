@@ -1,13 +1,14 @@
-## Nim bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+## Nim bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and a VRF.
 ##
 ## - **leanXMSS** is stateful: a key signs at `2^32` leaf indices, and must never sign two
 ##   different messages at the same leaf index.
 ## - **leanSPHINCS** is stateless: a key signs at most `2^30` messages; signing is deterministic.
+## - **VRF** is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 ##
 ## Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Fallible calls
 ## return `Result[T, string]` and never raise; verification returns `bool`.
 ##
-## `XmssSecretKey`, `SphincsSecretKey` and `LeanPqAggregate` are references to native handles. The
+## `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `LeanPqAggregate` are references to native handles. The
 ## garbage collector frees a handle once nothing refers to it; `close` frees it at once, after
 ## which every call on that value returns an error. Do not `close` a value while another thread
 ## uses it.
@@ -28,6 +29,9 @@ const
   XmssSignatureLen* = 2404
   SphincsSecretKeyLen* = 32
   SphincsSignatureLen* = 7740
+  VrfRootLen* = 32
+  VrfProofLen* = 1024
+    ## The leaf, then its 31 siblings.
   MaxAggregateChildren* = 16
     ## The most child aggregates one `LeanPqAggregate.init` call accepts.
 
@@ -38,6 +42,8 @@ type
   XmssSignature* = array[XmssSignatureLen, byte]
   SphincsPublicKey* = array[LeanPqPublicKeyLen, byte]
   SphincsSignature* = array[SphincsSignatureLen, byte]
+  VrfRoot* = array[VrfRootLen, byte]
+  VrfProof* = array[VrfProofLen, byte]
 
   XmssSignedMessage* = object
     ## A raw leanXMSS signature input to `LeanPqAggregate.init`.
@@ -68,6 +74,12 @@ type
   SphincsSecretKey* = ref SphincsSecretKeyObj
     ## A stateless leanSPHINCS secret key.
 
+  VrfKeyObj = object
+    handle: ptr LpqVrfKey
+
+  VrfKey* = ref VrfKeyObj
+    ## A seed and the slot range its VRF tree has leaves for. Both fix the root: keep both.
+
   LeanPqAggregateObj = object
     handle: ptr LpqAggregate
 
@@ -91,6 +103,11 @@ proc `=destroy`(key: var SphincsSecretKeyObj) =
     lpqSphincsSecretKeyDestroy(key.handle)
     key.handle = nil
 
+proc `=destroy`(key: var VrfKeyObj) =
+  if not key.handle.isNil:
+    lpqVrfKeyDestroy(key.handle)
+    key.handle = nil
+
 proc `=destroy`(aggregate: var LeanPqAggregateObj) =
   if not aggregate.handle.isNil:
     lpqAggregateDestroy(aggregate.handle)
@@ -98,6 +115,7 @@ proc `=destroy`(aggregate: var LeanPqAggregateObj) =
 
 proc `=copy`(dest: var XmssSecretKeyObj, source: XmssSecretKeyObj) {.error.}
 proc `=copy`(dest: var SphincsSecretKeyObj, source: SphincsSecretKeyObj) {.error.}
+proc `=copy`(dest: var VrfKeyObj, source: VrfKeyObj) {.error.}
 proc `=copy`(dest: var LeanPqAggregateObj, source: LeanPqAggregateObj) {.error.}
 
 ##############################################################
@@ -165,6 +183,12 @@ func nativeHandle(key: XmssSecretKey): Result[ptr LpqXmssSecretKey, string] =
 func nativeHandle(key: SphincsSecretKey): Result[ptr LpqSphincsSecretKey, string] =
   if key.isNil or key.handle.isNil:
     err("leanSPHINCS secret key is closed")
+  else:
+    ok(key.handle)
+
+func nativeHandle(key: VrfKey): Result[ptr LpqVrfKey, string] =
+  if key.isNil or key.handle.isNil:
+    err("VRF key is closed")
   else:
     ok(key.handle)
 
@@ -312,6 +336,43 @@ proc sphincsVerify*(
     addr publicKey[0], csize_t(publicKey.len),
     addr message[0], csize_t(message.len),
     addr signature[0], csize_t(signature.len)) == LpqOk
+
+##############################################################
+# VRF
+##############################################################
+
+proc init*(T: type VrfKey, seed: LeanPqSeed, start, stop: uint32): Result[VrfKey, string] =
+  ## The key of `seed` with leaves for the slots `start ..< stop`, hashing every leaf of the range
+  ## once. Fails when the range is empty or ends past `2^31`.
+  var handle: ptr LpqVrfKey
+  ? check(lpqVrfKeyNew(addr seed[0], csize_t(seed.len), start, stop, addr handle))
+  if handle.isNil:
+    return err("native VRF key is null")
+  ok(VrfKey(handle: handle))
+
+proc root*(key: VrfKey): Result[VrfRoot, string] =
+  let handle = ? key.nativeHandle()
+  var buffer: LpqBuffer
+  ? check(lpqVrfKeyRoot(handle, addr buffer))
+  takeArray[VrfRootLen](buffer, "VRF root")
+
+proc proof*(key: VrfKey, slot: uint32): Result[VrfProof, string] =
+  ## The proof at `slot`. Fails for a slot outside the range.
+  let handle = ? key.nativeHandle()
+  var buffer: LpqBuffer
+  ? check(lpqVrfKeyProof(handle, slot, addr buffer))
+  takeArray[VrfProofLen](buffer, "VRF proof")
+
+proc close*(key: VrfKey) =
+  ## Frees the native key now. Safe to call more than once.
+  if not key.isNil and not key.handle.isNil:
+    lpqVrfKeyDestroy(key.handle)
+    key.handle = nil
+
+proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
+  ## Whether `proof` opens the leaf of `slot` under `root`. Only the 31 low bits of the slot count.
+  lpqVrfVerify(
+    addr root[0], csize_t(root.len), slot, addr proof[0], csize_t(proof.len)) == LpqOk
 
 ##############################################################
 # Aggregation

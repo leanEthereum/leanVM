@@ -1,11 +1,12 @@
 # lean-pq Zig bindings
 
-Safe Zig bindings for post-quantum signatures and their recursive aggregation:
+Safe Zig bindings for post-quantum signatures, their recursive aggregation, and a VRF:
 
 - **leanXMSS**: stateful. A key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS**: stateless. A key signs at most `2^30` messages; signing is deterministic.
+- **VRF**: the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
-Public keys and messages are `[32]u8`; signatures are `[2404]u8` (leanXMSS) and `[7740]u8` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey`, and `Aggregate` own native handles: call `deinit` exactly once on each. Slices returned by `Aggregate.toBytes`, `xmssClaims`, and `sphincsClaims` belong to the caller's allocator.
+Public keys and messages are `[32]u8`; signatures are `[2404]u8` (leanXMSS) and `[7740]u8` (leanSPHINCS). VRF roots are `[32]u8` and proofs `[1024]u8`. `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, and `Aggregate` own native handles: call `deinit` exactly once on each. Slices returned by `Aggregate.toBytes`, `xmssClaims`, and `sphincsClaims` belong to the caller's allocator.
 
 The binding links the Rust bridge's static `liblean_pq_native.a` for the target, which release packages bundle for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW).
 
@@ -65,6 +66,12 @@ pub fn main() !void {
     const sphincs_signature = try sphincs_key.sign(message);
     try lpq.sphincsVerify(try sphincs_key.publicKey(), message, &sphincs_signature);
 
+    // The seed and the slot range fix the VRF root: keep both. Building the key hashes every leaf of the range.
+    var vrf_key = try lpq.VrfKey.init([_]u8{0x03} ** 32, 1000, 2000);
+    defer vrf_key.deinit();
+    const vrf_root = try vrf_key.root();
+    try lpq.vrfVerify(vrf_root, 1500, &try vrf_key.proof(1500));
+
     var leaf = try lpq.Aggregate.create(&.{}, &.{.{
         .public_key = try xmss_key.publicKey(),
         .message = message,
@@ -95,8 +102,10 @@ pub fn main() !void {
 }
 ```
 
-Verification failures return `error.InvalidSignature`; other native errors return `error.NativeFailure` or `error.NativePanic`, and `lastError` copies the message.
+Verification failures, of signatures and VRF proofs, return `error.InvalidSignature`; other native errors return `error.NativeFailure` or `error.NativePanic`, and `lastError` copies the message.
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material: the leanXMSS or leanSPHINCS seed.
 
 `Aggregate.create` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `Aggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, xmss_claims, sphincs_claims)` verifies that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` for malformed bytes or any other claim set; so every `Aggregate` value is proven, and `xmssClaims` and `sphincsClaims` return the claims, strictly sorted, in the slice type `fromBytes` takes. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+
+`VrfKey.init(seed, start, end)` is the VRF tree of `seed` with leaves for the slots `[start, end)`, and fails for an empty range or one ending past `2^31`. It hashes every leaf of the range once and keeps about `sqrt(end - start)` of the tree's nodes. `root()` is the root to register, and `proof(slot)` is the slot's leaf and its 31 siblings, hashing about `3 sqrt(end - start)` nodes; `vrfVerify(root, slot, &proof)` checks it, counting only the slot's 31 low bits. A slot outside the range has no proof.

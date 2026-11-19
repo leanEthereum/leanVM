@@ -702,6 +702,7 @@ if (!nativeBinding) {
 module.exports = nativeBinding
 module.exports.Aggregate = nativeBinding.Aggregate
 module.exports.SphincsSecretKey = nativeBinding.SphincsSecretKey
+module.exports.VrfKey = nativeBinding.VrfKey
 module.exports.XmssSecretKey = nativeBinding.XmssSecretKey
 module.exports.aggregate = nativeBinding.aggregate
 module.exports.aggregateFromBytes = nativeBinding.aggregateFromBytes
@@ -711,6 +712,8 @@ module.exports.setup = nativeBinding.setup
 module.exports.sphincsSecretKeyFromBytes = nativeBinding.sphincsSecretKeyFromBytes
 module.exports.sphincsSecretKeyFromSeed = nativeBinding.sphincsSecretKeyFromSeed
 module.exports.sphincsVerify = nativeBinding.sphincsVerify
+module.exports.vrfKeyFromSeed = nativeBinding.vrfKeyFromSeed
+module.exports.vrfVerify = nativeBinding.vrfVerify
 module.exports.xmssSecretKeyFromBytes = nativeBinding.xmssSecretKeyFromBytes
 module.exports.xmssSecretKeyFromSeed = nativeBinding.xmssSecretKeyFromSeed
 module.exports.xmssVerify = nativeBinding.xmssVerify

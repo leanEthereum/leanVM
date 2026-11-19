@@ -285,6 +285,7 @@ dependencies = [
  "getrandom 0.3.4",
  "lean_sphincs",
  "lean_vm",
+ "lean_vrf",
  "lean_xmss",
  "proptest",
  "thiserror",
@@ -335,9 +336,17 @@ dependencies = [
  "isa",
  "lean_da",
  "lean_sphincs",
+ "lean_vrf",
  "lean_xmss",
  "stable_lean_vm_core",
  "verifier",
+]
+
+[[package]]
+name = "lean_vrf"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
 ]
 
 [[package]]

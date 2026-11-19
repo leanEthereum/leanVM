@@ -5,8 +5,9 @@ Python bindings for post-quantum signatures and their aggregation, over the Rust
 - **leanXMSS**: stateful hash-based signatures, `2^32` leaf indices per key.
 - **leanSPHINCS**: stateless hash-based signatures.
 - **Aggregation**: a recursive proof that every listed public key signed its message. Aggregates can be combined into larger aggregates.
+- **VRF**: the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
-Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification, aggregation, and aggregate decoding release the GIL.
+Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, signature, VRF root, or VRF proof of the wrong length raises `ValueError`. Key generation, signing, verification, aggregation, aggregate decoding, and building a VRF key or proof release the GIL.
 
 Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc + musl), macOS arm64, and Windows x86_64. The Windows wheels link the C runtime statically, so they need no Visual C++ redistributable. x86_64 wheels require a CPU with AVX2 and PCLMULQDQ.
 
@@ -49,6 +50,20 @@ lpq.sphincs_verify(key.public_key, message, signature)
 restored = lpq.SphincsSecretKey.from_bytes(key.to_bytes())
 assert restored.public_key == key.public_key
 ```
+
+## VRF
+
+A key is a 32-byte seed and a range of slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both.
+
+```python
+key = lpq.VrfKey.from_seed(b"\x03" * 32, 1000, 2000)  # hashes every leaf of the range
+root = key.root()  # 32 bytes, the validator's VRF root
+
+proof = key.proof(1500)  # 1024 bytes: the leaf, then its 31 siblings
+lpq.vrf_verify(root, 1500, proof)  # raises LeanPqError if invalid
+```
+
+`from_seed` hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots; `proof` then hashes about `3 sqrt(R)` nodes. A slot outside the key's range, an empty range, or one ending past `2^31` raises `LeanPqError`. `vrf_verify`, like the consensus specifications, checks only the 31 low bits of the slot.
 
 ## Aggregation
 

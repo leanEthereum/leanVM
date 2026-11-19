@@ -1,9 +1,10 @@
-//! Safe Zig bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+//! Safe Zig bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and
+//! the VRF tree of the consensus `pq` feature.
 //!
 //! leanXMSS is stateful: a key signs at `2^32` leaf indices, and must never sign two different
 //! messages at the same leaf index. leanSPHINCS is stateless: a key signs at most `2^30` messages.
-//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Secret keys and
-//! aggregates own native handles: call `deinit` exactly once on each.
+//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Secret keys, VRF
+//! keys and aggregates own native handles: call `deinit` exactly once on each.
 const std = @import("std");
 
 const c = @cImport({
@@ -17,6 +18,9 @@ pub const xmss_secret_key_len = 32;
 pub const xmss_signature_len = 2404;
 pub const sphincs_secret_key_len = 32;
 pub const sphincs_signature_len = 7740;
+pub const vrf_root_len = 32;
+/// The leaf, then its 31 siblings.
+pub const vrf_proof_len = 1024;
 /// The most child aggregates one `Aggregate.create` call accepts.
 pub const max_children = 16;
 
@@ -25,6 +29,8 @@ pub const Message = [message_len]u8;
 pub const Seed = [seed_len]u8;
 pub const XmssSignature = [xmss_signature_len]u8;
 pub const SphincsSignature = [sphincs_signature_len]u8;
+pub const VrfRoot = [vrf_root_len]u8;
+pub const VrfProof = [vrf_proof_len]u8;
 
 pub const Error = error{
     /// The native library reported a checked error; `lastError` has its message.
@@ -33,7 +39,7 @@ pub const Error = error{
     NativePanic,
     InvalidNativeStatus,
     InvalidNativeEncoding,
-    /// The signature does not verify; `lastError` has the reason.
+    /// The signature or VRF proof does not verify; `lastError` has the reason.
     InvalidSignature,
     TooManyChildren,
 };
@@ -184,6 +190,44 @@ pub const SphincsSecretKey = struct {
 /// Returns `error.InvalidSignature` when `signature` is not `public_key`'s signature of `message`.
 pub fn sphincsVerify(public_key: PublicKey, message: Message, signature: *const SphincsSignature) Error!void {
     try checkVerification(c.lpq_sphincs_verify(&public_key, public_key.len, &message, message.len, signature, signature.len));
+}
+
+/// A seed and the slot range `[start, end)` its VRF tree has leaves for. Both fix the root: keep
+/// both.
+pub const VrfKey = struct {
+    handle: *c.lpq_vrf_key,
+
+    /// Hashes every leaf of the range once. Fails with `error.NativeFailure` when the range is
+    /// empty or ends past `2^31`.
+    pub fn init(seed: Seed, start: u32, end: u32) Error!VrfKey {
+        var output: ?*c.lpq_vrf_key = null;
+        try checkStatus(c.lpq_vrf_key_new(&seed, seed.len, start, end, &output));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
+    pub fn deinit(self: *VrfKey) void {
+        c.lpq_vrf_key_destroy(self.handle);
+        self.* = undefined;
+    }
+
+    pub fn root(self: *const VrfKey) Error!VrfRoot {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_root(self.handle, &output));
+        return takeFixed(vrf_root_len, output);
+    }
+
+    /// The proof at `slot`. Fails for a slot outside the range.
+    pub fn proof(self: *const VrfKey, slot: u32) Error!VrfProof {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_proof(self.handle, slot, &output));
+        return takeFixed(vrf_proof_len, output);
+    }
+};
+
+/// Returns `error.InvalidSignature` when `proof` does not open the leaf of `slot` under `root`.
+/// Only the 31 low bits of the slot count.
+pub fn vrfVerify(root: VrfRoot, slot: u64, proof: *const VrfProof) Error!void {
+    try checkVerification(c.lpq_vrf_verify(&root, root.len, slot, proof, proof.len));
 }
 
 /// A verified proof that each listed public key signed its message.

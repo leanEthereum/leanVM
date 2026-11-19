@@ -1,13 +1,14 @@
 # lean-pq Nim bindings
 
-Nim bindings for post-quantum signatures and their recursive aggregation:
+Nim bindings for post-quantum signatures, their recursive aggregation, and a VRF:
 
 - **leanXMSS**: stateful. A key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS**: stateless. A key signs at most `2^30` messages; signing is deterministic.
+- **VRF**: the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
 The bindings follow the [Status Nim style guide](https://status-im.github.io/nim-style-guide/). Every module is `{.push raises: [], gcsafe.}`, fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results), and verification returns `bool`. They build with Nim 2.2.12 or newer under both `--mm:refc` and `--mm:orc`, and the tests compile with `--styleCheck:error` and a strict `warningAsError` and `hintAsError` set.
 
-Public keys and messages are `array[32, byte]`; signatures are `array[2404, byte]` (leanXMSS) and `array[7740, byte]` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey` and `LeanPqAggregate` are references to native handles. The garbage collector frees each handle once nothing refers to it, and `close` frees it at once; every later call on a closed value returns an error.
+Public keys and messages are `array[32, byte]`; signatures are `array[2404, byte]` (leanXMSS) and `array[7740, byte]` (leanSPHINCS). VRF roots are `array[32, byte]` and proofs `array[1024, byte]`. `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `LeanPqAggregate` are references to native handles. The garbage collector frees each handle once nothing refers to it, and `close` frees it at once; every later call on a closed value returns an error.
 
 The binding links the Rust bridge's static `liblean_pq_native.a` for the target. Each release attaches it for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, Nim's default Windows compiler), and the package's first build downloads it with curl.
 
@@ -89,6 +90,13 @@ proc main() =
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
 
+  # The seed and the slot range fix the VRF root: keep both. Building the key hashes every leaf of the range.
+  seed[0] = 0x03
+  let
+    vrfKey = VrfKey.init(seed, 1000, 2000).expect("key")
+    vrfRoot = vrfKey.root().expect("root")
+  doAssert vrfVerify(vrfRoot, 1500, vrfKey.proof(1500).expect("proof"))
+
   let
     leaf = LeanPqAggregate.init(
       xmss = [XmssSignedMessage(
@@ -117,5 +125,7 @@ main()
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material, the leanXMSS or leanSPHINCS seed; wipe your copies when done.
 
 `LeanPqAggregate.init` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `LeanPqAggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `fromBytes` takes. `leanPqSetup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+
+`VrfKey.init(seed, start, stop)` is the VRF tree of `seed` with leaves for the slots `start ..< stop`, and fails for an empty range or one ending past `2^31`. It hashes every leaf of the range once and keeps about `sqrt(stop - start)` of the tree's nodes. `root()` is the root to register, and `proof(slot)` is the slot's leaf and its 31 siblings, hashing about `3 sqrt(stop - start)` nodes; `vrfVerify(root, slot, proof)` checks it, counting only the slot's 31 low bits. A slot outside the range has no proof.
 
 Do not `close` a value while another thread uses it.

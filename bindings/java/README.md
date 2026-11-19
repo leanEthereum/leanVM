@@ -1,13 +1,14 @@
 # lean-pq Java bindings
 
-Java 25 bindings for post-quantum signatures and their aggregation:
+Java 25 bindings for post-quantum signatures, their aggregation, and the consensus VRF:
 
 - **leanXMSS**: stateful. A key signs at unsigned 32-bit leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS**: stateless. A key is its 32-byte seed, signs at most 2^30 messages, and signs deterministically.
+- **VRF**: the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
 Public keys and messages are 32 bytes; signatures are `byte[]` of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. An `Aggregate` proves that each listed public key signed its message, across both schemes, and can absorb earlier aggregates.
 
-The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
 
 ## Install
 
@@ -123,6 +124,20 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 ```
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. `prepare(leafIndex)` builds the signing state ahead of time. Secret-key bytes are secret material: the key's 32-byte seed.
+
+## VRF
+
+```java
+import org.ethereum.leanpq.*;
+
+// The seed and the range [1000, 2000) fix the root: keep both.
+try (VrfKey key = VrfKey.fromSeed(seed32, 1000, 2000)) {
+    byte[] root = key.root();
+    boolean valid = LeanPq.vrfVerify(root, 1500, key.proof(1500));
+}
+```
+
+`fromSeed` hashes every leaf of the range once and keeps about sqrt(end - start) nodes of the tree, so `proof(slot)` is cheap: keep the key open for as long as the validator proposes from it. A range must be nonempty and end at most at 2^31, and a slot outside it has no proof, both failing with `LeanPqException`. A proof is 1024 bytes, the leaf then its 31 siblings, and `vrfVerify` counts only the slot's 31 low bits, as the consensus specifications do.
 
 ## Aggregation
 

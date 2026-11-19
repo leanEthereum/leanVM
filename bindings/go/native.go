@@ -1,7 +1,7 @@
 //go:build cgo
 
-// Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures and their recursive
-// zkVM-backed aggregation.
+// Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures, their recursive
+// zkVM-backed aggregation, and the consensus VRF.
 package leanpq
 
 // #cgo CFLAGS: -I${SRCDIR}/internal/native/include
@@ -33,6 +33,9 @@ type XmssSignature [2404]byte
 
 // SphincsSignature is an encoded leanSPHINCS signature.
 type SphincsSignature [7740]byte
+
+// VrfProof is a VRF proof: the leaf of a slot, then its 31 siblings, bottom-up.
+type VrfProof [1024]byte
 
 // XmssSignedMessage is a leanXMSS signature over Message by PublicKey, as input to aggregation.
 type XmssSignedMessage struct {
@@ -66,6 +69,13 @@ type XmssSecretKey struct {
 type SphincsSecretKey struct {
 	mu     sync.Mutex
 	handle *C.lpq_sphincs_secret_key
+}
+
+// VrfKey owns a VRF key in the native bridge: a seed and the range of slots its tree has leaves
+// for. Both fix the root, so keep both. Call Close when finished.
+type VrfKey struct {
+	mu     sync.Mutex
+	handle *C.lpq_vrf_key
 }
 
 // Aggregate owns a verified recursive proof that each of its claims was signed. Call Close when
@@ -274,6 +284,71 @@ func SphincsVerify(publicKey, message [32]byte, signature SphincsSignature) erro
 			arrayPointer(&publicKey), C.size_t(len(publicKey)),
 			arrayPointer(&message), C.size_t(len(message)),
 			(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
+		)
+	})
+}
+
+// VrfKeyFromSeed creates the VRF key of seed with leaves for the slots [start, end), hashing every
+// leaf of the range once. It fails when the range is empty or ends past 2^31.
+func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
+	var handle *C.lpq_vrf_key
+	if err := call(func() C.int32_t {
+		return C.lpq_vrf_key_new(arrayPointer(&seed), C.size_t(len(seed)), C.uint32_t(start), C.uint32_t(end), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &VrfKey{handle: handle}, nil
+}
+
+// Root returns the key's root, the validator's registered VRF root.
+func (key *VrfKey) Root() ([32]byte, error) {
+	var root [32]byte
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return root, errClosed("VRF key")
+	}
+	err := fixedResult(root[:], "VRF root", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_root(key.handle, output)
+	})
+	return root, err
+}
+
+// Proof returns the proof of slot, which must be in the key's range.
+func (key *VrfKey) Proof(slot uint32) (VrfProof, error) {
+	var proof VrfProof
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return proof, errClosed("VRF key")
+	}
+	err := fixedResult(proof[:], "VRF proof", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_proof(key.handle, C.uint32_t(slot), output)
+	})
+	return proof, err
+}
+
+// Close releases the native key. It is safe to call repeatedly.
+func (key *VrfKey) Close() {
+	if key == nil {
+		return
+	}
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle != nil {
+		C.lpq_vrf_key_destroy(key.handle)
+		key.handle = nil
+	}
+}
+
+// VrfVerify returns nil when proof opens the leaf of slot under root. Only the 31 low bits of slot
+// count, as in the consensus specifications.
+func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
+	return call(func() C.int32_t {
+		return C.lpq_vrf_verify(
+			arrayPointer(&root), C.size_t(len(root)),
+			C.uint64_t(slot),
+			(*C.uint8_t)(unsafe.Pointer(&proof[0])), C.size_t(len(proof)),
 		)
 	})
 }

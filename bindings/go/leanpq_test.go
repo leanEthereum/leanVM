@@ -1,6 +1,7 @@
 package leanpq
 
 import (
+	"encoding/hex"
 	"reflect"
 	"runtime"
 	"sync"
@@ -19,6 +20,9 @@ func TestEncodingLengths(t *testing.T) {
 	}
 	if xmssRecordLen != 2468 {
 		t.Fatalf("leanXMSS record length = %d, want 2468", xmssRecordLen)
+	}
+	if got := len(VrfProof{}); got != 1024 {
+		t.Fatalf("VRF proof length = %d, want 1024", got)
 	}
 }
 
@@ -101,6 +105,61 @@ func TestSecretKeysRoundTripThroughBytes(t *testing.T) {
 	}
 	if err := SphincsVerify(sphincsPublicKey, message, sphincsSignature); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestVrf(t *testing.T) {
+	key, err := VrfKeyFromSeed(bytes32(9), 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer key.Close()
+	root, err := key.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Pinned across the bindings.
+	if got, want := hex.EncodeToString(root[:]), "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6"; got != want {
+		t.Fatalf("VRF root = %s, want %s", got, want)
+	}
+	proof, err := key.Proof(150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VrfVerify(root, 150, proof); err != nil {
+		t.Fatalf("VRF proof must verify: %v", err)
+	}
+	if VrfVerify(root, 151, proof) == nil {
+		t.Fatal("VRF proof must not verify at another slot")
+	}
+	for _, slot := range []uint32{100, 199} {
+		other, err := key.Proof(slot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := VrfVerify(root, uint64(slot), other); err != nil {
+			t.Fatalf("VRF proof for slot %d must verify: %v", slot, err)
+		}
+	}
+
+	for _, slot := range []uint32{99, 200} {
+		if _, err := key.Proof(slot); err == nil {
+			t.Fatalf("slot %d outside the range must be rejected", slot)
+		}
+	}
+	for _, slots := range [][2]uint32{{100, 100}, {200, 100}, {0, 1<<31 + 1}} {
+		if wrong, err := VrfKeyFromSeed(bytes32(9), slots[0], slots[1]); err == nil {
+			wrong.Close()
+			t.Fatalf("VRF range %d..%d must be rejected", slots[0], slots[1])
+		}
+	}
+
+	key.Close()
+	if _, err := key.Proof(150); err == nil {
+		t.Fatal("a closed VRF key must be rejected")
+	}
+	if _, err := key.Root(); err == nil {
+		t.Fatal("a closed VRF key must be rejected")
 	}
 }
 

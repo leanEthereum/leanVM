@@ -95,3 +95,26 @@ test('aggregates both schemes recursively', async () => {
     /malformed aggregate/,
   )
 })
+
+test('opens VRF proofs under the root', async () => {
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  const root = key.root()
+  assert.equal(root.toString('hex'), '577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6')
+
+  const proof = key.proof(150)
+  assert.equal(proof.length, 1024)
+  lpq.vrfVerify(root, 150, proof)
+  assert.throws(() => lpq.vrfVerify(root, 151, proof), /VRF proof for slot 151/)
+  for (const slot of [100, 151, 199]) lpq.vrfVerify(root, slot, key.proof(slot))
+})
+
+test('rejects VRF slots outside the range and bad encodings', async () => {
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 5, 5), /VRF range 5\.\.5/)
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 0, 2 ** 31 + 1), /ends past 2\^31/)
+  await assert.rejects(lpq.VrfKey.fromSeed(Buffer.alloc(31), 0, 1), /seed must be 32 bytes/)
+
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  assert.throws(() => key.proof(99), /VRF slot 99/)
+  assert.throws(() => key.proof(200), /VRF slot 200/)
+  assert.throws(() => lpq.vrfVerify(key.root(), 150, key.proof(150).subarray(1)), /proof must be 1024 bytes/)
+})

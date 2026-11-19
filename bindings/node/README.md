@@ -1,11 +1,12 @@
 # lean-pq Node.js bindings
 
-Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation, built with `napi-rs` over the Rust facade `lean-pq`.
+Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures, their recursive aggregation, and the consensus VRF tree, built with `napi-rs` over the Rust facade `lean-pq`.
 
 - **leanXMSS** is stateful: a key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, and signing is deterministic.
+- **VRF** is the consensus `pq` feature's VRF tree, pruned to the slots a validator proposes in.
 
-Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Key generation, preparation, signing, setup, aggregation, and aggregate decoding return Promises so their native work does not block the JavaScript event loop.
+Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Key generation, preparation, signing, building a VRF key, setup, aggregation, and aggregate decoding return Promises so their native work does not block the JavaScript event loop.
 
 ## Install
 
@@ -46,6 +47,17 @@ lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSignature)
 ```
 
 Persist your own durable high-water leaf index alongside a leanXMSS key's `toBytes()` and advance it before publishing a signature. `toBytes()` is secret material: the key's 32-byte seed. `XmssSecretKey.prepare(leafIndex)` builds the bottom tree a leaf index falls in ahead of signing there; a key keeps the 8 bottom trees it used last.
+
+## VRF
+
+```js
+// The seed and the range fix the root: keep both.
+const vrfKey = await lpq.VrfKey.fromSeed(Buffer.alloc(32, 3), 1000, 2000)
+const root = vrfKey.root()
+lpq.vrfVerify(root, 1500, vrfKey.proof(1500)) // throws if invalid
+```
+
+`VrfKey.fromSeed(seed, start, end)` covers the slots `[start, end)`, with `end` at most `2^31`. It returns a Promise: it hashes every leaf of the range once and keeps about `sqrt(R)` nodes for a range of `R` slots. `proof(slot)` then hashes about `3 sqrt(R)` nodes, and throws for a slot outside the range. A proof is 1024 bytes, its leaf then its 31 siblings. `vrfVerify` takes the slot as a number up to `Number.MAX_SAFE_INTEGER` and, like the consensus specifications, checks only its 31 low bits.
 
 ## Aggregation
 

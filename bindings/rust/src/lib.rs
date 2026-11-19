@@ -4,6 +4,7 @@
 mod aggregate;
 mod error;
 pub mod sphincs;
+pub mod vrf;
 pub mod xmss;
 
 #[cfg(feature = "aggregation")]

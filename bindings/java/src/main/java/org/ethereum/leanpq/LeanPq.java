@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Entry points for verification and recursive aggregation. */
+/** Entry points for verification, VRF proofs and recursive aggregation. */
 public final class LeanPq {
     private static final int RECORD_PREFIX_LENGTH = Native.PUBLIC_KEY_LENGTH + Native.MESSAGE_LENGTH;
 
@@ -33,6 +33,18 @@ public final class LeanPq {
             Native.requireLength(publicKey, Native.PUBLIC_KEY_LENGTH, "publicKey"),
             Native.requireLength(message, Native.MESSAGE_LENGTH, "message"),
             Objects.requireNonNull(signature, "signature"));
+    }
+
+    /**
+     * Returns whether the 1024-byte VRF proof opens the leaf of the slot under the 32-byte root, as
+     * the consensus specifications' {@code is_valid_vrf_proof} does: the slot is an unsigned 64-bit
+     * integer of which only the 31 low bits count.
+     */
+    public static boolean vrfVerify(byte[] root, long slot, byte[] proof) {
+        return Native.vrfVerify(
+            Native.requireLength(root, Native.VRF_ROOT_LENGTH, "root"),
+            slot,
+            Objects.requireNonNull(proof, "proof"));
     }
 
     /**

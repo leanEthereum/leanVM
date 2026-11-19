@@ -5,6 +5,7 @@ use std::fmt;
 #[cfg(feature = "aggregation")]
 use lean_vm::AggregateError;
 
+use crate::vrf::Slot;
 use crate::xmss::LeafIndex;
 
 /// Why a lean-pq operation failed.
@@ -34,6 +35,29 @@ pub enum Error {
     /// A leanSPHINCS signature does not verify.
     #[error("leanSPHINCS signature does not verify")]
     SphincsVerify,
+
+    /// A VRF key was given an empty range of slots, or one past `2^31`.
+    #[error("VRF range {start}..{end} is empty or ends past 2^31")]
+    InvalidVrfRange {
+        /// The range's first slot.
+        start: Slot,
+        /// One past the range's last slot.
+        end: Slot,
+    },
+
+    /// A VRF proof was asked for at a slot outside the key's range.
+    #[error("VRF slot {slot} is outside the key's range")]
+    VrfSlot {
+        /// The slot.
+        slot: Slot,
+    },
+
+    /// A VRF proof does not open under the root.
+    #[error("VRF proof for slot {slot} does not open under the root")]
+    VrfVerify {
+        /// The slot the proof was checked at.
+        slot: u64,
+    },
 
     /// A raw leanXMSS signature handed to aggregation does not verify.
     #[cfg(feature = "aggregation")]

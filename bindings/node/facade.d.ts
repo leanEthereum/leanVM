@@ -52,6 +52,32 @@ export declare class SphincsSecretKey {
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
 
 /**
+ * The consensus `pq` VRF tree of a seed, pruned to the slots `[start, end)`, with about `sqrt(R)`
+ * of its nodes cached for a range of `R` slots. The seed and the range fix the root, so keep both.
+ */
+export declare class VrfKey {
+  private constructor()
+  /**
+   * Hashes every leaf of the range once. Rejects when the seed is not 32 bytes, or the range is
+   * empty or ends past `2^31`.
+   */
+  static fromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
+  /** The 32-byte root: the validator's VRF root. */
+  root(): Buffer
+  /**
+   * The 1024-byte proof a block at `slot` reveals: its leaf, then its 31 siblings. Hashes about
+   * `3 sqrt(R)` nodes. Throws when the slot is outside the key's range.
+   */
+  proof(slot: number): Buffer
+}
+
+/**
+ * Throws if `proof` does not open the leaf of `slot` under `root`. Only the 31 low bits of `slot`
+ * count, which must be an integer up to `Number.MAX_SAFE_INTEGER`.
+ */
+export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): void
+
+/**
  * A recursive proof that each listed public key signed its message. Every instance has been
  * proven by `aggregate` or verified by `Aggregate.fromBytes`. Its encoding is the proof alone:
  * send the claims alongside it, or let the receiver rebuild them.
