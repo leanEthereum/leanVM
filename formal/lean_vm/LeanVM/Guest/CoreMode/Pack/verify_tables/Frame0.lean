@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.GlueP.«verify_tables»
 public import LeanVM.Guest.CoreMode.SigTrie
 public import LeanVM.Guest.CoreMode.GlueA.«verify_tables»
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
@@ -88,156 +88,136 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `verify_tables`: the powers of `g` its code names. -/
-noncomputable def Fn.«verify_tables».fpows : PowTree :=
-  (.node 6686845316181103282 21923 (.node 747481329577371311 20819 (.node 8589934592 33 (.node 512 9
-    (.node 32 5 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 16 4 .leaf .leaf))
-    (.node 128 7 (.node 64 6 .leaf .leaf) (.node 256 8 .leaf .leaf))) (.node 8388608 23 (.node 4096
-    12 (.node 2048 11 (.node 1024 10 .leaf .leaf) .leaf) (.node 524288 19 .leaf .leaf)) (.node
-    1073741824 30 (.node 21299200 144 .leaf .leaf) (.node 4294967296 32 .leaf .leaf)))) (.node
-    300200801614535160 21443 (.node 68840306789147170 21001 (.node 299140177199104 288 (.node
-    17179869184 34 (.node 10905190400 153 .leaf .leaf) .leaf) (.node 16129913743121396 21378 .leaf
-    .leaf)) (.node 225263063646809423 21858 (.node 157410913615094441 22196 .leaf .leaf) (.node
-    267460055567564800 8397 .leaf .leaf))) (.node 641725540994855972 22001 (.node 605882372035521072
-    21183 (.node 374194390576177427 20586 .leaf .leaf) (.node 635400574100419236 21079 .leaf .leaf))
-    (.node 704870694501563478 20797 (.node 680610023707633100 21871 .leaf .leaf) (.node
-    707574124582660387 20962 .leaf .leaf))))) (.node 3652719485813629640 21040 (.node
-    2709498364603087547 22040 (.node 1671267910815445027 22144 (.node 1214235887119244207 21196
-    (.node 1021031084408952022 21793 (.node 842240814291422629 20499 .leaf .leaf) .leaf) (.node
-    1432222245050460844 21066 .leaf .leaf)) (.node 2459140228361313578 21053 (.node
-    2104199103154032788 206224 .leaf .leaf) (.node 2571206756401396168 20481 .leaf .leaf))) (.node
-    3124652626515820211 21975 (.node 3048144119167254661 21131 (.node 3009044867683614785 21391
-    (.node 2843484850155818756 21469 .leaf .leaf) .leaf) (.node 3067901006939475830 22248 .leaf
-    .leaf)) (.node 3498411096780371686 21287 (.node 3219674244540832350 21092 .leaf .leaf) (.node
-    3542622707638361722 22157 .leaf .leaf)))) (.node 5245473588211373320 21404 (.node
-    4225331551400220485 21209 (.node 4086873590795682643 21728 (.node 4016937043353297680 22105
-    (.node 3823680721221097116 21780 .leaf .leaf) .leaf) (.node 4169589436354689342 20975 .leaf
-    .leaf)) (.node 4640603952645773538 21884 (.node 4436793028334524695 22170 .leaf .leaf) (.node
-    4777482155902567293 22053 .leaf .leaf))) (.node 5940822277961653886 20571 (.node
-    5577735636430933375 21845 (.node 5375010775098536578 21534 .leaf .leaf) (.node
-    5828005022901669367 21456 .leaf .leaf)) (.node 6122662908609605222 22183 (.node
-    5987110249218838832 20590 .leaf .leaf) (.node 6563488591188359891 20897 .leaf .leaf)))))) (.node
-    11951892489126859011 21144 (.node 9380593873834486010 19918 (.node 7905932649967188067 21313
-    (.node 7601676620974830573 20553 (.node 7292578952127947672 20923 (.node 7227538340245451157
-    20860 (.node 7030546070461181698 21274 .leaf .leaf) .leaf) (.node 7323747227646201578 19350
-    .leaf .leaf)) (.node 7779620455776694342 22261 (.node 7632030444511486979 21832 .leaf .leaf)
-    (.node 7824186791487399452 21222 .leaf .leaf))) (.node 8391064326747100895 21261 (.node
-    8235763562988322963 21819 (.node 7948241883250061977 21339 (.node 7911578087708086327 21806
-    .leaf .leaf) .leaf) (.node 8273352619807154338 20535 .leaf .leaf)) (.node 8502213035292407393
-    20665 (.node 8452686958024573555 21417 .leaf .leaf) (.node 8847702895291912127 21962 .leaf
-    .leaf)))) (.node 10700626674882791109 21170 (.node 10253675311939369459 21936 (.node
-    10082387807726190723 21949 (.node 9682741167830177625 21365 (.node 9418492526808815313 21754
-    .leaf .leaf) .leaf) (.node 10249465160619244218 20936 .leaf .leaf)) (.node 10537471005407068466
-    21014 (.node 10472892830502612363 22222 .leaf .leaf) (.node 10646955407712960641 21027 .leaf
-    .leaf))) (.node 11520286182451057237 21988 (.node 11495148035971035059 21495 (.node
-    11190158353871182763 21300 .leaf .leaf) (.node 11509930283671416922 21703 .leaf .leaf)) (.node
-    11738663578239095607 206180 (.node 11589640815872278019 22066 .leaf .leaf) (.node
-    11749283797793972998 21235 .leaf .leaf))))) (.node 15392560316349005150 22079 (.node
-    13437671463500088451 21352 (.node 12358367726264815997 22092 (.node 12310961669322422598 21118
-    (.node 12261764870545049476 524287 (.node 12007063364470282026 21767 .leaf .leaf) .leaf) (.node
-    12353382181235032869 20988 .leaf .leaf)) (.node 13032471750638678949 21157 (.node
-    12486316340679204865 20949 .leaf .leaf) (.node 13243333590219319909 21715 .leaf .leaf))) (.node
-    14286308225410830486 20910 (.node 13781051505359383587 21430 (.node 13469038985496041915 21248
-    .leaf .leaf) (.node 14036871455013135522 21482 .leaf .leaf)) (.node 15344580195748665254 21910
-    (.node 15174129947549350727 21105 .leaf .leaf) (.node 15368737740597962053 22131 .leaf .leaf))))
-    (.node 17225134000938741130 19521 (.node 16203575726084084689 22118 (.node 15596743129888746386
-    22274 (.node 15534788232500517044 21897 (.node 15419547415247129772 20872 .leaf .leaf) .leaf)
-    (.node 16070958461167858832 21508 .leaf .leaf)) (.node 16684863248894600887 22209 (.node
-    16578124727985431950 22235 .leaf .leaf) (.node 16936117148038835537 22027 .leaf .leaf))) (.node
-    17742947454780172608 20517 (.node 17326003895739305248 21521 (.node 17274706089105563882 21741
-    .leaf .leaf) (.node 17328569810678497290 21326 .leaf .leaf)) (.node 18140314896347470340 22014
-    (.node 17970753786836876951 20831 .leaf .leaf) (.node 18156909736221508678 21547 .leaf
-    .leaf)))))))
-
-/-- `verify_tables`: its code's powers are powers of `g`. -/
-theorem Fn.«verify_tables».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
-def Fn.«verify_tables».frameCallee0 : List ℕ := [189864, 189874, 189896, 189930, 189974, 190026,
-    190086, 190154, 190230, 190314, 190406, 190506, 190614, 190730, 190854, 190986, 191126, 191274,
-    191430, 191594, 191766, 191946, 192134, 192330, 192534, 192746, 192966, 193194, 193430, 193674,
-    193926]
-def Fn.«verify_tables».frameCallee1 : List ℕ := [194186, 194189, 194195, 194204, 194216, 194231,
-    194249, 194270, 194294, 194321, 194351, 194384, 194420, 194459, 194501, 194546, 194594, 194645,
-    194699, 194756, 194816, 194879, 194945, 195014, 195086, 195161, 195239, 195320, 195404, 195491,
-    195581, 195674, 195770, 195869]
-def Fn.«verify_tables».frameCallee2 : List ℕ := [195971, 195975, 195987, 196009, 196041, 196083,
-    196135, 196197, 196269, 196351, 196443, 196545, 196657, 196779, 196911, 197053, 197205, 197367,
-    197539, 197721, 197913, 198115, 198327, 198549, 198781, 199023, 199275, 199537, 199809, 200091,
-    200383, 200685, 200997, 201319]
-def Fn.«verify_tables».frameCallee3 : List ℕ := [201651, 201654, 201661, 201673, 201690, 201712,
-    201739, 201771, 201808, 201850, 201897, 201949, 202006, 202068, 202135, 202207, 202284, 202366,
-    202453, 202545, 202642, 202744, 202851, 202963, 203080, 203202, 203329, 203461, 203598, 203740,
-    203887, 204039, 204196, 204358]
-def Fn.«verify_tables».frameCallee4 : List ℕ := [204525, 204529, 204542, 204555, 204568, 204581,
-    204605, 204629, 204653, 204676, 204710, 204744, 204778, 204811, 204855, 204899, 204943, 204986,
-    205040, 205094, 205148, 205201, 205265, 205329, 205393, 205456, 205530, 205604, 205678, 205751,
-    205835, 205919, 206003, 206086]
+def Fn.«verify_tables».frameCallee0 : List ℕ := [Fn.«padding_weight__L0».entry,
+    Fn.«padding_weight__L1».entry, Fn.«padding_weight__L2».entry, Fn.«padding_weight__L3».entry,
+    Fn.«padding_weight__L4».entry, Fn.«padding_weight__L5».entry, Fn.«padding_weight__L6».entry,
+    Fn.«padding_weight__L7».entry, Fn.«padding_weight__L8».entry, Fn.«padding_weight__L9».entry,
+    Fn.«padding_weight__L10».entry, Fn.«padding_weight__L11».entry, Fn.«padding_weight__L12».entry,
+    Fn.«padding_weight__L13».entry, Fn.«padding_weight__L14».entry, Fn.«padding_weight__L15».entry,
+    Fn.«padding_weight__L16».entry, Fn.«padding_weight__L17».entry, Fn.«padding_weight__L18».entry,
+    Fn.«padding_weight__L19».entry, Fn.«padding_weight__L20».entry, Fn.«padding_weight__L21».entry,
+    Fn.«padding_weight__L22».entry, Fn.«padding_weight__L23».entry, Fn.«padding_weight__L24».entry,
+    Fn.«padding_weight__L25».entry, Fn.«padding_weight__L26».entry, Fn.«padding_weight__L27».entry,
+    Fn.«padding_weight__L28».entry, Fn.«padding_weight__L29».entry, Fn.«padding_weight__L30».entry]
+def Fn.«verify_tables».frameCallee1 : List ℕ := [Fn.«plus_one_run__L0».entry,
+    Fn.«plus_one_run__L1».entry, Fn.«plus_one_run__L2».entry, Fn.«plus_one_run__L3».entry,
+    Fn.«plus_one_run__L4».entry, Fn.«plus_one_run__L5».entry, Fn.«plus_one_run__L6».entry,
+    Fn.«plus_one_run__L7».entry, Fn.«plus_one_run__L8».entry, Fn.«plus_one_run__L9».entry,
+    Fn.«plus_one_run__L10».entry, Fn.«plus_one_run__L11».entry, Fn.«plus_one_run__L12».entry,
+    Fn.«plus_one_run__L13».entry, Fn.«plus_one_run__L14».entry, Fn.«plus_one_run__L15».entry,
+    Fn.«plus_one_run__L16».entry, Fn.«plus_one_run__L17».entry, Fn.«plus_one_run__L18».entry,
+    Fn.«plus_one_run__L19».entry, Fn.«plus_one_run__L20».entry, Fn.«plus_one_run__L21».entry,
+    Fn.«plus_one_run__L22».entry, Fn.«plus_one_run__L23».entry, Fn.«plus_one_run__L24».entry,
+    Fn.«plus_one_run__L25».entry, Fn.«plus_one_run__L26».entry, Fn.«plus_one_run__L27».entry,
+    Fn.«plus_one_run__L28».entry, Fn.«plus_one_run__L29».entry, Fn.«plus_one_run__L30».entry,
+    Fn.«plus_one_run__L31».entry, Fn.«plus_one_run__L32».entry, Fn.«plus_one_run__L33».entry]
+def Fn.«verify_tables».frameCallee2 : List ℕ := [Fn.«block_selector__L0».entry,
+    Fn.«block_selector__L1».entry, Fn.«block_selector__L2».entry, Fn.«block_selector__L3».entry,
+    Fn.«block_selector__L4».entry, Fn.«block_selector__L5».entry, Fn.«block_selector__L6».entry,
+    Fn.«block_selector__L7».entry, Fn.«block_selector__L8».entry, Fn.«block_selector__L9».entry,
+    Fn.«block_selector__L10».entry, Fn.«block_selector__L11».entry, Fn.«block_selector__L12».entry,
+    Fn.«block_selector__L13».entry, Fn.«block_selector__L14».entry, Fn.«block_selector__L15».entry,
+    Fn.«block_selector__L16».entry, Fn.«block_selector__L17».entry, Fn.«block_selector__L18».entry,
+    Fn.«block_selector__L19».entry, Fn.«block_selector__L20».entry, Fn.«block_selector__L21».entry,
+    Fn.«block_selector__L22».entry, Fn.«block_selector__L23».entry, Fn.«block_selector__L24».entry,
+    Fn.«block_selector__L25».entry, Fn.«block_selector__L26».entry, Fn.«block_selector__L27».entry,
+    Fn.«block_selector__L28».entry, Fn.«block_selector__L29».entry, Fn.«block_selector__L30».entry,
+    Fn.«block_selector__L31».entry, Fn.«block_selector__L32».entry, Fn.«block_selector__L33».entry]
+def Fn.«verify_tables».frameCallee3 : List ℕ := [Fn.«index_mle__L0».entry, Fn.«index_mle__L1».entry,
+    Fn.«index_mle__L2».entry, Fn.«index_mle__L3».entry, Fn.«index_mle__L4».entry,
+    Fn.«index_mle__L5».entry, Fn.«index_mle__L6».entry, Fn.«index_mle__L7».entry,
+    Fn.«index_mle__L8».entry, Fn.«index_mle__L9».entry, Fn.«index_mle__L10».entry,
+    Fn.«index_mle__L11».entry, Fn.«index_mle__L12».entry, Fn.«index_mle__L13».entry,
+    Fn.«index_mle__L14».entry, Fn.«index_mle__L15».entry, Fn.«index_mle__L16».entry,
+    Fn.«index_mle__L17».entry, Fn.«index_mle__L18».entry, Fn.«index_mle__L19».entry,
+    Fn.«index_mle__L20».entry, Fn.«index_mle__L21».entry, Fn.«index_mle__L22».entry,
+    Fn.«index_mle__L23».entry, Fn.«index_mle__L24».entry, Fn.«index_mle__L25».entry,
+    Fn.«index_mle__L26».entry, Fn.«index_mle__L27».entry, Fn.«index_mle__L28».entry,
+    Fn.«index_mle__L29».entry, Fn.«index_mle__L30».entry, Fn.«index_mle__L31».entry,
+    Fn.«index_mle__L32».entry, Fn.«index_mle__L33».entry]
+def Fn.«verify_tables».frameCallee4 : List ℕ := [Fn.«block_selector_tab__L0».entry,
+    Fn.«block_selector_tab__L1».entry, Fn.«block_selector_tab__L2».entry,
+    Fn.«block_selector_tab__L3».entry, Fn.«block_selector_tab__L4».entry,
+    Fn.«block_selector_tab__L5».entry, Fn.«block_selector_tab__L6».entry,
+    Fn.«block_selector_tab__L7».entry, Fn.«block_selector_tab__L8».entry,
+    Fn.«block_selector_tab__L9».entry, Fn.«block_selector_tab__L10».entry,
+    Fn.«block_selector_tab__L11».entry, Fn.«block_selector_tab__L12».entry,
+    Fn.«block_selector_tab__L13».entry, Fn.«block_selector_tab__L14».entry,
+    Fn.«block_selector_tab__L15».entry, Fn.«block_selector_tab__L16».entry,
+    Fn.«block_selector_tab__L17».entry, Fn.«block_selector_tab__L18».entry,
+    Fn.«block_selector_tab__L19».entry, Fn.«block_selector_tab__L20».entry,
+    Fn.«block_selector_tab__L21».entry, Fn.«block_selector_tab__L22».entry,
+    Fn.«block_selector_tab__L23».entry, Fn.«block_selector_tab__L24».entry,
+    Fn.«block_selector_tab__L25».entry, Fn.«block_selector_tab__L26».entry,
+    Fn.«block_selector_tab__L27».entry, Fn.«block_selector_tab__L28».entry,
+    Fn.«block_selector_tab__L29».entry, Fn.«block_selector_tab__L30».entry,
+    Fn.«block_selector_tab__L31».entry, Fn.«block_selector_tab__L32».entry,
+    Fn.«block_selector_tab__L33».entry]
 noncomputable def Fn.«verify_tables».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 19982, 5240, Fn.«verify_tables».csig,
-    (CoreMode.sigTrie [Fn.«block_selector__L0».csig, Fn.«block_selector__L10».csig,
-    Fn.«block_selector__L11».csig, Fn.«block_selector__L12».csig, Fn.«block_selector__L13».csig,
-    Fn.«block_selector__L14».csig, Fn.«block_selector__L15».csig, Fn.«block_selector__L16».csig,
-    Fn.«block_selector__L17».csig, Fn.«block_selector__L18».csig, Fn.«block_selector__L19».csig,
-    Fn.«block_selector__L1».csig, Fn.«block_selector__L20».csig, Fn.«block_selector__L21».csig,
-    Fn.«block_selector__L22».csig, Fn.«block_selector__L23».csig, Fn.«block_selector__L24».csig,
-    Fn.«block_selector__L25».csig, Fn.«block_selector__L26».csig, Fn.«block_selector__L27».csig,
-    Fn.«block_selector__L28».csig, Fn.«block_selector__L29».csig, Fn.«block_selector__L2».csig,
-    Fn.«block_selector__L30».csig, Fn.«block_selector__L31».csig, Fn.«block_selector__L32».csig,
-    Fn.«block_selector__L33».csig, Fn.«block_selector__L3».csig, Fn.«block_selector__L4».csig,
-    Fn.«block_selector__L5».csig, Fn.«block_selector__L6».csig, Fn.«block_selector__L7».csig,
-    Fn.«block_selector__L8».csig, Fn.«block_selector__L9».csig, Fn.«block_selector_tab__L0».csig,
-    Fn.«block_selector_tab__L10».csig, Fn.«block_selector_tab__L11».csig,
-    Fn.«block_selector_tab__L12».csig, Fn.«block_selector_tab__L13».csig,
-    Fn.«block_selector_tab__L14».csig, Fn.«block_selector_tab__L15».csig,
-    Fn.«block_selector_tab__L16».csig, Fn.«block_selector_tab__L17».csig,
-    Fn.«block_selector_tab__L18».csig, Fn.«block_selector_tab__L19».csig,
-    Fn.«block_selector_tab__L1».csig, Fn.«block_selector_tab__L20».csig,
-    Fn.«block_selector_tab__L21».csig, Fn.«block_selector_tab__L22».csig,
-    Fn.«block_selector_tab__L23».csig, Fn.«block_selector_tab__L24».csig,
-    Fn.«block_selector_tab__L25».csig, Fn.«block_selector_tab__L26».csig,
-    Fn.«block_selector_tab__L27».csig, Fn.«block_selector_tab__L28».csig,
-    Fn.«block_selector_tab__L29».csig, Fn.«block_selector_tab__L2».csig,
-    Fn.«block_selector_tab__L30».csig, Fn.«block_selector_tab__L31».csig,
-    Fn.«block_selector_tab__L32».csig, Fn.«block_selector_tab__L33».csig,
-    Fn.«block_selector_tab__L3».csig, Fn.«block_selector_tab__L4».csig,
-    Fn.«block_selector_tab__L5».csig, Fn.«block_selector_tab__L6».csig,
-    Fn.«block_selector_tab__L7».csig, Fn.«block_selector_tab__L8».csig,
-    Fn.«block_selector_tab__L9».csig, Fn.«eq_prefix_chain».csig, Fn.«index_mle__L0».csig,
-    Fn.«index_mle__L10».csig, Fn.«index_mle__L11».csig, Fn.«index_mle__L12».csig,
-    Fn.«index_mle__L13».csig, Fn.«index_mle__L14».csig, Fn.«index_mle__L15».csig,
-    Fn.«index_mle__L16».csig, Fn.«index_mle__L17».csig, Fn.«index_mle__L18».csig,
-    Fn.«index_mle__L19».csig, Fn.«index_mle__L1».csig, Fn.«index_mle__L20».csig,
-    Fn.«index_mle__L21».csig, Fn.«index_mle__L22».csig, Fn.«index_mle__L23».csig,
-    Fn.«index_mle__L24».csig, Fn.«index_mle__L25».csig, Fn.«index_mle__L26».csig,
-    Fn.«index_mle__L27».csig, Fn.«index_mle__L28».csig, Fn.«index_mle__L29».csig,
-    Fn.«index_mle__L2».csig, Fn.«index_mle__L30».csig, Fn.«index_mle__L31».csig,
-    Fn.«index_mle__L32».csig, Fn.«index_mle__L33».csig, Fn.«index_mle__L3».csig,
-    Fn.«index_mle__L4».csig, Fn.«index_mle__L5».csig, Fn.«index_mle__L6».csig,
-    Fn.«index_mle__L7».csig, Fn.«index_mle__L8».csig, Fn.«index_mle__L9».csig,
-    Fn.«opening_tail_round».csig, Fn.«padding_weight__L0».csig, Fn.«padding_weight__L10».csig,
-    Fn.«padding_weight__L11».csig, Fn.«padding_weight__L12».csig, Fn.«padding_weight__L13».csig,
-    Fn.«padding_weight__L14».csig, Fn.«padding_weight__L15».csig, Fn.«padding_weight__L16».csig,
-    Fn.«padding_weight__L17».csig, Fn.«padding_weight__L18».csig, Fn.«padding_weight__L19».csig,
-    Fn.«padding_weight__L1».csig, Fn.«padding_weight__L20».csig, Fn.«padding_weight__L21».csig,
-    Fn.«padding_weight__L22».csig, Fn.«padding_weight__L23».csig, Fn.«padding_weight__L24».csig,
-    Fn.«padding_weight__L25».csig, Fn.«padding_weight__L26».csig, Fn.«padding_weight__L27».csig,
-    Fn.«padding_weight__L28».csig, Fn.«padding_weight__L29».csig, Fn.«padding_weight__L2».csig,
-    Fn.«padding_weight__L30».csig, Fn.«padding_weight__L3».csig, Fn.«padding_weight__L4».csig,
-    Fn.«padding_weight__L5».csig, Fn.«padding_weight__L6».csig, Fn.«padding_weight__L7».csig,
-    Fn.«padding_weight__L8».csig, Fn.«padding_weight__L9».csig, Fn.«plus_one_run__L0».csig,
-    Fn.«plus_one_run__L10».csig, Fn.«plus_one_run__L11».csig, Fn.«plus_one_run__L12».csig,
-    Fn.«plus_one_run__L13».csig, Fn.«plus_one_run__L14».csig, Fn.«plus_one_run__L15».csig,
-    Fn.«plus_one_run__L16».csig, Fn.«plus_one_run__L17».csig, Fn.«plus_one_run__L18».csig,
-    Fn.«plus_one_run__L19».csig, Fn.«plus_one_run__L1».csig, Fn.«plus_one_run__L20».csig,
-    Fn.«plus_one_run__L21».csig, Fn.«plus_one_run__L22».csig, Fn.«plus_one_run__L23».csig,
-    Fn.«plus_one_run__L24».csig, Fn.«plus_one_run__L25».csig, Fn.«plus_one_run__L26».csig,
-    Fn.«plus_one_run__L27».csig, Fn.«plus_one_run__L28».csig, Fn.«plus_one_run__L29».csig,
-    Fn.«plus_one_run__L2».csig, Fn.«plus_one_run__L30».csig, Fn.«plus_one_run__L31».csig,
-    Fn.«plus_one_run__L32».csig, Fn.«plus_one_run__L33».csig, Fn.«plus_one_run__L3».csig,
-    Fn.«plus_one_run__L4».csig, Fn.«plus_one_run__L5».csig, Fn.«plus_one_run__L6».csig,
-    Fn.«plus_one_run__L7».csig, Fn.«plus_one_run__L8».csig, Fn.«plus_one_run__L9».csig,
-    Fn.«shared_selector_tables».csig, Fn.«verify_tables_loop0».csig,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«verify_tables».entry, 5240,
+    Fn.«verify_tables».csig, (CoreMode.sigTrie [Fn.«block_selector__L0».csig,
+    Fn.«block_selector__L10».csig, Fn.«block_selector__L11».csig, Fn.«block_selector__L12».csig,
+    Fn.«block_selector__L13».csig, Fn.«block_selector__L14».csig, Fn.«block_selector__L15».csig,
+    Fn.«block_selector__L16».csig, Fn.«block_selector__L17».csig, Fn.«block_selector__L18».csig,
+    Fn.«block_selector__L19».csig, Fn.«block_selector__L1».csig, Fn.«block_selector__L20».csig,
+    Fn.«block_selector__L21».csig, Fn.«block_selector__L22».csig, Fn.«block_selector__L23».csig,
+    Fn.«block_selector__L24».csig, Fn.«block_selector__L25».csig, Fn.«block_selector__L26».csig,
+    Fn.«block_selector__L27».csig, Fn.«block_selector__L28».csig, Fn.«block_selector__L29».csig,
+    Fn.«block_selector__L2».csig, Fn.«block_selector__L30».csig, Fn.«block_selector__L31».csig,
+    Fn.«block_selector__L32».csig, Fn.«block_selector__L33».csig, Fn.«block_selector__L3».csig,
+    Fn.«block_selector__L4».csig, Fn.«block_selector__L5».csig, Fn.«block_selector__L6».csig,
+    Fn.«block_selector__L7».csig, Fn.«block_selector__L8».csig, Fn.«block_selector__L9».csig,
+    Fn.«block_selector_tab__L0».csig, Fn.«block_selector_tab__L10».csig,
+    Fn.«block_selector_tab__L11».csig, Fn.«block_selector_tab__L12».csig,
+    Fn.«block_selector_tab__L13».csig, Fn.«block_selector_tab__L14».csig,
+    Fn.«block_selector_tab__L15».csig, Fn.«block_selector_tab__L16».csig,
+    Fn.«block_selector_tab__L17».csig, Fn.«block_selector_tab__L18».csig,
+    Fn.«block_selector_tab__L19».csig, Fn.«block_selector_tab__L1».csig,
+    Fn.«block_selector_tab__L20».csig, Fn.«block_selector_tab__L21».csig,
+    Fn.«block_selector_tab__L22».csig, Fn.«block_selector_tab__L23».csig,
+    Fn.«block_selector_tab__L24».csig, Fn.«block_selector_tab__L25».csig,
+    Fn.«block_selector_tab__L26».csig, Fn.«block_selector_tab__L27».csig,
+    Fn.«block_selector_tab__L28».csig, Fn.«block_selector_tab__L29».csig,
+    Fn.«block_selector_tab__L2».csig, Fn.«block_selector_tab__L30».csig,
+    Fn.«block_selector_tab__L31».csig, Fn.«block_selector_tab__L32».csig,
+    Fn.«block_selector_tab__L33».csig, Fn.«block_selector_tab__L3».csig,
+    Fn.«block_selector_tab__L4».csig, Fn.«block_selector_tab__L5».csig,
+    Fn.«block_selector_tab__L6».csig, Fn.«block_selector_tab__L7».csig,
+    Fn.«block_selector_tab__L8».csig, Fn.«block_selector_tab__L9».csig, Fn.«eq_prefix_chain».csig,
+    Fn.«index_mle__L0».csig, Fn.«index_mle__L10».csig, Fn.«index_mle__L11».csig,
+    Fn.«index_mle__L12».csig, Fn.«index_mle__L13».csig, Fn.«index_mle__L14».csig,
+    Fn.«index_mle__L15».csig, Fn.«index_mle__L16».csig, Fn.«index_mle__L17».csig,
+    Fn.«index_mle__L18».csig, Fn.«index_mle__L19».csig, Fn.«index_mle__L1».csig,
+    Fn.«index_mle__L20».csig, Fn.«index_mle__L21».csig, Fn.«index_mle__L22».csig,
+    Fn.«index_mle__L23».csig, Fn.«index_mle__L24».csig, Fn.«index_mle__L25».csig,
+    Fn.«index_mle__L26».csig, Fn.«index_mle__L27».csig, Fn.«index_mle__L28».csig,
+    Fn.«index_mle__L29».csig, Fn.«index_mle__L2».csig, Fn.«index_mle__L30».csig,
+    Fn.«index_mle__L31».csig, Fn.«index_mle__L32».csig, Fn.«index_mle__L33».csig,
+    Fn.«index_mle__L3».csig, Fn.«index_mle__L4».csig, Fn.«index_mle__L5».csig,
+    Fn.«index_mle__L6».csig, Fn.«index_mle__L7».csig, Fn.«index_mle__L8».csig,
+    Fn.«index_mle__L9».csig, Fn.«opening_tail_round».csig, Fn.«padding_weight__L0».csig,
+    Fn.«padding_weight__L10».csig, Fn.«padding_weight__L11».csig, Fn.«padding_weight__L12».csig,
+    Fn.«padding_weight__L13».csig, Fn.«padding_weight__L14».csig, Fn.«padding_weight__L15».csig,
+    Fn.«padding_weight__L16».csig, Fn.«padding_weight__L17».csig, Fn.«padding_weight__L18».csig,
+    Fn.«padding_weight__L19».csig, Fn.«padding_weight__L1».csig, Fn.«padding_weight__L20».csig,
+    Fn.«padding_weight__L21».csig, Fn.«padding_weight__L22».csig, Fn.«padding_weight__L23».csig,
+    Fn.«padding_weight__L24».csig, Fn.«padding_weight__L25».csig, Fn.«padding_weight__L26».csig,
+    Fn.«padding_weight__L27».csig, Fn.«padding_weight__L28».csig, Fn.«padding_weight__L29».csig,
+    Fn.«padding_weight__L2».csig, Fn.«padding_weight__L30».csig, Fn.«padding_weight__L3».csig,
+    Fn.«padding_weight__L4».csig, Fn.«padding_weight__L5».csig, Fn.«padding_weight__L6».csig,
+    Fn.«padding_weight__L7».csig, Fn.«padding_weight__L8».csig, Fn.«padding_weight__L9».csig,
+    Fn.«plus_one_run__L0».csig, Fn.«plus_one_run__L10».csig, Fn.«plus_one_run__L11».csig,
+    Fn.«plus_one_run__L12».csig, Fn.«plus_one_run__L13».csig, Fn.«plus_one_run__L14».csig,
+    Fn.«plus_one_run__L15».csig, Fn.«plus_one_run__L16».csig, Fn.«plus_one_run__L17».csig,
+    Fn.«plus_one_run__L18».csig, Fn.«plus_one_run__L19».csig, Fn.«plus_one_run__L1».csig,
+    Fn.«plus_one_run__L20».csig, Fn.«plus_one_run__L21».csig, Fn.«plus_one_run__L22».csig,
+    Fn.«plus_one_run__L23».csig, Fn.«plus_one_run__L24».csig, Fn.«plus_one_run__L25».csig,
+    Fn.«plus_one_run__L26».csig, Fn.«plus_one_run__L27».csig, Fn.«plus_one_run__L28».csig,
+    Fn.«plus_one_run__L29».csig, Fn.«plus_one_run__L2».csig, Fn.«plus_one_run__L30».csig,
+    Fn.«plus_one_run__L31».csig, Fn.«plus_one_run__L32».csig, Fn.«plus_one_run__L33».csig,
+    Fn.«plus_one_run__L3».csig, Fn.«plus_one_run__L4».csig, Fn.«plus_one_run__L5».csig,
+    Fn.«plus_one_run__L6».csig, Fn.«plus_one_run__L7».csig, Fn.«plus_one_run__L8».csig,
+    Fn.«plus_one_run__L9».csig, Fn.«shared_selector_tables».csig, Fn.«verify_tables_loop0».csig,
     Fn.«verify_tables_loop1».csig]), 524287, advice.2.2, (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node (some [453])
     .nil .nil) .nil))) (.node none .nil (.node (some [296]) .nil .nil)))) .nil) .nil)), (.node none

@@ -1,6 +1,7 @@
 """Writes `LeanVM/Guest/CoreMode/Sig/<pack>.lean`: each function's signature (`Fn.«k».csig : Mode.Sig`), what its
 callers on either route are told of it: its entry, the frame cells and heap facts it needs at entry and
-guarantees at return. The signatures are the mode walk's inference's (`scripts/mode-cert/infer.py`, read from
+guarantees at return; and the glue `LeanVM/Guest/CoreMode/GlueE/<pack>.lean`: each function's entry pc
+(`Fn.«k».entry`), the only place the core route's data names it. The signatures are the mode walk's inference's (`scripts/mode-cert/infer.py`, read from
 `MODE_CERT_CACHE`), which the core route's checks hold to its heap signatures (`CoreMode.ownOk`, `fitB`) and the
 mode walk's to its walks.
 
@@ -13,6 +14,7 @@ sys.setrecursionlimit(100000)
 import gen as MG  # noqa: E402
 
 OUT = os.path.join(MG.I.data.ROOT, 'CoreMode', 'Sig')
+GLUE = os.path.join(MG.I.data.ROOT, 'CoreMode', 'GlueE')
 
 
 def header(mod, what):
@@ -23,16 +25,24 @@ def files(sigs):
     out = {}
     for p, names in sorted(MG.packs().items()):
         body = [header('LeanVM.Guest.CoreMode.Sig.«%s»' % p, 'What a caller knows of compiled functions.'),
-                'public import LeanVM.Guest.Mode.Abs\n']
+                'public import LeanVM.Guest.Mode.Abs\npublic import LeanVM.Guest.CoreMode.GlueE.«%s»\n' % p]
+        glue = [header('LeanVM.Guest.CoreMode.GlueE.«%s»' % p, 'The entry pc of each compiled function of the pack.'),
+                'set_option linter.all false\n']
         for n in sorted(names, key=lambda n: MG.I.fns[n]['ns']):
             G = sigs[n]
             assert MG.termFr(G), n
             k = MG.I.fns[n]['ns']
+            lit = MG.sig(G)
+            assert lit.startswith('⟨%d, ' % G.pc) and G.pc == MG.I.fns[n]['entry'], n
             body.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\n@[expose] public section\n\n'
                         '/-- `%s`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/\n'
-                        'noncomputable def csig : Mode.Sig :=\n  %s\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
-                            k, n, MG.sig(G), k))
+                        'noncomputable def csig : Mode.Sig :=\n  ⟨Fn.«%s».entry, %s\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
+                            k, n, k, lit[len('⟨%d, ' % G.pc):], k))
+            glue.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\n@[expose] public section\n\n'
+                        '/-- `%s`: its entry pc. -/\nabbrev entry : Nat := %d\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
+                            k, n, G.pc, k))
         out[os.path.join(OUT, '%s.lean' % p)] = MG.wrap(''.join(body))
+        out[os.path.join(GLUE, '%s.lean' % p)] = ''.join(glue)
     return out
 
 
@@ -63,7 +73,7 @@ def main(argv):
         else:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             open(path, 'w', encoding='utf-8').write(text)
-    for path in sorted(set(glob.glob(os.path.join(OUT, '*.lean'))) - set(want)):
+    for path in sorted(set(glob.glob(os.path.join(OUT, '*.lean')) + glob.glob(os.path.join(GLUE, '*.lean'))) - set(want)):
         if '--check' in argv:
             stale.append(path)
         else:
@@ -71,7 +81,7 @@ def main(argv):
     if stale:
         print('stale:', *stale, sep='\n  ')
         sys.exit(1)
-    print('signatures: %d functions, %d packs' % (len(sigs), len(want)))
+    print('signatures: %d functions, %d packs' % (len(sigs), len(want) // 2))
 
 
 if __name__ == '__main__':

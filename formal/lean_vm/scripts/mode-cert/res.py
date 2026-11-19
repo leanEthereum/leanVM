@@ -103,7 +103,7 @@ def core_funs(root, parse, toks):
     `{name: (module, literal parsed)}`."""
     import re
     out = {}
-    pat = re.compile(r'^noncomputable def (?:Fn\.«([^»]+)»\.)?funC : Mode\.Fun := (.*(?:\n    .*)*)$', re.M)
+    pat = re.compile(r'^noncomputable def (?:Fn\.«([^»]+)»\.)?funC\s*:\s*Mode\.Fun\s*:=[ ]?(.*(?:\n    .*)*)$', re.M)
     for path in sorted(glob.glob(os.path.join(root, 'CoreMode', 'Pack', '*', 'Frame*.lean'))):
         t = open(path).read()
         mod = 'LeanVM.Guest.CoreMode.Pack.«%s».%s' % (path.split(os.sep)[-2], os.path.basename(path)[:-5])

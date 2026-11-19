@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.Abs
+public import LeanVM.Guest.CoreMode.GlueE.«verify_sig_lean_sphincs»
 
 namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 
@@ -16,10 +17,11 @@ namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 /-- `verify_sig_lean_sphincs`: its entry, the cells and heap facts it needs at entry and guarantees
     at return. -/
 noncomputable def csig : Mode.Sig :=
-  ⟨57221, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2),
+  ⟨Fn.«verify_sig_lean_sphincs».entry, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr
+    2), 1)]⟩, ⟨0, 2, [((.fr 2), 1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    (.num 256), 1, 0⟩], [], [], [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2),
     1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 256), 1, 0⟩], [], [],
-    [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2), 1)]⟩, ⟨0, 3, [((.fr 2),
-    1)]⟩], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 256), 1, 0⟩], [], [], [], [], [], [], []⟩
+    [], [], [], [], []⟩
 
 end
 

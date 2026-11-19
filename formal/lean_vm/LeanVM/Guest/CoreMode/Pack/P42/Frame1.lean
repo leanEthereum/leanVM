@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.GlueP.«P42»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.Pack.«P42».Bundle
@@ -27,21 +27,14 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `level_residual__L18_L12_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».fpows : PowTree :=
-  (.node 4423402235512700040 407079 (.node 2 1 .leaf .leaf) (.node 12682136550675316763 124 .leaf
-    .leaf))
-
-/-- `level_residual__L18_L12_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L18_L12_L4_L2_loop1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L18_L12_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».funC : Mode.Fun := ⟨407079, 113,
+noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L18_L12_L4_L2_loop1».entry, 113,
     Fn.«level_residual__L18_L12_L4_L2_loop1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 407079, 113,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L18_L12_L4_L2_loop1».entry, 113,
     Fn.«level_residual__L18_L12_L4_L2_loop1».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L18_L12_L4_L2_loop1».pairO, Fn.«level_residual__L18_L12_L4_L2_loop1».pairS,
     .nil⟩
@@ -49,26 +42,17 @@ noncomputable def Fn.«level_residual__L18_L12_L4_L2_loop1».frameFun : CoreMode
 theorem Fn.«level_residual__L18_L12_L4_L2_loop1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0`: the powers of `g` its code names.
-    -/
-noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».fpows : PowTree :=
-  (.node 3927657457963793085 445888 (.node 2451572153831064802 448224 (.node 2 1 .leaf .leaf) .leaf)
-    (.node 6155922978765799973 729 .leaf .leaf))
-
-/-- `opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0`: its code's powers are powers of
-    `g`. -/
-theorem Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».csig,
     Fn.«walk_path__L24_L3».csig]
 noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».funC : Mode.Fun :=
-    ⟨448224, 604, Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».csig, .nil, .nil,
-    .nil, false, .nil⟩
+    ⟨Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».entry, 604,
+    Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».csig, .nil, .nil, .nil, false,
+    .nil⟩
 noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».frameFun :
     CoreMode.FFun :=
-  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := fpows, scaled := [12] }, 448224, 604,
+  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := fpows, scaled := [12] },
+    Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».entry, 604,
     Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».csig,
     Fn.«walk_path__L24_L3».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,

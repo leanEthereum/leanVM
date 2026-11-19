@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.GlueP.«open_stacked__L3»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P60»
 public import LeanVM.Guest.Pack.«open_stacked__L3».Bundle
@@ -60,38 +60,47 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `open_stacked__L3`: the powers of `g` its code names. -/
-noncomputable def Fn.«open_stacked__L3».fpows : PowTree :=
-  (.node 5341462114655509532 218086 (.node 4294967296 32 (.node 64 6 (.node 16 4 (.node 4 2 (.node 2
-    1 .leaf .leaf) .leaf) (.node 32 5 .leaf .leaf)) (.node 262144 18 (.node 256 8 .leaf .leaf)
-    (.node 16777216 24 .leaf .leaf))) (.node 94597931458646037 896 (.node 32671816220672 224 (.node
-    115964116992 96 (.node 68719476736 36 .leaf .leaf) .leaf) (.node 9508986232218667 217898 .leaf
-    .leaf)) (.node 2502168091587164053 261747 (.node 263394960066080457 255112 .leaf .leaf) (.node
-    4324648924903450960 261382 .leaf .leaf)))) (.node 11515155688447723614 218125 (.node
-    9580263050331894661 260774 (.node 9185800610269334428 261149 (.node 5405397590336203496 211564
-    (.node 5391749892467816879 218274 .leaf .leaf) .leaf) (.node 9497912204466597542 217624 .leaf
-    .leaf)) (.node 9643742664685434646 217669 (.node 9608883236568355683 19461 .leaf .leaf) (.node
-    11389725663235195451 218906 .leaf .leaf))) (.node 16883963225590213449 260377 (.node
-    15091472782572290054 254663 (.node 15064515975004158697 254111 (.node 13405325691461845919
-    217859 .leaf .leaf) .leaf) (.node 16142525687597826768 218413 .leaf .leaf)) (.node
-    17225134000938741130 19521 (.node 17007879020479005108 218868 .leaf .leaf) (.node
-    18364610289059800768 218887 .leaf .leaf)))))
-
-/-- `open_stacked__L3`: its code's powers are powers of `g`. -/
-theorem Fn.«open_stacked__L3».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
-def Fn.«open_stacked__L3».frameCallee0 : List ℕ := [260448, 260490, 260532, 260574]
-def Fn.«open_stacked__L3».frameCallee1 : List ℕ := [260616, 260657, 260697, 260735]
-def Fn.«open_stacked__L3».frameCallee2 : List ℕ := [260833, 260875, 260917, 260959]
-def Fn.«open_stacked__L3».frameCallee3 : List ℕ := [261001, 261040, 261077, 261114]
-def Fn.«open_stacked__L3».frameCallee4 : List ℕ := [257528, 257570, 259325, 261196]
-def Fn.«open_stacked__L3».frameCallee5 : List ℕ := [261238, 261273, 261309, 261345]
-def Fn.«open_stacked__L3».frameCallee6 : List ℕ := [255689, 256003, 259621, 261561]
-def Fn.«open_stacked__L3».frameCallee7 : List ℕ := [261603, 261640, 261676, 261712]
-def Fn.«open_stacked__L3».frameCallee8 : List ℕ := [261890, 261935, 261980, 262025]
-def Fn.«open_stacked__L3».frameCallee9 : List ℕ := [262070, 262115, 262160, 262205]
-def Fn.«open_stacked__L3».frameCallee10 : List ℕ := [262229, 262253, 262298, 262343]
+def Fn.«open_stacked__L3».frameCallee0 : List ℕ := [Fn.«level_positions__L32_L18_L6».entry,
+    Fn.«level_positions__L19_L19_L7».entry, Fn.«level_positions__L13_L20_L2».entry,
+    Fn.«level_positions__L10_L21_L3».entry]
+def Fn.«open_stacked__L3».frameCallee1 : List ℕ :=
+    [Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L3».frameCallee2 : List ℕ := [Fn.«level_positions__L8_L17_L5».entry,
+    Fn.«level_positions__L7_L18_L6».entry, Fn.«level_positions__L7_L19_L7».entry,
+    Fn.«level_positions__L6_L20_L2».entry]
+def Fn.«open_stacked__L3».frameCallee3 : List ℕ :=
+    [Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L3».frameCallee4 : List ℕ := [Fn.«level_positions__L4_L16_L4».entry,
+    Fn.«level_positions__L4_L17_L5».entry, Fn.«level_positions__L4_L18_L6».entry,
+    Fn.«level_positions__L4_L19_L7».entry]
+def Fn.«open_stacked__L3».frameCallee5 : List ℕ :=
+    [Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry,
+    Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».entry]
+def Fn.«open_stacked__L3».frameCallee6 : List ℕ := [Fn.«level_positions__L3_L16_L4».entry,
+    Fn.«level_positions__L3_L15_L3».entry, Fn.«level_positions__L3_L17_L5».entry,
+    Fn.«level_positions__L3_L18_L6».entry]
+def Fn.«open_stacked__L3».frameCallee7 : List ℕ :=
+    [Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».entry,
+    Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».entry,
+    Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».entry,
+    Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».entry]
+def Fn.«open_stacked__L3».frameCallee8 : List ℕ := [Fn.«level_residual__L218_L17_L6_L3».entry,
+    Fn.«level_residual__L109_L17_L6_L3».entry, Fn.«level_residual__L73_L17_L6_L3».entry,
+    Fn.«level_residual__L55_L17_L6_L3».entry]
+def Fn.«open_stacked__L3».frameCallee9 : List ℕ := [Fn.«level_residual__L55_L13_L4_L2».entry,
+    Fn.«level_residual__L44_L13_L4_L2».entry, Fn.«level_residual__L37_L13_L4_L2».entry,
+    Fn.«level_residual__L32_L13_L4_L2».entry]
+def Fn.«open_stacked__L3».frameCallee10 : List ℕ := [Fn.«level_residual__L32_L9_L4_L2».entry,
+    Fn.«level_residual__L28_L9_L4_L2».entry, Fn.«level_residual__L25_L9_L4_L2».entry,
+    Fn.«level_residual__L23_L9_L4_L2».entry]
 noncomputable def Fn.«open_stacked__L3».envC : Mode.Env := CoreMode.envOf
     [Fn.«fold_final_msg__L5».csig, Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig,
     Fn.«level_positions__L10_L21_L3».csig, Fn.«level_positions__L13_L20_L2».csig,
@@ -128,10 +137,10 @@ noncomputable def Fn.«open_stacked__L3».envC : Mode.Env := CoreMode.envOf
     Fn.«opening_message__L8_L1».csig, Fn.«opening_round».csig, Fn.«opening_tail_round».csig,
     Fn.«squeeze_point_from__L13».csig, Fn.«squeeze_point_from__L17».csig,
     Fn.«squeeze_point_from__L9».csig]
-noncomputable def Fn.«open_stacked__L3».funC : Mode.Fun := ⟨217392, 1687,
+noncomputable def Fn.«open_stacked__L3».funC : Mode.Fun := ⟨Fn.«open_stacked__L3».entry, 1687,
     Fn.«open_stacked__L3».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«open_stacked__L3».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 217392, 1687,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«open_stacked__L3».entry, 1687,
     Fn.«open_stacked__L3».csig, (CoreMode.sigTrie [Fn.«fold_final_msg__L5».csig,
     Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig, Fn.«level_positions__L10_L21_L3».csig,
     Fn.«level_positions__L13_L20_L2».csig, Fn.«level_positions__L19_L19_L7».csig,

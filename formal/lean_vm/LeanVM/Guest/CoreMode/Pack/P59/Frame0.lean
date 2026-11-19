@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Pow
+public import LeanVM.Guest.CoreMode.GlueP.«P59»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P59»
 public import LeanVM.Guest.Pack.«P59».Bundle
@@ -65,173 +65,100 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `eq_prefix_run__L34`: the powers of `g` its code names. -/
-noncomputable def Fn.«eq_prefix_run__L34».fpows : PowTree :=
-  .leaf
-
-/-- `eq_prefix_run__L34`: its code's powers are powers of `g`. -/
-theorem Fn.«eq_prefix_run__L34».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«eq_prefix_run__L34».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«eq_prefix_run__L34».funC : Mode.Fun := ⟨181605, 174,
+noncomputable def Fn.«eq_prefix_run__L34».funC : Mode.Fun := ⟨Fn.«eq_prefix_run__L34».entry, 174,
     Fn.«eq_prefix_run__L34».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«eq_prefix_run__L34».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 181605, 174,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«eq_prefix_run__L34».entry, 174,
     Fn.«eq_prefix_run__L34».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«eq_prefix_run__L34».pairO, Fn.«eq_prefix_run__L34».pairS, .nil⟩
 
 theorem Fn.«eq_prefix_run__L34».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `padding_weight__L22`: the powers of `g` its code names. -/
-noncomputable def Fn.«padding_weight__L22».fpows : PowTree :=
-  (.node 2097152 21 (.node 2 1 .leaf .leaf) (.node 4194304 22 .leaf .leaf))
-
-/-- `padding_weight__L22`: its code's powers are powers of `g`. -/
-theorem Fn.«padding_weight__L22».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«padding_weight__L22».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«padding_weight__L22».funC : Mode.Fun := ⟨192134, 196,
+noncomputable def Fn.«padding_weight__L22».funC : Mode.Fun := ⟨Fn.«padding_weight__L22».entry, 196,
     Fn.«padding_weight__L22».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«padding_weight__L22».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 192134, 196,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«padding_weight__L22».entry, 196,
     Fn.«padding_weight__L22».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«padding_weight__L22».pairO, Fn.«padding_weight__L22».pairS, .nil⟩
 
 theorem Fn.«padding_weight__L22».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by
   decide +kernel
-/-- `plus_one_run__L3`: the powers of `g` its code names. -/
-noncomputable def Fn.«plus_one_run__L3».fpows : PowTree :=
-  .leaf
-
-/-- `plus_one_run__L3`: its code's powers are powers of `g`. -/
-theorem Fn.«plus_one_run__L3».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«plus_one_run__L3».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«plus_one_run__L3».funC : Mode.Fun := ⟨194204, 12, Fn.«plus_one_run__L3».csig,
-    .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«plus_one_run__L3».funC : Mode.Fun := ⟨Fn.«plus_one_run__L3».entry, 12,
+    Fn.«plus_one_run__L3».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«plus_one_run__L3».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 194204, 12,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«plus_one_run__L3».entry, 12,
     Fn.«plus_one_run__L3».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«plus_one_run__L3».pairO, Fn.«plus_one_run__L3».pairS, .nil⟩
 
 theorem Fn.«plus_one_run__L3».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `index_mle__L25`: the powers of `g` its code names. -/
-noncomputable def Fn.«index_mle__L25».fpows : PowTree :=
-  .leaf
-
-/-- `index_mle__L25`: its code's powers are powers of `g`. -/
-theorem Fn.«index_mle__L25».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«index_mle__L25».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«index_mle__L25».funC : Mode.Fun := ⟨203202, 127, Fn.«index_mle__L25».csig,
-    .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«index_mle__L25».funC : Mode.Fun := ⟨Fn.«index_mle__L25».entry, 127,
+    Fn.«index_mle__L25».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«index_mle__L25».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 203202, 127,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«index_mle__L25».entry, 127,
     Fn.«index_mle__L25».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«index_mle__L25».pairO, Fn.«index_mle__L25».pairS, .nil⟩
 
 theorem Fn.«index_mle__L25».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `column_selector__L15`: the powers of `g` its code names. -/
-noncomputable def Fn.«column_selector__L15».fpows : PowTree :=
-  (.node 32768 15 .leaf .leaf)
-
-/-- `column_selector__L15`: its code's powers are powers of `g`. -/
-theorem Fn.«column_selector__L15».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«column_selector__L15».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«column_selector__L15».funC : Mode.Fun := ⟨211039, 48,
+noncomputable def Fn.«column_selector__L15».funC : Mode.Fun := ⟨Fn.«column_selector__L15».entry, 48,
     Fn.«column_selector__L15».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«column_selector__L15».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 211039, 48,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«column_selector__L15».entry, 48,
     Fn.«column_selector__L15».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«column_selector__L15».pairO, Fn.«column_selector__L15».pairS, .nil⟩
 
 theorem Fn.«column_selector__L15».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by
   decide +kernel
-/-- `claim_list_last__L8`: the powers of `g` its code names. -/
-noncomputable def Fn.«claim_list_last__L8».fpows : PowTree :=
-  .leaf
-
-/-- `claim_list_last__L8`: its code's powers are powers of `g`. -/
-theorem Fn.«claim_list_last__L8».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«claim_list_last__L8».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«claim_list_last__L8».funC : Mode.Fun := ⟨236136, 94,
+noncomputable def Fn.«claim_list_last__L8».funC : Mode.Fun := ⟨Fn.«claim_list_last__L8».entry, 94,
     Fn.«claim_list_last__L8».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«claim_list_last__L8».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 236136, 94,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«claim_list_last__L8».entry, 94,
     Fn.«claim_list_last__L8».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«claim_list_last__L8».pairO, Fn.«claim_list_last__L8».pairS, .nil⟩
 
 theorem Fn.«claim_list_last__L8».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by
   decide +kernel
-/-- `da_verify_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«da_verify_loop0».fpows : PowTree :=
-  (.node 10078989975436456320 247900 (.node 1048576 20 (.node 2 1 .leaf .leaf) .leaf) (.node
-    17240097168648414516 63170 .leaf .leaf))
-
-/-- `da_verify_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«da_verify_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«da_verify_loop0».envC : Mode.Env := CoreMode.envOf [Fn.«da_verify_blob».csig,
     Fn.«da_verify_loop0».csig]
-noncomputable def Fn.«da_verify_loop0».funC : Mode.Fun := ⟨247900, 27, Fn.«da_verify_loop0».csig,
-    .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«da_verify_loop0».funC : Mode.Fun := ⟨Fn.«da_verify_loop0».entry, 27,
+    Fn.«da_verify_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«da_verify_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(6, (.fpg 0))], fpOne := false, pows := fpows, scaled := [6] }, 247900, 27,
-    Fn.«da_verify_loop0».csig, (CoreMode.sigTrie [Fn.«da_verify_blob».csig,
-    Fn.«da_verify_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«da_verify_loop0».pairO, Fn.«da_verify_loop0».pairS, .nil⟩
+  ⟨{ env := [(6, (.fpg 0))], fpOne := false, pows := fpows, scaled := [6] },
+    Fn.«da_verify_loop0».entry, 27, Fn.«da_verify_loop0».csig, (CoreMode.sigTrie
+    [Fn.«da_verify_blob».csig, Fn.«da_verify_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil,
+    .nil, Fn.«da_verify_loop0».pairO, Fn.«da_verify_loop0».pairS, .nil⟩
 
 theorem Fn.«da_verify_loop0».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `grind_check__L27`: the powers of `g` its code names. -/
-noncomputable def Fn.«grind_check__L27».fpows : PowTree :=
-  (.node 134217728 27 (.node 32768 15 (.node 2048 11 .leaf .leaf) .leaf) (.node 55834575010 2047
-    .leaf .leaf))
-
-/-- `grind_check__L27`: its code's powers are powers of `g`. -/
-theorem Fn.«grind_check__L27».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«grind_check__L27».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«grind_check__L27».funC : Mode.Fun := ⟨254511, 38, Fn.«grind_check__L27».csig,
-    .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«grind_check__L27».funC : Mode.Fun := ⟨Fn.«grind_check__L27».entry, 38,
+    Fn.«grind_check__L27».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«grind_check__L27».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 254511, 38,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«grind_check__L27».entry, 38,
     Fn.«grind_check__L27».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«grind_check__L27».pairO, Fn.«grind_check__L27».pairS, .nil⟩
 
 theorem Fn.«grind_check__L27».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».fpows : PowTree :=
-  (.node 134217728 27 (.node 65536 16 (.node 16 4 .leaf .leaf) .leaf) (.node 18052814194114484932
-    279468 (.node 11539568374904500490 298025 .leaf .leaf) .leaf))
-
-/-- `level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L2».csig]
-noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».funC : Mode.Fun := ⟨258870,
-    39, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».funC : Mode.Fun :=
+    ⟨Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry, 39,
+    Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 258870, 39,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry, 39,
     Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L2».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -241,22 +168,15 @@ noncomputable def Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».frameFu
 theorem Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».fpows : PowTree :=
-  (.node 1048576 20 (.node 65536 16 (.node 27 64 .leaf .leaf) .leaf) (.node 8273188067975638426
-    276773 (.node 4579807520055536588 298719 .leaf .leaf) .leaf))
-
-/-- `level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1».csig,
     Fn.«verify_merkle_cap__L4».csig]
-noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».funC : Mode.Fun := ⟨259734,
-    35, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».funC : Mode.Fun :=
+    ⟨Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».entry, 35,
+    Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 259734, 35,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».entry, 35,
     Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1».csig,
     Fn.«verify_merkle_cap__L4».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -266,46 +186,30 @@ noncomputable def Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».frameF
 theorem Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L55_L12_L4_L2`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L55_L12_L4_L2».fpows : PowTree :=
-  (.node 65536 16 (.node 128 7 (.node 64 6 .leaf .leaf) (.node 16384 14 .leaf .leaf)) (.node
-    5891621631699616320 302197 (.node 281474976710656 48 .leaf .leaf) (.node 13978605853707150486
-    302733 .leaf .leaf)))
-
-/-- `level_residual__L55_L12_L4_L2`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L55_L12_L4_L2».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L55_L12_L4_L2».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L55_L12_L4_L2_loop0».csig, Fn.«level_residual__L55_L12_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L55_L12_L4_L2».funC : Mode.Fun := ⟨260060, 45,
-    Fn.«level_residual__L55_L12_L4_L2».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_residual__L55_L12_L4_L2».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L55_L12_L4_L2».entry, 45, Fn.«level_residual__L55_L12_L4_L2».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L55_L12_L4_L2».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 260060, 45,
-    Fn.«level_residual__L55_L12_L4_L2».csig, (CoreMode.sigTrie
-    [Fn.«level_residual__L55_L12_L4_L2_loop0».csig, Fn.«level_residual__L55_L12_L4_L2_loop1».csig]),
-    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«level_residual__L55_L12_L4_L2».pairO,
-    Fn.«level_residual__L55_L12_L4_L2».pairS, .nil⟩
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_residual__L55_L12_L4_L2».entry, 45, Fn.«level_residual__L55_L12_L4_L2».csig,
+    (CoreMode.sigTrie [Fn.«level_residual__L55_L12_L4_L2_loop0».csig,
+    Fn.«level_residual__L55_L12_L4_L2_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_residual__L55_L12_L4_L2».pairO, Fn.«level_residual__L55_L12_L4_L2».pairS, .nil⟩
 
 theorem Fn.«level_residual__L55_L12_L4_L2».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by
   decide +kernel
-/-- `level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».fpows : PowTree :=
-  (.node 4294967296 32 (.node 268435456 28 (.node 325 128 .leaf .leaf) .leaf) (.node
-    3158841501325133544 279581 (.node 2093923065829239732 277263 .leaf .leaf) .leaf))
-
-/-- `level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L5».csig]
-noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».funC : Mode.Fun := ⟨261273,
-    36, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».funC : Mode.Fun :=
+    ⟨Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry, 36,
+    Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 261273, 36,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry, 36,
     Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L5».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -315,22 +219,15 @@ noncomputable def Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».frameFu
 theorem Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».fpows : PowTree :=
-  (.node 2097152 21 (.node 65536 16 (.node 27 64 .leaf .leaf) .leaf) (.node 8273188067975638426
-    276773 (.node 7399571277226072978 307711 .leaf .leaf) .leaf))
-
-/-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».csig,
     Fn.«verify_merkle_cap__L4».csig]
-noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».funC : Mode.Fun := ⟨261640,
-    36, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».funC : Mode.Fun :=
+    ⟨Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».entry, 36,
+    Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 261640, 36,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».entry, 36,
     Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».csig,
     Fn.«verify_merkle_cap__L4».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -340,46 +237,30 @@ noncomputable def Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».frameF
 theorem Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L218_L18_L6_L3`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L218_L18_L6_L3».fpows : PowTree :=
-  (.node 127624282112 216 (.node 64 6 (.node 4 2 .leaf .leaf) (.node 134217728 27 .leaf .leaf))
-    (.node 6211954389690751563 317214 (.node 72057594037927936 56 .leaf .leaf) (.node
-    6708827597452160274 317996 .leaf .leaf)))
-
-/-- `level_residual__L218_L18_L6_L3`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L218_L18_L6_L3».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L218_L18_L6_L3».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L218_L18_L6_L3_loop0».csig, Fn.«level_residual__L218_L18_L6_L3_loop1».csig]
-noncomputable def Fn.«level_residual__L218_L18_L6_L3».funC : Mode.Fun := ⟨263506, 45,
-    Fn.«level_residual__L218_L18_L6_L3».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_residual__L218_L18_L6_L3».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L218_L18_L6_L3».entry, 45, Fn.«level_residual__L218_L18_L6_L3».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L218_L18_L6_L3».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 263506, 45,
-    Fn.«level_residual__L218_L18_L6_L3».csig, (CoreMode.sigTrie
-    [Fn.«level_residual__L218_L18_L6_L3_loop0».csig,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_residual__L218_L18_L6_L3».entry, 45, Fn.«level_residual__L218_L18_L6_L3».csig,
+    (CoreMode.sigTrie [Fn.«level_residual__L218_L18_L6_L3_loop0».csig,
     Fn.«level_residual__L218_L18_L6_L3_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L218_L18_L6_L3».pairO, Fn.«level_residual__L218_L18_L6_L3».pairS, .nil⟩
 
 theorem Fn.«level_residual__L218_L18_L6_L3».frameOk : CoreMode.frameOk frameFun code.chunks.flatten
     = true := by
   decide +kernel
-/-- `level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».fpows : PowTree :=
-  (.node 4294967296 32 (.node 262144 18 (.node 256 8 .leaf .leaf) .leaf) (.node 2459071403236215241
-    276371 (.node 707290195063708610 316970 .leaf .leaf) .leaf))
-
-/-- `level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L3».csig]
-noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».funC : Mode.Fun := ⟨266746,
-    35, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».funC : Mode.Fun :=
+    ⟨Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry, 35,
+    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 266746, 35,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry, 35,
     Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».csig,
     Fn.«verify_merkle_cap__L3».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -389,68 +270,44 @@ noncomputable def Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».frameFu
 theorem Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L44_L18_L4_L2`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L44_L18_L4_L2».fpows : PowTree :=
-  (.node 4096 12 (.node 32 5 (.node 16 4 .leaf .leaf) (.node 1024 10 .leaf .leaf)) (.node
-    13877938716453999275 372143 (.node 1099511627776 40 .leaf .leaf) (.node 15179441258145421481
-    371403 .leaf .leaf)))
-
-/-- `level_residual__L44_L18_L4_L2`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L44_L18_L4_L2».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L44_L18_L4_L2».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L44_L18_L4_L2_loop0».csig, Fn.«level_residual__L44_L18_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L44_L18_L4_L2».funC : Mode.Fun := ⟨270521, 45,
-    Fn.«level_residual__L44_L18_L4_L2».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_residual__L44_L18_L4_L2».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L44_L18_L4_L2».entry, 45, Fn.«level_residual__L44_L18_L4_L2».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L44_L18_L4_L2».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 270521, 45,
-    Fn.«level_residual__L44_L18_L4_L2».csig, (CoreMode.sigTrie
-    [Fn.«level_residual__L44_L18_L4_L2_loop0».csig, Fn.«level_residual__L44_L18_L4_L2_loop1».csig]),
-    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«level_residual__L44_L18_L4_L2».pairO,
-    Fn.«level_residual__L44_L18_L4_L2».pairS, .nil⟩
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_residual__L44_L18_L4_L2».entry, 45, Fn.«level_residual__L44_L18_L4_L2».csig,
+    (CoreMode.sigTrie [Fn.«level_residual__L44_L18_L4_L2_loop0».csig,
+    Fn.«level_residual__L44_L18_L4_L2_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_residual__L44_L18_L4_L2».pairO, Fn.«level_residual__L44_L18_L4_L2».pairS, .nil⟩
 
 theorem Fn.«level_residual__L44_L18_L4_L2».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by
   decide +kernel
-/-- `level_residual__L19_L12_L4_L2`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L19_L12_L4_L2».fpows : PowTree :=
-  (.node 256 8 (.node 8 3 (.node 4 2 .leaf .leaf) (.node 64 6 .leaf .leaf)) (.node
-    1861236479381927075 406430 (.node 65536 16 .leaf .leaf) (.node 18297794426681399378 405894 .leaf
-    .leaf)))
-
-/-- `level_residual__L19_L12_L4_L2`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L19_L12_L4_L2».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L19_L12_L4_L2».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L19_L12_L4_L2_loop0».csig, Fn.«level_residual__L19_L12_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L19_L12_L4_L2».funC : Mode.Fun := ⟨274516, 45,
-    Fn.«level_residual__L19_L12_L4_L2».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_residual__L19_L12_L4_L2».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L19_L12_L4_L2».entry, 45, Fn.«level_residual__L19_L12_L4_L2».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L19_L12_L4_L2».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 274516, 45,
-    Fn.«level_residual__L19_L12_L4_L2».csig, (CoreMode.sigTrie
-    [Fn.«level_residual__L19_L12_L4_L2_loop0».csig, Fn.«level_residual__L19_L12_L4_L2_loop1».csig]),
-    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«level_residual__L19_L12_L4_L2».pairO,
-    Fn.«level_residual__L19_L12_L4_L2».pairS, .nil⟩
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«level_residual__L19_L12_L4_L2».entry, 45, Fn.«level_residual__L19_L12_L4_L2».csig,
+    (CoreMode.sigTrie [Fn.«level_residual__L19_L12_L4_L2_loop0».csig,
+    Fn.«level_residual__L19_L12_L4_L2_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_residual__L19_L12_L4_L2».pairO, Fn.«level_residual__L19_L12_L4_L2».pairS, .nil⟩
 
 theorem Fn.«level_residual__L19_L12_L4_L2».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by
   decide +kernel
-/-- `level_residual__L218_L16_L6_L3_loop1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».fpows : PowTree :=
-  (.node 5452595200 152 (.node 2 1 .leaf .leaf) (.node 6084854484068218371 299479 .leaf .leaf))
-
-/-- `level_residual__L218_L16_L6_L3_loop1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L218_L16_L6_L3_loop1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L218_L16_L6_L3_loop1».csig]
-noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».funC : Mode.Fun := ⟨299479, 144,
+noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L218_L16_L6_L3_loop1».entry, 144,
     Fn.«level_residual__L218_L16_L6_L3_loop1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 299479, 144,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L218_L16_L6_L3_loop1».entry, 144,
     Fn.«level_residual__L218_L16_L6_L3_loop1».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil,
     .nil, Fn.«level_residual__L218_L16_L6_L3_loop1».pairO,
     Fn.«level_residual__L218_L16_L6_L3_loop1».pairS, .nil⟩
@@ -458,21 +315,14 @@ noncomputable def Fn.«level_residual__L218_L16_L6_L3_loop1».frameFun : CoreMod
 theorem Fn.«level_residual__L218_L16_L6_L3_loop1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L55_L16_L6_L3_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».fpows : PowTree :=
-  (.node 306319816441644716 806 (.node 2 1 .leaf .leaf) (.node 4581986920599233982 301339 .leaf
-    .leaf))
-
-/-- `level_residual__L55_L16_L6_L3_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L55_L16_L6_L3_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L55_L16_L6_L3_loop0».csig]
-noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».funC : Mode.Fun := ⟨301339, 714,
+noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L55_L16_L6_L3_loop0».entry, 714,
     Fn.«level_residual__L55_L16_L6_L3_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 301339, 714,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L55_L16_L6_L3_loop0».entry, 714,
     Fn.«level_residual__L55_L16_L6_L3_loop0».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L55_L16_L6_L3_loop0».pairO, Fn.«level_residual__L55_L16_L6_L3_loop0».pairS,
     .nil⟩
@@ -480,44 +330,27 @@ noncomputable def Fn.«level_residual__L55_L16_L6_L3_loop0».frameFun : CoreMode
 theorem Fn.«level_residual__L55_L16_L6_L3_loop0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `decode_query_windows__L20_L8`: the powers of `g` its code names. -/
-noncomputable def Fn.«decode_query_windows__L20_L8».fpows : PowTree :=
-  (.node 4096 12 (.node 64 6 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 16 4 .leaf
-    .leaf)) (.node 512 9 (.node 256 8 .leaf .leaf) (.node 1024 10 .leaf .leaf))) (.node
-    1099511627776 40 (.node 32768 15 (.node 16384 14 (.node 8192 13 .leaf .leaf) .leaf) (.node
-    1048576 20 .leaf .leaf)) (.node 9223372036854775808 63 (.node 1152921504606846976 60 .leaf
-    .leaf) (.node 9223372036854775983 127 .leaf .leaf))))
-
-/-- `decode_query_windows__L20_L8`: its code's powers are powers of `g`. -/
-theorem Fn.«decode_query_windows__L20_L8».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«decode_query_windows__L20_L8».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«decode_query_windows__L20_L8».funC : Mode.Fun := ⟨326691, 239,
-    Fn.«decode_query_windows__L20_L8».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«decode_query_windows__L20_L8».funC : Mode.Fun :=
+    ⟨Fn.«decode_query_windows__L20_L8».entry, 239, Fn.«decode_query_windows__L20_L8».csig, .nil,
+    .nil, .nil, false, .nil⟩
 noncomputable def Fn.«decode_query_windows__L20_L8».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 326691, 239,
-    Fn.«decode_query_windows__L20_L8».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«decode_query_windows__L20_L8».pairO, Fn.«decode_query_windows__L20_L8».pairS, .nil⟩
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
+    Fn.«decode_query_windows__L20_L8».entry, 239, Fn.«decode_query_windows__L20_L8».csig, .nil,
+    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«decode_query_windows__L20_L8».pairO,
+    Fn.«decode_query_windows__L20_L8».pairS, .nil⟩
 
 theorem Fn.«decode_query_windows__L20_L8».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
     true := by
   decide +kernel
-/-- `level_residual__L55_L15_L4_L2_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».fpows : PowTree :=
-  (.node 12311715499645091914 754 (.node 2 1 .leaf .leaf) (.node 13573963776425648826 334811 .leaf
-    .leaf))
-
-/-- `level_residual__L55_L15_L4_L2_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L55_L15_L4_L2_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L55_L15_L4_L2_loop0».csig]
-noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».funC : Mode.Fun := ⟨334811, 638,
+noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L55_L15_L4_L2_loop0».entry, 638,
     Fn.«level_residual__L55_L15_L4_L2_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 334811, 638,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L55_L15_L4_L2_loop0».entry, 638,
     Fn.«level_residual__L55_L15_L4_L2_loop0».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L55_L15_L4_L2_loop0».pairO, Fn.«level_residual__L55_L15_L4_L2_loop0».pairS,
     .nil⟩
@@ -525,20 +358,14 @@ noncomputable def Fn.«level_residual__L55_L15_L4_L2_loop0».frameFun : CoreMode
 theorem Fn.«level_residual__L55_L15_L4_L2_loop0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L23_L13_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».fpows : PowTree :=
-  (.node 1300 130 (.node 2 1 .leaf .leaf) (.node 3645635152798383301 363218 .leaf .leaf))
-
-/-- `level_residual__L23_L13_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L23_L13_L4_L2_loop1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L23_L13_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».funC : Mode.Fun := ⟨363218, 119,
+noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L23_L13_L4_L2_loop1».entry, 119,
     Fn.«level_residual__L23_L13_L4_L2_loop1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 363218, 119,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L23_L13_L4_L2_loop1».entry, 119,
     Fn.«level_residual__L23_L13_L4_L2_loop1».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L23_L13_L4_L2_loop1».pairO, Fn.«level_residual__L23_L13_L4_L2_loop1».pairS,
     .nil⟩
@@ -546,20 +373,14 @@ noncomputable def Fn.«level_residual__L23_L13_L4_L2_loop1».frameFun : CoreMode
 theorem Fn.«level_residual__L23_L13_L4_L2_loop1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L28_L14_L4_L2_loop1`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».fpows : PowTree :=
-  (.node 83200 136 (.node 2 1 .leaf .leaf) (.node 3332929878212440599 374525 .leaf .leaf))
-
-/-- `level_residual__L28_L14_L4_L2_loop1`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L28_L14_L4_L2_loop1».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L28_L14_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».funC : Mode.Fun := ⟨374525, 125,
+noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L28_L14_L4_L2_loop1».entry, 125,
     Fn.«level_residual__L28_L14_L4_L2_loop1».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 374525, 125,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L28_L14_L4_L2_loop1».entry, 125,
     Fn.«level_residual__L28_L14_L4_L2_loop1».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L28_L14_L4_L2_loop1».pairO, Fn.«level_residual__L28_L14_L4_L2_loop1».pairS,
     .nil⟩
@@ -567,20 +388,14 @@ noncomputable def Fn.«level_residual__L28_L14_L4_L2_loop1».frameFun : CoreMode
 theorem Fn.«level_residual__L28_L14_L4_L2_loop1».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L21_L10_L4_L2_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».fpows : PowTree :=
-  (.node 29802779843328 584 (.node 2 1 .leaf .leaf) (.node 14556963328364808887 376108 .leaf .leaf))
-
-/-- `level_residual__L21_L10_L4_L2_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L21_L10_L4_L2_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L21_L10_L4_L2_loop0».csig]
-noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».funC : Mode.Fun := ⟨376108, 468,
+noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L21_L10_L4_L2_loop0».entry, 468,
     Fn.«level_residual__L21_L10_L4_L2_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 376108, 468,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L21_L10_L4_L2_loop0».entry, 468,
     Fn.«level_residual__L21_L10_L4_L2_loop0».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L21_L10_L4_L2_loop0».pairO, Fn.«level_residual__L21_L10_L4_L2_loop0».pairS,
     .nil⟩
@@ -588,20 +403,14 @@ noncomputable def Fn.«level_residual__L21_L10_L4_L2_loop0».frameFun : CoreMode
 theorem Fn.«level_residual__L21_L10_L4_L2_loop0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_residual__L18_L10_L4_L2_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».fpows : PowTree :=
-  (.node 29802779843328 584 (.node 2 1 .leaf .leaf) (.node 13348818745278222584 377246 .leaf .leaf))
-
-/-- `level_residual__L18_L10_L4_L2_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_residual__L18_L10_L4_L2_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».envC : Mode.Env := CoreMode.envOf
     [Fn.«level_residual__L18_L10_L4_L2_loop0».csig]
-noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».funC : Mode.Fun := ⟨377246, 468,
+noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».funC : Mode.Fun :=
+    ⟨Fn.«level_residual__L18_L10_L4_L2_loop0».entry, 468,
     Fn.«level_residual__L18_L10_L4_L2_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] }, 377246, 468,
+  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
+    Fn.«level_residual__L18_L10_L4_L2_loop0».entry, 468,
     Fn.«level_residual__L18_L10_L4_L2_loop0».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
     Fn.«level_residual__L18_L10_L4_L2_loop0».pairO, Fn.«level_residual__L18_L10_L4_L2_loop0».pairS,
     .nil⟩
@@ -609,49 +418,32 @@ noncomputable def Fn.«level_residual__L18_L10_L4_L2_loop0».frameFun : CoreMode
 theorem Fn.«level_residual__L18_L10_L4_L2_loop0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `level_positions__L4_L25_L7_loop0`: the powers of `g` its code names. -/
-noncomputable def Fn.«level_positions__L4_L25_L7_loop0».fpows : PowTree :=
-  (.node 1812352365983199973 394226 (.node 576460752303423488 59 (.node 2 1 .leaf .leaf) .leaf)
-    (.node 3302996744921619055 352827 .leaf .leaf))
-
-/-- `level_positions__L4_L25_L7_loop0`: its code's powers are powers of `g`. -/
-theorem Fn.«level_positions__L4_L25_L7_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«level_positions__L4_L25_L7_loop0».envC : Mode.Env := CoreMode.envOf
     [Fn.«decode_query_windows__L25_L7».csig, Fn.«level_positions__L4_L25_L7_loop0».csig]
-noncomputable def Fn.«level_positions__L4_L25_L7_loop0».funC : Mode.Fun := ⟨394226, 48,
-    Fn.«level_positions__L4_L25_L7_loop0».csig, .nil, .nil, .nil, false, .nil⟩
+noncomputable def Fn.«level_positions__L4_L25_L7_loop0».funC : Mode.Fun :=
+    ⟨Fn.«level_positions__L4_L25_L7_loop0».entry, 48, Fn.«level_positions__L4_L25_L7_loop0».csig,
+    .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«level_positions__L4_L25_L7_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := fpows, scaled := [8] }, 394226, 48,
-    Fn.«level_positions__L4_L25_L7_loop0».csig, (CoreMode.sigTrie
-    [Fn.«decode_query_windows__L25_L7».csig, Fn.«level_positions__L4_L25_L7_loop0».csig]), 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, Fn.«level_positions__L4_L25_L7_loop0».pairO,
-    Fn.«level_positions__L4_L25_L7_loop0».pairS, .nil⟩
+  ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := fpows, scaled := [8] },
+    Fn.«level_positions__L4_L25_L7_loop0».entry, 48, Fn.«level_positions__L4_L25_L7_loop0».csig,
+    (CoreMode.sigTrie [Fn.«decode_query_windows__L25_L7».csig,
+    Fn.«level_positions__L4_L25_L7_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«level_positions__L4_L25_L7_loop0».pairO, Fn.«level_positions__L4_L25_L7_loop0».pairS, .nil⟩
 
 theorem Fn.«level_positions__L4_L25_L7_loop0».frameOk : CoreMode.frameOk frameFun
     code.chunks.flatten = true := by
   decide +kernel
-/-- `opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0`: the powers of `g` its code names.
-    -/
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».fpows : PowTree :=
-  (.node 15564440312192434176 123 (.node 5927398101787562620 415617 (.node 2 1 .leaf .leaf) .leaf)
-    (.node 17735375797343025809 454696 .leaf .leaf))
-
-/-- `opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0`: its code's powers are powers of
-    `g`. -/
-theorem Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».envC : Mode.Env :=
     CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig,
     Fn.«walk_path__L6_L7».csig]
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».funC : Mode.Fun :=
-    ⟨415617, 102, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig, .nil, .nil,
-    .nil, false, .nil⟩
+    ⟨Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».entry, 102,
+    Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig, .nil, .nil, .nil, false,
+    .nil⟩
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».frameFun :
     CoreMode.FFun :=
-  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := fpows, scaled := [12] }, 415617, 102,
+  ⟨{ env := [(12, (.fpg 0))], fpOne := false, pows := fpows, scaled := [12] },
+    Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».entry, 102,
     Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig, (CoreMode.sigTrie
     [Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».csig,
     Fn.«walk_path__L6_L7».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
@@ -661,15 +453,6 @@ noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0
 theorem Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».frameOk : CoreMode.frameOk
     frameFun code.chunks.flatten = true := by
   decide +kernel
-/-- `walk_path__L18_L3`: the powers of `g` its code names. -/
-noncomputable def Fn.«walk_path__L18_L3».fpows : PowTree :=
-  (.node 11262233443181881627 425387 (.node 10678675532844138695 424808 (.node 9223372036854775808
-    63 .leaf .leaf) .leaf) (.node 18210222315174107894 424229 .leaf .leaf))
-
-/-- `walk_path__L18_L3`: its code's powers are powers of `g`. -/
-theorem Fn.«walk_path__L18_L3».fpows_ok : fpows.OkW :=
-  PowTree.okW_of_okWB (by decide +kernel)
-
 def Fn.«walk_path__L18_L3».frameArm0 : List ℕ := [12, 21, 30, 39, 48, 57, 66, 75, 84, 93, 102, 111,
     120, 129, 138, 147, 156, 165, 174, 183, 192, 201, 210, 219, 228, 237, 246, 255, 264, 273, 282,
     291, 300, 309, 318, 327, 336, 345, 354, 363, 372, 381, 390, 399, 408, 417, 426, 435, 444, 453,
@@ -684,10 +467,10 @@ def Fn.«walk_path__L18_L3».frameArm2 : List ℕ := [1170, 1179, 1188, 1197, 12
     1530, 1539, 1548, 1557, 1566, 1575, 1584, 1593, 1602, 1611, 1620, 1629, 1638, 1647, 1656, 1665,
     1674, 1683, 1692, 1701, 1710, 1719, 1728, 1737]
 noncomputable def Fn.«walk_path__L18_L3».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«walk_path__L18_L3».funC : Mode.Fun := ⟨423642, 1757,
+noncomputable def Fn.«walk_path__L18_L3».funC : Mode.Fun := ⟨Fn.«walk_path__L18_L3».entry, 1757,
     Fn.«walk_path__L18_L3».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«walk_path__L18_L3».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 423642, 1757,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«walk_path__L18_L3».entry, 1757,
     Fn.«walk_path__L18_L3».csig, .nil, 524287, advice.2.2, .nil, (.node none (.node none (.node none
     .nil (.node (some 0) .nil .nil)) (.node none (.node none (.node none .nil (.node none (.node
     none (.node none .nil (.node none (.node none (.node (some 2) .nil .nil) .nil) .nil)) .nil)

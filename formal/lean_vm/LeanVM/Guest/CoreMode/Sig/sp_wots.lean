@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.Abs
+public import LeanVM.Guest.CoreMode.GlueE.«sp_wots»
 
 namespace LeanVM.Guest.Fn.«sp_wots»
 
@@ -15,7 +16,8 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 
 /-- `sp_wots`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def csig : Mode.Sig :=
-  ⟨33508, [0, 1, 2, 3, 4, 5], none, [], [], [], [6], [], [], [], [], [], [], [], [], []⟩
+  ⟨Fn.«sp_wots».entry, [0, 1, 2, 3, 4, 5], none, [], [], [], [6], [], [], [], [], [], [], [], [],
+    []⟩
 
 end
 
