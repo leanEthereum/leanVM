@@ -63,13 +63,5 @@ def passThroughSecurity (h : ∀ s o w, ((f s, o), w) ∈ relOut ↔ ((s, o), w)
           cases ht
           exact (h s o w).mp hw⟩ }
 
-/-- Knowledge soundness at no error for the trivial witness, from the equivalence of the two
-relations at `f`. -/
-def passThroughSecurityOfIff {rIn : Set ((S × ∀ i, O i) × Unit)}
-    {rOut : Set ((T × ∀ i, O i) × Unit)}
-    (hf : ∀ s o, ((f s, o), ()) ∈ rOut ↔ ((s, o), ()) ∈ rIn) :
-    Security (passThrough O f) rIn rOut doneErrors :=
-  passThroughSecurity fun s o w ↦ by cases w; exact hf s o
-
 end
 end LeanVM.Protocol.Typed

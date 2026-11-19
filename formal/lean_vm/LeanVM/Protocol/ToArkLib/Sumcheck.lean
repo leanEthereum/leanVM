@@ -569,18 +569,6 @@ def finalSecurityInv {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m �
       (Typed.sayErrors (Vector F m)) :=
   Typed.sendCheckedSecurity (final_reflect_inv V wt nodes inv out h)
 
-/-- The typed security half of the rounds with a moving invariant, at `d / |F|` per round, when a
-challenge restores a broken invariant at `d` values at most. -/
-def roundsSecurityInv (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
-    (hnodes : Function.Injective nodes)
-    (hS : ∀ ctx j (c : Vector F j), j < n → ¬ inv ctx j c →
-      Nat.card {x // inv ctx (j + 1) (c.push x)} ≤ d) :
-    Typed.Security (rounds V wt nodes) (relIn V wt (fun ctx ↦ inv ctx 0 #v[]))
-      (SumcheckRound.rel (familyInv V wt nodes inv) n)
-      (Typed.roundsErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) :=
-  rel_zero_inv V wt nodes inv ▸ SumcheckRound.roundsSecurity (familyInv V wt nodes inv) n
-    (familyInv_consistent V wt nodes hV hnodes inv) hS n 0 (Nat.zero_add n)
-
 end Security
 
 section Wire

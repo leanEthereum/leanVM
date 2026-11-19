@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Bus
 import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.GrandProduct
 import CompPoly.Multivariate.Eval
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import CompPoly.Multivariate.Operations
@@ -287,6 +288,14 @@ theorem roots_unchecked_no_security {I : M3Instance} (h : Conditions I) (s : I.S
   ((blocks busToy 2).stackAt (tables busToy 2 α β honest) busToy.μBus 0)[x]) = e0
 
 /-! ## Completeness -/
+
+/-- **Perfect completeness of the bus phase on the typed framework**, from a stack whose padding
+rows are honest: its parts' halves compose. -/
+theorem busComplete (I : M3Instance) (h : Bus.Conditions I) :
+    Typed.Complete (busPhase I h) (Seam.commitHonest I) (Seam.bus I) :=
+  (((Bus.challengeComplete h).append (Bus.rootsComplete h)).append
+    (LeanVMTests.Protocol.GrandProduct.gkrComplete 3 I.μBus (Bus.leaves I) (Bus.riders I))).append
+    (Bus.valuesComplete h)
 
 example : Typed.Complete (busPhase busToy conditions) (Seam.commitHonest busToy)
     (Seam.bus busToy) :=

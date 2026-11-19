@@ -1,9 +1,8 @@
 /-
   LeanVM.Protocol.BusSecurity
 
-  Round-by-round knowledge soundness of the bus phase at the slot's error: the fingerprint
-  challenges at `2^{μ_bus}/|E|`, the grand-product argument at its own errors, the roots and
-  the boundary values at none.
+  Round-by-round knowledge soundness of the bus phase's parts at the slot's errors: the
+  fingerprint challenges at `2^{μ_bus}/|E|`, the roots and the boundary values at none.
 -/
 
 module
@@ -14,11 +13,13 @@ public import LeanVM.Protocol.ToArkLib.GrandProductSecurity
 /-!
 # Knowledge soundness of the bus phase
 
-`busSecurity I h` is the security half of `busPhase I h` at the slot's errors `busErrors I`, from
-`Seam.commit` to `Seam.bus`. The stack is the oracle and every witness is trivial, so it is
-round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only through a bad
-challenge. It is composed from the four steps' halves, at the same intermediate relations as
-`busComplete`, so every challenge keeps the error the slot assigns it:
+The security halves of the bus phase's parts besides the grand-product argument (whose parts
+are in `LeanVM.Protocol.ToArkLib.GrandProductSecurity`), from `Seam.commit` to `Seam.bus`, at
+the errors the slot assigns them, between the same intermediate relations as the completeness
+halves (`Bus.challengeComplete`, `Bus.rootsComplete`, `Bus.valuesComplete`). The stack is the
+oracle and every witness is trivial, so it is round-by-round soundness: a stack outside `M3Holds`
+reaches `Seam.bus` only through a bad challenge. The verifier program's doom reads them
+(`EndToEnd.Front.BusPhase`):
 
 * **The challenges `(α, β)`** (`challengeSecurity`), at `2^{μ_bus}/|E|` (Theorem 5.1 and
   Proposition `prop:pad`, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM `3a37fb6e1`).
@@ -37,18 +38,13 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   their products agree. This is where the check is load-bearing: a zero count is otherwise
   balanced on the bus (§6.2, `06-bus-interactions.tex`; the deployed verifier's check is
   `crates/verifier/src/bus.rs`).
-* **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
-  carry the constraints and the public lines with the Keccak predicate, so its state function
-  carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
-  restricted to the coordinates of `ζ` drawn so far, which a coordinate makes zero at one value at
-  most, inside the argument's own bound.
 * **The boundary values** (`valuesSecurity`), at no error: the claims of `Seam.bus` force the
   values sent to be the boundary columns' extensions, and then the forms sum to the totals
   exactly when the leaf claims hold (`sum_forms_eq_total_iff`); the zerocheck clause gives the
   riders' vanishing.
 
-Every part takes no real number and no `Fintype` instance as an argument, and the compositions
-are inlined, so the security computes, its extractor included. The count of bad challenges is a
+Every part takes no real number and no `Fintype` instance as an argument, so it computes, its
+extractor included. The count of bad challenges is a
 number the compiled security holds, so `|E|` is written `2^128` there (`card_E`): `Nat.card E` does
 not compute.
 
@@ -183,17 +179,6 @@ def valuesSecurity (h : Conditions I) :
   Typed.sendCheckedSecurity (values_reflect h)
 
 end Bus
-
-/-- **Knowledge soundness of the bus phase on the typed framework**, at the slot's errors
-`busErrors I`, from `Seam.commit` to `Seam.bus`, with the extractor that keeps the trivial
-witness. It computes, extractor included. -/
-def busSecurity (I : M3Instance) (h : Bus.Conditions I) :
-    Typed.Security (busPhase I h) (Seam.commit I) (Seam.bus I) (busErrors I) :=
-  (((Bus.challengeSecurity h).append (Bus.rootsSecurity h)).append
-    ((gkrSecurity 3 I.μBus (Bus.leaves I) (Bus.riders I)).mono (by
-      rw [overE_one]
-      exact Typed.Errors.Le.refl _ _ _))).append
-    (Bus.valuesSecurity h)
 
 end
 end LeanVM.Protocol
