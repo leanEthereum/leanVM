@@ -22,49 +22,9 @@ env:
 
 jobs:
   # The compiled guest (`guests/lean_ethereum.compiled`, not committed), which `guest-export` reads to write the
-  # statement's bytecode: the Lean back end's compilation (`scripts/guest-artifact`), as in rust.yml, whose Lean
-  # build cache this job shares.
+  # statement's bytecode: the Lean back end's compilation (guest-artifact.yml, as in rust.yml).
   guest-artifact:
-    name: The compiled guest (Lean)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install elan
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-      # The Lean build `guest-artifact` needs, Mathlib's fetched by the script (`lake exe cache get`); only `main` saves.
-      - name: Restore the Lean build
-        id: lean-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/Statement/.lake/build
-          key: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/LeanVM/Compiler/**', 'formal/lean_vm/LeanVM/Core/**', 'formal/lean_vm/cli/GuestArtifact.lean', 'formal/Statement/**/*.lean', 'guests/lean_ethereum.py', 'crates/aggregation/src/**') }}
-          restore-keys: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: formal/lean_vm/scripts/guest-export
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Compile the guest (guest-artifact)
-        run: formal/lean_vm/scripts/guest-artifact
-      - name: Save the Lean build
-        if: github.ref == 'refs/heads/main' && steps.lean-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/Statement/.lake/build
-          key: ${{ steps.lean-cache.outputs.cache-primary-key }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: guest-artifact
-          path: guests/lean_ethereum.compiled
-          retention-days: 3
+    uses: ./.github/workflows/guest-artifact.yml
 
   # The statement: definitions and end statements only (`Statement/`), what every other job proves.
   statement:
