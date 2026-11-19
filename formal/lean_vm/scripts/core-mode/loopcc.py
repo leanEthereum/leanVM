@@ -19,10 +19,8 @@ CORE, STABLE = I.CORE, I.STABLE
 No = callc.No
 
 
-# loop helpers not taken: `main_loop2`, its `match`es chained by the compiler (`B2C.plumbOf`'s `chains`, which `honB`,
-# the honest valuation's, excludes), its passes over its body and code past the memory a module may take in one
-# `decide` (they need windows)
-HELD = {'main_loop2'}
+# loop helpers not taken
+HELD = set()
 
 
 def candidates(S=None):

@@ -246,11 +246,33 @@ open LeanVM.Guest.Check (getF getF_eq)
 
 public section
 
-/-- **What a frame's jumps read**, for function `j` (without chained `match`es; `main`'s frame `0`) at
-frame `fp` holding what its check reads (`FrameHolds`), the jump table in memory: `jumpCells_of`'s
-fixed cells, conditions and table targets, at any state of the frame. -/
+/-- **A chained `match`'s target cell, on the arm the path takes**: each chain's arms jump through one
+cell (`chainOneB`), and a path takes one of them (`walk_takes`). -/
+theorem chain_taken {j : ℕ} {σ : Val} {es : List Ev} {vs : List V} (hj1 : 0 < j) (hj2 : j < nFns)
+    (hw : walk σ (coreOf j).body = .ret es vs) {ch : ℕ × ℕ × List ℕ × ℕ × ℕ} (hch : ch ∈ (plumbOf j).chains)
+    {t : ℕ} (ht : t ∈ ch.2.2.1) : ∃ k, ch.2.2.1[k]? = some t ∧ σ (V.n ch.2.1) = ofK (addressOfIndex k) := by
+  have hc := (Chained.chainOk_all _ hj1 hj2).1
+  simp only [chainFn, Bool.and_eq_true, List.all_eq_true] at hc
+  obtain ⟨-, hm⟩ := hc.2 ch hch
+  split at hm
+  · rename_i x arms y arms' hp _
+    simp only [Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hm
+    obtain ⟨⟨⟨hx, -⟩, hlen⟩, -⟩ := hm
+    subst hx
+    obtain ⟨k, hk, hσ⟩ :=
+      EndExec.walk_takes (lastBody (Cplw.cplOk_all _ hj1 hj2) (End.winOk_of (by omega) hj2)) hw hp
+    have hkt : k < ch.2.2.1.length := hlen ▸ hk
+    refine ⟨k, ?_, hσ⟩
+    have hone := List.all_eq_true.mp EndExec.chainOneB_true _ (List.mem_range.mpr hj2)
+    have hch' := List.all_eq_true.mp (List.all_eq_true.mp hone ch hch)
+    rw [List.getElem?_eq_getElem hkt, beq_iff_eq.mp (hch' _ (List.getElem_mem hkt)), beq_iff_eq.mp (hch' t ht)]
+  · cases hm
+
+/-- **What a frame's jumps read**, for function `j` (`main`'s frame `0`) at frame `fp` holding what its
+check reads (`FrameHolds`), the jump table in memory: `jumpCells_of`'s fixed cells, conditions and table
+targets, a chained `match`'s on the arm the path takes, at any state of the frame. -/
 theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V} {kfps : List ℕ}
-    {hdr : E × E} (hj1 : 0 < j) (hroot : j = 1 → fp = 0) (hj2 : j < nFns) (hch : (plumbOf j).chains = [])
+    {hdr : E × E} (hj1 : 0 < j) (hroot : j = 1 → fp = 0) (hj2 : j < nFns)
     (hlocs : (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true)
     (hF : FrameHolds L j fp σ es vs kfps hdr) (hwc : walk σ (coreOf j).body = .ret es vs)
     (hjt : Check.JTHolds glob L) (htab : End.JumpTables L)
@@ -370,12 +392,18 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     have hb := List.all_eq_true.mp harms _ hmem'
     simp only [cellIn, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hb
     unfold armsOf at hmem'
-    rw [hch] at hmem'
-    simp only [List.flatMap_nil, List.append_nil] at hmem'
-    obtain ⟨q, hq, hqe⟩ := List.mem_map.mp hmem'
-    simp only [Prod.mk.injEq] at hqe
-    obtain ⟨rfl, rfl⟩ := hqe
-    rw [hrd, cellAt, hF.arm q hq hb.1 hb.2, hword]
+    rcases List.mem_append.mp hmem' with hmem' | hmem'
+    · obtain ⟨q, hq, hqe⟩ := List.mem_map.mp hmem'
+      simp only [Prod.mk.injEq] at hqe
+      obtain ⟨rfl, rfl⟩ := hqe
+      rw [hrd, cellAt, hF.arm q hq hb.1 hb.2, hword]
+    · obtain ⟨ch, hch, hm⟩ := List.mem_flatMap.mp hmem'
+      obtain ⟨t', ht'', hqe⟩ := List.mem_map.mp hm
+      simp only [Prod.mk.injEq] at hqe
+      obtain ⟨rfl, rfl⟩ := hqe
+      obtain ⟨k', hk', hσk'⟩ := chain_taken hj1 hj2 hwc hch ht''
+      obtain ⟨-, -, -, -, hrd'⟩ := hF.chain ch hch k' t' hk' hσk'
+      rw [hrd, cellAt, hrd' hb.1 hb.2, hword]
 
 end
 
@@ -472,7 +500,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
   obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
   simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hch⟩, hselB⟩ := hb0
+  obtain ⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
   -- `main`'s instance is the root, in frame `0`
   have hroot : j = 1 → s.fp = 0 := fun h1 ↦ by
@@ -666,7 +694,6 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   · -- what its jumps read
     rw [← hx0, ← hc0]
     simp only [Nat.blt_eq] at hj1
-    simp only [List.isEmpty_iff] at hch
     have hJT := B2C.jumpTables_cover hH.toHonest hXh.covers hr.name
     rw [← hfpL]
     have hwb : walk e.σ (coreOf j).body = .ret (e.pre ++ e.es) vs := by rw [hc0, hfn]; exact hw
@@ -689,7 +716,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       have := hF.val x hnamed h2 h3
       rw [hloc]
       simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
-    refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
+    refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
       (End.jtHolds_of hJT) hJT (fun x arms hm ↦ ?_) (fun x fs args rets hm ↦ ?_)
     · have hnl : CoreMode.loopBC Cf.fn = false := by
         cases hl : CoreMode.loopBC Cf.fn

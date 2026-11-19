@@ -424,11 +424,15 @@ end
 theorem pairEndOk : Bridge.chainEnd Fn.«{k}».code.code pairK{len(ks) - 1} = true := by
   decide +kernel
 
+/-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads{" (its context " + wctx + ")" if packed else ""}. -/
+theorem pair_ok{"P" if packed else ""} : CoreMode.pairOk {args(k, f, wctx)} = true :=
+  CoreMode.pairOk_of_chain alignPreOk (ks := [{', '.join(f'pairK{n}' for n in range(1, len(ks)))}])
+    {chain}
+{f'''
 /-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
 theorem pair_ok : CoreMode.pairOk {args(k, f)} = true :=
-  {"alignCtxEq ▸ " if packed else ""}CoreMode.pairOk_of_chain alignPreOk (ks := [{', '.join(f'pairK{n}' for n in range(1, len(ks)))}])
-    {chain}
-
+  alignCtxEq ▸ pair_okP
+''' if packed else ''}
 end
 '''))
     return files

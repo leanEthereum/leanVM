@@ -26,6 +26,28 @@ public import LeanVM.Guest.Pack.«P4».ModeSig
 public import LeanVM.Guest.Pack.«P7».ModeSig
 public import LeanVM.Guest.Pack.«P9».ModeSig
 
+namespace LeanVM.Guest.Fn.«main_loop2»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop2`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«main_loop2».modeSig) .nil .nil))))) .nil))) .nil) .nil)))) .nil)) .nil), 524287⟩
+
+/-- `__loop2`: its entry, length and signature; on the core route, nothing for a walk but its
+    nonzero residuals. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨64313, 114219, Fn.«main_loop2».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«main_loop2»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L23»
 
 open LeanVM.Guest LeanVM.Guest.Exec

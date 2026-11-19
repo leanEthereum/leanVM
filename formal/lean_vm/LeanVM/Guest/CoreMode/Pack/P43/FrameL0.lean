@@ -25,6 +25,18 @@ public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W13
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W14
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W15
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W16
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W17
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W18
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W19
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W20
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W21
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W22
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W23
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W24
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W25
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W26
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W27
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W28
 
 set_option Elab.async false
 
@@ -43,22 +55,29 @@ theorem frameLen : code.chunks.flatten.length = 114219 := by
 theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
   have hl : frameFun.len = code.chunks.flatten.length := by rw [frameLen]; rfl
   have hc0 : frameFun.cuts.get 0 = none := rfl
-  refine CoreMode.frameAcc_of_wins frameHints hl [7000, 14000, 21000, 28000, 35000, 42000, 49000,
-    56000, 63000, 70000, 77000, 84000, 91000, 98000, 105000, 112000] 0 _ (by rw [frameLen]; decide)
-    rfl
+  refine CoreMode.frameAcc_of_wins frameHints hl [4000, 8000, 12000, 16000, 20000, 24000, 28000,
+    32000, 36000, 40000, 44000, 48000, 52000, 56000, 60000, 64000, 68000, 72000, 76000, 80000,
+    84000, 88000, 92000, 96000, 100000, 104000, 108000, 112000] 0 _ (by rw [frameLen]; decide) rfl
     ⟨_, by simp [CoreMode.winStart, hc0], fun _ _ ↦ rfl⟩ ?_
   rw [frameLen]
-  show ∀ p ∈ [(0, 7000), (7000, 14000), (14000, 21000), (21000, 28000), (28000, 35000), (35000,
-    42000), (42000, 49000), (49000, 56000), (56000, 63000), (63000, 70000), (70000, 77000), (77000,
-    84000), (84000, 91000), (91000, 98000), (98000, 105000), (105000, 112000), (112000, 114219)],
-    CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true
+  show ∀ p ∈ [(0, 4000), (4000, 8000), (8000, 12000), (12000, 16000), (16000, 20000), (20000,
+    24000), (24000, 28000), (28000, 32000), (32000, 36000), (36000, 40000), (40000, 44000), (44000,
+    48000), (48000, 52000), (52000, 56000), (56000, 60000), (60000, 64000), (64000, 68000), (68000,
+    72000), (72000, 76000), (76000, 80000), (80000, 84000), (84000, 88000), (88000, 92000), (92000,
+    96000), (96000, 100000), (100000, 104000), (104000, 108000), (108000, 112000), (112000,
+    114219)], CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true
   exact List.forall_mem_cons.2 ⟨frameWin0, List.forall_mem_cons.2 ⟨frameWin1, List.forall_mem_cons.2
     ⟨frameWin2, List.forall_mem_cons.2 ⟨frameWin3, List.forall_mem_cons.2 ⟨frameWin4,
     List.forall_mem_cons.2 ⟨frameWin5, List.forall_mem_cons.2 ⟨frameWin6, List.forall_mem_cons.2
     ⟨frameWin7, List.forall_mem_cons.2 ⟨frameWin8, List.forall_mem_cons.2 ⟨frameWin9,
     List.forall_mem_cons.2 ⟨frameWin10, List.forall_mem_cons.2 ⟨frameWin11, List.forall_mem_cons.2
     ⟨frameWin12, List.forall_mem_cons.2 ⟨frameWin13, List.forall_mem_cons.2 ⟨frameWin14,
-    List.forall_mem_cons.2 ⟨frameWin15, List.forall_mem_cons.2 ⟨frameWin16, List.forall_mem_nil
-    _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    List.forall_mem_cons.2 ⟨frameWin15, List.forall_mem_cons.2 ⟨frameWin16, List.forall_mem_cons.2
+    ⟨frameWin17, List.forall_mem_cons.2 ⟨frameWin18, List.forall_mem_cons.2 ⟨frameWin19,
+    List.forall_mem_cons.2 ⟨frameWin20, List.forall_mem_cons.2 ⟨frameWin21, List.forall_mem_cons.2
+    ⟨frameWin22, List.forall_mem_cons.2 ⟨frameWin23, List.forall_mem_cons.2 ⟨frameWin24,
+    List.forall_mem_cons.2 ⟨frameWin25, List.forall_mem_cons.2 ⟨frameWin26, List.forall_mem_cons.2
+    ⟨frameWin27, List.forall_mem_cons.2 ⟨frameWin28, List.forall_mem_nil
+    _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
 end
 end LeanVM.Guest.Fn.«main_loop2»

@@ -14,8 +14,8 @@ set_option Elab.async false
 namespace LeanVM.Guest.Fn.«main_loop2»
 open LeanVM.Guest LeanVM.Guest.Exec
 @[expose] public section
-/-- `__loop2`: its frame walk accepts offsets 7000 to 14000. -/
-theorem frameWin1 : CoreMode.frameWin frameFun code.chunks.flatten 7000 14000 = true := by
+/-- `__loop2`: its frame walk accepts offsets 4000 to 8000. -/
+theorem frameWin1 : CoreMode.frameWin frameFun code.chunks.flatten 4000 8000 = true := by
   decide +kernel
 end
 end LeanVM.Guest.Fn.«main_loop2»

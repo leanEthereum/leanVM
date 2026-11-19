@@ -76,10 +76,16 @@ ADV = None
 ROUTE = {}
 
 
+# a function whose windows at `WIN` instructions take past the 7.5 GB a module may take: its own size (`main_loop2`,
+# `__loop2` to the compiler: its walk reads its packed alignment context)
+WINS = {'__loop2': 4000}
+
+
 def cutsFor(D, n):
-    """Offsets to cut a long function at, about every `WIN` instructions."""
+    """Offsets to cut a long function at, about every `WIN` instructions (`WINS`)."""
     f = D['fns'][n]
-    return list(range(WIN, f['count'] - WIN // 4, WIN))
+    w = WINS.get(n, WIN)
+    return list(range(w, f['count'] - w // 4, w))
 
 
 def cutLit(c):
