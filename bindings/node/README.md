@@ -6,7 +6,7 @@ Node.js bindings for the leanXMSS and leanSPHINCS post-quantum signatures and th
 
 <!-- x-release-please-start-version -->
 ```sh
-npm install @kevaundray/lean-pq@0.12.0
+npm install @kevaundray/lean-pq@0.13.0
 ```
 <!-- x-release-please-end -->
 
