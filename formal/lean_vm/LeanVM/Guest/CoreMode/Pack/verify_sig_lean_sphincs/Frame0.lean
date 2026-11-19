@@ -17,14 +17,16 @@ public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«verify_sig_lean_sphincs».fpows : PowTree :=
   (.node 33554432 25 (.node 256 8 (.node 16 4 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf
     .leaf)) (.node 64 6 (.node 32 5 .leaf .leaf) .leaf)) (.node 262144 18 (.node 16384 14 (.node
     4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf
@@ -35,10 +37,10 @@ noncomputable def fpows : PowTree :=
     13961177240429061390 33508 (.node 9223372036854810629 255 .leaf .leaf) .leaf))))
 
 /-- `verify_sig_lean_sphincs`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+theorem Fn.«verify_sig_lean_sphincs».fpows_ok : fpows.OkW :=
+  PowTree.okW_of_okWB (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
+noncomputable def Fn.«verify_sig_lean_sphincs».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 57221, 3887,
     Fn.«verify_sig_lean_sphincs».modeSig, (.node none .nil (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
@@ -47,10 +49,9 @@ noncomputable def frameFun : CoreMode.FFun :=
     .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO, Fn.«verify_sig_lean_sphincs».pairS,
     .nil⟩
 
-/-- `verify_sig_lean_sphincs`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«verify_sig_lean_sphincs».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
+    := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
+end LeanVM.Guest

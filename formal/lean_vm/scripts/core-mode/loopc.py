@@ -208,8 +208,8 @@ def emit(R, check):
     for pack, ks in sorted(packs.items()):
         out = [HEADER.format(pack=pack, first=ks[0], more=len(ks) - 1)]
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                       f'/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n{lcert(R[k])}\n'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n'
+                       f'def hcert : CoreMode.HCert where\n{lcert(R[k])}\n'
                        f'end\nend LeanVM.Guest.Fn.«{k}»\n')
         files[os.path.join(GEN, pack, 'DataL.lean')] = ''.join(out)
     stale = []

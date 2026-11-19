@@ -358,26 +358,19 @@ def data_mod(pack, f):
 
 def render_pack(pack, fs):
     mod = f'LeanVM.Guest.CoreMode.Gen.«{pack}».Pair'
-    out = [HEADER.format(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more."),
-           imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»'] + [data_mod(pack, f) for f in fs]
-                   + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
-           'set_option Elab.async false\n']
-    for f in fs:
-        k = f['key']
-        out.append('\n' + ns(k, f'''@[expose] public section
-
-{offs_defs(k, f)}
-end
-
-public section
-
-/-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
-theorem pair_ok : CoreMode.pairOk {args(k, f)} = true := by
-  decide +kernel
-
-end
-'''))
-    return {os.path.join(GEN, pack, 'Pair.lean'): ''.join(out)}
+    defs = ''.join(f'noncomputable def Fn.«{f["key"]}».pairO : Exec.Trie Unit := CoreMode.offsT {nums(f["O"])}\n'
+                   f'noncomputable def Fn.«{f["key"]}».pairS : Exec.Trie Unit := CoreMode.offsT {nums(f["S"])}\n' for f in fs)
+    thms = ''.join(f'theorem Fn.«{f["key"]}».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code '
+                   f'advice = true := by decide +kernel\n' for f in fs)
+    return {os.path.join(GEN, pack, 'Pair.lean'): ''.join([
+        HEADER.format(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more: each "
+                      "function's `pairO`, the offsets of its reads' `DEREF`s (the oracle), and `pairS`, of its stores', "
+                      "its `load`s paired with its `DEREF`s in order."),
+        imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»'] + [data_mod(pack, f) for f in fs]
+                + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
+        'set_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n'
+        '@[expose] public section\n\n', defs,
+        '\nend\n\npublic section\n\n', thms, '\nend\n\nend LeanVM.Guest\n'])}
 
 
 def render_win(pack, f):

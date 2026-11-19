@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
-
 @[expose] public section
-
-/-- `verify_sig_lean_sphincs`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩],
@@ -39,12 +36,9 @@ def hcert : CoreMode.HCert where
   calls := [[], [], []]
   rets := [[.ev 0, .ev 1, .ev 2, .ev 3, .run 0 []]]
 
-/-- `verify_sig_lean_sphincs`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("sp_wots", {})]
-/-- `verify_sig_lean_sphincs`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `verify_sig_lean_sphincs`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 

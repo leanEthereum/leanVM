@@ -20,15 +20,11 @@ open LeanVM.Guest
 
 public section
 
-/-- `verify_merkle_cap__L8`'s core data, the deployed guest's. -/
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun :=
-  CoreMode.cfOk_of (by decide) Checked.code1182 Checked.core1182 Checked.cert1182 Checked.plumbEq1182
-    Bridge.ProgAl.tab1182 rfl rfl rfl (by decide +kernel)
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk_of (by decide) Checked.code1182 Checked.core1182 Checked.cert1182 Checked.plumbEq1182 Bridge.ProgAl.tab1182 rfl rfl rfl (by decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0
-    (Mode.fa_nil)
+  Mode.fa_cons cfOk0 (Mode.fa_nil)
 
 end
 

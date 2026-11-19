@@ -14,46 +14,17 @@ public import LeanVM.Guest.CoreMode.Gen.«P48».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L17»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `eq_prefix_run__L17`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L17».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L17»
-
-namespace LeanVM.Guest.Fn.«opening_message__L36_L1»
-
-@[expose] public section
-
-/-- `opening_message__L36_L1`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«opening_message__L36_L1».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«eq_prefix_run__L17».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L17».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«opening_message__L36_L1».heap_ok : CoreMode.heapOk Fn.«opening_message__L36_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L11».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L11».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L28».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L28».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«opening_message__L36_L1»
 
-namespace LeanVM.Guest.Fn.«plus_one_run__L11»
-
-@[expose] public section
-
-/-- `plus_one_run__L11`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L11».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L11»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L28»
-
-@[expose] public section
-
-/-- `plus_one_run__L28`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L28».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L28»
+end LeanVM.Guest

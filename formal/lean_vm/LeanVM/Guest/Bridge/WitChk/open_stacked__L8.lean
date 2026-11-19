@@ -12,16 +12,14 @@ public import LeanVM.Guest.Bridge.Align.«open_stacked__L8»
 public import LeanVM.Guest.Pack.«P13».Core
 public import LeanVM.Guest.Pack.«open_stacked__L8».Bundle
 
-namespace LeanVM.Guest.Fn.«open_stacked__L8»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L8`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«open_stacked__L8».fs Fn.«open_stacked__L8».core.body = true := by
-  decide +kernel
+theorem Fn.«open_stacked__L8».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L8»
+end LeanVM.Guest

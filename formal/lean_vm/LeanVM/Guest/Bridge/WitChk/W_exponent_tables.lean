@@ -12,16 +12,14 @@ public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core
 
-namespace LeanVM.Guest.Fn.«exponent_tables»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `exponent_tables`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«exponent_tables».fs Fn.«exponent_tables».core.body = true := by
-  decide +kernel
+theorem Fn.«exponent_tables».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«exponent_tables»
+end LeanVM.Guest

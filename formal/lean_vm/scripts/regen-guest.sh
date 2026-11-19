@@ -140,8 +140,6 @@ part_core_mode() {
   python3 -I scripts/core-mode/pows.py "${check[@]}"
   step "core-mode: the functions' ties to their global index (scripts/core-mode/glue.py)"
   python3 -I scripts/core-mode/glue.py "${check[@]}"
-  step "core-mode: the inference's heap certificates (scripts/core-mode/emitc.py)"
-  python3 -I scripts/core-mode/emitc.py "${check[@]}"
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
   python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
   step "core-mode: leaf loop helpers (scripts/core-mode/loopc.py)"
@@ -161,6 +159,8 @@ part_core_mode() {
   fi
   step "core-mode: route data (scripts/core-mode/core.py)"
   python3 -I scripts/core-mode/core.py "${check[@]}"
+  step "core-mode: the inference's heap certificates of the functions off the route (scripts/core-mode/emitc.py)"
+  python3 -I scripts/core-mode/emitc.py "${check[@]}"
 }
 
 part_bridge() {

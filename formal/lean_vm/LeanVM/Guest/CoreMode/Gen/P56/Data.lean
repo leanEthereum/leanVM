@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«gkr_rounds__L1»
-
 @[expose] public section
-
-/-- `gkr_rounds__L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 862⟩, ⟨[(0, 1)], 1724⟩, ⟨[(0, 1)], 2586⟩, ⟨[(0, 1)], 3448⟩,
     ⟨[(0, 1)], 5172⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 0⟩] }
@@ -26,7 +23,6 @@ def hcert : CoreMode.HCert where
     (37, [(1, 0, .pre 10)])]
   res := []
 
-/-- `gkr_rounds__L1`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 0⟩, .ev 10), (⟨[(2, 1)], 0⟩, .ev 6), (⟨[(0, 1)], 1⟩, .ev 13),
     (⟨[(2, 1)], 1⟩, .ev 7), (⟨[(2, 1)], 2⟩, .ev 8), (⟨[(2, 1)], 3⟩, .ev 9), (⟨[(1, 1)], 42⟩, .ev 11),
@@ -39,10 +35,7 @@ end
 end LeanVM.Guest.Fn.«gkr_rounds__L1»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L16»
-
 @[expose] public section
-
-/-- `padding_weight__L16`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
     ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
@@ -54,7 +47,6 @@ def hcert : CoreMode.HCert where
     (90, [(1, 14, .pre 14)]), (95, [(1, 15, .pre 15)])]
   res := []
 
-/-- `padding_weight__L16`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
     (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),
@@ -66,16 +58,12 @@ end
 end LeanVM.Guest.Fn.«padding_weight__L16»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L3»
-
 @[expose] public section
-
-/-- `padding_weight__L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩] }
   reads := [(8, [(1, 0, .pre 0)]), (12, [(1, 1, .pre 1)]), (17, [(1, 2, .pre 2)])]
   res := []
 
-/-- `padding_weight__L3`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2)]
 

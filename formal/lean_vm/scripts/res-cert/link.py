@@ -46,7 +46,9 @@ def onRoute():
     linked whatever their mode walk (they have none), as `CoreMode.glOk` asks."""
     out = set()
     for path in glob.glob(os.path.join(ROOT, 'CoreMode', 'Gen', '*', 'Core.lean')):
-        out.update(re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(path).read(), re.M))
+        t = open(path).read()
+        out.update(re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', t, re.M))
+        out.update(re.findall(r'^noncomputable def Fn\.«([^»]+)»\.cfun :', t, re.M))
     return out
 
 

@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«block_selector__L30»
-
 @[expose] public section
-
-/-- `block_selector__L30`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
     ⟨[(0, 1)], 2⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(1, 1)], 3⟩, ⟨[(2, 1)], 3⟩,
@@ -64,7 +61,6 @@ def hcert : CoreMode.HCert where
     (291, [(0, 29, .pre 87)]), (293, [(1, 29, .pre 88)]), (297, [(2, 29, .pre 89)])]
   res := []
 
-/-- `block_selector__L30`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 1), (⟨[(0, 1)], 1⟩, .ev 5), (⟨[(0, 1)], 2⟩, .ev 9), (⟨[(0, 1)], 3⟩, .ev 13),
     (⟨[(0, 1)], 4⟩, .ev 17), (⟨[(0, 1)], 5⟩, .ev 21), (⟨[(0, 1)], 6⟩, .ev 25),
@@ -101,10 +97,7 @@ end
 end LeanVM.Guest.Fn.«block_selector__L30»
 
 namespace LeanVM.Guest.Fn.«claim_list_last__L11»
-
 @[expose] public section
-
-/-- `claim_list_last__L11`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
     ⟨[(0, 1)], 6⟩, ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(0, 1)], 10⟩, ⟨[(0, 1)], 11⟩,
@@ -128,7 +121,6 @@ def hcert : CoreMode.HCert where
     (56, [(0, 10, .pre 10)]), (57, [(0, 11, .pre 11)]), (58, [(0, 12, .pre 12)])]
   res := []
 
-/-- `claim_list_last__L11`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 88), (⟨[(0, 1)], 1⟩, .ev 89), (⟨[(0, 1)], 2⟩, .ev 90),
     (⟨[(0, 1)], 3⟩, .ev 91), (⟨[(0, 1)], 4⟩, .ev 92), (⟨[(0, 1)], 5⟩, .ev 93),
@@ -169,16 +161,12 @@ end
 end LeanVM.Guest.Fn.«claim_list_last__L11»
 
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L17»
-
 @[expose] public section
-
-/-- `squeeze_point_from__L17`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
 
-/-- `squeeze_point_from__L17`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
     (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),

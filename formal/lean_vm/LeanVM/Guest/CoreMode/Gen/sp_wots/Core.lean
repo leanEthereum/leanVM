@@ -19,90 +19,32 @@ public import LeanVM.Guest.Pack.«sp_wots».ModeC
 public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
+set_option linter.style.nameCheck false
 
-namespace LeanVM.Guest.Fn.«sp_wots»
-
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 @[expose] public section
 
-/-- `sp_wots`: what the core route knows of it. -/
-noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Fn.«sp_wots».advice, Fn.«sp_wots».pows, hpost, [], [], false, [], []⟩
+noncomputable def Fn.«sp_wots».cfun : CoreMode.CFun := ⟨frameFun, alignCtx, hcert, core, Fn.«sp_wots».advice, Fn.«sp_wots».pows, hpost, [], [], false, [], []⟩
 
 end
 
 public section
 
-attribute [local irreducible] pairO pairS
+attribute [local irreducible] Fn.«sp_wots».pairO Fn.«sp_wots».pairS
 
-/-- `sp_wots`: its promised cells witnessed. -/
-theorem core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := by
-  decide +kernel
-
-/-- `sp_wots`: its signature translated. -/
-theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
-    (Mode.jtRng modeEnv) = true := by
-  decide +kernel
-
-/-- `sp_wots`: its returned products. -/
-theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
-  decide +kernel
-
-/-- `sp_wots`: its body's statements. -/
-theorem core_body : CoreMode.bodyCore cfun.fn.body = true := by
-  decide +kernel
-
-/-- `sp_wots`: its tables' jumps. -/
-theorem core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `sp_wots`: the rest of its shape. -/
-theorem core_rest : CoreMode.shapeRest cfun = true := by
-  decide +kernel
-
-/-- `sp_wots`: its shape. -/
-theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true :=
-  CoreMode.shapeOk_of core_body core_tgt core_rest
-
-/-- `sp_wots`: its calls' jumps. -/
-theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by
-  decide +kernel
-
-/-- `sp_wots`: its reads of the jump table. -/
-theorem core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := by
-  decide +kernel
-
-/-- `sp_wots`: the kernel's checks of the core route, tied to its mode certificate. -/
-theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl
-  pair := pair_ok
-  frame := ⟨by decide +kernel, by decide +kernel, frameAcc⟩
-  sig := core_sig
-  retv := core_retv
-  shape := core_shape
-  calls := core_calls
-  jtd := core_jtd
-  fsig := rfl
-  fsigs := rfl
-  fmain := by decide +kernel
-  fhalt := by decide +kernel
-  xhalt := by decide +kernel
-  fentry := rfl
-  flen := by decide +kernel
-  xentry := by decide +kernel
-  dhints := rfl
-  hints := Mode.hintsEq_of_fn (j := Fn.«sp_wots».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
-  fetch := Exec.guest_fetches Fn.«sp_wots».code_mem
-  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«sp_wots».code_mem)
-  pows := Exec.PowTree.ok_of_okW Fn.«sp_wots».pows_ok
-  fpows := Exec.PowTree.ok_of_okW Fn.«sp_wots».fpows_ok
-  faret := by decide +kernel
-  nzrc := by decide +kernel
-
-/-- `sp_wots`: its frame interface, by the core route. -/
-theorem fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of core_ok
+theorem Fn.«sp_wots».core_post : CoreMode.postOk cfun.pows cfun.H cfun.post cfun.fn.body = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_body : CoreMode.bodyCore cfun.fn.body = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_rest : CoreMode.shapeRest cfun = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := CoreMode.shapeOk_of core_body core_tgt core_rest
+theorem Fn.«sp_wots».core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := (by decide +kernel)
+theorem Fn.«sp_wots».core_jtd : CoreMode.jtdOk cfun modeEnv code.chunks.flatten = true := (by decide +kernel)
+theorem Fn.«sp_wots».fnSpecC : Mode.FnSpecC ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun := Mode.fnSpecC_of
+  { heap := .m1 heap_ok core_post (by decide +kernel) rfl rfl rfl, pair := pair_ok, frame := ⟨by decide +kernel, by decide +kernel, frameAcc⟩, sig := core_sig, retv := core_retv, shape := core_shape, calls := core_calls, jtd := core_jtd, fsig := rfl, fsigs := rfl, fmain := (by decide +kernel), fhalt := (by decide +kernel), xhalt := (by decide +kernel), fentry := rfl, flen := (by decide +kernel), xentry := (by decide +kernel), dhints := rfl, hints := Mode.hintsEq_of_fn (j := Fn.«sp_wots».idx) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl, fetch := Exec.guest_fetches Fn.«sp_wots».code_mem, small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) Fn.«sp_wots».code_mem), pows := Exec.PowTree.ok_of_okW Fn.«sp_wots».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«sp_wots».fpows_ok, faret := (by decide +kernel), nzrc := (by decide +kernel) }
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

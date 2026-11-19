@@ -54,27 +54,14 @@ def run(check):
         groups.setdefault(mod, []).append((j, k, b, c))
     for mod, fns in sorted(groups.items()):
         imps = {'LeanVM.Guest.Bridge.JumpCellsDefs', 'LeanVM.Guest.Data.Pows', 'LeanVM.Guest.CheckView'}
-        body = []
+        thms = []
         for j, k, b, c in fns:
             imps |= {f'LeanVM.Guest.Pack.«{b}».Bundle', f'LeanVM.Guest.Pack.«{c}».Core'}
-            body.append(f'''namespace LeanVM.Guest.Fn.«{k}»
-
-open LeanVM.Guest
-
-public section
-
-/-- `{k}`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«{k}».plumb Fn.«{k}».fs (Fn.«{k}».cert.withPows Data.powTree) {ctxs[k][0]}
-    Fn.«{k}».core Fn.«{k}».code.code ({j} == 1) = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«{k}»
-''')
+            thms.append((k, 'jcOk', f'Bridge.jcDataD plumb fs (cert.withPows Data.powTree) {ctxs[k][0]} core code.code '
+                         f'({j} == 1) = true', 'decide +kernel'))
         files[os.path.join(OUT, f'{mod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.JumpCells.{mod}', what="Functions' data pass the jump cells' check.")
-            + ''.join(f'public import {m}\n' for m in sorted(imps)) + '\n' + '\n'.join(body))
+            + ''.join(f'public import {m}\n' for m in sorted(imps)) + '\n' + data.fn_thms(thms))
     links = {}
     for j in sorted(lk):
         links.setdefault(lk[j][1], []).append(j)
@@ -92,11 +79,9 @@ end LeanVM.Guest.Fn.«{k}»
             if j not in fe:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fq = f'fsEq{j}'
-            body.append(f'''theorem jc{j} : Bridge.jcData {j} = true := by
-  have hx : Bridge.extraOf {j} = {ctxs[k][0]} := congrArg Prod.fst ProgAl.tab{j}
-  rw [Bridge.jcData, Checked.code{j}, Checked.core{j}, Checked.cert{j}, {pe}, {fq}, hx]
-  exact Fn.«{k}».jcOk
-''')
+            body.append(f'theorem jc{j} : Bridge.jcData {j} = true := by have hx : Bridge.extraOf {j} = {ctxs[k][0]} := '
+                        f'congrArg Prod.fst ProgAl.tab{j}; rw [Bridge.jcData, Checked.code{j}, Checked.core{j}, '
+                        f'Checked.cert{j}, {pe}, {fq}, hx]; exact Fn.«{k}».jcOk\n')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.JumpCells.{lmod}',
                         what=f"The functions of `Checked.{lmod}` pass the jump cells' check by index.")
@@ -108,7 +93,7 @@ open LeanVM.Guest
 
 public section
 
-''' + '\n'.join(body) + '''
+''' + ''.join(body) + '''
 end
 
 end LeanVM.Guest.Bridge.JumpCells

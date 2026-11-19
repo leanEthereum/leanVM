@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `sp_wots`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«sp_wots».plumb Fn.«sp_wots».fs (Fn.«sp_wots».cert.withPows Data.powTree) []
-    Fn.«sp_wots».core Fn.«sp_wots».code.code (20 == 1) = true := by
-  decide +kernel
+theorem Fn.«sp_wots».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (20 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

@@ -12,18 +12,14 @@ public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
-namespace LeanVM.Guest.Fn.«main_loop2»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `main_loop2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«main_loop2».plumb Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn39 = true := by
-  rw [alignCtxEq]
-  decide +kernel
+theorem Fn.«main_loop2».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn39 = true := by rw [alignCtxEq]; decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«main_loop2»
+end LeanVM.Guest

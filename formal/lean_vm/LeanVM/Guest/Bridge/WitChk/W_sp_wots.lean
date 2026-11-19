@@ -12,16 +12,14 @@ public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ok
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `sp_wots`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«sp_wots».fs Fn.«sp_wots».core.body = true := by
-  decide +kernel
+theorem Fn.«sp_wots».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

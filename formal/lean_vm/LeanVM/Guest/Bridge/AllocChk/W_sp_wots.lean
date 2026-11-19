@@ -13,33 +13,17 @@ public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ok
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `sp_wots`'s body allocates its top-level allocation atoms on every path. -/
-theorem allocShapeOk : Bridge.allocShape Fn.«sp_wots».core.body = true := by
-  decide +kernel
-
-/-- `sp_wots`'s body has its buffer hints' atoms and no `match` arm target pending. -/
-theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«sp_wots».plumb Fn.«sp_wots».core.body Fn.«sp_wots».code.code Data.adviceFn20 = true := by
-  decide +kernel
-
-/-- `sp_wots`'s frame hints reserve their callees' frames. -/
-theorem frOk :
-    Bridge.frChk alignCtx Fn.«sp_wots».fs [] Fn.«sp_wots».core.params Fn.«sp_wots».core.body
-      Data.adviceFn20 = true := by
-  decide +kernel
-
-/-- `sp_wots`'s allocation hints pass the check. -/
-theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«sp_wots».fs Fn.«sp_wots».core.loop Fn.«sp_wots».plumb Fn.«sp_wots».core.body Fn.«sp_wots».code.code
-      Data.adviceFn20 = true := by
-  decide +kernel
+theorem Fn.«sp_wots».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«sp_wots».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Data.adviceFn20 = true := by decide +kernel
+theorem Fn.«sp_wots».frOk : Bridge.frChk alignCtx fs [] core.params core.body Data.adviceFn20 = true := by decide +kernel
+theorem Fn.«sp_wots».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Data.adviceFn20 = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«sp_wots»
+end LeanVM.Guest

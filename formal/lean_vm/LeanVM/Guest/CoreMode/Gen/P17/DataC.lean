@@ -14,10 +14,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«block_selector_tab__L14»
-
 @[expose] public section
-
-/-- `block_selector_tab__L14`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩],
@@ -38,12 +35,9 @@ def hcert : CoreMode.HCert where
     .lt (.mono ⟨[(34, 1)], 48⟩) (.num 52)]
   rets := [[]]
 
-/-- `block_selector_tab__L14`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `block_selector_tab__L14`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `block_selector_tab__L14`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -51,10 +45,7 @@ end
 end LeanVM.Guest.Fn.«block_selector_tab__L14»
 
 namespace LeanVM.Guest.Fn.«bus_grind_check__L0»
-
 @[expose] public section
-
-/-- `bus_grind_check__L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
@@ -64,14 +55,11 @@ def hcert : CoreMode.HCert where
   calls := [[.run 1 [], .run 1 []]]
   rets := [[.run 3 [], .run 3 []]]
 
-/-- `bus_grind_check__L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("grind_check__L17", 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] })]
-/-- `bus_grind_check__L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `bus_grind_check__L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -79,10 +67,7 @@ end
 end LeanVM.Guest.Fn.«bus_grind_check__L0»
 
 namespace LeanVM.Guest.Fn.«check_opening_terminal»
-
 @[expose] public section
-
-/-- Part of `hcert`. -/
 def res0 : List CoreMode.CRes :=
   [.lt (.num 0) (.mono ⟨[(7, 1)], 6⟩), .lt (.val 6) (.num 4611686018427387903),
     .lt (.num 1) (.mono ⟨[(7, 1)], 6⟩), .lt (.num 2) (.mono ⟨[(7, 1)], 6⟩), .lt (.num 3) (.mono ⟨[(7, 1)], 6⟩),
@@ -224,7 +209,6 @@ def res0 : List CoreMode.CRes :=
     .under [.arm 58 1] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩),
     .under [.arm 58 2] (.subR ⟨⟨[(43, 1)], 112⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 112), (.num 129)⟩)]
 
-/-- Part of `hcert`. -/
 def res1 : List CoreMode.CRes :=
   [.under [.arm 58 2] (.subR ⟨⟨[(43, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 176), (.num 193)⟩),
     .under [.arm 58 2] (.subR ⟨⟨[(43, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 240), (.num 257)⟩),
@@ -365,7 +349,6 @@ def res1 : List CoreMode.CRes :=
     .under [.arm 64 4] (.subR ⟨⟨[(43, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 304), (.num 321)⟩),
     .under [.arm 64 4] (.subR ⟨⟨[(43, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 368), (.num 385)⟩)]
 
-/-- Part of `hcert`. -/
 def res2 : List CoreMode.CRes :=
   [.under [.arm 64 4] (.subR ⟨⟨[(43, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 432), (.num 449)⟩),
     .under [.arm 64 4] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩),
@@ -506,7 +489,6 @@ def res2 : List CoreMode.CRes :=
     .under [.arm 37 7] (.subR ⟨⟨[(43, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 304), (.num 321)⟩),
     .under [.arm 37 7] (.subR ⟨⟨[(43, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 368), (.num 385)⟩)]
 
-/-- Part of `hcert`. -/
 def res3 : List CoreMode.CRes :=
   [.under [.arm 37 7] (.subR ⟨⟨[(43, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 432), (.num 449)⟩),
     .under [.arm 37 7] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩),
@@ -647,7 +629,6 @@ def res3 : List CoreMode.CRes :=
     .under [.arm 38 10] (.subR ⟨⟨[(43, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 432), (.num 449)⟩),
     .under [.arm 38 10] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩)]
 
-/-- Part of `hcert`. -/
 def res4 : List CoreMode.CRes :=
   [.under [.arm 38 11] (.subR ⟨⟨[(43, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 240), (.num 257)⟩),
     .under [.arm 38 11] (.subR ⟨⟨[(43, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 304), (.num 321)⟩),
@@ -788,7 +769,6 @@ def res4 : List CoreMode.CRes :=
     .under [.arm 39 14] (.subR ⟨⟨[(43, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 432), (.num 449)⟩),
     .under [.arm 39 14] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩)]
 
-/-- Part of `hcert`. -/
 def res5 : List CoreMode.CRes :=
   [.under [.arm 39 15] (.subR ⟨⟨[(43, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 304), (.num 321)⟩),
     .under [.arm 39 15] (.subR ⟨⟨[(43, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 368), (.num 385)⟩),
@@ -929,7 +909,6 @@ def res5 : List CoreMode.CRes :=
     .under [.arm 40 19] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩),
     .under [.arm 40 20] (.subR ⟨⟨[(43, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 368), (.num 385)⟩)]
 
-/-- Part of `hcert`. -/
 def res6 : List CoreMode.CRes :=
   [.under [.arm 40 20] (.subR ⟨⟨[(43, 1)], 432⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 432), (.num 449)⟩),
     .under [.arm 40 20] (.subR ⟨⟨[(43, 1)], 496⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 496), (.num 512)⟩),
@@ -1070,7 +1049,6 @@ def res6 : List CoreMode.CRes :=
     .under [.arm 42 0] (.subR ⟨⟨[(43, 1)], 176⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 176), (.num 193)⟩),
     .under [.arm 42 0] (.subR ⟨⟨[(43, 1)], 240⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 240), (.num 257)⟩)]
 
-/-- Part of `hcert`. -/
 def res7 : List CoreMode.CRes :=
   [.under [.arm 42 0] (.subR ⟨⟨[(43, 1)], 304⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 304), (.num 321)⟩),
     .under [.arm 42 0] (.subR ⟨⟨[(43, 1)], 368⟩, 1, (.num 0), (.num 16)⟩ ⟨⟨[(43, 1)], 0⟩, 1, (.num 368), (.num 385)⟩),
@@ -1197,7 +1175,6 @@ def res7 : List CoreMode.CRes :=
     .lt (.val 39) (.num 31), .lt (.val 40) (.num 31), .lt (.val 41) (.num 31), .lt (.val 42) (.num 31),
     .lt (.val 1697) (.num 37), .lt (.val 1701) (.num 37)]
 
-/-- Part of `hcert`. -/
 def calls0 : List (List CoreMode.Wit) :=
   [[.run 0 [], .run 3 []], [.run 1 [], .run 4 []], [.ev 2, .run 7 []],
     [.pre 4, .ev 1, .pre 9, .run 5 [2], .pre 14, .run 5 [3], .pre 19, .run 5 [4], .pre 24, .run 5 [5],
@@ -1326,7 +1303,6 @@ def calls0 : List (List CoreMode.Wit) :=
         .run 43 [], .run 44 [], .run 45 [], .run 46 [], .run 43 [], .run 44 [], .run 45 [], .run 46 [],
         .run 41 [], .run 42 [], .run 41 [], .run 42 [], .run 41 [], .run 42 []]]
 
-/-- Part of `hcert`. -/
 def calls1 : List (List CoreMode.Wit) :=
   [[.run 29 [127], .run 30 [128], .run 31 [129], .run 32 [130], .run 33 [131], .run 34 [132],
         .run 35 [133], .run 36 [134], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [],
@@ -1470,7 +1446,6 @@ def calls1 : List (List CoreMode.Wit) :=
         .run 36 [486], .run 41 [], .pts, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115,
         .ev 116, .run 41 [], .pts, .ev 105, .ev 106, .ev 107, .ev 108, .run 41 []]]
 
-/-- Part of `hcert`. -/
 def calls2 : List (List CoreMode.Wit) :=
   [[.run 43 [], .run 44 [], .run 45 [], .run 46 [], .run 47 [], .run 48 [], .run 49 [], .run 50 [],
         .run 51 [], .run 52 [], .run 53 [], .run 54 [], .run 55 [], .run 56 [], .run 57 [], .run 58 [],
@@ -1617,7 +1592,6 @@ def calls2 : List (List CoreMode.Wit) :=
         .run 58 [], .run 59 [], .run 60 [], .run 61 [], .run 58 [], .run 59 [], .run 60 [], .run 61 [],
         .run 52 [], .run 53 [], .run 52 [], .run 53 [], .run 52 [], .run 53 []]]
 
-/-- Part of `hcert`. -/
 def calls3 : List (List CoreMode.Wit) :=
   [[.run 111 [], .run 112 [], .run 113 [], .run 114 [], .run 115 [], .run 116 [], .run 117 [], .run 118 [],
         .run 119 [], .run 120 [], .run 121 [], .run 122 [], .run 123 [], .run 124 [], .run 125 [], .run 126 [],
@@ -1764,7 +1738,6 @@ def calls3 : List (List CoreMode.Wit) :=
         .run 78 [], .run 79 [], .run 80 [], .run 81 [], .run 78 [], .run 79 [], .run 80 [], .run 81 [],
         .run 64 [], .run 65 [], .run 64 [], .run 65 [], .run 64 [], .run 65 []]]
 
-/-- Part of `hcert`. -/
 def calls4 : List (List CoreMode.Wit) :=
   [[.run 179 [], .run 180 [], .run 181 [], .run 182 [], .run 183 [], .run 184 [], .run 185 [], .run 186 [],
         .run 187 [], .run 188 [], .run 189 [], .run 190 [], .run 191 [], .run 192 [], .run 193 [], .run 194 [],
@@ -1911,7 +1884,6 @@ def calls4 : List (List CoreMode.Wit) :=
         .run 98 [], .run 99 [], .run 100 [], .run 101 [], .run 98 [], .run 99 [], .run 100 [], .run 101 [],
         .run 76 [], .run 77 [], .run 76 [], .run 77 [], .run 76 [], .run 77 []]]
 
-/-- Part of `hcert`. -/
 def calls5 : List (List CoreMode.Wit) :=
   [[.run 29 [487], .run 30 [488], .run 31 [489], .run 32 [490], .run 33 [491], .run 34 [492],
         .run 35 [493], .run 36 [494], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [],
@@ -2033,7 +2005,6 @@ def calls5 : List (List CoreMode.Wit) :=
         .run 61 [], .run 62 [], .run 63 [], .run 64 [], .run 61 [], .run 62 [], .run 63 [], .run 64 [],
         .run 59 [], .run 60 [], .run 59 [], .run 60 [], .run 59 [], .run 60 []]]
 
-/-- Part of `hcert`. -/
 def calls6 : List (List CoreMode.Wit) :=
   [[.run 90 [], .run 91 [], .run 92 [], .run 93 [], .run 94 [], .run 95 [], .run 96 [], .run 97 [],
         .run 98 [], .run 99 [], .run 100 [], .run 101 [], .run 102 [], .run 103 [], .run 104 [], .run 105 [],
@@ -2180,7 +2151,6 @@ def calls6 : List (List CoreMode.Wit) :=
         .run 81 [], .run 82 [], .run 83 [], .run 84 [], .run 81 [], .run 82 [], .run 83 [], .run 84 [],
         .run 71 [], .run 72 [], .run 71 [], .run 72 [], .run 71 [], .run 72 []]]
 
-/-- Part of `hcert`. -/
 def calls7 : List (List CoreMode.Wit) :=
   [[.run 158 [], .run 159 [], .run 160 [], .run 161 [], .run 162 [], .run 163 [], .run 164 [], .run 165 [],
         .run 166 [], .run 167 [], .run 168 [], .run 169 [], .run 170 [], .run 171 [], .run 172 [], .run 173 [],
@@ -2327,7 +2297,6 @@ def calls7 : List (List CoreMode.Wit) :=
         .run 101 [], .run 102 [], .run 103 [], .run 104 [], .run 101 [], .run 102 [], .run 103 [], .run 104 [],
         .run 83 [], .run 84 [], .run 83 [], .run 84 [], .run 83 [], .run 84 []]]
 
-/-- Part of `hcert`. -/
 def calls8 : List (List CoreMode.Wit) :=
   [[.run 226 [], .run 227 [], .run 228 [], .run 229 [], .run 230 [], .run 231 [], .run 232 [], .run 233 [],
         .run 234 [], .run 235 [], .run 236 [], .run 237 [], .run 238 [], .run 239 [], .run 240 [], .run 241 [],
@@ -2449,7 +2418,6 @@ def calls8 : List (List CoreMode.Wit) :=
         .run 36 [726], .run 67 [], .pts, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115,
         .ev 116, .run 67 [], .pts, .ev 105, .ev 106, .ev 107, .ev 108, .run 67 []]]
 
-/-- Part of `hcert`. -/
 def calls9 : List (List CoreMode.Wit) :=
   [[.run 69 [], .run 70 [], .run 71 [], .run 72 [], .run 73 [], .run 74 [], .run 75 [], .run 76 [],
         .run 77 [], .run 78 [], .run 79 [], .run 80 [], .run 81 [], .run 82 [], .run 83 [], .run 84 [],
@@ -2596,7 +2564,6 @@ def calls9 : List (List CoreMode.Wit) :=
         .run 84 [], .run 85 [], .run 86 [], .run 87 [], .run 84 [], .run 85 [], .run 86 [], .run 87 [],
         .run 78 [], .run 79 [], .run 78 [], .run 79 [], .run 78 [], .run 79 []]]
 
-/-- Part of `hcert`. -/
 def calls10 : List (List CoreMode.Wit) :=
   [[.run 137 [], .run 138 [], .run 139 [], .run 140 [], .run 141 [], .run 142 [], .run 143 [], .run 144 [],
         .run 145 [], .run 146 [], .run 147 [], .run 148 [], .run 149 [], .run 150 [], .run 151 [], .run 152 [],
@@ -2718,7 +2685,6 @@ def calls10 : List (List CoreMode.Wit) :=
         .run 36 [846], .run 74 [], .pts, .ev 109, .ev 110, .ev 111, .ev 112, .ev 113, .ev 114, .ev 115,
         .ev 116, .run 74 [], .pts, .ev 105, .ev 106, .ev 107, .ev 108, .run 74 []]]
 
-/-- Part of `hcert`. -/
 def calls11 : List (List CoreMode.Wit) :=
   [[.run 76 [], .run 77 [], .run 78 [], .run 79 [], .run 80 [], .run 81 [], .run 82 [], .run 83 [],
         .run 84 [], .run 85 [], .run 86 [], .run 87 [], .run 88 [], .run 89 [], .run 90 [], .run 91 [],
@@ -2865,7 +2831,6 @@ def calls11 : List (List CoreMode.Wit) :=
         .run 91 [], .run 92 [], .run 93 [], .run 94 [], .run 91 [], .run 92 [], .run 93 [], .run 94 [],
         .run 85 [], .run 86 [], .run 85 [], .run 86 [], .run 85 [], .run 86 []]]
 
-/-- Part of `hcert`. -/
 def calls12 : List (List CoreMode.Wit) :=
   [[.run 144 [], .run 145 [], .run 146 [], .run 147 [], .run 148 [], .run 149 [], .run 150 [], .run 151 [],
         .run 152 [], .run 153 [], .run 154 [], .run 155 [], .run 156 [], .run 157 [], .run 158 [], .run 159 [],
@@ -3012,7 +2977,6 @@ def calls12 : List (List CoreMode.Wit) :=
         .run 111 [], .run 112 [], .run 113 [], .run 114 [], .run 111 [], .run 112 [], .run 113 [], .run 114 [],
         .run 97 [], .run 98 [], .run 97 [], .run 98 [], .run 97 [], .run 98 []]]
 
-/-- Part of `hcert`. -/
 def calls13 : List (List CoreMode.Wit) :=
   [[.run 212 [], .run 213 [], .run 214 [], .run 215 [], .run 216 [], .run 217 [], .run 218 [], .run 219 [],
         .run 220 [], .run 221 [], .run 222 [], .run 223 [], .run 224 [], .run 225 [], .run 226 [], .run 227 [],
@@ -3159,7 +3123,6 @@ def calls13 : List (List CoreMode.Wit) :=
         .run 131 [], .run 132 [], .run 133 [], .run 134 [], .run 131 [], .run 132 [], .run 133 [], .run 134 [],
         .run 109 [], .run 110 [], .run 109 [], .run 110 [], .run 109 [], .run 110 []]]
 
-/-- Part of `hcert`. -/
 def calls14 : List (List CoreMode.Wit) :=
   [[.run 280 [], .run 281 [], .run 282 [], .run 283 [], .run 284 [], .run 285 [], .run 286 [], .run 287 [],
         .run 288 [], .run 289 [], .run 290 [], .run 291 [], .run 292 [], .run 293 [], .run 294 [], .run 295 [],
@@ -3281,7 +3244,6 @@ def calls14 : List (List CoreMode.Wit) :=
         .run 90 [], .run 91 [], .run 92 [], .run 93 [], .run 90 [], .run 91 [], .run 92 [], .run 93 [],
         .run 90 [], .run 91 [], .run 90 [], .run 91 [], .run 90 [], .run 91 []]]
 
-/-- Part of `hcert`. -/
 def calls15 : List (List CoreMode.Wit) :=
   [[.run 107 [], .run 108 [], .run 109 [], .run 110 [], .run 111 [], .run 112 [], .run 113 [], .run 114 [],
         .run 115 [], .run 116 [], .run 117 [], .run 118 [], .run 119 [], .run 120 [], .run 121 [], .run 122 [],
@@ -3428,7 +3390,6 @@ def calls15 : List (List CoreMode.Wit) :=
         .run 110 [], .run 111 [], .run 112 [], .run 113 [], .run 110 [], .run 111 [], .run 112 [], .run 113 [],
         .run 102 [], .run 103 [], .run 102 [], .run 103 [], .run 102 [], .run 103 []]]
 
-/-- Part of `hcert`. -/
 def calls16 : List (List CoreMode.Wit) :=
   [[.run 175 [], .run 176 [], .run 177 [], .run 178 [], .run 179 [], .run 180 [], .run 181 [], .run 182 [],
         .run 183 [], .run 184 [], .run 185 [], .run 186 [], .run 187 [], .run 188 [], .run 189 [], .run 190 [],
@@ -3575,7 +3536,6 @@ def calls16 : List (List CoreMode.Wit) :=
         .run 130 [], .run 131 [], .run 132 [], .run 133 [], .run 130 [], .run 131 [], .run 132 [], .run 133 [],
         .run 114 [], .run 115 [], .run 114 [], .run 115 [], .run 114 [], .run 115 []]]
 
-/-- Part of `hcert`. -/
 def calls17 : List (List CoreMode.Wit) :=
   [[.run 243 [], .run 244 [], .run 245 [], .run 246 [], .run 247 [], .run 248 [], .run 249 [], .run 250 [],
         .run 251 [], .run 252 [], .run 253 [], .run 254 [], .run 255 [], .run 256 [], .run 257 [], .run 258 [],
@@ -3722,7 +3682,6 @@ def calls17 : List (List CoreMode.Wit) :=
         .run 150 [], .run 151 [], .run 152 [], .run 153 [], .run 150 [], .run 151 [], .run 152 [], .run 153 [],
         .run 126 [], .run 127 [], .run 126 [], .run 127 [], .run 126 [], .run 127 []]]
 
-/-- Part of `hcert`. -/
 def calls18 : List (List CoreMode.Wit) :=
   [[.run 29 [967], .run 30 [968], .run 31 [969], .run 32 [970], .run 33 [971], .run 34 [972],
         .run 35 [973], .run 36 [974], .run 9 [], .run 10 [], .run 11 [], .run 12 [], .run 13 [], .run 14 [],
@@ -3845,7 +3804,6 @@ def calls18 : List (List CoreMode.Wit) :=
         .run 109 [], .run 110 [], .run 111 [], .run 112 [], .run 109 [], .run 110 [], .run 111 [], .run 112 [],
         .run 107 [], .run 108 [], .run 107 [], .run 108 [], .run 107 [], .run 108 []]]
 
-/-- Part of `hcert`. -/
 def calls19 : List (List CoreMode.Wit) :=
   [[.run 138 [], .run 139 [], .run 140 [], .run 141 [], .run 142 [], .run 143 [], .run 144 [], .run 145 [],
         .run 146 [], .run 147 [], .run 148 [], .run 149 [], .run 150 [], .run 151 [], .run 152 [], .run 153 [],
@@ -3992,7 +3950,6 @@ def calls19 : List (List CoreMode.Wit) :=
         .run 129 [], .run 130 [], .run 131 [], .run 132 [], .run 129 [], .run 130 [], .run 131 [], .run 132 [],
         .run 119 [], .run 120 [], .run 119 [], .run 120 [], .run 119 [], .run 120 []]]
 
-/-- Part of `hcert`. -/
 def calls20 : List (List CoreMode.Wit) :=
   [[.run 206 [], .run 207 [], .run 208 [], .run 209 [], .run 210 [], .run 211 [], .run 212 [], .run 213 [],
         .run 214 [], .run 215 [], .run 216 [], .run 217 [], .run 218 [], .run 219 [], .run 220 [], .run 221 [],
@@ -4139,7 +4096,6 @@ def calls20 : List (List CoreMode.Wit) :=
         .run 149 [], .run 150 [], .run 151 [], .run 152 [], .run 149 [], .run 150 [], .run 151 [], .run 152 [],
         .run 131 [], .run 132 [], .run 131 [], .run 132 [], .run 131 [], .run 132 []]]
 
-/-- Part of `hcert`. -/
 def calls21 : List (List CoreMode.Wit) :=
   [[.run 274 [], .run 275 [], .run 276 [], .run 277 [], .run 278 [], .run 279 [], .run 280 [], .run 281 [],
         .run 282 [], .run 283 [], .run 284 [], .run 285 [], .run 286 [], .run 287 [], .run 288 [], .run 289 [],
@@ -4286,7 +4242,6 @@ def calls21 : List (List CoreMode.Wit) :=
         .run 169 [], .run 170 [], .run 171 [], .run 172 [], .run 169 [], .run 170 [], .run 171 [], .run 172 [],
         .run 143 [], .run 144 [], .run 143 [], .run 144 [], .run 143 [], .run 144 []]]
 
-/-- Part of `hcert`. -/
 def calls22 : List (List CoreMode.Wit) :=
   [[.run 342 [], .run 343 [], .run 344 [], .run 345 [], .run 346 [], .run 347 [], .run 348 [], .run 349 [],
         .run 350 [], .run 351 [], .run 352 [], .run 353 [], .run 354 [], .run 355 [], .run 356 [], .run 357 [],
@@ -4433,7 +4388,6 @@ def calls22 : List (List CoreMode.Wit) :=
         .run 189 [], .run 190 [], .run 191 [], .run 192 [], .run 189 [], .run 190 [], .run 191 [], .run 192 [],
         .run 155 [], .run 156 [], .run 155 [], .run 156 [], .run 155 [], .run 156 []]]
 
-/-- Part of `hcert`. -/
 def calls23 : List (List CoreMode.Wit) :=
   [[.run 410 [], .run 411 [], .run 412 [], .run 413 [], .run 414 [], .run 415 [], .run 416 [], .run 417 [],
         .run 418 [], .run 419 [], .run 420 [], .run 421 [], .run 422 [], .run 423 [], .run 424 [], .run 425 [],
@@ -4580,7 +4534,6 @@ def calls23 : List (List CoreMode.Wit) :=
         .run 209 [], .run 210 [], .run 211 [], .run 212 [], .run 209 [], .run 210 [], .run 211 [], .run 212 [],
         .run 167 [], .run 168 [], .run 167 [], .run 168 [], .run 167 [], .run 168 []]]
 
-/-- Part of `hcert`. -/
 def calls24 : List (List CoreMode.Wit) :=
   [[.run 478 [], .run 479 [], .run 480 [], .run 481 [], .run 482 [], .run 483 [], .run 484 [], .run 485 [],
         .run 486 [], .run 487 [], .run 488 [], .run 489 [], .run 490 [], .run 491 [], .run 492 [], .run 493 [],
@@ -4727,7 +4680,6 @@ def calls24 : List (List CoreMode.Wit) :=
         .run 229 [], .run 230 [], .run 231 [], .run 232 [], .run 229 [], .run 230 [], .run 231 [], .run 232 [],
         .run 179 [], .run 180 [], .run 179 [], .run 180 [], .run 179 [], .run 180 []]]
 
-/-- Part of `hcert`. -/
 def calls25 : List (List CoreMode.Wit) :=
   [[.run 546 [], .run 547 [], .run 548 [], .run 549 [], .run 550 [], .run 551 [], .run 552 [], .run 553 [],
         .run 554 [], .run 555 [], .run 556 [], .run 557 [], .run 558 [], .run 559 [], .run 560 [], .run 561 [],
@@ -4775,7 +4727,6 @@ def calls25 : List (List CoreMode.Wit) :=
         .pre 197, .pre 199, .run 17 [], .run 134 []],
     [.run 8 [], .run 28 [1096]]]
 
-/-- `check_opening_terminal`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(7, 1), (13, 1)], 0⟩, ⟨[(8, 1)], 0⟩, ⟨[(10, 1)], 0⟩, ⟨[(12, 1)], 0⟩, ⟨[(13, 1)], 0⟩,
@@ -5030,7 +4981,6 @@ def hcert : CoreMode.HCert where
         .run 130 [], .run 130 [], .run 130 [], .run 135 []]]
   eqs := [1714]
 
-/-- `check_opening_terminal`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_check_opening_terminal", 
     { pre := [⟨[(0, 1), (2, 1)], 0⟩],
@@ -5407,12 +5357,9 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 176), (.num 193)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 240), (.num 257)⟩,
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 304), (.num 321)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 368), (.num 385)⟩,
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 432), (.num 449)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 496), (.num 512)⟩] })]
-/-- `check_opening_terminal`: each dispatch's callees by its call site's callee frame cell. -/
 def dsp : List (ℕ × List String) :=
   [(148, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (152, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (156, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (162, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (168, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (172, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (176, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (180, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (184, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (188, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (192, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (196, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (200, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (204, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (208, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (212, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (216, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (220, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (224, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (228, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (232, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (236, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (240, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (244, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (248, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (252, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (256, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (260, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (264, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (268, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (272, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (276, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (280, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (284, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (288, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (292, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (296, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (300, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (304, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (308, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (312, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (316, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (320, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (324, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (328, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (332, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (336, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (340, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (344, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (348, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (352, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (356, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (360, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (364, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (368, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (372, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (376, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (380, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (384, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (388, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (392, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (396, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (400, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (404, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (408, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (412, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (416, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (420, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (424, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (428, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (432, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (436, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (440, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (444, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (448, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (452, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (456, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (460, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (464, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (468, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (472, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (476, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (480, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (484, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (488, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (492, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (496, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (500, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (504, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (508, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (512, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (516, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (520, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"]), (524, ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"])]
-/-- `check_opening_terminal`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `check_opening_terminal`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5420,10 +5367,7 @@ end
 end LeanVM.Guest.Fn.«check_opening_terminal»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L16»
-
 @[expose] public section
-
-/-- `child_claim_list_mono_last__L16`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
@@ -5526,12 +5470,9 @@ def hcert : CoreMode.HCert where
         .ev 94, .ev 0, .ev 1]]
   eqs := [167]
 
-/-- `child_claim_list_mono_last__L16`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `child_claim_list_mono_last__L16`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `child_claim_list_mono_last__L16`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5539,10 +5480,7 @@ end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L16»
 
 namespace LeanVM.Guest.Fn.«da_levels__L128_L7»
-
 @[expose] public section
-
-/-- `da_levels__L128_L7`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.num 64)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.num 64)⟩,
@@ -5635,7 +5573,6 @@ def hcert : CoreMode.HCert where
         .run 6 [], .run 6 [], .run 6 [], .run 6 [], .run 6 [], .run 6 [], .run 6 [], .run 6 [], .run 6 [],
         .run 6 [], .run 6 [], .run 6 []]]
 
-/-- `da_levels__L128_L7`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_da_levels__L128_L7", 
     { preR := [⟨⟨[(2, 1)], 0⟩, 4, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 1⟩, 4, (.val 0), (.val 1)⟩,
@@ -5665,9 +5602,7 @@ def csigs : List (String × CoreMode.HSig) :=
     { preR := [⟨⟨[(2, 1)], 504⟩, 4, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 505⟩, 4, (.val 0), (.val 1)⟩,
         ⟨⟨[(2, 1)], 506⟩, 4, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 507⟩, 4, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 508⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 509⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `da_levels__L128_L7`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `da_levels__L128_L7`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5675,10 +5610,7 @@ end
 end LeanVM.Guest.Fn.«da_levels__L128_L7»
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
-
 @[expose] public section
-
-/-- `decode_query_windows__L22_L4`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -5719,12 +5651,9 @@ def hcert : CoreMode.HCert where
     (235, 4), (235, 5), (235, 6), (235, 7), (235, 8), (235, 9), (281, 0), (281, 1), (281, 2), (281, 3),
     (281, 4)]
 
-/-- `decode_query_windows__L22_L4`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `decode_query_windows__L22_L4`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `decode_query_windows__L22_L4`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5732,10 +5661,7 @@ end
 end LeanVM.Guest.Fn.«decode_query_windows__L22_L4»
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
-
 @[expose] public section
-
-/-- `decode_query_windows__L27_L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -5772,12 +5698,9 @@ def hcert : CoreMode.HCert where
     (219, 2), (219, 3), (219, 4), (219, 5), (219, 6), (219, 7), (219, 8), (219, 9), (219, 10), (219, 11),
     (274, 0), (274, 1), (274, 2), (274, 3), (274, 4), (274, 5)]
 
-/-- `decode_query_windows__L27_L3`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   []
-/-- `decode_query_windows__L27_L3`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `decode_query_windows__L27_L3`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5785,10 +5708,7 @@ end
 end LeanVM.Guest.Fn.«decode_query_windows__L27_L3»
 
 namespace LeanVM.Guest.Fn.«level_positions__L9_L22_L4»
-
 @[expose] public section
-
-/-- `level_positions__L9_L22_L4`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(7, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(7, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(7, 1)], 2⟩,
@@ -5816,7 +5736,6 @@ def hcert : CoreMode.HCert where
         .run 3 [], .run 3 [], .pts, .ev 6, .ev 8, .ev 10, .ev 12, .ev 14, .pfr 4 [], .pfr 20 [], .pfr 21 [],
         .pfr 22 [], .pfr 23 [], .pfr 24 []]]
 
-/-- `level_positions__L9_L22_L4`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_positions__L9_L22_L4", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
@@ -5841,9 +5760,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4])] })]
-/-- `level_positions__L9_L22_L4`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_positions__L9_L22_L4`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -5851,10 +5768,7 @@ end
 end LeanVM.Guest.Fn.«level_positions__L9_L22_L4»
 
 namespace LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩,
@@ -5923,7 +5837,6 @@ def hcert : CoreMode.HCert where
         .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [], .run 12 [],
         .run 12 [], .run 12 [], .run 12 [], .run 12 [], .pf 323, .pfr 13 [], .pfr 14 []]]
 
-/-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩,
@@ -5942,9 +5855,7 @@ def csigs : List (String × CoreMode.HSig) :=
       postPR := [(⟨⟨[(6, 1)], 1⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4]),
         (⟨⟨[(6, 1)], 2⟩, 2, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
     ("verify_merkle_cap__L6", CoreMode.HcSig.«verify_merkle_cap__L6».sig)]
-/-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L6", 2, 2)]
 
@@ -5952,10 +5863,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
@@ -5984,7 +5892,6 @@ def hcert : CoreMode.HCert where
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
-/-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -5995,9 +5902,7 @@ def csigs : List (String × CoreMode.HSig) :=
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3, 4])] }),
     ("verify_merkle_cap__L5", CoreMode.HcSig.«verify_merkle_cap__L5».sig)]
-/-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L5", 2, 2)]
 
@@ -6005,10 +5910,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
@@ -6030,7 +5932,6 @@ def hcert : CoreMode.HCert where
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
-/-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -6041,9 +5942,7 @@ def csigs : List (String × CoreMode.HSig) :=
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
     ("verify_merkle_cap__L4", CoreMode.HcSig.«verify_merkle_cap__L4».sig)]
-/-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L4", 2, 2)]
 
@@ -6051,10 +5950,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(2, 1)], 4⟩, ⟨[(2, 1)], 5⟩,
@@ -6083,7 +5979,6 @@ def hcert : CoreMode.HCert where
     [.pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.run 3 [], .run 4 [], .run 5 [], .pfr 6 []]]
 
-/-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0", 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -6094,9 +5989,7 @@ def csigs : List (String × CoreMode.HSig) :=
       prePR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])],
       postPR := [(⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.val 7)⟩, [0, 1, 2, 3])] }),
     ("verify_merkle_cap__L5", CoreMode.HcSig.«verify_merkle_cap__L5».sig)]
-/-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   [("verify_merkle_cap__L5", 2, 2)]
 
@@ -6104,10 +5997,7 @@ end
 end LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_residual__L25_L15_L4_L2»
-
 @[expose] public section
-
-/-- `level_residual__L25_L15_L4_L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -6137,7 +6027,6 @@ def hcert : CoreMode.HCert where
         .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .pre 12,
         .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .run 8 []]]
 
-/-- `level_residual__L25_L15_L4_L2`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L25_L15_L4_L2", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
@@ -6156,9 +6045,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨[(4, 1)], 11⟩, ⟨[(4, 1)], 12⟩, ⟨[(4, 1)], 13⟩, ⟨[(4, 1)], 14⟩],
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L25_L15_L4_L2`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L25_L15_L4_L2`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -6166,10 +6053,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L25_L15_L4_L2»
 
 namespace LeanVM.Guest.Fn.«level_residual__L32_L20_L4_L2»
-
 @[expose] public section
-
-/-- `level_residual__L32_L20_L4_L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -6197,7 +6081,6 @@ def hcert : CoreMode.HCert where
         .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .pre 12,
         .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .pre 20, .pre 21, .pre 22, .pre 23]]
 
-/-- `level_residual__L32_L20_L4_L2`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L32_L20_L4_L2", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
@@ -6210,9 +6093,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 4⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 5⟩, 8, (.val 0), (.val 1)⟩,
         ⟨⟨[(2, 1)], 6⟩, 8, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 7⟩, 8, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(3, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L32_L20_L4_L2`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L32_L20_L4_L2`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -6220,10 +6101,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L32_L20_L4_L2»
 
 namespace LeanVM.Guest.Fn.«level_residual__L44_L16_L4_L2»
-
 @[expose] public section
-
-/-- `level_residual__L44_L16_L4_L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(2, 1)], 2⟩,
@@ -6253,7 +6131,6 @@ def hcert : CoreMode.HCert where
         .run 6 [], .run 7 [], .pts, .pre 0, .pre 2, .pre 4, .pre 6, .pre 8, .pre 9, .pre 10, .pre 11, .pre 12,
         .pre 13, .pre 14, .pre 15, .pre 16, .pre 17, .pre 18, .pre 19, .run 8 []]]
 
-/-- `level_residual__L44_L16_L4_L2`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_level_residual__L44_L16_L4_L2", 
     { pre := [⟨[(0, 2), (3, 1)], 0⟩, ⟨[(4, 1)], 0⟩, ⟨[(5, 1)], 0⟩, ⟨[(0, 2), (3, 1)], 1⟩, ⟨[(4, 1)], 1⟩,
@@ -6272,9 +6149,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨[(4, 1)], 11⟩, ⟨[(4, 1)], 12⟩, ⟨[(4, 1)], 13⟩, ⟨[(4, 1)], 14⟩, ⟨[(4, 1)], 15⟩],
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
-/-- `level_residual__L44_L16_L4_L2`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `level_residual__L44_L16_L4_L2`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 
@@ -6282,10 +6157,7 @@ end
 end LeanVM.Guest.Fn.«level_residual__L44_L16_L4_L2»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0»
-
 @[expose] public section
-
-/-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(3, 1)], 0⟩, ⟨[(3, 1)], 1⟩, ⟨[(3, 1)], 2⟩, ⟨[(3, 1)], 3⟩, ⟨[(3, 1)], 4⟩, ⟨[(3, 1)], 5⟩,
@@ -6300,7 +6172,6 @@ def hcert : CoreMode.HCert where
   calls := [[.ev 0, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
   rets := [[.pts, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
 
-/-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: its callees' heap signatures, their mode signatures' translated. -/
 def csigs : List (String × CoreMode.HSig) :=
   [("__loop0_opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 
     { pre := [⟨[(0, 1), (8, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(6, 1)], 3⟩, ⟨[(6, 1)], 4⟩,
@@ -6308,9 +6179,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(2, 1)], 0⟩, 1, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(8, 1)], 1⟩, 1, (.val 0), (.val 1)⟩],
       prePR := [(⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4])] })]
-/-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: its own contract its heap signature's (`CFun.hc`). -/
 def hcFlag : Bool := false
-/-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`: its callees whose contract is their heap signature's (`CFun.hcs`), with argument and return counts. -/
 def hcCallees : List (String × ℕ × ℕ) :=
   []
 

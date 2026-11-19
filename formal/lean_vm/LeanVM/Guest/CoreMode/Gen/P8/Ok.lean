@@ -14,57 +14,18 @@ public import LeanVM.Guest.CoreMode.Gen.«P8».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L13»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L13`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«block_selector__L13».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L13»
-
-namespace LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
-
-@[expose] public section
-
-/-- `da_factors__L13_L7_L0`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«da_factors__L13_L7_L0».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L13».heap_ok : CoreMode.heapOk Fn.«block_selector__L13».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«da_factors__L13_L7_L0».heap_ok : CoreMode.heapOk Fn.«da_factors__L13_L7_L0».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L4».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L19».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L19».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L20».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L20».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L4»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L4».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L4»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L19»
-
-@[expose] public section
-
-/-- `plus_one_run__L19`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L19».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L19»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L20»
-
-@[expose] public section
-
-/-- `plus_one_run__L20`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L20».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L20»
+end LeanVM.Guest

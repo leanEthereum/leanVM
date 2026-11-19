@@ -13,10 +13,7 @@ set_option maxRecDepth 100000
 set_option linter.all false
 
 namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
-
 @[expose] public section
-
-/-- `gkr_rounds__L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 862⟩, ⟨[(0, 1)], 1724⟩, ⟨[(0, 1)], 2586⟩, ⟨[(0, 1)], 3448⟩,
     ⟨[(0, 1)], 5172⟩, ⟨[(2, 1)], 0⟩, ⟨[(2, 1)], 1⟩, ⟨[(2, 1)], 2⟩, ⟨[(2, 1)], 3⟩, ⟨[(1, 1)], 0⟩,
@@ -28,7 +25,6 @@ def hcert : CoreMode.HCert where
     (57, [(2, 6, .pre 13)]), (60, [(2, 7, .pre 14)]), (77, [(1, 1, .pre 15)])]
   res := []
 
-/-- `gkr_rounds__L2`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 0⟩, .ev 10), (⟨[(0, 1)], 1⟩, .ev 18),
     (⟨[(1, 1)], 1⟩, .ev 16), (⟨[(1, 1)], 42⟩, .ev 11), (⟨[(1, 1)], 43⟩, .ev 17),
@@ -43,16 +39,12 @@ end
 end LeanVM.Guest.Fn.«gkr_rounds__L2»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L0»
-
 @[expose] public section
-
-/-- `padding_weight__L0`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
 
-/-- `padding_weight__L0`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   []
 
@@ -60,10 +52,7 @@ end
 end LeanVM.Guest.Fn.«padding_weight__L0»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L15»
-
 @[expose] public section
-
-/-- `padding_weight__L15`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
     ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
@@ -75,7 +64,6 @@ def hcert : CoreMode.HCert where
     (89, [(1, 14, .pre 14)])]
   res := []
 
-/-- `padding_weight__L15`: the heap cells it promises its callers, with their witnesses. -/
 def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
   [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
     (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),

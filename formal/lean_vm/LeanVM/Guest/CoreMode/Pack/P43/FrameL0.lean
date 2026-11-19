@@ -29,11 +29,8 @@ public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W16
 set_option Elab.async false
 
 namespace LeanVM.Guest.Fn.«main_loop2»
-
 open LeanVM.Guest LeanVM.Guest.Exec
-
 @[expose] public section
-
 /-- `__loop2_main`: its hints by pc increase. -/
 theorem frameHints : Mode.pcsIncr frameFun.hints = true := by
   decide +kernel
@@ -63,7 +60,5 @@ theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
     ⟨frameWin12, List.forall_mem_cons.2 ⟨frameWin13, List.forall_mem_cons.2 ⟨frameWin14,
     List.forall_mem_cons.2 ⟨frameWin15, List.forall_mem_cons.2 ⟨frameWin16, List.forall_mem_nil
     _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
-
 end
-
 end LeanVM.Guest.Fn.«main_loop2»

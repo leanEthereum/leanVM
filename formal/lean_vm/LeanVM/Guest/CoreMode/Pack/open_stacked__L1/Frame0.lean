@@ -53,14 +53,16 @@ public import LeanVM.Guest.Pack.«open_stacked__L1».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«open_stacked__L1»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
 /-- `open_stacked__L1`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«open_stacked__L1».fpows : PowTree :=
   (.node 3199637757049665611 215183 (.node 4294967296 32 (.node 64 6 (.node 16 4 (.node 4 2 (.node 2
     1 .leaf .leaf) .leaf) (.node 32 5 .leaf .leaf)) (.node 262144 18 (.node 4096 12 (.node 256 8
     .leaf .leaf) .leaf) (.node 16777216 24 .leaf .leaf))) (.node 263394960066080457 255112 (.node
@@ -77,54 +79,21 @@ noncomputable def fpows : PowTree :=
     (.node 17433780945747129669 215659 .leaf .leaf)))))
 
 /-- `open_stacked__L1`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+theorem Fn.«open_stacked__L1».fpows_ok : fpows.OkW :=
+  PowTree.okW_of_okWB (by decide +kernel)
 
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee0 : List ℕ :=
-  [256792, 256834, 256876, 256918]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee1 : List ℕ :=
-  [256960, 257001, 257041, 257079]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee2 : List ℕ :=
-  [257171, 257213, 257255, 257297]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee3 : List ℕ :=
-  [257339, 257378, 257415, 257452]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee4 : List ℕ :=
-  [255605, 255647, 257528, 257570]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee5 : List ℕ :=
-  [257612, 257647, 257683, 257719]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee6 : List ℕ :=
-  [255689, 255919, 255961, 256003]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee7 : List ℕ :=
-  [257833, 257869, 257906, 257941]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee8 : List ℕ :=
-  [258018, 258063, 258108, 258153]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee9 : List ℕ :=
-  [258198, 258243, 258288, 258333]
-
-/-- `open_stacked__L1`: a table call's callees' pcs. -/
-def frameCallee10 : List ℕ :=
-  [258357, 258381, 258426, 258471]
-
-/-- `open_stacked__L1`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
+def Fn.«open_stacked__L1».frameCallee0 : List ℕ := [256792, 256834, 256876, 256918]
+def Fn.«open_stacked__L1».frameCallee1 : List ℕ := [256960, 257001, 257041, 257079]
+def Fn.«open_stacked__L1».frameCallee2 : List ℕ := [257171, 257213, 257255, 257297]
+def Fn.«open_stacked__L1».frameCallee3 : List ℕ := [257339, 257378, 257415, 257452]
+def Fn.«open_stacked__L1».frameCallee4 : List ℕ := [255605, 255647, 257528, 257570]
+def Fn.«open_stacked__L1».frameCallee5 : List ℕ := [257612, 257647, 257683, 257719]
+def Fn.«open_stacked__L1».frameCallee6 : List ℕ := [255689, 255919, 255961, 256003]
+def Fn.«open_stacked__L1».frameCallee7 : List ℕ := [257833, 257869, 257906, 257941]
+def Fn.«open_stacked__L1».frameCallee8 : List ℕ := [258018, 258063, 258108, 258153]
+def Fn.«open_stacked__L1».frameCallee9 : List ℕ := [258198, 258243, 258288, 258333]
+def Fn.«open_stacked__L1».frameCallee10 : List ℕ := [258357, 258381, 258426, 258471]
+noncomputable def Fn.«open_stacked__L1».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 214300, 1508,
     Fn.«open_stacked__L1».modeSig, (.node none (.node none (.node none (.node none (.node none
     (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
@@ -312,10 +281,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     frameCallee10) .nil .nil) .nil))), Fn.«open_stacked__L1».pairO, Fn.«open_stacked__L1».pairS,
     .nil⟩
 
-/-- `open_stacked__L1`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«open_stacked__L1».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«open_stacked__L1»
+end LeanVM.Guest

@@ -14,79 +14,20 @@ public import LeanVM.Guest.CoreMode.Gen.«P47».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L4»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `claim_list_last__L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«claim_list_last__L4».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«claim_list_last__L4»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L38»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L38`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L38».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«claim_list_last__L4».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L38».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L38».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L10».heap_ok : CoreMode.heapOk Fn.«index_mle__L10».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L29».heap_ok : CoreMode.heapOk Fn.«index_mle__L29».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«rs_eq_rows__L2».heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L2».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L26».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L26».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«walk_path__L12_L5».heap_ok : CoreMode.heapOk Fn.«walk_path__L12_L5».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«eq_prefix_run__L38»
 
-namespace LeanVM.Guest.Fn.«index_mle__L10»
-
-@[expose] public section
-
-/-- `index_mle__L10`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L10».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«index_mle__L10»
-
-namespace LeanVM.Guest.Fn.«index_mle__L29»
-
-@[expose] public section
-
-/-- `index_mle__L29`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L29».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«index_mle__L29»
-
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L2»
-
-@[expose] public section
-
-/-- `rs_eq_rows__L2`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L2».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«rs_eq_rows__L2»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L26»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L26`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L26».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L26»
-
-namespace LeanVM.Guest.Fn.«walk_path__L12_L5»
-
-@[expose] public section
-
-/-- `walk_path__L12_L5`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«walk_path__L12_L5».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«walk_path__L12_L5»
+end LeanVM.Guest

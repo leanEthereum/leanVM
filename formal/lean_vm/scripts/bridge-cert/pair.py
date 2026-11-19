@@ -43,22 +43,8 @@ def run(check):
         by_mod.setdefault(ctxs[k][2], []).append(k)
     for cm, ks in sorted(by_mod.items()):
         mod = check_module(cm)
-        body = ''.join(f'''namespace LeanVM.Guest.Fn.«{k}»
-
-open LeanVM.Guest
-
-public section
-
-/-- `{k}`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk {ctxs[k][0]} Fn.«{k}».cert.locs Fn.«{k}».fs Fn.«{k}».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«{k}»
-
-''' for k in ks)
+        body = data.fn_thms((k, 'pairOk', f'Bridge.pairChk {ctxs[k][0]} cert.locs fs core.body = true',
+                             'decide +kernel') for k in ks)
         files[os.path.join(OUT, mod.split('PairChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' computed hints pass the data check.")
             + 'public import LeanVM.Guest.Bridge.PairDefs\n' + ''.join(f'public import {m}\n' for m in pack_imports(cm))
@@ -81,12 +67,8 @@ end LeanVM.Guest.Fn.«{k}»
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
             body.append(f'''kernel_rfl adv{j} : Data.adviceFns[{j}]? = some Data.adviceFn{j}
-
 kernel_rfl len{j} : Data.adviceFn{j}.2.1 = Fn.«{k}».code.instructionCount
-
-theorem pok{j} : Bridge.PairJ {j} :=
-  Bridge.pairJ_of Checked.code{j} Checked.core{j} Checked.cert{j} Bridge.ProgAl.tab{j} {fe} Fn.«{k}».pairOk
-    adv{j} len{j}
+theorem pok{j} : Bridge.PairJ {j} := Bridge.pairJ_of Checked.code{j} Checked.core{j} Checked.cert{j} Bridge.ProgAl.tab{j} {fe} Fn.«{k}».pairOk adv{j} len{j}
 ''')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD.format(mod=f'LeanVM.Guest.Bridge.PairChk.{lmod}',
@@ -99,7 +81,7 @@ open LeanVM.Guest
 
 public section
 
-''' + '\n'.join(body) + '''
+''' + ''.join(body) + '''
 end
 
 end LeanVM.Guest.Bridge.PairChk

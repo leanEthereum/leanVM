@@ -14,57 +14,18 @@ public import LeanVM.Guest.CoreMode.Gen.«P16».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L1»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `claim_list_last__L1`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«claim_list_last__L1».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«claim_list_last__L1»
-
-namespace LeanVM.Guest.Fn.«da_padding»
-
-@[expose] public section
-
-/-- `da_padding`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«da_padding».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«claim_list_last__L1».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«da_padding».heap_ok : CoreMode.heapOk Fn.«da_padding».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L15».heap_ok : CoreMode.heapOk Fn.«index_mle__L15».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«rs_eq_rows__L7».heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L7».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L23».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L23».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_padding»
 
-namespace LeanVM.Guest.Fn.«index_mle__L15»
-
-@[expose] public section
-
-/-- `index_mle__L15`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L15».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«index_mle__L15»
-
-namespace LeanVM.Guest.Fn.«rs_eq_rows__L7»
-
-@[expose] public section
-
-/-- `rs_eq_rows__L7`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«rs_eq_rows__L7».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«rs_eq_rows__L7»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L23»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L23`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L23».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L23»
+end LeanVM.Guest

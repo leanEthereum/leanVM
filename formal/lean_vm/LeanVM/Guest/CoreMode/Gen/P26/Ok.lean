@@ -14,57 +14,18 @@ public import LeanVM.Guest.CoreMode.Gen.«P26».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L33»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `eq_prefix_run__L33`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L33».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L33»
-
-namespace LeanVM.Guest.Fn.«index_mle__L22»
-
-@[expose] public section
-
-/-- `index_mle__L22`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L22».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«eq_prefix_run__L33».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L33».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L22».heap_ok : CoreMode.heapOk Fn.«index_mle__L22».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L25».heap_ok : CoreMode.heapOk Fn.«padding_weight__L25».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L4».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«walk_path__L18_L4».heap_ok : CoreMode.heapOk Fn.«walk_path__L18_L4».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«index_mle__L22»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L25»
-
-@[expose] public section
-
-/-- `padding_weight__L25`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«padding_weight__L25».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L25»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L4»
-
-@[expose] public section
-
-/-- `plus_one_run__L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L4».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«plus_one_run__L4»
-
-namespace LeanVM.Guest.Fn.«walk_path__L18_L4»
-
-@[expose] public section
-
-/-- `walk_path__L18_L4`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«walk_path__L18_L4».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«walk_path__L18_L4»
+end LeanVM.Guest

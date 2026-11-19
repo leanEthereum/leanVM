@@ -79,14 +79,16 @@ public import LeanVM.Guest.Pack.«verify_tables».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«verify_tables»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest LeanVM.Guest.Exec
+namespace LeanVM.Guest
+
+open LeanVM.Guest.Exec
 
 @[expose] public section
 
 /-- `verify_tables`: the powers of `g` its code names. -/
-noncomputable def fpows : PowTree :=
+noncomputable def Fn.«verify_tables».fpows : PowTree :=
   (.node 6686845316181103282 21923 (.node 747481329577371311 20819 (.node 8589934592 33 (.node 512 9
     (.node 32 5 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 16 4 .leaf .leaf))
     (.node 128 7 (.node 64 6 .leaf .leaf) (.node 256 8 .leaf .leaf))) (.node 8388608 23 (.node 4096
@@ -147,40 +149,30 @@ noncomputable def fpows : PowTree :=
     .leaf)))))))
 
 /-- `verify_tables`: its code's powers are powers of `g`. -/
-theorem fpows_ok : fpows.OkW := PowTree.okW_of_okWB (by decide +kernel)
+theorem Fn.«verify_tables».fpows_ok : fpows.OkW :=
+  PowTree.okW_of_okWB (by decide +kernel)
 
-/-- `verify_tables`: a table call's callees' pcs. -/
-def frameCallee0 : List ℕ :=
-  [189864, 189874, 189896, 189930, 189974, 190026, 190086, 190154, 190230, 190314, 190406, 190506,
-    190614, 190730, 190854, 190986, 191126, 191274, 191430, 191594, 191766, 191946, 192134, 192330,
-    192534, 192746, 192966, 193194, 193430, 193674, 193926]
-
-/-- `verify_tables`: a table call's callees' pcs. -/
-def frameCallee1 : List ℕ :=
-  [194186, 194189, 194195, 194204, 194216, 194231, 194249, 194270, 194294, 194321, 194351, 194384,
-    194420, 194459, 194501, 194546, 194594, 194645, 194699, 194756, 194816, 194879, 194945, 195014,
-    195086, 195161, 195239, 195320, 195404, 195491, 195581, 195674, 195770, 195869]
-
-/-- `verify_tables`: a table call's callees' pcs. -/
-def frameCallee2 : List ℕ :=
-  [195971, 195975, 195987, 196009, 196041, 196083, 196135, 196197, 196269, 196351, 196443, 196545,
-    196657, 196779, 196911, 197053, 197205, 197367, 197539, 197721, 197913, 198115, 198327, 198549,
-    198781, 199023, 199275, 199537, 199809, 200091, 200383, 200685, 200997, 201319]
-
-/-- `verify_tables`: a table call's callees' pcs. -/
-def frameCallee3 : List ℕ :=
-  [201651, 201654, 201661, 201673, 201690, 201712, 201739, 201771, 201808, 201850, 201897, 201949,
-    202006, 202068, 202135, 202207, 202284, 202366, 202453, 202545, 202642, 202744, 202851, 202963,
-    203080, 203202, 203329, 203461, 203598, 203740, 203887, 204039, 204196, 204358]
-
-/-- `verify_tables`: a table call's callees' pcs. -/
-def frameCallee4 : List ℕ :=
-  [204525, 204529, 204542, 204555, 204568, 204581, 204605, 204629, 204653, 204676, 204710, 204744,
-    204778, 204811, 204855, 204899, 204943, 204986, 205040, 205094, 205148, 205201, 205265, 205329,
-    205393, 205456, 205530, 205604, 205678, 205751, 205835, 205919, 206003, 206086]
-
-/-- `verify_tables`: what its frame walk is told. -/
-noncomputable def frameFun : CoreMode.FFun :=
+def Fn.«verify_tables».frameCallee0 : List ℕ := [189864, 189874, 189896, 189930, 189974, 190026,
+    190086, 190154, 190230, 190314, 190406, 190506, 190614, 190730, 190854, 190986, 191126, 191274,
+    191430, 191594, 191766, 191946, 192134, 192330, 192534, 192746, 192966, 193194, 193430, 193674,
+    193926]
+def Fn.«verify_tables».frameCallee1 : List ℕ := [194186, 194189, 194195, 194204, 194216, 194231,
+    194249, 194270, 194294, 194321, 194351, 194384, 194420, 194459, 194501, 194546, 194594, 194645,
+    194699, 194756, 194816, 194879, 194945, 195014, 195086, 195161, 195239, 195320, 195404, 195491,
+    195581, 195674, 195770, 195869]
+def Fn.«verify_tables».frameCallee2 : List ℕ := [195971, 195975, 195987, 196009, 196041, 196083,
+    196135, 196197, 196269, 196351, 196443, 196545, 196657, 196779, 196911, 197053, 197205, 197367,
+    197539, 197721, 197913, 198115, 198327, 198549, 198781, 199023, 199275, 199537, 199809, 200091,
+    200383, 200685, 200997, 201319]
+def Fn.«verify_tables».frameCallee3 : List ℕ := [201651, 201654, 201661, 201673, 201690, 201712,
+    201739, 201771, 201808, 201850, 201897, 201949, 202006, 202068, 202135, 202207, 202284, 202366,
+    202453, 202545, 202642, 202744, 202851, 202963, 203080, 203202, 203329, 203461, 203598, 203740,
+    203887, 204039, 204196, 204358]
+def Fn.«verify_tables».frameCallee4 : List ℕ := [204525, 204529, 204542, 204555, 204568, 204581,
+    204605, 204629, 204653, 204676, 204710, 204744, 204778, 204811, 204855, 204899, 204943, 204986,
+    205040, 205094, 205148, 205201, 205265, 205329, 205393, 205456, 205530, 205604, 205678, 205751,
+    205835, 205919, 206003, 206086]
+noncomputable def Fn.«verify_tables».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, 19982, 5240,
     Fn.«verify_tables».modeSig, (.node none (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
@@ -1040,10 +1032,8 @@ noncomputable def frameFun : CoreMode.FFun :=
     none .nil (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))))))))))), .nil,
     .nil⟩
 
-/-- `verify_tables`: its frame walk accepts its code. -/
-theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
+theorem Fn.«verify_tables».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
-
 end
 
-end LeanVM.Guest.Fn.«verify_tables»
+end LeanVM.Guest

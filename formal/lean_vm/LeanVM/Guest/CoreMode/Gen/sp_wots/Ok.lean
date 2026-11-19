@@ -14,13 +14,14 @@ public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«sp_wots»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `sp_wots`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«sp_wots».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
+
+theorem Fn.«sp_wots».heap_ok : CoreMode.heapOk Fn.«sp_wots».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«sp_wots»
+
+end LeanVM.Guest

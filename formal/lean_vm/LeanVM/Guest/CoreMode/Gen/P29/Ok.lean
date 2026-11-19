@@ -14,79 +14,20 @@ public import LeanVM.Guest.CoreMode.Gen.«P29».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«block_selector__L21»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `block_selector__L21`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«block_selector__L21».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«block_selector__L21»
-
-namespace LeanVM.Guest.Fn.«block_selector__L7»
-
-@[expose] public section
-
-/-- `block_selector__L7`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«block_selector__L7».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«block_selector__L21».heap_ok : CoreMode.heapOk Fn.«block_selector__L21».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L7».heap_ok : CoreMode.heapOk Fn.«block_selector__L7».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«da_expand__L13_L7».heap_ok : CoreMode.heapOk Fn.«da_expand__L13_L7».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«da_expand__L6_L7».heap_ok : CoreMode.heapOk Fn.«da_expand__L6_L7».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L25».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L25».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«index_mle__L9».heap_ok : CoreMode.heapOk Fn.«index_mle__L9».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«walk_path__L6_L6».heap_ok : CoreMode.heapOk Fn.«walk_path__L6_L6».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«block_selector__L7»
 
-namespace LeanVM.Guest.Fn.«da_expand__L13_L7»
-
-@[expose] public section
-
-/-- `da_expand__L13_L7`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«da_expand__L13_L7».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«da_expand__L13_L7»
-
-namespace LeanVM.Guest.Fn.«da_expand__L6_L7»
-
-@[expose] public section
-
-/-- `da_expand__L6_L7`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«da_expand__L6_L7».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«da_expand__L6_L7»
-
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L25»
-
-@[expose] public section
-
-/-- `eq_prefix_run__L25`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L25».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L25»
-
-namespace LeanVM.Guest.Fn.«index_mle__L9»
-
-@[expose] public section
-
-/-- `index_mle__L9`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«index_mle__L9».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«index_mle__L9»
-
-namespace LeanVM.Guest.Fn.«walk_path__L6_L6»
-
-@[expose] public section
-
-/-- `walk_path__L6_L6`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«walk_path__L6_L6».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«walk_path__L6_L6»
+end LeanVM.Guest

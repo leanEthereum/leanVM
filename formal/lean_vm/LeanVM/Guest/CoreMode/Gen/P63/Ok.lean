@@ -14,46 +14,17 @@ public import LeanVM.Guest.CoreMode.Gen.«P63».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«claim_list_last__L15»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `claim_list_last__L15`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«claim_list_last__L15».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«claim_list_last__L15»
-
-namespace LeanVM.Guest.Fn.«opening_message__L6_L1»
-
-@[expose] public section
-
-/-- `opening_message__L6_L1`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«opening_message__L6_L1».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«claim_list_last__L15».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L15».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«opening_message__L6_L1».heap_ok : CoreMode.heapOk Fn.«opening_message__L6_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«sel_partial_nibble__L3».heap_ok : CoreMode.heapOk Fn.«sel_partial_nibble__L3».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L13».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L13».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«opening_message__L6_L1»
 
-namespace LeanVM.Guest.Fn.«sel_partial_nibble__L3»
-
-@[expose] public section
-
-/-- `sel_partial_nibble__L3`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«sel_partial_nibble__L3».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«sel_partial_nibble__L3»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L13»
-
-@[expose] public section
-
-/-- `squeeze_point_from__L13`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L13».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L13»
+end LeanVM.Guest

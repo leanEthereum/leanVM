@@ -20,15 +20,11 @@ open LeanVM.Guest
 
 public section
 
-/-- `open_stacked__L5`'s core data, the deployed guest's. -/
-theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L5».cfun :=
-  CoreMode.cfOk_of (by decide) Checked.code344 Checked.core344 Checked.cert344 Checked.plumbEq344
-    Bridge.ProgAl.tab344 rfl rfl rfl (by decide +kernel)
+theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L5».cfun := CoreMode.cfOk_of (by decide) Checked.code344 Checked.core344 Checked.cert344 Checked.plumbEq344 Bridge.ProgAl.tab344 rfl rfl rfl (by decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0
-    (Mode.fa_nil)
+  Mode.fa_cons cfOk0 (Mode.fa_nil)
 
 end
 

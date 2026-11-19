@@ -793,18 +793,15 @@ def ldata(k, r):
         assert body.startswith('  sig := ')
         rest = body[body.index('\n  reads := '):]
         body = f'  sig := {hcsig_ref(k)}' + rest
-    auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
+    auxt = ''.join(f'{d}\n' for d in aux)
     hcf = {f for f, _, _ in r.get('hcs', [])}
     cs = ',\n    '.join(f'("{f}", {hcsig_ref(I.callee(f)) if f in hcf else lcsig(h)})' for f, h in sorted(r['cs'].items()))
-    return (f'{auxt}/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n{body}\n'
-            f'/-- `{k}`: its callees\' heap signatures, their mode signatures\' translated. -/\n'
+    return (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
             f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n' + (
-                '/-- `%s`: each dispatch\'s callees by its call site\'s callee frame cell. -/\n'
-                'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (k, ', '.join(
+                'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (', '.join(
                     '(%d, [%s])' % (q, ', '.join('"%s"' % f for f in fs)) for q, fs in r['dsp'])) if r.get('dsp') else '') +
-            f'/-- `{k}`: its own contract its heap signature\'s (`CFun.hc`). -/\ndef hcFlag : Bool := {"true" if r.get("hc") else "false"}\n'
-            f'/-- `{k}`: its callees whose contract is their heap signature\'s (`CFun.hcs`), with argument and return '
-            f'counts. -/\ndef hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
+            f'def hcFlag : Bool := {"true" if r.get("hc") else "false"}\n'
+            f'def hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
 
 
 GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
@@ -845,7 +842,7 @@ def emit(R, check):
             out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n',
                                     'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.Gen.HcSig\n')
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{R[k]["text"]}'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{R[k]["text"]}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files[os.path.join(GEN, pack, 'DataC.lean')] = ''.join(out)
     files[os.path.join(GEN, 'HcSig.lean')] = hcsig_file(R)

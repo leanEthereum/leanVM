@@ -14,24 +14,15 @@ public import LeanVM.Guest.CoreMode.Gen.«P34».Data
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«eq_prefix_run__L11»
+set_option linter.style.nameCheck false
 
-@[expose] public section
+namespace LeanVM.Guest
 
-/-- `eq_prefix_run__L11`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L11».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+public section
 
-end
-end LeanVM.Guest.Fn.«eq_prefix_run__L11»
-
-namespace LeanVM.Guest.Fn.«plus_one_run__L17»
-
-@[expose] public section
-
-/-- `plus_one_run__L17`: the heap check. -/
-theorem heap_ok : CoreMode.heapOk Fn.«plus_one_run__L17».pows (fun _ ↦ .empty) core hcert = true := by
-  decide +kernel
+theorem Fn.«eq_prefix_run__L11».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L11».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L17».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L17».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
-end LeanVM.Guest.Fn.«plus_one_run__L17»
+
+end LeanVM.Guest

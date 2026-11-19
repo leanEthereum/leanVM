@@ -16,11 +16,8 @@ public import LeanVM.Guest.CoreMode.Pack.«sp_wots».FrameD0W3
 set_option Elab.async false
 
 namespace LeanVM.Guest.Fn.«sp_wots»
-
 open LeanVM.Guest LeanVM.Guest.Exec
-
 @[expose] public section
-
 /-- `sp_wots`: its hints by pc increase. -/
 theorem frameHints : Mode.pcsIncr frameFun.hints = true := by
   decide +kernel
@@ -41,7 +38,5 @@ theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
     code.chunks.flatten p.1 p.2 = true
   exact List.forall_mem_cons.2 ⟨frameWin0, List.forall_mem_cons.2 ⟨frameWin1, List.forall_mem_cons.2
     ⟨frameWin2, List.forall_mem_cons.2 ⟨frameWin3, List.forall_mem_nil _⟩⟩⟩⟩
-
 end
-
 end LeanVM.Guest.Fn.«sp_wots»

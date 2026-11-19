@@ -13,17 +13,14 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
-namespace LeanVM.Guest.Fn.«main_loop2»
+set_option linter.style.nameCheck false
 
-open LeanVM.Guest
+namespace LeanVM.Guest
 
 public section
 
-/-- `main_loop2`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«main_loop2».plumb Fn.«main_loop2».fs (Fn.«main_loop2».cert.withPows Data.powTree) []
-    Fn.«main_loop2».core Fn.«main_loop2».code.code (39 == 1) = true := by
-  decide +kernel
+theorem Fn.«main_loop2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (39 == 1) = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«main_loop2»
+end LeanVM.Guest
