@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
-public import LeanVM.Guest.Res.AnyData
+public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.Res.SelDefs

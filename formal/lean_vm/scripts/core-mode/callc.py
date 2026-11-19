@@ -174,11 +174,11 @@ _LINKS = {}
 
 
 def gl_of(k):
-    """`CFun.gl`, of `CoreMode.glOk`'s family: for a callee of `anyLink` (`Res/AnyData.lean`, its entries and bound
+    """`CFun.gl`, of `CoreMode.glOk`'s family: for a callee of `anyLink` (`CoreMode/Gen/AnyLink.lean`, its entries and bound
     parameters `pE`, `pL`), the caller's cell `2` linked to `pE` and cell `5` to `pL·g`; else none. As `{d: (b, k)}`."""
     if not _LINKS:
         import re
-        t = open(os.path.join(GUEST, 'Res', 'AnyData.lean'), encoding='utf-8').read()
+        t = open(os.path.join(GUEST, 'CoreMode', 'Gen', 'AnyLink.lean'), encoding='utf-8').read()
         for f, e, b in re.findall(r'\(name% «([^»]+)», (\d+), (\d+)\)', t):
             _LINKS[f] = {2: (int(e), 0), 5: (int(b), 1)}
         _LINKS.setdefault(None, None)

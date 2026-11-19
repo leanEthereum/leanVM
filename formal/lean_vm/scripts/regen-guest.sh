@@ -135,6 +135,8 @@ part_core_mode() {
     esac
   fi
   [ -f "$MODE_CERT_CACHE" ] || part_mode
+  step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
+  python3 -I scripts/core-mode/anylink.py "${check[@]}"
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
   python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
   step "core-mode: leaf loop helpers (scripts/core-mode/loopc.py)"
@@ -185,7 +187,7 @@ part_res() {
   python3 -I scripts/res-cert/term.py "${check[@]}"
   step "res: the residuals' families (scripts/res-cert/sel.py)"
   python3 -I scripts/res-cert/sel.py "${check[@]}"
-  step "res: the claim lists' table reads linked to their callers (scripts/res-cert/link.py)"
+  step "res: the residuals less the claim lists' linked table reads (scripts/res-cert/link.py)"
   python3 -I scripts/res-cert/link.py "${check[@]}"
   step "res: the monotone claim lists' table reads (scripts/res-cert/mono.py)"
   python3 -I scripts/res-cert/mono.py "${check[@]}"
