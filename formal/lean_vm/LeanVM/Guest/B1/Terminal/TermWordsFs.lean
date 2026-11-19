@@ -53,7 +53,7 @@ theorem fsB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
     rw [← h, ← hfn]
     exact wfs_eq hlt
 
-theorem fs_rs : Deployed.fs "rs_eq_run" = 50 := by
+theorem fs_rs : Deployed.fs "rs_eq_run" = 49 := by
   rw [fsB_idx (j := idx% «rs_eq_run») (by decide +kernel)]; decide +kernel
 
 theorem fs_l6 : Deployed.fs name% «rs_eq_run_loop0» = 27 := by
@@ -95,12 +95,12 @@ theorem l15_totalLeOn_fs :
                          (by decide +kernel)]; rfl :
     wcertOf name% «check_opening_terminal_loop0» = .loop none [] ⟨19, []⟩ [])
 
-/-- `rs_eq_run_loop0` within `1644` words per iteration and its run's phantom frame, `27`. -/
+/-- `rs_eq_run_loop0` within `1643` words per iteration and its run's phantom frame, `27`. -/
 theorem l6_totalLeOn_fs :
     TotalLeOn coreProgram Deployed.fs name% «rs_eq_run_loop0» LoopPre
-      fun a => logG (a.getD 1 0) * 1644 + Deployed.fs name% «rs_eq_run_loop0» :=
+      fun a => logG (a.getD 1 0) * 1643 + Deployed.fs name% «rs_eq_run_loop0» :=
   loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := idx% «rs_eq_run_loop0») (by decide +kernel)]; rfl :
-    wcertOf name% «rs_eq_run_loop0» = .loop none [] ⟨1644, []⟩ [])
+    wcertOf name% «rs_eq_run_loop0» = .loop none [] ⟨1643, []⟩ [])
 
 /-- `ring_switch_target_loop0` from `1` (to its constant end `g^8`) within `8 · 356 + 356` words (`8
 · 356` and its
@@ -178,13 +178,14 @@ theorem rsRows_totalLe_fs : ∀ r < 8,
   exact (fs_totalLe ((wcertOf_of_idx h.1).trans hcb) rd t args rets hn hv hb).trans hbB
 
 /-- **`rs_eq_run` on at most `34` coordinates within `8142` words** (`rs_totalLeOn34`:
-`50 + (27 + 4 · 1644) + 1489`). -/
+`49 + (27 + 4 · 1643) + 1489`). -/
 theorem rs_totalLeOn_fs : ∀ c ≤ 34,
     TotalLeOn coreProgram Deployed.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 8142 := by
   intro c hc rd t args rets hn hp hv hb
   refine (rs_totalLeOn34 l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show Deployed.fs "rs_eq_run" + (Deployed.fs name% «rs_eq_run_loop0» + 4 * 1644) + 1489 ≤ 8142
+  show Deployed.fs "rs_eq_run" + (Deployed.fs name% «rs_eq_run_loop0» + 4 * 1643) + 1489 ≤ 8142
   rw [fs_rs, fs_l6]
+  decide
 
 /-! ## At `Deployed.fs` -/
 

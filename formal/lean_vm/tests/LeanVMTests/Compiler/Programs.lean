@@ -35,9 +35,9 @@ def shape (p : Source.Program) : Option (Nat × Nat × Nat) :=
   | .error _ => none
 
 #guard LeanVMTests.Guest.Programs.all.map (fun t => shape t.program) ==
-  [(64, 128, 27), (62, 64, 24), (43, 64, 15), (1048, 2048, 20), (49, 64, 13), (25, 32, 23),
-   (16, 32, 17), (21, 32, 20), (10, 16, 9), (26, 32, 21), (69, 128, 27), (135, 256, 34),
-   (82, 128, 16), (69, 128, 24), (37, 64, 30), (55, 64, 21), (121, 128, 39)].map some
+  [(64, 128, 27), (58, 64, 24), (42, 64, 14), (1048, 2048, 20), (49, 64, 13), (25, 32, 23),
+   (16, 32, 17), (18, 32, 17), (10, 16, 9), (25, 32, 20), (69, 128, 27), (134, 256, 33),
+   (82, 128, 16), (68, 128, 24), (37, 64, 30), (54, 64, 20), (118, 128, 36)].map some
 
 /-- The code of a test program. -/
 def codeOf (name : String) : Option (List OffsetInstruction) :=
@@ -46,9 +46,10 @@ def codeOf (name : String) : Option (List OffsetInstruction) :=
     | .ok a => some a.code.toList
     | .error _ => none
 
--- `identities.py` whole: a pooled constant, a range check, an assertion and the halt.
+-- `identities.py` whole: a pooled constant, a range check, an assertion (its two values one cell)
+-- and the halt.
 #guard codeOf "identities" == some [
-  .set 2 4 0, .set 3 1 0, .mul 2 3 2, .deref 2 0 5 .cell, .mul 2 4 2, .deref 4 0 6 .cell,
-  .set 7 0 0, .mul 7 3 7, .set 8 32768 0, .jump 3 8 3]
+  .set 2 4 0, .set 2 4 0, .deref 2 0 4 .cell, .mul 2 3 2, .deref 3 0 5 .cell,
+  .set 6 0 0, .set 6 0 0, .set 7 1 0, .set 8 32768 0, .jump 7 8 7]
 
 end LeanVMTests.Compiler.Programs

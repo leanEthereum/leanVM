@@ -61,9 +61,9 @@ theorem remLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
   · exact loop_totalLeOn_at (j := idx% «keccak_layer__L1_loop1») (by decide +kernel)
       (by decide +kernel) (by decide +kernel)
 
-/-- The pack loops' frame at `Deployed.fs`: `236`. -/
+/-- The pack loops' frame at `Deployed.fs`: `220`. -/
 theorem packLoopName_fs {first : ℕ} (hf : first < 2) :
-    LeanVM.Guest.Deployed.fs (packLoopName first) = 236 := by
+    LeanVM.Guest.Deployed.fs (packLoopName first) = 220 := by
   interval_cases first
   · rw [show packLoopName 0 = name% «keccak_layer__L0_loop0» from rfl,
       fs_idx (j := idx% «keccak_layer__L0_loop0») (f := name% «keccak_layer__L0_loop0»)
@@ -74,9 +74,9 @@ theorem packLoopName_fs {first : ℕ} (hf : first < 2) :
           (by decide +kernel)]
     decide +kernel
 
-/-- The remainder loops' frame at `Deployed.fs`: `58`. -/
+/-- The remainder loops' frame at `Deployed.fs`: `56`. -/
 theorem remLoopName_fs {first : ℕ} (hf : first < 2) :
-    LeanVM.Guest.Deployed.fs (remLoopName first) = 58 := by
+    LeanVM.Guest.Deployed.fs (remLoopName first) = 56 := by
   interval_cases first
   · rw [show remLoopName 0 = name% «keccak_layer__L0_loop1» from rfl,
       fs_idx (j := idx% «keccak_layer__L0_loop1») (f := name% «keccak_layer__L0_loop1»)
