@@ -442,8 +442,9 @@ def prepIdx(F, R, c):
     base, S, lo, hi = R
     Q = prepQ(R)
     J = idxOf(Q, c, S)
-    return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and J[0] == hi[0] and \
-        J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and (J == hi or hasExp(F, J))
+    return S <= base[1] and not lo[0] and lo[1] == 0 and c == cmul(Q, cpow(J, S)) and (
+        (J[0] == hi[0] and J[1] <= hi[1] and tsub(hi[1], J[1]) < CAPE and hasExp(F, hi) and
+         (J == hi or hasExp(F, J))) or hasF(F, J, cshift(hi, 1)))
 
 
 def appQ(R):

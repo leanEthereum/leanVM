@@ -12,6 +12,9 @@ sys.modules.setdefault('infer', I)
 
 CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
+# `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
+# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
+VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},)}
 
 
 def top_atoms(body):
@@ -446,8 +449,9 @@ def st_sub(k, c):
 
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
+    import vtexp
+    return all(((res_fam(k, r, S[k]) or vtexp.vt_perm(k, r)) and all(v < I.GB for v in vals(r))) or
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -481,6 +485,27 @@ def vt_st_sub(k, c):
     if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
         return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
     return None
+
+
+def vt_facts(EM):
+    """The solver's exponent facts also from `verify_tables`' exponent family (`vtexp`, `CoreMode.vtExp`): `e(a) <
+    e(b)` stated under the site's path when the family proves it there."""
+    import vtexp
+    base = EM.Solver.fact
+    EM.RES_FILTER[0] = lambda k, r: k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or \
+        vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)
+
+    def fact(self, st, a, b):
+        f = base(self, st, a, b)
+        if f is not None or self.k != 'verify_tables':
+            return f
+        g = tuple(dict.fromkeys(self.X.path))
+        r = ('lt', self.idx(st, a), self.idx(st, b))
+        wr = ('under', g, r) if g else r
+        if not vtexp.vt_exp(self.k, wr):
+            return None
+        return [self.use(('vtexp', a, b, g), wr)]
+    return base, fact
 
 
 def cs_reads(EM):
@@ -530,6 +555,7 @@ def extend(out, why, S, verbose=False):
     base, EM.Solver.pt = cs_reads(EM)
     basef, EM.Solver.fact = sel_facts(EM)
     _, EM.Solver.fact = expq_facts(EM)
+    _, EM.Solver.fact = vt_facts(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
@@ -540,7 +566,7 @@ def extend(out, why, S, verbose=False):
             # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
             # residual is of no family
             for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                          FEATURES | {'dup', 'nohs'}):
+                          FEATURES | {'dup', 'nohs'}) + VT_FEATS.get(k, ()):
                 I.F.clear()
                 I.F.update(feats)
                 try:

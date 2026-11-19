@@ -570,7 +570,11 @@ class Pass:
             # a bound over the same bases is decided: one that fails is false, not a residual
             dl, dh = ioff(r[2], j), ioff(j, r[3])
             if not (not okl and dl is not None) and not (not okh and dh is not None) and (
-                    best is None or negidx(best[2]) and not negidx(j)):
+                    best is None or negidx(best[2]) and not negidx(j) or
+                    # an index over bases is no residual's below a constant bound when a run up to a bound over
+                    # bases holds it
+                    'vthi' in F and not best[4] and not best[0][3][0] and best[2][0] and r[3][0] and
+                    not negidx(j)):
                 # a run the cell has a negative constant offset in is a last resort: its index wraps below 0
                 best = (r, rw, j, okl, okh)
         return best

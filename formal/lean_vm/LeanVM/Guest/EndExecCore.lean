@@ -519,6 +519,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
           (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx) hsub
+          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
       · rw [← hfpL]
         exact stGlF hglv hgh hD0 (rd_hdr hF.hdr1 ha) haD
     | none =>
@@ -531,7 +532,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
         rw [Bool.and_eq_true, Bool.and_eq_true] at hgl1
         obtain ⟨⟨hgl1, -⟩, hgw0⟩ := hgl1
         refine ⟨e.σ, hB, fun hxw ↦ ?_, ?_, fun c j hc ↦ ?_⟩
-        · exact resOk_inst hr hI hIt hfind hres0 hmk hsk hparF hxw
+        · exact resOk_inst hr hI hIt hfind hres0 hmk hsk (List.isEmpty_iff.mp hgw0) hparF hxw
         · rw [← hfpL]
           exact glF_inst hr hI hIt hfind hpN hLk hgl1 hF.hdr1 _
         · rw [List.isEmpty_iff.mp hgw0] at hc; cases hc
@@ -546,6 +547,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
             (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
             (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
             (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+            (fun x hx ↦ vtExp_inst hr hI hIt hfind (fun v hv ↦ CoreMode.setG_eq hv) hng (CoreMode.gwR_setG hgs) hx)
         · rw [List.isEmpty_iff.mp hgle] at h; cases h
     | some k =>
       -- the ghost family: its ghost word the caller's entries table
@@ -559,6 +561,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
           (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
+          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
   refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,

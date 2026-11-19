@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Pair
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».DataC
 public import LeanVM.Guest.CoreMode.GenW.verify_sig_lean_sphincs.Ok
 public import LeanVM.Guest.CoreMode.Pack.verify_sig_lean_sphincs.Frame0
+public import LeanVM.Guest.CoreMode.SigSplit
 public import LeanVM.Guest.CoreMode.Small
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Mode.InvCert
@@ -40,18 +41,56 @@ attribute [local irreducible] pairO pairS
 /-- `verify_sig_lean_sphincs`: the heap check, at its callees' heap signatures. -/
 theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := heap_okW
 
+/-- `verify_sig_lean_sphincs`: no heap contract. -/
+theorem core_hc : cfun.hc = false := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its signature's preconditions translated. -/
+theorem core_sigP : CoreMode.sigOkPre modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) (Mode.jtRng modeEnv) = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its signature's promised cells. -/
+theorem core_sigC : CoreMode.sigOkPost modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its signature's ghost slots. -/
+theorem core_sigG : CoreMode.sigOkGh cfun cfun.fn.params.length = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its signature's promised run 0. -/
+theorem core_sigR0 : CoreMode.chunkAll (CoreMode.postRP modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)) modeFun.sig.postR 0 = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its signature's promised runs. -/
+theorem core_sigR : CoreMode.sigOkPostR modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body) = true :=
+  CoreMode.all_of_chunks 1 (by decide +kernel) fun i hi ↦ by
+    interval_cases i
+    exacts [core_sigR0]
+
 /-- `verify_sig_lean_sphincs`: its signature translated. -/
 theorem core_sig : CoreMode.ownOk modeFun.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)
-    (Mode.jtRng modeEnv) = true := by
-  decide +kernel
+    (Mode.jtRng modeEnv) = true :=
+  CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG
 
 /-- `verify_sig_lean_sphincs`: its returned products. -/
 theorem core_retv : (cfun.hc || CoreMode.retVOk cfun modeFun.sig) = true := by
   decide +kernel
 
-/-- `verify_sig_lean_sphincs`: its shape. -/
-theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true := by
+/-- `verify_sig_lean_sphincs`: its body's statements. -/
+theorem core_body : CoreMode.bodyCore cfun.fn.body = true := by
   decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its tables' jumps. -/
+theorem core_tgt : CoreMode.tgtOk cfun code.chunks.flatten = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: the rest of its shape. -/
+theorem core_rest : CoreMode.shapeRest cfun = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`: its shape. -/
+theorem core_shape : CoreMode.shapeOk cfun code.chunks.flatten = true :=
+  CoreMode.shapeOk_of core_body core_tgt core_rest
 
 /-- `verify_sig_lean_sphincs`: its calls' jumps. -/
 theorem core_calls : code.chunks.flatten.all (CoreMode.jumpCallOk cfun) = true := by

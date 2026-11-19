@@ -388,9 +388,36 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     (hq : W ((prepQ R).addrW w)) : W (c.addrW w) := by
   unfold prepIdx at h
   simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.ble_eq, Nat.blt_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hS, hlb⟩, hl0⟩, hc⟩, hbb⟩, hoff⟩, hd⟩, hexh⟩, hexj⟩ := h
+  obtain ⟨⟨⟨⟨hS, hlb⟩, hl0⟩, hc⟩, h⟩ := h
   set J := idxOf (prepQ R) c R.stride with hJ
   have hl0 := Nat.eq_of_beq_eq_true hl0
+  have hbase : R.base = (prepQ R).shift R.stride := by
+    simp only [prepQ, CCell.shift]
+    rw [Nat.sub_add_cancel hS]
+  rcases h with ⟨⟨⟨⟨hbb, hoff⟩, hd⟩, hexh⟩, hexj⟩ | hf
+  swap
+  · -- `J` below the upper bound's next: the point (`J = g^0`) or a cell of the run
+    obtain ⟨yj, yb, hyj, hyb, hlt⟩ := hasF_ok hF hf
+    obtain ⟨hyjc, hjv⟩ := rep_spec hyj
+    obtain ⟨hybc, hbv⟩ := rep_spec hyb
+    have hhv : R.hi.valW w = ofK (addressOfIndex (yb - 1)) := by
+      rw [valW_shift] at hbv
+      refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hbv.trans ?_)
+      rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
+    have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
+      rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+        mul_comm yj]
+    rcases Nat.eq_zero_or_pos yj with h0 | hpos
+    · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
+        show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one]
+      exact hq
+    · obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
+      refine hR _ ⟨0, yb - 1, k, ?_, ?_, Nat.zero_le _, by omega, ?_⟩
+      · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
+        rwa [hl0] at this
+      · rw [hhv, rep_of (by omega)]
+      · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+          addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
   obtain ⟨yh, hyh⟩ := hasExp_ok hF hexh
   -- `hi = J·g^d`
   have hhi : R.hi.valW w = J.valW w * ofK (addressOfIndex (R.hi.off - J.off)) := by
@@ -413,10 +440,7 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
       show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one]
     exact hq
-  · have hbase : R.base = (prepQ R).shift R.stride := by
-      simp only [prepQ, CCell.shift]
-      rw [Nat.sub_add_cancel hS]
-    obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
+  · obtain ⟨k, rfl⟩ : ∃ k, yj = k + 1 := ⟨yj - 1, by omega⟩
     refine hR _ ⟨0, yh, k, ?_, hyh, Nat.zero_le _, by omega, ?_⟩
     · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
       rwa [hl0] at this
