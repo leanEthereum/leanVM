@@ -54,26 +54,6 @@ end
 
 end LeanVM.Guest.ModePack.«P11»
 
-namespace LeanVM.Guest.ModePack.«P12»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«da_pad».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_pad_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code30 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P12»
-
 namespace LeanVM.Guest.ModePack.«P16»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -164,8 +144,8 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_plain_rounds__L6_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«keccak_layer__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«keccak_layer__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«verify_keccak_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_plain_rounds__L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -237,28 +217,6 @@ end
 
 end LeanVM.Guest.ModePack.«P34»
 
-namespace LeanVM.Guest.ModePack.«P36»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«keccak_layer__L1».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L1_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«grind_check__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L1_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code270 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P36»
-
 namespace LeanVM.Guest.ModePack.«P38»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -301,26 +259,6 @@ end
 
 end LeanVM.Guest.ModePack.«P42»
 
-namespace LeanVM.Guest.ModePack.«P46»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«verify_tables_loop1».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«verify_tables_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code268 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P46»
-
 namespace LeanVM.Guest.ModePack.«P54»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -332,7 +270,7 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K 
     (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«da_padding».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_levels__L32_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_vector».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_weights».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«da_verify_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))
@@ -345,28 +283,6 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
 end
 
 end LeanVM.Guest.ModePack.«P54»
-
-namespace LeanVM.Guest.ModePack.«P55»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«keccak_layer__L0».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L0_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«grind_check__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (EndExec.SigIn.left ⟨_, Fn.«keccak_layer__L0_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code271 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P55»
 
 namespace LeanVM.Guest.ModePack.«P57»
 

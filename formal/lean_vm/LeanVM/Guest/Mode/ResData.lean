@@ -9,18 +9,16 @@ module
 
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.CoreMode.Pack.«P42».Frame0
+public import LeanVM.Guest.CoreMode.Pack.«P46».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P51».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«verify_tables».Frame0
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P34».Mode0
-public import LeanVM.Guest.Pack.«P36».Mode0
 public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P42».Mode0
-public import LeanVM.Guest.Pack.«P46».Mode0
-public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
@@ -44,7 +42,7 @@ noncomputable def nzFns : List (Fun × List OffsetInstruction) := [
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables».funC, Fn.«verify_tables».code.chunks.flatten),
-  (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten)]
+  (Fn.«verify_tables_loop1».funC, Fn.«verify_tables_loop1».code.chunks.flatten)]
 
 /-- **Every nonzero residual of the guest's checked functions is a `MUL`'s divisor.** -/
 theorem nzMul_guest : ∀ p ∈ nzFns, nzMul p.1 p.2 = true :=
@@ -78,10 +76,8 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_mono_last__L0».funC, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop0».modeFun, Fn.«child_claim_list_mono_loop0».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
-  (Fn.«keccak_layer__L0».modeFun, Fn.«keccak_layer__L0».code.chunks.flatten),
-  (Fn.«keccak_layer__L1».modeFun, Fn.«keccak_layer__L1».code.chunks.flatten),
   (Fn.«verify_tables».funC, Fn.«verify_tables».code.chunks.flatten),
-  (Fn.«verify_tables_loop1».modeFun, Fn.«verify_tables_loop1».code.chunks.flatten)]
+  (Fn.«verify_tables_loop1».funC, Fn.«verify_tables_loop1».code.chunks.flatten)]
 
 /-- **Every residual of the listed functions has an obligation of its own.** -/
 theorem famOk_guest : ∀ p ∈ famFns, famOk p.1 p.2.length = true :=

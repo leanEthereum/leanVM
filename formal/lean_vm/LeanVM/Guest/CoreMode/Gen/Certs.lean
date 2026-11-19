@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig0
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig1
-public import LeanVM.Guest.CoreMode.Gen.Certs.Sig10
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig2
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig3
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig4

@@ -304,8 +304,13 @@ def callee_sig(G, na, nr):
         try:
             return runX(r, na, ent)
         except No:
-            # a run of constant bounds over argument entry cells and pointer bases (`fitB`, `baseC1`, `rngLIs`)
-            if not ps or r[1][0] != 'num' or r[2][0] != 'num' or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]):
+            # a run over argument entry cells and pointer bases (`fitB`, `baseC1`, `rngLIs`): of constant bounds, or of
+            # bounds the arguments' exponents (`boundsX`, their cells argument entry cells)
+            def bx(b):
+                return b[0] == 'num' and b[1] < 2 ** 62 or \
+                    (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1]))
+            if not ps or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]) or \
+                    not ((r[1][0] == 'num' and r[2][0] == 'num') or (bx(r[1]) and bx(r[2]))):
                 raise
             return runX(r, na, ent, gl=gl, gp=gp)
     h.preR = [pre_run(r) for r in G['preR']] + gpre
@@ -333,6 +338,21 @@ def callee_sig(G, na, nr):
             h.postPR.append(prun(p, na + nr))
         except No:
             pass
+    # a run whose upper bound is a slot's exponent extended by its next point, a promised cell (`CoreMode.rngXExt`)
+    import heapc
+    for r in G['postR'] + G['postL']:
+        try:
+            q = runX(r, na + nr)
+        except No:
+            continue
+        c, S, lo, hi = q
+        if len(hi[0]) != 1 or hi[0][0][1] != 1 or hi[1] != 0:
+            continue
+        pt = heapc.cmul(c, ((((hi[0][0][0], S),)), 0))
+        if any(hp_of(m) is None and _cell_or_none(m, na + nr) == pt for m in G['post']):
+            e = (c, S, lo, I.shift(hi, 1))
+            if e not in h.postR:
+                h.postR.append(e)
     # returned words' monomials over the argument cells its `retV` promises (`CoreMode.retMIn`)
     for o, m in G['retV']:
         k = o - 2 - na
@@ -342,6 +362,13 @@ def callee_sig(G, na, nr):
             except No:
                 pass
     return h
+
+
+def _cell_or_none(m, n):
+    try:
+        return cell(m, n)
+    except No:
+        return None
 
 
 def const_pow(body, v, k=0):
@@ -427,10 +454,22 @@ def own_sig(G, np, nr, gl=None):
     def own_pre_run(r):
         try:
             return runX(r, np)
-        except No:
-            if not gl:
+        except No as e:
+            if gl:
+                return runX(r, np, gl=gl)
+            if str(e) != 'pointer base':
                 raise
-            return runX(r, np, gl=gl)
+        # over own parameter words (`rngLIs` with `gpOf`): a base `.hp q d`'s word at its ghost slot
+        fp, k, bs = r[0]
+        if fp != 0 or not all(base_okg(b) for b, _ in bs):
+            raise No('pointer base')
+        out = [(b[1] - 2, e) if b[0] == 'fr' else (ghost_b(b[1], b[2]), e) for b, e in bs]
+        c = I.mk(tuple(out), k)
+        return norm_run((I.shift(c, r[4]), r[3], bound(r[1], np, None), bound(r[2], np, None)), c[1] + r[4])
+
+    def base_okg(b):
+        return 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28 and \
+            (b[0] == 'fr' or (b[0] == 'hp' and b[1] != 1))
     h.preR = [own_pre_run(r) for r in G['preR']]
     h.preR += [q for q in cov_runs(G, np) if q not in h.preR]
     h.preR += [q for q in gpre if q not in h.preR]
@@ -490,8 +529,14 @@ def own_sig(G, np, nr, gl=None):
             return []
     h.post = [c for m in G['post'] if not hp_of(m) for c in post(m)]
     h.postP = hp_facts([m for m in G['post'] if hp_of(m)], np, lambda q: q in G['entry'])
-    if any(c not in h.post for c, _ in h.postP):
-        raise No('own pointer cell')
+    # a pointer fact whose cell is not promised: its products over the word a top-level `load` reads there
+    # (`CoreMode.postNIn`)
+    pc = [c for c, _ in h.postP if c not in h.post]
+    if pc:
+        for m in G['post']:
+            if hp_of(m) and I.mk(((hp_of(m)[0] - 2, 1),), hp_of(m)[1]) in pc:
+                post_n(m)
+        h.postP = [p for p in h.postP if p[0] not in pc]
     # bounds an entry run bounds too (`CoreMode.expCells`, `expB`): their cells' words have exponents (`ExpW`)
     expc = exp_cells(G)
 
@@ -506,6 +551,10 @@ def own_sig(G, np, nr, gl=None):
     for x in range(np):
         if x not in sels and CORE_BODY.get('k') is not None and callcres.expq_bound(CORE_BODY['k'], x) is not None:
             sels[x] = callcres.expq_bound(CORE_BODY['k'], x)
+    # `da_pad`'s gap (`CoreMode.daGap`)
+    for x in range(np):
+        if x not in sels and CORE_BODY.get('k') is not None and callcres.da_gap_bound(CORE_BODY['k'], x) is not None:
+            sels[x] = callcres.da_gap_bound(CORE_BODY['k'], x)
     h.expRes = set()
 
     def own_run(r):
@@ -554,6 +603,9 @@ def own_sig(G, np, nr, gl=None):
             return ('num', b[1])
         if b[0] == 'ex' and b[2] == 0:
             p = base_p(b[1], 1)
+            if p is not None and b[1][0] == 'fr' and b[1][1] in expc and p[0] < np:
+                # a parameter an entry run bounds by its exponent (`CoreMode.idxOkN`'s `expCells`)
+                return ('val', p[0])
             if p is not None:
                 v = p[0]
                 m = callcres.expq_bound(k_own, v) if k_own is not None else None
@@ -613,6 +665,21 @@ def hp_val(body, k, d):
     return None
 
 
+BASE_FUEL = 16
+
+
+def hp_val_s(body, a, d):
+    """`CoreMode.hpValS`: `hpVal` at `a`'s cell `d`, or, `a`'s word the monomial `[b]·g^k` (`wordNf`, `baseFuel`
+    deep), at `b`'s cell `d + k`."""
+    n = hp_val(body, a, d)
+    if n is not None:
+        return n
+    m = word_nf(body, BASE_FUEL, a)
+    if len(m[0]) == 1 and m[0][0][1] == 1:
+        return hp_val(body, m[0][0][0], d + m[1])
+    return None
+
+
 def def_of(body, n):
     """`CoreMode.defOf`: the first top-level `const`, `copy` or `mul` defining `n`, before any `ret`."""
     for s in body:
@@ -653,7 +720,7 @@ def ghost_w(body, ks, p):
         return (((d - 2, 1),), 0)
     if q - 2 >= len(ks):
         return None
-    n = hp_val(body, ks[q - 2], d)
+    n = hp_val_s(body, ks[q - 2], d)
     return word_nf(body, WORD_FUEL, n) if n is not None else None
 
 
@@ -746,7 +813,7 @@ def infer_one(k, S, allow=None, hcsig=None):
                 # top-level `load` names (`CoreMode.hpArgOk`)
                 if a[0] == 'hp1' and not (2 <= a[1] and a[1] - 2 < np and a[1] < 2 ** 28 and a[1] in G['entry']):
                     raise No('callee caller cell')
-                if a[0] == 'hpw' and hp_val(body, args[a[1] - 2], a[2]) is None:
+                if a[0] == 'hpw' and hp_val_s(body, args[a[1] - 2], a[2]) is None:
                     raise No('callee argument word')
             exp_bounds(h, args, body, np, exp_cells(G), k, arg_res)
             if f in cs and cs[f].key() != h.key():

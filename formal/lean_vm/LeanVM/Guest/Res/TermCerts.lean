@@ -20,22 +20,18 @@ public section
 /-- **Every certificate's termination facts are its loop shape's.** -/
 theorem offCerts_term : ∀ K ∈ offCerts, TermOk K :=
   fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P11».certs_term)
-    (Mode.fa_cons (ModePack.«P12».certs_term)
     (Mode.fa_cons (ModePack.«P16».certs_term)
     (Mode.fa_cons (ModePack.«P24».certs_term)
     (Mode.fa_cons (ModePack.«P29».certs_term)
     (Mode.fa_cons (ModePack.«P3».certs_term)
     (Mode.fa_cons (ModePack.«P34».certs_term)
-    (Mode.fa_cons (ModePack.«P36».certs_term)
     (Mode.fa_cons (ModePack.«P38».certs_term)
     (Mode.fa_cons (ModePack.«P42».certs_term)
-    (Mode.fa_cons (ModePack.«P46».certs_term)
     (Mode.fa_cons (ModePack.«P54».certs_term)
-    (Mode.fa_cons (ModePack.«P55».certs_term)
     (Mode.fa_cons (ModePack.«P57».certs_term)
     (Mode.fa_cons (ModePack.«P61».certs_term)
     (Mode.fa_cons (ModePack.«P63».certs_term)
-    (Mode.fa_nil))))))))))))))))))
+    (Mode.fa_nil))))))))))))))
     (Mode.fa_nil)))
 
 /-- **The termination facts of the entered honest instances**, for the mode walk's certificates. -/

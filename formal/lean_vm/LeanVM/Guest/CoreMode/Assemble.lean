@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Mode.CertAssemble
 public import LeanVM.Guest.EndExecRS
 public import LeanVM.Guest.CoreMode.ListLit
+public import LeanVM.Guest.CoreMode.SigTrie
 
 /-!
 # The certificates, the core route's and the rest
@@ -101,6 +102,62 @@ def SigsOr (Kc : List Mode.Cert) (offSigs : List (ℕ × Sig)) (K : Mode.Cert) :
 theorem sigsOr_of {Kc : List Mode.Cert} {offSigs : List (ℕ × Sig)} {K : Mode.Cert} {l : List (ℕ × Sig)}
     (h : K.E.sigs.entries = l) (h' : ∀ p ∈ l, SigIn Kc p ∨ p ∈ offSigs) : SigsOr Kc offSigs K := by
   unfold SigsOr; rw [h]; exact h'
+
+/-- An entry of a trie is its value at that key. -/
+theorem trie_get_of_mem_entries {α : Type} :
+    ∀ {t : Exec.Trie α} {n : ℕ} {a : α}, (n, a) ∈ t.entries → t.get n = some a
+  | .nil, _, _, h => by simp [Exec.Trie.entries] at h
+  | .node v l r, n, a, h => by
+    rw [Exec.Trie.get_node]
+    simp only [Exec.Trie.entries, List.mem_append, List.mem_map] at h
+    rcases h with (h | ⟨⟨m, b⟩, hm, he⟩) | ⟨⟨m, b⟩, hm, he⟩
+    · cases v with
+      | none => simp at h
+      | some w =>
+        simp only [Option.toList_some, Option.map_some, List.mem_singleton, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        simp
+    · simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      have h0 : 2 * m + 1 ≠ 0 := by omega
+      have h1 : (2 * m + 1) % 2 = 1 := by omega
+      simp only [h0, h1, ↓reduceIte, show (2 * m + 1) / 2 = m by omega]
+      exact trie_get_of_mem_entries hm
+    · simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      have h0 : 2 * m + 2 ≠ 0 := by omega
+      have h1 : ¬ (2 * m + 2) % 2 = 1 := by omega
+      simp only [h0, h1, ↓reduceIte, show (2 * m + 2) / 2 - 1 = m by omega]
+      exact trie_get_of_mem_entries hm
+
+theorem foldl_sigTrie_get : ∀ {l : List Sig} {t : Exec.Trie Sig} {n : ℕ} {a : Sig},
+    (l.foldl (fun t G ↦ t.set G CoreMode.sigDepth G.pc) t).get n = some a → (a ∈ l ∧ n = a.pc) ∨ t.get n = some a
+  | [], _, _, _, h => Or.inr h
+  | G :: l, t, n, a, h => by
+    rcases foldl_sigTrie_get (l := l) h with ⟨hm, hn⟩ | h'
+    · exact Or.inl ⟨List.mem_cons_of_mem _ hm, hn⟩
+    · rcases Exec.Trie.get_set h' with ⟨rfl, rfl⟩ | h''
+      · exact Or.inl ⟨List.mem_cons_self, rfl⟩
+      · exact Or.inr h''
+
+/-- **A signature trie's entries are its list's signatures, each at its entry.** -/
+theorem sigTrie_entries {l : List Sig} {p : ℕ × Sig} (h : p ∈ (CoreMode.sigTrie l).entries) :
+    p.2 ∈ l ∧ p.1 = p.2.pc := by
+  rcases foldl_sigTrie_get (trie_get_of_mem_entries h) with h' | h'
+  · exact h'
+  · simp at h'
+
+/-- `sigsOr_of` from the environment's list of callee signatures (`CoreMode.envOf l`), in any order. -/
+theorem sigsOr_of_list {Kc : List Mode.Cert} {offSigs : List (ℕ × Sig)} {K : Mode.Cert} {l : List Sig}
+    (h : K.E.sigs = CoreMode.sigTrie l) (h' : ∀ G ∈ l, SigIn Kc (G.pc, G) ∨ (G.pc, G) ∈ offSigs) :
+    SigsOr Kc offSigs K := by
+  intro p hp
+  rw [h] at hp
+  obtain ⟨hm, he⟩ := sigTrie_entries hp
+  obtain ⟨n, G⟩ := p
+  simp only at hm he
+  subst he
+  exact h' G hm
 
 /-- **What the core route's data gives of its certificates `Kc`**, at its core data `T`, the
 residuals' listed parameters `nzs`, the callees off the route `offSigs` and `main`'s `Km`. -/

@@ -180,7 +180,7 @@ theorem tailL_spec {Cf : CFun} (h : tailL Cf = true) : ∃ c args, Cf.fn.body.dr
 /-- **`loopShapeOk0` but its pass over the body.** -/
 noncomputable def loopShapeRest0 (Cf : CFun) : Bool :=
   !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
-    !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
+    !Cf.frame.F.fpOne &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     (match Cf.frame.sig.self with
       | some o => decide (o + 1 < 2 ^ Exec.envDepth) && decide (o < 2 ^ 28)

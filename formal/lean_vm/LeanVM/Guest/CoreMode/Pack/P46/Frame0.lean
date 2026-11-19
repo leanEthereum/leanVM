@@ -37,6 +37,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -92,11 +93,16 @@ noncomputable def Fn.«block_selector__L11».frameFun : CoreMode.FFun :=
 theorem Fn.«block_selector__L11».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by
   decide +kernel
+noncomputable def Fn.«verify_tables_loop1».envC : Mode.Env := CoreMode.envOf
+    [Fn.«verify_tables_loop1».csig]
+noncomputable def Fn.«verify_tables_loop1».funC : Mode.Fun := ⟨Fn.«verify_tables_loop1».entry, 24,
+    Fn.«verify_tables_loop1».csig, .nil, (.node none .nil (.node (some [(.nz 2)]) .nil .nil)), .nil,
+    false, .nil⟩
 noncomputable def Fn.«verify_tables_loop1».frameFun : CoreMode.FFun :=
   ⟨{ env := [(7, (.fpg 0))], fpOne := false, pows := fpows, scaled := [7] },
-    Fn.«verify_tables_loop1».entry, 24, Fn.«verify_tables_loop1».csig, .nil, 524287, advice.2.2,
-    (.node none .nil (.node (some [2]) .nil .nil)), .nil, .nil, .nil, (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil)), .nil, .nil⟩
+    Fn.«verify_tables_loop1».entry, 24, Fn.«verify_tables_loop1».csig, (CoreMode.sigTrie
+    [Fn.«verify_tables_loop1».csig]), 524287, advice.2.2, (.node none .nil (.node (some [2]) .nil
+    .nil)), .nil, .nil, .nil, Fn.«verify_tables_loop1».pairO, Fn.«verify_tables_loop1».pairS, .nil⟩
 
 theorem Fn.«verify_tables_loop1».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by

@@ -595,7 +595,8 @@ def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     import vtexp
     return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or
-                 rc_pts(k, r)) and all(v < I.GB for v in vals(r))) or
+                 rc_pts(k, r) or lay_q(k, r) or vt_cp(k, r) or da_gap(k, r) or rc_tab(k, r)) and
+                all(v < I.GB for v in vals(r))) or
                (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or vtexp.vt_exp(k, r) for r in res)
 
 
@@ -632,6 +633,123 @@ def vt_st_sub(k, c):
     return None
 
 
+# `keccak_layer__L{first}`'s last record's cursor, by name (`CoreMode.layCur`), its stream its parameter `15`
+LAY_CUR = {'keccak_layer__L0': 745, 'keccak_layer__L1': 765}
+
+
+def lay_st_sub(k, c):
+    """`CoreMode.laySt`: `keccak_layer`'s read `c` words past its last record's cursor, `c < 36`, one of its stream's
+    `[15]·[0, 8192)`."""
+    if k in LAY_CUR and c[0] == ((LAY_CUR[k], 1),) and c[1] < 36:
+        return ('sub', c, ((((15, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
+def lay_q(k, r):
+    """`CoreMode.layQC`: `keccak_layer`'s family (`EndExec.LayQ`): a read past its last record's cursor (`lay_st_sub`),
+    its pack rounds' words `e(p9), e(p10) < 32`, under branch conditions."""
+    if k not in LAY_CUR:
+        return False
+    if r[0] == 'under':
+        return lay_q(k, r[2])
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
+        return r[1][1] in (9, 10) and 32 <= r[2][1] < CAPE
+    return r[0] == 'sub' and lay_st_sub(k, r[1]) == r
+
+
+# leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
+LEAF_FAM = {'verify_tables_loop1'}
+
+
+def vt_cp(k, r):
+    """`CoreMode.vtCp`: `verify_tables_loop1`'s read index `x·g^-1/i` (value `7`) below its bound (parameter `1`)
+    (`EndExec.VtCQ`)."""
+    if r[0] == 'under':
+        return vt_cp(k, r[2])
+    return I.callee(k) == 'verify_tables_loop1' and r == ('lt', ('val', 7), ('val', 1))
+
+
+def _guest_const(name):
+    """The guest's constant `name`, as `guest-export` writes it to `Data/Source.lean` (`guest_const%`)."""
+    import re
+    src = open(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
+    return int(re.search(r'def const_%s : Nat := (\d+)' % name, src).group(1))
+
+
+def da_gap_bound(k, x):
+    """`CoreMode.daGap`: `da_pad`'s gap, its parameter `2`, below `g^DA_MAX_ROWS` (`EndExec.DaPadQ`)."""
+    return _guest_const('DA_MAX_ROWS') if I.callee(k) == 'da_pad' and x == 2 else None
+
+
+def da_gap(k, r):
+    """`CoreMode.daGap`: a residual `e(2) < m`, `DA_MAX_ROWS <= m`, of `da_pad`."""
+    if r[0] == 'under':
+        return da_gap(k, r[2])
+    B = da_gap_bound(k, 2)
+    return B is not None and r[0] == 'lt' and r[1] == ('val', 2) and r[2][0] == 'num' and B <= r[2][1] < CAPE
+
+
+def tab_of(k, x):
+    """`CoreMode.tabOf`: `x` loaded at offset `0` through a top-level product `T·J`, `J` range checked below `g^N`:
+    `(T, J, N)`."""
+    atoms = top_atoms(I.CORE[k][1])
+    p = next((a[2] for a in atoms if a[0] == 'load' and a[1] == x and a[3] == 0), None)
+    tj = next((a[2:4] for a in atoms if a[0] == 'mul' and a[1] == p), None) if p is not None else None
+    N = rc_bound(atoms, tj[1]) if tj is not None else None
+    return None if N is None else (tj[0], tj[1], N)
+
+
+def tab_k(k, T, t):
+    """`CoreMode.tabK`: the exponent of the top-level constant a top-level `load` stores at `T·g^t`."""
+    atoms = top_atoms(I.CORE[k][1])
+    c = next((a[1] for a in atoms if a[0] == 'load' and a[2] == T and a[3] == t), None)
+    w = next((a[2] for a in atoms if a[0] == 'const' and a[1] == c), None) if c is not None else None
+    return pow_of(w)
+
+
+def tab_ev(x, J, t, kk, i):
+    """`CoreMode.tabEv`."""
+    if i[0] == 'num':
+        return i[1]
+    if i[0] == 'val':
+        return kk if i[1] == x else t if i[1] == J else None
+    acc = i[1][1]
+    for b, e in i[1][0]:
+        if b == x:
+            acc += e * kk
+        elif b == J:
+            acc += e * t
+        else:
+            return None
+    return acc
+
+
+def ivals(i):
+    return [] if i[0] == 'num' else [i[1]] if i[0] == 'val' else [b for b, _ in i[1][0]]
+
+
+def rc_tab(k, r):
+    """`CoreMode.rcTab`: an order over a range-checked table read, its index and constants, at every row."""
+    if r[0] == 'under':
+        return rc_tab(k, r[2])
+    if r[0] != 'lt':
+        return False
+    for x in ivals(r[1]) + ivals(r[2]):
+        tab = tab_of(k, x)
+        if tab is None:
+            continue
+        T, J, N = tab
+
+        def row(t):
+            kk = tab_k(k, T, t)
+            u = tab_ev(x, J, t, kk, r[1]) if kk is not None else None
+            v = tab_ev(x, J, t, kk, r[2]) if kk is not None else None
+            return u is not None and v is not None and u < v < CAPE
+        if all(row(t) for t in range(N)):
+            return True
+    return False
+
+
 def vt_facts(EM):
     """The solver's exponent facts also from `verify_tables`' exponent family (`vtexp`, `CoreMode.vtExp`): `e(a) <
     e(b)` stated under the site's path when the family proves it there."""
@@ -665,7 +783,8 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c))
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c) or vt_st_sub(self.k, c) or
+                                                 lay_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])

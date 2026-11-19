@@ -14,6 +14,7 @@ public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
 public import LeanVM.Guest.Res.SubDefs
+public import LeanVM.Guest.EndExecRVtL
 
 /-!
 # `verify_tables`' groups
@@ -258,6 +259,12 @@ theorem nzVal_vt133 : NzVal "verify_tables" (.n 133) := fun _ hr _ hI _ _ _ hIt 
 /-- **Rank `1`'s count key is nonzero.** -/
 theorem nzVal_vt430 : NzVal "verify_tables" (.n 430) := fun _ hr _ hI _ _ _ hIt ↦
   (vt_groups_at hr hI hIt).2.2.2.1
+
+/-- **The copy loop's counter is nonzero**: `g^i` (`VtCQ`). -/
+theorem nzVal_vtl1 : NzVal name% «verify_tables_loop1» (.n 0) := fun _ hr I hI σ bufs kids hIt ↦ by
+  obtain ⟨i, n, h0, -⟩ := vtCQ_all hr I hI σ bufs kids hIt
+  rw [h0]
+  exact Value.gen_pow_ne_zero i
 
 /-! ## The families at the honest frames -/
 

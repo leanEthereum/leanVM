@@ -1014,7 +1014,7 @@ class Solver:
                 fl = None
                 if not rts:
                     # or a fact `(hi, r^S·g)`: the residues reach past the upper bound
-                    for R in st.rs.values():
+                    for R in sorted(st.rs.values(), key=lambda R: -R[3][1]):
                         if R[0][0] == base[0] and R[1] == S0 * S and R[3][0]:
                             fl = self.fact(st, hi, C.cshift(C.cpow(R[3], S), 1))
                             if fl is not None:

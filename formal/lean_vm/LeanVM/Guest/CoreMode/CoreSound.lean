@@ -663,8 +663,10 @@ theorem mapN_runSet {nv : List ℕ} {w : ℕ → E} {q : CRun} (h : q.vals.all (
 
 /-- **A run bound over values** (`idxN`) with an exponent (`idxOkN`) is the bound's value. -/
 theorem idxN_val {X : AlignCtx} {body : List Stmt} {np : ℕ} {s : St} {σ : Val} {res : List CRes} {i : Mode.Idx}
-    {ci : CIdx} (hi : idxN X body np i = some ci) (hc : BaseCellsF (baseOfP X body np) s σ (idxB i))
-    (hres : ∀ r ∈ res, r.Holds σ) (hok : idxOkN res ci = true) :
+    {ci : CIdx} {img : MemoryImage κ} {fp : ℕ} {xs : List ℕ} (hi : idxN X body np i = some ci)
+    (hc : BaseCellsF (baseOfP X body np) s σ (idxB i))
+    (hres : ∀ r ∈ res, r.Holds σ) (hx : ExpW img xs fp) (hpar : ∀ k < np, Rd img fp (2 + k) = some (σ (V.n k)))
+    (hok : idxOkN res xs np ci = true) :
     ∃ x, IdxVal s i x ∧ rep ((idxC ci).valW (vw σ)) = some x := by
   cases i with
   | num n =>
@@ -679,7 +681,20 @@ theorem idxN_val {X : AlignCtx} {body : List Stmt} {np : ℕ} {s : St} {σ : Val
     split at hi
     · rename_i v hbv
       cases hi
-      simp only [idxOkN, expV, List.any_eq_true] at hok
+      simp only [idxOkN, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at hok
+      rcases hok with hok | ⟨hvn, hvx⟩
+      swap
+      · -- a parameter an entry run bounds by its exponent (`ExpW`)
+        obtain ⟨e, he, hr⟩ := hx _ hvx
+        have hσv : σ (V.n v) = ofK (g ^ e) := by
+          have := hpar v hvn
+          rw [hr, Option.some.injEq] at this
+          exact this.symm
+        have hB := hc (b, 1) (by simp [idxB]) v 1 hbv
+        refine ⟨e, ⟨σ (V.n v), e, (hB _).mpr rfl, hσv, he, by simp⟩, ?_⟩
+        rw [idxC, valW_baseC, show vw σ v = σ (V.n v) from rfl, hσv]
+        exact rep_of (by rw [capE_eq]; exact he)
+      simp only [expV, List.any_eq_true] at hok
       obtain ⟨r, hr, hrv⟩ := hok
       match r, hrv with
       | .lt (.val v') (.num m), hrv =>
@@ -696,16 +711,18 @@ theorem idxN_val {X : AlignCtx} {body : List Stmt} {np : ℕ} {s : St} {σ : Val
 
 /-- **A run over values written** (`postRNIn`'s) is its mode run written. -/
 theorem rwN_exp {X : AlignCtx} {body : List Stmt} {np : ℕ} {s : St} {σ : Val} {res : List CRes} {r : Mode.Rng}
-    {c : CCell} {lo hi : CIdx} (hm : monoF (baseOfP X body np) r.q = some c)
+    {c : CCell} {lo hi : CIdx} {img : MemoryImage κ} {fp : ℕ} {xs : List ℕ}
+    (hm : monoF (baseOfP X body np) r.q = some c)
     (hc : BaseCellsF (baseOfP X body np) s σ (rngM r).bs) (hlo : idxN X body np r.lo = some lo)
-    (hhi : idxN X body np r.hi = some hi) (hres : ∀ r ∈ res, r.Holds σ) (hokl : idxOkN res lo = true)
-    (hokh : idxOkN res hi = true)
+    (hhi : idxN X body np r.hi = some hi) (hres : ∀ r ∈ res, r.Holds σ) (hx : ExpW img xs fp)
+    (hpar : ∀ k < np, Rd img fp (2 + k) = some (σ (V.n k))) (hokl : idxOkN res xs np lo = true)
+    (hokh : idxOkN res xs np hi = true)
     (h : ∀ x, (⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩ : CRun).Set (vw σ) x → WrK s.mem x) : Mode.RW s r := by
   have hcq : BaseCellsF (baseOfP X body np) s σ r.q.bs := fun b hb ↦ hc b (by simp [rngM, hb])
   have hcl : BaseCellsF (baseOfP X body np) s σ (idxB r.lo) := fun b hb ↦ hc b (by simp [rngM, hb])
   have hch : BaseCellsF (baseOfP X body np) s σ (idxB r.hi) := fun b hb ↦ hc b (by simp [rngM, hb])
-  obtain ⟨xlo, hxlo, hylo⟩ := idxN_val hlo hcl hres hokl
-  obtain ⟨xhi, hxhi, hyhi⟩ := idxN_val hhi hch hres hokh
+  obtain ⟨xlo, hxlo, hylo⟩ := idxN_val hlo hcl hres hx hpar hokl
+  obtain ⟨xhi, hxhi, hyhi⟩ := idxN_val hhi hch hres hx hpar hokh
   refine ⟨c.val σ, xlo, xhi, (monoVal_iffF (expKeep_P _ _ _) hm hcq _).mpr rfl, hxlo, hxhi, fun j h1 h2 ↦ ?_⟩
   have hx := h _ (runSet_iff.mpr ⟨xlo, xhi, j, hylo, hyhi, h1, h2, rfl⟩)
   rw [val_eq, run_cell]
@@ -2186,6 +2203,133 @@ theorem slotW_app_get {A B : List E} {n i : ℕ} {w : E} (hA : A.length = n) (h 
   unfold slotW
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, h, Option.getD_some]
 
+/-- **A run extended by its next point is written** (`rngXExt`): its cells below the upper bound's exponent `e` the
+run's, the one at `e` its next point (`nextPt`). -/
+theorem rw_slotXExt {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} {b : ℕ} {c : CCell} (hr : rngX r = some q)
+    (hqb : q.hi = .val b) (hqc : nextPt q = some c) (hcs : SlotEq s ws (rngM r).bs) (h : RW s r)
+    (hpt : WrK s.mem (c.addrW (slotW ws))) :
+    ∀ x, (⟨q.base, q.stride, q.lo, .mono ⟨[(b, 1)], 1⟩⟩ : CRun).Set (slotW ws) x → WrK s.mem x := by
+  intro x hx
+  obtain ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩ := runSet_iff.mp hx
+  have hRW := rw_slotX hr hcs h
+  obtain ⟨lo, hi, c0, hlo, hhi, hmc, hq⟩ := rngX_spec hr
+  -- the upper bound's word, `g^e`
+  obtain ⟨vq, xlo, xhi, -, -, hih, -⟩ := h
+  have hhi' : idxX r.hi = some (.val b) := by rw [hhi, ← hqb, hq]
+  have hc3 : SlotEq s ws (idxB r.hi) := fun x hx ↦ hcs x (by simp [rngM, hx])
+  have hwb : slotW ws b = ofK (addressOfIndex xhi) ∧ xhi < capE := by
+    rcases idxX_spec hhi' with ⟨n, -, -, hn⟩ | ⟨o, d, ho, h2o, -, hd⟩
+    · cases hn
+    · rw [ho] at hih hc3
+      obtain ⟨v, e, hv, hve, he, rfl⟩ := hih
+      obtain ⟨o', ho', -, hget⟩ := hc3 _ List.mem_cons_self
+      simp only [Mode.Base.fr.injEq] at ho'
+      subst ho'
+      simp only [BaseVal] at hv
+      have hb : b = o - 2 ∧ d = 0 := by
+        unfold idxO at hd
+        cases hd0 : Nat.beq d 0
+        · rw [hd0] at hd; cases hd
+        · rw [hd0] at hd
+          simp only [Bool.cond_true, CIdx.val.injEq] at hd
+          exact ⟨hd, Nat.eq_of_beq_eq_true hd0⟩
+      obtain ⟨rfl, rfl⟩ := hb
+      rw [← hget _ hv, hve, Nat.add_zero]
+      exact ⟨rfl, by rw [capE_eq]; exact he⟩
+  obtain ⟨hwb, hxc⟩ := hwb
+  -- the extended bound's exponent, `e + 1`
+  have hy : yhi = xhi + 1 := by
+    have e1 : (idxC (.mono ⟨[(b, 1)], 1⟩)).valW (slotW ws) = ofK (addressOfIndex (xhi + 1)) := by
+      simp only [idxC, CCell.valW, prodW, pow_one, mul_one, hwb, addressOfIndex, pow_add, ofK_mul']
+    obtain ⟨hy1, hy2⟩ := rep_spec h2
+    rw [e1] at hy2
+    have := capE_eq
+    exact (gpow_inj_lt (by omega) (by omega) hy2).symm
+  rcases Nat.lt_or_ge j xhi with hj | hj
+  · refine hRW _ (runSet_iff.mpr ⟨ylo, xhi, j, h1, ?_, h3, hj, rfl⟩)
+    rw [hqb, idxC, valW_baseC, hwb]
+    exact rep_of hxc
+  · obtain rfl : j = xhi := by omega
+    have hcv : c.valW (slotW ws) = q.base.valW (slotW ws) * ofK (addressOfIndex (q.stride * j)) := by
+      unfold nextPt at hqc
+      rw [hqb] at hqc
+      cases hqc
+      have hb1 : (⟨[(b, q.stride)], 0⟩ : CCell).valW (slotW ws) = ofK (addressOfIndex (q.stride * j)) := by
+        show prodW (slotW ws) [(b, q.stride)] * ofK (addressOfIndex 0) = _
+        rw [prodW, prodW, hwb, mul_one, addressOfIndex, ← ofK_pow', ← pow_mul, ← ofK_mul', addressOfIndex,
+          addressOfIndex, pow_zero, mul_one, Nat.mul_comm]
+      rw [valW_mul, hb1]
+    unfold CCell.addrW at hpt
+    rw [hcv] at hpt
+    exact hpt
+
+/-- A frame base's slot word, from the linked form (`SlotGetL`). -/
+theorem slotGet_ofL {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {s : St} {ws : List E} {i : Mode.Idx}
+    {ci : CIdx} (hi : idxX i = some ci) (h : SlotGetL gl gp s ws (idxB i)) : SlotGet s ws (idxB i) := by
+  intro b hb
+  rcases idxX_spec hi with ⟨n, rfl, -, -⟩ | ⟨o, c, rfl, h2, -, -⟩
+  · simp [idxB] at hb
+  · simp only [idxB, List.mem_singleton] at hb
+    subst hb
+    obtain ⟨w, hw, hv⟩ := h _ List.mem_cons_self
+    simp only [BaseL, h2, ↓reduceIte, Option.some.injEq] at hw
+    subst hw
+    exact ⟨o, rfl, h2, hv⟩
+
+theorem idxL_of_idxX {gl : List (ℕ × ℕ × ℕ)} {i : Mode.Idx} {ci : CIdx} (h : idxX i = some ci) :
+    idxL gl i = some ci := by
+  cases i with
+  | num n => exact h
+  | ex b c =>
+    cases b with
+    | fr o => exact h
+    | hp q d => simp [idxX] at h
+
+/-- **A run of exponent bounds, the caller's cells linked** (`boundsX`): its heap run's cells written, its bounds
+having exponents, it is written. -/
+theorem slot_rwLX {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {s : St} {ws : List E} {r : Mode.Rng}
+    {q : CRun} (hr : rngL gl gp r = some q) (hbx : boundsX r = true) (hc : SlotGetL gl gp s ws (rngM r).bs)
+    (hel : IdxEx (slotW ws) q.lo) (heh : IdxEx (slotW ws) q.hi) (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) :
+    RW s r := by
+  obtain ⟨lo, hi, c, hlo, hhi, hmc, rfl⟩ := rngL_spec hr
+  simp only [boundsX, Bool.and_eq_true, Option.isSome_iff_exists] at hbx
+  obtain ⟨⟨lo2, hlo2⟩, ⟨hi2, hhi2⟩⟩ := hbx
+  rw [idxL_of_idxX hlo2, Option.some.injEq] at hlo
+  rw [idxL_of_idxX hhi2, Option.some.injEq] at hhi
+  subst hlo hhi
+  have hcq : SlotGetL gl gp s ws r.q.bs := fun b hb ↦ hc b (by simp [rngM, hb])
+  have hcl : SlotGetL gl gp s ws (idxB r.lo) := fun b hb ↦ hc b (by simp [rngM, hb])
+  have hch : SlotGetL gl gp s ws (idxB r.hi) := fun b hb ↦ hc b (by simp [rngM, hb])
+  obtain ⟨ylo, hylo, hylo'⟩ := hel
+  obtain ⟨yhi, hyhi, hyhi'⟩ := heh
+  refine ⟨_, ylo, yhi, monoVal_slotL' hmc hcq, rep_idxVal hlo2 (slotGet_ofL hlo2 hcl) hylo hylo',
+    rep_idxVal hhi2 (slotGet_ofL hhi2 hch) hyhi hyhi', fun j h1 h2 ↦ ?_⟩
+  have hx := h _ (runSet_iff.mpr ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩)
+  rw [run_cell]
+  exact names_wrk hx
+
+/-- **The read `hpValS` names holds** on the path: at the pointer's word past `d`, the value it names. -/
+theorem hpValS_rd {pows : Exec.PowTree} (hp : pows.Ok) {body : List Stmt} (htop : body.all topOk = true)
+    {σ : Val} {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs)
+    (hh : ∀ e ∈ es, e.Holds rd σ) {a d n : ℕ} (h : hpValS pows body a d = some n) :
+    rd ((σ (V.n a)).limb 0 * addressOfIndex d) = some (σ (V.n n)) := by
+  unfold hpValS at h
+  split at h
+  · rename_i n' hn
+    cases h
+    exact (hh _ (hpVal_mem htop hw hn)).2
+  · split at h
+    · rename_i b k hwk
+      have hl : LoadHolds rd (σ (V.n b)) (d + k) (σ (V.n n)) := hh _ (hpVal_mem htop hw h)
+      have hv := wordNf_val hp htop hw hh baseFuel a
+      rw [hwk] at hv
+      rw [← hv]
+      have e1 : (⟨[(b, 1)], k⟩ : CCell).valW (vw σ) = σ (V.n b) * ofK (addressOfIndex k) := by
+        simp [CCell.valW, prodW, vw]
+      rw [e1, Mode.limb_mul_ofK, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, Nat.add_comm]
+      exact hl.2
+    · cases h
+
 /-- **A callee's ghost words** (`hpArgOk`): ghost `j` the word of the monomial `ghostW` names for the callee's pointer
 base `(hpBs G)[j]`, at the call's argument values `ks`. -/
 theorem gargsW_ghost {Cf : CFun} {G : Mode.Sig} {f : String} {args : List V} {σ : Val}
@@ -3028,7 +3172,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 · rename_i c lo hi hmc hlo hhi
                   simp only [Bool.and_eq_true, List.contains_iff_mem] at hRN
                   obtain ⟨⟨⟨hokl, hokh⟩, hqv⟩, hqin⟩ := hRN
-                  exact rwN_exp hmc (hcellsP _ hmk) hlo hhi (hσ0.res hxw) hokl hokh fun x hx ↦
+                  exact rwN_exp hmc (hcellsP _ hmk) hlo hhi (hσ0.res hxw) (hxw1 hhc)
+                    (fun k hk ↦ by rw [hm.fp]; exact hσ0.par k hk) hokl hokh fun x hx ↦
                     W1' x (hpostN.2 _ hqin x ((mapN_runSet hqv x).mpr hx))
                 · cases hRN
               rw [hnb, Bool.or_false] at h0
@@ -3543,11 +3688,10 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               obtain ⟨x, hxn, hxw⟩ := names_wrk hWc
               refine ⟨x, by rw [hsa]; exact hxn, hxw, ?_⟩
               -- the word there, the caller's value the `load` names
-              have hL : LoadHolds rd (σ0 (V.n a)) d (σ0 (V.n n)) := hh0 _ (hpVal_mem htop hb hn)
-              rw [hrd] at hL
+              have hL2 := hpValS_rd hok.pows htop hb hh0 hn
+              rw [hrd] at hL2
               have hx := hxn.1
               rw [Mode.limb_mul_ofK] at hx
-              have hL2 := hL.2
               simp only [addressOfIndex] at hL2
               rw [slotW_app_get (List.length_map _) (by simpa using hget), wordNf_val hok.pows htop hb hh0,
                 ← readD_ref hκ hxn.2, ← hx, hL2]
@@ -3595,6 +3739,22 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             · rcases List.mem_cons.mp hr with rfl | hr
               · exact hjtR s' (Mem.le_trans hm.le hle')
               rcases Bool.or_eq_true_iff.mp (hGpreR r hr) with h0 | h0
+              swap
+              · -- a run of exponent bounds over pointer bases (`hpBs`), its bounds the arguments' (`boundsX`)
+                rw [Bool.and_eq_true, Bool.and_eq_true] at h0
+                obtain ⟨⟨hbx, hbs⟩, h⟩ := h0
+                obtain ⟨q, hq, hrq⟩ := List.any_eq_true.mp h
+                unfold rngLIs at hrq
+                split at hrq
+                · rename_i q' hq'
+                  have hqq : q' = q := of_decide_eq_true hrq
+                  subst hqq
+                  have hpw := Bool.and_eq_true_iff.mp (hpwR q' hq)
+                  exact slot_rwLX hq' hbx (slotGetL_call hκ hf' hws1 hentry.w hk1 (hentry.w 1 hG1) hcell hcellq
+                    (fun b hb ↦ List.all_eq_true.mp hbs b hb)) (hexp1 _ hpw.1) (hexp1 _ hpw.2)
+                    fun x hx ↦ hW1 x (hrpreR q' hq x hx)
+                · cases hrq
+              rcases Bool.or_eq_true_iff.mp h0 with h0 | h0
               swap
               · -- a run of constant bounds over pointer bases (`hpBs`): the caller's cells, the words at arguments' cells
                 rw [Bool.and_eq_true, Bool.and_eq_true] at h0
@@ -3723,6 +3883,32 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                     exact ptIn_slot hrc.2 (hSE hrc.1) (Mode.RW.mono (s := Mode.stOf m s'.fp)
                       (s' := Mode.stOf m' s'.fp) hm' rfl (hR.2.2.1 r hr))
                 · obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp (hhpostR r hr)
+                  rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
+                  swap
+                  · -- a run extended by its next point (`rngXExt`)
+                    rw [Bool.and_eq_true] at hrq
+                    obtain ⟨hmS, hrq⟩ := hrq
+                    unfold rngXExt at hrq
+                    split at hrq
+                    · rename_i q hq
+                      split at hrq
+                      · rename_i b c hqb hqc
+                        simp only [Bool.and_eq_true, decide_eq_true_eq] at hrq
+                        obtain ⟨rfl, hpt⟩ := hrq
+                        obtain ⟨m0, hm0', hmc⟩ := List.any_eq_true.mp hpt
+                        rw [Bool.and_eq_true] at hmc
+                        obtain ⟨hmS0, hmc⟩ := hmc
+                        unfold monoIs at hmc
+                        split at hmc
+                        · rename_i c' hc'
+                          rw [CCell.beq_eq hmc] at hc'
+                          exact rw_slotXExt hq hqb hqc (hSE hmS) (Mode.RW.mono (s := Mode.stOf m s'.fp)
+                            (s' := Mode.stOf m' s'.fp) hm' rfl (hRL r' hr'))
+                            (hw_slot hc' (hSE hmS0) (Mode.HW.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp)
+                              hm' rfl (hR.2.1 m0 hm0'))) y hx
+                        · cases hmc
+                      · cases hrq
+                    · cases hrq
                   rcases Bool.or_eq_true_iff.mp hrq with hrq | hrq
                   · rw [Bool.and_eq_true] at hrq
                     obtain ⟨hmS, hrq⟩ := hrq

@@ -286,7 +286,7 @@ def cfun_lc(k, j, frame):
             (thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
                  f'CoreMode.fnSpecC_of_loopC\n  {{ heap := heap_okC, body := {DK}, tgt := {DK}, jtd := {DK}, calls := {DK}, top := {DK}, '
                  f'rdFree := {DK}, cptr := {DK}, ders := rfl, gw := rfl, nofa := {DK}, code := loop_code, fsigs := rfl, '
-                 f'gtail := {DK}, '
+                 f'gtail := {DK}, nzrc := {DK}, '
                  f'{loop_tail(k, frame)} }}')))
 
 
@@ -464,7 +464,7 @@ def loop_long(k, j):
                      'fentry := rfl, flen := loop_flen, xentry := loop_xentry, xlen := loop_xlen, dhints := rfl, '
                      'hints := loop_hints, fetch := loop_fetch, small := loop_small, '
                      f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok, '
-                     'hc := rfl, hcs := rfl }')
+                     'hc := rfl, hcs := rfl, nzrc := (by decide +kernel) }')
 
 
 def cfun_m(k, j, frame):

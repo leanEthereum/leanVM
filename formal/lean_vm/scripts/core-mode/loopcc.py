@@ -25,8 +25,9 @@ HELD = set()
 
 def candidates(S=None):
     """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
-    call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`); or (`CoreMode.loopBB`) a body with
-    branches and `match`es, its statements before the tail (nested ones included) atoms, calls, branches, `match`es."""
+    call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`), runs over its caller's cells, or
+    residuals of a family; or (`CoreMode.loopBB`) a body with branches and `match`es, its statements before the tail
+    (nested ones included) atoms, calls, branches, `match`es."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]
@@ -46,7 +47,9 @@ def candidates(S=None):
         own_ptr = G is not None and bool(G['preP'] or G['postLP'])
         # a leaf of runs over its caller's cells (the stream-cursor loops, `callcres.ST_LOOPS`; `anyLink`'s loops)
         import callcres
-        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS or callc.gl_of(k)):
+        # or a leaf whose residuals are of a family (`callcres.LEAF_FAM`)
+        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS or callc.gl_of(k) or
+                                       k in callcres.LEAF_FAM):
             out.append(k)
     return out
 

@@ -29,7 +29,7 @@ noncomputable def «verify_merkle_cap__L8».modeCert : Mode.Cert := ⟨envC, fun
 
 end
 
-kernel_rfl «verify_merkle_cap__L8».modeSigs : «verify_merkle_cap__L8».modeCert.E.sigs.entries =
+kernel_rfl «verify_merkle_cap__L8».modeSigs : «verify_merkle_cap__L8».modeCert.E.sigs = CoreMode.sigTrie
   []
 
 @[expose] public section
