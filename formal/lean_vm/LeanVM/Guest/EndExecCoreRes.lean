@@ -690,6 +690,40 @@ theorem resQ_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   have hT := termQ_all hr I hI
   exact resQ_sound hT (vtQ_all hr I hI) (expQ_of_termQ hT (expQv_all hr I hI)) (dimQ_of_termQ hT) ht hf hall x h
 
+/-- **`verify_tables`' reads past its table sumcheck** (`vtStC`) at an honest instance: the last record's cursor
+`σ 2652` is `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts `p` words into
+the stream with room for `1009`. -/
+theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) {x : CRes} (h : CoreMode.vtStC fn x = true) : x.Holds σ := by
+  match x, h with
+  | .sub c q, h =>
+    simp only [CoreMode.vtStC, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨⟨hn, hcb⟩, hco⟩, rfl⟩ := h
+    have hf' : f = name% «verify_tables» := by rw [← find_name' hf, hn]
+    subst hf'
+    obtain rfl : fn = fn% «verify_tables» := Option.some.inj (hf.symm.trans B1.VerifySub.find_vt)
+    obtain ⟨p, n, e5, hgn, hn34, hroom⟩ := vtQ_all hr I hI σ bufs kids ht
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
+      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+    obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
+    obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hf hb
+    obtain ⟨-, xs, pts, cl, -, -, -, -, e2652, -⟩ := B1.Tables.vt_zc_run hH hn34 hgn
+    have hcur : σ (.n 2652) = σ (.n 20) * Protocol.Verifier.gen ^ (p + 14 + 3 * n) := by
+      rw [e2652, vt_cur13 hH, e5]; ring
+    have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
+    refine ⟨0, 8192, p + 14 + 3 * n + c.off, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
+      CoreMode.rep_const hcap, Nat.zero_le _, by omega, ?_⟩
+    obtain ⟨cb, co⟩ := c
+    simp only at hcb
+    subst hcb
+    simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, one_mul, hcur,
+      ← Value.gen_pow_eq_ofK, addressOfIndex]
+    rw [mul_assoc, ← pow_add]
+    ring_nf
+  | .lt _ _, h | .nz _, h | .subR _ _, h | .subP _ _, h | .under _ _, h => simp [CoreMode.vtStC] at h
+
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -699,9 +733,10 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ⟨hf' | hq, -⟩ | hm
+  rcases this with ⟨(hf' | hq) | hvt, -⟩ | hm
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
+  · exact vtStC_inst hr hI ht hf hvt
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
 
 /-- **The residuals of a heap certificate of families hold** at a valuation `σ'` agreeing below `GB` with an honest
@@ -715,9 +750,10 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ⟨hf' | hq, hv⟩ | hm
+  rcases this with ⟨(hf' | hq) | hvt, hv⟩ | hm
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vtStC_inst hr hI ht hf hvt)
   · exact hml x hm
 
 end

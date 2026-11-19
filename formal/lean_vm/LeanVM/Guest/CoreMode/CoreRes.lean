@@ -333,9 +333,17 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
     | _, _ => false
   | _ => false
 
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
+core names): the cell `c` words past the cursor, the value `2652`, `c < 153`, one of its stream's, parameter `20`'s
+`[0, 8192)` (`EndExec.vtStC_inst`). -/
+def vtStC (fn : Fn) : CRes → Bool
+  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2652, 1)]) && decide (c.off < 153) &&
+      decide (q = ⟨⟨[(20, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | _ => false
+
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, its values below `GB`), or the ghost family `ml`. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (r : CRes) : Bool :=
-  ((resFam fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
+  ((resFam fn xc r || resQ fn r || vtStC fn r) && r.vals.all (Nat.blt · GB)) || mlSub fn r
 
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc)

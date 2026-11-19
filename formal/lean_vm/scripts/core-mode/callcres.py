@@ -334,7 +334,7 @@ def res_fam(k, r, G):
         return sub_rc(r[1], r[2])
     if r[0] == 'sub':
         kap = cs_kappa(k)
-        return kap is not None and r == cs_sub(kap)
+        return (kap is not None and r == cs_sub(kap)) or r == vt_st_sub(k, r[1])
     return False
 
 
@@ -400,6 +400,18 @@ def sel_facts(EM):
     return base, fact
 
 
+# `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
+VT_ST, VT_STREAM = 2652, 20
+
+
+def vt_st_sub(k, c):
+    """`CoreMode.vtStC`: `verify_tables`' read `c` words past its table sumcheck's last cursor, `c < 153`, one of its
+    stream's `[20]·[0, 8192)`."""
+    if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
+        return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
     its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
@@ -410,7 +422,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else ml_sub(self.k, c)
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or vt_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
