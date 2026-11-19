@@ -24,6 +24,8 @@ it. So the following are gone from the core IR, and each moves cells:
 * which values are no cell at all: an `addr` pointer, the return area;
 * which constants, sums, products and loads the lowering takes from a pool, and which it writes
   into a cell of their own (`const_cell` and `pure` against `expr_into`, `xor_byte`, an anchor);
+  a constant set into a cell of its own that every other statement only reads as one cell, in
+  its block, is taken from the pool too (`markPooled`), where the Rust lowering gave it a cell;
 * when a cell is taken relative to the cells a statement takes for its own plumbing (a pooled
   `1`, a callee's frame pointer, a jump target);
 * an `else` block that emits nothing, which the lowering still jumps over; two `match`es chained;
@@ -51,8 +53,9 @@ open LeanVM.Core (V)
 inductive Kind where
   /-- Its cells are the next free ones, taken now (`fresh`, `alloc_stack`). -/
   | cell
-  /-- The result of `const_cell`, `pure` or a cached load: the pool's cell if the scope holds one,
-  else the next free one, written by the statement that follows. -/
+  /-- The result of `const_cell`, `pure` or a cached load, or a constant `markPooled` pools: the
+  pool's cell if the scope holds one, else the next free one, written by the statement that
+  follows. -/
   | pooled
   /-- A value no statement of the function names, such as the site of an `@inline` call
   (`Core.Seg.i`): no cell. -/
