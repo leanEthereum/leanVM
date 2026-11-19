@@ -84,14 +84,16 @@ def render():
     for c in glob.glob(os.path.join(term.ROOT, 'CoreMode', 'Gen', '*', 'Cert.lean')):
         for n in re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(c).read(), re.M):
             pack.setdefault(n, ('core', c.split(os.sep)[-2]))
+    # a guest edit may remove a listed function: only the present ones
+    exc = [n for n in EXC if n in pack]
     t.append(''.join('public import LeanVM.Guest.%s\n' % ('CoreMode.Gen.«%s».Cert' % q[1] if isinstance(q, tuple) else 'Pack.«%s».ModeCert' % q)
-                     for q in sorted({pack[n] for n in EXC}, key=str)))
+                     for q in sorted({pack[n] for n in exc}, key=str)))
     t.append('public import LeanVM.Guest.Res.SelDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core\n\n'
              '@[expose] public section\n\n/-- The certificates whose residuals are given whole. -/\n'
              'noncomputable def resExc : List Mode.Cert := [\n  %s]\n\n'
              '/-- The parameters whose nonzero values the divisor residuals need, by function. -/\n'
              'def nzVals : List (String × V) := [\n  %s]\n\nend\n\nend LeanVM.Guest.Res\n' % (',\n  '.join(
-                 'Fn.«%s».modeCert' % n for n in EXC), ',\n  '.join('("%s", .n %d)' % p for p in nzVals())))
+                 'Fn.«%s».modeCert' % n for n in exc), ',\n  '.join('("%s", .n %d)' % p for p in nzVals())))
     files[mod] = ''.join(t)
     for k, g in enumerate(G):
         mod = 'LeanVM.Guest.Res.ResCerts%d' % k

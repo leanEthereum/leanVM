@@ -64,6 +64,7 @@ abbrev Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».advice := Data
 abbrev Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».idx : ℕ := 1315
 abbrev Fn.«walk_path__L6_L6».advice := Data.adviceFn1546
 abbrev Fn.«walk_path__L6_L6».idx : ℕ := 1546
+abbrev Fn.«walk_path__L6_L6».jt0 : ℕ := 14160
 
 end
 

@@ -68,6 +68,7 @@ abbrev Fn.«plus_one_run__L4».advice := Data.adviceFn135
 abbrev Fn.«plus_one_run__L4».idx : ℕ := 135
 abbrev Fn.«walk_path__L18_L4».advice := Data.adviceFn1496
 abbrev Fn.«walk_path__L18_L4».idx : ℕ := 1496
+abbrev Fn.«walk_path__L18_L4».jt0 : ℕ := 12432
 
 end
 
