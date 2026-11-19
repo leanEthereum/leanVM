@@ -1,0 +1,1 @@
+# rustfmt's defaults, not the repository root's rustfmt.toml: rustfmt takes the nearest config file.
