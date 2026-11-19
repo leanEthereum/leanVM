@@ -185,7 +185,7 @@ theorem gpOf_spec (hT : PowsOk T) (hc : CtxHolds R rd σ ctx) {x : V} {j : Nat}
   have hh := hc a ha
   rcases a with ⟨a⟩ | ⟨y, j'⟩ | _ | _ | _ | _
   · rcases a with ⟨d, c⟩ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _
-    all_goals try simp only at hp
+    all_goals simp only at hp
     all_goals try (simp at hp; done)
     split at hp
     · rename_i hd
@@ -208,7 +208,7 @@ theorem oppAt_spec (hc : CtxHolds R rd σ ctx) {x : V} {k : Nat} (h : oppAt ctx 
   have hh := hc a ha
   rcases a with ⟨a⟩ | _ | _ | _ | _ | _
   · rcases a with ⟨d, c⟩ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _
-    all_goals try simp only at hp
+    all_goals simp only at hp
     all_goals try (simp at hp; done)
     split at hp
     · rename_i hd
@@ -224,7 +224,7 @@ theorem isBool_spec (hc : CtxHolds R rd σ ctx) {x : V} (h : isBool ctx x = true
   have hh := hc a ha
   rcases a with ⟨a⟩ | _ | _ | _ | _ | _
   · rcases a with _ | _ | ⟨d, a, b⟩ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _
-    all_goals try simp only at hp
+    all_goals simp only at hp
     all_goals try (simp at hp; done)
     simp only [Bool.and_eq_true] at hp
     obtain ⟨⟨h1, h2⟩, h3⟩ := hp
@@ -241,7 +241,7 @@ theorem bscOf_spec (hc : CtxHolds R rd σ ctx) {u : V} {k : Nat} (h : bscOf ctx 
   have hh := hc a ha
   rcases a with ⟨a⟩ | _ | _ | _ | _ | _
   · rcases a with _ | _ | ⟨d, a, b⟩ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _
-    all_goals try simp only at hp
+    all_goals simp only at hp
     all_goals try (simp at hp; done)
     split at hp
     · rename_i hd
@@ -284,7 +284,7 @@ theorem bscOf_spec (hc : CtxHolds R rd σ ctx) {u : V} {k : Nat} (h : bscOf ctx 
 theorem hypMem_spec {x : V} {c n : Nat} {a : Hyp} (ha : a.Holds R rd σ)
     (h : hypMem x c a = some n) : MemB rd (σ x) c n := by
   rcases a with _ | _ | _ | _ | ⟨y, c', n'⟩ | _
-  all_goals try simp only [hypMem] at h
+  all_goals simp only [hypMem] at h
   all_goals try (simp at h; done)
   split at h
   · rename_i hy
@@ -360,7 +360,7 @@ theorem hypB_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R L.read σ 
   rcases a with ⟨a⟩ | ⟨y, j⟩ | ⟨sg, as, rs⟩ | ⟨y, n'⟩ | _ | _
   · rcases a with ⟨d, c⟩ | ⟨d, a, b⟩ | ⟨d, a, b⟩ | ⟨d, s⟩ | ⟨d, p, off⟩ | _ | _ |
       ⟨y, yy, t1, t2, k⟩ | _ | _ | _ | _ | _
-    all_goals try simp only [hypB] at hm
+    all_goals simp only [hypB] at hm
     all_goals try (simp at hm; done)
     · -- a constant
       split at hm
@@ -501,7 +501,7 @@ theorem xLe_spec (hc : CtxHolds R L.read σ ctx) {v : V} {t : Nat} (h : xLe ctx 
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hc a ha
   rcases a with _ | _ | ⟨sg, as, rs⟩ | _ | _ | ⟨y, t'⟩
-  all_goals try simp only at hp
+  all_goals simp only at hp
   all_goals try (simp at hp; done)
   · obtain ⟨p, hp', hq⟩ := List.any_eq_true.mp hp
     simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq

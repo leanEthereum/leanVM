@@ -95,7 +95,7 @@ theorem blockW_good (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
     | ret vs =>
       exact hcons (fun _ _ _ h => nomatch h) (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h)
 termination_by ss => sizeOf ss
-decreasing_by all_goals (simp_wf; assumption)
+decreasing_by simp_wf; assumption
 
 /-! ## A branch: its inner blocks and the statement -/
 
