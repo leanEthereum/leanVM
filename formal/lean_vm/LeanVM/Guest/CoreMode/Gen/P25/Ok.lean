@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P25»
 public import LeanVM.Guest.Pack.«P25».Core
 public import LeanVM.Guest.CoreMode.Gen.«P25».Data
 
@@ -20,10 +20,10 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L32».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«claim_list_last__L13».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«padding_weight__L8».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«squeeze_point_from__L15».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L32».heap_ok : CoreMode.heapOk Fn.«block_selector__L32».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«claim_list_last__L13».heap_ok : CoreMode.heapOk Fn.«claim_list_last__L13».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«padding_weight__L8».heap_ok : CoreMode.heapOk Fn.«padding_weight__L8».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«squeeze_point_from__L15».heap_ok : CoreMode.heapOk Fn.«squeeze_point_from__L15».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

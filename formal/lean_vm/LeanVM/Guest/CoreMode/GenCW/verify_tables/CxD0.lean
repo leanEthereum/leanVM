@@ -73,7 +73,7 @@ public import LeanVM.Guest.CoreMode.GenC.«P7».Data
 public import LeanVM.Guest.CoreMode.GenC.«P8».Data
 public import LeanVM.Guest.CoreMode.GenC.«P9».Data
 public import LeanVM.Guest.CoreMode.GenC.«verify_tables».Data
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«verify_tables»
 public import LeanVM.Guest.Pack.«verify_tables».Core
 
 set_option maxRecDepth 100000
@@ -88,7 +88,8 @@ open LeanVM.Guest.Exec (Trie)
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop10" => Fn.«verify_tables_loop1».hcert.sig | "__loop9" => Fn.«verify_tables_loop0».hcert.sig
+    | "__loop0_verify_tables" => Fn.«verify_tables_loop0».hcert.sig
+    | "__loop1_verify_tables" => Fn.«verify_tables_loop1».hcert.sig
     | "block_selector__L0" => Fn.«block_selector__L0».hcert.sig
     | "block_selector__L1" => Fn.«block_selector__L1».hcert.sig
     | "block_selector__L10" => Fn.«block_selector__L10».hcert.sig

@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P51»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P51».Bundle
-public import LeanVM.Guest.Pack.«P51».ModeSig
 
 set_option Elab.async false
 
@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `certify_placement`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨29098, 469, Fn.«certify_placement».modeSig, (.node none (.node none (.node none .nil (.node none
+  ⟨29098, 469, Fn.«certify_placement».csig, (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none (.node (some [(.alloc 258 94)]) .nil .nil)
     .nil) .nil) .nil)) .nil)) (.node none .nil (.node none (.node none (.node none (.node none
     (.node (some [(.alloc 123 9), (.witnessHeap "col_group_order" 123 0 9), (.alloc 124 9)]) .nil

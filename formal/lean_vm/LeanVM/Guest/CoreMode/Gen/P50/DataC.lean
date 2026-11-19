@@ -110,7 +110,7 @@ def hcert : CoreMode.HCert where
         .pfr 22 [], .pfr 23 [], .pfr 24 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop226", 
+  [("__loop0_level_positions__L15_L22_L4", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 128)⟩],
@@ -149,7 +149,7 @@ def hcert : CoreMode.HCert where
         .pfr 30 [], .pfr 31 [], .pfr 32 [], .pfr 33 [], .pfr 34 [], .pfr 35 [], .pfr 36 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop66", 
+  [("__loop0_level_positions__L3_L14_L2", 
     { pre := [⟨[(0, 5), (2, 1)], 0⟩, ⟨[(0, 5), (2, 1)], 1⟩, ⟨[(0, 5), (2, 1)], 2⟩, ⟨[(0, 5), (2, 1)], 3⟩,
         ⟨[(0, 5), (2, 1)], 4⟩],
       preR := [⟨⟨[(5, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
@@ -174,7 +174,7 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 6⟩, 9, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8]),
         (⟨⟨[(4, 1)], 7⟩, 9, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8]),
         (⟨⟨[(4, 1)], 8⟩, 9, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8])] }),
-    ("decode_query_windows__L14_L2", CoreMode.HcSig.«decode_query_windows__L14_L2».csig)]
+    ("decode_query_windows__L14_L2", CoreMode.HcSig.«decode_query_windows__L14_L2».sig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
   []
@@ -406,7 +406,7 @@ def hcert : CoreMode.HCert where
   rets := [[.pts, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop464", 
+  [("__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0", 
     { pre := [⟨[(0, 1), (8, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(6, 1)], 3⟩, ⟨[(6, 1)], 4⟩,
         ⟨[(6, 1)], 5⟩, ⟨[(6, 1)], 6⟩, ⟨[(6, 1)], 7⟩],
       preR := [⟨⟨[(2, 1)], 0⟩, 1, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
@@ -429,7 +429,7 @@ def hcert : CoreMode.HCert where
   rets := [[.pts, .pre 0, .pre 1, .pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .pre 7, .run 0 [], .run 1 [], .pfr 2 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop473", 
+  [("__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0", 
     { pre := [⟨[(0, 1), (8, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(6, 1)], 3⟩, ⟨[(6, 1)], 4⟩,
         ⟨[(6, 1)], 5⟩, ⟨[(6, 1)], 6⟩, ⟨[(6, 1)], 7⟩],
       preR := [⟨⟨[(2, 1)], 0⟩, 1, (.val 0), (.val 1)⟩, ⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
@@ -458,7 +458,7 @@ def hcert : CoreMode.HCert where
         .ev 17, .ev 18, .run 0 [], .run 1 [], .run 2 [], .run 3 [], .pf 0, .pfr 4 [], .pfr 5 []]]
 
 def csigs : List (String × CoreMode.HSig) :=
-  [("__loop458", 
+  [("__loop0_opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0", 
     { pre := [⟨[(0, 1), (8, 1)], 0⟩, ⟨[(6, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(6, 1)], 3⟩, ⟨[(6, 1)], 4⟩,
         ⟨[(6, 1)], 5⟩, ⟨[(6, 1)], 6⟩, ⟨[(6, 1)], 7⟩, ⟨[(6, 1)], 8⟩, ⟨[(6, 1)], 9⟩, ⟨[(6, 1)], 10⟩,
         ⟨[(6, 1)], 11⟩],

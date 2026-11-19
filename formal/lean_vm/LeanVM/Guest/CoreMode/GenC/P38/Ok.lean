@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P38»
 public import LeanVM.Guest.CoreMode.GenC.«P11».Data
 public import LeanVM.Guest.CoreMode.GenC.«P56».Data
 public import LeanVM.Guest.Pack.«P38».Core
@@ -21,10 +21,10 @@ namespace LeanVM.Guest.Fn.«verify_bus_gkr»
 @[expose] public section
 
 /-- `verify_bus_gkr`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_bus_gkr».pows
     (fun g ↦ match g with
-    | "__loop6" => Fn.«verify_bus_gkr_loop0».hcert.sig | "__loop7" => Fn.«verify_bus_gkr_loop1».hcert.sig
-    | _ => .empty)
+    | "__loop0_verify_bus_gkr" => Fn.«verify_bus_gkr_loop0».hcert.sig
+    | "__loop1_verify_bus_gkr" => Fn.«verify_bus_gkr_loop1».hcert.sig | _ => .empty)
     core hcert = true := by
   decide +kernel
 

@@ -8,11 +8,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P35»
+public import LeanVM.Guest.CoreMode.Sig.«P57»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P35».ModeSig
 public import LeanVM.Guest.Pack.«P57».Bundle
-public import LeanVM.Guest.Pack.«P57».ModeSig
 
 set_option Elab.async false
 
@@ -27,13 +27,12 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
     .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none (.node none (.node (some
-    Fn.«assert_small_g_power».modeSig) .nil .nil) .nil) .nil)) .nil))) .nil)) .nil))))) .nil),
-    524287⟩
+    Fn.«assert_small_g_power».csig) .nil .nil) .nil) .nil)) .nil))) .nil)) .nil))))) .nil), 524287⟩
 
 /-- `log2_ceil_in_the_exponent__L0_L34`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨211483, 40, Fn.«log2_ceil_in_the_exponent__L0_L34».modeSig, (.node none (.node (some [(.allocDyn
-    6 5), (.bitDecomposeExp 2 (.heap 6) 34), (.log2Ceil (.heap 6) 7 34 0)]) .nil (.node none (.node
+  ⟨211483, 40, Fn.«log2_ceil_in_the_exponent__L0_L34».csig, (.node none (.node (some [(.allocDyn 6
+    5), (.bitDecomposeExp 2 (.heap 6) 34), (.log2Ceil (.heap 6) 7 34 0)]) .nil (.node none (.node
     none (.node none (.node (some [(.alloc 33 68)]) .nil .nil) .nil) .nil) .nil)) (.node none
     (.node none .nil (.node none (.node (some [(.cellAddress 23 24)]) .nil .nil) .nil)) (.node none
     .nil (.node (some [(.alloc 20 68)]) .nil .nil)))), (.node none .nil (.node none (.node none

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.GenW.«exponent_tables».S0
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 
 set_option Elab.async false
@@ -20,7 +20,7 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- Statements 2358 to 4553. -/
-theorem win1 : winOkF Data.powTree sigW core hcert ((core.body.drop 2358).take (4554 - 2358)) st1 st2 = true := by
+theorem win1 : winOkF Fn.«exponent_tables».pows sigW core hcert ((core.body.drop 2358).take (4554 - 2358)) st1 st2 = true := by
   simp only [winOkF, withCx_cx hcx]
   decide +kernel
 

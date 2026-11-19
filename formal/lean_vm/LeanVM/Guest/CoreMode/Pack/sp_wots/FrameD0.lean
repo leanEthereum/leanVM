@@ -8,11 +8,12 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
-public import LeanVM.Guest.Data.Pows
-public import Statement.Data.AdviceHints
+public import LeanVM.Guest.CoreMode.GlueP.«sp_wots»
+public import LeanVM.Guest.CoreMode.Env
+public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ok
-public import LeanVM.Guest.Pack.«sp_wots».ModeSig
+public import LeanVM.Guest.CoreMode.Sig.«sp_wots»
 
 set_option Elab.async false
 
@@ -141,162 +142,55 @@ noncomputable def frameCut0 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
   ((some ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp
     3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp
     9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero),
-    (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312, (.gp 37992)),
-    (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364))]), (.node (some ()) (.node (some ())
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ())
-    .nil .nil) .nil)) .nil)) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
-    (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node (some ())
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) .nil)))) (.node (some ()) (.node (some ()) (.node none
-    (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil) .nil) (.node (some ()) (.node none (.node none (.node
-    (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node
-    (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) .nil)) (.node none (.node (some ()) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))))
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))
-    (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node (some ())
-    .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))) (.node
-    none (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none .nil
-    (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) (.node none (.node
+    (225, (.fpg 0)), (226, (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry +
+    2236))), (283, (.gp (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))),
+    (341, (.gp (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
+    ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node
     none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node none
-    (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ())
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))))), (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) .nil)
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node none (.node
-    (some ()) (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil)
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil)) (.node none .nil (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil
-    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    .nil .nil))))) (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil) (.node none .nil (.node (some ()) .nil .nil)))))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil)) .nil)))) (.node (some ()) (.node (some ()) (.node none (.node (some ()) .nil (.node none
+    .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ())
+    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil
     .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))))), (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil)
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil))) (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))
-    .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil)
-    .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil)
-    .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil)
-    .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), [(0, [7003,
-    7019, 7041, 7060, 7076, 7089, 7117, 7142, 7164, 7183, 7208, 7230, 7249, 7265, 7287, 7306, 7322,
-    7335, 7354, 7370, 7383, 7393, 7418, 7440, 7459, 7475, 7497, 7516, 7532, 7545, 7564, 7580, 7593,
-    7603, 7619, 7632, 7642, 7649, 7671, 7690, 7706, 7719, 7738, 7754, 7767, 7777, 7793, 7806, 7816,
-    7823, 7836, 7846, 7853], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204,
-    (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210,
-    (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222,
-    .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp
-    36868)), (312, (.gp 37992)), (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364))]),
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node
-    (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node (some ()) .nil
-    .nil) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node (some ()) (.node (some ()) (.node none
-    (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)
-    .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some
-    ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil))))) (.node none (.node (some ()) .nil (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node
-    (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))))) (.node
-    (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node
-    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node
-    (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))))
-    (.node (some ()) .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node (some ()) .nil (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))))
-    (.node none (.node none (.node (some ()) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node
+    .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil))))) (.node none (.node (some ()) (.node none (.node (some ())
+    .nil .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node
     (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
-    (.node none .nil (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))))))) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node
+    (some ()) .nil .nil) .nil) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)))))
+    (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node
+    (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none (.node
+    (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    none (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
     (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
     .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil
     .nil)) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
@@ -311,199 +205,484 @@ noncomputable def frameCut0 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     (.node (some ()) .nil .nil)) .nil) .nil) (.node none (.node none (.node none (.node (some ())
     .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))
     (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil))) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node
-    none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil))))) (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) .nil) .nil)) (.node none (.node none .nil (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil)))))))), (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil)
-    .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node
+    none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
+    .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil)))) (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none .nil (.node none (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil
+    (.node (some ()) .nil .nil)))))) (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil))) (.node none (.node none
+    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node
+    (some ()) .nil .nil)))))))), (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil)))
+    .nil) .nil) .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil)))
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil))))
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil)
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none
     (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil))) (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil)) .nil)
-    .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil)
-    .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node
-    (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)),
-    .nil⟩), (0, [7856], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp
-    2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp
-    8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero),
-    (223, .zero), (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312,
-    (.gp 37992)), (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364))]), (.node (some ())
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil
-    .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node (some ()) (.node (some ()) .nil
-    .nil) .nil) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)))) (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))
-    (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil)))) (.node (some ()) (.node
-    (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil)))
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) (.node (some ()) (.node
-    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)))))
-    (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node (some ()) (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node (some
-    ()) .nil .nil))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil)
+    .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none (.node none
+    (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node (some 4) .nil
+    .nil) .nil) .nil)), .nil⟩), [(0, [7003, 7019, 7041, 7060, 7076, 7089, 7117, 7142, 7164, 7183,
+    7208, 7230, 7249, 7265, 7287, 7306, 7322, 7335, 7354, 7370, 7383, 7393, 7418, 7440, 7459, 7475,
+    7497, 7516, 7532, 7545, 7564, 7580, 7593, 7603, 7619, 7632, 7642, 7649, 7671, 7690, 7706, 7719,
+    7738, 7754, 7767, 7777, 7793, 7806, 7816, 7823, 7836, 7846, 7853], ⟨St.init (envOf [(9, (.gp
+    0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp
+    5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp
+    0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp
+    (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry + 2236))), (283, (.gp
+    (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))), (341, (.gp
+    (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
+    ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node
+    none (.node (some ()) .nil .nil) (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
+    (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node (some ())
+    (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some
+    ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node (some
+    ()) (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil))))) (.node none (.node (some ()) .nil (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil)
+    .nil)) .nil)) (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ())
+    .nil .nil))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none
     (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some
     ()) .nil .nil))) (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil))
     (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none
-    (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil)
-    .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some
-    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))))
-    (.node none (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some
-    ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node
-    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ())
-    .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some
-    ()) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    .nil)) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
-    (some ()) .nil .nil)))))))), (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node
-    (some ()) .nil .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some
-    ()) .nil .nil)) .nil)))) (.node none (.node (some ()) (.node none .nil (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil) .nil) (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))
-    (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) .nil)))) (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node
-    none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil)))) (.node none .nil (.node none .nil (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none .nil
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    ()) .nil .nil) .nil)))) (.node (some ()) .nil (.node none .nil (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node
+    (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil
+    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
+    ()) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ())
+    .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
+    ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node none .nil (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) .nil)))) (.node none (.node none .nil (.node (some ()) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none .nil (.node (some ()) .nil .nil)))))))), (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) .nil) (.node none (.node none
+    .nil (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node none (.node (some ()) (.node none
+    .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil))
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
+    none (.node (some ()) .nil .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
+    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)))) (.node none .nil (.node none .nil (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
     .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) .nil .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil)))))))), (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil)
-    .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil))) (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) .nil)) (.node
+    none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil)))))))), (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node
     none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil)) .nil)
-    .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil)
-    .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node
-    (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)),
-    .nil⟩)])
+    .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil)
+    .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil)
+    .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil)))
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some ())
+    .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none
+    (.node none (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node
+    (some 4) .nil .nil) .nil) .nil)), .nil⟩), (0, [7856], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp
+    0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp
+    6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220,
+    .zero), (221, .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp
+    (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry + 2236))), (283, (.gp
+    (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))), (341, (.gp
+    (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
+    ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil
+    .nil)) .nil)))) (.node (some ()) (.node (some ()) (.node none (.node (some ()) .nil (.node none
+    .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ())
+    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil))))) (.node none (.node (some ()) (.node none (.node (some ())
+    .nil .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node
+    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))))))) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node
+    (some ()) .nil .nil) .nil) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)))))
+    (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node
+    (some ()) .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none (.node
+    (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    none (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) (.node none (.node none (.node (some ()) .nil .nil) (.node (some ()) .nil .nil))
+    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node none (.node none .nil (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) (.node none (.node none .nil (.node (some ())
+    .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))))))), (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) .nil) (.node none (.node none
+    .nil (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node none (.node (some ()) (.node none
+    .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil))
+    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some
+    ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil)))) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none .nil (.node none .nil
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node
+    none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
+    (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none
+    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
+    (some ()) .nil .nil)) (.node (some ()) .nil .nil)) .nil) .nil)) (.node none (.node none .nil
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node
+    (some ()) .nil .nil)))))))), (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil)))
+    .nil) .nil) .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil)))
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil))))
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil)
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil)
+    .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none (.node none
+    (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node (some 4) .nil
+    .nil) .nil) .nil)), .nil⟩)])
 
 /-- `sp_wots`: its walk at offset 14000. -/
 noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
   ((some ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp
     3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp
     9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero),
-    (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312, (.gp 37992)),
-    (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364)), (428, (.gp 42488)), (457, (.gp
-    43612)), (486, (.gp 44735)), (515, (.gp 45859)), (544, (.gp 46983)), (573, (.gp 48107))]),
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil
-    .nil))) (.node none (.node (some ()) (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some
-    ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) .nil))))
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none
-    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node
-    none (.node (some ()) .nil (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ())
-    .nil .nil))))) (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ())
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node (some
-    ()) .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none
+    (225, (.fpg 0)), (226, (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry +
+    2236))), (283, (.gp (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))),
+    (341, (.gp (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856))), (428, (.gp (Fn.«sp_wots».entry + 8980))), (457, (.gp
+    (Fn.«sp_wots».entry + 10104))), (486, (.gp (Fn.«sp_wots».entry + 11227))), (515, (.gp
+    (Fn.«sp_wots».entry + 12351))), (544, (.gp (Fn.«sp_wots».entry + 13475))), (573, (.gp
+    (Fn.«sp_wots».entry + 14599)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
+    .nil) .nil)) (.node (some ()) .nil .nil))) (.node none (.node (some ()) (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node
+    none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some
+    ()) .nil .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
     (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node
+    .nil .nil) .nil) (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil (.node
+    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) (.node (some ()) .nil .nil))))) (.node (some ()) (.node (some ()) (.node
+    none (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
+    .nil)))) (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some
+    ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
+    (some ()) .nil .nil))) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node (some ()) (.node
+    none (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none .nil
+    (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil))) (.node
+    none (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))))))) (.node (some ())
+    (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node
+    (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
+    (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none .nil (.node (some ())
+    .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))) (.node none .nil (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil
+    .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node (some ())
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))) (.node none .nil (.node
+    (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node (some ())
+    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
+    (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)))
+    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
+    .nil)) (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some
+    ()) (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node
+    (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
+    .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node (some ()) (.node none
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))))))))), (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
+    .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node (some ())
+    .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none .nil
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none (.node none .nil (.node
+    (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node
+    none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) .nil)))) (.node none (.node (some ()) (.node none (.node none (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) .nil)) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil
+    .nil))))) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil)) .nil) (.node none (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node
+    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some
+    ()) .nil .nil)))))))) (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
+    .nil)))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none .nil (.node none .nil
+    (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some
+    ()) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil)))))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node
+    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
+    (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none
+    .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil))) (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) .nil) .nil))) .nil) .nil) .nil) .nil)) .nil) (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil))
+    .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil))
+    .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))))) .nil))
+    .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil))) .nil) .nil) .nil) .nil))) .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil)
+    .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))) .nil)))) .nil) .nil) .nil)) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node
+    none (.node none (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none
+    (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), [(0, [14008, 14030, 14049, 14065, 14078, 14097,
+    14113, 14126, 14136, 14161, 14183, 14202, 14218, 14240, 14259, 14275, 14288, 14307, 14323,
+    14336, 14346, 14362, 14375, 14385, 14392, 14414, 14433, 14449, 14462, 14481, 14497, 14510,
+    14520, 14536, 14549, 14559, 14566, 14579, 14589, 14596], ⟨St.init (envOf [(9, (.gp 0)), (202,
+    (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208,
+    (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220,
+    .zero), (221, .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp
+    (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry + 2236))), (283, (.gp
+    (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))), (341, (.gp
+    (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856))), (428, (.gp (Fn.«sp_wots».entry + 8980))), (457, (.gp
+    (Fn.«sp_wots».entry + 10104))), (486, (.gp (Fn.«sp_wots».entry + 11227))), (515, (.gp
+    (Fn.«sp_wots».entry + 12351))), (544, (.gp (Fn.«sp_wots».entry + 13475))), (573, (.gp
+    (Fn.«sp_wots».entry + 14599)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil))) (.node none
+    (.node (some ()) (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))
+    (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none
+    (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) .nil)))) (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil (.node
+    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) .nil)))) (.node (some ()) (.node (some ()) (.node none (.node (some ())
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node
+    (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil
+    .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil .nil)) (.node (some ())
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node none
+    (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node
     none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ())
     .nil .nil) .nil)) (.node (some ()) .nil .nil))) (.node none (.node (some ()) (.node none (.node
     none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
@@ -511,16 +690,15 @@ noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none
     (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node
     (some ()) .nil .nil)))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ())
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ())
-    (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none
-    .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none .nil (.node (some ()) (.node
-    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))))
-    (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node
+    (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node none
+    .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))) (.node none .nil (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil)
+    .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none (.node (some ()) (.node
+    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node
     (some ()) .nil .nil))) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))
     (.node none (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
     none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none
@@ -528,92 +706,88 @@ noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none (.node
     (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil
     .nil)))))) (.node none (.node none (.node (some ()) (.node none (.node (some ()) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
-    .nil) .nil)))) (.node none (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ())
-    .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some
-    ()) (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some
-    ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil)) (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))
-    .nil) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ())
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node none (.node
-    (some ()) (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))
-    .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))) (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ())
-    .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))))))) (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil
-    .nil))))))))), (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil)
-    .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil)))
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ())
+    (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
+    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
+    none (.node none .nil (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none
+    .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node (some ()) (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))))))))), (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
+    .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node (some ())
+    .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none .nil
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none (.node none .nil (.node
+    (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node
+    none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) .nil)))) (.node none (.node (some ()) (.node none (.node none (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) .nil)) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil
+    .nil))))) (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil
+    .nil)))))))) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ())
+    .nil .nil)))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none .nil (.node none
+    .nil (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))
+    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some
+    ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)
+    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)
+    (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil) (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil) .nil))) .nil) .nil)
-    .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) .nil)) .nil) .nil))) .nil) .nil) .nil) .nil)) .nil)
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil) .nil)) (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
     .nil))))))) .nil)) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
     none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
     (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil)
@@ -633,244 +807,87 @@ noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil)
     .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
     .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node
-    none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), [(0, [14008, 14030, 14049,
-    14065, 14078, 14097, 14113, 14126, 14136, 14161, 14183, 14202, 14218, 14240, 14259, 14275,
-    14288, 14307, 14323, 14336, 14346, 14362, 14375, 14385, 14392, 14414, 14433, 14449, 14462,
-    14481, 14497, 14510, 14520, 14536, 14549, 14559, 14566, 14579, 14589, 14596], ⟨St.init (envOf
+    none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), (0, [14599], ⟨St.init (envOf
     [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)),
     (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)),
     (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226,
-    (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312, (.gp 37992)), (341, (.gp 39116)),
-    (370, (.gp 40240)), (399, (.gp 41364)), (428, (.gp 42488)), (457, (.gp 43612)), (486, (.gp
-    44735)), (515, (.gp 45859)), (544, (.gp 46983)), (573, (.gp 48107))]), (.node (some ()) (.node
-    (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    (some ()) .nil .nil))) (.node none (.node (some ()) (.node none .nil (.node none .nil (.node
-    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil)
-    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ())
-    .nil (.node (some ()) .nil .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node
-    (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil
-    (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node (some ()) (.node (some ())
-    .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node (some ()) (.node (some ())
-    (.node none (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil
-    .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some
-    ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some ())
-    .nil .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil))) (.node none (.node (some
-    ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))))))) (.node (some ()) (.node (some ())
-    (.node (some ()) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node
-    (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil)))) (.node none .nil (.node none (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node (some ()) .nil (.node
-    (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil
-    .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node
-    none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
-    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    (.node none (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)))) (.node none (.node none (.node none .nil (.node (some ()) (.node none .nil (.node (some
-    ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil)
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node
-    none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
-    (.node (some ()) .nil .nil))))))))), (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node
-    none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node (some ()) (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) .nil)))) (.node none (.node (some ())
-    (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))
-    (.node none .nil (.node (some ()) .nil .nil))))) (.node none (.node none .nil (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil)
-    .nil)) .nil)) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
-    (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node none .nil (.node (some ()) .nil .nil)))))))) (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node
-    (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)))) (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node
-    none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)))
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry + 2236))), (283, (.gp
+    (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))), (341, (.gp
+    (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856))), (428, (.gp (Fn.«sp_wots».entry + 8980))), (457, (.gp
+    (Fn.«sp_wots».entry + 10104))), (486, (.gp (Fn.«sp_wots».entry + 11227))), (515, (.gp
+    (Fn.«sp_wots».entry + 12351))), (544, (.gp (Fn.«sp_wots».entry + 13475))), (573, (.gp
+    (Fn.«sp_wots».entry + 14599)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
+    .nil) .nil)) (.node (some ()) .nil .nil))) (.node none (.node (some ()) (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node
+    none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some
+    ()) .nil .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil
+    .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil (.node
+    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) .nil))))) (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some
+    ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
     (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil (.node
-    (some ()) .nil .nil))))))))), (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil)))
-    .nil) .nil) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some ()) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) .nil))) (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    .nil) .nil))) .nil) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)
-    .nil))) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil)
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil)
-    .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil))))))) .nil)) .nil) .nil) .nil)) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))
-    .nil)) .nil)) .nil) .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil)
-    .nil))) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some ())
-    .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) .nil))) .nil)))) .nil) .nil) .nil)) (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil)
-    .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node
-    (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)),
-    .nil⟩), (0, [14599], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp
-    2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp
-    8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero),
-    (223, .zero), (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312,
-    (.gp 37992)), (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364)), (428, (.gp 42488)),
-    (457, (.gp 43612)), (486, (.gp 44735)), (515, (.gp 45859)), (544, (.gp 46983)), (573, (.gp
-    48107))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ())
-    (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    (some ()) .nil .nil))) (.node none (.node (some ()) (.node none .nil (.node none .nil (.node
-    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil)
-    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node (some
-    ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some
-    ()) (.node none (.node (some ()) .nil (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none
-    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node
-    (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node (some
-    ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some
-    ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none .nil (.node
-    (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil .nil)) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))))) (.node
+    .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))) (.node (some
+    ()) .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) .nil .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ())
+    .nil .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node
+    none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ())
+    .nil .nil) .nil)) (.node (some ()) .nil .nil))) (.node none (.node (some ()) (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node
+    (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node
+    (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
+    (.node (some ()) .nil .nil)))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node
+    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node
+    (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))))
+    (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none .nil (.node
+    (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
+    .nil .nil))))) (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node (some ()) .nil .nil))) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil
+    .nil)))) (.node none (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))))) (.node none (.node
     none (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil
     .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none
-    .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ())
-    .nil .nil))) (.node none (.node (some ()) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil))))))))
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
-    (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some
-    ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node
-    (some ()) .nil .nil)))) (.node none .nil (.node (some ()) (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil))) (.node
-    none .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil
-    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
-    (some ()) .nil .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node
-    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil)))
-    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ())
-    (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
-    (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node (some ()) (.node none .nil
-    (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node
+    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node
+    (some ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node
+    (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node
+    none (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)
+    (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))))
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node (some ())
+    .nil .nil) .nil) .nil)) (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node
+    none .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil))) (.node (some ()) (.node none (.node (some ()) (.node
+    none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none
     (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
     .nil))))))))), (.node none (.node none (.node none (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil
@@ -966,443 +983,459 @@ noncomputable def frameCut2 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
   ((some ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp
     3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp
     9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero),
-    (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)), (283, (.gp 36868)), (312, (.gp 37992)),
-    (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp 41364)), (428, (.gp 42488)), (457, (.gp
-    43612)), (486, (.gp 44735)), (515, (.gp 45859)), (544, (.gp 46983)), (573, (.gp 48107)), (602,
-    (.gp 49231)), (631, (.gp 50355)), (660, (.gp 51479)), (689, (.gp 52603)), (718, (.gp 53727)),
-    (747, (.gp 54851))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
-    (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none
-    (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node
-    (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) .nil
-    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ())
-    .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
+    (225, (.fpg 0)), (226, (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry +
+    2236))), (283, (.gp (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))),
+    (341, (.gp (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856))), (428, (.gp (Fn.«sp_wots».entry + 8980))), (457, (.gp
+    (Fn.«sp_wots».entry + 10104))), (486, (.gp (Fn.«sp_wots».entry + 11227))), (515, (.gp
+    (Fn.«sp_wots».entry + 12351))), (544, (.gp (Fn.«sp_wots».entry + 13475))), (573, (.gp
+    (Fn.«sp_wots».entry + 14599))), (602, (.gp (Fn.«sp_wots».entry + 15723))), (631, (.gp
+    (Fn.«sp_wots».entry + 16847))), (660, (.gp (Fn.«sp_wots».entry + 17971))), (689, (.gp
+    (Fn.«sp_wots».entry + 19095))), (718, (.gp (Fn.«sp_wots».entry + 20219))), (747, (.gp
+    (Fn.«sp_wots».entry + 21343)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some
+    ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node
+    none (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
+    (some ()) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil
+    (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node (some ()) (.node none
+    (.node (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil)))) (.node
+    none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node (some ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
+    (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ())
+    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node (some ()) (.node none (.node
+    (some ()) .nil (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node (some ())
+    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))
+    (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))))
+    (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ())
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil))))
+    (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
+    .nil)) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
+    .nil))))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node (some ()) .nil
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none
+    (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ())
+    .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some
+    ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
+    .nil)))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) (.node
+    none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
+    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) .nil (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))
+    (.node none (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil))
+    (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some
+    ()) .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node
+    (some ()) .nil .nil) .nil)))) (.node none (.node (some ()) (.node none (.node (some ()) .nil
+    .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none (.node (some ())
+    .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))))))) (.node (some ())
+    (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none
+    (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil)
+    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil (.node none
+    (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node
+    (some ()) .nil .nil) .nil))))) (.node (some ()) (.node none (.node (some ()) .nil (.node none
+    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil
+    .nil) (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node (some
+    ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node (some ()) (.node none
+    (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node (some ()) .nil
+    (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil)
+    .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) (.node
+    none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none .nil (.node (some
+    ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none .nil
+    (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil)
+    (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ())
+    (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some
+    ()) .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none (.node (some ()) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some ())
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none
+    (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
+    .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none (.node (some
+    ()) .nil .nil) .nil)) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none
+    (.node (some ()) .nil .nil) .nil))))) (.node none (.node (some ()) (.node none (.node (some ())
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none
+    (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) (.node none .nil (.node
+    (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))))
+    (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node (some ()) (.node none
+    (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil
+    (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))))
+    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some ())
+    (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil))) (.node none (.node
+    none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none
+    .nil (.node (some ()) .nil .nil)) .nil)) (.node none .nil (.node none (.node none (.node none
     (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node none (.node none (.node none
+    .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node
+    none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil))))) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node
+    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node none (.node (some ()) (.node none
+    (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)
+    (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node
+    (some ()) (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))) (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some ())
+    .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))
+    (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some
+    ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none
+    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
+    .nil (.node (some ()) .nil .nil)))))))) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ())
+    (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil)
+    (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none (.node none
+    .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none
+    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil)) (.node
+    none (.node none (.node none .nil (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
+    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil))
+    (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil
+    .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node
+    none (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
+    (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node
+    none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil
+    (.node (some ()) .nil .nil))))))))), (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
+    .nil))) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil)
+    .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some ()) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil)
+    .nil) .nil) .nil) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some ())
+    .nil .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) .nil)) .nil) .nil))) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)
+    .nil)))) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil))
+    .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))))))
+    .nil)) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil)
+    .nil)))) .nil) .nil)) .nil)) .nil) .nil) .nil)))) (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil)
+    .nil) .nil) .nil))) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil))
+    .nil)) .nil))) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)))
+    .nil)))) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil)
+    .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil)
+    .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), [(0,
+    [21003, 21019, 21032, 21051, 21067, 21080, 21090, 21106, 21119, 21129, 21136, 21158, 21177,
+    21193, 21206, 21225, 21241, 21254, 21264, 21280, 21293, 21303, 21310, 21323, 21333, 21340],
+    ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)),
+    (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)),
+    (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223, .zero), (225,
+    (.fpg 0)), (226, (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp (Fn.«sp_wots».entry + 2236))),
+    (283, (.gp (Fn.«sp_wots».entry + 3360))), (312, (.gp (Fn.«sp_wots».entry + 4484))), (341, (.gp
+    (Fn.«sp_wots».entry + 5608))), (370, (.gp (Fn.«sp_wots».entry + 6732))), (399, (.gp
+    (Fn.«sp_wots».entry + 7856))), (428, (.gp (Fn.«sp_wots».entry + 8980))), (457, (.gp
+    (Fn.«sp_wots».entry + 10104))), (486, (.gp (Fn.«sp_wots».entry + 11227))), (515, (.gp
+    (Fn.«sp_wots».entry + 12351))), (544, (.gp (Fn.«sp_wots».entry + 13475))), (573, (.gp
+    (Fn.«sp_wots».entry + 14599))), (602, (.gp (Fn.«sp_wots».entry + 15723))), (631, (.gp
+    (Fn.«sp_wots».entry + 16847))), (660, (.gp (Fn.«sp_wots».entry + 17971))), (689, (.gp
+    (Fn.«sp_wots».entry + 19095))), (718, (.gp (Fn.«sp_wots».entry + 20219))), (747, (.gp
+    (Fn.«sp_wots».entry + 21343)))]), (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil)
+    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some
+    ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node
+    none (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
+    (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
+    (some ()) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil))) (.node none
+    (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none .nil (.node (some ()) .nil
+    .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some
+    ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
+    .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node none (.node none (.node none
     (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil
     (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node (some
     ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
     (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node
-    none (.node (some ()) .nil .nil) .nil))))) (.node (some ()) (.node none (.node (some ()) .nil
-    (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil (.node
-    (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node (some ())
-    (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some
-    ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none
-    (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some
-    ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node
-    none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
-    (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node (some ()) .nil (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ())
-    (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)))))) (.node none
-    (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ())
-    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ())
-    (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) .nil (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node
-    (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil (.node (some
-    ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node (some
-    ()) .nil .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))))))) (.node (some ()) (.node (some ())
-    (.node (some ()) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ()) (.node none (.node (some
-    ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil
-    .nil) .nil))))) (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil) (.node none .nil
-    (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil)))))) (.node (some ()) (.node none (.node (some ()) (.node none
-    (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node
-    (some ()) .nil .nil))) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))
-    (.node none (.node (some ()) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
-    (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
-    (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil
-    .nil) .nil))))) (.node none (.node none (.node none .nil (.node (some ()) .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node
-    (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node none (.node (some ())
-    .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil)
-    .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))))) (.node
-    none (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some ()) (.node none (.node (some ())
-    .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil)) (.node (some ())
-    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
-    .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) (.node none (.node (some ()) (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
-    none (.node none .nil (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ())
-    .nil .nil) .nil))))) (.node (some ()) (.node none (.node (some ()) (.node none .nil (.node (some
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil))))
+    (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil (.node (some ()) .nil
+    .nil))) (.node none (.node (some ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none
+    (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil))))) (.node (some ()) (.node (some ()) (.node none (.node (some
+    ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
+    .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none .nil (.node (some
+    ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil)
+    .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node (some ()) .nil
+    .nil)) (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
+    .nil))))) (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) (.node
+    none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
+    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) .nil (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node (some ()) (.node none
+    (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node none (.node
+    (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
+    none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node (some
+    ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))))))) (.node
+    (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node (some ())
+    (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) (.node (some ())
+    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node
+    none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    (some ()) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) (.node (some ())
+    .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil) (.node none .nil (.node (some ())
+    .nil .nil)))) (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)) (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil)
+    .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node (some ())
+    (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) .nil
+    .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node (some
+    ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) (.node none .nil (.node
+    none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) (.node (some ()) .nil
+    .nil) .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
+    (.node none (.node none .nil (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
+    .nil))) (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))
+    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)))) (.node
+    (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node
+    none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)))))) (.node none (.node none (.node (some
+    ()) (.node none (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    .nil) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
+    (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some ())
+    .nil .nil) .nil)) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ())
+    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) (.node
+    (some ()) .nil .nil) .nil) .nil)))) (.node none (.node (some ()) (.node none (.node (some ())
+    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node (some ()) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none
+    (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil)
+    .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) (.node none .nil (.node
+    (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))))
+    (.node (some ()) (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none (.node
+    (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) (.node none .nil (.node (some
     ()) (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node none (.node (some ()) .nil
-    .nil) .nil))) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ())
-    .nil .nil))))))))), (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none
-    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil
-    (.node (some ()) .nil .nil))) .nil) (.node none (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some
-    ()) .nil .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    .nil))))) (.node none (.node (some ()) (.node none (.node none (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node
-    (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))
-    (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
+    .nil) .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
+    .nil .nil)) (.node (some ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) (.node
+    (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil))) (.node none (.node none
+    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) .nil)) (.node none .nil (.node none (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) .nil) (.node none
+    (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none
+    (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some
+    ()) .nil .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
+    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))
+    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node
+    none (.node (some ()) (.node none (.node none (.node none (.node none (.node none (.node (some
+    ()) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil)))) (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none .nil
+    (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
+    .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil))) .nil) (.node none
     (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node
     none .nil (.node (some ()) .nil .nil))))) (.node none (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none
     (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node (some ()) (.node (some ())
     .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node (some ()) .nil .nil)
-    .nil) (.node none (.node (some ()) .nil .nil) .nil))))) (.node none (.node none (.node none
-    (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))))))))
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
-    .nil)))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil)
-    .nil))))) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)))))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ())
-    .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) (.node (some ())
-    .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil))) (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    .nil) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil))) (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil)))) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) .nil)) .nil)
-    .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil) .nil))) .nil)
-    .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil) .nil)))) .nil) .nil) .nil) .nil)))
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil) .nil)) (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) .nil)
-    .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))))) .nil)) .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) .nil) .nil)) .nil))
-    .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil))) .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    .nil)) .nil) .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) .nil)) .nil)) .nil))) .nil) .nil) .nil))) (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) .nil))) .nil)))) .nil) .nil) .nil)) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node none
-    (.node none (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none (.node
-    (some 4) .nil .nil) .nil) .nil)), .nil⟩), [(0, [21003, 21019, 21032, 21051, 21067, 21080, 21090,
-    21106, 21119, 21129, 21136, 21158, 21177, 21193, 21206, 21225, 21241, 21254, 21264, 21280,
-    21293, 21303, 21310, 21323, 21333, 21340], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203,
-    (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209,
-    (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221,
-    .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp 34621)), (254, (.gp 35744)),
-    (283, (.gp 36868)), (312, (.gp 37992)), (341, (.gp 39116)), (370, (.gp 40240)), (399, (.gp
-    41364)), (428, (.gp 42488)), (457, (.gp 43612)), (486, (.gp 44735)), (515, (.gp 45859)), (544,
-    (.gp 46983)), (573, (.gp 48107)), (602, (.gp 49231)), (631, (.gp 50355)), (660, (.gp 51479)),
-    (689, (.gp 52603)), (718, (.gp 53727)), (747, (.gp 54851))]), (.node (some ()) (.node (some ())
-    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some ()) (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil)) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node
-    (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ())
-    .nil .nil) .nil))) (.node (some ()) (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) .nil))) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none
-    .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node (some ()) .nil (.node none
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some ())
-    .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))))
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil))) (.node (some ()) .nil (.node
-    (some ()) .nil .nil))) (.node (some ()) (.node none (.node (some ()) .nil (.node none (.node
-    (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil
-    (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node (some ()) .nil (.node
+    .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
+    (.node (some ()) .nil .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
+    (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
+    (.node none .nil (.node (some ()) .nil .nil)))))))) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node
     (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil .nil)
-    .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some
-    ()) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))))) (.node (some ())
-    (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node (some
-    ()) (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none
-    (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ())
-    (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil)
-    .nil))) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node (some ()) (.node (some
-    ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ()) (.node none (.node
-    (some ()) .nil .nil) .nil) .nil))))) (.node none (.node (some ()) (.node none (.node (some ())
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some
-    ()) .nil .nil) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil)
-    .nil)) (.node (some ()) (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node (some
-    ()) .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node
-    (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node
-    none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
-    .nil)))))))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
-    .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node
-    (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node (some
-    ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) .nil (.node none .nil
-    (.node (some ()) (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) .nil .nil)
-    (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil)) (.node (some ()) (.node none (.node (some ())
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil)
-    .nil) .nil))))) (.node (some ()) (.node none (.node (some ()) (.node none (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil
-    .nil))) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node none (.node
-    (some ()) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
-    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some ()) .nil
-    (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) (.node none
-    (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some ()) (.node (some
-    ()) .nil .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ())
-    .nil .nil)))))) (.node none (.node none (.node (some ()) (.node none (.node (some ()) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none (.node (some ())
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))) (.node none
-    (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
-    .nil .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) (.node none (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil))))
-    (.node none (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil))
-    (.node (some ()) .nil (.node (some ()) .nil .nil))) (.node none (.node none .nil (.node (some
-    ()) .nil .nil)) .nil)) (.node none (.node (some ()) (.node none (.node (some ()) (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none
-    (.node none .nil (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil
-    (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node (some ()) (.node none (.node (some
-    ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
-    (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node (some ()) (.node none
-    (.node (some ()) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node
-    (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node (some ()) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil
-    .nil))))))))), (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    ()) .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none
-    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil))))) (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil
-    (.node (some ()) .nil .nil))) .nil) (.node none (.node none .nil (.node (some ()) (.node (some
-    ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node
-    none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node none .nil (.node none (.node (some ())
-    .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) (.node (some ()) .nil
-    .nil) .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) .nil))))) (.node none (.node (some ()) (.node none (.node none (.node
-    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil
-    (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none
+    .nil) .nil)))) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node (some ()) (.node (some ()) .nil
+    .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none .nil (.node none .nil
+    (.node (some ()) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node (some
+    ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil))
+    .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil (.node none (.node (some
+    ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil)
+    .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node
+    (some ()) .nil .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some
+    ()) .nil .nil) .nil)) (.node (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) (.node none (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil
+    .nil)) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node none
+    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none (.node none (.node
+    (some ()) .nil .nil) .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) (.node (some ())
-    .nil .nil) .nil))) .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    (.node (some ()) .nil .nil)) (.node none .nil (.node (some ()) .nil .nil))))) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node (some ())
-    (.node (some ()) (.node (some ()) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none
-    .nil (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none .nil (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none .nil (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil .nil)))))))) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil (.node (some ()) .nil .nil)))) (.node
-    none (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none (.node none .nil
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none (.node
-    (some ()) (.node (some ()) .nil .nil) .nil) .nil) (.node (some ()) .nil .nil))))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil)))) (.node none (.node none (.node none
-    .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some
-    ()) .nil .nil) .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node (some ())
-    .nil (.node none (.node (some ()) .nil .nil) .nil))) (.node none (.node none .nil (.node (some
-    ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node
-    none .nil (.node none .nil (.node (some ()) .nil .nil)))))) (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) (.node none (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil .nil)) (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) (.node (some ())
-    .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some ())
-    .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
-    .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil))) (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) (.node
-    none .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)))) (.node none (.node none (.node
-    none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil))) .nil) (.node none (.node none (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil) .nil) (.node none .nil (.node (some ()) .nil (.node (some ()) .nil
-    .nil))))))))), (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil))) .nil) .nil) .nil)
-    .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil))) (.node
+    .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) (.node
+    (some ()) .nil .nil)) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) (.node
+    none (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
+    (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) (.node none (.node
+    none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) (.node none .nil
+    (.node (some ()) .nil (.node (some ()) .nil .nil))))))))), (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
     none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
-    .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node (some ()) .nil .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))
-    .nil) .nil)) .nil) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil))
-    .nil) .nil))) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil) .nil)))) .nil)
-    .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil
-    .nil) .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)))) (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))))
-    .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil .nil))))))) .nil))
-    .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node (some
-    ()) .nil .nil) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil) .nil) (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) .nil) .nil))
-    .nil)) .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil))) .nil)
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node (some ())
+    .nil .nil) .nil))) .nil))) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil))
+    .nil)) .nil) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some ()) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil)
     .nil) .nil)) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) .nil)) .nil) .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil)) .nil)) .nil))) .nil) .nil)
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil))))) .nil) .nil) .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node (some ()) .nil .nil) .nil))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil)
+    .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil) .nil))) .nil) .nil) .nil) .nil))
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
+    (some ()) .nil .nil) .nil)) .nil) .nil) .nil)))) .nil) .nil) .nil) .nil))) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node (some ()) .nil
+    .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))) .nil) .nil)) .nil)
+    .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) .nil) .nil)) .nil)
+    .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some ()) .nil .nil) .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil)
     .nil))) (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil))) .nil)))) .nil) .nil) .nil)) (.node
-    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil))))) .nil) .nil)))) (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some ()) .nil .nil))) .nil) .nil) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), .nil, (.node
-    none (.node none (.node none (.node (some 3) .nil .nil) .nil) .nil) (.node none (.node none
-    (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), (0, [21343], ⟨St.init (envOf [(9, (.gp 0)),
-    (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205, (.gp 3)), (206, (.gp 4)), (207, (.gp 5)),
-    (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211, (.gp 9)), (213, (.gp 63)), (219, (.gp 0)),
-    (220, .zero), (221, .zero), (222, .zero), (223, .zero), (225, (.fpg 0)), (226, (.gp 34621)),
-    (254, (.gp 35744)), (283, (.gp 36868)), (312, (.gp 37992)), (341, (.gp 39116)), (370, (.gp
-    40240)), (399, (.gp 41364)), (428, (.gp 42488)), (457, (.gp 43612)), (486, (.gp 44735)), (515,
-    (.gp 45859)), (544, (.gp 46983)), (573, (.gp 48107)), (602, (.gp 49231)), (631, (.gp 50355)),
-    (660, (.gp 51479)), (689, (.gp 52603)), (718, (.gp 53727)), (747, (.gp 54851))]), (.node (some
-    ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some
-    ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node (some ()) .nil .nil))))))) .nil)) .nil) .nil) .nil)) (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)) .nil))
+    .nil)) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node (some ()) .nil .nil) .nil)))) .nil) .nil)) .nil)) .nil) .nil) .nil)))) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    ()) .nil .nil))) .nil) .nil) .nil) .nil))) .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil) .nil) .nil)
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some ()) .nil
+    .nil) .nil)) .nil)) .nil)) .nil))) .nil) .nil) .nil))) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil)
+    .nil) .nil))) .nil)))) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil))))) .nil) .nil) .nil) .nil)))))
+    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some ()) .nil
+    .nil))) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil)
+    .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩), (0,
+    [21343], ⟨St.init (envOf [(9, (.gp 0)), (202, (.gp 0)), (203, (.gp 1)), (204, (.gp 2)), (205,
+    (.gp 3)), (206, (.gp 4)), (207, (.gp 5)), (208, (.gp 6)), (209, (.gp 7)), (210, (.gp 8)), (211,
+    (.gp 9)), (213, (.gp 63)), (219, (.gp 0)), (220, .zero), (221, .zero), (222, .zero), (223,
+    .zero), (225, (.fpg 0)), (226, (.gp (Fn.«sp_wots».entry + 1113))), (254, (.gp
+    (Fn.«sp_wots».entry + 2236))), (283, (.gp (Fn.«sp_wots».entry + 3360))), (312, (.gp
+    (Fn.«sp_wots».entry + 4484))), (341, (.gp (Fn.«sp_wots».entry + 5608))), (370, (.gp
+    (Fn.«sp_wots».entry + 6732))), (399, (.gp (Fn.«sp_wots».entry + 7856))), (428, (.gp
+    (Fn.«sp_wots».entry + 8980))), (457, (.gp (Fn.«sp_wots».entry + 10104))), (486, (.gp
+    (Fn.«sp_wots».entry + 11227))), (515, (.gp (Fn.«sp_wots».entry + 12351))), (544, (.gp
+    (Fn.«sp_wots».entry + 13475))), (573, (.gp (Fn.«sp_wots».entry + 14599))), (602, (.gp
+    (Fn.«sp_wots».entry + 15723))), (631, (.gp (Fn.«sp_wots».entry + 16847))), (660, (.gp
+    (Fn.«sp_wots».entry + 17971))), (689, (.gp (Fn.«sp_wots».entry + 19095))), (718, (.gp
+    (Fn.«sp_wots».entry + 20219))), (747, (.gp (Fn.«sp_wots».entry + 21343)))]), (.node (some ())
+    (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node (some ())
+    (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ()) .nil
     .nil) .nil) .nil)) (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
     .nil) (.node (some ()) .nil .nil))) (.node none (.node none (.node none .nil (.node (some ())
     (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil .nil) (.node none
@@ -1609,16 +1642,19 @@ noncomputable def frameCut2 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     .nil) .nil) .nil) .nil)), .nil, (.node none (.node none (.node none (.node (some 3) .nil .nil)
     .nil) .nil) (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)), .nil⟩)])
 
+noncomputable def envC : Mode.Env := CoreMode.envOf []
+noncomputable def funC : Mode.Fun := ⟨Fn.«sp_wots».entry, 23713, Fn.«sp_wots».csig, .nil, .nil,
+    .nil, false, .nil⟩
 noncomputable def frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := Data.powTree, scaled := [] }, 33508, 23713,
-    Fn.«sp_wots».modeSig, .nil, 524287, Data.adviceFn20.2.2, .nil, (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node (some 2) .nil .nil) .nil) .nil) .nil))) .nil) (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some 6)
-    .nil .nil)) .nil)) .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil)
-    .nil))) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node (some 8) .nil .nil) .nil) .nil) .nil))) .nil) .nil) .nil)))
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«sp_wots».entry, 23713,
+    Fn.«sp_wots».csig, .nil, 524287, advice.2.2, .nil, (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node (some 2) .nil .nil) .nil) .nil) .nil))) .nil) (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some 6) .nil
+    .nil)) .nil)) .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node none (.node (some 4) .nil .nil) .nil) .nil) .nil)))
+    .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node (some 8) .nil .nil) .nil) .nil) .nil))) .nil) .nil) .nil)))
     (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node (some 3) .nil .nil)) .nil)) .nil) .nil)) (.node none .nil (.node none
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some 7)

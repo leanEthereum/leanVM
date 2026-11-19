@@ -8910,7 +8910,7 @@ def f266c0 : List OffsetInstruction := [
   .mul 96 97 6,
   .jump 97 0 1]
 
-/-- `__loop9` from offset 0. -/
+/-- `__loop0_verify_tables` from offset 0. -/
 def f267c0 : List OffsetInstruction := [
   .mul 2 2 9,
   .mul 9 2 10,
@@ -8957,7 +8957,7 @@ def f267c0 : List OffsetInstruction := [
   .jump 28 31 30,
   .jump 21 0 1]
 
-/-- `__loop10` from offset 0. -/
+/-- `__loop1_verify_tables` from offset 0. -/
 def f268c0 : List OffsetInstruction := [
   .set 8 9223372036854775821 0,
   .mul 6 8 9,
@@ -8984,7 +8984,7 @@ def f268c0 : List OffsetInstruction := [
   .jump 16 19 18,
   .jump 20 0 1]
 
-/-- `__loop11` from offset 0. -/
+/-- `__loop0_verify_keccak` from offset 0. -/
 def f269c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
@@ -12342,7 +12342,7 @@ def f272c0 : List OffsetInstruction := [
   .mul 247 26 19,
   .jump 26 0 1]
 
-/-- `__loop12` from offset 0. -/
+/-- `__loop1_verify_keccak` from offset 0. -/
 def f273c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
@@ -12449,7 +12449,7 @@ def f274c0 : List OffsetInstruction := [
   .mul 175 26 19,
   .jump 26 0 1]
 
-/-- `__loop13` from offset 0. -/
+/-- `__loop2_verify_keccak` from offset 0. -/
 def f275c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
@@ -12472,7 +12472,7 @@ def f275c0 : List OffsetInstruction := [
   .jump 12 15 14,
   .jump 16 0 1]
 
-/-- `__loop14` from offset 0. -/
+/-- `__loop0_ring_switch_target` from offset 0. -/
 def f276c0 : List OffsetInstruction := [
   .deref 3 8 7 .cell,
   .deref 3 9 8 .cell,
@@ -12841,7 +12841,7 @@ def f276c0 : List OffsetInstruction := [
   .jump 351 354 353,
   .jump 355 0 1]
 
-/-- `__loop15` from offset 0. -/
+/-- `__loop0_check_opening_terminal` from offset 0. -/
 def f277c0 : List OffsetInstruction := [
   .mul 4 2 7,
   .deref 7 0 8 .cell,

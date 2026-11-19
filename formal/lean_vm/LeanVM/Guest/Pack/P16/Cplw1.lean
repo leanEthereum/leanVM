@@ -76,11 +76,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop30`, window 0, part 0. -/
+/-- `__loop5_da_column_offsets`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(421, Fn.«da_column_offsets_loop5».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets_loop5».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop30`: every part of every window. -/
+/-- `__loop5_da_column_offsets`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(421, Fn.«da_column_offsets_loop5».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets_loop5».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel

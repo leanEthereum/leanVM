@@ -14,7 +14,7 @@ namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 39: one `match`, by 8 groups of arms. -/
+/-- `__loop2_main`, window 39: one `match`, by 8 groups of arms. -/
 theorem w39_39 : shareWin 39 (snapsOf 39) 39 = true :=
   shareWin_of_split [(1, 33, 32, 992, 0, 32), (33, 65, 1024, 992, 0, 32), (65, 97, 2016, 992, 0, 32), (97, 129, 3008, 992, 0, 32), (129, 161, 4000, 992, 0, 32), (161, 193, 4992, 992, 0, 32), (193, 225, 5984, 992, 0, 32), (225, 256, 6976, 961, 0, 32)]
     (1, 33, 32, 992, 0, 32) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by

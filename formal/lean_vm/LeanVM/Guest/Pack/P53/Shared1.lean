@@ -22,16 +22,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop23`, once. -/
+/-- `__loop0_da_pad`, once. -/
 theorem st : shareStaticD Fn.«da_pad_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop23`, window 0. -/
+/-- `__loop0_da_pad`, window 0. -/
 theorem sw0 : shareWinD Fn.«da_pad_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop23`: its static sharing check and every window's. -/
+/-- `__loop0_da_pad`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«da_pad_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -49,16 +49,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop39`, once. -/
+/-- `__loop1_keccak_layer__L0`, once. -/
 theorem st : shareStaticD Fn.«keccak_layer__L0_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop39`, window 0. -/
+/-- `__loop1_keccak_layer__L0`, window 0. -/
 theorem sw0 : shareWinD Fn.«keccak_layer__L0_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop39`: its static sharing check and every window's. -/
+/-- `__loop1_keccak_layer__L0`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«keccak_layer__L0_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

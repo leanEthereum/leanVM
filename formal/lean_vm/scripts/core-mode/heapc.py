@@ -6,8 +6,8 @@ Data as in `CoreMode/Defs.lean`: a cell `(bases, off)`, `bases` a tuple of `(val
 a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, stride, lo, hi)`, bounds `CIdx`
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
-`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('evs', n, k, res)`, `('back', r, ns, res)`, `('prep', r, q, res)`, `('prep2', r, q, q2, res)`,
-`('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
+`('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('evs', n, k, res)`, `('back', r, ns, res)`, `('prep', r, q, res)`,
+`('prep2', r, q, q2, res)`, `('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
 `ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
 import collections
@@ -84,7 +84,7 @@ def gw_def(st, gw, c, d):
 
 class HSig:
     FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'retM', 'preP', 'postP', 'prePR', 'postPR', 'postV', 'retEq',
-              'postQ')
+              'postQ', 'nv', 'postN', 'postRN')
 
     def __init__(self, **kw):
         for f in self.FIELDS:
@@ -780,6 +780,13 @@ def runOkL(X, st, Q, ws, i):
     return runOk(X, st, Q, ws, i, runOk0)
 
 
+def reqN(X, st, G, ws, i):
+    """`CoreMode.reqN`: the guarantees over values, at their monomials."""
+    mn = monos(st.env, G.nv)
+    i = reqP(X, st, mn, G.postN, ws, i)
+    return None if i is None else reqR(X, st, mn, G.postRN, ws, i)
+
+
 def reqR(X, st, ms, rs, ws, i):
     for r in rs:
         q = instR(ms, r)
@@ -1317,7 +1324,7 @@ class Pass:
                 i = f(X, st, ms, l, ws, i)
                 if i is None:
                     break
-            if i != len(ws):
+            if (i if i is None or not (G.postN or G.postRN) else reqN(X, st, G, ws, i)) != len(ws):
                 self.fail('ret-check', ws)
             elif not retVC(st, ms, G.post, ws, G.postV):
                 self.fail('postV', ws)
@@ -1384,7 +1391,7 @@ class Pass:
             if ws is None:
                 raise Fail(('no-ret-wits', st.nt))
         i = tail_check(X, st, mp, mx, ex, ei, ws)
-        if i != len(ws):
+        if i != len(ws) or G.postN or G.postRN:
             self.fail('tail-check', ws)
 
 
@@ -1641,6 +1648,21 @@ def atomDst(a):
     return []
 
 
+# frame run cells past their runs a function's certificate also lists (`(kp, i)`, `i` at least the run's length), by
+# function: the frame walk's cells written at every return (`callc.fa_past`, `CoreMode.faRetAt`)
+FA_EXTRA = {}
+
+
+def fa_past_ok(body, kp, i):
+    """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
+    for s in body:
+        if not _noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][1] == kp and s[1][2] and len(s[1][2]) <= i:
+            return True
+    return False
+
+
 def fa_pairs(body):
     """Every `(kp, i)` `faOk` accepts: a `frameAddr kp run` and an atom defining `run[i]` among `topAtoms` (the
     top-level atoms before the first statement with a `ret` inside)."""
@@ -1702,7 +1724,8 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         P.fail('noGhost')
     if not dersOk(H.ders):
         P.fail('dersOk')
-    if not set(map(tuple, H.fas)) <= set(fa_pairs(body)):
+    fps = set(fa_pairs(body))
+    if not all(p in fps or fa_past_ok(body, *p) for p in map(tuple, H.fas)):
         P.fail('faOk')
     st = St()
     for i in range(m):

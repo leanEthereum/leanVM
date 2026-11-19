@@ -20,12 +20,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«verify_sub».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 1545 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 1545 st2 = true := by
+theorem last_ok : lastOkF Fn.«verify_sub».pows sigW core hcert 1545 st2 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -37,7 +37,7 @@ namespace LeanVM.Guest.Fn.«verify_sub»
 @[expose] public section
 
 /-- `verify_sub`: the heap check, in 2 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_sub».pows
     (fun g ↦ match g with
     | "bus_grind_check__L0" => Fn.«bus_grind_check__L0».hcert.sig
     | "bus_grind_check__L1" => Fn.«bus_grind_check__L1».hcert.sig

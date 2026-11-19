@@ -25,10 +25,10 @@ open LeanVM.Guest.Exec (Trie)
 @[expose] public section
 
 /-- The context, its tries stated. -/
-noncomputable def cxL : CX := ⟨Data.powTree, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig,
-    core.params, [], cxEQ, hcert.fas, hcert.ders⟩
+noncomputable def cxL : CX := ⟨Fn.«verify_tables».pows, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW,
+    hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩
 
-theorem hcx : cxOf Data.powTree sigW core hcert = cxL :=
+theorem hcx : cxOf Fn.«verify_tables».pows sigW core hcert = cxL :=
   cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ
 
 end

@@ -8,10 +8,10 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P39»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P39».Bundle
-public import LeanVM.Guest.Pack.«P39».ModeSig
 
 set_option Elab.async false
 
@@ -606,192 +606,192 @@ noncomputable def modeRes0 : Exec.Trie (List Mode.Res) :=
     5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1
     2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil)) .nil))))))))
 
-/-- `__loop18`: the program its walk shares. -/
+/-- `__loop0_child_claim_list_any`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node (some Fn.«child_claim_list_any_loop0».modeSig) .nil .nil))) .nil)
+    .nil (.node none .nil (.node (some Fn.«child_claim_list_any_loop0».csig) .nil .nil))) .nil)
     .nil))))) .nil)))))) .nil) .nil)), 524287⟩
 
-/-- `__loop18`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop0_child_claim_list_any`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨237304, 2466, Fn.«child_claim_list_any_loop0».modeSig, (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1621 1)]) .nil .nil)) .nil) .nil) (.node none .nil
-    (.node none (.node (some [(.witnessStack "child_claim_index" 1045 1)]) .nil .nil) .nil)))
-    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 757 1)]) .nil .nil)
-    .nil) (.node none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1333
-    1)]) .nil .nil) .nil) .nil) .nil))) (.node none (.node (some [(.witnessStack
-    "child_claim_index" 613 1)]) (.node none .nil (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1189 1)]) .nil .nil))) (.node none .nil (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1765 1)]) .nil .nil)) .nil))) (.node none (.node none
-    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1477 1)]) .nil
-    .nil) .nil)) .nil) (.node none .nil (.node (some [(.witnessStack "child_claim_index" 901 1)])
-    .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (some
-    [(.witnessStack "child_claim_index" 829 1)]) .nil .nil)) (.node none .nil (.node none (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1405 1)]) .nil .nil) .nil) .nil))) (.node
-    none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1117 1)])
-    .nil .nil)) .nil) (.node none (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1693 1)]) .nil .nil)) .nil) .nil))) (.node none (.node none (.node none
-    .nil (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1549 1)])
-    .nil .nil) .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 973
-    1)]) .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_index" 685
-    1)]) .nil .nil) (.node none .nil (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1261 1)]) .nil .nil))))))) (.node none (.node none (.node none (.node none
-    (.node (some [(.witnessStack "child_claim_index" 649 1)]) .nil .nil) (.node none .nil (.node
-    none .nil (.node (some [(.witnessStack "child_claim_index" 1225 1)]) .nil .nil)))) (.node none
-    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 937 1)]) .nil .nil)
-    .nil) .nil) (.node none (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1513 1)]) .nil .nil) .nil)) .nil))) (.node none (.node none (.node none
-    .nil (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1369 1)]) .nil
-    .nil) .nil) (.node none (.node none (.node (some [(.frameAddress 3219)]) .nil .nil) .nil)
-    .nil))) (.node none (.node (some [(.witnessStack "child_claim_index" 793 1)]) .nil .nil) .nil))
+  ⟨237304, 2466, Fn.«child_claim_list_any_loop0».csig, (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1621 1)]) .nil .nil)) .nil) .nil) (.node none .nil (.node
+    none (.node (some [(.witnessStack "child_claim_index" 1045 1)]) .nil .nil) .nil))) (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_index" 757 1)]) .nil .nil) .nil) (.node
+    none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1333 1)]) .nil
+    .nil) .nil) .nil) .nil))) (.node none (.node (some [(.witnessStack "child_claim_index" 613 1)])
+    (.node none .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1189 1)])
+    .nil .nil))) (.node none .nil (.node none (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 1765 1)]) .nil .nil)) .nil))) (.node none (.node none (.node none .nil
+    (.node none (.node (some [(.witnessStack "child_claim_index" 1477 1)]) .nil .nil) .nil)) .nil)
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 901 1)]) .nil .nil)))))
     (.node none (.node none (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1657 1)]) .nil .nil)) .nil) .nil) (.node none .nil (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1081 1)]) .nil .nil) .nil))))) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1009
-    1)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1585 1)]) .nil .nil) .nil)))) (.node none (.node none
-    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1297 1)]) .nil .nil)
-    .nil) .nil) .nil) (.node (some [(.witnessStack "child_claim_index" 721 1)]) .nil .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1729 1)]) .nil .nil)) .nil)) (.node none (.node none .nil (.node (some
-    [(.witnessStack "child_claim_index" 1153 1)]) .nil .nil)) .nil)) (.node none (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 865 1)]) .nil .nil)) (.node none .nil (.node
-    none (.node none (.node (some [(.witnessStack "child_claim_index" 1441 1)]) .nil .nil) .nil)
-    .nil))))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1711 1)]) .nil .nil))
-    .nil)) (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1135 1)])
-    .nil .nil)) .nil)) (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 847 1)]) .nil .nil)) (.node none .nil (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1423 1)]) .nil .nil) .nil) .nil)))) (.node none (.node none
-    (.node none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1279 1)])
-    .nil .nil) .nil) .nil) .nil) (.node (some [(.witnessStack "child_claim_index" 703 1)]) .nil
-    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1567 1)]) .nil .nil) .nil))) (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 991 1)]) .nil .nil) .nil) .nil)))) (.node none (.node none
-    (.node none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 919 1)])
-    .nil .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1495 1)]) .nil .nil) .nil)) .nil)) (.node (some [(.witnessStack
-    "child_claim_index" 631 1)]) (.node none .nil (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1207 1)]) .nil .nil))) (.node none .nil (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1783 1)]) .nil .nil)) .nil)))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
-    1639 1)]) .nil .nil)) .nil) .nil) (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1063 1)]) .nil .nil) .nil))) (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 775 1)]) .nil .nil) .nil) (.node none (.node none (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1351 1)]) .nil .nil) .nil) .nil)
-    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 739 1)]) .nil .nil) .nil) (.node none (.node none (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1315 1)]) .nil .nil) .nil) .nil) .nil))
-    (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1027
-    1)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1603 1)]) .nil .nil) .nil))))) (.node (some [(.witnessStack
-    "child_claim_index" 595 1)]) (.node none (.node none (.node none .nil (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1459 1)]) .nil .nil) .nil)) .nil) (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 883 1)]) .nil .nil))) (.node none (.node none .nil
-    (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1747 1)]) .nil
-    .nil)) .nil)) (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
-    1171 1)]) .nil .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 1099 1)]) .nil .nil)) .nil) (.node none (.node
-    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1675 1)]) .nil .nil))
-    .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1387 1)]) .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack
-    "child_claim_index" 811 1)]) .nil .nil) .nil))) (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 667 1)]) .nil .nil) (.node none .nil (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 1243 1)]) .nil .nil)))) (.node none (.node
-    none (.node none (.node (some [(.witnessStack "child_claim_index" 955 1)]) .nil .nil) .nil)
-    .nil) (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index"
-    1531 1)]) .nil .nil) .nil)) .nil))))))) (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
-    1090 1)]) .nil .nil)) .nil) (.node none (.node none (.node none .nil (.node (some
-    [(.witnessStack "child_claim_index" 1666 1)]) .nil .nil)) .nil) .nil)) (.node none (.node none
-    .nil (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1378 1)]) .nil
-    .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_index" 802 1)]) .nil
-    .nil) .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 658 1)])
-    .nil .nil) (.node none .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index"
-    1234 1)]) .nil .nil)))) (.node none (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 946 1)]) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node none
-    (.node (some [(.witnessStack "child_claim_index" 1522 1)]) .nil .nil) .nil)) .nil)))) (.node
-    none (.node (some [(.witnessStack "child_claim_index" 586 1)]) (.node none (.node none (.node
-    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1450 1)]) .nil .nil)
-    .nil)) .nil) (.node none .nil (.node (some [(.witnessStack "child_claim_index" 874 1)]) .nil
-    .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1738 1)]) .nil .nil)) .nil)) (.node none (.node none .nil (.node (some
-    [(.witnessStack "child_claim_index" 1162 1)]) .nil .nil)) .nil))) (.node none (.node none
-    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1018 1)]) .nil
-    .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1594 1)]) .nil .nil) .nil)))) (.node none (.node none (.node none (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1306 1)]) .nil .nil) .nil) .nil) .nil)
-    (.node (some [(.witnessStack "child_claim_index" 730 1)]) .nil .nil))))) (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1270 1)]) .nil .nil) .nil) .nil) .nil) (.node (some [(.witnessStack
-    "child_claim_index" 694 1)]) .nil .nil)) (.node none (.node none .nil (.node none .nil (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1558 1)]) .nil .nil) .nil))) (.node none
-    (.node none (.node (some [(.witnessStack "child_claim_index" 982 1)]) .nil .nil) .nil) .nil)))
-    (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 838
+    "child_claim_index" 829 1)]) .nil .nil)) (.node none .nil (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_index" 1405 1)]) .nil .nil) .nil) .nil))) (.node none (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1117 1)]) .nil .nil)) .nil)
+    (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1693
+    1)]) .nil .nil)) .nil) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node (some [(.witnessStack "child_claim_index" 1549 1)]) .nil .nil) .nil))) (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_index" 973 1)]) .nil .nil) .nil) .nil))
+    (.node none (.node (some [(.witnessStack "child_claim_index" 685 1)]) .nil .nil) (.node none
+    .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1261 1)]) .nil
+    .nil))))))) (.node none (.node none (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_index" 649 1)]) .nil .nil) (.node none .nil (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1225 1)]) .nil .nil)))) (.node none (.node none (.node none
+    (.node (some [(.witnessStack "child_claim_index" 937 1)]) .nil .nil) .nil) .nil) (.node none
+    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1513 1)]) .nil
+    .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_index" 1369 1)]) .nil .nil) .nil) (.node none (.node none
+    (.node (some [(.frameAddress 3219)]) .nil .nil) .nil) .nil))) (.node none (.node (some
+    [(.witnessStack "child_claim_index" 793 1)]) .nil .nil) .nil)) (.node none (.node none (.node
+    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1657 1)]) .nil .nil))
+    .nil) .nil) (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1081
+    1)]) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node (some [(.witnessStack "child_claim_index" 1009 1)]) .nil .nil) .nil)) (.node none .nil
+    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1585 1)]) .nil
+    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1297 1)]) .nil .nil) .nil) .nil) .nil) (.node (some [(.witnessStack
+    "child_claim_index" 721 1)]) .nil .nil))) (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1729 1)]) .nil .nil)) .nil))
+    (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1153 1)]) .nil
+    .nil)) .nil)) (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 865
     1)]) .nil .nil)) (.node none .nil (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1414 1)]) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 1126 1)]) .nil .nil)) .nil) (.node none (.node
-    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1702 1)]) .nil .nil))
-    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 1630 1)]) .nil .nil)) .nil) .nil) (.node none
-    .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1054 1)]) .nil .nil) .nil)))
-    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 766 1)]) .nil .nil)
-    .nil) (.node none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1342
-    1)]) .nil .nil) .nil) .nil) .nil))) (.node none (.node (some [(.witnessStack
-    "child_claim_index" 622 1)]) (.node none .nil (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1198 1)]) .nil .nil))) (.node none .nil (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1774 1)]) .nil .nil)) .nil))) (.node none (.node none
-    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1486 1)]) .nil
-    .nil) .nil)) .nil) (.node none .nil (.node (some [(.witnessStack "child_claim_index" 910 1)])
-    .nil .nil))))))) (.node none (.node none (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 604 1)]) (.node none .nil (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1180 1)]) .nil .nil))) (.node none .nil (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1756 1)]) .nil .nil)) .nil))) (.node none (.node none
-    (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1468 1)]) .nil
-    .nil) .nil)) .nil) (.node none .nil (.node (some [(.witnessStack "child_claim_index" 892 1)])
-    .nil .nil)))) (.node none (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 748 1)]) .nil .nil) .nil) (.node none (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1324 1)]) .nil .nil) .nil) .nil) .nil)) (.node none (.node
-    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1036 1)]) .nil .nil)
-    .nil)) (.node none .nil (.node none .nil (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1612 1)]) .nil .nil) .nil)))))) (.node (some [(.witnessStack
-    "child_claim_index" 576 1)]) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node (some [(.witnessStack "child_claim_index" 1540 1)]) .nil .nil) .nil))) (.node none
-    (.node none (.node (some [(.witnessStack "child_claim_index" 964 1)]) .nil .nil) .nil) .nil))
-    (.node none (.node (some [(.witnessStack "child_claim_index" 676 1)]) .nil .nil) (.node none
-    .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1252 1)]) .nil .nil)))))
-    (.node none (.node none (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1108 1)]) .nil .nil)) .nil) (.node none (.node none (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1684 1)]) .nil .nil)) .nil) .nil)) (.node none (.node
-    none .nil (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1396 1)])
-    .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_index" 820 1)])
-    .nil .nil) .nil))))) (.node (some [(.witnessStack "child_claim_index" 568 1)]) (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 1360 1)]) .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack
-    "child_claim_index" 784 1)]) .nil .nil) .nil)) (.node none (.node none (.node none (.node none
-    .nil (.node (some [(.witnessStack "child_claim_index" 1648 1)]) .nil .nil)) .nil) .nil) (.node
-    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1072 1)]) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node none (.node (some [(.witnessStack
-    "child_claim_index" 928 1)]) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node none
-    (.node (some [(.witnessStack "child_claim_index" 1504 1)]) .nil .nil) .nil)) .nil)) (.node
-    (some [(.witnessStack "child_claim_index" 640 1)]) (.node none .nil (.node none .nil (.node
-    (some [(.witnessStack "child_claim_index" 1216 1)]) .nil .nil))) .nil))) (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 1720 1)]) .nil .nil)) .nil)) (.node none (.node none .nil (.node (some
-    [(.witnessStack "child_claim_index" 1144 1)]) .nil .nil)) .nil)) (.node none (.node none .nil
-    (.node (some [(.witnessStack "child_claim_index" 856 1)]) .nil .nil)) (.node none .nil (.node
-    none (.node none (.node (some [(.witnessStack "child_claim_index" 1432 1)]) .nil .nil) .nil)
-    .nil)))) (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.witnessStack "child_claim_index" 1288 1)]) .nil .nil) .nil) .nil) .nil) (.node (some
-    [(.witnessStack "child_claim_index" 712 1)]) .nil .nil)) (.node none (.node none .nil (.node
-    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1576 1)]) .nil .nil)
-    .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1000 1)]) .nil
-    .nil) .nil) .nil)))))))), modeRes0, .nil, false, .nil⟩
+    "child_claim_index" 1441 1)]) .nil .nil) .nil) .nil))))))) (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1711 1)]) .nil .nil)) .nil)) (.node none (.node none .nil
+    (.node (some [(.witnessStack "child_claim_index" 1135 1)]) .nil .nil)) .nil)) (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 847 1)]) .nil .nil)) (.node
+    none .nil (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1423 1)])
+    .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_index" 1279 1)]) .nil .nil) .nil) .nil) .nil) (.node (some
+    [(.witnessStack "child_claim_index" 703 1)]) .nil .nil)) (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1567 1)]) .nil .nil)
+    .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 991 1)]) .nil
+    .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_index" 919 1)]) .nil .nil) .nil) .nil) (.node none (.node none
+    .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1495 1)]) .nil .nil) .nil))
+    .nil)) (.node (some [(.witnessStack "child_claim_index" 631 1)]) (.node none .nil (.node none
+    .nil (.node (some [(.witnessStack "child_claim_index" 1207 1)]) .nil .nil))) (.node none .nil
+    (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1783 1)]) .nil
+    .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1639 1)]) .nil .nil)) .nil) .nil) (.node none .nil (.node
+    none (.node (some [(.witnessStack "child_claim_index" 1063 1)]) .nil .nil) .nil))) (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_index" 775 1)]) .nil .nil) .nil) (.node
+    none (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1351 1)]) .nil
+    .nil) .nil) .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_index" 739 1)]) .nil .nil) .nil) (.node none (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_index" 1315 1)]) .nil .nil) .nil) .nil)
+    .nil)) (.node none (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1027 1)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none
+    (.node (some [(.witnessStack "child_claim_index" 1603 1)]) .nil .nil) .nil))))) (.node (some
+    [(.witnessStack "child_claim_index" 595 1)]) (.node none (.node none (.node none .nil (.node
+    none (.node (some [(.witnessStack "child_claim_index" 1459 1)]) .nil .nil) .nil)) .nil) (.node
+    none .nil (.node (some [(.witnessStack "child_claim_index" 883 1)]) .nil .nil))) (.node none
+    (.node none .nil (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
+    1747 1)]) .nil .nil)) .nil)) (.node none (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 1171 1)]) .nil .nil)) .nil)))) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1099 1)]) .nil .nil))
+    .nil) (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
+    1675 1)]) .nil .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_index" 1387 1)]) .nil .nil) .nil) .nil)) (.node none (.node
+    (some [(.witnessStack "child_claim_index" 811 1)]) .nil .nil) .nil))) (.node none (.node none
+    (.node (some [(.witnessStack "child_claim_index" 667 1)]) .nil .nil) (.node none .nil (.node
+    none .nil (.node (some [(.witnessStack "child_claim_index" 1243 1)]) .nil .nil)))) (.node none
+    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 955 1)]) .nil .nil)
+    .nil) .nil) (.node none (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1531 1)]) .nil .nil) .nil)) .nil))))))) (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 1090 1)]) .nil .nil)) .nil) (.node none (.node none (.node none .nil (.node
+    (some [(.witnessStack "child_claim_index" 1666 1)]) .nil .nil)) .nil) .nil)) (.node none (.node
+    none .nil (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1378 1)])
+    .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_index" 802 1)])
+    .nil .nil) .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 658
+    1)]) .nil .nil) (.node none .nil (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 1234 1)]) .nil .nil)))) (.node none (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_index" 946 1)]) .nil .nil) .nil) .nil) (.node none (.node none
+    .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1522 1)]) .nil .nil) .nil))
+    .nil)))) (.node none (.node (some [(.witnessStack "child_claim_index" 586 1)]) (.node none
+    (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1450
+    1)]) .nil .nil) .nil)) .nil) (.node none .nil (.node (some [(.witnessStack "child_claim_index"
+    874 1)]) .nil .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1738 1)]) .nil .nil)) .nil)) (.node none (.node none .nil
+    (.node (some [(.witnessStack "child_claim_index" 1162 1)]) .nil .nil)) .nil))) (.node none
+    (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1018
+    1)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node (some
+    [(.witnessStack "child_claim_index" 1594 1)]) .nil .nil) .nil)))) (.node none (.node none
+    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1306 1)]) .nil .nil)
+    .nil) .nil) .nil) (.node (some [(.witnessStack "child_claim_index" 730 1)]) .nil .nil)))))
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    (some [(.witnessStack "child_claim_index" 1270 1)]) .nil .nil) .nil) .nil) .nil) (.node (some
+    [(.witnessStack "child_claim_index" 694 1)]) .nil .nil)) (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1558 1)]) .nil .nil)
+    .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 982 1)]) .nil
+    .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 838 1)]) .nil .nil)) (.node none .nil (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_index" 1414 1)]) .nil .nil) .nil) .nil))) (.node none (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1126 1)]) .nil .nil)) .nil)
+    (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1702
+    1)]) .nil .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1630 1)]) .nil .nil)) .nil)
+    .nil) (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1054 1)])
+    .nil .nil) .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 766
+    1)]) .nil .nil) .nil) (.node none (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1342 1)]) .nil .nil) .nil) .nil) .nil))) (.node none (.node (some
+    [(.witnessStack "child_claim_index" 622 1)]) (.node none .nil (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1198 1)]) .nil .nil))) (.node none .nil (.node none (.node
+    none .nil (.node (some [(.witnessStack "child_claim_index" 1774 1)]) .nil .nil)) .nil))) (.node
+    none (.node none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index"
+    1486 1)]) .nil .nil) .nil)) .nil) (.node none .nil (.node (some [(.witnessStack
+    "child_claim_index" 910 1)]) .nil .nil))))))) (.node none (.node none (.node none (.node none
+    (.node (some [(.witnessStack "child_claim_index" 604 1)]) (.node none .nil (.node none .nil
+    (.node (some [(.witnessStack "child_claim_index" 1180 1)]) .nil .nil))) (.node none .nil (.node
+    none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1756 1)]) .nil .nil))
+    .nil))) (.node none (.node none (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1468 1)]) .nil .nil) .nil)) .nil) (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 892 1)]) .nil .nil)))) (.node none (.node none (.node none
+    (.node (some [(.witnessStack "child_claim_index" 748 1)]) .nil .nil) .nil) (.node none (.node
+    none (.node none (.node (some [(.witnessStack "child_claim_index" 1324 1)]) .nil .nil) .nil)
+    .nil) .nil)) (.node none (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1036 1)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none
+    (.node (some [(.witnessStack "child_claim_index" 1612 1)]) .nil .nil) .nil)))))) (.node (some
+    [(.witnessStack "child_claim_index" 576 1)]) (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1540 1)]) .nil .nil)
+    .nil))) (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 964 1)]) .nil
+    .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack "child_claim_index" 676 1)]) .nil
+    .nil) (.node none .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1252
+    1)]) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (some
+    [(.witnessStack "child_claim_index" 1108 1)]) .nil .nil)) .nil) (.node none (.node none (.node
+    none .nil (.node (some [(.witnessStack "child_claim_index" 1684 1)]) .nil .nil)) .nil) .nil))
+    (.node none (.node none .nil (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1396 1)]) .nil .nil) .nil) .nil)) (.node none (.node (some [(.witnessStack
+    "child_claim_index" 820 1)]) .nil .nil) .nil))))) (.node (some [(.witnessStack
+    "child_claim_index" 568 1)]) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (some [(.witnessStack "child_claim_index" 1360 1)]) .nil .nil) .nil) .nil))
+    (.node none (.node (some [(.witnessStack "child_claim_index" 784 1)]) .nil .nil) .nil)) (.node
+    none (.node none (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index"
+    1648 1)]) .nil .nil)) .nil) .nil) (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1072 1)]) .nil .nil) .nil)))) (.node none (.node none (.node none (.node
+    none (.node (some [(.witnessStack "child_claim_index" 928 1)]) .nil .nil) .nil) .nil) (.node
+    none (.node none .nil (.node none (.node (some [(.witnessStack "child_claim_index" 1504 1)])
+    .nil .nil) .nil)) .nil)) (.node (some [(.witnessStack "child_claim_index" 640 1)]) (.node none
+    .nil (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1216 1)]) .nil .nil)))
+    .nil))) (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node (some [(.witnessStack "child_claim_index" 1720 1)]) .nil .nil)) .nil)) (.node none
+    (.node none .nil (.node (some [(.witnessStack "child_claim_index" 1144 1)]) .nil .nil)) .nil))
+    (.node none (.node none .nil (.node (some [(.witnessStack "child_claim_index" 856 1)]) .nil
+    .nil)) (.node none .nil (.node none (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1432 1)]) .nil .nil) .nil) .nil)))) (.node none (.node none (.node none
+    (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 1288 1)]) .nil .nil)
+    .nil) .nil) .nil) (.node (some [(.witnessStack "child_claim_index" 712 1)]) .nil .nil)) (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some [(.witnessStack
+    "child_claim_index" 1576 1)]) .nil .nil) .nil))) (.node none (.node none (.node (some
+    [(.witnessStack "child_claim_index" 1000 1)]) .nil .nil) .nil) .nil)))))))), modeRes0, .nil,
+    false, .nil⟩
 
-/-- `__loop18`: its mode walk accepts its code. -/
+/-- `__loop0_child_claim_list_any`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 

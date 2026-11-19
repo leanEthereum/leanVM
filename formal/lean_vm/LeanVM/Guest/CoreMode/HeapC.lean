@@ -289,25 +289,31 @@ def atomDst : Atom → List V
   | _ => []
 
 /-- **A frame run's cell at return**: the cell `p·g^i` of a `frameAddr p run` on the path, whose value
-`run[i]` an atom on the path defines (the frame cell holding it, written by then). -/
-def FAW (σ : Val) (es : List Ev) (x : K) : Prop :=
-  ∃ p run i v, Ev.atom (.frameAddr p run) ∈ es ∧ run[i]? = some v ∧ (∃ a, Ev.atom a ∈ es ∧ v ∈ atomDst a) ∧
-    x = cellAt σ p i
+`run[i]` an atom on the path defines (the frame cell holding it, written by then); or, past the run, a cell `(kp, i)`
+of the certificate's frame run cells `fas` (`i` at least the run's length), which the frame walk has written at the
+returns (`faRetOk`). -/
+def FAW (σ : Val) (fas : List (ℕ × ℕ)) (es : List Ev) (x : K) : Prop :=
+  (∃ p run i v, Ev.atom (.frameAddr p run) ∈ es ∧ run[i]? = some v ∧ (∃ a, Ev.atom a ∈ es ∧ v ∈ atomDst a) ∧
+    x = cellAt σ p i) ∨
+  ∃ kp i run, (kp, i) ∈ fas ∧ Ev.atom (.frameAddr (V.n kp) run) ∈ es ∧ run ≠ [] ∧ run.length ≤ i ∧
+    x = cellAt σ (V.n kp) i
 
 /-- **The guarantees at return are written**, at the parameters' words `ws0` and the returned `vs`: by the
 events, or a frame run's cells (`FAW`). -/
 def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
     (vs : List V) : Prop :=
-  SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
-    PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
-    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x
+  SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) ∧
+    SigOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ H.fas es x) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
 def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
     (vs : List V) : Prop :=
   SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
     PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
-    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x) ∧
+    SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **Returned words' monomials**: each `(k, c)` of the signature's `retM`, returned word `k` is
 `c`'s word at the parameters' words `ws0`. -/
@@ -905,15 +911,15 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
   | .app r q res => match getF st.rs r with
     | some R => appIdx (facts X st.env res) R c && ptOk X st (appQ R) q
     | none => false
+  | .prep2 r q q2 res => match getF st.rs r with
+    | some R => prepIdx2 (facts X st.env res) R c && ptOk X st (prepQ R) q && ptOk X st R.base q2
+    | none => false
   | .back r ns res => match getF st.rs r with
     | some R => backC (facts X st.env res) R c ns && backW st R (backK R c) 0 ns
     | none => false
   | .evs n k res => match getF st.sc n with
     | some Q => Nat.blt k capE && evsW st Q n k &&
         (ptRun (facts X st.env res) (evsR Q k) c || subPt X (facts X st.env res) st.env res (evsR Q k) c)
-    | none => false
-  | .prep2 r q q2 res => match getF st.rs r with
-    | some R => prepIdx2 (facts X st.env res) R c && ptOk X st (prepQ R) q && ptOk X st R.base q2
     | none => false
   | _ => false
 
@@ -1569,6 +1575,12 @@ noncomputable def reqQ (X : CX) (st : CSt) (ms : List CCell) : List (CCell × CR
     | _, _, _ => none
   | _ :: _, _ => none
 
+/-- The own guarantees over its values (`HSig.postN`, `postRN`), at their monomials: the witnesses left. -/
+noncomputable def reqN (X : CX) (st : CSt) (ws : List Wit) : Option (List Wit) :=
+  match monos st.env (X.sig.nv.map V.n) with
+  | some mn => (reqP X st mn X.sig.postN ws).bind (reqR X st mn X.sig.postRN)
+  | none => none
+
 /-- The own guarantees at the parameters and the returned words, the returned words' monomials, and the
 words at return. -/
 noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
@@ -1578,9 +1590,11 @@ noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
       | some ws2 => match reqPP X st (mp ++ mv) X.sig.postP ws2 with
         | some ws3 => match reqPR X st (mp ++ mv) X.sig.postPR ws3 with
           | some ws4 => match reqQ X st (mp ++ mv) X.sig.postQ ws4 with
-            | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
-                retEqC st.eqs (mp ++ mv) X.sig.retEq
-            | _ => false
+            | some ws5 => match reqN X st ws5 with
+              | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
+                  retEqC st.eqs (mp ++ mv) X.sig.retEq
+              | _ => false
+            | none => false
           | none => false
         | none => false
       | none => false
@@ -1879,7 +1893,7 @@ noncomputable def tailC (X : CX) (st : CSt) (args : List V) (ei : CIdx) : Bool :
       | some ws1 => match tailR X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) ei X.sig.postR ws1 with
         | some ws2 => match tailPP X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) X.sig.postP ws2 with
           | some ws3 => match tailPR X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) ei X.sig.postPR ws3 with
-            | some [] => true
+            | some [] => X.sig.postN.isEmpty && X.sig.postRN.isEmpty
             | _ => false
           | none => false
         | none => false
@@ -1959,19 +1973,21 @@ def topAtoms : List Stmt → List Atom
 /-- The value numbers the atoms define (`atomDst`), as a trie. -/
 noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
 
-/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number). -/
+/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number), or past a
+nonempty run. -/
 noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
   | .frameAddr p run => (match vnum p with
       | some k => Nat.beq k kp
-      | none => false) && (match run[i]? with
+      | none => false) && ((match run[i]? with
       | some v => match vnum v with
         | some k => (getF D k).isSome
         | none => false
-      | none => false)
+      | none => false) || (!run.isEmpty && Nat.ble run.length i))
   | _ => false
 
 /-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
-`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`). -/
+`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`), or past a nonempty
+run. -/
 noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
   | [] => true
   | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l

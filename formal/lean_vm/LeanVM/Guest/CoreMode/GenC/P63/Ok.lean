@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P63»
 public import LeanVM.Guest.CoreMode.GenC.«P10».Data
 public import LeanVM.Guest.CoreMode.GenC.«P11».Data
 public import LeanVM.Guest.CoreMode.GenC.«P17».Data
@@ -36,10 +36,10 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono»
 @[expose] public section
 
 /-- `child_claim_list_mono`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«child_claim_list_mono».pows
     (fun g ↦ match g with
-    | "__loop20" => Fn.«child_claim_list_mono_loop0».hcert.sig
-    | "__loop21" => Fn.«child_claim_list_mono_loop1».hcert.sig
+    | "__loop0_child_claim_list_mono" => Fn.«child_claim_list_mono_loop0».hcert.sig
+    | "__loop1_child_claim_list_mono" => Fn.«child_claim_list_mono_loop1».hcert.sig
     | "child_claim_list_mono_last__L0" => Fn.«child_claim_list_mono_last__L0».hcert.sig
     | "child_claim_list_mono_last__L1" => Fn.«child_claim_list_mono_last__L1».hcert.sig
     | "child_claim_list_mono_last__L10" => Fn.«child_claim_list_mono_last__L10».hcert.sig

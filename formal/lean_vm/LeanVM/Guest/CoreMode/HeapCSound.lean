@@ -1388,6 +1388,16 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       rw [addr_eq]
       exact app_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1 (by rw [← addr_eq]; exact ih h.2)
   | keep => simp [ptOk] at h
+  | prep2 r q q2 res ih ih2 =>
+    simp only [ptOk] at h
+    cases hr : getF st.rs r with
+    | none => rw [hr] at h; cases h
+    | some R =>
+      rw [hr] at h
+      simp only [Bool.and_eq_true] at h
+      rw [addr_eq]
+      exact prep2_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1.1 (by rw [← addr_eq]; exact ih h.1.2)
+        (by rw [← addr_eq]; exact ih2 h.2)
   | back r ns res =>
     simp only [ptOk] at h
     cases hr : getF st.rs r with
@@ -1409,16 +1419,6 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
       · rw [addr_eq]
         exact ptRun_ok (facts_ok hX hs.env res) hR h
       · exact subPt_ok hX hs.env (facts_ok hX hs.env res) hR h
-  | prep2 r q q2 res ih ih2 =>
-    simp only [ptOk] at h
-    cases hr : getF st.rs r with
-    | none => rw [hr] at h; cases h
-    | some R =>
-      rw [hr] at h
-      simp only [Bool.and_eq_true] at h
-      rw [addr_eq]
-      exact prep2_ok (facts_ok hX hs.env res) (hs.rs r R hr) h.1.1 (by rw [← addr_eq]; exact ih h.1.2)
-        (by rw [← addr_eq]; exact ih2 h.2)
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -2153,7 +2153,8 @@ def PostW0 (_sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 
     (vs : List V) : Prop :=
   SigOk W H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧ PtrOk W rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
     RetMOk H.sig ws0 (vs.map σ) ∧ RetVOk rd H.sig (ws0 ++ vs.map σ) ∧ RetEqOk H.sig (ws0 ++ vs.map σ) ∧
-    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → W x
+    (∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → W x) ∧
+    SigOk W H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ))
 
 /-- **The frame run cells the certificate guarantees at return** (`HCert.fas`), at `σ`. -/
 def FAX (H : HCert) (σ : Val) (x : K) : Prop := ∃ p ∈ H.fas, x = cellAt σ (V.n p.1) p.2
@@ -2257,7 +2258,7 @@ def BlockC (sigOf : String → HSig) (H : HCert) (σ : Val) (rd : Reader) (ws0 :
 theorem PostW0.mono {ws0 : List E} {W W' : K → Prop} (hw : ∀ x, W x → W' x) {vs : List V}
     (h : PostW0 sigOf H rd σ ws0 W vs) : PostW0 sigOf H rd σ ws0 W' vs :=
   ⟨SigOk.mono hw h.1, fun x hx ↦ hw _ (h.2.1 x hx), h.2.2.1, h.2.2.2.1, h.2.2.2.2.1,
-    fun x hx ↦ hw _ (h.2.2.2.2.2 x hx)⟩
+    fun x hx ↦ hw _ (h.2.2.2.2.2.1 x hx), SigOk.mono hw h.2.2.2.2.2.2⟩
 
 theorem PostW.mono {ws0 : List E} {W W' : K → Prop} (hw : ∀ x, W x → W' x) {vs : List V}
     (h : PostW sigOf H rd σ ws0 W vs) : PostW sigOf H rd σ ws0 W' vs :=
@@ -3779,19 +3780,37 @@ theorem retC1_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
           simp only [h4] at h
           cases h5 : reqQ X st (mp ++ mv) X.sig.postQ wl4 with
           | none => simp [h5] at h
+          | some wl5 =>
+          simp only [h5] at h
+          cases h6 : reqN X st wl5 with
+          | none => simp [h6] at h
           | some wl'' =>
+            have hN : SigOk W H.sig.postN H.sig.postRN (H.sig.nv.map (vw σ)) := by
+              unfold reqN at h6
+              split at h6
+              · rename_i mn hmn
+                rw [hX.sig] at hmn h6
+                have hmn' : MsOk (vw σ) mn (slotW (H.sig.nv.map (vw σ))) := by
+                  have := (monos_ok hs.env _ mn hmn).1
+                  rwa [List.map_map] at this
+                cases h7 : reqP X st mn H.sig.postN wl5 with
+                | none => rw [h7] at h6; cases h6
+                | some wl7 =>
+                  rw [h7] at h6
+                  exact ⟨reqP_ok hX hpre hs hmn' h7, reqR_ok hX hpre hs hmn' h6⟩
+              · cases h6
             rw [hX.sig] at h1 h2 h3 h4 h5
             rw [List.map_append] at hm
             cases wl'' with
-            | cons _ _ => rw [hX.sig, h5] at h; simp at h
+            | cons _ _ => rw [h6] at h; simp at h
             | nil =>
-            rw [hX.sig, h5] at h
+            rw [hX.sig, h6] at h
             dsimp only at h
             simp only [Bool.and_eq_true] at h
             obtain ⟨⟨hM, hV⟩, hQ⟩ := h
             refine ⟨⟨reqP_ok hX hpre hs hm h1, reqR_ok hX hpre hs hm h2⟩,
               ptrOk_of (reqPP_ok hX hpre hs hm h3) (reqPR_ok hX hpre hs hm h4), fun k c hkc ↦ ?_, fun i m him ↦ ?_,
-              fun p hp ↦ ?_, reqQ_ok hX hpre hs hm h5⟩
+              fun p hp ↦ ?_, reqQ_ok hX hpre hs hm h5, hN⟩
             pick_goal 3
             · unfold retEqC at hQ
               have hq := List.all_eq_true.mp hQ p hp
@@ -4565,6 +4584,12 @@ theorem tailC_ok (hX : XOk sigOf H rd f σ X) (hself : sigOf f.name = H.sig) (hr
           cases hpr : tailPR X st mp (setNth mp 1 mi) (CIdx.beq ei (.val 1)) ei X.sig.postPR wl3 with
           | none => simp [hpr] at h
           | some wl'' =>
+            have hNN : H.sig.postN = [] ∧ H.sig.postRN = [] := by
+              rw [hpr] at h
+              rcases wl'' with _ | ⟨_, _⟩
+              · simp only [Bool.and_eq_true, List.isEmpty_iff] at h
+                rw [← hX.sig]; exact h
+              · simp at h
             rw [hX.sig] at hp hr hpp hpr
             have HP := tailP_ok hX hpre hs hmp' hmx hp
             have HR := tailR_ok hX hpre hs hmp' hmx hr
@@ -4574,7 +4599,8 @@ theorem tailC_ok (hX : XOk sigOf H rd f σ X) (hself : sigOf f.name = H.sig) (hr
             rw [List.map_nil, List.append_nil]
             refine ⟨⟨fun c0 hc0 ↦ ?_, fun r hr0 ↦ ?_⟩, ptrOk_of (fun p hp0 ↦ ?_) (fun p hp0 ↦ ?_),
               fun k c hkc ↦ (by rw [hrm] at hkc; cases hkc), fun i m h ↦ (by rw [hpv] at h; cases h),
-              fun p h ↦ (by rw [hre] at h; cases h), fun x ⟨p, h, _⟩ ↦ (by rw [hpq] at h; cases h)⟩
+              fun p h ↦ (by rw [hre] at h; cases h), fun x ⟨p, h, _⟩ ↦ (by rw [hpq] at h; cases h), by
+                rw [hNN.1, hNN.2]; exact ⟨fun _ hc ↦ (by cases hc), fun _ hr ↦ (by cases hr)⟩⟩
             · rcases HP c0 hc0 with h1 | ⟨hex, hns, h1⟩
               · exact Or.inl h1
               · have hei1 : ei = .val 1 := CIdx.beq_eq hex
@@ -4775,9 +4801,10 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
       · exact Or.inr (by rw [hu]; rfl)
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
-its value defined by one of them. -/
+its value defined by one of them, or past a nonempty run. -/
 theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
-    ∀ p ∈ fas, ∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a
+    ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
   | [], _, p, hp => by simp at hp
   | (kp, i) :: l, h, p, hp => by
     simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
@@ -4785,7 +4812,7 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
     · obtain ⟨a, ha, hfa⟩ := h.1
       cases a with
       | frameAddr q run =>
-        simp only [faAt, Bool.and_eq_true] at hfa
+        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
         obtain ⟨hq, hv⟩ := hfa
         cases hqn : vnum q with
         | none => rw [hqn] at hq; cases hq
@@ -4794,21 +4821,26 @@ theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dst
           have hk : k = kp := Nat.eq_of_beq_eq_true hq
           subst hk
           rw [vnum_eq hqn] at ha
-          cases hri : run[i]? with
-          | none => rw [hri] at hv; cases hv
-          | some v =>
-            simp only [hri] at hv
-            cases hvn : vnum v with
-            | none => simp only [hvn] at hv; cases hv
-            | some k' =>
-              simp only [hvn] at hv
-              rcases getF_keysT _ _ hv with hm | hm
-              · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-                obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-                refine ⟨run, v, ha, hri, a', ha', ?_⟩
-                rw [vnum_eq hvn, ← vnum_eq hv'n]
-                exact hva'
-              · simp [getF_nil] at hm
+          rcases hv with hv | hv
+          · left
+            cases hri : run[i]? with
+            | none => rw [hri] at hv; cases hv
+            | some v =>
+              simp only [hri] at hv
+              cases hvn : vnum v with
+              | none => simp only [hvn] at hv; cases hv
+              | some k' =>
+                simp only [hvn] at hv
+                rcases getF_keysT _ _ hv with hm | hm
+                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
+                  rw [vnum_eq hvn, ← vnum_eq hv'n]
+                  exact hva'
+                · simp [getF_nil] at hm
+          · right
+            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+            exact ⟨run, ha, hv.1, hv.2⟩
       | _ => simp [faAt] at hfa
     · exact faOk_spec h.2 p hp
 
@@ -4821,10 +4853,11 @@ theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x :
 /-- The frame run cells the certificate guarantees at return are frame run cells of the path. -/
 theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
     (hfa : faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas = true) (hw : walk σ f.body = .ret es vs)
-    {x : K} (h : FAX H σ x) : FAW σ es x := by
+    {x : K} (h : FAX H σ x) : FAW σ H.fas es x := by
   obtain ⟨p, hp, rfl⟩ := h
-  obtain ⟨run, v, hfr, hv, a, ha, hva⟩ := faOk_spec hfa p hp
-  exact ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  rcases faOk_spec hfa p hp with ⟨run, v, hfr, hv, a, ha, hva⟩ | ⟨run, hfr, hne, hle⟩
+  · exact Or.inl ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
+  · exact Or.inr ⟨p.1, p.2, run, hp, topAtoms_on_path hw _ hfr, hne, hle, rfl⟩
 
 /-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
 that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
@@ -4929,10 +4962,12 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
     fun h1 h2 ↦ ⟨fun es1 e es2 he hm ↦ h1 es1 e es2 he hm, fun hM ↦
       ⟨⟨⟨(h2 hM).1.mono fun x hx ↦ hx.imp_right (fax_faw hfa hw),
         fun x hx ↦ ((h2 hM).2.1 x hx).imp_right (fax_faw hfa hw),
-        fun x hx ↦ ((h2 hM).2.2.2.2.2 x hx).imp_right (fax_faw hfa hw)⟩,
+        fun x hx ↦ ((h2 hM).2.2.2.2.2.1 x hx).imp_right (fax_faw hfa hw),
+        (h2 hM).2.2.2.2.2.2.mono fun x hx ↦ hx.imp_right (fax_faw hfa hw)⟩,
         fun hn ↦ ⟨(h2 hM).1.mono fun x hx ↦ hx.resolve_right (noFAX hn),
           fun x hx ↦ ((h2 hM).2.1 x hx).resolve_right (noFAX hn),
-          fun x hx ↦ ((h2 hM).2.2.2.2.2 x hx).resolve_right (noFAX hn)⟩⟩,
+          fun x hx ↦ ((h2 hM).2.2.2.2.2.1 x hx).resolve_right (noFAX hn),
+          (h2 hM).2.2.2.2.2.2.mono fun x hx ↦ hx.resolve_right (noFAX hn)⟩⟩,
       (h2 hM).2.2.1, (h2 hM).2.2.2.1, (h2 hM).2.2.2.2.1⟩⟩
   cases hi : initC X with
   | none => simp [hi] at hc

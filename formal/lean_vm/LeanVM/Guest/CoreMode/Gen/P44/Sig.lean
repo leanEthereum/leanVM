@@ -17,7 +17,7 @@ namespace LeanVM.Guest.CoreMode.HcSig
 
 @[expose] public section
 
-def «decode_query_windows__L14_L2».csig : CoreMode.HSig := 
+def «decode_query_windows__L14_L2».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
       postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 9)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 9)⟩,
         ⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],

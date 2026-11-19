@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.Align.«P58»
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L3».Data
+public import LeanVM.Guest.CoreMode.GlueA.«walk_path__L24_L3»
 public import LeanVM.Guest.CoreMode.PairDefs
 
 set_option Elab.async false
@@ -25,7 +26,7 @@ end
 
 public section
 
-theorem Fn.«walk_path__L24_L3».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code Data.adviceFn1531 = true := by decide +kernel
+theorem Fn.«walk_path__L24_L3».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 
 end
 

@@ -14,7 +14,7 @@ public import LeanVM.Guest.Word
 # The core IR
 
 One core function (`Fn`) per function the compiler lowers: an original function, a `Const`
-specialization (`f__L3_L5`) or a `mul_range` helper (`__loopN`), with the names the compiler
+specialization (`f__L3_L5`) or a `mul_range` helper (`__loopN_f`), with the names the compiler
 gives them. Its values (`V`) are named by their position in the expansion (`Seg`), never by a
 frame offset: a certificate from the compiler maps each to the frame cell holding it, several
 names possibly to one cell (the compiler shares pure results, pooled constants and repeated

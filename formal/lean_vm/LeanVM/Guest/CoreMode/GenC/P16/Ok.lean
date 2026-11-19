@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P16»
 public import LeanVM.Guest.Pack.«P16».Core
 public import LeanVM.Guest.CoreMode.GenC.«P16».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«da_padding»
 @[expose] public section
 
 /-- `da_padding`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«da_padding».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel

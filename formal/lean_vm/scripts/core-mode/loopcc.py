@@ -33,7 +33,9 @@ def candidates(S=None):
         kinds = {s[0] for s in body[:-2]}
         G = (S or {}).get(k)
         own_ptr = G is not None and bool(G['preP'] or G['postLP'])
-        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr):
+        # a leaf of runs over its caller's cells (`CoreMode.loopGl`: the stream-cursor loops, `callcres.ST_LOOPS`)
+        import callcres
+        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS):
             out.append(k)
     return out
 
@@ -58,7 +60,8 @@ def infer_one(k, S):
     ps = [2 + b for b, a in enumerate(body[-2][3]) if a == params[b]]
     G2 = dict(G)
     G2['preP'], G2['postLP'] = [], []
-    own = loopc.own_sig(G2, np, ps)
+    # the caller's cells and frame as ghost slots (`CoreMode.loopGl`, `sigOkLP`'s `gl`)
+    own = loopc.own_sig(G2, np, ps, callc.gl_of(k) or None)
     # `sigOkLP`: the loop's pointer runs, its preconditions' and its loop's, translated, offsets as they are
     for f, src, kps in (('prePR', G['preP'], ps), ('postPR', G['postLP'], loopc.exp_cells(G))):
         for r, offs in src:
@@ -107,7 +110,11 @@ def infer_one(k, S):
     G0 = own.clone()
     I.SIGS[k] = G0
     P = I.Pass(k, G0).run()
-    if G0.pre != own.pre or G0.preR != own.preR or G0.prePR != own.prePR or G0.preP != own.preP:
+    import callcres
+    # (a stream-cursor loop's reads past its cursor: pointer facts the inference wants, the `st` family's residuals
+    # instead, `callcres.st_sub`)
+    if G0.pre != own.pre or G0.preR != own.preR or (k not in callcres.ST_LOOPS and (G0.prePR != own.prePR or
+                                                                                   G0.preP != own.preP)):
         raise No('own precondition grows')
     sigs, hs = {}, {}
     for f, h in cs.items():
@@ -125,7 +132,8 @@ def infer_one(k, S):
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     if EM.check(k, H, sigOf) is not None:
         raise No('recheck')
-    if H.res:
+    import callcres
+    if H.res and not callcres.res_ok(k, H.res, S):
         raise No('residuals')
     return dict(cert=H, cs=hs)
 
@@ -136,14 +144,30 @@ def results(verbose=False):
     S = route.sigs()
     out, why = {}, collections.Counter()
     cs = candidates(S)
-    for k in cs:
-        try:
-            out[k] = infer_one(k, S)
-            out[k]['text'] = callc.ldata(k, out[k])
-        except No as e:
-            why[str(e).split(':')[0]] += 1
-            if verbose and '--why' in ARGV:
-                print(k, e)
+    # the solver's read witnesses also from the residual families (`callcres.cs_reads`: the `st` family's)
+    import callcres
+    EM = callc._em()
+    base, EM.Solver.pt = callcres.cs_reads(EM)
+    try:
+        for k in cs:
+            try:
+                try:
+                    out[k] = infer_one(k, S)
+                except No:
+                    # then with reads at any index of a run, their bounds residuals of families (`idx`, `rules`)
+                    I.F.update({'idx', 'rules'})
+                    try:
+                        out[k] = infer_one(k, S)
+                    finally:
+                        I.F.clear()
+                        I.F.update({'ptr', 'pfr'})
+                out[k]['text'] = callc.ldata(k, out[k])
+            except No as e:
+                why[str(e).split(':')[0]] += 1
+                if verbose and '--why' in ARGV:
+                    print(k, e)
+    finally:
+        EM.Solver.pt = base
     if verbose:
         print('loops with calls: %d of %d candidates' % (len(out), len(cs)), dict(why.most_common()))
     return out, why

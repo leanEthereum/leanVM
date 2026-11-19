@@ -70,6 +70,17 @@ structure CRun where
   hi : CIdx
   deriving DecidableEq, Repr, Inhabited
 
+/-! ## The values a cell, an index or a run names -/
+
+def CCell.vals (c : CCell) : List ℕ := c.bases.map (·.1)
+
+def CIdx.vals : CIdx → List ℕ
+  | .num _ => []
+  | .val v => [v]
+  | .mono c => c.vals
+
+def CRun.vals (r : CRun) : List ℕ := r.base.vals ++ r.lo.vals ++ r.hi.vals
+
 /-- **A branch condition** on core names: arm `j` of a `match`/`dispatch` on the value `x` (its word
 `g^j`), or the `0` / nonzero side of an `ite` / `callIf` guard `c`. -/
 inductive CCond where
@@ -155,6 +166,11 @@ inductive Wit where
   where the call is not entered, the run `⟨b, stride, lo, hi⟩`, its bounds and base those of run `j` by the
   guard's equation, is written. -/
   | keep (j : ℕ) (b lo hi : CCell)
+
+  /-- A cell of a run in scope of lower bound `g^1` extended by its two points before it (`base·g^-stride`,
+  witnessed by `q`, and `base`, by `q2`): the cell's index at most the upper bound's, which has an exponent by a
+  fact. -/
+  | prep2 (r : ℕ) (q q2 : Wit) (res : List ℕ)
   /-- A cell of the run `⟨Q, 1, g^0, g^k⟩`, `Q` the cell of the write event `n` and the run's cells those of the
   write events `n` to `n + k - 1`: by the facts of these residuals, or a residual placing it there. -/
   | evs (n k : ℕ) (res : List ℕ)
@@ -162,11 +178,6 @@ inductive Wit where
   constant `lo`, the upper bound's exponent `y` by a fact of these residuals: in the run when `y ≥ lo + k`, else the
   write event `ns[y]`. -/
   | back (r : ℕ) (ns : List ℕ) (res : List ℕ)
-
-  /-- A cell of a run in scope of lower bound `g^1` extended by its two points before it (`base·g^-stride`,
-  witnessed by `q`, and `base`, by `q2`): the cell's index at most the upper bound's, which has an exponent by a
-  fact. -/
-  | prep2 (r : ℕ) (q q2 : Wit) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
@@ -201,6 +212,11 @@ structure HSig where
   /-- Own parameter words: `(c, j)`, ghost slot `j`'s word is the word at the cell `c` (over the parameters), where
   there is one (`GwOk`); in the own pass a `load` of `c` names it (`gwDef`). -/
   gw : List (CCell × ℕ) := []
+  /-- Guarantees over its own values, for its mode contract only (`sigOk`), not in its callers' heap view
+  (`EvW`): at return, the cells `postN` and runs `postRN` over slots, slot `i` the value `V.n nv[i]`. -/
+  nv : List ℕ := []
+  postN : List CCell := []
+  postRN : List CRun := []
   deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/

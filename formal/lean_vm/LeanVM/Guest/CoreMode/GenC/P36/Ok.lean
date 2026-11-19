@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P36»
 public import LeanVM.Guest.CoreMode.GenC.«P26».Data
 public import LeanVM.Guest.CoreMode.GenC.«P33».Data
 public import LeanVM.Guest.CoreMode.GenC.«P45».Data
@@ -22,9 +22,10 @@ namespace LeanVM.Guest.Fn.«keccak_layer__L1»
 @[expose] public section
 
 /-- `keccak_layer__L1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«keccak_layer__L1».pows
     (fun g ↦ match g with
-    | "__loop36" => Fn.«keccak_layer__L1_loop0».hcert.sig | "__loop37" => Fn.«keccak_layer__L1_loop1».hcert.sig
+    | "__loop0_keccak_layer__L1" => Fn.«keccak_layer__L1_loop0».hcert.sig
+    | "__loop1_keccak_layer__L1" => Fn.«keccak_layer__L1_loop1».hcert.sig
     | "grind_check__L3" => Fn.«grind_check__L3».hcert.sig | _ => .empty)
     core hcert = true := by
   decide +kernel

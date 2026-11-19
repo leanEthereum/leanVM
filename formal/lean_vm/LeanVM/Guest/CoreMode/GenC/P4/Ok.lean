@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P4»
 public import LeanVM.Guest.CoreMode.GenC.«P13».Data
 public import LeanVM.Guest.CoreMode.GenC.«P14».Data
 public import LeanVM.Guest.CoreMode.GenC.«P38».Data
@@ -24,10 +24,11 @@ namespace LeanVM.Guest.Fn.«aggregate_claims»
 @[expose] public section
 
 /-- `aggregate_claims`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«aggregate_claims».pows
     (fun g ↦ match g with
-    | "__loop32" => Fn.«aggregate_claims_loop0».hcert.sig | "__loop33" => Fn.«aggregate_claims_loop1».hcert.sig
-    | "__loop34" => Fn.«aggregate_claims_loop2».hcert.sig
+    | "__loop0_aggregate_claims" => Fn.«aggregate_claims_loop0».hcert.sig
+    | "__loop1_aggregate_claims" => Fn.«aggregate_claims_loop1».hcert.sig
+    | "__loop2_aggregate_claims" => Fn.«aggregate_claims_loop2».hcert.sig
     | "batch_sumcheck__L23" => Fn.«batch_sumcheck__L23».hcert.sig
     | "grind_check__L2" => Fn.«grind_check__L2».hcert.sig | _ => .empty)
     core hcert = true := by

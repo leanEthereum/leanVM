@@ -340,7 +340,7 @@ def offs_defs(k, f):
 
 
 def args(k, f):
-    return f'alignCtx hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.code Data.adviceFn{f["j"]}'
+    return f'alignCtx hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
 
 
 def ns(k, body):
@@ -361,12 +361,12 @@ def render_pack(pack, fs):
     defs = ''.join(f'noncomputable def Fn.«{f["key"]}».pairO : Exec.Trie Unit := CoreMode.offsT {nums(f["O"])}\n'
                    f'noncomputable def Fn.«{f["key"]}».pairS : Exec.Trie Unit := CoreMode.offsT {nums(f["S"])}\n' for f in fs)
     thms = ''.join(f'theorem Fn.«{f["key"]}».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code '
-                   f'Data.adviceFn{f["j"]} = true := by decide +kernel\n' for f in fs)
+                   f'advice = true := by decide +kernel\n' for f in fs)
     return {os.path.join(GEN, pack, 'Pair.lean'): ''.join([
         HEADER.format(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more: each "
                       "function's `pairO`, the offsets of its reads' `DEREF`s (the oracle), and `pairS`, of its stores', "
                       "its `load`s paired with its `DEREF`s in order."),
-        imports(['LeanVM.Guest.CoreMode.PairDefs'] + [data_mod(pack, f) for f in fs]
+        imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»'] + [data_mod(pack, f) for f in fs]
                 + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
         'set_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n'
         '@[expose] public section\n\n', defs,
@@ -382,7 +382,7 @@ def render_win(pack, f):
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
-        + imports(['LeanVM.Guest.CoreMode.PairDefs', data_mod(pack, f),
+        + imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 

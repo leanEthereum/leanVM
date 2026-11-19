@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCWinF
 public import LeanVM.Guest.CoreMode.Gen.«P42».DataC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P42»
 public import LeanVM.Guest.Pack.«P42».Core
 
 set_option maxRecDepth 100000

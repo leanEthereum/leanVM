@@ -16,12 +16,15 @@ namespace LeanVM.Guest.Fn.«grind_check__L3»
 
 @[expose] public section
 
-/-- `grind_check__L3`: its heap certificate (its signature only: not checked here). -/
+/-- `grind_check__L3`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩] }
-  reads := []
-  res := []
+  reads := [(13, [(12, 0, .run 0 [0])]), (21, [(20, 0, .run 1 [1])]), (30, [(29, 0, .run 1 [2])]),
+    (39, [(38, 0, .run 1 [3])]), (48, [(47, 0, .run 1 [4])]), (57, [(56, 0, .run 1 [5])])]
+  res := [.lt (.val 7) (.num 64), .lt (.val 6) (.num 2048), .lt (.val 5) (.num 2048), .lt (.val 4) (.num 2048),
+    .lt (.val 3) (.num 2048), .lt (.val 2) (.num 2048)]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«grind_check__L3»
@@ -30,7 +33,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L27»
 
 @[expose] public section
 
-/-- `index_mle__L27`: its heap certificate (its signature only: not checked here). -/
+/-- `index_mle__L27`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
@@ -38,8 +41,15 @@ def hcert : CoreMode.HCert where
         ⟨[(0, 1)], 12⟩, ⟨[(0, 1)], 13⟩, ⟨[(0, 1)], 14⟩, ⟨[(0, 1)], 15⟩, ⟨[(0, 1)], 16⟩, ⟨[(0, 1)], 17⟩,
         ⟨[(0, 1)], 18⟩, ⟨[(0, 1)], 19⟩, ⟨[(0, 1)], 20⟩, ⟨[(0, 1)], 21⟩, ⟨[(0, 1)], 22⟩, ⟨[(0, 1)], 23⟩,
         ⟨[(0, 1)], 24⟩, ⟨[(0, 1)], 25⟩, ⟨[(0, 1)], 26⟩] }
-  reads := []
+  reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)]), (13, [(0, 2, .pre 2)]), (19, [(0, 3, .pre 3)]),
+    (25, [(0, 4, .pre 4)]), (31, [(0, 5, .pre 5)]), (37, [(0, 6, .pre 6)]), (43, [(0, 7, .pre 7)]),
+    (49, [(0, 8, .pre 8)]), (55, [(0, 9, .pre 9)]), (61, [(0, 10, .pre 10)]), (67, [(0, 11, .pre 11)]),
+    (73, [(0, 12, .pre 12)]), (79, [(0, 13, .pre 13)]), (85, [(0, 14, .pre 14)]), (91, [(0, 15, .pre 15)]),
+    (97, [(0, 16, .pre 16)]), (103, [(0, 17, .pre 17)]), (109, [(0, 18, .pre 18)]), (115, [(0, 19, .pre 19)]),
+    (121, [(0, 20, .pre 20)]), (127, [(0, 21, .pre 21)]), (133, [(0, 22, .pre 22)]), (139, [(0, 23, .pre 23)]),
+    (145, [(0, 24, .pre 24)]), (151, [(0, 25, .pre 25)]), (157, [(0, 26, .pre 26)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«index_mle__L27»
@@ -48,15 +58,20 @@ namespace LeanVM.Guest.Fn.«padding_weight__L20»
 
 @[expose] public section
 
-/-- `padding_weight__L20`: its heap certificate (its signature only: not checked here). -/
+/-- `padding_weight__L20`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
         ⟨[(1, 1)], 6⟩, ⟨[(1, 1)], 7⟩, ⟨[(1, 1)], 8⟩, ⟨[(1, 1)], 9⟩, ⟨[(1, 1)], 10⟩, ⟨[(1, 1)], 11⟩,
         ⟨[(1, 1)], 12⟩, ⟨[(1, 1)], 13⟩, ⟨[(1, 1)], 14⟩, ⟨[(1, 1)], 15⟩, ⟨[(1, 1)], 16⟩, ⟨[(1, 1)], 17⟩,
         ⟨[(1, 1)], 18⟩, ⟨[(1, 1)], 19⟩] }
-  reads := []
+  reads := [(25, [(1, 0, .pre 0)]), (29, [(1, 1, .pre 1)]), (34, [(1, 2, .pre 2)]), (39, [(1, 3, .pre 3)]),
+    (44, [(1, 4, .pre 4)]), (49, [(1, 5, .pre 5)]), (54, [(1, 6, .pre 6)]), (59, [(1, 7, .pre 7)]),
+    (64, [(1, 8, .pre 8)]), (69, [(1, 9, .pre 9)]), (74, [(1, 10, .pre 10)]), (79, [(1, 11, .pre 11)]),
+    (84, [(1, 12, .pre 12)]), (89, [(1, 13, .pre 13)]), (94, [(1, 14, .pre 14)]), (99, [(1, 15, .pre 15)]),
+    (104, [(1, 16, .pre 16)]), (109, [(1, 17, .pre 17)]), (114, [(1, 18, .pre 18)]), (119, [(1, 19, .pre 19)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L20»
@@ -65,13 +80,14 @@ namespace LeanVM.Guest.Fn.«plus_one_run__L1»
 
 @[expose] public section
 
-/-- `plus_one_run__L1`: its heap certificate (its signature only: not checked here). -/
+/-- `plus_one_run__L1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩],
       post := [⟨[(0, 1)], 0⟩] }
-  reads := []
+  reads := [(3, [(1, 0, .pre 0)])]
   res := []
+  rets := [[.ev 1]]
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L1»
@@ -80,7 +96,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L28»
 
 @[expose] public section
 
-/-- `squeeze_point_from__L28`: its heap certificate (its signature only: not checked here). -/
+/-- `squeeze_point_from__L28`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { post := [⟨[(6, 1)], 0⟩, ⟨[(6, 1)], 1⟩, ⟨[(6, 1)], 2⟩, ⟨[(6, 1)], 3⟩, ⟨[(6, 1)], 4⟩, ⟨[(6, 1)], 5⟩,
@@ -92,6 +108,11 @@ def hcert : CoreMode.HCert where
       postV := [(0, ⟨[(5, 1)], 0⟩)] }
   reads := []
   res := []
+  rets := [[.ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11, .ev 12, .ev 13,
+        .ev 14, .ev 15, .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24, .ev 25, .ev 26,
+        .ev 27, .pts, .ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 7, .ev 8, .ev 9, .ev 10, .ev 11,
+        .ev 12, .ev 13, .ev 14, .ev 15, .ev 16, .ev 17, .ev 18, .ev 19, .ev 20, .ev 21, .ev 22, .ev 23, .ev 24,
+        .ev 25, .ev 26, .ev 27]]
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L28»

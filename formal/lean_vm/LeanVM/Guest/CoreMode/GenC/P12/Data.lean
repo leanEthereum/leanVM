@@ -33,12 +33,13 @@ namespace LeanVM.Guest.Fn.«index_mle__L2»
 
 @[expose] public section
 
-/-- `index_mle__L2`: its heap certificate (its signature only: not checked here). -/
+/-- `index_mle__L2`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩] }
-  reads := []
+  reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«index_mle__L2»

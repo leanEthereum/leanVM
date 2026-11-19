@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P46»
 public import LeanVM.Guest.CoreMode.GenC.«P46».Data
 public import LeanVM.Guest.Pack.«P46».Core
 public import LeanVM.Guest.CoreMode.GenC.«P46».Data
@@ -20,9 +20,9 @@ namespace LeanVM.Guest.Fn.«verify_tables_loop1»
 @[expose] public section
 
 /-- `verify_tables_loop1`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_tables_loop1».pows
     (fun g ↦ match g with
-    | "__loop10" => Fn.«verify_tables_loop1».hcert.sig | _ => .empty)
+    | "__loop1_verify_tables" => Fn.«verify_tables_loop1».hcert.sig | _ => .empty)
     core hcert = true := by
   decide +kernel
 

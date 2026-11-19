@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fn.«batch_sumcheck__L23»
 
 @[expose] public section
 
-/-- `batch_sumcheck__L23`: its heap certificate (its signature only: not checked here). -/
+/-- `batch_sumcheck__L23`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩, ⟨[(5, 1)], 5⟩,
@@ -32,8 +32,23 @@ def hcert : CoreMode.HCert where
         ⟨[(7, 1)], 12⟩, ⟨[(7, 1)], 13⟩, ⟨[(7, 1)], 14⟩, ⟨[(7, 1)], 15⟩, ⟨[(7, 1)], 16⟩, ⟨[(7, 1)], 17⟩,
         ⟨[(7, 1)], 18⟩, ⟨[(7, 1)], 19⟩, ⟨[(7, 1)], 20⟩, ⟨[(7, 1)], 21⟩, ⟨[(7, 1)], 22⟩],
       postR := [⟨⟨[(7, 1)], 0⟩, 1, (.num 0), (.num 23)⟩] }
-  reads := []
+  reads := [(14, [(5, 0, .pre 0)]), (17, [(5, 1, .pre 1)]), (46, [(5, 2, .pre 2)]), (49, [(5, 3, .pre 3)]),
+    (73, [(5, 4, .pre 4)]), (76, [(5, 5, .pre 5)]), (100, [(5, 6, .pre 6)]), (103, [(5, 7, .pre 7)]),
+    (127, [(5, 8, .pre 8)]), (130, [(5, 9, .pre 9)]), (154, [(5, 10, .pre 10)]), (157, [(5, 11, .pre 11)]),
+    (181, [(5, 12, .pre 12)]), (184, [(5, 13, .pre 13)]), (208, [(5, 14, .pre 14)]), (211, [(5, 15, .pre 15)]),
+    (235, [(5, 16, .pre 16)]), (238, [(5, 17, .pre 17)]), (262, [(5, 18, .pre 18)]), (265, [(5, 19, .pre 19)]),
+    (289, [(5, 20, .pre 20)]), (292, [(5, 21, .pre 21)]), (316, [(5, 22, .pre 22)]), (319, [(5, 23, .pre 23)]),
+    (343, [(5, 24, .pre 24)]), (346, [(5, 25, .pre 25)]), (370, [(5, 26, .pre 26)]), (373, [(5, 27, .pre 27)]),
+    (397, [(5, 28, .pre 28)]), (400, [(5, 29, .pre 29)]), (424, [(5, 30, .pre 30)]), (427, [(5, 31, .pre 31)]),
+    (451, [(5, 32, .pre 32)]), (454, [(5, 33, .pre 33)]), (478, [(5, 34, .pre 34)]), (481, [(5, 35, .pre 35)]),
+    (505, [(5, 36, .pre 36)]), (508, [(5, 37, .pre 37)]), (532, [(5, 38, .pre 38)]), (535, [(5, 39, .pre 39)]),
+    (559, [(5, 40, .pre 40)]), (562, [(5, 41, .pre 41)]), (586, [(5, 42, .pre 42)]), (589, [(5, 43, .pre 43)]),
+    (613, [(5, 44, .pre 44)]), (616, [(5, 45, .pre 45)])]
   res := []
+  rets := [[.ev 2, .ev 5, .ev 8, .ev 11, .ev 14, .ev 17, .ev 20, .ev 23, .ev 26, .ev 29, .ev 32, .ev 35, .ev 38,
+        .ev 41, .ev 44, .ev 47, .ev 50, .ev 53, .ev 56, .ev 59, .ev 62, .ev 65, .ev 68, .pts, .ev 2, .ev 5,
+        .ev 8, .ev 11, .ev 14, .ev 17, .ev 20, .ev 23, .ev 26, .ev 29, .ev 32, .ev 35, .ev 38, .ev 41, .ev 44,
+        .ev 47, .ev 50, .ev 53, .ev 56, .ev 59, .ev 62, .ev 65, .ev 68]]
 
 end
 end LeanVM.Guest.Fn.«batch_sumcheck__L23»
@@ -42,13 +57,15 @@ namespace LeanVM.Guest.Fn.«bus_grind_check__L9»
 
 @[expose] public section
 
-/-- `bus_grind_check__L9`: its heap certificate (its signature only: not checked here). -/
+/-- `bus_grind_check__L9`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 32)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
       ghosts := 2 }
   reads := []
   res := []
+  calls := [[.run 1 [], .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«bus_grind_check__L9»
@@ -57,12 +74,13 @@ namespace LeanVM.Guest.Fn.«index_mle__L4»
 
 @[expose] public section
 
-/-- `index_mle__L4`: its heap certificate (its signature only: not checked here). -/
+/-- `index_mle__L4`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩] }
-  reads := []
+  reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)]), (13, [(0, 2, .pre 2)]), (19, [(0, 3, .pre 3)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«index_mle__L4»
@@ -106,7 +124,7 @@ def hcert : CoreMode.HCert where
     [.mrgE 2 ⟨[(366, 1)], 1⟩ [3, 4], .run 25 [], .run 26 []]]
   rets := [[.ev 114, .ev 116, .ev 118, .run 27 []]]
   eqs := [134]
-  gargs := [("__loop6", [369, 366, 135, 16, 8, 18, 17, 63, 133, 9, 6], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0_verify_bus_gkr", [369, 366, 135, 16, 8, 18, 17, 63, 133, 9, 6], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 end
 end LeanVM.Guest.Fn.«verify_bus_gkr»

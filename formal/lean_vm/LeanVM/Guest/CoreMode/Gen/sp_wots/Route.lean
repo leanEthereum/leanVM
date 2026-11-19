@@ -7,10 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Link0
+public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Checked.Link0
+public import LeanVM.Guest.CoreMode.Gen.«sp_wots».Core
 public import LeanVM.Guest.CoreMode.Route
-public import LeanVM.Guest.Pack.«sp_wots».ModeCert
 
 set_option Elab.async false
 
@@ -29,7 +29,7 @@ theorem cfOk0 : CoreMode.CfOk Fn.«sp_wots».cfun := CoreMode.cfOk_of (by decide
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0 (Mode.fa_nil)
+  List.forall_mem_cons.2 ⟨cfOk0, List.forall_mem_nil _⟩
 
 end
 

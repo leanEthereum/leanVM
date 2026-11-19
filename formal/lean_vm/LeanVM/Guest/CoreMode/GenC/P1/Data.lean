@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fn.«block_selector__L10»
 
 @[expose] public section
 
-/-- `block_selector__L10`: its heap certificate (its signature only: not checked here). -/
+/-- `block_selector__L10`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(1, 1)], 0⟩, ⟨[(2, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(1, 1)], 1⟩, ⟨[(2, 1)], 1⟩,
@@ -24,8 +24,16 @@ def hcert : CoreMode.HCert where
         ⟨[(0, 1)], 4⟩, ⟨[(1, 1)], 4⟩, ⟨[(2, 1)], 4⟩, ⟨[(0, 1)], 5⟩, ⟨[(1, 1)], 5⟩, ⟨[(2, 1)], 5⟩,
         ⟨[(0, 1)], 6⟩, ⟨[(1, 1)], 6⟩, ⟨[(2, 1)], 6⟩, ⟨[(0, 1)], 7⟩, ⟨[(1, 1)], 7⟩, ⟨[(2, 1)], 7⟩,
         ⟨[(0, 1)], 8⟩, ⟨[(1, 1)], 8⟩, ⟨[(2, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(1, 1)], 9⟩, ⟨[(2, 1)], 9⟩] }
-  reads := []
+  reads := [(3, [(0, 0, .pre 0)]), (5, [(1, 0, .pre 1)]), (8, [(2, 0, .pre 2)]), (11, [(0, 1, .pre 3)]),
+    (13, [(1, 1, .pre 4)]), (17, [(2, 1, .pre 5)]), (21, [(0, 2, .pre 6)]), (23, [(1, 2, .pre 7)]),
+    (27, [(2, 2, .pre 8)]), (31, [(0, 3, .pre 9)]), (33, [(1, 3, .pre 10)]), (37, [(2, 3, .pre 11)]),
+    (41, [(0, 4, .pre 12)]), (43, [(1, 4, .pre 13)]), (47, [(2, 4, .pre 14)]), (51, [(0, 5, .pre 15)]),
+    (53, [(1, 5, .pre 16)]), (57, [(2, 5, .pre 17)]), (61, [(0, 6, .pre 18)]), (63, [(1, 6, .pre 19)]),
+    (67, [(2, 6, .pre 20)]), (71, [(0, 7, .pre 21)]), (73, [(1, 7, .pre 22)]), (77, [(2, 7, .pre 23)]),
+    (81, [(0, 8, .pre 24)]), (83, [(1, 8, .pre 25)]), (87, [(2, 8, .pre 26)]), (91, [(0, 9, .pre 27)]),
+    (93, [(1, 9, .pre 28)]), (97, [(2, 9, .pre 29)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«block_selector__L10»
@@ -34,7 +42,7 @@ namespace LeanVM.Guest.Fn.«plus_one_run__L23»
 
 @[expose] public section
 
-/-- `plus_one_run__L23`: its heap certificate (its signature only: not checked here). -/
+/-- `plus_one_run__L23`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩, ⟨[(1, 1)], 2⟩, ⟨[(1, 1)], 3⟩, ⟨[(1, 1)], 4⟩, ⟨[(1, 1)], 5⟩,
@@ -46,8 +54,17 @@ def hcert : CoreMode.HCert where
         ⟨[(0, 1)], 12⟩, ⟨[(0, 1)], 13⟩, ⟨[(0, 1)], 14⟩, ⟨[(0, 1)], 15⟩, ⟨[(0, 1)], 16⟩, ⟨[(0, 1)], 17⟩,
         ⟨[(0, 1)], 18⟩, ⟨[(0, 1)], 19⟩, ⟨[(0, 1)], 20⟩, ⟨[(0, 1)], 21⟩, ⟨[(0, 1)], 22⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 23)⟩] }
-  reads := []
+  reads := [(3, [(1, 0, .pre 0)]), (6, [(1, 1, .pre 1)]), (9, [(1, 2, .pre 2)]), (12, [(1, 3, .pre 3)]),
+    (15, [(1, 4, .pre 4)]), (18, [(1, 5, .pre 5)]), (21, [(1, 6, .pre 6)]), (24, [(1, 7, .pre 7)]),
+    (27, [(1, 8, .pre 8)]), (30, [(1, 9, .pre 9)]), (33, [(1, 10, .pre 10)]), (36, [(1, 11, .pre 11)]),
+    (39, [(1, 12, .pre 12)]), (42, [(1, 13, .pre 13)]), (45, [(1, 14, .pre 14)]), (48, [(1, 15, .pre 15)]),
+    (51, [(1, 16, .pre 16)]), (54, [(1, 17, .pre 17)]), (57, [(1, 18, .pre 18)]), (60, [(1, 19, .pre 19)]),
+    (63, [(1, 20, .pre 20)]), (66, [(1, 21, .pre 21)]), (69, [(1, 22, .pre 22)])]
   res := []
+  rets := [[.ev 1, .ev 3, .ev 5, .ev 7, .ev 9, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .ev 23, .ev 25,
+        .ev 27, .ev 29, .ev 31, .ev 33, .ev 35, .ev 37, .ev 39, .ev 41, .ev 43, .ev 45, .pts, .ev 1, .ev 3,
+        .ev 5, .ev 7, .ev 9, .ev 11, .ev 13, .ev 15, .ev 17, .ev 19, .ev 21, .ev 23, .ev 25, .ev 27, .ev 29,
+        .ev 31, .ev 33, .ev 35, .ev 37, .ev 39, .ev 41, .ev 43, .ev 45]]
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L23»
@@ -56,14 +73,16 @@ namespace LeanVM.Guest.Fn.«verify_keccak_loop1»
 
 @[expose] public section
 
-/-- `verify_keccak_loop1`: its heap certificate (its signature only: not checked here). -/
+/-- `verify_keccak_loop1`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       «term» := [((.val 0), (.val 1))] }
-  reads := []
+  reads := [(5, [(4, 0, .run 0 [])])]
   res := []
+  calls := [[.run 0 []]]
+  rets := [[.ev 1]]
 
 end
 end LeanVM.Guest.Fn.«verify_keccak_loop1»
@@ -91,7 +110,7 @@ def hcert : CoreMode.HCert where
   calls := [[.pre 2, .pre 3, .pre 4, .pre 5, .pre 6, .run 0 [0], .run 0 [0], .run 0 [0]],
     [.ev 8, .ev 9, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 11, .run 0 []]]
   rets := [[.ev 7, .ev 10, .ev 11, .ev 0, .ev 1, .ev 2, .ev 3, .ev 4, .ev 5, .ev 6, .ev 8, .ev 9]]
-  gargs := [("__loop9", [25, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
+  gargs := [("__loop0_verify_tables", [25, 1, 2, 3, 4, 5], [⟨[(1048576, 1)], 0⟩, ⟨[(1048577, 1)], 0⟩])]
 
 end
 end LeanVM.Guest.Fn.«verify_tables_loop0»

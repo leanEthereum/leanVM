@@ -250,6 +250,59 @@ def sub_rc(q, r):
     return rl[1] <= ql[1] + k and qh[1] + k <= rh[1] and all(x < CAPE for x in (ql[1], qh[1], rl[1], rh[1]))
 
 
+def nz_atoms(c, body):
+    """`CoreMode.nzAtoms`: the top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level
+    branch on `c` that does not return, before the first statement that may return."""
+    out = []
+    for s in body:
+        if s[0] == 'ite' and s[1] == c and not has_ret(s):
+            out += top_atoms(s[3])
+        if s[0] == 'ret' or has_ret(s):
+            break
+    return out
+
+
+def const_of(atoms, v):
+    """`Res.constOf`: the first constant `v` gets among the atoms."""
+    for a in atoms:
+        if a[0] == 'const' and a[1] == v:
+            return tuple(a[2])
+    return None
+
+
+def neg_pair(body, k, x, v, off, n):
+    """`CoreMode.negPair`: `e(x·v·g^off) < n` where `k` is nonzero."""
+    top = top_atoms(body)
+    if not off < 2 ** 33 or rc_bound(top, x) is None:
+        return False
+    if not any(a[0] == 'const' and a[1] == v and a[2][1] == 0 and I.gf_mulx(a[2][0], 1) == 1 for a in nz_atoms(k, body)):
+        return False
+    for a in top:
+        if a[0] != 'add' or a[1] != k:
+            continue
+        y, o = a[2], a[3]
+        for b in top:
+            if b[0] == 'mul' and b[1] == y and b[2] == x:
+                w, w2 = const_of(top, o), const_of(top, b[3])
+                N = rc_bound(top, y)
+                if w is not None and w == w2 and w == (I.gf_mulx(1, off), 0) and N is not None and N <= n + 1:
+                    return True
+    return False
+
+
+def neg_fam(k, conds, r):
+    """`CoreMode.negFam`: under a condition `c ≠ 0`, `e(x·v·g^off) < n`, either base first (`neg_pair`)."""
+    if r[0] != 'lt' or r[1][0] != 'mono' or r[2][0] != 'num' or not r[2][1] < CAPE:
+        return False
+    (bs, off), n = r[1][1], r[2][1]
+    if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
+        return False
+    body = I.CORE[k][1]
+    (a, _), (b, _) = bs
+    return any(c[0] == 'nonzero' and (neg_pair(body, c[1], a, b, off, n) or neg_pair(body, c[1], b, a, off, n))
+               for c in conds)
+
+
 def res_fam(k, r, G):
     """`CoreMode.resFam` at the mode signature `G`: an exponent bound of a range checked value (`rc`), of a parameter an
     entry run bounds and the quotient of two dereferenced addresses (`exp`), `column_selector`'s lowest digit in its
@@ -259,7 +312,7 @@ def res_fam(k, r, G):
     import callc
     params, body = I.CORE[k]
     if r[0] == 'under':
-        return res_fam(k, r[2], G)
+        return res_fam(k, r[2], G) or neg_fam(k, r[1], r[2])
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
         x, n = r[1][1], r[2][1]
         if not n < CAPE:
@@ -312,6 +365,16 @@ def res_fam(k, r, G):
         a, c = r[1][1], r[2][1]
         return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
             dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'val':
+        # `rcn`: `x` range checked against `k = p·w`, `w` the constant `g⁻¹`
+        x, p = r[1][1], r[2][1]
+        top = top_atoms(body)
+
+        def inv(w):
+            c = const_of(top, w)
+            return c is not None and c[1] == 0 and I.gf_mulx(c[0], 1) == 1
+        return any(a[0] == 'rangeCheck' and a[1] == x and
+                   any(b[0] == 'mul' and b[1] == a[5] and b[2] == p and inv(b[3]) for b in top) for a in top)
     if r[0] == 'subR':
         return sub_rc(r[1], r[2])
     if r[0] == 'sub':
@@ -355,10 +418,67 @@ def ml_sub(k, c):
     return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
 
 
+# `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
+# the stream, the cursor value `v`, the words `S` read past it an iteration)
+ST_LOOPS = {
+    'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
+    'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
+    'verify_bus_gkr_loop0_loop0': (11, 13, 8), 'verify_tables_loop0': (22, 11, 3),
+}
+
+
+def st_sub(k, c):
+    """`CoreMode.stSub`: a stream-cursor loop's read `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)`, or
+    None."""
+    p = ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)
+    if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
+        return None
+    return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
+
+
+# `CoreMode.splitsC`: a function's `g`-power `n = q^S·r` split from hinted bits, on every returning path `q` (a
+# monomial) names `g^a`, the selector `rv` and the monomial `r` name `g^b`, `a < A`, `b < S`
+SPLITS = {
+    'rs_eq_run': (((27, 1), (31, 1), (36, 1)), ((13, 1), (17, 1), (22, 1)), 23, 3, 8, 8),
+    'shared_selector_tables': (((24, 1), (28, 1), (33, 1), (38, 1)), ((15, 1), (19, 1)), 20, 5, 4, 16),
+}
+
+
+def pow_b(k, bs):
+    return tuple((b, k * e) for b, e in bs)
+
+
+def split_res(sp, cs, r):
+    """`CoreMode.splitRes`: under the branch conditions `cs`, an exponent bound of `q^k·g^c` (`k` one or `S`) or of
+    `r·g^c` below a constant; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run `[b·g^i]` over
+    `[0, e(q))`, `i < S`, inside `[b]·[0, e(n))`."""
+    q, rb, rv, n, S, A = sp
+    if r[0] == 'under':
+        return split_res(sp, cs + list(r[1]), r[2])
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
+        (bs, off), N = r[1][1], r[2][1]
+        return N < CAPE and ((bs == q and A - 1 + off < N) or (bs == pow_b(S, q) and S * (A - 1) + off < N) or
+                             (bs == rb and S - 1 + off < N))
+    if r[0] == 'lt' and r[1][0] == 'mono' and r[2] == ('val', n):
+        bs, off = r[1][1]
+        return bs == pow_b(S, q) and any(c[0] == 'arm' and c[1] == rv and off < c[2] < CAPE for c in cs)
+    if r[0] == 'subR':
+        (Q, S1, lo, hi), (R, S2, lo2, hi2) = r[1], r[2]
+        return S1 == S and lo == ('num', 0) and hi == ('mono', (q, 0)) and Q[1] < S and R == (Q[0], 0) and \
+            S2 == 1 and lo2 == ('num', 0) and hi2 == ('val', n)
+    return False
+
+
+def split_fam(k, r):
+    """`CoreMode.splitFam`."""
+    sp = SPLITS.get(k)
+    return sp is not None and split_res(sp, [], r)
+
+
 def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    return all((res_fam(k, r, S[k]) and all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and ml_sub(k, r[1]) == r) for r in res)
+    return all(((res_fam(k, r, S[k]) or split_fam(k, r)) and all(v < I.GB for v in vals(r))) or
+               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) for r in res)
 
 
 def sel_facts(EM):
@@ -384,7 +504,8 @@ def sel_facts(EM):
 
 def cs_reads(EM):
     """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`; and from the ghost family `ml` (`ml_sub`)."""
+    its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
+    (`st_sub`)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
@@ -392,7 +513,7 @@ def cs_reads(EM):
         if w is not None or want is not None:
             return w
         kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else ml_sub(self.k, c)
+        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])
@@ -413,8 +534,9 @@ def leaf_candidates():
     pointer runs (`postP`), which milestone 1's does not state."""
     import heap, route
     S = route.sigs()
+    import callc
     return sorted(k for k in heap.scope_fns() if straight(I.CORE[k][1]) and
-                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP'])))
+                  (heap.Fn(k).run().fail is not None or (k in S and S[k]['postP']) or callc.has_fa(I.CORE[k][1])))
 
 
 def extend(out, why, S, verbose=False):
@@ -434,7 +556,11 @@ def extend(out, why, S, verbose=False):
             # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
             # (`armblock`, `ab`), each with residuals of families
             r, err = None, None
-            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'}):
+            # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
+            # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
+            # conditional entry (`callIfR`)
+            for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
+                          FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}):
                 I.F.clear()
                 I.F.update(feats)
                 try:

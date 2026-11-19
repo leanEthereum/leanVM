@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Heap
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P41»
 public import LeanVM.Guest.Pack.«P41».Core
 public import LeanVM.Guest.CoreMode.Gen.«P41».Data
 
@@ -20,11 +20,11 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L18».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«eq_prefix_run__L14».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«g_power_of_word».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«opening_message__L8_L1».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
-theorem Fn.«plus_one_run__L12».heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«block_selector__L18».heap_ok : CoreMode.heapOk Fn.«block_selector__L18».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«eq_prefix_run__L14».heap_ok : CoreMode.heapOk Fn.«eq_prefix_run__L14».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«g_power_of_word».heap_ok : CoreMode.heapOk Fn.«g_power_of_word».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«opening_message__L8_L1».heap_ok : CoreMode.heapOk Fn.«opening_message__L8_L1».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
+theorem Fn.«plus_one_run__L12».heap_ok : CoreMode.heapOk Fn.«plus_one_run__L12».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel
 
 end
 

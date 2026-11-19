@@ -16,7 +16,7 @@ public import LeanVM.Guest.CoreMode.GenC.«P45».Data
 public import LeanVM.Guest.CoreMode.GenC.«P46».Data
 public import LeanVM.Guest.CoreMode.GenC.«P55».Data
 public import LeanVM.Guest.CoreMode.GenC.«P8».Data
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P3»
 public import LeanVM.Guest.Pack.«P3».Core
 
 set_option maxRecDepth 100000
@@ -32,9 +32,10 @@ open LeanVM.Guest.Exec (Trie)
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop11" => Fn.«verify_keccak_loop0».hcert.sig | "__loop12" => Fn.«verify_keccak_loop1».hcert.sig
-    | "__loop13" => Fn.«verify_keccak_loop2».hcert.sig | "keccak_layer__L0" => Fn.«keccak_layer__L0».hcert.sig
-    | "keccak_layer__L1" => Fn.«keccak_layer__L1».hcert.sig
+    | "__loop0_verify_keccak" => Fn.«verify_keccak_loop0».hcert.sig
+    | "__loop1_verify_keccak" => Fn.«verify_keccak_loop1».hcert.sig
+    | "__loop2_verify_keccak" => Fn.«verify_keccak_loop2».hcert.sig
+    | "keccak_layer__L0" => Fn.«keccak_layer__L0».hcert.sig | "keccak_layer__L1" => Fn.«keccak_layer__L1».hcert.sig
     | "keccak_plain_rounds__L4_L1" => Fn.«keccak_plain_rounds__L4_L1».hcert.sig
     | "keccak_plain_rounds__L6_L0" => Fn.«keccak_plain_rounds__L6_L0».hcert.sig | _ => .empty)
 noncomputable def cxRd0 := dropO hcert.reads 32
@@ -599,10 +600,10 @@ theorem hcxEQ : keysT hcert.eqs .nil = cxEQ := by
   decide +kernel
 
 /-- The context, its tries stated. -/
-noncomputable def cxL : CX := ⟨Data.powTree, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig,
-    core.params, [], cxEQ, hcert.fas, hcert.ders⟩
+noncomputable def cxL : CX := ⟨Fn.«verify_keccak».pows, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW,
+    hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩
 
-theorem hcx : cxOf Data.powTree sigW core hcert = cxL :=
+theorem hcx : cxOf Fn.«verify_keccak».pows sigW core hcert = cxL :=
   cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ
 
 end

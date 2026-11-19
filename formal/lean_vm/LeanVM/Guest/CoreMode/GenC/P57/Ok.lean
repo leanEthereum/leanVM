@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P57»
 public import LeanVM.Guest.CoreMode.GenC.«P35».Data
 public import LeanVM.Guest.Pack.«P57».Core
 public import LeanVM.Guest.CoreMode.GenC.«P57».Data
@@ -20,7 +20,7 @@ namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 @[expose] public section
 
 /-- `log2_ceil_in_the_exponent__L0_L34`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«log2_ceil_in_the_exponent__L0_L34».pows
     (fun g ↦ match g with
     | "assert_small_g_power" => Fn.«assert_small_g_power».hcert.sig | _ => .empty)
     core hcert = true := by

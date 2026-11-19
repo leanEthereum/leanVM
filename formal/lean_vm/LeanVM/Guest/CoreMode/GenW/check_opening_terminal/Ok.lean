@@ -34,12 +34,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«check_opening_terminal».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 1434 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 1434 st16 = true := by
+theorem last_ok : lastOkF Fn.«check_opening_terminal».pows sigW core hcert 1434 st16 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -51,7 +51,7 @@ namespace LeanVM.Guest.Fn.«check_opening_terminal»
 @[expose] public section
 
 /-- `check_opening_terminal`: the heap check, in 16 windows. -/
-theorem heap_okW : CoreMode.heapOkC Data.powTree
+theorem heap_okW : CoreMode.heapOkC Fn.«check_opening_terminal».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
   CoreMode.heapOkC_of_winsF (l := [(72, HeapWG.st1), (104, HeapWG.st2), (136, HeapWG.st3), (164, HeapWG.st4), (196, HeapWG.st5), (224, HeapWG.st6), (248, HeapWG.st7), (276, HeapWG.st8), (296, HeapWG.st9), (320, HeapWG.st10), (340, HeapWG.st11), (360, HeapWG.st12), (376, HeapWG.st13), (392, HeapWG.st14), (404, HeapWG.st15), (1434, HeapWG.st16)]) HeapWG.head_ok

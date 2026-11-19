@@ -85,7 +85,7 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
     fun x fs args rets hm ↦ setG_eq (hs _ hm x (by simp [Stmt.uses]))
   have hrw : ∀ {es vs}, walk (setG σ gw) Cf.fn.body = .ret es vs → walk σ Cf.fn.body = .ret es vs := fun hw ↦ by
     rw [← hW]; exact hw
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h.main⟩
   · obtain ⟨es, vs, rd, hw, hh⟩ := h.path
     exact ⟨es, vs, rd, by rw [hW]; exact hw, fun e he ↦ (holds_congr (hev hw e he)).mpr (hh e he)⟩
   · intro es vs hw a p ha hp

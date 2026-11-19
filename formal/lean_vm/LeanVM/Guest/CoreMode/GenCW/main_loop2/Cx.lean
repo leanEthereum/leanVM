@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCWin
 public import LeanVM.Guest.CoreMode.GenC.«main_loop2».Data
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«main_loop2»
 public import LeanVM.Guest.Pack.«main_loop2».Core
 
 set_option maxRecDepth 100000
@@ -25,7 +25,7 @@ open LeanVM.Guest.Exec (Trie)
 
 /-- The callees' signatures. -/
 noncomputable def sigW : String → CoreMode.HSig := (fun g ↦ match g with
-    | "__loop2" => Fn.«main_loop2».hcert.sig | _ => .empty)
+    | "__loop2_main" => Fn.«main_loop2».hcert.sig | _ => .empty)
 /-- `cxOf`'s trie `R`. -/
 noncomputable def cxR : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
@@ -82,10 +82,10 @@ theorem hcxEQ : keysT hcert.eqs .nil = cxEQ := by
   decide +kernel
 
 /-- The context, its tries stated. -/
-noncomputable def cxL : CX := ⟨Data.powTree, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig,
-    core.params, [], cxEQ, hcert.fas, hcert.ders⟩
+noncomputable def cxL : CX := ⟨Fn.«main_loop2».pows, cxR, cxP, cxC, cxT, cxRS, cxDV, cxHV, hcert.gargs, sigW,
+    hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩
 
-theorem hcx : cxOf Data.powTree sigW core hcert = cxL :=
+theorem hcx : cxOf Fn.«main_loop2».pows sigW core hcert = cxL :=
   cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ
 
 end

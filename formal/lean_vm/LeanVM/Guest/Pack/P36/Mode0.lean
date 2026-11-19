@@ -8,13 +8,13 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P26»
+public import LeanVM.Guest.CoreMode.Sig.«P33»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
+public import LeanVM.Guest.CoreMode.Sig.«P45»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
-public import LeanVM.Guest.Pack.«P26».ModeSig
-public import LeanVM.Guest.Pack.«P33».ModeSig
 public import LeanVM.Guest.Pack.«P36».Bundle
-public import LeanVM.Guest.Pack.«P36».ModeSig
-public import LeanVM.Guest.Pack.«P45».ModeSig
 
 set_option Elab.async false
 
@@ -29,20 +29,20 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«keccak_layer__L1_loop0».modeSig) .nil .nil)))) .nil))))) .nil)))
-    .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some Fn.«grind_check__L3».modeSig) .nil
-    .nil)))) .nil))))) .nil)) .nil) .nil) .nil))) .nil) (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«keccak_layer__L1_loop1».modeSig) .nil .nil))))
-    .nil)))))) .nil)))) .nil)) .nil)), 524287⟩
+    none .nil (.node (some Fn.«keccak_layer__L1_loop0».csig) .nil .nil)))) .nil))))) .nil))) .nil)
+    .nil) .nil) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«grind_check__L3».csig) .nil .nil))))
+    .nil))))) .nil)) .nil) .nil) .nil))) .nil) (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«keccak_layer__L1_loop1».csig) .nil .nil)))) .nil))))))
+    .nil)))) .nil)) .nil)), 524287⟩
 
 /-- `keccak_layer__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨206268, 1446, Fn.«keccak_layer__L1».modeSig, (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
+  ⟨206268, 1446, Fn.«keccak_layer__L1».csig, (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
     [(.allocFrames 774 349 11 (LeanVM.Parameters.K.ofBits 0x1) 349)]) .nil .nil) .nil) .nil))
     .nil))) .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none (.node none (.node (some [(.allocFrames 783 73 12 (LeanVM.Parameters.K.ofBits 0x1) 73)])

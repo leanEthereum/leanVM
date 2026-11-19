@@ -15,7 +15,7 @@ open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
 /-! ## Access
 
 By index, by name and against the compiled functions, at the first, a middle and the last
-function, at the two largest (`__loop2`, the raw leanXMSS loop with `verify_lean_xmss` inlined, and
+function, at the two largest (`__loop2_main`, the raw leanXMSS loop with `verify_lean_xmss` inlined, and
 `sp_wots`) and at `verify_sig_lean_sphincs`, the first function past `sp_wots` (core 20, compiled
 function 21). -/
 
@@ -26,7 +26,7 @@ example : coreProgram.length = core_count% := coreProgram_length
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop2" = some Data.core38 :=
+example : coreProgram.find? "__loop2_main" = some Data.core38 :=
   Program.find?_of_indexOf? (j := 38) (by decide +kernel) rfl
 
 example : coreProgram.find? "sp_wots" = some Data.core19 :=

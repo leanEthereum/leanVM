@@ -258,7 +258,8 @@ struct FnLower<'a> {
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
-    loop_ctr: &'a mut usize,
+    /// Loops lowered so far in this function: the next helper is `__loop{loop_ctr}_{fn_name}`.
+    loop_ctr: usize,
     /// Function name for diagnostics and generated-loop handling.
     fn_name: &'a str,
     /// The program's function definitions by name, for `Const`-parameter
@@ -293,7 +294,7 @@ impl FnLower<'_> {
     fn fail(&self, msg: impl std::fmt::Display) -> ! {
         // The line alone is not the site when the function being lowered is one
         // the author never wrote: `hash_pair__L1` exists because of a `Const`
-        // call site, `__loop3` because of a `for` header, and an `@inline` body
+        // call site, `__loop3_f` because of a `for` header, and an `@inline` body
         // is lowered through the CALLER, so its statements report the caller's
         // line. Naming the function, and the inline chain when there is one, is
         // what turns "line 19" back into somewhere to look.
@@ -1469,9 +1470,9 @@ impl FnLower<'_> {
     /// captured by value as extra helper parameters (e.g. a `HeapBuf` pointer
     /// threaded through the loop).
     fn lower_for(&mut self, var: &str, lo: u64, hi: &ForBound, body: &[Stmt]) {
-        let id = *self.loop_ctr;
-        *self.loop_ctr += 1;
-        let loop_name = format!("__loop{id}");
+        let id = self.loop_ctr;
+        self.loop_ctr += 1;
+        let loop_name = format!("__loop{id}_{}", self.fn_name);
         let mut shadowed = std::collections::HashSet::new();
         binds_anywhere(body, &mut shadowed);
         // Returns and counter rebinding can change the number of iterations.
@@ -1497,7 +1498,7 @@ impl FnLower<'_> {
         // A runtime stop bound is evaluated once here and threaded through the
         // helper as an extra leading parameter (the exit test compares the
         // advanced counter against it each iteration).
-        let bound_var = format!("__bound{id}");
+        let bound_var = format!("{loop_name}__bound");
         let (exit, entry_bound): (Expr, Expr) = match hi {
             ForBound::Const(hi) => (Expr::GPow(*hi as u128), Expr::GPow(*hi as u128)),
             ForBound::Runtime(e) => (Expr::Var(bound_var.clone()), e.clone()),
@@ -1570,7 +1571,7 @@ impl FnLower<'_> {
         // own condition (`JUMP`'s nonzero check on j − stop): no is-zero
         // gadget, no inverse hint, and no extra call beyond the one a loop
         // iteration already makes.
-        let next_var = format!("__next{id}");
+        let next_var = format!("{loop_name}__next");
         let next = Expr::Mul(Arc::new(Expr::Var(var.to_string())), Arc::new(Expr::Gen));
         let mut loop_body: Vec<Stmt> = body.to_vec();
         // The counter advance and the self-call belong to the `for` header.
@@ -1614,7 +1615,7 @@ impl FnLower<'_> {
                 // The entry test and the first call's argument both read the bound,
                 // so one with a call or an allocation in it is bound once first.
                 let entry_bound = if calls_or_allocates(&entry_bound) {
-                    let name = format!("__entry{id}");
+                    let name = format!("{loop_name}__entry");
                     self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
                     Expr::Var(name)
                 } else {
@@ -1696,7 +1697,6 @@ fn has_return(stmts: &[Stmt]) -> bool {
 pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
-    loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
     const_arrays: &HashMap<&str, &[F128]>,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
@@ -1757,7 +1757,7 @@ pub(crate) fn lower_func(
         inline_calls: Vec::new(),
         loop_bounds,
         queue,
-        loop_ctr,
+        loop_ctr: 0,
         defs,
         const_arrays,
         tables,

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.LoopSig
 public import LeanVM.Guest.CoreMode.CorePtr
+public import LeanVM.Guest.CoreMode.LoopLink
 
 /-!
 # A loop helper's signature with pointer runs
@@ -99,15 +100,18 @@ def rngKX (G : Mode.Sig) (ps : List ℕ) (r : Mode.Rng) : Bool := idxKX G ps r.l
 /-- **A loop helper's heap signature is its mode signature's translation**, pointer runs included:
 `sigOkL`'s, its preconditions' pointer runs `preP` the heap signature's `prePR`, its loop's `postLP` its
 `postPR`, each pointer run's run among the signature's runs, every bound a constant, the termination
-fact's or an entry run's bound cell's (`idxKX`; for the preconditions, one the tail call passes on, `ps`). -/
-def sigOkLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Bool :=
+fact's or an entry run's bound cell's (`idxKX`; for the preconditions, one the tail call passes on, `ps`); its runs
+over its caller's cells (`.hp 1 d`) over the ghost slots its links `gl` name (`rngTG`, `lgOk`, `dsIn`), the address
+runs after its preconditions' runs (`addrRs`). -/
+def sigOkLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) (gl : List (ℕ × ℕ × ℕ)) : Bool :=
   G.ret.isEmpty && G.postP.isEmpty && G.retV.isEmpty && G.postT.isEmpty && G.postC.isEmpty &&
     h.preP.isEmpty && h.postP.isEmpty && h.retM.isEmpty && (h.postV.isEmpty && h.postQ.isEmpty) && h.retEq.isEmpty &&
-    Nat.beq h.ghosts 0 &&
+    (lgOk np gl h.ghosts && dsIn G gl) &&
     (match G.term, h.term with
       | [(lo, hi)], [(.val 0, ei)] => decide (lo = .ex (.fr 2) 0) && parCell G np 2 && decide (idxT G np hi = some ei)
       | _, _ => false) &&
-    decide (G.pre.mapM (monoT G np) = some h.pre) && decide (G.preR.mapM (rngT G np) = some h.preR) &&
+    decide (G.pre.mapM (monoT G np) = some h.pre) &&
+    decide ((G.preR.mapM (rngTG G np gl)).map (· ++ addrRs np gl) = some h.preR) &&
     decide (G.post.mapM (monoT G np) = some h.post) &&
     decide ((G.postR ++ G.postL).mapM (rngT G np) = some h.postR) &&
     decide (G.preP.mapM (prT G np) = some h.prePR) && decide (G.postLP.mapM (prT G np) = some h.postPR) &&
@@ -116,7 +120,7 @@ def sigOkLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Bool :=
     h.postPR.all (fun p ↦ runIn p.1 h.postR)
 
 /-- **What `sigOkLP` says**, unfolded. -/
-structure SigLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Prop where
+structure SigLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) (gl : List (ℕ × ℕ × ℕ)) : Prop where
   ret : G.ret = []
   postP : G.postP = []
   retV : G.retV = []
@@ -128,11 +132,12 @@ structure SigLP (G : Mode.Sig) (h : HSig) (np : ℕ) (ps : List ℕ) : Prop wher
   hpostV : h.postV = []
   hpostQ : h.postQ = []
   hretEq : h.retEq = []
-  hghost : h.ghosts = 0
+  hghost : lgOk np gl h.ghosts = true
+  dsIn : dsIn G gl = true
   term : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ h.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
     idxT G np hi = some ei
   pre : G.pre.mapM (monoT G np) = some h.pre
-  preR : G.preR.mapM (rngT G np) = some h.preR
+  preR : (G.preR.mapM (rngTG G np gl)).map (· ++ addrRs np gl) = some h.preR
   post : G.post.mapM (monoT G np) = some h.post
   postR : (G.postR ++ G.postL).mapM (rngT G np) = some h.postR
   preP : G.preP.mapM (prT G np) = some h.prePR
@@ -149,13 +154,13 @@ theorem runIn_mem {q : CRun} {l : List CRun} (h : runIn q l = true) : q ∈ l :=
   rw [← of_decide_eq_true he]
   exact hq'
 
-theorem sigLP_of {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} (hs : sigOkLP G h np ps = true) :
-    SigLP G h np ps := by
+theorem sigLP_of {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} {gl : List (ℕ × ℕ × ℕ)}
+    (hs : sigOkLP G h np ps gl = true) : SigLP G h np ps gl := by
   unfold sigOkLP at hs
   simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq, List.all_eq_true] at hs
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, ⟨h11, h11'⟩⟩,
     hterm⟩, hpre⟩, hpreR⟩, hpost⟩, hpostR⟩, hpP⟩, hpLP⟩, hk1⟩, hk2⟩, hk3⟩, hk4⟩, hi1⟩, hi2⟩ := hs
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9.1, h9.2, h10, by simpa using h11, ?_, hpre, hpreR, hpost, hpostR, hpP, hpLP,
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9.1, h9.2, h10, h11, h11', ?_, hpre, hpreR, hpost, hpostR, hpP, hpLP,
     hk1, hk2, hk3, hk4, fun p hp ↦ runIn_mem (hi1 p hp), fun p hp ↦ runIn_mem (hi2 p hp)⟩
   split at hterm
   · rename_i lo hi ei hG hh

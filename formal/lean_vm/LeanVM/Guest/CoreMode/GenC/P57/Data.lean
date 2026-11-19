@@ -16,13 +16,15 @@ namespace LeanVM.Guest.Fn.«bus_grind_check__L8»
 
 @[expose] public section
 
-/-- `bus_grind_check__L8`: its heap certificate (its signature only: not checked here). -/
+/-- `bus_grind_check__L8`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 2048)⟩],
       ghosts := 2 }
   reads := []
   res := []
+  calls := [[.run 1 [], .run 1 []]]
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«bus_grind_check__L8»
@@ -31,12 +33,14 @@ namespace LeanVM.Guest.Fn.«index_mle__L5»
 
 @[expose] public section
 
-/-- `index_mle__L5`: its heap certificate (its signature only: not checked here). -/
+/-- `index_mle__L5`: its heap certificate. -/
 def hcert : CoreMode.HCert where
   sig := 
     { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩] }
-  reads := []
+  reads := [(2, [(0, 0, .pre 0)]), (7, [(0, 1, .pre 1)]), (13, [(0, 2, .pre 2)]), (19, [(0, 3, .pre 3)]),
+    (25, [(0, 4, .pre 4)])]
   res := []
+  rets := [[]]
 
 end
 end LeanVM.Guest.Fn.«index_mle__L5»

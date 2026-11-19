@@ -1,6 +1,6 @@
 """The core route's functions with calls (`formal/notes/core-mode.md`, `CoreMode/Core.lean`'s `HeapK.c`): bodies of
 atoms, calls and one return, checked by `heapOkC` with each callee's heap signature its mode signature's
-(`Pack/*/ModeSig.lean`) translated (`CoreMode.fitB`: preconditions all of the mode signature's, guarantees some of
+(`CoreMode/Sig/*.lean`, `Fn.«k».csig`) translated (`CoreMode.fitB`: preconditions all of the mode signature's, guarantees some of
 them), the function's own heap signature its own mode signature's translated (`CoreMode.sigOk`). The certificate's
 witnesses come from `infer.py`'s pass (`heapOkC`'s format, no extra feature) run once at those signatures, which must
 not grow.
@@ -185,6 +185,12 @@ def gl_of(k):
     if ml_k(k) is not None:
         # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
         return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
+    import callcres
+    if k in callcres.ST_LOOPS:
+        # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
+        # frame address (`0`) its second
+        np = len(CORE[k][0])
+        return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
     return dict(_LINKS.get(k) or {}) if k not in I.IS_LOOP else {}
 
 
@@ -197,7 +203,7 @@ def ml_k(k):
 
 def gl_lean(k):
     """`CFun.gl` as Lean."""
-    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in sorted(gl_of(k).items())) + ']'
+    return '[' + ', '.join('(%d, %d, %d)' % (d, b, kk) for d, (b, kk) in gl_of(k).items()) + ']'
 
 
 def prun(p, n, ent=None, const=False):
@@ -307,7 +313,35 @@ def own_sig(G, np, nr, gl=None):
         if G[f]:
             raise No('own ' + f)
     h = I.Sig(np)
-    h.pre = [cell(m, np) for m in G['pre'] if not hp_of(m)]
+    # own parameter words (`HSig.gw`): ghost slot `j` the word at `[p]·g^d`, `p` a parameter (`CoreMode.baseOfG`)
+    h.gw, gwk = [], {}
+
+    def ghost_b(q, d):
+        if (q - 2, d) not in gwk:
+            gwk[(q - 2, d)] = len(gwk)
+            h.gw.append(((((q - 2, 1),), d), gwk[(q - 2, d)]))
+        return I.GB + gwk[(q - 2, d)]
+
+    def own_pre(m):
+        try:
+            return [cell(m, np)]
+        except No as e:
+            if str(e) != 'pointer base' or gl:
+                raise
+        fp, k, bs = m
+        out = []
+        for b, e in bs:
+            if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28:
+                out.append((b[1] - 2, e))
+            elif b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28:
+                out.append((ghost_b(b[1], b[2]), e))
+            else:
+                raise No('pointer base')
+        # over ghost slots: a run of one point (`HSig.pre` is over the parameters, `preOver`)
+        gpre.append((I.mk(tuple(out), k), 1, I.num(0), I.num(1)))
+        return []
+    gpre = []
+    h.pre = [c for m in G['pre'] if not hp_of(m) for c in own_pre(m)]
     h.preP = hp_facts([m for m in G['pre'] if hp_of(m)], np)
     def own_pre_run(r):
         try:
@@ -318,11 +352,55 @@ def own_sig(G, np, nr, gl=None):
             return runX(r, np, gl=gl)
     h.preR = [own_pre_run(r) for r in G['preR']]
     h.preR += [q for q in cov_runs(G, np) if q not in h.preR]
+    h.preR += [q for q in gpre if q not in h.preR]
     # the ghost slots the links name (`CFun.gl` past the parameters)
-    h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np]
+    h.ghosts = [('link', d) for d, (b, _) in sorted((gl or {}).items()) if b >= np] + \
+        [('gw', key) for key, _ in sorted(gwk.items(), key=lambda p: p[1])]
     h.prePR = [prun(p, np) for p in G['preP']]
     ret_ok = lambda o: (o - 2 < np and o in G['entry']) or (np <= o - 2 < np + nr and o in G['ret'])
-    h.post = [cell(m, np + nr, ret_ok) for m in G['post'] if not hp_of(m)]
+    # guarantees over the body's values (`CoreMode.postNIn`, `postRNIn`): products of parameters' words and of words a
+    # top-level `load` reads past a parameter's (`baseOfP`), over the slots of `nv` (`CCell.mapN`)
+    body0 = CORE_BODY.get('body') or []
+    h.nv, h.postN, h.postRN = [], [], []
+
+    def nslot(v):
+        if v not in h.nv:
+            h.nv.append(v)
+        return h.nv.index(v)
+
+    def base_p(b, e):
+        if b[0] == 'fr' and 2 <= b[1] and b[1] - 2 < np:
+            return (b[1] - 2, e)
+        if b[0] == 'hp' and 2 <= b[1] and b[1] - 2 < np:
+            n = hp_val(body0, b[1] - 2, b[2])
+            return None if n is None else (n, e)
+        return None
+
+    def mono_okp(bs):
+        return all(b[1] < 2 ** 28 and ((b[1] in G['entry'] and 2 <= b[1] and b[1] - 2 < np) or b[1] in G['ret'])
+                   if b[0] == 'fr' else
+                   (b[1] in G['entry'] and 2 <= b[1] and b[1] - 2 < np and b[1] < 2 ** 28) for b, _ in bs)
+
+    def val_cell(m):
+        fp, k, bs = m
+        cb = [base_p(b, e) for b, e in bs]
+        if fp != 0 or None in cb or not mono_okp(bs):
+            raise No('post over values')
+        return (tuple(cb), k)
+
+    def post_n(m):
+        c = val_cell(m)
+        c = (tuple((nslot(v), e) for v, e in c[0]), c[1])
+        if c not in h.postN:
+            h.postN.append(c)
+
+    def post(m):
+        try:
+            return [cell(m, np + nr, ret_ok)]
+        except No:
+            post_n(m)
+            return []
+    h.post = [c for m in G['post'] if not hp_of(m) for c in post(m)]
     h.postP = hp_facts([m for m in G['post'] if hp_of(m)], np, lambda q: q in G['entry'])
     if any(c not in h.post for c, _ in h.postP):
         raise No('own pointer cell')
@@ -380,7 +458,41 @@ def own_sig(G, np, nr, gl=None):
                 return True
         return False
     k_own = CORE_BODY.get('k')
-    h.postR = [own_run(r) for r in G['postR'] if not hp_cover(r)]
+
+    def idx_n(b):
+        # `CoreMode.idxN`, its value's exponent bounded by a residual (`idxOkN`): an exponent fact, a range check, a
+        # selector
+        if b[0] == 'num' and b[1] < 2 ** 62:
+            return ('num', b[1])
+        if b[0] == 'ex' and b[2] == 0:
+            p = base_p(b[1], 1)
+            if p is not None:
+                v = p[0]
+                m = callcres.expq_bound(k_own, v) if k_own is not None else None
+                if m is None:
+                    m = callcres.rc_bound(callcres.top_atoms(body0), v)
+                if m is None:
+                    m = dict(top_sels(body0)).get(v)
+                if m is not None and m <= 2 ** 62:
+                    h.expRes.add((v, m))
+                    return ('val', v)
+        raise No('run bound over values')
+
+    def own_run_n(r):
+        try:
+            return [own_run(r)]
+        except No:
+            q, lo, hi, S, d = r
+            if not mono_okp(list(q[2]) + [(b[1], 1) for b in (lo, hi) if b[0] == "ex"]):
+                raise
+            c = val_cell(q)
+            lo2, hi2 = idx_n(lo), idx_n(hi)
+            ix = lambda i: ('val', nslot(i[1])) if i[0] == 'val' else i
+            run = (tuple((nslot(v), e) for v, e in c[0]), c[1] + d), S, ix(lo2), ix(hi2)
+            if run not in h.postRN:
+                h.postRN.append(run)
+            return []
+    h.postR = [x for r in G['postR'] if not hp_cover(r) for x in own_run_n(r)]
     h.postPR = [(own_run(p[0]), tuple(p[1])) for p in G['postP']]
     # a pointer run's cells among the runs guaranteed (`sigOk`'s `postP` case asks both)
     h.postR += [p[0] for p in h.postPR if p[0] not in h.postR]
@@ -389,6 +501,9 @@ def own_sig(G, np, nr, gl=None):
         if not (o < 2 ** 28 and o in G['ret'] and 2 + np <= o):
             raise No('retV')
         h.retM[o - 2 - np] = cell(m, np, lambda o2: o2 in G['entry'])
+    if CORE_BODY.get('k') == 'main':
+        # `main`'s entry cells, its frame `0`: the constant cells `g^o` (`CoreMode.mainPre`)
+        h.pre = list(h.pre) + [((), o) for o in G['entry'] if ((), o) not in h.pre]
     if 'jt' in I.F:
         # the jump table's cells, which every frame's entry has written (`entryAbs`)
         if JT_RUN[0] is None:
@@ -398,6 +513,16 @@ def own_sig(G, np, nr, gl=None):
 
 
 CORE_BODY = {}
+
+
+def hp_val(body, k, d):
+    """`CoreMode.hpVal`: the value a top-level `load` reads at parameter `k`'s `[p]·g^d`, before the first `ret`."""
+    for s in body:
+        if s[0] == 'ret':
+            return None
+        if s[0] == 'a' and s[1][0] == 'load' and s[1][2] == k and s[1][3] == d:
+            return s[1][1]
+    return None
 
 
 def top_sels(body):
@@ -422,7 +547,7 @@ def exp_cells(G):
 def exp_bounds(h, args, body, np, expc, k=None, acc=None):
     """`CoreMode.callsB`'s exponents (`idxPowC`): each bound `.val b` of the callee's runs an argument a top-level
     `const` sets to a power of `g`, a parameter `k` whose cell `2 + k` an entry run bounds (`expArg`), or an argument
-    of an exponent fact, its residual `e(a) < m` added to `acc` (`resArg`)."""
+    of an exponent fact or range checked, its residual `e(a) < m` added to `acc` (`resArg`)."""
     for r in h.preR + [p[0] for p in h.prePR]:
         for b in (r[2], r[3]):
             if b[0]:
@@ -432,8 +557,9 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                     continue
                 import callcres
                 B = callcres.expq_bound(k, a) if k is not None and b[1] == 0 else None
-                if B is None and k is not None and b[1] == 0:
-                    B = callcres.addr_bound(k, a) or callcres.rc_bound(callcres.top_atoms(CORE[k][1]), a)
+                if B is None and b[1] == 0:
+                    B = (callcres.addr_bound(k, a) if k is not None else None) or \
+                        callcres.rc_bound(callcres.top_atoms(body), a)
                 if B is None or acc is None:
                     raise No('callee bound not a constant power')
                 acc.add((a, B))
@@ -452,6 +578,9 @@ def infer_one(k, S, allow=None, hcsig=None):
     CORE_BODY['body'] = body
     CORE_BODY['k'] = k
     own = own_sig(G, np, len(rets), gl_of(k))
+    if own.gw:
+        # own parameter words (`HSig.gw`) are not on the core route yet (`HeapK.c` asks `gw = []`)
+        raise No('own parameter words')
     cs = {}
     hcs = set()
     arg_res = set()
@@ -500,6 +629,10 @@ def infer_one(k, S, allow=None, hcsig=None):
         raise No('own signature dropped')
     sigOf = lambda g: sigs.get(I.callee(g), EM.C.EMPTY)
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+    if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
+        # with frame run cells past their runs, which the frame walk has written at the returns (`CoreMode.FAW`)
+        EM.C.FA_EXTRA[k] = fa_past(k)
+        H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
@@ -517,7 +650,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     if H.res and not (allow and allow(k, H.res)):
         raise No('residuals')
     hk = sigs[k]
-    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR or hk.postQ):
+    if has_fa(body) and (hk.post or hk.postR or hk.postP or hk.postPR or hk.postQ or hk.postN or hk.postRN):
         # guarantees met without the frame run cells (`HCert.fas` empty) if they can; else the frame run cells
         # written at the returns (`CoreMode.faNeed`, `faRetOk`, which the kernel checks on the frame walk)
         fas = H.fas
@@ -525,6 +658,33 @@ def infer_one(k, S, allow=None, hcsig=None):
         if EM.check(k, H, sigOf) is not None:
             H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+FA_PAST = {}
+
+
+def fa_past(k):
+    """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`, which needs
+    `MODE_CERT_CACHE`), as `(kp, i)`; none without it."""
+    if k in FA_PAST:
+        return FA_PAST[k]
+    FA_PAST[k] = []
+    if not os.environ.get('MODE_CERT_CACHE'):
+        return []
+    import subprocess, json, heapc
+    body = CORE[k][1]
+    locs = I.D['comp'][k]['locs']
+    fas = []
+    for s in body:
+        if not heapc._noret(s):
+            break
+        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
+            fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
+    if fas:
+        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps({k: fas}),
+                           capture_output=True, text=True, check=True)
+        FA_PAST[k] = [tuple(p) for p in json.loads(r.stdout).get(k, [])]
+    return FA_PAST[k]
 
 
 def has_fa(body):

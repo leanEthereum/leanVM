@@ -9,7 +9,7 @@ taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost word
 values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
 
 Per pack: `LeanVM/Guest/CoreMode/GenC/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
-`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC Data.powTree sigOf core hcert =
+`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC pows sigOf core hcert =
 true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
 (the others are windowed: `heapwin.py`, `GenCW/<fn>/`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
 carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
@@ -144,6 +144,11 @@ def sig_of(G, m, drops):
     H.postV = each('postV', G.postV, pv)
     H.ghosts = len(G.ghosts)
     H.retEq = each('retEq', getattr(G, 'retEq', ()), lambda p: (cell(p[0]), cell(p[1])))
+    # guarantees over the body's values, over the slots of `nv`, their bases' order kept (`CCell.mapN`)
+    H.gw = [(cell(c), j) for c, j in getattr(G, 'gw', ())]
+    H.nv = list(getattr(G, 'nv', ()))
+    H.postN = [tuple(c) for c in getattr(G, 'postN', ())]
+    H.postRN = [tuple(r) for r in getattr(G, 'postRN', ())]
     # a returned pointer's cells (`retP`): `post` cells over the returned slot
     for j, offs in sorted(getattr(G, 'retP', {}).items()):
         for o in sorted(offs):
@@ -502,7 +507,7 @@ class Solver:
                 f = self.fact(st, (Q[3][0], Q[3][1] - 1), R[3])
             if f is None and not Q[3][0] and Q[3][1] < C.CAPE:
                 f = self.factC(st, C.tsub(Q[3][1], 1), R[3])
-            if f is None:
+            if f is None and 'nohs' not in I.F:
                 f = self.fact(st, Q[3], C.cshift(R[3], 1))
             if f is None:
                 return None
@@ -1339,6 +1344,21 @@ class Solver:
                 self.miss.append(('ret', 'postQ', t, tq))
                 return self.ret_done(None)
             ws += [('word', ns[-1])] + w
+        mn = C.monos(st.env, G.nv)
+        for c in G.postN:
+            t = C.instC(mn, c)
+            w = self.pt(st, t) if t is not None else None
+            if w is None:
+                self.miss.append(('ret', 'postN', t))
+                return self.ret_done(None)
+            ws.append(w)
+        for r in G.postRN:
+            t = C.instR(mn, r)
+            w = self.run(st, t) if t is not None else None
+            if w is None:
+                self.miss.append(('ret', 'postRN', t))
+                return self.ret_done(None)
+            ws += w
         return self.ret_done(ws)
 
     def ret_done(self, ws):
@@ -1417,7 +1437,7 @@ class Solver:
 def solve(k, P, sigs, sigOf):
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body)
+    H.fas = C.fa_pairs(body) + C.FA_EXTRA.get(k, [])
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []
@@ -1446,10 +1466,10 @@ def wit_res(w, f):
         return (k, f(w[1]), w[2])
     if k in ('prep', 'app'):
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
-    if k in ('evs', 'back'):
-        return (k, w[1], w[2], [f(i) for i in w[3]])
     if k == 'prep2':
         return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
+    if k in ('evs', 'back'):
+        return (k, w[1], w[2], [f(i) for i in w[3]])
     return w
 
 
@@ -1665,6 +1685,14 @@ def lsig(G, ax):
         fs.append(f'ghosts := {G.ghosts}')
     if G.retEq:
         fs.append('retEq := [' + ', '.join(f'({lcell(a)}, {lcell(b)})' for a, b in G.retEq) + ']')
+    if getattr(G, 'gw', None):
+        fs.append('gw := [' + ', '.join(f'({lcell(c)}, {j})' for c, j in G.gw) + ']')
+    if getattr(G, 'nv', None):
+        fs.append(f'nv := {lnums(G.nv)}')
+    if getattr(G, 'postN', None):
+        fs.append('postN := ' + ax.lst('sig_postN', 'CoreMode.CCell', map(lcell, G.postN), '        '))
+    if getattr(G, 'postRN', None):
+        fs.append('postRN := ' + ax.lst('sig_postRN', 'CoreMode.CRun', map(lrun, G.postRN), '        '))
     if not fs:
         return '{}'
     return '\n    { ' + ',\n      '.join(fs) + ' }'
@@ -1717,9 +1745,9 @@ def sig_text(arms):
 
 
 def routed():
-    """The functions on the core route: each mode pack's `coreFns` (`Pack/*/ModeCert.lean`, as `core.py` reads them)."""
+    """The functions on the core route: each pack's `coreFns` (`CoreMode/Gen/*/Core.lean`, as `core.py` writes them)."""
     out = set()
-    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeCert.lean')):
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'Core.lean')):
         m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
         if m:
             out |= set(re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)))
@@ -1913,14 +1941,14 @@ def emit(out, res, check_only, only=None):
         imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
                       {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of {len(oks)} functions.')
-        ok += 'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.Data.Pows\n'
+        ok += f'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
         ok += ''.join(f'public import {m}\n' for m in imps)
         ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
         for k in ks:
-            aux, body = lcert(certs[k], sig_only=k not in off or k not in passing or k in nokernel)
+            aux, body = lcert(certs[k], sig_only=k not in passing or k in nokernel)
             auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
             data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                     f'/-- `{k}`: its heap certificate{"" if k in off and k in passing and k not in nokernel else " (its signature only: not checked here)"}. -/\n'
+                     f'/-- `{k}`: its heap certificate{"" if k in passing and k not in nokernel else " (its signature only: not checked)"}. -/\n'
                      f'def hcert : CoreMode.HCert where\n{body}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         for k in oks:
             names = sorted(stmt_names[k])
@@ -1928,7 +1956,7 @@ def emit(out, res, check_only, only=None):
             sig = sig_text(arms)
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_okC : CoreMode.heapOkC Data.powTree\n    {sig}\n    core hcert = true := by\n'
+                   f'theorem heap_okC : CoreMode.heapOkC Fn.«{k}».pows\n    {sig}\n    core hcert = true := by\n'
                    f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         files = [('Data', data)] + ([('Ok', ok)] if oks else [])
         for name, text in files:

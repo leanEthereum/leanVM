@@ -22,9 +22,9 @@ theorem dvC_eq : dvC B2C.fs wSB = 94356 := by
   unfold dvC
   rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 30) (f := "da_padding") (by decide +kernel),
-    fs_idx (j := 406) (f := "__loop22") (by decide +kernel),
+    fs_idx (j := 406) (f := "__loop0_da_verify") (by decide +kernel),
     fs_idx (j := 29) (f := "da_pad") (by decide +kernel),
-    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 409) (f := "__loop0_da_pad") (by decide +kernel),
     wSB_idx (j := 33) (f := "da_vector") (by decide +kernel),
     wSB_idx (j := 28) (f := "da_weights") (by decide +kernel)]
   decide +kernel
@@ -32,18 +32,18 @@ theorem dvC_eq : dvC B2C.fs wSB = 94356 := by
 /-- **`da_verify`'s words per row.** -/
 theorem dvS_eq : dvS B2C.fs wSK = 117096 := by
   unfold dvS B1.Main.iterK
-  rw [fs_idx (j := 406) (f := "__loop22") (by decide +kernel),
-    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 406) (f := "__loop22") (by decide +kernel),
-    wSK_idx (j := 409) (f := "__loop23") (by decide +kernel)]
+  rw [fs_idx (j := 406) (f := "__loop0_da_verify") (by decide +kernel),
+    fs_idx (j := 409) (f := "__loop0_da_pad") (by decide +kernel),
+    wSK_idx (j := 406) (f := "__loop0_da_verify") (by decide +kernel),
+    wSK_idx (j := 409) (f := "__loop0_da_pad") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
 theorem dvP_eq : dvP B2C.fs wSB wSK = 65 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
-    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 409) (f := "__loop23") (by decide +kernel)]
+    fs_idx (j := 409) (f := "__loop0_da_pad") (by decide +kernel),
+    wSK_idx (j := 409) (f := "__loop0_da_pad") (by decide +kernel)]
   decide +kernel
 
 end

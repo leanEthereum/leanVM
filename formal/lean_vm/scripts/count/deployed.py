@@ -65,7 +65,7 @@ def numbers(g, certs):
     v['ccl'] = sum(fs(n) for n in CCL)
     # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
     # loops' frames (a run's phantom or an untaken call's) and the last digests in the constant; per
-    # claim `13` words and a `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration
+    # claim `13` words and a `check_opening_terminal_loop0` iteration per `136` claims, `13` and a `claim_list_digest_loop0` iteration
     # per `17`.
     v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs(L('claim_list_digest_loop0')) + fs(L('claim_list_digest_loop1')) + v['cl'])
     # `da_verify`: its frame, `da_padding`'s frame, `da_vector`'s and `da_weights`' words, the
@@ -119,7 +119,7 @@ def numbers(g, certs):
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
-        # `Budget.l5C`: `__loop4`'s frame, two claim lists' constants, the statement's digest.
+        # `Budget.l5C`: `main_loop4`'s frame, two claim lists' constants, the statement's digest.
         l5C = om5 + 2 * ccA + st('statement_digest')
         instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('statement_digest') + jt + 2 * clA,
                         clS,

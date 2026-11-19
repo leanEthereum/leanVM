@@ -7,48 +7,48 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Sig.«P0»
+public import LeanVM.Guest.CoreMode.Sig.«P10»
+public import LeanVM.Guest.CoreMode.Sig.«P14»
+public import LeanVM.Guest.CoreMode.Sig.«P16»
+public import LeanVM.Guest.CoreMode.Sig.«P17»
+public import LeanVM.Guest.CoreMode.Sig.«P21»
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P29»
+public import LeanVM.Guest.CoreMode.Sig.«P2»
+public import LeanVM.Guest.CoreMode.Sig.«P33»
+public import LeanVM.Guest.CoreMode.Sig.«P35»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
+public import LeanVM.Guest.CoreMode.Sig.«P38»
+public import LeanVM.Guest.CoreMode.Sig.«P3»
+public import LeanVM.Guest.CoreMode.Sig.«P41»
+public import LeanVM.Guest.CoreMode.Sig.«P43»
+public import LeanVM.Guest.CoreMode.Sig.«P47»
+public import LeanVM.Guest.CoreMode.Sig.«P51»
+public import LeanVM.Guest.CoreMode.Sig.«P54»
+public import LeanVM.Guest.CoreMode.Sig.«P55»
+public import LeanVM.Guest.CoreMode.Sig.«P56»
+public import LeanVM.Guest.CoreMode.Sig.«P57»
+public import LeanVM.Guest.CoreMode.Sig.«P62»
+public import LeanVM.Guest.CoreMode.Sig.«P9»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L0»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L10»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L1»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L2»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L3»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L4»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L5»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L6»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L7»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L8»
+public import LeanVM.Guest.CoreMode.Sig.«open_stacked__L9»
+public import LeanVM.Guest.CoreMode.Sig.«verify_tables»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Mode.Win
-public import LeanVM.Guest.Pack.«P0».ModeSig
-public import LeanVM.Guest.Pack.«P10».ModeSig
-public import LeanVM.Guest.Pack.«P14».ModeSig
-public import LeanVM.Guest.Pack.«P16».ModeSig
-public import LeanVM.Guest.Pack.«P17».ModeSig
-public import LeanVM.Guest.Pack.«P21».ModeSig
-public import LeanVM.Guest.Pack.«P24».ModeSig
-public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P29».ModeSig
-public import LeanVM.Guest.Pack.«P2».ModeSig
 public import LeanVM.Guest.Pack.«P33».Bundle
 public import LeanVM.Guest.Pack.«P33».ModeD0S0
-public import LeanVM.Guest.Pack.«P33».ModeSig
-public import LeanVM.Guest.Pack.«P35».ModeSig
-public import LeanVM.Guest.Pack.«P36».ModeSig
-public import LeanVM.Guest.Pack.«P38».ModeSig
-public import LeanVM.Guest.Pack.«P3».ModeSig
-public import LeanVM.Guest.Pack.«P41».ModeSig
-public import LeanVM.Guest.Pack.«P43».ModeSig
-public import LeanVM.Guest.Pack.«P47».ModeSig
-public import LeanVM.Guest.Pack.«P51».ModeSig
-public import LeanVM.Guest.Pack.«P54».ModeSig
-public import LeanVM.Guest.Pack.«P55».ModeSig
-public import LeanVM.Guest.Pack.«P56».ModeSig
-public import LeanVM.Guest.Pack.«P57».ModeSig
-public import LeanVM.Guest.Pack.«P62».ModeSig
-public import LeanVM.Guest.Pack.«P9».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L0».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L1».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L3».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L4».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L5».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L7».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L8».ModeSig
-public import LeanVM.Guest.Pack.«open_stacked__L9».ModeSig
-public import LeanVM.Guest.Pack.«verify_tables».ModeSig
 
 namespace LeanVM.Guest.Fn.«verify_sub»
 
@@ -61,145 +61,142 @@ noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
     none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«bus_grind_check__L11».modeSig) .nil .nil)) .nil) .nil))))))) .nil)
+    none .nil (.node (some Fn.«bus_grind_check__L11».csig) .nil .nil)) .nil) .nil))))))) .nil)
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L9».modeSig) .nil .nil)) .nil)))))))))))) (.node none (.node none (.node none
+    Fn.«open_stacked__L9».csig) .nil .nil)) .nil)))))))))))) (.node none (.node none (.node none
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L7».modeSig) .nil .nil)) .nil))) .nil)))) .nil)) (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L25».modeSig) .nil .nil))
-    .nil) .nil))))) .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L4».modeSig) .nil .nil)) .nil)) .nil)) .nil)))))) (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«bus_grind_check__L3».modeSig) .nil .nil)) .nil) .nil)))))) .nil)))) (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L0».modeSig) .nil .nil)) .nil) .nil))))))) .nil))))) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«log2_ceil_in_the_exponent__L16_L34».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil))
+    Fn.«open_stacked__L7».csig) .nil .nil)) .nil))) .nil)))) .nil)) (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node (some Fn.«squeeze_point_from__L25».csig) .nil .nil)) .nil)
+    .nil))))) .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some
+    Fn.«open_stacked__L4».csig) .nil .nil)) .nil)) .nil)) .nil)))))) (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L3».csig)
+    .nil .nil)) .nil) .nil)))))) .nil)))) (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«open_stacked__L0».csig) .nil .nil))
+    .nil) .nil))))))) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some
+    Fn.«log2_ceil_in_the_exponent__L16_L34».csig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil))
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none (.node (some Fn.«verify_bus_gkr».modeSig) .nil .nil) .nil) .nil))) .nil) .nil)
+    none (.node none (.node (some Fn.«verify_bus_gkr».csig) .nil .nil) .nil) .nil))) .nil) .nil)
     .nil))) .nil) (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some Fn.«bus_grind_check__L7».modeSig) .nil .nil)) .nil) .nil)))))))
+    (.node none .nil (.node (some Fn.«bus_grind_check__L7».csig) .nil .nil)) .nil) .nil)))))))
     .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«squeeze_point_from__L24».modeSig) .nil .nil)) .nil) .nil)))) .nil)))))) (.node
+    (.node (some Fn.«squeeze_point_from__L24».csig) .nil .nil)) .nil) .nil)))) .nil)))))) (.node
     none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«log2_ceil_in_the_exponent__L0_L34».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil)
+    Fn.«log2_ceil_in_the_exponent__L0_L34».csig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil)
     .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«bus_grind_check__L13».modeSig) .nil .nil)) .nil) .nil))))))) .nil)) (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node (some Fn.«open_stacked__L6».modeSig) .nil
-    .nil)) .nil))) .nil) .nil))) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L21».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil)))) (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L20».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil)) .nil) (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«bus_grind_check__L5».modeSig) .nil .nil)) .nil) .nil)))))) .nil)))))) (.node none (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«bus_grind_check__L1».modeSig) .nil .nil)) .nil) .nil)))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some Fn.«squeeze_point_from__L29».modeSig) .nil .nil)) .nil)
+    none .nil (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L13».csig)
+    .nil .nil)) .nil) .nil))))))) .nil)) (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node (some Fn.«open_stacked__L6».csig) .nil .nil)) .nil))) .nil) .nil))) .nil))
+    .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node (some Fn.«squeeze_point_from__L21».csig) .nil .nil)) .nil)
+    .nil)))) .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«squeeze_point_from__L20».csig) .nil .nil)) .nil) .nil)))) .nil))
+    .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«bus_grind_check__L5».csig) .nil .nil)) .nil) .nil)))))) .nil)))))) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«bus_grind_check__L1».csig) .nil .nil)) .nil) .nil))))))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L29».csig) .nil .nil)) .nil)
     .nil))))) .nil)))) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
-    Fn.«g_power_of_word».modeSig) .nil .nil) .nil) .nil)) .nil))) .nil) (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L28».modeSig) .nil
-    .nil)) .nil) .nil))))) .nil)) .nil))) (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L9».modeSig) .nil .nil))
-    .nil) .nil))))))) .nil) .nil) .nil))))) (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L2».modeSig) .nil .nil)) .nil)) .nil) .nil)) .nil))) .nil) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L30».modeSig)
-    .nil .nil)) .nil) .nil)))))) (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node (some Fn.«ring_switch_target».modeSig) .nil .nil)) .nil))))) .nil))
-    .nil) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some Fn.«open_stacked__L5».modeSig) .nil .nil)) .nil)) .nil)))))) .nil) (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some Fn.«open_stacked__L10».modeSig) .nil .nil)))
-    .nil) .nil) .nil)) .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node (some Fn.«open_stacked__L3».modeSig) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil))
-    .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«bus_grind_check__L4».modeSig) .nil .nil)) .nil) .nil)))))) .nil))))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L27».modeSig) .nil .nil)) .nil) .nil))))) .nil)) .nil) .nil) .nil)
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«bus_grind_check__L12».modeSig) .nil .nil)) .nil) .nil))))))) .nil) .nil))))
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some Fn.«bus_grind_check__L8».modeSig) .nil .nil)) .nil)
-    .nil))))))) .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L0».modeSig) .nil
-    .nil)) .nil) .nil)))))) .nil))) (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«grind_check__L15».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil)
-    .nil))) (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L1».modeSig) .nil .nil)) .nil)) .nil) .nil) .nil)) .nil)) .nil) .nil) (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L22».modeSig) .nil .nil)) .nil) .nil)))) .nil))) .nil) .nil))))) (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some Fn.«bus_grind_check__L6».modeSig) .nil .nil)) .nil)
-    .nil))))))) .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«check_opening_terminal».modeSig) .nil .nil))) .nil)) (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«squeeze_point_from__L23».modeSig) .nil .nil)) .nil) .nil)))) .nil)))) .nil) .nil)) (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node (some Fn.«grind_check__L13».modeSig) .nil .nil)) .nil) .nil))))))) .nil)) (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some Fn.«certify_placement».modeSig) .nil .nil))) .nil) .nil) .nil)))
-    .nil)) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«verify_keccak».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil) (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«bus_grind_check__L10».modeSig) .nil .nil)) .nil) .nil))))))) (.node none (.node none (.node
+    Fn.«g_power_of_word».csig) .nil .nil) .nil) .nil)) .nil))) .nil) (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L28».csig) .nil .nil)) .nil)
+    .nil))))) .nil)) .nil))) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«bus_grind_check__L9».csig) .nil .nil)) .nil) .nil)))))))
+    .nil) .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node (some Fn.«open_stacked__L2».csig)
+    .nil .nil)) .nil)) .nil) .nil)) .nil))) .nil) (.node none (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«squeeze_point_from__L26».modeSig) .nil .nil)) .nil) .nil))))) .nil)
-    .nil)) .nil)) .nil) (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node (some
-    Fn.«verify_tables».modeSig) .nil .nil) .nil) .nil)))) .nil) .nil) .nil) (.node none (.node none
+    none .nil (.node (some Fn.«squeeze_point_from__L30».csig) .nil .nil)) .nil) .nil)))))) (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
+    Fn.«ring_switch_target».csig) .nil .nil)) .nil))))) .nil)) .nil) (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node (some
+    Fn.«open_stacked__L5».csig) .nil .nil)) .nil)) .nil)))))) .nil) (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some Fn.«open_stacked__L10».csig) .nil .nil))) .nil) .nil) .nil))
+    .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some
+    Fn.«open_stacked__L3».csig) .nil .nil)) .nil)) .nil)) .nil) .nil) .nil)) .nil) (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L4».csig) .nil
+    .nil)) .nil) .nil)))))) .nil))))) (.node none (.node none (.node none (.node none (.node none
     .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«opening_message__L1_L1».modeSig) .nil .nil)) .nil) .nil)))))) .nil)) .nil)) (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«open_stacked__L8».modeSig) .nil .nil)) .nil)))) (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L2».modeSig) .nil .nil))
-    .nil) .nil)))))) .nil))) .nil)))))), 524287⟩
+    none (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L27».csig) .nil .nil))
+    .nil) .nil))))) .nil)) .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L12».csig) .nil
+    .nil)) .nil) .nil))))))) .nil) .nil)))) (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«bus_grind_check__L8».csig) .nil .nil)) .nil) .nil))))))) .nil) .nil) .nil)) (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«bus_grind_check__L0».csig) .nil .nil)) .nil) .nil)))))) .nil))) (.node none
+    .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«grind_check__L15».csig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil))) (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node (some Fn.«open_stacked__L1».csig)
+    .nil .nil)) .nil)) .nil) .nil) .nil)) .nil)) .nil) .nil) (.node none (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node none .nil (.node (some Fn.«squeeze_point_from__L22».csig) .nil .nil))
+    .nil) .nil)))) .nil))) .nil) .nil))))) (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«bus_grind_check__L6».csig) .nil .nil)) .nil) .nil))))))) .nil) .nil) .nil) (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node (some Fn.«check_opening_terminal».csig) .nil .nil))) .nil))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«squeeze_point_from__L23».csig) .nil .nil)) .nil) .nil)))) .nil))))
+    .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node (some Fn.«grind_check__L13».csig) .nil .nil)) .nil) .nil)))))))
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some Fn.«certify_placement».csig) .nil .nil))) .nil) .nil)
+    .nil))) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«verify_keccak».csig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil) (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L10».csig)
+    .nil .nil)) .nil) .nil))))))) (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«squeeze_point_from__L26».csig) .nil .nil)) .nil) .nil))))) .nil) .nil)) .nil)) .nil) (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node (some Fn.«verify_tables».csig) .nil .nil) .nil)
+    .nil)))) .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«opening_message__L1_L1».csig) .nil .nil)) .nil) .nil)))))) .nil))
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node (some Fn.«open_stacked__L8».csig) .nil .nil)) .nil)))) (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«bus_grind_check__L2».csig) .nil
+    .nil)) .nil) .nil)))))) .nil))) .nil)))))), 524287⟩
 
 /-- `verify_sub`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨31822, 1686, Fn.«verify_sub».modeSig, (.node (some [(.alloc 8 159)]) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
-    .nil (.node (some [(.alloc 1997 1232)]) .nil .nil)) .nil) .nil)) .nil)) (.node none (.node none
+  ⟨31822, 1686, Fn.«verify_sub».csig, (.node (some [(.alloc 8 159)]) (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some [(.alloc 1997 1232)]) .nil .nil)) .nil) .nil)) .nil)) (.node none (.node none
     (.node none .nil (.node none (.node (some [(.alloc 591 6092)]) .nil .nil) .nil)) .nil) .nil))
     (.node none (.node none (.node none (.node none .nil (.node (some [(.alloc 250 53)]) .nil
     .nil)) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node (some

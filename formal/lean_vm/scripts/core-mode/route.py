@@ -1,7 +1,7 @@
 """The core route of milestone 1 (`formal/notes/core-mode.md`, `Guest/CoreMode/Core.lean`): the functions
 passing `heapOk` and the pairing whose body is straight-line, whose only `JUMP` is its last
 instruction, a return the pairing takes by its head statement, and whose signature its callers know
-(`Mode.Sig`, `Pack/*/ModeSig.lean`) promises only frame cells, heap cells and runs of constant bounds over
+(`Mode.Sig`, `CoreMode/Sig/*.lean`) promises only frame cells, heap cells and runs of constant bounds over
 its parameters (and returned products `retV`, each a returned value's monomial); each with the heap cells it promises (`CFun.post`) and their witnesses, the preconditions
 the heap check then names (`HCert.sig.pre`), its pairing's oracle and stores. Which functions take the
 route; the kernel's checks (`CoreMode.CoreOk`) confirm it.
@@ -9,7 +9,7 @@ route; the kernel's checks (`CoreMode.CoreOk`) confirm it.
 `route()` returns `{name: dict(post=[(cell, wit)], pre=[cell], O=[..], S=[..], pack, bpack, j)}`, cells as
 `(bases, off)`, bases `((value number, exponent), ...)`, witnesses `('ev', n)` or `('pre', k)`.
 Usage (a census): python3 -I scripts/core-mode/route.py"""
-import os, re, sys, glob, collections
+import os, re, sys, glob, json, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import heap  # noqa: E402
@@ -77,17 +77,37 @@ def split_top(s):
     return out
 
 
+SIGS = None
+
+
 def sigs():
-    """Each function's `Mode.Sig`, by namespace name, fields parsed."""
+    """Each function's `Mode.Sig`, by namespace name, fields parsed: the mode inference's (`MODE_CERT_CACHE`, as
+    `scripts/core-mode/frame_gen.py` writes them), or as written (`CoreMode/Sig/*.lean`, `Fn.«k».csig`)."""
+    global SIGS
+    if SIGS is not None:
+        return SIGS
+    cache = os.environ.get('MODE_CERT_CACHE')
+    texts = []
+    if cache and os.path.exists(cache):
+        # in a fresh interpreter (the mode walk's `infer`, `data` modules clash with the core route's), once per cache
+        dump = cache + '.sigs.json'
+        if not os.path.exists(dump) or os.path.getmtime(dump) < os.path.getmtime(cache):
+            import subprocess
+            subprocess.run([sys.executable, '-I', os.path.join(HERE, 'sigc.py'), '--dump', dump], check=True)
+        texts = sorted(json.load(open(dump)).items())
+    else:
+        for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Sig', '*.lean')):
+            t = open(f).read()
+            for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+                nm = blk.split('\n', 1)[0].strip().strip('«»')
+                m = re.search(r'def csig : Mode.Sig :=\s*⟨(.*?)⟩\n\nend', blk, re.S)
+                texts.append((nm, m.group(1)))
     out = {}
-    for f in glob.glob(os.path.join(GUEST, 'Pack', '*', 'ModeSig.lean')):
-        t = open(f).read()
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            nm = blk.split('\n', 1)[0].strip().strip('«»')
-            m = re.search(r'def modeSig : Mode.Sig :=\s*⟨(.*?)⟩\n\ntheorem', blk, re.S)
-            parts = split_top(m.group(1))
-            assert len(parts) == 16, nm
-            out[nm] = {k: parse(v) for k, v in zip(FIELDS, parts)}
+    for nm, text in texts:
+        parts = split_top(text)
+        assert len(parts) == 16, nm
+        out[nm] = {k: parse(v) for k, v in zip(FIELDS, parts)}
+    SIGS = out
     return out
 
 
@@ -234,6 +254,26 @@ def frame_nzr():
     return out, calls
 
 
+def ptr_vals(body):
+    """`CoreMode.ptrOf` over the statements, nested ones included: a `load`'s pointer, a hint's heap destination's."""
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            a = s[1]
+            if a[0] == 'load':
+                out.append(a[2])
+            elif a[0] == 'hint' and a[1][0] in ('witness', 'bits', 'bitsExp', 'digitsExp', 'windowsExp'):
+                d = a[1][-1]
+                if isinstance(d, tuple) and d and d[0] == 'heap':
+                    out.append(d[1])
+        elif s[0] == 'ite':
+            out += ptr_vals(s[2]) + ptr_vals(s[3])
+        elif s[0] == 'match':
+            for arm in s[2]:
+                out += ptr_vals(arm)
+    return out
+
+
 def route(verbose=False):
     import pair
     S = sigs()
@@ -246,6 +286,9 @@ def route(verbose=False):
     out = {}; why = collections.Counter()
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]
+        if any(p in pf['extra'] for p in ptr_vals(body)):
+            # `CoreMode.ptrCellB`: a dereferenced pointer at its certificate cell, no hint-only value
+            why['hint-only pointer'] += 1; continue
         if pf.get('kind') in ('c', 'l', 'lc'):
             # a body with calls (`callc.py`), a leaf loop helper (`loopc.py`) or one with calls (`loopcc.py`), its
             # certificate by the check with calls
@@ -256,7 +299,6 @@ def route(verbose=False):
         G = S.get(ns) or S.get(k)
         if not branchy(body): why['not straight'] += 1; continue
         if not sel_ok(body, params): why['selector'] += 1; continue
-        if k in NZR: why['residual divisors'] += 1; continue
         if k in CALLS: why['callees'] += 1; continue
         if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue
         ex, locs = pf['extra'], pf['locs']

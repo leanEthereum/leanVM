@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.Pows.«P51»
 public import LeanVM.Guest.Pack.«P51».Core
 public import LeanVM.Guest.CoreMode.GenC.«P51».Data
 
@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«certify_placement»
 @[expose] public section
 
 /-- `certify_placement`: the heap check. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«certify_placement».pows
     (fun _ ↦ .empty)
     core hcert = true := by
   decide +kernel

@@ -48,12 +48,12 @@ open LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The parameters, the entry state. -/
-theorem head_ok : headOkF Data.powTree sigW core hcert st0 = true := by
+theorem head_ok : headOkF Fn.«verify_tables».pows sigW core hcert st0 = true := by
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
 /-- Statements 3757 to the end. -/
-theorem last_ok : lastOkF Data.powTree sigW core hcert 3757 st30 = true := by
+theorem last_ok : lastOkF Fn.«verify_tables».pows sigW core hcert 3757 st30 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -65,9 +65,10 @@ namespace LeanVM.Guest.Fn.«verify_tables»
 @[expose] public section
 
 /-- `verify_tables`: the heap check, in 30 windows. -/
-theorem heap_okC : CoreMode.heapOkC Data.powTree
+theorem heap_okC : CoreMode.heapOkC Fn.«verify_tables».pows
     (fun g ↦ match g with
-    | "__loop10" => Fn.«verify_tables_loop1».hcert.sig | "__loop9" => Fn.«verify_tables_loop0».hcert.sig
+    | "__loop0_verify_tables" => Fn.«verify_tables_loop0».hcert.sig
+    | "__loop1_verify_tables" => Fn.«verify_tables_loop1».hcert.sig
     | "block_selector__L0" => Fn.«block_selector__L0».hcert.sig
     | "block_selector__L1" => Fn.«block_selector__L1».hcert.sig
     | "block_selector__L10" => Fn.«block_selector__L10».hcert.sig

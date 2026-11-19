@@ -7,10 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAl.Link3
+public import LeanVM.Guest.Bridge.ProgAl.Tab3
 public import LeanVM.Guest.Checked.Link3
+public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L6».Core
 public import LeanVM.Guest.CoreMode.Route
-public import LeanVM.Guest.Pack.«open_stacked__L6».ModeCert
 
 set_option Elab.async false
 
@@ -24,7 +24,7 @@ theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L6».cfun := CoreMode.cfOk_of (
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=
-  Mode.fa_cons cfOk0 (Mode.fa_nil)
+  List.forall_mem_cons.2 ⟨cfOk0, List.forall_mem_nil _⟩
 
 end
 

@@ -19,10 +19,10 @@ public import LeanVM.Guest.Pack.«P56».Core
 Certificates written by hand, each checked by the kernel (`decide +kernel`), and a wrong witness
 rejected.
 
-* `__loop7` (`verify_bus_gkr_loop1`): reads `p3·i` (its own `preR`, at its counter by the
+* `__loop1_verify_bus_gkr` (`verify_bus_gkr_loop1`): reads `p3·i` (its own `preR`, at its counter by the
   termination fact), stores at `p2·i` (its `postR`, accumulated), its tail call's `preR` one further
   (the shifted lower bound).
-* `__loop23` (`da_pad_loop0`): two accumulated runs of stride 2 over `p2·p3²`.
+* `__loop0_da_pad` (`da_pad_loop0`): two accumulated runs of stride 2 over `p2·p3²`.
 * `opening_round`: reads `p5[0..4]` (preconditions), calls `grind_check__L7` (empty signature here),
   stores `p8[0]`, `p9[0]`, `p9[1]` (its guarantees).
 * `mk`, `useMk`: a guarantee over a returned word, read by the caller after the call; `useMk2`, the
@@ -62,7 +62,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Loop helpers of the guest -/
 
-/-- `__loop7`'s certificate. -/
+/-- `__loop1_verify_bus_gkr`'s certificate. -/
 def h7 : HCert where
   sig :=
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
@@ -80,7 +80,7 @@ theorem loop7_bad :
     heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop1».core { h7 with rets := [[.ev 0]] } = false := by
   decide +kernel
 
-/-- `__loop23`'s certificate. -/
+/-- `__loop0_da_pad`'s certificate. -/
 def h23 : HCert where
   sig :=
     { postR := [⟨⟨[(2, 1), (3, 2)], 0⟩, 2, .val 0, .val 1⟩, ⟨⟨[(2, 1), (3, 2)], 1⟩, 2, .val 0, .val 1⟩],
@@ -1751,6 +1751,35 @@ theorem catq_bad : heapOkC Data.powTree sigsCq catq
     { hCatq with calls := [[.catM ⟨[(1, 1)], 0⟩ ⟨[], 4⟩ [0], .run 0 [], .catM ⟨[], 2⟩ ⟨[], 2⟩ [], .run 1 [],
       .catM ⟨[], 1⟩ ⟨[], 1⟩ [], .pts, .pts]] } = false := by decide +kernel
 
+/-! ## An own parameter word -/
+
+/-- Reads the word at `p[0]`, then through it. -/
+def rdw : Fn where
+  name := "rdw"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .ret []]
+
+/-- `rdw`'s certificate: `p[0]` written (`pre`); ghost `0` (slot `1`, value `GB`) the word at `p[0]` (`gw`), its
+cell `G·g^0` a precondition (`preR`), so the read through the word loaded at `p[0]` finds it. -/
+def sRdw : HSig where
+  pre := [⟨[(0, 1)], 0⟩]
+  preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 1⟩]
+  ghosts := 1
+  gw := [(⟨[(0, 1)], 0⟩, 0)]
+
+/-- `rdw`'s reads: `p[0]` by the precondition, the word's cell by the run. -/
+def hRdw : HCert where
+  sig := sRdw
+  reads := [(1, [(0, 0, .pre 0)]), (2, [(1, 0, .run 0 [])])]
+  res := []
+  rets := [[]]
+
+theorem rdw_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdw hRdw = true := by decide +kernel
+
+/-- Without the own parameter word, the word loaded is no ghost's. -/
+theorem rdw_bad : heapOkC Data.powTree (fun _ ↦ .empty) rdw { hRdw with sig := { sRdw with gw := [] } } = false := by
+  decide +kernel
+
 /-- Writes `p·g^[0, 3)` then reads `p·i`, `e(i) < 3` by a residual: the run of the three write events (`evs`). -/
 def evsRd : Fn where
   name := "evsRd"
@@ -1817,35 +1846,6 @@ theorem hiLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) hiLe hHiLe = true := b
 /-- `e(n) < 42` is not enough. -/
 theorem hiLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) hiLe { hHiLe with res := [.lt (.val 1) (.num 42)] } =
     false := by
-  decide +kernel
-
-/-! ## An own parameter word -/
-
-/-- Reads the word at `p[0]`, then through it. -/
-def rdw : Fn where
-  name := "rdw"
-  params := [.n 0]
-  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .ret []]
-
-/-- `rdw`'s certificate: `p[0]` written (`pre`); ghost `0` (slot `1`, value `GB`) the word at `p[0]` (`gw`), its
-cell `G·g^0` a precondition (`preR`), so the read through the word loaded at `p[0]` finds it. -/
-def sRdw : HSig where
-  pre := [⟨[(0, 1)], 0⟩]
-  preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 1⟩]
-  ghosts := 1
-  gw := [(⟨[(0, 1)], 0⟩, 0)]
-
-/-- `rdw`'s reads: `p[0]` by the precondition, the word's cell by the run. -/
-def hRdw : HCert where
-  sig := sRdw
-  reads := [(1, [(0, 0, .pre 0)]), (2, [(1, 0, .run 0 [])])]
-  res := []
-  rets := [[]]
-
-theorem rdw_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdw hRdw = true := by decide +kernel
-
-/-- Without the own parameter word, the word loaded is no ghost's. -/
-theorem rdw_bad : heapOkC Data.powTree (fun _ ↦ .empty) rdw { hRdw with sig := { sRdw with gw := [] } } = false := by
   decide +kernel
 
 end

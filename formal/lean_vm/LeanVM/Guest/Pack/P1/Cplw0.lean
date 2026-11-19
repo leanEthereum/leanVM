@@ -97,11 +97,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop9`, window 0, part 0. -/
+/-- `__loop0_verify_tables`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(7, Fn.«sumcheck_round4».sig), (267, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_tables_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop9`: every part of every window. -/
+/-- `__loop0_verify_tables`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(7, Fn.«sumcheck_round4».sig), (267, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_tables_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
@@ -121,11 +121,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop12`, window 0, part 0. -/
+/-- `__loop1_verify_keccak`, window 0, part 0. -/
 theorem cw0_0 : cplWinD (Glob.ofSigs ([(273, Fn.«verify_keccak_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop12`: every part of every window. -/
+/-- `__loop1_verify_keccak`: every part of every window. -/
 theorem cplOk : CplOkD (Glob.ofSigs ([(273, Fn.«verify_keccak_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
