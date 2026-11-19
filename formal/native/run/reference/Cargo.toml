@@ -14,3 +14,5 @@ path = "src/main.rs"
 [dependencies]
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
+# leanVM's deployed verifier, the leanVM cases' reference.
+verifier = { path = "../../../../crates/verifier" }

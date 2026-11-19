@@ -1,7 +1,9 @@
 //! The cases of `run/check.sh`: leanXMSS and leanSPHINCS inputs laid out as the native verifiers (x86-64 and AArch64,
-//! one context layout) read them, each with what the crate's `verify` returns.
+//! one context layout) read them, each with what the crate's `verify` returns; and, given the verifier fixtures, the
+//! leanVM verifier's (`vm.rs`).
 //!
-//! `reference DIR` writes `DIR/<scheme>_<name>.case` for every case, and `DIR/cases.list`, their file stems in order.
+//! `reference DIR [FIXTURES]` writes `DIR/<scheme>_<name>.case` for every case, and `DIR/cases.list`, their file stems
+//! in order; the leanVM cases only with `FIXTURES`, the directory `export-verifier-fixtures-rust.sh` wrote.
 //! A case is text: the lines `scheme xmss` (or `sphincs`), `expect 0` (or `1`), `words N`, then the `N` input words,
 //! 16 hex digits each, one per line. The words are `Native/Xmss/Layout.lean`'s 309 or `Native/Sphincs/Layout.lean`'s
 //! 977 (`encode`): a 16-byte digest as two little-endian words, low first; the message as four; XMSS's leaf index and
@@ -14,6 +16,8 @@
 
 use std::path::Path;
 use std::{env, fs, process};
+
+mod vm;
 
 use lean_sphincs::internals::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -397,9 +401,13 @@ fn sphincs_cases(cases: &mut Cases) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let [_, dir] = args.as_slice() else {
-        eprintln!("usage: reference DIR");
-        process::exit(2);
+    let (dir, fixtures) = match args.as_slice() {
+        [_, dir] => (dir, None),
+        [_, dir, fixtures] => (dir, Some(Path::new(fixtures))),
+        _ => {
+            eprintln!("usage: reference DIR [FIXTURES]");
+            process::exit(2);
+        }
     };
     let dir = Path::new(dir);
     fs::create_dir_all(dir).unwrap();
@@ -422,6 +430,11 @@ fn main() {
         list.push_str(&case.stem);
         list.push('\n');
     }
+    let vm_cases = fixtures.map(|fixtures| vm::cases(dir, fixtures)).unwrap_or_default();
+    for (stem, _) in &vm_cases {
+        list.push_str(stem);
+        list.push('\n');
+    }
     fs::write(dir.join("cases.list"), list).unwrap();
     for scheme in [Scheme::Xmss, Scheme::Sphincs] {
         let of = |expect: bool| {
@@ -432,5 +445,9 @@ fn main() {
                 .count()
         };
         println!("{}: {} cases verify, {} do not", scheme.name(), of(true), of(false));
+    }
+    if fixtures.is_some() {
+        let of = |expect: bool| vm_cases.iter().filter(|(_, e)| *e == expect).count();
+        println!("vm: {} cases verify, {} do not", of(true), of(false));
     }
 }

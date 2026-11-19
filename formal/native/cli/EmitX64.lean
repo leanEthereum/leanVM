@@ -3,14 +3,16 @@ module
 import NativeX64.Compile
 import Native.Xmss.Code
 import Native.Sphincs.Code
+import NativeVm.Code.Main
 import Kraken.X64.PrintATT
 
 /-!
 # `emit-x64`
 
-`lake exe emit-x64 xmss FILE.S` (or `sphincs`) writes a verifier's x86-64 machine code,
-`Compile.program body onFail`, as an AT&T assembly file exporting `xmss_verify` (or `sphincs_verify`),
-`uint64_t verify(uint64_t *ctx)` in the SysV ABI: the directives around it place it in `.text` and
+`lake exe emit-x64 xmss FILE.S` (or `sphincs`, or `vm`) writes a verifier's x86-64 machine code,
+`Compile.program body onFail`, as an AT&T assembly file exporting `xmss_verify` (or `sphincs_verify`,
+or `leanvm_verify`, leanVM's verifier `NativeVm.Code.body`), `uint64_t verify(uint64_t *ctx)` in the
+SysV ABI: the directives around it place it in `.text` and
 export the symbol at the program's first directive, the label `qm_entry`, and change no instruction.
 -/
 
@@ -40,6 +42,10 @@ public def main (args : List String) : IO UInt32 := do
     IO.FS.writeFile path <|
       assembly "sphincs_verify" "Native.Sphincs.Code" SphincsVerifier.body SphincsVerifier.onFail
     return 0
+  | ["vm", path] =>
+    IO.FS.writeFile path <|
+      assembly "leanvm_verify" "NativeVm.Code.Main" NativeVm.Code.body NativeVm.Code.onFail
+    return 0
   | _ =>
-    IO.eprintln "usage: emit-x64 xmss|sphincs FILE.S"
+    IO.eprintln "usage: emit-x64 xmss|sphincs|vm FILE.S"
     return 2

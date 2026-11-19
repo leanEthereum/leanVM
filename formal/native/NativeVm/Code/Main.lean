@@ -1,6 +1,6 @@
 module
 
-public import NativeVm.Code.Chain
+public import NativeVm.Code.Roots
 public import NativeVm.Code.Seed
 public import NativeVm.Code.Gadgets
 public import NativeVm.Code.Phase1
@@ -238,8 +238,9 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
       (Ret sv (Model.verify inp.bytecode inp.pub stream openings))
       (fun s' ↦ Model.verify inp.bytecode inp.pub stream openings = false ∧ Exit env.ctx sv s') := by
   have hV := verify_chain inp stream openings
+  have hroots : (start inp stream openings).roots = #[] := rfl
   generalize Model.verify inp.bytecode inp.pub stream openings = V at hV ⊢
-  generalize start inp stream openings = t0 at hr hV
+  generalize start inp stream openings = t0 at hr hV hroots
   have hrs1 := stops (rs := [layoutR, scratchR]) (by decide +kernel) inp.bytecode.size
   have hrs2 := stops (rs := [oodR, scratchR]) (by decide +kernel) inp.bytecode.size
   have hrs3 := stops (rs := [busR, claimsR, scratchR]) (by decide +kernel) inp.bytecode.size
@@ -251,14 +252,20 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
   -- phase 1
   refine step (h1 env inp t0 s hr hin) (fun s₁ h hd ↦ ?_)
     (fun s₁ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin hsv hrs1⟩)
-  obtain ⟨⟨layout, rate⟩, t1, hrun, hr₁, hlay, hk₁⟩ := h
-  rw [hrun] at hV; simp only at hV
+  obtain ⟨⟨layout, rate⟩, t1, hrun₁, hr₁, hlay, hk₁⟩ := h
+  rw [hrun₁] at hV; simp only at hV
   have hin₁ := hin.kept hk₁ hrs1 hd
   have hsv₁ := hsv.kept hk₁ hin hrs1
   -- phase 2
-  refine step (h2 env inp t1 s₁ layout rate hr₁ hin₁ hlay) (fun s₂ h hd ↦ ?_)
+  have hroots₁ : t1.roots.size < Transcript.maxRoots := by
+    rw [(readAnnouncedSizes_roots _).keeps _ _ _ hrun₁, hroots]; decide
+  refine step (h2 env inp t1 s₁ layout rate hr₁ hroots₁ hin₁ hlay) (fun s₂ h hd ↦ ?_)
     (fun s₂ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₁ hsv₁ hrs2⟩)
   obtain ⟨ood, t2, hrun, hr₂, hood, hk₂⟩ := h
+  have hR₂ : t2.roots.size ≤ 1 := by
+    have := (phase2M_roots layout rate).grows _ _ _ hrun
+    rw [(readAnnouncedSizes_roots _).keeps _ _ _ hrun₁, hroots] at this
+    simpa using this
   rw [hrun] at hV; simp only at hV
   have hin₂ := hin₁.kept hk₂ hrs2 hd
   have hsv₂ := hsv₁.kept hk₂ hin₁ hrs2
@@ -267,6 +274,7 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
   refine step (h3 env inp t2 s₂ layout rate hr₂ hin₂ hlay₂) (fun s₃ h hd ↦ ?_)
     (fun s₃ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₂ hsv₂ hrs3⟩)
   obtain ⟨bus, t3, hrun, hr₃, ⟨hbus, hcl₃, hsz₃⟩, hk₃⟩ := h
+  have hR₃ : t3.roots.size ≤ 1 := by rw [(verifyBusBalance_roots _).keeps _ _ _ hrun]; exact hR₂
   rw [hrun] at hV; simp only at hV
   have hin₃ := hin₂.kept hk₃ hrs3 hd
   have hsv₃ := hsv₂.kept hk₃ hin₂ hrs3
@@ -276,6 +284,7 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
   refine step (h4 env inp t3 s₃ layout rate bus bus.claims hr₃ hin₃ hlay₃ hbus hcl₃ hsz₃)
     (fun s₄ h hd ↦ ?_) (fun s₄ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₃ hsv₃ hrs4⟩)
   obtain ⟨ev, t4, hrun, hr₄, ⟨hev, hcl₄, hsz₄⟩, hk₄⟩ := h
+  have hR₄ : t4.roots.size ≤ 1 := by rw [(tablePhase_roots _ _).keeps _ _ _ hrun]; exact hR₃
   rw [hrun] at hV; simp only at hV
   have hin₄ := hin₃.kept hk₄ hrs4 hd
   have hsv₄ := hsv₃.kept hk₄ hin₃ hrs4
@@ -286,6 +295,7 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
     (by rw [Array.size_append]; omega)) (fun s₅ h hd ↦ ?_)
     (fun s₅ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₄ hsv₄ hrs5⟩)
   obtain ⟨pc, t5, hrun, hr₅, ⟨hcl₅, hsz₅⟩, hk₅⟩ := h
+  have hR₅ : t5.roots.size ≤ 1 := by rw [(publicInputPhase_roots _ _).keeps _ _ _ hrun]; exact hR₄
   rw [hrun] at hV; simp only at hV
   have hin₅ := hin₄.kept hk₅ hrs5 hd
   have hsv₅ := hsv₄.kept hk₅ hin₄ hrs5
@@ -297,13 +307,14 @@ theorem phases_spec (h1 : Phase1Ok phase1) (h2 : Phase2Ok phase2) (h3 : Phase3Ok
     (by simp only [Array.size_append]; omega)) (fun s₆ h hd ↦ ?_)
     (fun s₆ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₅ hsv₅ hrs6⟩)
   obtain ⟨r6, t6, hrun, hr₆, ⟨hkec, hcl₆, -⟩, hk₆⟩ := h
+  have hR₆ : t6.roots.size ≤ 1 := by rw [(keccakPhase_roots _ _).keeps _ _ _ hrun]; exact hR₅
   rw [hrun] at hV; simp only at hV
   have hin₆ := hin₅.kept hk₆ hrs6 hd
   have hsv₆ := hsv₅.kept hk₆ hin₅ hrs6
   have hlay₆ := hlay₅.congr (hk₆.same hin₅ hrs6 (q := layoutR) (by decide +kernel) (by decide +kernel))
   have hood₆ := hood₅.congr (hk₆.same hin₅ hrs6 (q := oodR) (by decide +kernel) (by decide +kernel))
   -- phase 7
-  refine step (h7 env inp t6 s₆ layout rate ood _ r6.2.1 r6.2.2 hr₆ hin₆ hlay₆ hood₆ hcl₆ hkec)
+  refine step (h7 env inp t6 s₆ layout rate ood _ r6.2.1 r6.2.2 hr₆ hR₆ hin₆ hlay₆ hood₆ hcl₆ hkec)
     (fun s₇ h hd ↦ ?_) (fun s₇ h ↦ ⟨by rw [hV, h.1], exit_of h.2 hin₆ hsv₆ hrs7⟩)
   obtain ⟨⟨⟩, t7, hrun, hr₇, -, hk₇⟩ := h
   rw [hrun] at hV; simp only at hV

@@ -73,7 +73,7 @@ name = "NativeArm"
 globs = ["NativeArm", "NativeArm.+"]
 
 # A verifier's x86-64 machine code, `NativeX64.Compile.program body onFail`, printed as an assembly
-# file exporting `xmss_verify` or `sphincs_verify` (cli/EmitX64.lean); `run/check.sh` assembles it
+# file exporting `xmss_verify`, `sphincs_verify` or `leanvm_verify` (cli/EmitX64.lean); `run/check.sh` assembles it
 # with the harness.
 [[lean_exe]]
 name = "emit-x64"
@@ -81,7 +81,7 @@ root = "EmitX64"
 srcDir = "cli"
 
 # A verifier's AArch64 machine code, `NativeArm.Compile.program body onFail`, printed as an assembly
-# file exporting `xmss_verify` or `sphincs_verify` (cli/EmitArm.lean); `run/check.sh --arch arm`
+# file exporting `xmss_verify`, `sphincs_verify` or `leanvm_verify` (cli/EmitArm.lean); `run/check.sh --arch arm`
 # assembles it with the harness.
 [[lean_exe]]
 name = "emit-arm"

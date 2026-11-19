@@ -26,4 +26,9 @@ version = "0.1.0"
 dependencies = [
  "lean_sphincs",
  "lean_xmss",
+ "verifier",
 ]
+
+[[package]]
+name = "verifier"
+version = "0.1.0"

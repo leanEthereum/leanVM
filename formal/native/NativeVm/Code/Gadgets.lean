@@ -17,13 +17,13 @@ its spec against the model's operation, from `CodeRel` to `CodeRel` (`lift`):
 | `sampleChallenge` | `Model.sampleChallenge` | `sampleChallengeM_spec` | `sampleChallenge_refines` |
 | `grind` | `Model.grind bits`, `bits ≠ 0` | `grindM_spec` | `grind_refines` |
 | `commit` | `Model.readCommitment height width` | `readCommitmentM_spec` | `readCommitment_refines` |
-| `query` | `Model.queryOpenings i positions` | `queryOpeningsM_spec`, from a spec of `query` | |
+| `query` | `Model.queryOpenings i positions` | `queryOpeningsM_spec` (`QueryPre`) | `queryOpenings_refines` |
 | `finish` | `Model.verify`'s last check | `finishM_spec` | |
 
 A grind of `0` bits is no code (`grind_zero_run`). The model's operations read the stream and the
 openings and never change them (`*_input`), which `CodeRel` needs. In the `Refines` forms, `R` is
-what the phase keeps through the gadget: anything `Keeps clobbers (Foot env)` preserves, the failure
-exit's invariant among it.
+what the phase keeps through the gadget: anything `Keeps clobbers (Foot env)` preserves (for
+`query`, `QueryErrKeeps`), the failure exit's invariant among it.
 -/
 
 @[expose] public section
@@ -249,9 +249,9 @@ theorem runSpec_queryOpenings (i : Nat) (ps : List Nat) (st : VerifierProgramSta
   rw [run_query]
   rcases queryStep i ps st with _ | ⟨rows, st'⟩ <;> rfl
 
-/-- **`query i positions`** against `Model.queryOpenings i positions`, from a spec of `query`
+/-- `query i positions` against `Model.queryOpenings i positions`, from any spec of `query`
 against the statement's `queryStep` (its frames `Q`, `F` carried through). -/
-theorem queryOpeningsM_spec {i : Nat} {ps : Array UInt64} {Q : List (List K) → QState → Prop}
+theorem queryOpenings_lift {i : Nat} {ps : Array UInt64} {Q : List (List K) → QState → Prop}
     {F : QState → Prop} (h : CodeRel env t s)
     (hq : ∀ st, SimState env st s → WP Transcript.query s
       (fun s' ↦ ∃ rows st', queryStep i (ps.toList.map UInt64.toNat) st = some (rows, st') ∧
@@ -264,6 +264,61 @@ theorem queryOpeningsM_spec {i : Nat} {ps : Array UInt64} {Q : List (List K) →
     (fun _ _ ↦ queryOpenings_input) h fun st _ hs ↦ hq st hs) ?_ fun _ h ↦ h
   rintro s' ⟨rows, t', hr, hc, y, rfl, hq'⟩
   exact ⟨rows, t', hr, hc, hq'⟩
+
+/-- What `query i positions` needs (`query_spec`'s hypotheses on the model's positions): `i` in
+`r9`; the positions' `ps.size` words at `posA`, in `r10`, their count in `r11`; room for
+`ps.size * wireMaxLeafWords` row words at `rowsA`, in `r12`; the two areas apart from each other
+and from the transcript's. -/
+structure QueryPre (env : Env) (i : Nat) (ps : Array UInt64) (posA rowsA : UInt64) (s : QState) :
+    Prop where
+  i_lt : i < 2 ^ 64
+  size_le : ps.size ≤ wireMaxQueries
+  r9 : s.reg .r9 = i.toUInt64
+  r10 : s.reg .r10 = posA
+  r11 : s.reg .r11 = ps.size.toUInt64
+  r12 : s.reg .r12 = rowsA
+  pos : ∀ j (hj : j < ps.size), s.mem (wd posA j) = some ps[j]
+  fitPos : Fits posA ps.size
+  disjPosCtx : Disj posA ps.size env.ctx ctxEnd
+  disjPosWork : Disj posA ps.size env.work workWords
+  fitRows : Fits rowsA (ps.size * wireMaxLeafWords)
+  rowsSome : ∀ k < ps.size * wireMaxLeafWords, (s.mem (wd rowsA k)).isSome
+  disjRowsCtx : Disj rowsA (ps.size * wireMaxLeafWords) env.ctx ctxEnd
+  disjRowsDec : Disj rowsA (ps.size * wireMaxLeafWords) env.dec (decodedWords env.L)
+  disjRowsWork : Disj rowsA (ps.size * wireMaxLeafWords) env.work workWords
+  disjRowsPos : Disj rowsA (ps.size * wireMaxLeafWords) posA ps.size
+
+/-- What a failed `query` keeps: `rdi`, and every word outside the footprint and the rows. -/
+def QueryErrKeeps (env : Env) (rowsA : UInt64) (n : Nat) (s s' : QState) : Prop :=
+  s'.reg .rdi = s.reg .rdi ∧ ∀ a, ¬ Foot env a → ¬ InArea rowsA (n * wireMaxLeafWords) a → s'.mem a = s.mem a
+
+/-- **`query i positions`** against `Model.queryOpenings i positions` (`query_spec`): the rows'
+words at `rowsA` (`QueryRowsAt`; `rowsAt_of_query` gives `Code.RowsAt`), every register but `rdi`,
+`rsp`, `rbp` written; a failure keeps `rdi` and every word outside the footprint and the rows. -/
+theorem queryOpeningsM_spec {i : Nat} {ps : Array UInt64} {posA rowsA : UInt64}
+    (h : CodeRel env t s) (hq : QueryPre env i ps posA rowsA s) :
+    WP Transcript.query s (fun s' ↦ ∃ rows t', (Model.queryOpenings i ps).run t = some (rows, t') ∧
+      CodeRel env t' s' ∧ QueryRowsAt s'.mem rowsA (rows.toList.map (·.toList.map K.ofLane)) ∧
+      Keeps queryClobbers (fun a ↦ Foot env a ∨ InArea rowsA (ps.size * wireMaxLeafWords) a) s s')
+      (fun s' ↦ (Model.queryOpenings i ps).run t = none ∧ QueryErrKeeps env rowsA ps.size s s') := by
+  have hl : (ps.toList.map UInt64.toNat).length = ps.size := by simp
+  refine queryOpenings_lift (Q := fun rows s' ↦ QueryRowsAt s'.mem rowsA rows ∧
+      Keeps queryClobbers (fun a ↦ Foot env a ∨ InArea rowsA (ps.size * wireMaxLeafWords) a) s s')
+    (F := QueryErrKeeps env rowsA ps.size s) h fun st hs ↦ ?_
+  have hps : ∀ q ∈ ps.toList.map UInt64.toNat, q < 2 ^ 64 := fun q hq ↦ by
+    obtain ⟨a, -, rfl⟩ := List.mem_map.mp hq
+    exact a.toNat_lt
+  have hP' : ∀ j (hj : j < (ps.toList.map UInt64.toNat).length),
+      s.mem (wd posA j) = some (ps.toList.map UInt64.toNat)[j].toUInt64 := fun j hj ↦ by
+    simpa using hq.pos j (by simpa using hj)
+  have := query_spec (ps := ps.toList.map UInt64.toNat) (P := posA) (R := rowsA) hs hq.i_lt hps
+    (by rw [hl]; exact hq.size_le) hq.r9 hq.r10 (by rw [hl]; exact hq.r11) hq.r12 hP'
+    (by rw [hl]; exact hq.fitPos) (by rw [hl]; exact hq.disjPosCtx) (by rw [hl]; exact hq.disjPosWork)
+    (by rw [hl]; exact hq.fitRows) (by rw [hl]; exact hq.rowsSome) (by rw [hl]; exact hq.disjRowsCtx)
+    (by rw [hl]; exact hq.disjRowsDec) (by rw [hl]; exact hq.disjRowsWork)
+    (by rw [hl]; exact hq.disjRowsPos)
+  rw [hl] at this
+  exact this
 
 /-! ## The end -/
 
@@ -329,6 +384,19 @@ theorem readCommitment_refines {height width : Nat} (hh : height < 2 ^ 64) (hw :
       (Model.readCommitment height width) (fun _ t' s' ↦ CodeRel env t' s' ∧ R s') R :=
   fun _ s ⟨h, hRs, hroom, hrsi, hrbx⟩ ↦ WP.mono (readCommitmentM_spec h hroom hh hw hrsi hrbx)
     (fun _ ⟨t', hr, hc, hk⟩ ↦ ⟨(), t', hr, hc, hR s _ hRs hk⟩)
+    (fun _ ⟨hr, hk⟩ ↦ ⟨hr, hR s _ hRs hk⟩)
+
+/-- `query i positions` as a refinement, `R` kept: it must survive what a failed `query` keeps
+(`rdi` and the words outside the footprint and the rows), which an ordinary end keeps too. -/
+theorem queryOpenings_refines {i : Nat} {ps : Array UInt64} {posA rowsA : UInt64}
+    (hR : ∀ s s', R s → QueryErrKeeps env rowsA ps.size s s' → R s') :
+    Refines (fun t s ↦ CodeRel env t s ∧ R s ∧ QueryPre env i ps posA rowsA s) Transcript.query
+      (Model.queryOpenings i ps)
+      (fun rows t' s' ↦ CodeRel env t' s' ∧ R s' ∧
+        QueryRowsAt s'.mem rowsA (rows.toList.map (·.toList.map K.ofLane))) R :=
+  fun _ s ⟨h, hRs, hq⟩ ↦ WP.mono (queryOpeningsM_spec h hq)
+    (fun _ ⟨rows, t', hr, hc, hrows, hk⟩ ↦ ⟨rows, t', hr, hc,
+      hR s _ hRs ⟨hk.rdi, fun a h1 h2 ↦ hk.mem a fun h' ↦ h'.elim h1 h2⟩, hrows⟩)
     (fun _ ⟨hr, hk⟩ ↦ ⟨hr, hR s _ hRs hk⟩)
 
 end NativeVm.Code

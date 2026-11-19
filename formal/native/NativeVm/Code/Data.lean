@@ -269,6 +269,8 @@ structure LayoutAt (mem : UInt64 → Option UInt64) (p : UInt64) (bc : Array UIn
   stackLogBound : Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack
   rateBound : 1 ≤ rate ∧ rate ≤ 4
   heightsBound : ∀ i < nTables, layout.tableLogHeights.getD i 0 ≤ tablePointCap
+  placementsBound : ∀ c < columnCount, ∀ pl, layout.placements.getD c none = some pl →
+    pl.variableCount ≤ pointCap
 
 theorem PlacementAt.congr {mem mem' : UInt64 → Option UInt64} {p : UInt64} {o : Option Placement}
     (h : Same mem mem' p 3) (hx : PlacementAt mem p o) : PlacementAt mem' p o := by

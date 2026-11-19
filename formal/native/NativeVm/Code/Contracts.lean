@@ -217,7 +217,8 @@ def Phase1Ok (c : Stmt) : Prop :=
 
 /-- **Phase 2**: the stack's root read, its out-of-domain claim at `oodR`. -/
 def Phase2Ok (c : Stmt) : Prop :=
-  ∀ env inp t s layout rate, CodeRel env t s → Inputs env inp s.mem →
+  ∀ env inp t s layout rate, CodeRel env t s → t.roots.size < Transcript.maxRoots →
+    Inputs env inp s.mem →
     LayoutAt s.mem (layoutR.at env.work) inp.bytecode layout rate →
     Runs env c (phase2M layout rate) t s [oodR, scratchR] fun ood s' ↦
       EqClaimAt s'.mem (oodR.at env.work) ood
@@ -267,7 +268,8 @@ def phase7Regions : List Region := [ringR, basisR, whirR, roundsR, queriesR, row
 
 /-- **Phase 7**: ring switching and the stacked opening. -/
 def Phase7Ok (c : Stmt) : Prop :=
-  ∀ env inp t s layout rate ood claims point slices, CodeRel env t s → Inputs env inp s.mem →
+  ∀ env inp t s layout rate ood claims point slices, CodeRel env t s → t.roots.size ≤ 1 →
+    Inputs env inp s.mem →
     LayoutAt s.mem (layoutR.at env.work) inp.bytecode layout rate →
     EqClaimAt s.mem (oodR.at env.work) ood → ClaimsAt s.mem (claimsR.at env.work) claims →
     KeccakOutAt s.mem (keccakR.at env.work) point slices →
