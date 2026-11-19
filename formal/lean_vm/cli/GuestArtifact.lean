@@ -63,7 +63,9 @@ def run (file : String) (checkOnly : Bool) : IO UInt32 := do
       return 0
     IO.eprintln s!"{file} is stale: run `scripts/guest-artifact`"
     return 1
-  IO.FS.writeFile file text
+  -- Unchanged, it is not written again: a build that watches it (`crates/aggregation/build.rs`) reruns only on a change.
+  let current ← if ← System.FilePath.pathExists file then IO.FS.readFile file else pure ""
+  if current != text then IO.FS.writeFile file text
   IO.println s!"{file}: {c.code.size} instructions in {c.fns.size} functions, size 2^{logSize}, \
     main frame {c.mainFrame}"
   return 0

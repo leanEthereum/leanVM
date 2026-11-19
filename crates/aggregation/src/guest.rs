@@ -16,8 +16,8 @@ pub(super) const GUEST_SOURCE: &str = include_str!("../../../guests/lean_ethereu
 /// The guest compiled by the back end written in Lean (`formal/lean_vm/LeanVM/Compiler`), at the fixed point on
 /// its own size: an `input` line (the [`input_digest`] it was compiled from), an `iv` line (its Fiat-Shamir IV), then
 /// the program in `isa`'s line format, source lines included, which a failure report names.
-/// `formal/lean_vm/scripts/guest-artifact` writes it.
-pub(super) const ARTIFACT: &str = include_str!("../../../guests/lean_ethereum.compiled");
+/// `formal/lean_vm/scripts/guest-artifact` writes it (`build.rs` runs it), and it is not committed.
+pub(super) const ARTIFACT: &str = include_str!(env!("LEANVM_GUEST_ARTIFACT_PATH"));
 
 /// The aggregation bytecode: the one fixed program every node proves, and whose stacked bytecode every node's
 /// bytecode claims are about.
