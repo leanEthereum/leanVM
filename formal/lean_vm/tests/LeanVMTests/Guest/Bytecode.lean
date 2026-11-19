@@ -37,19 +37,19 @@ example : guestProgram.fetch (addressOfIndex 57088) = some (OffsetInstruction.ju
   guest_fetch_of spWots_mem (i := 23649) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
 
-/-- A `KECCAK` writing the odd layout, all thirteen cells, `KECCAK fp[975..+13] odd =
-keccak_f(fp[988], fp[989], fp[990], fp[991], tail = fp[992..+4], b8 = fp[996],
-cap = fp[962..+4]) even`. -/
-example : guestProgram.fetch (addressOfIndex (33492 + 23699)) =
-    some (OffsetInstruction.keccak 988 989 990 991 992 996 962 975 false
+/-- A `KECCAK` writing the odd layout, all thirteen cells, `KECCAK fp[974..+13] odd =
+keccak_f(fp[987], fp[988], fp[989], fp[990], tail = fp[991..+4], b8 = fp[995],
+cap = fp[961..+4]) even`. -/
+example : guestProgram.fetch (addressOfIndex (33439 + 23636)) =
+    some (OffsetInstruction.keccak 987 988 989 990 991 995 961 974 false
         true .all).toLeanIsaInstruction :=
   guest_fetch_of spWots_mem (i := 23636) (by decide +kernel) rfl (by decide +kernel)
 
 /-- The next, reading the odd layout and writing one cell, the 16-byte digest,
-`KECCAK fp[845..+1] even = keccak_f(fp[997], fp[998], fp[999], fp[1000], tail = fp[1001..+4],
-b8 = fp[1006], cap = fp[984..+4]) odd`. -/
-example : guestProgram.fetch (addressOfIndex (33492 + 23710)) =
-    some (OffsetInstruction.keccak 997 998 999 1000 1001 1006 984 845 true
+`KECCAK fp[844..+1] even = keccak_f(fp[996], fp[997], fp[998], fp[999], tail = fp[1000..+4],
+b8 = fp[1005], cap = fp[983..+4]) odd`. -/
+example : guestProgram.fetch (addressOfIndex (33439 + 23647)) =
+    some (OffsetInstruction.keccak 996 997 998 999 1000 1005 983 844 true
         false .one).toLeanIsaInstruction :=
   guest_fetch_of spWots_mem (i := 23647) (by decide +kernel) rfl (by decide +kernel)
 

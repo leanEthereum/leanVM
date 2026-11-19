@@ -19,10 +19,10 @@ valuation, with no certificate:
 
 * `expPost_B1`: `exponent_tables`' relation is the exponent table and its window section (B1-a's
   `exponent_tables_holds`);
-* `vsFacts_B1`: `verify_sub`'s first `333` statements bound `dims_g[g^0]` below `g^34`
-  (`VerifySub.vsDimsKnown0_holds`), its first `1544` put the window table at `tabs`, `g_squares ·
-  g^winTabAt` with `g_squares` its argument `4` (`VerifySub.vsTabsT_holds` on its statements `1542`
-  and `1543`), its first `1545` the eight words of `kappa_base` below `kbBound`
+* `vsFacts_B1`: `verify_sub`'s first `316` statements bound `dims_g[g^0]` below `g^34`
+  (`VerifySub.vsDimsKnown0_holds`), its first `1510` put the window table at `tabs`, `g_squares ·
+  g^winTabAt` with `g_squares` its argument `4` (`VerifySub.vsTabsT_holds` on its statements `1508`
+  and `1509`), its first `1511` the eight words of `kappa_base` below `kbBound`
   (`VerifySub.vsKnown_holds`, over the exponent table at its argument `4`).
 
 `guest_obligations` is then `guest_obligations_of`: every function's obligations, with no further
@@ -44,14 +44,14 @@ theorem expPost_B1 : ExpPost := by
 
 theorem vs_body : (coreProgram.getD vsIdx default).body = Fn.body fn% «verify_sub» := rfl
 
-theorem vs_takeTabs : (coreProgram.getD vsIdx default).body.take 1544 =
-    (coreProgram.getD vsIdx default).body.take 1542 ++ B1.VerifySub.vsTabsT 1920 1921 := by
-  rw [show 1544 = 1542 + 2 from rfl, List.take_add]
-  exact congrArg ((coreProgram.getD vsIdx default).body.take 1542 ++ ·)
+theorem vs_takeTabs : (coreProgram.getD vsIdx default).body.take 1510 =
+    (coreProgram.getD vsIdx default).body.take 1508 ++ B1.VerifySub.vsTabsT 1886 1887 := by
+  rw [show 1510 = 1508 + 2 from rfl, List.take_add]
+  exact congrArg ((coreProgram.getD vsIdx default).body.take 1508 ++ ·)
     (B1.stmtsEqb_sound (by decide +kernel))
 
 theorem vs_noRetTabs :
-    Stmt.noRetList ((coreProgram.getD vsIdx default).body.take 1542) = true := by
+    Stmt.noRetList ((coreProgram.getD vsIdx default).body.take 1508) = true := by
   decide +kernel
 
 /-- A bound on the word at `p · g^c`, read, in `MemB`'s form. -/
