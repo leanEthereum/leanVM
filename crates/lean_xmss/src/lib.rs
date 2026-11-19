@@ -14,7 +14,6 @@
 mod hash;
 mod scheme;
 mod tree;
-mod vrf;
 mod wots;
 
 use hash::*;
@@ -24,10 +23,6 @@ use wots::*;
 
 pub use scheme::{
     LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature, MAX_CACHED_BOTTOM_TREES, key_gen, sign, verify,
-};
-pub use vrf::{
-    DEFAULT_VRF_LEAVES, VRF_NODE_LEN, VRF_PROOF_LEN, VRF_STATE_SIZE, VRF_TREE_DEPTH, VrfKey, VrfNode, VrfProof,
-    VrfState, verify_vrf_proof,
 };
 
 /// How many bytes in a [`SecretKey`].
@@ -117,7 +112,6 @@ pub(crate) const VERIFY_PERMUTATIONS: usize = blocks(RANDOMIZER_LEN + MESSAGE_LE
 
 const _: () = assert!(V == 58 && TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(PUB_KEY_SIZE == 32 && LAYER_SIG_SIZE == 1200 && SIG_SIZE == 2404);
-const _: () = assert!(VRF_STATE_SIZE == 996);
 const _: () = assert!(VERIFY_PERMUTATIONS == 186);
 // A leaf index is the two layers' indices side by side.
 const _: () = assert!(LOG_LIFETIME == 8 * LEAF_INDEX_SIZE);

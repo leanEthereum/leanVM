@@ -34,6 +34,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bench/tes
 | `zkdsl_compiler`  | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
+| `lean_vrf`        | the consensus `pq` feature's VRF tree, pruned to a range of slots      |
 | `allocator`       | the jemalloc global allocator and its configuration (below), for the benchmark CLI, the benches and the sidecar; never linked by a library |
 | `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
