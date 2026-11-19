@@ -12,8 +12,9 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.rp.outputs.release_created }}
-      tag_name: ${{ steps.rp.outputs.tag_name }}
+      # release-please names a package's outputs after its path, here `bindings`.
+      release_created: ${{ steps.rp.outputs['bindings--release_created'] }}
+      tag_name: ${{ steps.rp.outputs['bindings--tag_name'] }}
       pr_branch: ${{ steps.rp.outputs.pr && fromJSON(steps.rp.outputs.pr).headBranchName || '' }}
     steps:
       # Maintains one "release PR" for the bindings from the conventional commits touching

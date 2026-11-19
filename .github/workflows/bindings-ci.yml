@@ -1,15 +1,26 @@
 name: Bindings CI
 
-# Only changes to the bindings run it; the leanVM crates they build are path dependencies.
+# Changes to the bindings, or to the leanVM crates, guest and build settings they build from as path
+# dependencies, run it.
 on:
   push:
     branches: [main]
     paths:
       - bindings/**
+      - crates/**
+      - guests/**
+      - Cargo.toml
+      - Cargo.lock
+      - .cargo/config.toml
       - .github/workflows/bindings-ci.yml
   pull_request:
     paths:
       - bindings/**
+      - crates/**
+      - guests/**
+      - Cargo.toml
+      - Cargo.lock
+      - .cargo/config.toml
       - .github/workflows/bindings-ci.yml
 
 jobs:
@@ -31,7 +42,13 @@ jobs:
         run: cargo fmt --all --check
         working-directory: bindings
 
-      # Debug builds of leanVM prove roughly 30x slower, so tests build in release.
+      # A change to the leanVM crates' dependencies must update bindings/Cargo.lock too, or every
+      # build would resolve them anew.
+      - name: Check Cargo.lock is up to date
+        run: cargo metadata --locked --format-version 1 > /dev/null
+        working-directory: bindings
+
+      # Debug builds of leanVM prove far slower, so tests build in release.
       - name: Test Rust bindings
         run: cargo test --release -p lean-pq
         working-directory: bindings
