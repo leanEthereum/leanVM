@@ -36,19 +36,18 @@ theorem offGroup_spec0 (_h : ModeHyps) : ∀ l ∈ offGroups[0]!, ∀ K ∈ l, F
     (Mode.fa_cons (ModePack.«P36».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P38».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P42».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_cons (ModePack.«P43».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P46».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P51».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P54».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P55».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
+    (Mode.fa_cons (ModePack.«P57».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_nil))))))))))))))))
 
 theorem offGroup_spec1 (_h : ModeHyps) : ∀ l ∈ offGroups[1]!, ∀ K ∈ l, FnSpec CoreMode.hcTab
     CoreMode.coreTable K :=
-  Mode.fa_cons (ModePack.«P57».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_cons (ModePack.«P61».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
+  Mode.fa_cons (ModePack.«P61».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
     (Mode.fa_cons (ModePack.«P63».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_nil)))
+    (Mode.fa_nil))
 
 theorem offCerts_spec (h : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K :=
   fa_flatten (fa_flatten (Mode.fa_cons (offGroup_spec0 h)
@@ -67,16 +66,15 @@ theorem offCerts_sigs : ∀ K ∈ offCerts, SigsIn (CoreMode.coreCerts ++ offCer
     (Mode.fa_cons (ModePack.«P36».certs_sigs)
     (Mode.fa_cons (ModePack.«P38».certs_sigs)
     (Mode.fa_cons (ModePack.«P42».certs_sigs)
-    (Mode.fa_cons (ModePack.«P43».certs_sigs)
     (Mode.fa_cons (ModePack.«P46».certs_sigs)
     (Mode.fa_cons (ModePack.«P51».certs_sigs)
     (Mode.fa_cons (ModePack.«P54».certs_sigs)
     (Mode.fa_cons (ModePack.«P55».certs_sigs)
+    (Mode.fa_cons (ModePack.«P57».certs_sigs)
     (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P57».certs_sigs)
-    (Mode.fa_cons (ModePack.«P61».certs_sigs)
+    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P61».certs_sigs)
     (Mode.fa_cons (ModePack.«P63».certs_sigs)
-    (Mode.fa_nil)))))
+    (Mode.fa_nil))))
     (Mode.fa_nil))))
 
 /-- The core route's callees off it, these certificates'. -/
@@ -85,10 +83,9 @@ theorem offSigs_in : ∀ p ∈ CoreMode.offSigs, SigIn offCerts p :=
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_any».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«da_verify».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«main_loop2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«main_loop4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«verify_tables_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))))))
+    (Mode.fa_nil))))))
 
 theorem offCerts_fn : ∀ K ∈ offCerts, FnLink K :=
   fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P11».certs_fn)
@@ -102,16 +99,15 @@ theorem offCerts_fn : ∀ K ∈ offCerts, FnLink K :=
     (Mode.fa_cons (ModePack.«P36».certs_fn)
     (Mode.fa_cons (ModePack.«P38».certs_fn)
     (Mode.fa_cons (ModePack.«P42».certs_fn)
-    (Mode.fa_cons (ModePack.«P43».certs_fn)
     (Mode.fa_cons (ModePack.«P46».certs_fn)
     (Mode.fa_cons (ModePack.«P51».certs_fn)
     (Mode.fa_cons (ModePack.«P54».certs_fn)
     (Mode.fa_cons (ModePack.«P55».certs_fn)
+    (Mode.fa_cons (ModePack.«P57».certs_fn)
     (Mode.fa_nil))))))))))))))))))
-    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P57».certs_fn)
-    (Mode.fa_cons (ModePack.«P61».certs_fn)
+    (Mode.fa_cons ((Mode.fa_cons (ModePack.«P61».certs_fn)
     (Mode.fa_cons (ModePack.«P63».certs_fn)
-    (Mode.fa_nil)))))
+    (Mode.fa_nil))))
     (Mode.fa_nil))))
 
 end

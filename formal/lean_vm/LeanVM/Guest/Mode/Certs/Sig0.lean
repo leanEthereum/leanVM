@@ -377,26 +377,6 @@ end
 
 end LeanVM.Guest.ModePack.«P42»
 
-namespace LeanVM.Guest.ModePack.«P43»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«main_loop2».modeSigs
-    (Mode.fa_cons (EndExec.SigIn.right ⟨_, Fn.«main_loop2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code39 rfl rfl)
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P43»
-
 namespace LeanVM.Guest.ModePack.«P46»
 
 open LeanVM.Guest LeanVM.Guest.Mode

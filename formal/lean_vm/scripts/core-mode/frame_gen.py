@@ -88,10 +88,16 @@ def fstLit(A):
 ROUTE = {}
 
 
+# a function whose windows at `WIN` instructions take past the 7.5 GB a module may take: its own size (`main_loop2`,
+# `__loop2_main` to the compiler: its walk reads its packed alignment context)
+WINS = {'__loop2_main': 4000}
+
+
 def cutsFor(D, n):
-    """Offsets to cut a long function at, about every `WIN` instructions."""
+    """Offsets to cut a long function at, about every `WIN` instructions (`WINS`)."""
     f = D['fns'][n]
-    return list(range(WIN, f['count'] - WIN // 4, WIN))
+    w = WINS.get(n, WIN)
+    return list(range(w, f['count'] - w // 4, w))
 
 
 def cutLit(c):
@@ -195,7 +201,8 @@ def pair_mod(g, n):
     function's own, checked in windows."""
     gen = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'CoreMode', 'Gen')
     if os.path.exists(os.path.join(gen, g, n, 'Ok.lean')):
-        return 'LeanVM.Guest.CoreMode.Gen.«%s».«%s».Ok' % (g, n)
+        # its oracle only (`pairO`, `pairS`), not its windows' checks
+        return 'LeanVM.Guest.CoreMode.Gen.«%s».«%s».Ctx' % (g, n)
     return 'LeanVM.Guest.CoreMode.Gen.«%s».Pair' % g
 
 
@@ -270,8 +277,9 @@ def main(argv):
             for n in g:
                 lit, defs, ps = fnData(D, n, [])
                 packs |= ps
-                if n in ROUTE: gens.add((gen_pack[n], n)); env = True
+                if n in ROUTE: env = True
                 ns_ = D['fns'][n]['ns']
+                if n in ROUTE: gens.add((gen_pack[n], ns_))
                 body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
                             'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
                 stats['fns'] += 1
@@ -288,7 +296,7 @@ def main(argv):
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
                 'public import LeanVM.Guest.CoreMode.TrieOf\n' +
-                imports(p, packs, [(gen_pack[n], n)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
+                imports(p, packs, [(gen_pack[n], ns_)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
             for m in range(len(bounds) - 1):

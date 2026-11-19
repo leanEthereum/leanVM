@@ -102,10 +102,11 @@ theorem rw_of_pw {s : St} {r : Mode.Rng} {os : List ℕ} (h : Mode.PW s r os) : 
 
 /-- **A `JUMP` of a loop helper's code before its tail call**: on a constant `0` (never taken), or a
 call's: on a nonzero constant, not in the frame, not a return, to a callee whose mode signature holds
-of its heap signature (`jumpCallOkL`). -/
+of its heap signature (`jumpCallOkL`); or a jump in the frame (a branch's, a `match`'s), through no
+dispatch's target cell, to no callee (`jumpCallOkL`). -/
 noncomputable def callJ (Cf : CFun) : OffsetInstruction → Bool
   | .jump a b c => Cf.X.zeroAt a || (Cf.X.nzAt a && !Cf.X.selfAt c && !(Nat.beq b 0 && Nat.beq c 1) &&
-      jumpCallOkL Cf (.jump a b c))
+      jumpCallOkL Cf (.jump a b c)) || (Cf.X.selfAt c && dspNo Cf.X b c && jumpCallOkL Cf (.jump a b c))
   | _ => true
 
 /-- **A loop helper's code with calls**: its last two instructions the tail call's `JUMP` (its
@@ -123,7 +124,7 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
 /-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
 signatures; no conditional call's condition at a nonzero constant's cell. -/
 noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
-  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && trieNil Cf.X.arms && tgtNone Cf.X.sites && trieNil Cf.frame.tgt &&
+  !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
     !Cf.frame.F.fpOne && trieNil Cf.frame.nzr &&
     Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     (match Cf.frame.sig.self with
@@ -235,7 +236,11 @@ certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsBL`),
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
-  body : loopBC Cf.fn = true
+  body : loopBB Cf.fn = true
+  /-- The frame walk's tables the `match`es' arms. -/
+  tgt : tgtOk Cf K.code = true
+  /-- The jump table's reads. -/
+  jtd : jtdOk Cf K.E K.code = true
   calls : callsBL Cf = true
   top : Cf.fn.body.all topOk = true
   rdFree : ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true
@@ -270,14 +275,28 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
 
 /-! ## The code -/
 
-theorem callJ_spec {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true) (hz : Cf.X.zeroAt a = false) :
+theorem callJ_spec {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true) (hz : Cf.X.zeroAt a = false)
+    (hsf : Cf.X.selfAt c = false) :
     Cf.X.nzAt a = true ∧ Cf.X.selfAt c = false ∧ ¬ (b = 0 ∧ c = 1) ∧
       jumpCallOkL Cf (.jump a b c) = true := by
-  simp only [callJ, hz, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true'] at h
-  obtain ⟨⟨⟨h2, h3⟩, h4⟩, h5⟩ := h
-  refine ⟨h2, h3, fun ⟨hb, hc⟩ ↦ ?_, h5⟩
+  simp only [callJ, hz, hsf, Bool.false_or, Bool.false_and, Bool.or_false, Bool.and_eq_true,
+    Bool.not_eq_true'] at h
+  obtain ⟨⟨⟨h2, -⟩, h4⟩, h5⟩ := h
+  refine ⟨h2, hsf, fun ⟨hb, hc⟩ ↦ ?_, h5⟩
   subst hb hc
   simp at h4
+
+/-- **A jump in the frame of a loop helper's code**: through no dispatch's target cell, to no callee. -/
+theorem callJ_self {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true) (hz : Cf.X.zeroAt a = false)
+    (hsf : Cf.X.selfAt c = true) :
+    (∀ t f, Cf.X.pcAt b = some t → getF Cf.X.ents t = some f → Cf.X.selfAt c = false) ∧
+      ∀ s, getF Cf.X.sites c = some s → s.tgt = b → Cf.X.selfAt c = false := by
+  simp only [callJ, hz, hsf, Bool.false_or, Bool.not_true, Bool.and_false, Bool.false_and, Bool.true_and,
+    Bool.and_eq_true] at h
+  obtain ⟨hd, hj⟩ := h
+  refine ⟨fun t f ht hf ↦ (jumpCallOkL_spec hj ht hf).2.2.1, fun s hs he ↦ ?_⟩
+  simp only [dspNo, hs, he, Nat.beq_refl, Bool.not_true, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true'] at hd
+  exact hd.2
 
 theorem loopCodeC_spec {Cf : CFun} {code : List OffsetInstruction} (h : loopCodeC Cf code = true) :
     ∃ pre oc od of oc', code = pre ++ [.jump oc od of, .jump oc' 0 1] ∧ (∀ ins ∈ pre, callJ Cf ins = true) ∧
@@ -334,6 +353,14 @@ theorem loopStmtC_of {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c 
   · rfl
   · rfl
 
+theorem loopStmtB_of {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS s = true) {c : V} {f : String}
+    {args : List V} : ∀ s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
+  rcases stmts_loopB hs with hs | rfl | rfl
+  · have := hpre s hs
+    cases s <;> simp_all [isBS, loopStmtC]
+  · rfl
+  · rfl
+
 theorem calls_acEv : ∀ (pre : List Stmt), (∀ s ∈ pre, isAC s = true) →
     ∀ c ∈ calls (pre.map acEv), c.taken = true ∧ ∃ args rets, Stmt.call c.f args rets ∈ pre
   | [], _, c, hc => by simp [calls] at hc
@@ -385,21 +412,11 @@ theorem loopC_evM {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} (r
     {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e he ↦ by
   have hs := sigLP_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
-  obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
   cases e with
   | call f args rets =>
-    have hw' := hw
-    rw [hbody, walk_loopC σ pre0 hpre0, Out.ret.injEq] at hw'
-    obtain ⟨rfl, -⟩ := hw'
-    rcases List.mem_append.mp he with he | he
-    · have hmem : Stmt.call f args rets ∈ stmtsOf Cf.fn.body := by
-        rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
-      exact callChk_evM (List.all_eq_true.mp hok.calls _ hmem) (by rw [hok.hcs]; rfl) rd σ
-    · have hf : f = Cf.fn.name := by
-        split_ifs at he <;> simp at he
-        exact he.1
-      subst hf
-      simp only [EvM, hself]
+    rcases loopB_callEv hok.body hw he with hmem | ⟨rfl, -⟩
+    · exact callChk_evM (List.all_eq_true.mp hok.calls _ hmem) (by rw [hok.hcs]; rfl) rd σ
+    · simp only [EvM, hself]
       refine ⟨fun k c hkc ↦ ?_, fun i m him ↦ ?_, fun p hp ↦ ?_⟩
       · rw [hs.hretM] at hkc; cases hkc
       · rw [hs.hpostV] at him; cases him
@@ -419,7 +436,6 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
     ReadsOkC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es ∧ PostOkW Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es vs := by
   have hs := sigLP_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
-  obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
   obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
     hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
@@ -440,7 +456,7 @@ theorem atom_holds_swap {rd rd' : Reader} {σ : Val} {a : Atom} (hf : rdFree (.a
 
 /-- **The path's events hold at a reader agreeing with the reference at the cells written at the tail
 call.** -/
-theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) (hrf : (stmtsOf Cf.fn.body).all rdFree = true)
+theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (_hok : LoopOkC K Cf) (hrf : (stmtsOf Cf.fn.body).all rdFree = true)
     {img : MemoryImage κ} {m : Mem} {rd : Reader}
     {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
@@ -448,28 +464,8 @@ theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) (hrf : (stm
     (hWc : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK m x)
     (hcs : ∀ a ∈ cs, stopL a = false) (hsame : ∀ y, WrK m y → rd y = img.read y) :
     ∀ e ∈ pre ++ es, e.Holds rd σ0 := by
-  obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
-  have hev : pre ++ es = pre0.map acEv ++
-      [.inK c0, if σ0 c0 = 0 then .skip Cf.fn.name args0 else .call Cf.fn.name args0 []] := by
-    have hb' := hb
-    rw [hbody, walk_loopC σ0 pre0 hpre0, Out.ret.injEq] at hb'
-    exact hb'.1.symm
-  have hatoms : ∀ a, Ev.atom a ∈ pre ++ es → Stmt.atom a ∈ stmtsOf Cf.fn.body := fun a ha ↦ by
-    rw [hev] at ha
-    rcases List.mem_append.mp ha with ha | ha
-    · obtain ⟨t, ht, hte⟩ := List.mem_map.mp ha
-      have := hpre0 t ht
-      cases t with
-      | atom a' =>
-        simp only [acEv, Ev.atom.injEq] at hte
-        subst hte
-        rw [hbody]; exact stmts_of_mem hpre0 ht
-      | call => simp [acEv] at hte
-      | _ => simp [isAC] at this
-    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
-      rcases ha with ha | ha
-      · cases ha
-      · by_cases hc : σ0 c0 = 0 <;> simp [hc] at ha
+  have hatoms : ∀ a, Ev.atom a ∈ pre ++ es → Stmt.atom a ∈ stmtsOf Cf.fn.body := fun a ha ↦
+    Bridge.walk_atomS Cf.fn.body (by rw [hb]; exact ha)
   intro e he
   have h := hh0 e he
   cases e with
@@ -611,32 +607,15 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
     hPN.mono (s := stOf s'.mem s'.fp) (s' := stOf m' s'.fp) hm' rfl
   have hnext := postSet_of_retAllP hs hPN' hR hRdB.rdW
   -- the path's events
-  obtain ⟨pre0, c0, args0, hbody, -, hpre0⟩ := loopBC_spec hok.body
-  have hev : pre ++ es = pre0.map acEv ++
-      [.inK c0, if σ0 c0 = 0 then .skip Cf.fn.name args0 else .call Cf.fn.name args0 []] := by
-    have hb' := hb
-    rw [hbody, walk_loopC σ0 pre0 hpre0, Out.ret.injEq] at hb'
-    exact hb'.1.symm
   have hpQ : Cf.H.sig.postQ = [] := postQ_of_loop hok.heap hs.term
   have hcalls : ∀ f a r, Ev.call f a r ∈ pre ++ es → ((Cf.sigOf f).postP = [] ∧ (Cf.sigOf f).postQ = []) ∧
       ∀ p ∈ (Cf.sigOf f).postPR, p.1 ∈ (Cf.sigOf f).postR := fun f a r he ↦ by
-    rw [hev] at he
-    rcases List.mem_append.mp he with he | he
-    · have hm : Stmt.call f a r ∈ stmtsOf Cf.fn.body := by
-        rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
-      have := List.all_eq_true.mp hok.cptr _ hm
+    rcases loopB_callEv hok.body hb he with hm | ⟨rfl, -⟩
+    · have := List.all_eq_true.mp hok.cptr _ hm
       simp only [calleePtrOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at this
       exact ⟨this.1, fun p hp ↦ runIn_mem (this.2 p hp)⟩
-    · simp only [List.mem_cons, List.not_mem_nil, or_false] at he
-      rcases he with he | he
-      · cases he
-      · by_cases hc : σ0 c0 = 0
-        · simp only [hc, ↓reduceIte] at he; cases he
-        · simp only [hc, ↓reduceIte] at he
-          simp only [Ev.call.injEq] at he
-          obtain ⟨rfl, -, -⟩ := he
-          rw [hsigf]
-          exact ⟨⟨hs.hpostP, hpQ⟩, hs.inPost⟩
+    · rw [hsigf]
+      exact ⟨⟨hs.hpostP, hpQ⟩, hs.inPost⟩
   have hposts : PostOkW Cf.sigOf Cf.H (memRd m' img.read) σ0 (Cf.fn.params.map σ0) (pre ++ es) [] := by
     rcases Bool.or_eq_true_iff.mp hok.rdFree with hrf | hnp
     · exact (loopC_heap hok hb (holds_memRd hok hrf hb hh0 heq hWc hcs hsame) hR0 hP0 hT).2
@@ -645,19 +624,9 @@ theorem back_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : Memor
       refine postOkW_rd hs.hpreP hpPR hs.hpostP hqPR hpQ
         (fun f a r he ↦ ⟨(hcalls f a r he).1.1, ?_, (hcalls f a r he).1.2⟩)
         (loopC_heap hok hb hh0 hR0 hP0 hT).2
-      rw [hev] at he
-      rcases List.mem_append.mp he with he | he
-      · have hm : Stmt.call f a r ∈ stmtsOf Cf.fn.body := by
-          rw [hbody]; exact stmts_of_mem hpre0 (acEv_call hpre0 he)
-        simpa using hcPR _ hm
-      · simp only [List.mem_cons, List.not_mem_nil, or_false] at he
-        rcases he with he | he
-        · cases he
-        · by_cases hc : σ0 c0 = 0
-          · simp only [hc, ↓reduceIte] at he; cases he
-          · simp only [hc, ↓reduceIte, Ev.call.injEq] at he
-            obtain ⟨rfl, -, -⟩ := he
-            rw [hsigf]; exact hqPR
+      rcases loopB_callEv hok.body hb he with hm | ⟨rfl, -⟩
+      · simpa using hcPR _ hm
+      · rw [hsigf]; exact hqPR
   simp only [PostOkW, List.map_nil, List.append_nil] at hposts
   -- what the path writes, at the later memory's reader
   have hWB := writtenC_swap (es := pre ++ evs) hWc hsame hs.hpreP hs.inPre fun f a r he ↦
@@ -848,17 +817,17 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
     {oc od of : ℕ} (hci : K.code[i]? = some (.jump oc od of)) (h0 : s1.mem.get (s1.fp + od) = some (ofK (g ^ s'.pc)))
     (h1 : s1.mem.get (s1.fp + of) = some (ofK (g ^ s'.fp))) (hpcs : s'.pc < C.ops.size)
     (hsz : C.ops.size ≤ 2 ^ 30) (hcj : callJ Cf (.jump oc od of) = true) (hz : Cf.X.zeroAt oc = false)
-    {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
+    (hsfc : Cf.X.selfAt of = false) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
     Out Ct K (CoreAt img Cf K.code) i s1 s' := by
   obtain ⟨-, hentw, hheap⟩ := hat
-  obtain ⟨hnz, hsf', hr01, hcall⟩ := callJ_spec hcj hz
+  obtain ⟨hnz, hsf', hr01, hcall⟩ := callJ_spec hcj hz hsfc
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, hsout⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, hcif0⟩ := hsh
-  obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBC_spec hok.body
-  have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
+  obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBB_spec hok.body
+  have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtB_of hpre0
   have hcif : ∀ c f args, Stmt.callIf c f args ∈ stmtsOf Cf.fn.body → Cf.X.nzAt (Cf.X.locAt c.idx) = false :=
     fun c f args hc ↦ by simpa using hcif0 _ hc
   obtain ⟨henv, harm, hacc⟩ := hok.frame
@@ -1251,14 +1220,20 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
     {img : MemoryImage κ} {Y : St → Prop} (hκ : κ ≤ 28) (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
     (hH : CoreHon img Y K Cf) (hU : UsedNext C img Y) {Ct : Mode.Cts} (hCt : Mode.ModeCts Ct K) :
     FrameSpec C (refMem img) Y Ct K (CoreAt img Cf K.code) := by
-  obtain ⟨pre0, c0, args0, hbody, hargs, hpre0⟩ := loopBC_spec hok.body
-  have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtC_of hpre0
+  obtain ⟨pre0, c0, args0, hbody, hargs, hpre0⟩ := loopBB_spec hok.body
+  have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtB_of hpre0
+  have hctrl : ∀ s ∈ stmtsOf Cf.fn.body, ctrlOk s = true := fun s _ ↦ by cases s <;> rfl
+  have hnd : ∀ x fs a r, Stmt.dispatch x fs a r ∉ stmtsOf Cf.fn.body := fun _ _ _ _ ↦ loopBB_noDsp hok.body
+  have hdspB : (stmtsOf Cf.fn.body).all (dspB Cf) = true := List.all_eq_true.mpr fun s hs ↦ by
+    cases s with
+    | dispatch x fs a r => exact absurd hs (hnd x fs a r)
+    | _ => rfl
   obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod,
     htpc⟩ := loopCodeC_spec hok.code
   have hsh := ((Bool.and_eq_true _ _).mp hok.shape).1
   simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at hsh
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, harms0⟩, hsites0⟩, htgt0⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hmainX, hself1⟩, hpc0⟩, hsout⟩, hfp1⟩, hnzr0⟩, hent⟩, hselfS⟩, hent0⟩,
     hent1⟩, hend⟩, hincr⟩, -⟩ := hsh
   have hs := sigLP_of hok.sig
   obtain ⟨henv, harm, hacc⟩ := hok.frame
@@ -1341,11 +1316,12 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         exact h
     have hselfs : ∀ {σ : Val}, HonF img Cf s.fp σ → ∀ {pre es : List Ev} {vs : List V},
         walk σ Cf.fn.body = .ret (pre ++ es) vs →
-        pre ++ es = pre0.map acEv ++ [.inK c0, if σ c0 = 0 then .skip Cf.fn.name args0 else .call Cf.fn.name args0 []] ∧
+        ∃ E, pre ++ es = E ++ [.inK c0, if σ c0 = 0 then .skip Cf.fn.name args0 else .call Cf.fn.name args0 []] ∧
           vs = [] := by
       intro σ _ pre es vs hb
-      rw [hbody, walk_loopC σ pre0 hpre0, Out.ret.injEq] at hb
-      exact ⟨hb.1.symm, hb.2.symm⟩
+      rw [hbody] at hb
+      obtain ⟨E, -, h1, h2⟩ := walk_loopB σ hpre0 hb
+      exact ⟨E, h1, h2⟩
     refine frame_step (prog := guestProgram) (k := n - s.steps) hκ harm hacc hok.fpows hend hsz
       (fun j hj ↦ by rw [hok.fentry]; exact hK.ops j hj) hhintsF (hok.fentry ▸ hok.fetch) hok.small hi hpcF hAtF hs0
       hon.2 (fun h ↦ absurd h (by simp [hfp1]))
@@ -1357,7 +1333,12 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       have main : ∀ a o c, K.code[i] = .deref a o c .cell → HeapRd s1 (.deref a o c .cell) := by
         intro a o c hci
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-        have hj : jtd Cf.X a o c = false := jtd_none harms0 hsites0 a o c
+        by_cases hj : jtd Cf.X a o c = true
+        · have hsm := hok.small i hi
+          rw [hci] at hsm
+          exact core_jtd hκ hok.pair hctrl hok.jtd (.inl hnd) (by rw [List.getElem?_eq_getElem hi, hci]) hj hsm.1
+            henvK hm hσ0 hpos hb hwp
+        replace hj := Bool.eq_false_iff.mpr hj
         obtain ⟨as, dv, pv, off, hpairs, hcell, -, hmem, hwr⟩ := pair_readC hok.pair hpos
           (by rw [List.getElem?_eq_getElem hi, hci]) (by rw [← has_hasP]; exact hOi) hj hwp
           (hrwOf σ0 pre es vs rd hσ0 hb hh0)
@@ -1390,10 +1371,9 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | pc => trivial
         | fp => trivial
       | _ => trivial
-    · -- no table jump
-      intro c d f hci cv dv hcv hne hdv pc hpcl hdl kk hk
-      rw [trieNil_get htgt0] at hk
-      cases hk
+    · -- a table jump's target, one of its arms
+      obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, -, -, -⟩ := hheap σ0 hσ0
+      exact core_tgt hok.pair hctrl hok.tgt hdspB hσ0 hpos hb hwp
     · -- falling through
       intro s1 s' e1 hm hmo e' hpc' hfp' hf' hle' hat' hstw hc0
       have hle : s.mem ≤ s'.mem := Mem.le_trans hm.le hle'
@@ -1411,50 +1391,13 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ hσ
       by_cases hj : ∃ oc od of, K.code[i]? = some (.jump oc od of)
       · obtain ⟨oc, od, of, hci⟩ := hj
-        rcases loopCodeC_jump hcode hcpre hci with ⟨-, hcj⟩ | ⟨-, rfl, rfl, rfl⟩ | ⟨-, rfl, rfl, rfl⟩
-        · cases hzc : Cf.X.zeroAt oc
-          · -- a call's jump never falls through
-            exfalso
-            obtain ⟨hnz, -⟩ := callJ_spec hcj hzc
-            obtain ⟨w, hw', hw0⟩ := hσ.jc.nz _ hnz
-            exact hw0 (rd_get hκ hm.fine (hsm _ _ _ hci).1 (by rw [hm.fp]; exact hw') (hc0 _ _ _ hci)).symm
-          · -- a jump on a constant `0`
-            have e1' : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := by
-              rw [hhd i]; exact e1
-            obtain ⟨pos', hpos', evs, es', rfl, hwp', hWr⟩ := zero_jfall hκ hok.pair hci hzc e1' hs0 hm hσ hpos hb hwp
-              (hrwOf σ pre _ vs rd hσ hb hh0) hW
-            exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
-              by rw [List.append_assoc]; exact hh0,
-              loopC_evM_pre hok _ (by rw [List.append_assoc]; exact hb), fun y hy ↦ (hWr y hy).mono hle'⟩
-        · -- the tail call not taken: its condition `0`, the call skipped
-          obtain ⟨c, f, args, pos', -, hloc, hpos', -, as, hpairs, hsplit⟩ :=
-            pair_tailLC hok.pair hpos hci htz htnz htsf htnx htod hst
-          obtain ⟨evs, cs, es', rfl, hwp', hcs, -, -, hW'⟩ := hsplit hwp (hrwOf σ pre _ vs rd hσ hb hh0)
-          have hcond := hσ.jc.cond _ _ hb c (by simp)
-          rw [hloc] at hcond
-          have hσc : σ c = 0 :=
-            (rd_get hκ hm.fine (hsm _ _ _ hci).1 (by rw [hm.fp]; exact hcond) (hc0 _ _ _ hci)).symm
-          simp only [hσc, ↓reduceIte] at hb hh0
-          refine ⟨pos', pre ++ evs ++ [Ev.inK c, Ev.skip f args] ++ cs.map Ev.atom, es', vs, rd, hrd, hpos',
-            by simpa [List.append_assoc] using hb, hwp', by simpa [List.append_assoc] using hh0,
-            loopC_evM_pre hok _ (by simpa [List.append_assoc] using hb), fun y hy ↦ ?_⟩
-          rcases writtenC_append hy with hy | ⟨e, he, hwe⟩
-          · have hy1 : WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) y := by
-              have h2 : WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs ++ [Ev.inK c] ++ [Ev.skip f args]) y := by
-                simpa [List.append_assoc] using hy
-              exact writtenC_noAtom (fun a h ↦ by cases h) (fun f a r h ↦ by cases h)
-                (writtenC_noAtom (fun a h ↦ by cases h) (fun f a r h ↦ by cases h) h2)
-            rcases hW' y hy1 with h | ⟨a, ha, hfa, hma, hwa⟩
-            · exact (hW _ h).mono hle
-            · rw [hhd i] at hpairs
-              exact (flow_wrk hκ e1 hs0 hm hpairs ha hfa (fun q hq ↦ hσ.ptr _ _ hb a q
-                (by simp [hma]) hq) hwa).mono hle'
-          · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
-            exact absurd hwe (no_writes_of_stopL (hcs a ha))
-        · -- the return jump never falls through
-          exfalso
-          obtain ⟨w, hw', hw0⟩ := hσ.jc.nz _ hrnz
-          exact hw0 (rd_get hκ hm.fine (hsm _ _ _ hci).1 (by rw [hm.fp]; exact hw') (hc0 _ _ _ hci)).symm
+        have e1' : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := by
+          rw [hhd i]; exact e1
+        obtain ⟨pos', hpos', evs, es', rfl, hwp', -, hWr⟩ := core_jfall hκ hok.pair hctrl hci (hsm oc od of hci).1 e1'
+          hs0 hm (hc0 oc od of hci) hσ hpos hb hwp (hrwOf σ pre _ vs rd hσ hb hh0) hW
+        exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
+          by rw [List.append_assoc]; exact hh0, loopC_evM_pre hok _ (by rw [List.append_assoc]; exact hb),
+          fun y hy ↦ (hWr y hy).mono hle'⟩
       have hnj : ∀ oc od of, K.code[i]? ≠ some (.jump oc od of) := fun oc od of h ↦ hj ⟨oc, od, of, h⟩
       obtain ⟨pos', hpos', as, hpairs, hfallP⟩ := pair_fallC (sigOf := Cf.sigOf) (rd := rd)
         (ws0 := Cf.fn.params.map σ) hok.pair hpos hnj
@@ -1498,8 +1441,60 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           · rfl
           · obtain ⟨v, hv, hv0⟩ := hcn _ _ _ hci
             exact absurd (rd_get hκ hm.fine soc (by rw [hm.fp]; exact hσ0.jc.zero _ hzz) hv) hv0
-        exact k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (call_stepC hok hK hκ hU hi hpc hYs hs0 hat0 hxw hσ0 hT hjtR e1
-          (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc hCt)
+        by_cases hsfc : Cf.X.selfAt of = true
+        swap
+        · exact k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (call_stepC hok hK hκ hU hi hpc hYs hs0 hat0 hxw hσ0 hT hjtR e1
+            (he1 s1 e1) hm e' hf' hle' hjo hci h0 h1 hpcs hsz hcj hzc (by simpa using hsfc) hCt)
+        -- a jump in the frame: a branch's side, a `match`'s arm
+        obtain ⟨hcj', hdn⟩ := callJ_self hcj hzc hsfc
+        have hof1 : of ≠ 1 := fun h ↦ by rw [h, hself1] at hsfc; cases hsfc
+        have hlenX : ∀ o < K.code.length, Cf.X.entry + o < 2 ^ 30 := fun o ho ↦ by
+          rw [hok.xentry, ← hok.fentry]; rw [hlen] at hend; omega
+        have hpcs' : s'.pc < 2 ^ 30 := by omega
+        have e1' : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1 := by
+          rw [hhd i]; exact e1
+        obtain ⟨v, hv, hv0⟩ := hcn _ _ _ hci
+        have hnoret : ∀ {σ : Val}, ¬ (if Cf.X.main then Cf.X.selfAt of = true ∧ Cf.X.pcAt od = some Cf.X.halt
+            else od = 0 ∧ of = 1) := fun h ↦ by
+          simp only [hmainX, Bool.false_eq_true, ↓reduceIte] at h
+          exact hof1 h.2
+        obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
+        rcases core_jtaken hκ hok.pair hctrl hlenX hci hcj' hsfc hdn soc sod e1' hs0 hm hv hv0 h0 hpcs' hσ0 hpos hb hwp
+          (hrwOf σ0 pre es vs rd hσ0 hb hh0) hW with ⟨hif, -⟩ | ⟨-, o, pos0, hpco, hio, hpos0, -⟩
+        · exact absurd hif (hnoret (σ := σ0))
+        have hol := pairAt_lt hok.pair hpos0
+        cases hjo with
+        | «local» t hnr hfp' hpc' hat' =>
+          have hto : t = o := by rw [hok.fentry, ← hok.xentry] at hpc'; omega
+          subst hto
+          refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.move t hfp' hol (by rw [hpc', hok.fentry])
+            (coreAt_of (by rw [hfp', hm.fp]; exact hxw) ⟨atF_mono (s := s') (Mem.le_refl _) rfl hat',
+              fun o ho ↦ by rw [hfp', hm.fp]; exact written_mono hle (hentw o ho), fun σ hσ ↦ ?_⟩))
+          rw [hfp', hm.fp] at hσ
+          obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ hσ
+          rcases core_jtaken hκ hok.pair hctrl hlenX hci hcj' hsfc hdn soc sod e1' hs0 hm hv hv0 h0 hpcs' hσ hpos hb
+            hwp (hrwOf σ pre es vs rd hσ hb hh0) hW with ⟨hif, -⟩ |
+              ⟨-, o', pos', hpco', -, hpos', evs, es', rfl, hwp', -, hWr⟩
+          · exact absurd hif (hnoret (σ := σ))
+          have ho' : o' = t := by omega
+          subst ho'
+          exact ⟨pos', pre ++ evs, es', vs, rd, hrd, hpos', by rw [List.append_assoc]; exact hb, hwp',
+            by rw [List.append_assoc]; exact hh0, loopC_evM_pre hok _ (by rw [List.append_assoc]; exact hb),
+            fun y hy ↦ (hWr y hy).mono hle'⟩
+        | ret _ _ hr =>
+          obtain ⟨c, hc⟩ := hr
+          rw [hci, Option.some.injEq, OffsetInstruction.jump.injEq] at hc
+          exact absurd hc.2.2 hof1
+        | halt _ hfpo _ _ => exact absurd hfpo (by simp [hfp1])
+        | tail e _ hpc' => rw [hpc', hok.fentry, ← hok.xentry] at hpco; omega
+        | call G t _ _ hG _ _ _ =>
+          have h := List.all_eq_true.mp hsout o (List.mem_range.mpr (by rw [hlen]; exact hol))
+          simp only [Bool.or_eq_true, Nat.beq_eq] at h
+          rcases h with h | h
+          · omega
+          rw [hpco, hok.xentry, ← hok.fentry] at hG
+          rw [hG] at h
+          cases h
       swap
       · -- the return
         have hrj : ∃ c, K.code[i]? = some (.jump c 0 1) := ⟨_, hci⟩
@@ -1521,7 +1516,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
             · exact (hW _ h).mono hm.le
             · exact flow_wrk hκ e1 hs0 hm hpairs ha hfa
                 (fun q hq ↦ hσ0.ptr _ _ hb a q (List.mem_append_right _ hma) hq) hwa
-          have hvs : vs = [] := (hselfs hσ0 hb).2
+          obtain ⟨-, -, hvs⟩ := hselfs hσ0 hb
           subst hvs
           simp only [PostOkW, List.map_nil, List.append_nil] at hposts
           have hu1 : s1.mem.used ≤ 2 ^ κ := le_trans hle'.used
@@ -1541,13 +1536,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         have hrw0C := (loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
         obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0
         rw [hbody] at hcm
-        rcases stmts_loopC hpre0 hcm with hceq | hceq | hceq
-        · have := hpre0 _ hceq
-          simp [isAC] at this
-        swap
-        · cases hceq
-        simp only [Stmt.callIf.injEq] at hceq
-        obtain ⟨rfl, rfl, rfl⟩ := hceq
+        obtain ⟨rfl, rfl, rfl⟩ := loopB_callIf hpre0 hcm
         -- its condition nonzero: the call entered
         obtain ⟨v, hv, hv0⟩ := hcn _ _ _ hci
         have hcond := hσ0.jc.cond _ _ hb c (by rw [heq]; simp)
@@ -1556,7 +1545,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           have := rd_get hκ hm.fine soc (by rw [hm.fp]; exact hcond) hv
           rw [← this]; exact hv0
         simp only [hσc, ↓reduceIte] at heq
-        obtain ⟨hpe, hvs⟩ := hselfs hσ0 hb
+        obtain ⟨E0, hpe, hvs⟩ := hselfs hσ0 hb
         simp only [hσc, ↓reduceIte] at hpe
         subst hvs
         have hes' : es' = [] := by
@@ -1564,10 +1553,10 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           exact hwp'.1.symm
         subst hes'
         -- the next frame, of the honest tree
-        have hcl0 : (calls (pre ++ es))[(calls (pre0.map acEv)).length]? = some ⟨Cf.fn.name, args, [], true⟩ ∧
-            (calls (pre0.map acEv)).length + 1 = (calls (pre ++ es)).length := by
-          rw [hpe, calls_tailC]
-          simp
+        have hcl0 : (calls (pre ++ es))[(calls E0).length]? = some ⟨Cf.fn.name, args, [], true⟩ ∧
+            (calls E0).length + 1 = (calls (pre ++ es)).length := by
+          rw [hpe]
+          simp [calls, List.filterMap_append, List.filterMap_cons, Ev.call?]
         have hfetch := (hok.fetch i _ hci).1
         rw [← hok.xentry] at hfetch
         obtain ⟨hq, hn0, hn1, hnargs⟩ := hσ0.tail _ _ hb _ _ hcl0.1 hcl0.2 i _ _ _ S (by rw [hok.xlen]; exact hi)

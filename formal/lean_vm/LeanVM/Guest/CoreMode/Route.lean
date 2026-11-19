@@ -20,7 +20,7 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 `CfOk Cf`: `Cf` is compiled function `j`'s: its entry, its core function (`coreOf j`), its
 alignment's context (`Bridge.ctxOf j`), and its frame holds its values where the tree track's
 honest frames have them (`honB`): its body the core route's shape, its parameters `V.n k` at cells `2 + k`, its returned values at
-their cells, each dereferenced pointer at its certificate cell within the frame, no hint-only cell; not the prologue, no chained `match`;
+their cells, each dereferenced pointer at its certificate cell within the frame, no hint-only cell; not the prologue;
 and its heap certificate's residuals of the families the honest frames make true (`resOk`).
 -/
 
@@ -84,12 +84,12 @@ noncomputable def selGo (j : ℕ) (ps : List V) : List Atom → List Stmt → Bo
       selGo j ps seen ss
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
-at their cells; `j` not the prologue, nor with chained `match`es. -/
+at their cells; `j` not the prologue. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
   (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyCore fn.body || loopBC fn) &&
     (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 0 j && (B2C.plumbOf j).chains.isEmpty &&
+    (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 0 j &&
     (selGo j fn.params [] fn.body || loopBC fn)
 
 /-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
@@ -97,15 +97,15 @@ checks apart. -/
 noncomputable def honRest (j : ℕ) (fn : Fn) : Bool :=
   (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    Nat.blt 0 j && (B2C.plumbOf j).chains.isEmpty
+    Nat.blt 0 j
 
 theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true)
     (h2 : (Bridge.stmtsOf fn.body).all (ptrCellB j) = true) (h3 : (Bridge.stmtsOf fn.body).all (retCellB j) = true)
     (h4 : (selGo j fn.params [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
   simp only [honRest, Bool.and_eq_true] at h5
-  obtain ⟨⟨⟨⟨r1, r2⟩, r3⟩, r4⟩, r5⟩ := h5
+  obtain ⟨⟨⟨r1, r2⟩, r3⟩, r4⟩ := h5
   simp only [honB, Bool.and_eq_true]
-  exact ⟨⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, r5⟩, h4⟩
+  exact ⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, h4⟩
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=

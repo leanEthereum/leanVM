@@ -29,7 +29,7 @@ public section
   ∀ r : Ref, r.Ok → ChainArm r.rd0 (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.T (memOf r.img) alignA
 
 /-- **Each chain's arms jump through one target cell.** -/
-noncomputable def chainOneB : Bool :=
+@[expose] noncomputable def chainOneB : Bool :=
   (List.range nFns).all fun j ↦ (plumbOf j).chains.all fun ch ↦ ch.2.2.1.all fun t ↦ t == ch.2.2.1.headD 0
 
 /-- A chain's arms jump through one target cell. -/

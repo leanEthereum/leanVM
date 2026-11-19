@@ -12,20 +12,6 @@ public import LeanVM.Guest.Mode.Certs.List
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.ModePack.«P57»
-
-open LeanVM.Guest LeanVM.Guest.EndExec
-
-public section
-
-theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := 309) (by decide +kernel))
-    (Mode.fa_nil)
-
-end
-
-end LeanVM.Guest.ModePack.«P57»
-
 namespace LeanVM.Guest.ModePack.«P61»
 
 open LeanVM.Guest LeanVM.Guest.EndExec

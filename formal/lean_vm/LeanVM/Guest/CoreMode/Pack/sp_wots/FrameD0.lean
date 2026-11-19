@@ -13,7 +13,7 @@ public import LeanVM.Guest.CoreMode.GlueP.«sp_wots»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
-public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ok
+public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».Ctx
 public import LeanVM.Guest.CoreMode.Sig.«sp_wots»
 
 set_option Elab.async false
