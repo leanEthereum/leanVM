@@ -193,8 +193,8 @@ macro_rules | `(tactic| mono_prim) => `(tactic| first
   | with_reducible exact bindRun_mono
   | with_reducible refine MonoAt.bind takeRun_mono fun _ _ _ => ?_
   | with_reducible exact takeRun_mono
-  | with_reducible refine MonoAt.bind spongeInPlace_mono fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_mono
+  | with_reducible refine MonoAt.bind joinedAt_mono fun _ _ _ => ?_
+  | with_reducible exact joinedAt_mono
   | with_reducible refine MonoAt.bind onAlloc_mono fun _ _ _ => ?_
   | with_reducible exact onAlloc_mono
   | with_reducible refine MonoAt.bind flushN_mono fun _ _ _ => ?_
@@ -387,8 +387,8 @@ theorem takeRun_mono {vs : List V} : MonoAt ctx st (takeRun vs) := by
   exact Nat.le_add_right _ _
 
 
-theorem spongeInPlace_mono {vs : List V} {up : List Stmt} : MonoAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_mono {vs : List V} {up : List Stmt} : MonoAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   mono_straight
 
 
@@ -758,8 +758,8 @@ macro_rules | `(tactic| keep_prim) => `(tactic| first
   | with_reducible exact bindRun_keep
   | with_reducible refine KeepAt.bind takeRun_keep fun _ _ _ => ?_
   | with_reducible exact takeRun_keep
-  | with_reducible refine KeepAt.bind spongeInPlace_keep fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_keep
+  | with_reducible refine KeepAt.bind joinedAt_keep fun _ _ _ => ?_
+  | with_reducible exact joinedAt_keep
   | with_reducible refine KeepAt.bind onAlloc_keep fun _ _ _ => ?_
   | with_reducible exact onAlloc_keep
   | with_reducible refine KeepAt.bind flushN_keep fun _ _ _ => ?_
@@ -946,8 +946,8 @@ theorem takeRun_keep {vs : List V} : KeepAt ctx st (takeRun vs) := by
   unfold takeRun
   keep_straight
 
-theorem spongeInPlace_keep {vs : List V} {up : List Stmt} : KeepAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_keep {vs : List V} {up : List Stmt} : KeepAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   keep_straight
 
 

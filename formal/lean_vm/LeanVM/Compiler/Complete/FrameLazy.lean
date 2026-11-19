@@ -174,8 +174,8 @@ macro_rules | `(tactic| lz_prim) => `(tactic| first
   | with_reducible exact bindRun_lz
   | with_reducible refine LzAt.bind takeRun_lz fun _ _ _ => ?_
   | with_reducible exact takeRun_lz
-  | with_reducible refine LzAt.bind spongeInPlace_lz fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_lz)
+  | with_reducible refine LzAt.bind joinedAt_lz fun _ _ _ => ?_
+  | with_reducible exact joinedAt_lz)
 
 /-- One step of a walk that keeps the value made lazily. -/
 macro "lz_step" : tactic => `(tactic| first
@@ -324,8 +324,8 @@ theorem takeRun_lz {vs : List V} : LzAt ctx st (takeRun vs) := by
   unfold takeRun
   lz_straight
 
-theorem spongeInPlace_lz {vs : List V} {up : List Stmt} : LzAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_lz {vs : List V} {up : List Stmt} : LzAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   lz_straight
 
 end LzPrims

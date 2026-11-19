@@ -538,77 +538,26 @@ theorem bindRunAssign_fat (vs : List V) (base : Cell) (hb : base + vs.length ≤
     fun _ h => h.1, by rw [hn], hg, ⟨[], by simp [ho], fun _ _ _ h => nomatch h⟩, hn, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
 
-/-! ## Message runs read in place -/
+/-! ## Joined runs -/
 
-theorem filterMap_full {α β : Type} (f : α → Option β) : ∀ (l : List α),
-    (l.filterMap f).length = l.length → ∀ k (hk : k < l.length), f l[k] = (l.filterMap f)[k]?
-  | [], _, _, hk => absurd hk (Nat.not_lt_zero _)
-  | a :: l, h, k, hk => by
-      cases ha : f a with
-      | none =>
-        simp only [List.filterMap_cons, ha, List.length_cons] at h
-        have := List.length_filterMap_le f l
-        omega
-      | some b =>
-        simp only [List.filterMap_cons, ha, List.length_cons, Nat.add_right_cancel_iff] at h
-        cases k with
-        | zero => simp [ha]
-        | succ k =>
-          simp only [List.filterMap_cons, ha, List.getElem_cons_succ,
-            List.getElem?_cons_succ]
-          exact filterMap_full f l h k (by simpa using hk)
-
-/-- **A message run read in place**: each value of the run is the destination of the copy at its
-index among the next statements, whose source is in the cell `base + k`. -/
-theorem spongeInPlace_spec {vs : List V} {up : List Stmt} :
-    wpP (spongeInPlace vs up) ctx st fun r st' => st' = st ∧ ∀ base, r = some base →
-      ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
-        st.locs[s]? = some (.cell (base + k)) := by
-  unfold spongeInPlace
+/-- **A joined run**: each value of the run is equated, by one of the next statements reached
+through atoms only, with a value placed in the cell `base + k`. -/
+theorem joinedAt_spec {vs : List V} {up : List Stmt} :
+    wpP (joinedAt vs up) ctx st fun r st' => st' = st ∧ ∀ base, r = some base →
+      ∀ k (hk : k < vs.length), ∃ (j : ℕ) (a : Atom) (y : V),
+        (∀ i < j, ∃ b, up[i]? = some (Stmt.atom b)) ∧
+        up[j]? = some (Stmt.atom a) ∧ eqPartner vs[k] a = some y ∧
+        st.locs[y]? = some (.cell (base + k)) := by
+  unfold joinedAt
   refine wp_bind.mpr (wp_get.mpr ?_)
   dsimp only
   split
   · exact wp_pure.mpr ⟨rfl, fun _ h => nomatch h⟩
-  · next base rest hsrcs =>
-    refine wp_pure.mpr ⟨rfl, fun b hb k hk => ?_⟩
+  · refine wp_pure.mpr ⟨rfl, fun b hb k hk => ?_⟩
     split at hb
     · next hc =>
       cases hb
-      rw [hsrcs] at hc
-      simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, beq_iff_eq] at hc
-      obtain ⟨⟨_, hlen⟩, hcons⟩ := hc
-      have hlen' := hlen
-      rw [← hsrcs] at hlen'
-      have hl : ((up.take vs.length).zipIdx).length = vs.length := by
-        have := hlen'.symm.trans_le (List.length_filterMap_le _ _)
-        simp only [List.length_zipIdx, List.length_take] at this ⊢
-        omega
-      have hfull := filterMap_full _ _ (hlen'.trans hl.symm) k (by rw [hl]; exact hk)
-      rw [hsrcs] at hfull
-      have hk' : k < (base :: rest).length := by rw [hlen]; exact hk
-      rw [List.getElem?_eq_getElem hk', consecutiveFrom_getElem hcons k hk'] at hfull
-      have hku : k < up.length := by
-        simp only [List.length_zipIdx, List.length_take] at hl
-        omega
-      simp only [List.getElem_zipIdx, List.getElem_take, Nat.zero_add] at hfull
-      split at hfull
-      · next d s k' heq =>
-        simp only [Prod.mk.injEq] at heq
-        obtain ⟨hst, rfl⟩ := heq
-        split at hfull
-        · next hd =>
-          split at hfull
-          · next n hn =>
-            cases hfull
-            refine ⟨s, ?_, hn⟩
-            rw [List.getElem?_eq_getElem hku, hst]
-            have : vs[k]? = some d := by simpa using hd
-            rw [List.getElem?_eq_getElem hk] at this
-            cases this
-            rfl
-          · cases hfull
-        · cases hfull
-      · cases hfull
+      exact partnerCell_spec (joinedAt_partner hc hk)
     · cases hb
 
 /-! ## Loads and the frame's own pointer -/
@@ -835,13 +784,13 @@ theorem allocsOf_right {vs : List V} {k : Kind} {es : List Event} :
   rw [List.flatMap_cons]
   exact List.mem_append_right _ h
 
-/-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a message run not read in
-place), a return area in return cells the constraint leaves free, a message run read in place
-whose copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.unnamed`).
-Apart from a return area, the cells the constraint leaves free stay free. -/
+/-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a joined run whose values the
+next atoms equate with no placed run), a return area in return cells the constraint leaves free, a
+joined run in the cells of the values the next atoms equate with it, whose events give each value
+its word, or nothing placed (`.pooled`, `.addr`, `.unnamed`). Apart from a return area, the cells
+the constraint leaves free stay free. -/
 theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Prop}
-    (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
-      up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
+    (hcp : EqAhead I ok up)
     (hret : kind = .ret → 2 + ctx.argCells + vs.length ≤ st.next ∧
       ∀ k, k < vs.length → BlindAt C (2 + ctx.argCells + k))
     (h2 : 2 ≤ st.next) (hv : VW I C st ok) :
@@ -873,33 +822,34 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
   | padRun =>
     exact FAt.bind hrun fun _ st₁ C₁ _ _ _ hr =>
       FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.1.right rfl rfl, hr.2.2.1, hr.2.2.2⟩
-  | spongeRun =>
+  | joined =>
     refine FAt.bind (FAt.ofSame (R := fun r C' st' => C' = C ∧ st = st' ∧ ∀ base, r = some base →
-        ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
-          st.locs[s]? = some (.cell (base + k)))
-      (wp_mono spongeInPlace_spec fun r st' ⟨he, h⟩ => ⟨by rw [he], by rw [he], by rw [he],
+        ∀ k (hk : k < vs.length), ∃ (j : ℕ) (a : Atom) (y : V),
+          (∀ i < j, ∃ b, up[i]? = some (Stmt.atom b)) ∧
+          up[j]? = some (Stmt.atom a) ∧ eqPartner vs[k] a = some y ∧
+          st.locs[y]? = some (.cell (base + k)))
+      (wp_mono joinedAt_spec fun r st' ⟨he, h⟩ => ⟨by rw [he], by rw [he], by rw [he],
         by rw [he]; exact LocsLe.refl _, rfl, he.symm, h⟩))
       fun r st₁ C₁ hs₁ _ _ ⟨hC₁, he₁, hal⟩ => ?_
     subst hC₁ he₁
     cases r with
     | none => exact hrun
     | some base =>
-      refine FAt.bind (bindRun_fat vs base) fun _ st₂ C₂ hs₂ hn₂ hl₂ ⟨hC, he, hnew, hk⟩ => ?_
+      dsimp only
+      refine FAt.mono (bindRun_fat vs base) fun _ C₂ st₂ hs₂ hn₂ hl₂ ⟨hC, he, hnew, hk⟩ => ?_
       subst hC
-      refine FAt.quiet rfl rfl rfl rfl ⟨(congrArg St.rest he).trans rfl, ?_,
-        fun _ _ _ hb => hb, newOf hnew⟩
+      refine ⟨(congrArg St.rest he).trans rfl, ?_, fun _ _ _ hb => hb, newOf hnew⟩
       have hal' := hal base rfl
       have hn₂' : st₂.next = st.next := (congrArg St.next he).trans rfl
       refine run_new (base := base) (vs := vs) (fun k hk => ?_) hnew hk
         (fun Ψ hΨ k hk => ?_) hv hs₁ hn₂ hl₂
-      · obtain ⟨s, hu, hs⟩ := hal' k hk
-        obtain ⟨hok, _⟩ := hcp k vs[k] s (fun j hj => let ⟨_, h, _⟩ := hal' j (by omega); ⟨_, h⟩) hu
-        obtain ⟨a, b, _⟩ := hv s _ hok hs
-        exact ⟨a, by rw [hn₂']; exact b⟩
-      · obtain ⟨s, hu, hs⟩ := hal' k hk
-        obtain ⟨hok, he'⟩ := hcp k vs[k] s
-          (fun j hj => let ⟨_, h, _⟩ := hal' j (by omega); ⟨_, h⟩) hu
-        obtain ⟨_, _, c⟩ := hv s _ hok hs
+      · obtain ⟨j, a, y, hj, hu, hp, hy⟩ := hal' k hk
+        obtain ⟨hok, _⟩ := hcp j a vs[k] y hj hu hp
+        obtain ⟨c2, c1, _⟩ := hv y _ hok hy
+        exact ⟨c2, by rw [hn₂']; exact c1⟩
+      · obtain ⟨j, a, y, hj, hu, hp, hy⟩ := hal' k hk
+        obtain ⟨hok, he'⟩ := hcp j a vs[k] y hj hu hp
+        obtain ⟨_, _, c⟩ := hv y _ hok hy
         exact (c Ψ (hs₁ Ψ hΨ)).trans he'.symm
 
 /-! ## A flush, in lockstep with the scope walk -/
@@ -921,8 +871,7 @@ have their words (`FlushR`), and the return cells stay free until the path's ret
 theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List Event)
     (live : VMap Unit) (r : Bool) (s₁ : SSt) (ok : V → Prop) (st : St) (C : (ℕ → E) → Prop),
     flushS ctx.retCells rs live r = .ok s₁ → st.rest = rs → rs.length ≤ fuel →
-    (∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
-      up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s) →
+    EqAhead I ok up →
     (∀ v n e, Event.use v ∈ flushSeg rs → st.locs[v]? = some (.shifted n e) → ok v) →
     2 + ctx.argCells + ctx.retCells ≤ st.next → 2 ≤ st.next → VW I C st ok →
     (r = false → RetBlind ctx C) →
@@ -942,10 +891,8 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
   | 0, e :: es, _, _, _, _, _, _, _, _, hlen, _, _, _, _, _, _ => absurd hlen (by simp)
   | fuel + 1, e :: es, live, r, s₁, ok, st, C, hfl, hst, hlen, hcp, huse, hab, h2, hv, hb => by
       have hlen' : es.length ≤ fuel := by simpa using hlen
-      have hcp' : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
-          up[k]? = some (Stmt.atom (.copy d s)) →
-          (ok s ∨ st.locs[s]? = none) ∧ I.σ d = I.σ s :=
-        fun k d s hl hu => let ⟨a, b⟩ := hcp k d s hl hu; ⟨Or.inl a, b⟩
+      have hcp' : EqAhead I (fun v => ok v ∨ st.locs[v]? = none) up :=
+        hcp.mono fun _ h => Or.inl h
       -- The rest of the flush after a step that keeps the places and the trace's tail.
       have hkeep : (∀ x, x ∈ flushSeg es → x ∈ flushSeg (e :: es)) →
           ∀ (r' : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop),
@@ -1080,8 +1027,7 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
 theorem flush_lock (up : List Stmt) (hok : I.Ok) {live : VMap Unit} {r : Bool} {s₁ : SSt}
     {ok : V → Prop} (hfl : flushS ctx.retCells st.rest live r = .ok s₁)
     (hlen : st.rest.length ≤ ctx.fuel)
-    (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
-      up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
+    (hcp : EqAhead I ok up)
     (huse : ∀ v n e, Event.use v ∈ flushSeg st.rest → st.locs[v]? = some (.shifted n e) → ok v)
     (hab : 2 + ctx.argCells + ctx.retCells ≤ st.next) (h2 : 2 ≤ st.next) (hv : VW I C st ok)
     (hb : r = false → RetBlind ctx C) :

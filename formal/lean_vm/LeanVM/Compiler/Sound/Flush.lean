@@ -61,20 +61,20 @@ theorem expect_spec (e : Event → Bool) (what : String) :
   unfold expect
   straight
 
-theorem spongeInPlace_spec (vs : List V) (up : List Stmt) :
-    Spec Γ fp F ctx (spongeInPlace vs up) (fun _ => True) := by
+theorem joinedAt_spec (vs : List V) (up : List Stmt) :
+    Spec Γ fp F ctx (joinedAt vs up) (fun _ => True) := by
   intro st
-  unfold spongeInPlace
+  unfold joinedAt
   refine SpecAt.get_bind ?_
-  extract_lets srcs
-  clear_value srcs
-  cases srcs <;> exact SpecAt.pure fun _ _ _ => trivial
+  split
+  · exact SpecAt.pure fun _ _ _ => trivial
+  · exact SpecAt.pure fun _ _ _ => trivial
 
 theorem onAlloc_spec (vs : List V) (kind : Kind) (up : List Stmt) :
     Spec Γ fp F ctx (onAlloc vs kind up) (fun _ => True) := by
   intro st
   unfold onAlloc
-  have h1 := @spongeInPlace_spec κ Γ fp F ctx
+  have h1 := @joinedAt_spec κ Γ fp F ctx
   straight
 
 theorem discard_spec {m : P α} {Q : α → Prop} (hm : Spec Γ fp F ctx m Q) :

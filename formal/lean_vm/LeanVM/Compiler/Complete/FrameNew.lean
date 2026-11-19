@@ -241,8 +241,8 @@ macro_rules | `(tactic| r_prim) => `(tactic| first
   | with_reducible exact expect_r
   | with_reducible refine RAt.bind endStmt_r fun _ _ _ => ?_
   | with_reducible exact endStmt_r
-  | with_reducible refine RAt.bind spongeInPlace_r fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_r
+  | with_reducible refine RAt.bind joinedAt_r fun _ _ _ => ?_
+  | with_reducible exact joinedAt_r
   | with_reducible refine RAt.bind flushN_r fun _ _ _ => ?_
   | with_reducible exact flushN_r
   | with_reducible refine RAt.bind flush_r fun _ _ _ => ?_
@@ -412,8 +412,8 @@ theorem endStmt_r  : RAt S ctx st (endStmt) := by
   r_straight
 
 
-theorem spongeInPlace_r {vs : List V} {up : List Stmt} : RAt S ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_r {vs : List V} {up : List Stmt} : RAt S ctx st (joinedAt vs up) := by
+  unfold joinedAt
   r_straight
 
 
@@ -443,9 +443,9 @@ theorem takeRun_new (vs : List V) : wpP (takeRun vs) ctx st fun _ s => NewA vs s
   exact wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_mono (bindRun_new vs _) fun _ _ h₁ =>
     wp_modify.mpr h₁)))
 
-theorem spongeInPlace_same {vs : List V} {up : List Stmt} :
-    wpP (spongeInPlace vs up) ctx st fun _ s => s = st := by
-  unfold spongeInPlace
+theorem joinedAt_same {vs : List V} {up : List Stmt} :
+    wpP (joinedAt vs up) ctx st fun _ s => s = st := by
+  unfold joinedAt
   refine wp_bind.mpr (wp_get.mpr ?_)
   dsimp only
   split <;> exact wp_pure.mpr rfl
@@ -468,10 +468,10 @@ theorem onAlloc_new (vs : List V) (kind : Kind) (up : List Stmt) :
           simp only [List.head?_cons, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
           rw [← h.1]
           exact List.mem_cons_self), rfl⟩
-    | (refine wp_bind.mpr (wp_mono spongeInPlace_same fun r s hs => ?_)
+    | (refine wp_bind.mpr (wp_mono joinedAt_same fun r s hs => ?_)
        subst hs
        split
-       · exact wp_bind.mpr (wp_mono (bindRun_new vs _) fun _ _ h => wp_modify.mpr h)
+       · exact bindRun_new vs _
        · exact takeRun_new vs)
 
 theorem mem_allocsOf_head {l : List Event} {vs : List V} {k : Kind} {v : V}

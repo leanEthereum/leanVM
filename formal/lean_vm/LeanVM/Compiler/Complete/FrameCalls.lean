@@ -219,16 +219,8 @@ theorem stmtW_call (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg
   subst hw
   simp only [scopeStmt] at hsc
   have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
-  have hcp : ∀ (k : ℕ) (d x : V),
-      (∀ j < k, ∃ b, (Stmt.call f args rets :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.call f args rets :: rest)[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
-    intro k d x hj hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.call f args rets :: rest) := eqAhead_head fun _ h => nomatch h
   have hcl0 : cl[i₀]? = some ⟨f, args, rets, true⟩ := by
     have := hcl 0 (by simp [outEs, calls, Ev.call?])
     simpa [outEs, calls, Ev.call?] using this
@@ -423,16 +415,8 @@ theorem stmtW_callIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   subst hw
   simp only [scopeStmt] at hsc
   have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
-  have hcp : ∀ (k : ℕ) (d x : V),
-      (∀ j < k, ∃ b, (Stmt.callIf c f args :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.callIf c f args :: rest)[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
-    intro k d x hj hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.callIf c f args :: rest) := eqAhead_head fun _ h => nomatch h
   have hcl0 : cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩ := by
     have := hcl 0 (by
       by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
@@ -747,16 +731,8 @@ theorem tailIf_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok)
             (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]))) := by
   simp only [scopeStmt] at hsc
   have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
-  have hcp : ∀ (k : ℕ) (d x : V),
-      (∀ j < k, ∃ b, (Stmt.callIf c f args :: [Stmt.ret []])[j]? = some (Stmt.atom b)) →
-      (Stmt.callIf c f args :: [Stmt.ret []])[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
-    intro k d x hj hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.callIf c f args :: [Stmt.ret []]) := eqAhead_head fun _ h => nomatch h
   have hInK : IsInK (I.σ c) := by
     obtain ⟨rd, hrd⟩ := hI.rd
     have := hRd rd hrd (.inK c) (hes _ (by simp))
@@ -1093,16 +1069,8 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
             (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]))) := by
   simp only [scopeStmt] at hsc
   have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
-  have hcp : ∀ (k : ℕ) (d x : V),
-      (∀ j < k, ∃ b, (Stmt.callIf c f args :: [Stmt.ret []])[j]? = some (Stmt.atom b)) →
-      (Stmt.callIf c f args :: [Stmt.ret []])[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
-    intro k d x hj hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.callIf c f args :: [Stmt.ret []]) := eqAhead_head fun _ h => nomatch h
   have hInK : IsInK (I.σ c) := by
     obtain ⟨rd, hrd⟩ := hI.rd
     have := hRd rd hrd (.inK c) (hes _ (by simp))
@@ -1432,16 +1400,8 @@ theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   simp only [Nat.zero_add] at hxj
   simp only [scopeStmt] at hsc
   have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
-  have hcp : ∀ (k : ℕ) (d y : V),
-      (∀ j < k, ∃ b, (Stmt.dispatch x fs args rets :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.dispatch x fs args rets :: rest)[k]? = some (Stmt.atom (.copy d y)) →
-      (sc.live.contains y = true ∨ st.locs[y]? = none) ∧ I.σ d = I.σ y := by
-    intro k d y hj' hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj' 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.dispatch x fs args rets :: rest) := eqAhead_head fun _ h => nomatch h
   have hcl0 : cl[i₀]? = some ⟨fs[j], args, rets, true⟩ := by
     have := hcl 0 (by simp [outEs, calls, Ev.call?])
     simpa [outEs, calls, Ev.call?] using this

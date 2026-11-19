@@ -244,7 +244,7 @@ theorem match_pre (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List Stm
   simp only [bind_assoc]
   refine FBAt.fat_bind (FAt.and_wp (flushSeg_lock ctx I C st [] sc.live sc.retDone s₀
       (fun v => sc.live.contains v = true ∨ st.locs[v]? = none) hI hfl hinv.fuel
-      (fun k _ _ _ hk => by simp at hk)
+      (fun _ _ _ _ _ hk _ => by simp at hk)
       (fun v _ _ hv _ => (huseS v hv).elim Or.inl fun h => Or.inr (hsegA v h))
       hinv.abi hinv.two hvw (fun hr k hk Ψ w hC => hinv.ret hr Ψ k w hk hC))
     (wp_and flush_pk (wp_and (flushLazy [] st (hinv.rest ▸ hlf)) flush_keep)))

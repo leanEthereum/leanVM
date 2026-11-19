@@ -312,8 +312,7 @@ def FlushSegStmt : Prop :=
   ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (up : List Stmt) (live : VMap Unit)
     (r : Bool) (s₁ : SSt) (ok : V → Prop), I.Ok →
     flushS ctx.retCells st.rest live r = .ok s₁ → st.rest.length ≤ ctx.fuel →
-    (∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
-      up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s) →
+    EqAhead I ok up →
     (∀ v n e, Event.use v ∈ flushSeg st.rest → st.locs[v]? = some (.shifted n e) → ok v) →
     2 + ctx.argCells + ctx.retCells ≤ st.next → 2 ≤ st.next → VW I C st ok →
     (r = false → RetBlind ctx C) →
@@ -345,9 +344,7 @@ the flush places no value but those it makes. -/
 theorem begin_fat (hflush : FlushSegStmt) (hI : I.Ok) {s : Stmt} {rest : List Stmt}
     {C : (ℕ → E) → Prop} {st : St} {sc sc' : SSt}
     (hsc : scopeFlat ctx.retCells s sc = .ok sc') (hinv : WInv ctx I C st sc)
-    (hcp : ∀ (k : ℕ) (d x : V), (∀ j < k, ∃ b, (s :: rest)[j]? = some (Stmt.atom b)) →
-      (s :: rest)[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x) :
+    (hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none) (s :: rest)) :
     FAt ctx I C st (beginStmt (s :: rest)) fun _ C₂ st₂ =>
       st₂.rest = sc'.rest ∧ VW I C₂ st₂ (fun v => sc'.live.contains v = true) ∧
       (sc'.retDone = false → RetBlind ctx C₂) ∧
@@ -471,28 +468,26 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
   have hall : allocsOf st.rest = allocsOf (flushSeg st.rest) ++ allocsOf sc'.rest := by
     conv_lhs => rw [hseg]
     rw [allocsOf_append, hr₁, allocsOf_other (e := Event.emit) (fun _ _ h => nomatch h)]
-  have hcopy : ∀ d s, Memory.Ev.atom (.copy d s) ∈ I.es → I.σ d = I.σ s := fun d s he => by
-    obtain ⟨rd, hrd⟩ := hI.rd
-    have := hRd rd hrd _ he
-    simpa [evNT, holdsNT, Atom.Holds] using this
+  have hcopy : ∀ b x y, Memory.Ev.atom b ∈ I.es → eqPartner x b = some y → I.σ x = I.σ y :=
+    fun b x y he hp => let ⟨rd, hrd⟩ := hI.rd; eqPartner_holds hp (hRd rd hrd _ he)
   have hok' : ∀ v, sc.live.contains v = true ∨ v ∈ allocsOf sc.rest →
       sc.live.contains v = true ∨ st.locs[v]? = none :=
     fun v h => h.elim Or.inl fun h => Or.inr (hinv.fresh v (by rwa [← hinv.rest])).1
-  have hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ b, (Stmt.atom a :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.atom a :: rest)[k]? = some (Stmt.atom (.copy d s)) →
-      (sc.live.contains s = true ∨ st.locs[s]? = none) ∧ I.σ d = I.σ s := by
-    intro k d s hj hk
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.atom a :: rest) := by
+    intro k b x y hj hk hp
+    have hy := (eqPartner_uses hp).2
     cases k with
     | zero =>
       cases hk
-      exact ⟨hok' s ((scopeFlat_sub hsc).1 s (hown s (by simp [ownUses, atomUses]))),
-        hcopy d s (hes _ (by simp [outEs]))⟩
+      exact ⟨hok' y ((scopeFlat_sub hsc).1 y (hown y (by simp [ownUses, hy]))),
+        hcopy a x y (hes _ (by simp [outEs])) hp⟩
     | succ k =>
-      refine ⟨?_, hcopy d s (hup _ rfl k _ (fun j hj' => hj (j + 1) (by omega)) hk)⟩
-      rcases scope_lead _ rest sc' sc'' hrest k _ (fun j hj' => hj (j + 1) (by omega)) hk s
-        (by simp [ownUses, atomUses]) with h | h
-      · exact hok' s ((scopeFlat_sub hsc).1 s h)
-      · exact Or.inr (hinv.fresh s (by rw [hall]; exact List.mem_append_right _ h)).1
+      refine ⟨?_, hcopy b x y (hup _ rfl k _ (fun j hj' => hj (j + 1) (by omega)) hk) hp⟩
+      rcases scope_lead _ rest sc' sc'' hrest k _ (fun j hj' => hj (j + 1) (by omega)) hk y
+        (by simp [ownUses, hy]) with h | h
+      · exact hok' y ((scopeFlat_sub hsc).1 y h)
+      · exact Or.inr (hinv.fresh y (by rw [hall]; exact List.mem_append_right _ h)).1
   have hA : FAt ctx I C st (beginStmt (.atom a :: rest) >>= fun _ => placeAtom a)
       fun _ C₃ st₃ => st₃.rest = sc'.rest ∧
         (Fits I st₃ → VW I C₃ st₃ fun v => sc'.live.contains v = true) ∧
@@ -507,7 +502,7 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
       (fun rd hrd => hRd rd hrd (Memory.Ev.atom a) (hes _ (by simp [outEs])))
       hu ht hnm (fun _ p run h => absurd h (hfa p run))
       (fun hF d _ _ _ n hl => hsh d n (hF.2 _ _ hl))
-      (le_trans hinv.two hn₂) h2 hp₂ (fun v hv => Or.inl (hown v hv)))
+      (le_trans hinv.two hn₂) h2 hp₂ hown)
       fun _ C₃ st₃ _ _ _ ⟨g1, g2, g3, g4⟩ => ⟨g2.trans h1,
         fun hF => (g1 hF).anti fun v hv => Or.inl hv,
         fun hr k hk => g4 (2 + ctx.argCells + k)
@@ -681,15 +676,8 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   subst hw
   simp only [scopeStmt] at hsc
   obtain ⟨-, -, -, -, -, hown⟩ := scopeFlat_inv hsc
-  have hcp : ∀ (k : ℕ) (d x : V), (∀ j < k, ∃ b, (Stmt.ret vs :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.ret vs :: rest)[k]? = some (Stmt.atom (.copy d x)) →
-      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
-    intro k d x hj hk
-    cases k with
-    | zero => simp at hk
-    | succ k =>
-      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
-      simp at hb
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.ret vs :: rest) := eqAhead_head fun _ h => nomatch h
   have h1K : IsInK (1 : E) := (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩
   refine FBAt.mono (FBAt.and_wp (R := fun _ C' st' => Fits I st' → OpsAt I p₀ st' → ∃ blk,
     st'.out.toList = st.out.toList ++ blk ∧

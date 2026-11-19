@@ -178,8 +178,8 @@ macro_rules | `(tactic| rest_prim) => `(tactic| first
   | with_reducible exact bindRun_rest
   | with_reducible refine RestAt.bind takeRun_rest fun _ _ _ => ?_
   | with_reducible exact takeRun_rest
-  | with_reducible refine RestAt.bind spongeInPlace_rest fun _ _ _ => ?_
-  | with_reducible exact spongeInPlace_rest
+  | with_reducible refine RestAt.bind joinedAt_rest fun _ _ _ => ?_
+  | with_reducible exact joinedAt_rest
   | with_reducible refine RestAt.bind onAlloc_rest fun _ _ _ => ?_
   | with_reducible exact onAlloc_rest
   | with_reducible refine RestAt.bind destBits_rest fun _ _ _ => ?_
@@ -351,8 +351,8 @@ theorem takeRun_rest {vs : List V} : RestAt ctx st (takeRun vs) := by
   unfold takeRun
   rest_straight
 
-theorem spongeInPlace_rest {vs : List V} {up : List Stmt} : RestAt ctx st (spongeInPlace vs up) := by
-  unfold spongeInPlace
+theorem joinedAt_rest {vs : List V} {up : List Stmt} : RestAt ctx st (joinedAt vs up) := by
+  unfold joinedAt
   rest_straight
 
 

@@ -87,9 +87,7 @@ theorem frameAddr_fatA {p : V} {run : List V} (hne : run ≠ []) (ok : V → Pro
     (hld : Fits I st → ∀ d p' off, Atom.frameAddr p run = .load d p' off →
       ∀ n, st.locs[d]? ≠ some (.shifted n 0))
     (h2 : 2 ≤ st.next) (hv : VW I C st ok) (hpn : OutOps I st → PoolNT I st.scope)
-    (hops : ∀ v ∈ Memory.atomUses (.frameAddr p run) ++ Memory.atomTmps (.frameAddr p run),
-      ok v ∨ ∃ s, s ≠ v ∧ Atom.frameAddr p run = .copy v s ∧
-        st.aliasRun.any (·.contains v) = true) :
+    (hops : ∀ v ∈ Memory.atomUses (.frameAddr p run) ++ Memory.atomTmps (.frameAddr p run), ok v) :
     FAt ctx I C st (placeAtom (.frameAddr p run)) fun _ C' st' =>
       (Fits I st' → VW I C' st' (fun v => ok v ∨
         v ∈ Memory.atomUses (.frameAddr p run) ++ Memory.atomTmps (.frameAddr p run))) ∧
@@ -146,26 +144,25 @@ theorem stmtW_frameAddr (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl)
   have hall : allocsOf st.rest = allocsOf (flushSeg st.rest) ++ allocsOf sc'.rest := by
     conv_lhs => rw [hseg]
     rw [allocsOf_append, hr₁, allocsOf_other (e := Event.emit) (fun _ _ h => nomatch h)]
-  have hcopy : ∀ d s, Memory.Ev.atom (.copy d s) ∈ I.es → I.σ d = I.σ s := fun d s he => by
-    obtain ⟨rd, hrd⟩ := hI.rd
-    have := hRd rd hrd _ he
-    simpa [evNT, holdsNT, Atom.Holds] using this
+  have hcopy : ∀ b x y, Memory.Ev.atom b ∈ I.es → eqPartner x b = some y → I.σ x = I.σ y :=
+    fun b x y he hp => let ⟨rd, hrd⟩ := hI.rd; eqPartner_holds hp (hRd rd hrd _ he)
   have hok' : ∀ v, sc.live.contains v = true ∨ v ∈ allocsOf sc.rest →
       sc.live.contains v = true ∨ st.locs[v]? = none :=
     fun v h => h.elim Or.inl fun h => Or.inr (hinv.fresh v (by rwa [← hinv.rest])).1
-  have hcp : ∀ (k : ℕ) (d s : V),
-      (∀ j < k, ∃ b, (Stmt.atom (.frameAddr p run) :: rest)[j]? = some (Stmt.atom b)) →
-      (Stmt.atom (.frameAddr p run) :: rest)[k]? = some (Stmt.atom (.copy d s)) →
-      (sc.live.contains s = true ∨ st.locs[s]? = none) ∧ I.σ d = I.σ s := by
-    intro k d s hj hk
+  have hcp : EqAhead I (fun v => sc.live.contains v = true ∨ st.locs[v]? = none)
+      (Stmt.atom (.frameAddr p run) :: rest) := by
+    intro k b x y hj hk hp
+    have hy := (eqPartner_uses hp).2
     cases k with
-    | zero => cases hk
+    | zero =>
+      cases hk
+      simp [eqPartner] at hp
     | succ k =>
-      refine ⟨?_, hcopy d s (hup _ rfl k _ (fun j hj' => hj (j + 1) (by omega)) hk)⟩
-      rcases scope_lead _ rest sc' sc'' hrest k _ (fun j hj' => hj (j + 1) (by omega)) hk s
-        (by simp [ownUses, atomUses]) with h | h
-      · exact hok' s ((scopeFlat_sub hsc).1 s h)
-      · exact Or.inr (hinv.fresh s (by rw [hall]; exact List.mem_append_right _ h)).1
+      refine ⟨?_, hcopy b x y (hup _ rfl k _ (fun j hj' => hj (j + 1) (by omega)) hk) hp⟩
+      rcases scope_lead _ rest sc' sc'' hrest k _ (fun j hj' => hj (j + 1) (by omega)) hk y
+        (by simp [ownUses, hy]) with h | h
+      · exact hok' y ((scopeFlat_sub hsc).1 y h)
+      · exact Or.inr (hinv.fresh y (by rw [hall]; exact List.mem_append_right _ h)).1
   have hA : FAt ctx I C st (beginStmt (.atom (.frameAddr p run) :: rest) >>= fun _ =>
       placeAtom (.frameAddr p run))
       fun _ C₃ st₃ => st₃.rest = sc'.rest ∧
@@ -182,7 +179,7 @@ theorem stmtW_frameAddr (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl)
       (hes _ (by simp [outEs]))
       (fun rd hrd => hRd rd hrd (Memory.Ev.atom (.frameAddr p run)) (hes _ (by simp [outEs])))
       hu ht hnm haddr (fun _ _ _ _ h => nomatch h)
-      (le_trans hinv.two hn₂) h2 hp₂ (fun v hv => Or.inl (hown v hv)))
+      (le_trans hinv.two hn₂) h2 hp₂ hown)
       fun _ C₃ st₃ _ _ _ ⟨g1, g2, g3, g4⟩ => ⟨g2.trans h1,
         fun hF => (g1 hF).anti fun v hv => Or.inl hv,
         fun hr k hk => g4 (2 + ctx.argCells + k)

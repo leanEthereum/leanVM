@@ -141,21 +141,17 @@ theorem place_copy (d s : V) :
   unfold placeAtom
   dsimp only
   refine SpecAt.call (cellOf_spec s) fun ls _ => ?_
-  refine SpecAt.get_bind ?_
+  refine SpecAt.call (cellAt_spec d) fun ld _ => ?_
   split
-  · refine SpecAt.call (cellAt_spec d) fun ld _ => ?_
-    split
-    · exact SpecAt.fail_bind
-    · next hne =>
-      exact SpecAt.pure fun h _ _ => by
-        have hl : ld = ls := by simpa using hne
-        show valP Γ.L fp F d = valP Γ.L fp F s
-        rw [valP_of_cell h.2, hl, h.1.2]
+  · next he =>
+    exact SpecAt.pure fun h _ _ => by
+      have hl : ld = ls := by simpa using he
+      show valP Γ.L fp F d = valP Γ.L fp F s
+      rw [valP_of_cell h.2, hl, h.1.2]
   · refine SpecAt.call oneCell_spec fun one _ => ?_
-    refine SpecAt.call (cellAt_spec d) fun ld _ => ?_
     exact SpecAt.lastH (emitOp_spec rfl) fun _ h hx => by
       show valP Γ.L fp F d = valP Γ.L fp F s
-      rw [valP_of_cell h.2, holds_mul hx.choose_spec, h.1.2, mul_one, h.1.1.2]
+      rw [valP_of_cell h.1.2, holds_mul hx.choose_spec, h.2, mul_one, h.1.1.2]
 
 theorem place_load (d p : V) (off : ℕ) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) True ctx st (placeAtom (.load d p off))
@@ -190,13 +186,20 @@ theorem place_assertEq (a b : V) :
   dsimp only
   refine SpecAt.call (cellOf_spec a) fun la _ => ?_
   refine SpecAt.call (cellOf_spec b) fun lb _ => ?_
-  refine SpecAt.call oneCell_spec fun one _ => ?_
-  exact SpecAt.lastH (emitOp_spec rfl) fun _ h hx => by
-    show valP Γ.L fp F a + valP Γ.L fp F b = 0
-    have := holds_mul hx.choose_spec
-    rw [h.2, mul_one, h.1.1.2, h.1.2] at this
-    rw [this]
-    exact char2 _
+  split
+  · next he =>
+    exact SpecAt.pure fun h _ _ => by
+      have hl : la = lb := by simpa using he
+      show valP Γ.L fp F a + valP Γ.L fp F b = 0
+      rw [← h.1.2, ← h.2, hl]
+      exact char2 _
+  · refine SpecAt.call oneCell_spec fun one _ => ?_
+    exact SpecAt.lastH (emitOp_spec rfl) fun _ h hx => by
+      show valP Γ.L fp F a + valP Γ.L fp F b = 0
+      have := holds_mul hx.choose_spec
+      rw [h.2, mul_one, h.1.1.2, h.1.2] at this
+      rw [this]
+      exact char2 _
 
 theorem place_assertNe (x inv p : V) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) True ctx st (placeAtom (.assertNe x inv p))

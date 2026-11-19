@@ -518,7 +518,7 @@ partial def pStmt : Stmt → String
 
 def pKind : Kind → String
   | .cell => ".cell" | .pooled => ".pooled" | .unnamed => ".unnamed" | .addr => ".addr"
-  | .ret => ".ret" | .padRun => ".padRun" | .spongeRun => ".spongeRun"
+  | .ret => ".ret" | .padRun => ".padRun" | .joined => ".joined"
 
 def pEvent : Event → String
   | .alloc vs k => s!"(.alloc {pVs vs} {pKind k})"
@@ -906,7 +906,6 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat)
     s!"    note := {st.note},\n" ++
     s!"    chainIn := {pOpt pPair st.chainIn},\n" ++
     s!"    padRun := {pVOpt st.padRun},\n" ++
-    s!"    aliasRun := {pVOpt st.aliasRun},\n" ++
     s!"    constOf := ({prev}).constOf.insertAll {name}_consts }\n\n")
 
 def cutHeader (mod what : String) (imports : String) : String :=

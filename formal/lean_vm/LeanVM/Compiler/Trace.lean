@@ -26,6 +26,9 @@ it. So the following are gone from the core IR, and each moves cells:
   into a cell of their own (`const_cell` and `pure` against `expr_into`, `xor_byte`, an anchor);
   a constant set into a cell of its own that every other statement only reads as one cell, in
   its block, is taken from the pool too (`markPooled`), where the Rust lowering gave it a cell;
+* which values share a cell with a value they are copied from, into, or asserted equal to: the
+  trace marks them `Kind.joined` and moves their allocation to the statement where they are first
+  named (`markJoined`), where the Rust lowering gave each a cell and emitted the copy or check;
 * when a cell is taken relative to the cells a statement takes for its own plumbing (a pooled
   `1`, a callee's frame pointer, a jump target);
 * an `else` block that emits nothing, which the lowering still jumps over; two `match`es chained;
@@ -67,9 +70,10 @@ inductive Kind where
   /-- The Keccak padding run, whose first cells are also the pooled `0x01` and `0`
   (`keccak_pad_run`). -/
   | padRun
-  /-- A copy of four message cells into a run, dropped where they already lie in consecutive
-  cells (`sponge_run`). -/
-  | spongeRun
+  /-- Cells shared with values already placed: the cells of the values the next statements,
+  reached through atoms only, equate with it (a copy either way round, an `assert ==`), when they
+  are consecutive; else the next free ones (`sponge_run`, `markJoined`). -/
+  | joined
   deriving DecidableEq, Repr, Inhabited
 
 /-- One step of an expansion, as placement follows it. -/
@@ -93,6 +97,13 @@ inductive Event where
   /-- The offset `at` of the `hint_windows_exponent` emitted next. -/
   | note (n : Nat)
   deriving Repr, Inhabited
+
+/-- The value the atom equates with `v`: the other side of a copy or an `assert ==` naming it
+(the values a `Kind.joined` allocation may share a cell with). -/
+def eqPartner (v : V) : Atom → Option V
+  | .copy d s => if d == v then some s else if s == v then some d else none
+  | .assertEq a b => if a == v then some b else if b == v then some a else none
+  | _ => none
 
 /-- A lowered function: its core function and its trace, and what the back end takes from its
 source as the expansion queued it: the cells of its returned values and its `loopSource`; and,

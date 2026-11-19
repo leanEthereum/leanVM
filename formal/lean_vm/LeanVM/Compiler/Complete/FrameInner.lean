@@ -405,7 +405,7 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
     have hnd : (allocsOf (flushSeg st₂.rest) ++ allocsOf s₄.rest).Nodup := hall ▸ hinv₂.nodup
     have hFl := flushSeg_lock ctx I C₂ st₂ [] s₂.live s₂.retDone s₃
       (fun v => s₂.live.contains v = true ∨ st₂.locs[v]? = none) hI hfl₃ hinv₂.fuel
-      (fun k _ _ _ hk => by simp at hk)
+      (fun _ _ _ _ _ hk _ => by simp at hk)
       (fun v _ _ hv _ => (huseS v hv).elim Or.inl fun h => Or.inr (hsegA v h))
       hinv₂.abi hinv₂.two
       (fun v l hv hl => hv.elim (fun h => hinv₂.vw v l h hl) fun h => by rw [h] at hl; cases hl)
