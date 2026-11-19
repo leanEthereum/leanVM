@@ -46,6 +46,9 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
 pub struct Sidecar {
     #[cfg_attr(not(unix), allow(dead_code))]
     socket: PathBuf,
+    /// The prover the sidecar runs, as it says on connecting.
+    #[cfg_attr(not(unix), allow(dead_code))]
+    prover: String,
     #[cfg(unix)]
     client: Mutex<Option<sidecar::Client>>,
     /// The sidecar [`Sidecar::start`] launched, stopped on drop.
@@ -90,6 +93,7 @@ impl Sidecar {
             let client = sidecar::Client::connect(&socket).map_err(sidecar_error)?;
             Ok(Self {
                 socket,
+                prover: client.prover().to_owned(),
                 client: Mutex::new(Some(client)),
                 process: None,
             })
@@ -101,8 +105,9 @@ impl Sidecar {
         }
     }
 
-    /// Launches the `leanvm-sidecar` executable at `binary` on `socket`, waits until it has warmed
-    /// up and listens, and connects to it. Dropping the value stops the sidecar.
+    /// Launches the `leanvm-sidecar` executable at `binary` on `socket` with `threads` threads (0:
+    /// one per core), waits until it has warmed up and listens, and connects to it. Dropping the
+    /// value stops the sidecar.
     ///
     /// - The socket's directory is created, readable by this user only, if it does not exist.
     /// - The sidecar's log goes to the socket's path with `.log` appended.
@@ -114,20 +119,31 @@ impl Sidecar {
     /// - Fails when `binary` cannot run, or when the sidecar exits or does not listen within ten
     ///   minutes; the error quotes the end of its log.
     /// - Fails on platforms without Unix sockets.
-    pub fn start(binary: impl AsRef<Path>, socket: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn start(
+        binary: impl AsRef<Path>,
+        socket: impl AsRef<Path>,
+        threads: usize,
+    ) -> Result<Self, Error> {
         #[cfg(unix)]
         {
-            Self::launch(binary.as_ref(), socket.as_ref())
+            Self::launch(binary.as_ref(), socket.as_ref(), threads)
         }
         #[cfg(not(unix))]
         {
-            let _ = (binary, socket);
+            let _ = (binary, socket, threads);
             Err(Error::SidecarUnsupported)
         }
     }
 
+    /// The prover the sidecar runs, `experimental` or `stable`: they make the same proofs, the
+    /// experimental one faster. It is chosen when the sidecar is built.
+    #[must_use]
+    pub fn prover(&self) -> &str {
+        &self.prover
+    }
+
     #[cfg(unix)]
-    fn launch(binary: &Path, socket: &Path) -> Result<Self, Error> {
+    fn launch(binary: &Path, socket: &Path, threads: usize) -> Result<Self, Error> {
         use std::os::unix::fs::DirBuilderExt;
         use std::process::{Command, Stdio};
         use std::time::Instant;
@@ -154,6 +170,8 @@ impl Sidecar {
         let mut child = Command::new(binary)
             .arg("--socket")
             .arg(socket)
+            .arg("--threads")
+            .arg(threads.to_string())
             .arg("--exit-with-stdin")
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -163,6 +181,7 @@ impl Sidecar {
         // From here on, dropping `started` on any error stops the child.
         let mut started = Self {
             socket: socket.to_path_buf(),
+            prover: String::new(),
             client: Mutex::new(None),
             process: Some(Owned {
                 _stdin: child.stdin.take(),
@@ -182,6 +201,7 @@ impl Sidecar {
             }
             match sidecar::Client::connect(socket) {
                 Ok(client) => {
+                    client.prover().clone_into(&mut started.prover);
                     *started
                         .client
                         .get_mut()

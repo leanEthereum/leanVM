@@ -385,6 +385,12 @@ impl Sidecar {
         )
     }
 
+    /// The prover the sidecar runs: `experimental` or `stable`.
+    #[napi(getter)]
+    pub fn prover(&self) -> Result<String> {
+        with_sidecar(&self.inner, |sidecar| Ok(sidecar.prover().to_owned()))
+    }
+
     /// Closes the connection, and stops a sidecar `start` launched.
     #[napi(ts_return_type = "Promise<void>")]
     pub fn close<'env>(&self, env: &'env Env) -> Result<Object<'env>> {
@@ -399,7 +405,7 @@ impl Sidecar {
 
 pub enum SidecarSource {
     Connect(PathBuf),
-    Start(PathBuf, PathBuf),
+    Start(PathBuf, PathBuf, usize),
 }
 
 pub struct SidecarTask {
@@ -413,7 +419,9 @@ impl Task for SidecarTask {
     fn compute(&mut self) -> Result<Self::Output> {
         match &self.source {
             SidecarSource::Connect(socket) => lean_pq::Sidecar::connect(socket),
-            SidecarSource::Start(binary, socket) => lean_pq::Sidecar::start(binary, socket),
+            SidecarSource::Start(binary, socket, threads) => {
+                lean_pq::Sidecar::start(binary, socket, *threads)
+            }
         }
         .map_err(api_error)
     }
@@ -550,11 +558,20 @@ pub fn sidecar_connect(env: &Env, socket: String) -> Result<Object<'_>> {
 }
 
 #[napi(ts_return_type = "Promise<Sidecar>")]
-pub fn sidecar_start(env: &Env, binary: String, socket: String) -> Result<Object<'_>> {
+pub fn sidecar_start(
+    env: &Env,
+    binary: String,
+    socket: String,
+    threads: Option<u32>,
+) -> Result<Object<'_>> {
     on_own_thread(
         env,
         SidecarTask {
-            source: SidecarSource::Start(binary.into(), socket.into()),
+            source: SidecarSource::Start(
+                binary.into(),
+                socket.into(),
+                threads.unwrap_or(0) as usize,
+            ),
         },
     )
 }

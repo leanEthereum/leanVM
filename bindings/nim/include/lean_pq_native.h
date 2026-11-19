@@ -52,10 +52,13 @@ int32_t lpq_sphincs_verify(const uint8_t *public_key, size_t public_key_len, con
  */
 int32_t lpq_sidecar_connect(const uint8_t *path, size_t len, lpq_sidecar **out);
 /*
- * Launches the leanvm-sidecar executable at binary on the socket at path, waits until it listens,
- * and connects; destroying the handle stops it. Its log goes to the socket path plus ".log".
+ * Launches the leanvm-sidecar executable at binary on the socket at path with threads threads (0:
+ * one per core), waits until it listens, and connects; destroying the handle stops it. Its log
+ * goes to the socket path plus ".log".
  */
-int32_t lpq_sidecar_start(const uint8_t *binary, size_t binary_len, const uint8_t *path, size_t len, lpq_sidecar **out);
+int32_t lpq_sidecar_start(const uint8_t *binary, size_t binary_len, const uint8_t *path, size_t len, size_t threads, lpq_sidecar **out);
+/* The prover the sidecar runs: "experimental" or "stable" (UTF-8, no NUL). */
+int32_t lpq_sidecar_prover(lpq_sidecar *sidecar, lpq_buffer *out);
 /* Closes the connection, and stops the sidecar if lpq_sidecar_start launched it. */
 void lpq_sidecar_destroy(lpq_sidecar *sidecar);
 

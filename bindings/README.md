@@ -54,21 +54,19 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 `leanvm-sidecar` proves and verifies aggregates in a process of its own; the bindings talk to it over a Unix socket, so aggregation works on Linux and macOS, not on Windows. Use the sidecar of the same release as the bindings.
 
-Download it (Linux needs glibc 2.35 or newer):
+Install it as `~/.leanvm/bin/leanvm-sidecar`, the release binary for this platform (Linux x86_64 or arm64 with glibc 2.35 or newer, macOS arm64):
 
 <!-- x-release-please-start-version -->
 ```sh
-# leanvm-sidecar-x86_64-linux, leanvm-sidecar-aarch64-linux or leanvm-sidecar-aarch64-macos
-curl -fsSLo leanvm-sidecar https://github.com/leanEthereum/leanVM/releases/download/bindings-v0.12.0/leanvm-sidecar-x86_64-linux
-chmod +x leanvm-sidecar
+curl -fsSL https://raw.githubusercontent.com/leanEthereum/leanVM/main/bindings/scripts/install-sidecar.sh | sh -s -- --version 0.12.0
 ```
 <!-- x-release-please-end -->
 
-Or build it for this machine's CPU, which proves faster (needs Rust):
+Or built from source for this machine's CPU, which proves faster (needs Rust):
 
 <!-- x-release-please-start-version -->
 ```sh
-RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com/leanEthereum/leanVM --tag bindings-v0.12.0 leanvm-sidecar --features experimental_prover
+curl -fsSL https://raw.githubusercontent.com/leanEthereum/leanVM/main/bindings/scripts/install-sidecar.sh | sh -s -- --version 0.12.0 --build
 ```
 <!-- x-release-please-end -->
 
@@ -76,12 +74,12 @@ Then either run it yourself and connect to it:
 
 ```sh
 mkdir -p -m 700 ~/.leanvm
-./leanvm-sidecar --socket ~/.leanvm/sidecar.sock
+~/.leanvm/bin/leanvm-sidecar --socket ~/.leanvm/sidecar.sock
 ```
 
 It warms up, then creates the socket and serves; connect with `Sidecar.connect("<home>/.leanvm/sidecar.sock")`. Keep it running, for example as a service; `--threads N` caps its threads.
 
-Or let your program launch it: `Sidecar.start("./leanvm-sidecar", "/tmp/leanvm/sidecar.sock")` starts it, waits until it listens, and stops it when the `Sidecar` is closed or the program exits.
+Or let your program launch it: `Sidecar.start("<home>/.leanvm/bin/leanvm-sidecar", "/tmp/leanvm/sidecar.sock")` starts it, waits until it listens, and stops it when the `Sidecar` is closed or the program exits. An optional third argument caps its threads.
 
 [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
 

@@ -135,9 +135,11 @@ proc lpqSphincsVerify*(
 proc lpqSidecarConnect*(path: ptr byte, len: csize_t, output: ptr ptr LpqSidecar): int32 {.
   importc: "lpq_sidecar_connect", header: lpqHeader.}
 proc lpqSidecarStart*(
-  binary: ptr byte, binaryLen: csize_t, path: ptr byte, len: csize_t,
+  binary: ptr byte, binaryLen: csize_t, path: ptr byte, len: csize_t, threads: csize_t,
   output: ptr ptr LpqSidecar): int32 {.
   importc: "lpq_sidecar_start", header: lpqHeader.}
+proc lpqSidecarProver*(sidecar: ptr LpqSidecar, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_sidecar_prover", header: lpqHeader.}
 proc lpqSidecarDestroy*(sidecar: ptr LpqSidecar) {.
   importc: "lpq_sidecar_destroy", header: lpqHeader.}
 

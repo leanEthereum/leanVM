@@ -80,6 +80,7 @@ sidecar.close()
 - `aggregate` proves raw `(public_key, message, signature)` tuples of either scheme together with up to 16 child aggregates; the result's claims are the union of its inputs' claims. Raw signatures are verified before proving.
 - `verify(data, xmss_claims=(), sphincs_claims=())` checks the proof against exactly the `(public_key, message)` pairs the receiver expects, in any order, a duplicate counting once; any other claim set raises `LeanPqError`. Every `Aggregate` value has been proven or verified.
 - `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
+- `Sidecar.start(binary, socket, threads=0)` caps the sidecar's threads (0: one per core); `sidecar.prover` says which prover it runs, `experimental` or `stable` (the same proofs, the experimental one faster).
 - A `Sidecar` is a context manager, safe to share between threads; its calls run one at a time. In a forked child, connect again.
 
 ## Development

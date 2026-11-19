@@ -202,12 +202,13 @@ fn starts_and_stops_its_own_sidecar() {
     let directory = std::env::temp_dir().join(format!("lpq{}", std::process::id()));
     let socket = directory.join("s.sock");
 
-    let started = Sidecar::start(&binary, &socket).unwrap();
+    let started = Sidecar::start(&binary, &socket, 2).unwrap();
+    assert!(["experimental", "stable"].contains(&started.prover()));
     let claims = [(SIGNERS.xmss.public_key(), FIRST)];
     started.verify(&LEAF.to_bytes(), &claims, &[]).unwrap();
 
     // A second start on the same socket would steal it: it fails while the first one runs.
-    let error = Sidecar::start(&binary, &socket).unwrap_err();
+    let error = Sidecar::start(&binary, &socket, 0).unwrap_err();
     assert!(error.to_string().contains("already listens"), "{error}");
 
     // Dropping it stops the sidecar.
@@ -222,7 +223,7 @@ fn starts_and_stops_its_own_sidecar() {
 #[test]
 fn fails_to_start_a_missing_binary() {
     let socket = std::env::temp_dir().join(format!("lean-pq-missing-{}.sock", std::process::id()));
-    let error = Sidecar::start("/nonexistent/leanvm-sidecar", &socket).unwrap_err();
+    let error = Sidecar::start("/nonexistent/leanvm-sidecar", &socket, 0).unwrap_err();
     assert!(error.to_string().contains("cannot run"), "{error}");
 }
 

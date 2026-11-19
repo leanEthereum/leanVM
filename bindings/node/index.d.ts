@@ -12,6 +12,8 @@ export declare class Sidecar {
   prove(children: Array<Aggregate>, xmss: Array<SignedMessage>, sphincs: Array<SignedMessage>): Promise<Aggregate>
   /** Verifies; the facade's `verify` wraps it. */
   check(data: Buffer, xmss: Array<Claim>, sphincs: Array<Claim>): Promise<Aggregate>
+  /** The prover the sidecar runs: `experimental` or `stable`. */
+  get prover(): string
   /** Closes the connection, and stops a sidecar `start` launched. */
   close(): Promise<void>
 }
@@ -43,7 +45,7 @@ export declare function generateXmssSecretKey(): Promise<XmssSecretKey>
 
 export declare function sidecarConnect(socket: string): Promise<Sidecar>
 
-export declare function sidecarStart(binary: string, socket: string): Promise<Sidecar>
+export declare function sidecarStart(binary: string, socket: string, threads?: number | undefined | null): Promise<Sidecar>
 
 /** A raw signature to aggregate. */
 export interface SignedMessage {

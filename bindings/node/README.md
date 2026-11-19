@@ -71,6 +71,7 @@ await sidecar.close()
 
 - `aggregate` verifies every raw signature before proving; at most 16 children.
 - An aggregate's encoding is the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `verify(data, { xmss, sphincs })` checks the proof against exactly those claims and rejects any other set, so every `Aggregate` is proven or verified. The claims may come in any order, a repeated claim counts once, and an omitted list means no claims of that scheme.
+- `Sidecar.start(binary, socket, threads)` caps the sidecar's threads (0, the default: one per core); `sidecar.prover` says which prover it runs, `experimental` or `stable` (the same proofs, the experimental one faster).
 - Calls on one `Sidecar` run one at a time, each on a thread of its own.
 
 ## Development

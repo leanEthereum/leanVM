@@ -47,9 +47,11 @@ jobs:
           - os: Linux
             runner: ubuntu-latest
             rustflags: -C target-cpu=x86-64-v3 -C target-feature=+pclmulqdq
+            asset: leanvm-sidecar-x86_64-linux
           - os: macOS
             runner: macos-15
             rustflags: -C target-cpu=apple-m1
+            asset: leanvm-sidecar-aarch64-macos
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +64,15 @@ jobs:
         env:
           RUSTFLAGS: ${{ matrix.rustflags }}
         run: cargo build --release --locked -p leanvm-sidecar --features experimental_prover
+
+      # The script's download path, from a local stand-in for the release, then the binary starts.
+      - name: Check the install script
+        run: |
+          releases="$RUNNER_TEMP/releases"
+          mkdir -p "$releases/bindings-v0.0.0"
+          cp target/release/leanvm-sidecar "$releases/bindings-v0.0.0/${{ matrix.asset }}"
+          LEANVM_SIDECAR_RELEASES="file://$releases" sh bindings/scripts/install-sidecar.sh --version 0.0.0 --root "$RUNNER_TEMP/installed"
+          sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/installed/bin/leanvm-sidecar" "$RUNNER_TEMP/sc-installed"
 
       - uses: actions/upload-artifact@v4
         with:

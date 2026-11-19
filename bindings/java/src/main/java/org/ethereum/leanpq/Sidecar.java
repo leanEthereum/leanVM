@@ -24,13 +24,29 @@ public final class Sidecar implements AutoCloseable {
         return new Sidecar(Native.sidecarConnect(Objects.requireNonNull(socket, "socket")));
     }
 
-    /**
-     * Launches the {@code leanvm-sidecar} executable {@code binary} on {@code socket}, waits until it
-     * listens, and connects to it; {@link #close()} stops it. Its log goes to the socket's path with
-     * {@code .log} appended. Throws {@link LeanPqException} if a sidecar already listens there.
-     */
+    /** Like {@link #start(Path, Path, int)} with one thread per core. */
     public static Sidecar start(Path binary, Path socket) {
-        return new Sidecar(Native.sidecarStart(Objects.requireNonNull(binary, "binary"), Objects.requireNonNull(socket, "socket")));
+        return start(binary, socket, 0);
+    }
+
+    /**
+     * Launches the {@code leanvm-sidecar} executable {@code binary} on {@code socket} with
+     * {@code threads} threads (0: one per core), waits until it listens, and connects to it;
+     * {@link #close()} stops it. Its log goes to the socket's path with {@code .log} appended. Throws
+     * {@link LeanPqException} if a sidecar already listens there.
+     */
+    public static Sidecar start(Path binary, Path socket, int threads) {
+        if (threads < 0) {
+            throw new IllegalArgumentException("threads must not be negative");
+        }
+        return new Sidecar(Native.sidecarStart(Objects.requireNonNull(binary, "binary"), Objects.requireNonNull(socket, "socket"), threads));
+    }
+
+    /** The prover the sidecar runs: {@code "experimental"} or {@code "stable"}, which make the same proofs. */
+    public String prover() {
+        try (NativeHandle.Borrow borrowed = handle.borrow()) {
+            return Native.sidecarProver(borrowed.pointer());
+        }
     }
 
     /**
@@ -49,7 +65,7 @@ public final class Sidecar implements AutoCloseable {
             }
             List<MemorySegment> pointers = borrowed.stream().map(NativeHandle.Borrow::pointer).toList();
             // The counts come from the packed records, not from the lists, whose sizes may have changed.
-            return new Aggregate(Native.aggregate(
+            return new Aggregate(Native.sidecarAggregate(
                 sidecar.pointer(),
                 pointers,
                 xmssRecords, xmssRecords.length / (Native.CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
@@ -71,7 +87,7 @@ public final class Sidecar implements AutoCloseable {
         byte[] xmssRecords = claimRecords(Objects.requireNonNull(xmssClaims, "xmssClaims"));
         byte[] sphincsRecords = claimRecords(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
         try (NativeHandle.Borrow borrowed = handle.borrow()) {
-            return new Aggregate(Native.verifyAggregate(borrowed.pointer(),
+            return new Aggregate(Native.sidecarVerify(borrowed.pointer(),
                 bytes, xmssRecords, xmssRecords.length / Native.CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / Native.CLAIM_LENGTH));
         }
     }

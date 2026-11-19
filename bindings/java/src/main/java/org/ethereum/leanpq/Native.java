@@ -68,7 +68,8 @@ final class Native {
     private static final MethodHandle SPHINCS_VERIFY = downcall("lpq_sphincs_verify", VERIFY);
 
     private static final MethodHandle SIDECAR_CONNECT = downcall("lpq_sidecar_connect", BYTES_TO_HANDLE);
-    private static final MethodHandle SIDECAR_START = downcall("lpq_sidecar_start", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_START = downcall("lpq_sidecar_start", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_PROVER = downcall("lpq_sidecar_prover", HANDLE_TO_BUFFER);
     private static final MethodHandle SIDECAR_DESTROY = downcall("lpq_sidecar_destroy", DESTROY);
 
     private static final MethodHandle SIDECAR_AGGREGATE = downcall("lpq_sidecar_aggregate", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
@@ -171,14 +172,19 @@ final class Native {
         }
     }
 
-    static MemorySegment sidecarStart(Path binary, Path socket) {
+    static MemorySegment sidecarStart(Path binary, Path socket, int threads) {
         byte[] binaryPath = pathBytes(binary);
         byte[] socketPath = pathBytes(socket);
         try (Arena arena = Arena.ofConfined()) {
             return handle(SIDECAR_START,
                 copy(arena, binaryPath), (long) binaryPath.length,
-                copy(arena, socketPath), (long) socketPath.length);
+                copy(arena, socketPath), (long) socketPath.length,
+                (long) threads);
         }
+    }
+
+    static String sidecarProver(MemorySegment sidecar) {
+        return new String(buffer(SIDECAR_PROVER, sidecar), StandardCharsets.UTF_8);
     }
 
     static void destroySidecar(MemorySegment pointer) {
@@ -186,7 +192,7 @@ final class Native {
     }
 
     /** Records are concatenated {@code pk|msg|sig} entries of the scheme's fixed record width. */
-    static MemorySegment aggregate(MemorySegment sidecar, List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount) {
+    static MemorySegment sidecarAggregate(MemorySegment sidecar, List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount) {
         try (Arena arena = Arena.ofConfined()) {
             return handle(SIDECAR_AGGREGATE, sidecar,
                 pointerArray(arena, children), (long) children.size(),
@@ -196,7 +202,7 @@ final class Native {
     }
 
     /** Claims are concatenated 64-byte {@code pk|msg} records. */
-    static MemorySegment verifyAggregate(MemorySegment sidecar, byte[] bytes, byte[] xmssClaims, long xmssCount, byte[] sphincsClaims, long sphincsCount) {
+    static MemorySegment sidecarVerify(MemorySegment sidecar, byte[] bytes, byte[] xmssClaims, long xmssCount, byte[] sphincsClaims, long sphincsCount) {
         try (Arena arena = Arena.ofConfined()) {
             return handle(SIDECAR_VERIFY, sidecar,
                 copy(arena, bytes), (long) bytes.length,

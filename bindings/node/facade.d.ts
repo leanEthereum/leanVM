@@ -72,10 +72,13 @@ export declare class Sidecar {
   /** Connects to the sidecar listening on the Unix socket at `socket`. */
   static connect(socket: string): Promise<Sidecar>
   /**
-   * Launches the leanvm-sidecar executable at `binary` on `socket`, waits until it listens, and
-   * connects. `close` stops it. Its log goes to the socket path plus `.log`.
+   * Launches the leanvm-sidecar executable at `binary` on `socket` with `threads` threads (0, the
+   * default: one per core), waits until it listens, and connects. `close`, or this process
+   * exiting, stops it. Its log goes to the socket path plus `.log`.
    */
-  static start(binary: string, socket: string): Promise<Sidecar>
+  static start(binary: string, socket: string, threads?: number): Promise<Sidecar>
+  /** The prover the sidecar runs, `experimental` or `stable`: the same proofs, the first faster. */
+  get prover(): string
   /**
    * Proves every raw signature and every child's claims in one aggregate whose claims are their
    * union. Raw signatures are verified first; at most 16 children; empty input is rejected.

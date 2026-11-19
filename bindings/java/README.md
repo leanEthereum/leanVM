@@ -126,7 +126,7 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 ## Aggregation
 
-Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `Sidecar.connect(socket)` connects to a running sidecar; `Sidecar.start(binary, socket)` launches one, and `close()` stops it. A `Sidecar` is safe to share between threads.
+Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `Sidecar.connect(socket)` connects to a running sidecar; `Sidecar.start(binary, socket)` launches one, or `start(binary, socket, threads)` with that many threads (0, the default, is one per core), and `close()` stops it. A `Sidecar` is safe to share between threads.
 
 ```java
 import java.nio.file.Path;
@@ -152,5 +152,6 @@ try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), 
 - `aggregate(children, xmss, sphincs)` verifies every raw signature before proving, and accepts at most 16 children.
 - `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
 - `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof.
+- `prover()` names the prover the sidecar runs, `"experimental"` or `"stable"`: both make the same proofs.
 
 Every `Aggregate` was proven or verified by a sidecar.

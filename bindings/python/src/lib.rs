@@ -266,13 +266,15 @@ impl PySidecar {
     }
 
     #[classmethod]
+    #[pyo3(signature = (binary, socket, threads = 0))]
     fn start(
         _cls: &Bound<'_, PyType>,
         py: Python<'_>,
         binary: PathBuf,
         socket: PathBuf,
+        threads: usize,
     ) -> PyResult<Self> {
-        py.detach(|| lean_pq::Sidecar::start(binary, socket))
+        py.detach(|| lean_pq::Sidecar::start(binary, socket, threads))
             .map(Self::new)
             .map_err(api_error)
     }
@@ -343,6 +345,11 @@ impl PySidecar {
             sidecar.verify(data, &xmss_claims, &sphincs_claims)
         })
         .map(|inner| PyAggregate { inner })
+    }
+
+    #[getter]
+    fn prover(&self, py: Python<'_>) -> PyResult<String> {
+        self.with(py, |sidecar| Ok(sidecar.prover().to_owned()))
     }
 
     /// Closes the connection, and stops a sidecar `start` launched.

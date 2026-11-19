@@ -294,19 +294,36 @@ func ConnectSidecar(socketPath string) (*Sidecar, error) {
 	return &Sidecar{handle: handle}, nil
 }
 
-// StartSidecar launches the leanvm-sidecar executable binaryPath on socketPath, waits until it
-// listens, and connects to it; Close stops it. Its log goes to socketPath with ".log" appended. It
-// fails when a sidecar already listens on socketPath, and on platforms without Unix sockets.
-func StartSidecar(binaryPath, socketPath string) (*Sidecar, error) {
+// StartSidecar launches the leanvm-sidecar executable binaryPath on socketPath with threads threads
+// (0: one per core), waits until it listens, and connects to it; Close stops it. Its log goes to
+// socketPath with ".log" appended. It fails when a sidecar already listens on socketPath, and on
+// platforms without Unix sockets.
+func StartSidecar(binaryPath, socketPath string, threads int) (*Sidecar, error) {
+	if threads < 0 {
+		return nil, errors.New("leanpq: threads must not be negative")
+	}
 	binary := []byte(binaryPath)
 	path := []byte(socketPath)
 	var handle *C.lpq_sidecar
 	if err := call(func() C.int32_t {
-		return C.lpq_sidecar_start(bytesPointer(binary), C.size_t(len(binary)), bytesPointer(path), C.size_t(len(path)), &handle)
+		return C.lpq_sidecar_start(bytesPointer(binary), C.size_t(len(binary)), bytesPointer(path), C.size_t(len(path)), C.size_t(threads), &handle)
 	}); err != nil {
 		return nil, err
 	}
 	return &Sidecar{handle: handle}, nil
+}
+
+// Prover names the prover the sidecar runs, "experimental" or "stable": both make the same proofs.
+func (sidecar *Sidecar) Prover() (string, error) {
+	handle, release, err := sidecar.acquire()
+	if err != nil {
+		return "", err
+	}
+	defer release()
+	prover, err := bufferResult(func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_sidecar_prover(handle, output)
+	})
+	return string(prover), err
 }
 
 // Aggregate proves the union of the children's claims and the raw signatures' claims. Raw

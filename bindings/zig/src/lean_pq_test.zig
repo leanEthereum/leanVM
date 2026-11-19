@@ -57,11 +57,18 @@ fn expectLastError(expected: []const u8) !void {
     try std.testing.expectEqualStrings(expected, reason);
 }
 
+fn expectKnownProver(sidecar: *const lpq.Sidecar) !void {
+    const prover = try sidecar.prover(std.testing.allocator);
+    defer std.testing.allocator.free(prover);
+    try std.testing.expect(std.mem.eql(u8, prover, "experimental") or std.mem.eql(u8, prover, "stable"));
+}
+
 test "aggregates recursively and round trips through bytes" {
     if (builtin.os.tag == .windows) return error.SkipZigTest;
     const allocator = std.testing.allocator;
     var sidecar = try lpq.Sidecar.connect(try requiredEnv("LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar"));
     defer sidecar.deinit();
+    try expectKnownProver(&sidecar);
 
     var xmss_key = try lpq.XmssSecretKey.fromSeed([_]u8{3} ** 32);
     defer xmss_key.deinit();
@@ -147,9 +154,10 @@ test "starts and stops its own sidecar" {
     const socket = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/s.sock", .{tmp.sub_path});
     defer allocator.free(socket);
 
-    var started = try lpq.Sidecar.start(binary, socket);
+    var started = try lpq.Sidecar.start(binary, socket, 2);
     {
         errdefer started.deinit();
+        try expectKnownProver(&started);
         // Bytes that are no proof: the sidecar answers that they prove nothing.
         try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
         try expectLastError("the aggregate does not prove the given claims");
@@ -165,7 +173,7 @@ test "the sidecar needs Unix sockets" {
     const unsupported = "the leanVM sidecar needs Unix sockets, which this platform lacks";
     try std.testing.expectError(error.NativeFailure, lpq.Sidecar.connect("sidecar.sock"));
     try expectLastError(unsupported);
-    try std.testing.expectError(error.NativeFailure, lpq.Sidecar.start("leanvm-sidecar.exe", "sidecar.sock"));
+    try std.testing.expectError(error.NativeFailure, lpq.Sidecar.start("leanvm-sidecar.exe", "sidecar.sock", 0));
     try expectLastError(unsupported);
 }
 

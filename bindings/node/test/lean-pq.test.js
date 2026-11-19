@@ -123,7 +123,8 @@ test('starts and stops its own sidecar', { skip }, async () => {
   // Short: a Unix socket path holds at most 104 bytes on macOS.
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'lpq'))
   const socket = path.join(directory, 's.sock')
-  const started = await lpq.Sidecar.start(env('LEANVM_SIDECAR_BIN'), socket)
+  const started = await lpq.Sidecar.start(env('LEANVM_SIDECAR_BIN'), socket, 2)
+  assert.ok(['experimental', 'stable'].includes(started.prover))
   await started.verify(proof.toBytes(), { xmss: proof.xmssClaims })
   await started.close()
   await assert.rejects(lpq.Sidecar.connect(socket), /leanVM sidecar/)

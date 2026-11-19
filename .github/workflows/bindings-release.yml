@@ -958,3 +958,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: sh .github/scripts/attach-release-assets.sh "${{ matrix.asset }}"
+      - name: Install it through the install script, and start it
+        if: startsWith(github.ref, 'refs/tags/bindings-v')
+        run: |
+          sh bindings/scripts/install-sidecar.sh --version "${RELEASE_TAG#bindings-v}" --root "$RUNNER_TEMP/installed"
+          sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/installed/bin/leanvm-sidecar" "$RUNNER_TEMP/sc-installed"

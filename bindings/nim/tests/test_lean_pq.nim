@@ -144,6 +144,7 @@ suite "lean_pq":
         xmssPublicKey = xmssKey.publicKey().expect("public key")
         sphincsPublicKey = sphincsKey.publicKey().expect("public key")
         extraPublicKey = extraKey.publicKey().expect("public key")
+      check sidecar.prover().expect("prover") in ["experimental", "stable"]
 
       let
         xmssLeaf = sidecar.aggregate(xmss = [XmssSignedMessage(
@@ -208,9 +209,12 @@ suite "lean_pq":
       let
         socket = directory / "s.sock"
         sidecar = LeanPqSidecar.start(
-          requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable"), socket).expect("started")
-      # Bytes that are no proof: the sidecar answers that they prove nothing.
-      check sidecar.verify([0'u8]).error() == "the aggregate does not prove the given claims"
+          requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable"), socket,
+          threads = 2).expect("started")
+      check:
+        sidecar.prover().expect("prover") in ["experimental", "stable"]
+        # Bytes that are no proof: the sidecar answers that they prove nothing.
+        sidecar.verify([0'u8]).error() == "the aggregate does not prove the given claims"
 
       # Closing it stops the sidecar.
       sidecar.close()

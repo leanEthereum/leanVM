@@ -17,6 +17,8 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 class LeanPqTest {
+    private static final Set<String> PROVERS = Set.of("experimental", "stable");
+
     @Test
     void signsVerifiesAndRejectsAnotherMessage() {
         byte[] message = bytes(0x42);
@@ -55,6 +57,7 @@ class LeanPqTest {
     @DisabledOnOs(OS.WINDOWS)
     void aggregatesBothSchemesRecursively() {
         Sidecar sidecar = Shared.SIDECAR;
+        assertTrue(PROVERS.contains(sidecar.prover()));
         byte[] first = bytes(0x11);
         byte[] second = bytes(0x22);
         try (XmssSecretKey xmss = XmssSecretKey.fromSeed(bytes(5));
@@ -116,8 +119,9 @@ class LeanPqTest {
         byte[] proof = Shared.LEAF.toBytes();
         List<SignatureClaim> claims = Shared.LEAF.xmssClaims();
         Path binary = Path.of(environment("LEANVM_SIDECAR_BIN"));
-        Sidecar started = Sidecar.start(binary, socket);
+        Sidecar started = Sidecar.start(binary, socket, 2);
         try (started) {
+            assertTrue(PROVERS.contains(started.prover()));
             try (Aggregate verified = started.verify(proof, claims, List.of())) {
                 assertEquals(claims, verified.xmssClaims());
             }

@@ -109,6 +109,7 @@ func TestSecretKeysRoundTripThroughBytes(t *testing.T) {
 
 func TestAggregateRecursively(t *testing.T) {
 	sidecar := sharedSidecar(t)
+	assertProver(t, sidecar)
 	first := bytes32(0x11)
 	second := bytes32(0x22)
 	xmssKey := mustXmssKey(t, bytes32(5))
@@ -247,17 +248,18 @@ func TestStartSidecar(t *testing.T) {
 	}
 	socket := shortSocketPath(t)
 
-	started, err := StartSidecar(binary, socket)
+	started, err := StartSidecar(binary, socket, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer started.Close()
+	assertProver(t, started)
 	verified, err := started.Verify(proof, claims, nil)
 	if err != nil {
 		t.Fatalf("the started sidecar must verify a proof: %v", err)
 	}
 	verified.Close()
-	if second, err := StartSidecar(binary, socket); err == nil || !strings.Contains(err.Error(), "already listens") {
+	if second, err := StartSidecar(binary, socket, 0); err == nil || !strings.Contains(err.Error(), "already listens") {
 		second.Close()
 		t.Fatalf("a second start on the same socket = %v, want an error", err)
 	}
@@ -372,6 +374,13 @@ func shortSocketPath(t *testing.T) string {
 	}
 	t.Cleanup(func() { os.RemoveAll(directory) })
 	return filepath.Join(directory, "s.sock")
+}
+
+func assertProver(t *testing.T, sidecar *Sidecar) {
+	t.Helper()
+	if prover, err := sidecar.Prover(); err != nil || (prover != "experimental" && prover != "stable") {
+		t.Fatalf("Prover() = %q, %v; want experimental or stable", prover, err)
+	}
 }
 
 func environment(t *testing.T, name string) string {

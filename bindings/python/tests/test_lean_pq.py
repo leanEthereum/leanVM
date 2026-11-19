@@ -135,7 +135,8 @@ def test_starts_and_stops_its_own_sidecar(sidecar):
     # Short: a Unix socket path holds at most 104 bytes on macOS.
     directory = tempfile.mkdtemp(prefix="lpq")
     socket = os.path.join(directory, "s.sock")
-    with lpq.Sidecar.start(env("LEANVM_SIDECAR_BIN"), socket) as started:
+    with lpq.Sidecar.start(env("LEANVM_SIDECAR_BIN"), socket, threads=2) as started:
+        assert started.prover in ("experimental", "stable")
         started.verify(proof.to_bytes(), proof.xmss_claims)
     # Closing it stopped the sidecar, and a closed one refuses calls.
     with pytest.raises(lpq.LeanPqError, match="leanVM sidecar"):

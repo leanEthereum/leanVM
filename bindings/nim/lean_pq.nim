@@ -341,19 +341,30 @@ proc connect*(T: type LeanPqSidecar, socketPath: string): Result[LeanPqSidecar, 
   ok(LeanPqSidecar(handle: handle))
 
 proc start*(
-    T: type LeanPqSidecar, binaryPath, socketPath: string
+    T: type LeanPqSidecar, binaryPath, socketPath: string, threads: Natural = 0
 ): Result[LeanPqSidecar, string] =
-  ## Launches the `leanvm-sidecar` executable at `binaryPath` on `socketPath`, waits until it
-  ## listens, and connects; `close` stops it. Its log goes to `socketPath` plus `.log`. Fails
-  ## when a sidecar already listens there, and on Windows.
+  ## Launches the `leanvm-sidecar` executable at `binaryPath` on `socketPath` with `threads`
+  ## threads (0: one per core), waits until it listens, and connects; `close` stops it. Its log
+  ## goes to `socketPath` plus `.log`. Fails when a sidecar already listens there, and on Windows.
   var handle: ptr LpqSidecar
   ? check(lpqSidecarStart(
     pathPtr(binaryPath), csize_t(binaryPath.len),
     pathPtr(socketPath), csize_t(socketPath.len),
-    addr handle))
+    csize_t(threads), addr handle))
   if handle.isNil:
     return err("native sidecar is null")
   ok(LeanPqSidecar(handle: handle))
+
+proc prover*(sidecar: LeanPqSidecar): Result[string, string] =
+  ## The prover the sidecar runs: `experimental` or `stable`.
+  let handle = ? sidecar.nativeHandle()
+  var buffer: LpqBuffer
+  ? check(lpqSidecarProver(handle, addr buffer))
+  let bytes = ? takeBytes(buffer)
+  var name = newStringOfCap(bytes.len)
+  for value in bytes:
+    name.add char(value)
+  ok(name)
 
 proc aggregate*(
     sidecar: LeanPqSidecar,

@@ -195,19 +195,27 @@ pub const Sidecar = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
-    /// Launches the `leanvm-sidecar` executable at `binary_path` on `socket_path`, waits until it
-    /// listens, and connects; `deinit` stops it. Its log goes to `socket_path` plus `.log`. Fails
-    /// when a sidecar already listens there.
-    pub fn start(binary_path: []const u8, socket_path: []const u8) Error!Sidecar {
+    /// Launches the `leanvm-sidecar` executable at `binary_path` on `socket_path` with `threads`
+    /// threads (0: one per core), waits until it listens, and connects; `deinit` stops it. Its log
+    /// goes to `socket_path` plus `.log`. Fails when a sidecar already listens there.
+    pub fn start(binary_path: []const u8, socket_path: []const u8, threads: usize) Error!Sidecar {
         var output: ?*c.lpq_sidecar = null;
         try checkStatus(c.lpq_sidecar_start(
             bytesPtr(binary_path),
             binary_path.len,
             bytesPtr(socket_path),
             socket_path.len,
+            threads,
             &output,
         ));
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
+    /// The prover the sidecar runs: `experimental` or `stable`. The caller owns the returned slice.
+    pub fn prover(self: *const Sidecar, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_sidecar_prover(self.handle, &output));
+        return takeBuffer(allocator, output);
     }
 
     /// Closes the connection, and stops the sidecar if `start` launched it.

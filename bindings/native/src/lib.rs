@@ -165,12 +165,24 @@ pub unsafe extern "C" fn lpq_sidecar_start(
     binary_len: usize,
     path: *const u8,
     len: usize,
+    threads: usize,
     out: *mut *mut SidecarHandle,
 ) -> c_int {
     ffi(|| {
-        let sidecar = Sidecar::start(path_arg(binary, binary_len)?, path_arg(path, len)?)
+        let sidecar = Sidecar::start(path_arg(binary, binary_len)?, path_arg(path, len)?, threads)
             .map_err(|e| e.to_string())?;
         put_handle(out, SidecarHandle(sidecar), "sidecar")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_sidecar_prover(
+    sidecar: *mut SidecarHandle,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| {
+        let prover = handle(sidecar, "sidecar")?.0.prover().as_bytes().to_vec();
+        put_buffer(out, prover)
     })
 }
 

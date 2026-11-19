@@ -76,7 +76,7 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 Aggregation runs in a leanVM sidecar, a process of its own on Linux and macOS: see [the sidecar](../README.md#sidecar) for how to get and run it.
 
-`Sidecar.connect(socket_path)` connects to a running sidecar; `Sidecar.start(binary_path, socket_path)` launches one, waits until it listens and connects, and its `deinit` stops it. Calls on one `Sidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` fail with `error.NativeFailure`. With the keys and signatures of the example above:
+`Sidecar.connect(socket_path)` connects to a running sidecar; `Sidecar.start(binary_path, socket_path, threads)` launches one with `threads` threads (0: one per core), waits until it listens and connects, and its `deinit` stops it. Calls on one `Sidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` fail with `error.NativeFailure`. With the keys and signatures of the example above:
 
 ```zig
 const allocator = std.heap.page_allocator;
@@ -110,4 +110,5 @@ defer received.deinit();
 ```
 
 - `aggregate` verifies every raw signature before proving, and takes at most `max_children` (16) children, which it neither consumes nor retains.
+- `prover(allocator)` names the prover the sidecar runs: `experimental` or `stable`.
 - `verify(data, xmss_claims, sphincs_claims)` checks that the proof proves exactly those claims, in any order with a repeated claim counted once, and fails with `error.NativeFailure` otherwise, so every `Aggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the slice type `verify` takes.
