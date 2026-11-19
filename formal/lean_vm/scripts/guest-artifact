@@ -10,7 +10,8 @@
 # export the source at the artefact's current size K (`guest-export --source K`), compile it in Lean, and when the
 # program does not have 2^K slots (exit 3, `log size N`), export at N and compile again. Run from anywhere; it works in
 # lean_vm. `scripts/regen-guest.sh` runs it before `guest-export`, which then exports the artefact as the statement's
-# program.
+# program, and so does `crates/aggregation/build.rs` when a file the artefact is compiled from changed: the artefact
+# is not committed.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() jobs=()
@@ -26,8 +27,16 @@ artifact=../../guests/lean_ethereum.compiled
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 
 cargo build --release --manifest-path scripts/guest-export/Cargo.toml
-size=$(sed -n 's/^size //p' "$artifact")
-kbc=$(python3 -I -c 'import sys; n = int(sys.argv[1]); assert n & (n - 1) == 0; print(n.bit_length() - 1)' "$size")
+# The iteration starts at the artefact's size, or, on a fresh checkout (the artefact is not committed), at the
+# guest's log size when this was written: any start reaches the fixed point.
+if [ -f "$artifact" ]; then
+  size=$(sed -n 's/^size //p' "$artifact")
+  kbc=$(python3 -I -c 'import sys; n = int(sys.argv[1]); assert n & (n - 1) == 0; print(n.bit_length() - 1)' "$size")
+else
+  kbc=19
+fi
+# Mathlib's build, fetched rather than built, on a fresh checkout.
+[ -d .lake/packages/mathlib/.lake/build ] || lake exe cache get
 
 for _ in 1 2 3 4 5 6 7 8; do
   echo "==> the source at 2^$kbc"

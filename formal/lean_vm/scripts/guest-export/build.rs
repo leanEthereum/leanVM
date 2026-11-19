@@ -96,13 +96,25 @@ fn main() {
     copy_dir(&leanvm.join("guests"), &out.join("guests"));
     // The tests' Lean-compiled snippets, beside `src/` as in the crate.
     copy_dir(&crate_dir.join("snippets"), &out.join("snippets"));
-    // The guest's source and its compiled artefact sit at the repository's root, two levels above the crate: the copy
-    // reads them beside itself.
+    // The guest's source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
     let guest = out.join("src/guest.rs");
     let text = std::fs::read_to_string(&guest).unwrap();
     let from = r#"include_str!("../../../guests/"#;
-    assert_eq!(text.matches(from).count(), 2, "the guest's source and artefact are included from the root");
+    assert_eq!(text.matches(from).count(), 1, "the guest's source is included from the root");
     std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/"#)).unwrap();
+    // The compiled artefact, which `aggregation`'s own `build.rs` names: the one `scripts/guest-artifact` wrote, or,
+    // before there is one, an empty file, so that `guest-export --source` (which reads no artefact) builds and
+    // `scripts/guest-artifact` can write the first one; any other export then fails on loading it.
+    let artifact = leanvm.join("guests/lean_ethereum.compiled");
+    println!("cargo:rerun-if-changed={}", artifact.display());
+    let artifact = if artifact.is_file() {
+        artifact
+    } else {
+        let empty = out.join("no-artefact.compiled");
+        std::fs::write(&empty, "").unwrap();
+        empty
+    };
+    println!("cargo:rustc-env=LEANVM_GUEST_ARTIFACT_PATH={}", artifact.display());
 
     // The crate as this crate's module `aggregation`: `lib.rs` as the module's `mod.rs`, `crate::` paths pointed at
     // the module. The exporters, a child of it, read its submodules' private items, so every top-level item of a
