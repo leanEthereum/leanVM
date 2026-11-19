@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.Numbers
 public import LeanVM.Core
+public import LeanVM.Core.Renumber
 
 /-!
 # The readers' common pieces

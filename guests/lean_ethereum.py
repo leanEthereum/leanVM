@@ -1,5 +1,5 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
-# crates/zkdsl_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
+# crates/zkdsl/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
 # and leanSPHINCS signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
 # statement digest binding its signature claims and at most one LeanDA root: that of a
 # blob matrix it checks directly, or one of its children's, passed on.
@@ -4061,11 +4061,12 @@ def sp_word(pp, a0, a1, run, first: Const, stride: Const, j: Const):
 def sp_wots(pp, a0, a1, encoding):
     # The leaf of the one-time key whose address is (a0, a1), a1 of type WOTS_HASH and
     # so its key pair alone, and whose encoding digest is `encoding`. The codeword:
-    # DIGIT_GROUP digits at a time, hinted in the exponent, range checked and
-    # dispatched once, the arm walking every chain's remaining steps and folding its
-    # digits in: their sums into a product that must be the target sum, and the
-    # digits, each group where the digest holds it, into the digest. One function for
-    # the three layers.
+    # DIGIT_GROUP digits at a time, hinted in the exponent and range checked, every
+    # group first, then the groups' dispatches back to back (each arm entering the next
+    # dispatch, as in verify_lean_xmss), the arm walking every chain's remaining steps
+    # and folding its digits in: their sums into a product that must be the target sum,
+    # and the digits, each group where the digest holds it, into the digest. One
+    # function for the three layers.
     at = [a0, a1]
     walks = StackBuf(SP_V * CHAIN_STEPS)
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
@@ -4075,14 +4076,16 @@ def sp_wots(pp, a0, a1, encoding):
     encoded = 0
     # A leanSPHINCS chain index rides its step's address, so the chain-index table a
     # leanXMSS walk reads is unused here and `powers` stands in for it.
+    # The last group is the chain the others leave over: its table is as wide as theirs
+    # (one unrolled `match`), its range check keeping it to one digit.
+    groups = StackBuf(SP_V // DIGIT_GROUP + 1)
+    for p in unroll(0, SP_V // DIGIT_GROUP + 1):
+        hint_witness(groups[p:p + 1], "digits")
     for p in unroll(0, SP_V // DIGIT_GROUP):
-        group = hint_witness("digits")
-        assert log(group) < DIGIT_GROUPS
-        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(at, pp, walks, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
-    # The chain the groups leave over.
-    group = hint_witness("digits")
-    assert log(group) < CHAIN_LENGTH
-    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(at, pp, walks, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
+        assert log(groups[p]) < DIGIT_GROUPS
+    assert log(groups[SP_V // DIGIT_GROUP]) < CHAIN_LENGTH
+    for p in unroll(0, SP_V // DIGIT_GROUP + 1):
+        digit_product, encoded = match(log(groups[p]), range(0, DIGIT_GROUPS), lambda k: walk_group(at, pp, walks, powers, DIGIT_GROUP * p, DIGIT_GROUP - (DIGIT_GROUP - 1) * (p // (SP_V // DIGIT_GROUP)), k, 0, powers, digit_product, encoded))
     assert encoded == encoding
     assert digit_product == GEN ** SP_TARGET_SUM
     leaf = StackBuf(1)

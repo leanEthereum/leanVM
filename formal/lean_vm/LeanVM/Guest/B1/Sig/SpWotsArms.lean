@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.Sig.Merkle
 /-!
 # `sp_wots`'s arms, sound
 
-An arm of the template is the shared arm `armT spW …`, every chain step reading the padding run the
-first group sets at `spPad`. So once that run holds `[0x01, 0, 0, 0, 0]` (`padRun_ok`), the chain
-step is sound with the step function `spStepCell` (`spW_step_sound`: the first cell of the 64-byte
-hash of `pp`, `at[0]`, `at[1] + spStepC i s` and the value, `k64_sound`) and the shared arm's
-soundness (`armT_sound`) applies.
+An arm of the template is the arm `armM spW …` leanXMSS's chain shares, every chain step reading
+the padding run the body sets at `spPad`. So once that run holds `[0x01, 0, 0, 0, 0]` (`padRun_ok`),
+the chain step is sound with the step function `spStepCell` (`spW_step_sound`: the first cell of the
+64-byte hash of `pp`, `at[0]`, `at[1] + spStepC i s` and the value, `k64_sound`) and the shared
+arm's soundness (`armM_sound`) applies.
 
 * `SpArmOK`, `spArmK_sound`: what arm `k` establishes, its chain `r` started at `spStartOf … r`.
 -/
@@ -72,15 +72,15 @@ def spStartOf (_first _n : Nat) (fold : Bool) (B : Nat) (_prodIn _encIn : V) (k 
   armStart spW (spSlot fold B) fold k b r
 
 /-- **What arm `k` of a group establishes**, chain `r` starting at `start r`: each walk reaches the
-slot of its last step from its start, the product and the encoding are folded into the group's
-outputs. -/
+slot of its last step from its start, the product and the encoding (of `k`'s own `n` digits) are
+folded into the group's outputs. -/
 structure SpArmOK (σ : Val) (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat)
     (start : Nat → V) : Prop where
   tip : ∀ r < n, σ (.n (spSlot fold B r 2)) =
     chainT (spStepCell (σ (.n 0)) (σ (.n 4)) (σ (.n 5))) (first + r) (3 - k / 4 ^ r % 4)
       (k / 4 ^ r % 4) (σ (start r))
   prod : σ (.n (spProd fold n B)) = (if fold then 1 else σ prodIn) * σ (.n (6 + digitSum k n))
-  enc : σ (.n (spEnc fold n B)) = (if fold then 0 else σ encIn) + lit (spDigitsC first n k)
+  enc : σ (.n (spEnc fold n B)) = (if fold then 0 else σ encIn) + lit (spDigitsC first n (k % 4 ^ n))
 
 theorem digitSum_le_three (k : Nat) : ∀ n, digitSum k n ≤ 3 * n
   | 0 => le_refl _
@@ -98,7 +98,7 @@ with its chains started at `spStartOf`. -/
 theorem spArmK_sound {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} {k b : Nat}
     (hp : PadOK σ spPad) (h : AtomsHold rd σ (spArmK first n fold B prodIn encIn k b).1) :
     SpArmOK σ first n fold B prodIn encIn k (spStartOf first n fold B prodIn encIn k b) :=
-  let ha := armT_sound (spW_step_sound (rd := rd) hp) h
+  let ha := armM_sound (spW_step_sound (rd := rd) hp) h
   ⟨ha.tip, ha.prod, ha.enc⟩
 
 end

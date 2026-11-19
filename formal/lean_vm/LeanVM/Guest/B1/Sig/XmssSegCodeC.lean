@@ -18,8 +18,8 @@ public import LeanVM.Guest.B1.Sig.XmssBound
 * `armM_c` … `sCodewordT_c`, `sSt_c`, `sStart_c`, `sTip_c`: the codeword with `sW` is the one with
   the clamped step `sWc` (the chains `< 58`, the steps `< 3`, the powers `≤ 12` it uses);
 * `sgState_eq_sSt`: the groups' state, as the soundness proof names it;
-* `armsM_numBelow`, `sGroupArms_numBelow`: a dispatch's values are numbered below its end (the
-  tail's arms `≥ 16` are `armT`'s values or fewer);
+* `sGroupMatch_numBelow`: a dispatch's values are numbered below its end (`armsM_numBelow`,
+  `WotsChainComplete`: the tail's arms `≥ 16` are `armT`'s values or fewer);
 * `sGroups_complete`: the dispatches complete in sequence, each by the arm of its honest digits;
 * `sCodewordT_complete`: the codeword completes.
 -/
@@ -120,142 +120,6 @@ theorem sgState_eq_sSt (W : WotsT) (v0 : Nat) : ∀ p, sgState W v0 p = sSt W v0
 
 /-! ## A dispatch's values, numbered below its end -/
 
-/-- The arms of a group's dispatch are numbered below its end. -/
-theorem groupArmsT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {fold : Bool}
-    {prodIn encIn : V} {b : Nat} (hB : B ≤ b + 6) (hpi : NBv (b + 6) prodIn) (hei : NBv (b + 6) encIn)
-    (hpw : ∀ j, NBv (b + 6) (W.power j)) :
-    NumBelow (armB W first n fold prodIn encIn b (4 ^ n))
-      (Stmt.valsArms (groupArmsT W first n fold prodIn encIn b).1) := by
-  have h := groupD_numBelow (pre := []) (d := b) (first := first) (n := n) (fold := fold) hW hB le_rfl
-    (.nil _) hpi hei (fun _ _ => hpw _)
-  have hend : (groupD W first n fold prodIn encIn b [] b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
-    simp only [groupD, groupArmsT]; rw [armsT_snd]; rfl
-  rw [hend] at h
-  intro v hv
-  refine h v (mem_valsList_of_mem (s := .match_ (.n b) (groupArmsT W first n fold prodIn encIn b).1)
-    (by simp [groupD]) (List.mem_cons_of_mem _ hv))
-
-theorem armM_snd_pos (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat)
-    (prodIn encIn prodOut encOut : V) {k : Nat} (hk : k ≠ 0) (a : Nat) :
-    (armM W slots first n false prodIn encIn prodOut encOut k a).2 =
-      if k % 4 ^ n = 0 then walkBase W.size k 0 n a else walkBase W.size k 0 n a + 1 := by
-  unfold armM
-  by_cases h : k % 4 ^ n = 0 <;> simp [h, hk, walksT_snd]
-
-theorem armM_snd_gt (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat)
-    (prodIn encIn prodOut encOut : V) {k : Nat} (hk : k ≠ 0) (hn : 1 ≤ n) (a : Nat) :
-    a + 1 ≤ (armM W slots first n false prodIn encIn prodOut encOut k a).2 := by
-  rw [armM_snd_pos W slots first n prodIn encIn prodOut encOut hk a, walkBase_eq]
-  split
-  · rename_i h0
-    obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-    have h4 : k % 4 = 0 := by
-      have : k % 4 ^ (n' + 1) % 4 = k % 4 :=
-        Nat.mod_mod_of_dvd k (Dvd.intro_left (4 ^ n') (by rw [pow_succ]))
-      rw [← this, h0]
-    have hw : walkSum W.size k 0 (n' + 1) = walkSize W.size (dig k 0) + walkSum W.size k 1 n' := rfl
-    have hd : dig k 0 = 0 := by simp [dig, h4]
-    rw [hw, hd, walkSize]
-    simp only [show ¬ (0 = 3) from by omega, ↓reduceIte]
-    omega
-  · omega
-
-theorem armM_vals_sub (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) {k : Nat} (hk : k ≠ 0) (a : Nat) {x : V}
-    (hx : x ∈ Stmt.valsList (armM W slots first n fold prodIn encIn prodOut encOut k a).1) :
-    x ∈ Stmt.valsList (armT W slots first n fold prodIn encIn prodOut encOut k a).1 := by
-  unfold armM at hx
-  unfold armT
-  cases fold <;> simp only [hk, ↓reduceIte, Bool.false_eq_true] at hx ⊢
-  · split at hx <;>
-      simp only [valsList_append, List.mem_append, valsList_cons, valsList_nil, List.append_nil, copyS, cst,
-        addS, mulS, Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢ <;> tauto
-  · simp only [valsList_append, List.mem_append, valsList_cons, valsList_nil, List.append_nil, copyS,
-      Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢
-    tauto
-
-/-- **A later arm's values**, `fold = false`, are numbered below any bound past its walks. -/
-theorem armT_numBelow_pos {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {prodIn encIn : V}
-    {vb k a E : Nat} (hB : B ≤ vb + 6) (hk : k ≠ 0)
-    (ha : groupStart false vb + chainStride W * n + 2 ≤ a) (hE : walkBase W.size k 0 n a + 1 ≤ E)
-    (hpi : NBv (vb + 6) prodIn) (hei : NBv (vb + 6) encIn) (hpw : NBv (vb + 6) (W.power (digitSum k n))) :
-    NumBelow E (Stmt.valsList (armT W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-      (encT W false n vb) k a).1) := by
-  have hW' := StepShape.mono hW hB
-  have hgs : vb + 6 ≤ groupStart false vb := by simp [groupStart]
-  have hwb := walkBase_le W.size k a (Nat.zero_le n)
-  simp only [walkBase] at hwb
-  obtain ⟨l1, l2, l3⟩ := armPos_lay W false (B := vb + 6) (n := n) (k := k) (a := a) le_rfl ha
-  have hP1 : ∀ x, NBv (vb + 6) x → ∃ j < E, x = .n j := by
-    rintro x ⟨j, hj, rfl⟩; exact ⟨j, by omega, rfl⟩
-  refine armT_vals hW' (by simpa [hk] using l1) (by simpa [hk] using l2) hP1 (fun x hx => ?_)
-    ⟨?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ hpw, fun _ => ?_⟩
-  · obtain ⟨j, rfl, h⟩ := l3 x (by simpa [hk] using hx)
-    rcases h with h | h
-    · exact ⟨j, by omega, rfl⟩
-    · exact ⟨j, by omega, rfl⟩
-  · exact ⟨_, by omega, rfl⟩
-  · exact ⟨_, by omega, rfl⟩
-  · rw [walksT_snd]
-    exact ⟨_, by simpa using hE, rfl⟩
-
-/-- **The arms `k ..< k + m` of a dispatch, `fold = false`, past arm `0`**, ending at a multiple of
-`4^n`, are numbered below their end. -/
-theorem armsM_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {prodIn encIn : V}
-    {vb : Nat} (hn : 1 ≤ n) (hB : B ≤ vb + 6) (hpi : NBv (vb + 6) prodIn) (hei : NBv (vb + 6) encIn)
-    (hpw : ∀ j, NBv (vb + 6) (W.power j)) : ∀ m k a, k ≠ 0 → (k + m) % 4 ^ n = 0 →
-    groupStart false vb + chainStride W * n + 2 ≤ a →
-    NumBelow (armsM W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb) (encT W false n vb)
-      m k a).2 (Stmt.valsArms (armsM W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-        (encT W false n vb) m k a).1)
-  | 0, _, _, _, _, _ => NumBelow.nil _
-  | m + 1, k, a, hk, hm, ha => by
-      have hN : 2 ≤ 4 ^ n := le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hn)
-      simp only [armsM, hk, ↓reduceIte, Stmt.valsArms]
-      set a' := (armM W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb) (encT W false n vb)
-        k a).2 with ha'
-      have hge := armM_snd_ge W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-        (encT W false n vb) k a
-      have hrest := armsM_snd_ge W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-        (encT W false n vb) m (k + 1) a'
-      have hsnd := armM_snd_pos W (slotsT W false vb) first n prodIn encIn (prodT W false n vb)
-        (encT W false n vb) hk a
-      -- arm `k`'s walks end below the rest's end
-      have hE : walkBase W.size k 0 n a + 1 ≤ (armsM W (slotsT W false vb) first n false prodIn encIn
-          (prodT W false n vb) (encT W false n vb) m (k + 1) a').2 := by
-        by_cases h0 : k % 4 ^ n = 0
-        · simp only [h0, ↓reduceIte] at hsnd
-          obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := by
-            refine ⟨m - 1, ?_⟩
-            rcases Nat.eq_zero_or_pos m with h | h
-            · subst h
-              exfalso
-              rw [Nat.add_mod, h0, Nat.zero_add, Nat.mod_mod, Nat.mod_eq_of_lt (by omega)] at hm
-              omega
-            · omega
-          simp only [armsM]
-          have h1 := armM_snd_gt W (slotsT W false vb) first n prodIn encIn (prodT W false n vb)
-            (encT W false n vb) (show k + 1 ≠ 0 by omega) hn a'
-          have h2 := armsM_snd_ge W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-            (encT W false n vb) m' (k + 1 + 1)
-            (if k + 1 = 0 then (armM W (slotsT W false vb) first n false prodIn encIn (prodT W false n vb)
-              (encT W false n vb) (k + 1) a').2 + 2 else (armM W (slotsT W false vb) first n false prodIn encIn
-                (prodT W false n vb) (encT W false n vb) (k + 1) a').2)
-          simp only [show k + 1 ≠ 0 by omega, ↓reduceIte] at h2 ⊢
-          omega
-        · simp only [h0, ↓reduceIte] at hsnd
-          omega
-      refine NumBelow.append ?_ (armsM_numBelow hW hn hB hpi hei hpw m (k + 1) a' (by omega)
-        (by rw [show k + 1 + m = k + (m + 1) by omega]; exact hm) (by omega))
-      intro x hx
-      exact armT_numBelow_pos hW hB hk ha hE hpi hei (hpw _) x
-        (armM_vals_sub _ _ _ _ _ _ _ _ _ hk a hx)
-
-theorem valsArms_append : ∀ (xs ys : List (List Stmt)),
-    Stmt.valsArms (xs ++ ys) = Stmt.valsArms xs ++ Stmt.valsArms ys
-  | [], _ => rfl
-  | x :: xs, ys => by simp only [List.cons_append, Stmt.valsArms, valsArms_append xs ys, List.append_assoc]
-
 /-- A group's arms end past `armB … (4^n)`. -/
 theorem sGroupArms_end_ge (W : WotsT) {p : Nat} (hp : p ≤ 14) (prodIn encIn : V) (vb : Nat) :
     armB W (4 * p) (lxN p) (p == 0) prodIn encIn vb (4 ^ lxN p) ≤ (sGroupArms W p prodIn encIn vb).2 := by
@@ -281,12 +145,12 @@ theorem sGroupMatch_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {p vb d 
   simp only [valsList_cons, valsList_nil, List.append_nil, Stmt.vals]
   refine NumBelow.cons ⟨d, by omega, rfl⟩ ?_
   rcases Nat.lt_or_ge p 14 with hp' | hp'
-  · have h := groupArmsT_numBelow (first := 4 * p) (n := 4) (fold := p == 0) hW hB hpi hei hpw
+  · have h := groupArmsT_numBelow (first := 4 * p) (n := 4) (fold := p == 0) hW hB hpi hei (fun _ => hpw _)
     rw [sGroupArms_four_snd W hp', sGroupArms_four W hp']
     simpa only [groupArmsT, show (4 : Nat) ^ 4 = 256 by norm_num] using h
   · obtain rfl : p = 14 := by omega
-    have h1 := groupArmsT_numBelow (first := 56) (n := 2) (fold := false) hW hB hpi hei hpw
-    have h2 := armsM_numBelow (first := 56) (n := 2) hW (by norm_num) hB hpi hei hpw 240 16
+    have h1 := groupArmsT_numBelow (first := 56) (n := 2) (fold := false) hW hB hpi hei (fun _ => hpw _)
+    have h2 := armsM_numBelow (first := 56) (n := 2) hW (by norm_num) hB hpi hei (fun _ => hpw _) 240 16
       (armB W 56 2 false prodIn encIn vb 16) (by norm_num) (by norm_num)
       (armB_pos W 56 2 false prodIn encIn vb (by norm_num))
     have h1' : NumBelow (armB W 56 2 false prodIn encIn vb 16) (Stmt.valsArms (armsT W (slotsT W false vb) 56 2
@@ -543,16 +407,6 @@ theorem sGroups_vals {σ : Val} {W : WotsT} {f : Nat → Nat → E → E} (hs : 
           rw [this, ih (by omega), ← lx_enc_step K hp]
           rfl
     rw [hen 14 (by omega), lx_enc_total]
-
-theorem armBaseM_eq (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) : ∀ k j b, k + j ≤ 4 ^ n →
-    armBaseM W slots first n fold prodIn encIn prodOut encOut k j b =
-      armBase W slots first n fold prodIn encIn prodOut encOut k j b
-  | _, 0, _, _ => rfl
-  | k, j + 1, b, h => by
-      simp only [armBaseM, armBase]
-      rw [armM_eq W slots first n fold prodIn encIn prodOut encOut b (show k < 4 ^ n by omega),
-        armBaseM_eq W slots first n fold prodIn encIn prodOut encOut (k + 1) j _ (by omega)]
 
 /-- Chain `i`'s start, read with the honest digits, is its start in the arm of those digits. -/
 theorem sStart_eq_sgPos (W : WotsT) (σ : Val) {dg v0 : Nat} {K : Nat → Nat} (hK : ∀ p < 15, K p < 4 ^ lxN p)

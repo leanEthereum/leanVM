@@ -96,6 +96,7 @@ import LeanVM.Guest.B1.Sig.SphincsStagesComplete
 import LeanVM.Guest.B1.Sig.SphincsT
 import LeanVM.Guest.B1.Sig.SphincsTopComplete
 import LeanVM.Guest.B1.Sig.WotsArm
+import LeanVM.Guest.B1.Sig.WotsChainComplete
 import LeanVM.Guest.B1.Sig.WotsComplete
 import LeanVM.Guest.B1.Sig.WotsCongr
 import LeanVM.Guest.B1.Sig.WotsGroup
