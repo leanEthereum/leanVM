@@ -334,6 +334,121 @@ theorem monoS_fr {G : Mode.Sig} {n : ℕ} {ent : Bool} {q : ℕ} (h : hpSlot G n
     monoS G n ent ⟨0, 0, [(.fr q, 1)]⟩ = true := by
   simpa [monoS, hpSlot] using h
 
+
+/-! ## Runs over one pointer base -/
+
+theorem bsVal_hpSplit {s : St} : ∀ {bs : List (Mode.Base × ℕ)} {q d : ℕ} {rest : List (Mode.Base × ℕ)},
+    hpSplit bs = some ((q, d), rest) → ∀ {v : E}, BsVal s bs v →
+      ∃ u w, BaseVal s (.hp q d) u ∧ BsVal s rest w ∧ v = u * w
+  | [], _, _, _, h, _, _ => by simp [hpSplit] at h
+  | (.hp q' d', e) :: bs, q, d, rest, h, v, hv => by
+    simp only [hpSplit, Bool.cond_eq_ite, Bool.and_eq_true, Nat.beq_eq] at h
+    split_ifs at h with hc
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
+    obtain ⟨u, w, hu, hw, rfl⟩ := hv
+    rw [hc.1]
+    exact ⟨u, w, hu, hw, by simp⟩
+  | (.fr o, e) :: bs, q, d, rest, h, v, hv => by
+    simp only [hpSplit, Option.map_eq_some_iff] at h
+    obtain ⟨⟨p1, p2⟩, hp, he⟩ := h
+    simp only [Prod.mk.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    obtain ⟨a, b, ha, hb, rfl⟩ := hv
+    obtain ⟨u, w, hu, hw, rfl⟩ := bsVal_hpSplit hp hb
+    exact ⟨u, a ^ e * w, hu, ⟨a, w, ha, hw, rfl⟩, by ring⟩
+
+/-- **A run over one pointer base written is its run at the cell's word written** (`rngQ`; the word read on the
+reference), in a memory agreeing with the reference, its frame cells holding their slots' words. -/
+theorem rw_slotQ {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s.mem (refMem img)) {ws : List E}
+    {r : Mode.Rng} {c : CCell} {q : CRun} (hr : rngQ r = some (c, q))
+    (hc : ∀ q' d bs, hpSplit r.q.bs = some ((q', d), bs) →
+      SlotEq s ws ((.fr q', 1) :: (bs ++ idxB r.lo ++ idxB r.hi)))
+    (h : RW s r) : ∀ x, (∃ w, img.read (c.addrW (slotW ws)) = some w ∧
+      RunSetB (slotW ws) w q.base q.stride (idxC q.lo) (idxC q.hi) x) → WrK s.mem x := by
+  unfold rngQ at hr
+  split at hr
+  · rename_i q' d bs hsp
+    simp only [Bool.cond_eq_ite, decide_eq_true_eq] at hr
+    split_ifs at hr with h2
+    obtain ⟨q0, hq0, he⟩ := Option.map_eq_some_iff.mp hr
+    simp only [Prod.mk.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    have hsl := hc q' d bs hsp
+    obtain ⟨lo, hi, c0, hlo, hhi, hmc, rfl⟩ := rngX_spec hq0
+    rintro x ⟨w, hw, ylo, yhi, j, h1, h2', h3, h4, rfl⟩
+    obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := h
+    have hsl' : SlotEq s ws (bs ++ idxB r.lo ++ idxB r.hi) := fun b hb ↦ hsl b (List.mem_cons_of_mem _ hb)
+    obtain ⟨hc1, hc3⟩ := slotEq_app hsl'
+    obtain ⟨hcq, hc2⟩ := slotEq_app hc1
+    have e1 := idxVal_rep hlo hc2 hil h1
+    have e2 := idxVal_rep hhi hc3 hih h2'
+    subst e1 e2
+    obtain ⟨y, hy, hyw⟩ := hall j h3 h4
+    obtain ⟨w0, hbs, rfl⟩ := hv
+    obtain ⟨u, wr, hu, hwr, rfl⟩ := bsVal_hpSplit hsp hbs
+    obtain ⟨p, x0, hp, hx0, hu'⟩ := hu
+    obtain ⟨o, ho, -, hget⟩ := hsl _ List.mem_cons_self
+    simp only [Mode.Base.fr.injEq] at ho
+    subst ho
+    have hpw : p = slotW ws (q' - 2) := hget p hp
+    have hadr : (⟨[(q' - 2, 1)], d⟩ : CCell).addrW (slotW ws) = g ^ x0 := by
+      rw [← hx0.1, hpw]
+      simp [CCell.addrW, CCell.valW, prodW, addressOfIndex, limb0_mul_ofK]
+    rw [hadr] at hw
+    have hrm := (refRd_img hκ img x0 w (by have := hx0.2; unfold maxCells at this; omega) hw).2
+    have huw : u = w := by rw [← hrm]; exact (ha.get _ _ hu').symm
+    subst huw
+    have hmv : MonoVal s ⟨r.q.fp, r.q.k, bs⟩ (ofK (g ^ s.fp) ^ r.q.fp * ofK (g ^ r.q.k) * wr) := ⟨wr, hwr, rfl⟩
+    have hrest := monoVal_slot hmc hcq hmv
+    refine wrk_names (x := y) ?_ hyw
+    have : ofK (g ^ s.fp) ^ r.q.fp * ofK (g ^ r.q.k) * (u * wr) * ofK (g ^ (r.S * j + r.d)) =
+        u * ((ofK (g ^ s.fp) ^ r.q.fp * ofK (g ^ r.q.k) * wr) * ofK (g ^ (r.S * j + r.d))) := by ring
+    rw [this, hrest, run_cell, ← mul_assoc] at hy
+    exact hy
+  · cases hr
+
+/-- **A pointer fact a guaranteed run over one pointer base gives is written** (`hpRunIn`): its offsets' cells past
+the word at its cell (read on the reference), in a memory agreeing with the reference. -/
+theorem hpRun_wr {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s.mem (refMem img)) {ws : List E}
+    {G : Mode.Sig} {n : ℕ} {p : CCell × List ℕ} (hp : hpRunIn G n p = true)
+    (hR : ∀ r ∈ G.postR, RW s r) (hSE : ∀ {m0 : Mode.Mono}, monoS G n false m0 = true → SlotEq s ws m0.bs)
+    {w : E} (hw : img.read (p.1.addrW (slotW ws)) = some w) {o : ℕ} (ho : o ∈ p.2) :
+    WrK s.mem (w.limb 0 * addressOfIndex o) := by
+  obtain ⟨r, hr, hrr⟩ := List.any_eq_true.mp hp
+  cases hq : hpRunOf r with
+  | none => simp [hq] at hrr
+  | some x =>
+    obtain ⟨q, d, lo, hi⟩ := x
+    obtain ⟨hrq, hlo, hhi⟩ := hpRunOf_spec hq
+    simp only [hq, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, List.mem_range, Nat.beq_eq] at hrr
+    obtain ⟨⟨hsl, hpb⟩, hos⟩ := hrr
+    obtain ⟨t, ht, rfl⟩ := hos o ho
+    rw [CCell.beq_eq hpb] at hw
+    obtain ⟨vq, xlo, xhi, hv, hil, hih, hall⟩ := hR _ hr
+    rw [hlo] at hil
+    rw [hhi] at hih
+    simp only [IdxVal] at hil hih
+    subst xlo xhi
+    obtain ⟨y, hy, hyw⟩ := hall (lo + t) (by omega) (by omega)
+    rw [hrq] at hv
+    obtain ⟨pp, x, u, hpp, hx, hu, rfl⟩ := hp_val hv
+    obtain ⟨o', ho', -, hget⟩ := hSE (monoS_fr hsl) _ List.mem_cons_self
+    simp only [Mode.Base.fr.injEq] at ho'
+    subst ho'
+    have hpw : pp = slotW ws (q - 2) := hget pp hpp
+    have hadr : (⟨[(q - 2, 1)], d⟩ : CCell).addrW (slotW ws) = g ^ x := by
+      rw [← hx.1, hpw]
+      simp [CCell.addrW, CCell.valW, prodW, addressOfIndex, limb0_mul_ofK]
+    rw [hadr] at hw
+    have hrm := (refRd_img hκ img x w (by have := hx.2; unfold maxCells at this; omega) hw).2
+    have huw : u = w := by rw [← hrm]; exact (ha.get _ _ hu).symm
+    subst huw
+    refine ⟨y, ?_, hy.2, hyw⟩
+    rw [← hy.1, limb0_mul_ofK, limb0_mul_ofK]
+    simp only [addressOfIndex, pow_add, mul_assoc]
+    ring
+
 end
 
 end LeanVM.Guest.CoreMode

@@ -204,8 +204,8 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«g_power_of_word».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«grind_check__L13».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩,
+      .inr (list_mem% 5),
       .inr (list_mem% 6),
-      .inr (list_mem% 7),
       .inl ⟨_, Fn.«open_stacked__L0».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«open_stacked__L10».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«open_stacked__L1».modeCert_in, rfl, rfl, rfl⟩,
@@ -230,8 +230,8 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«squeeze_point_from__L28».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«squeeze_point_from__L29».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«squeeze_point_from__L30».modeCert_in, rfl, rfl, rfl⟩,
-      .inr (list_mem% 0),
-      .inr (list_mem% 1),
+      .inl ⟨_, Fn.«verify_bus_gkr».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«verify_keccak».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«verify_tables».modeCert_in, rfl, rfl, rfl⟩]]
 
 end

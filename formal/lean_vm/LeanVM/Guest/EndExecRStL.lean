@@ -291,6 +291,11 @@ def vkCurV (s : ℕ) : ℕ := if s = 0 then stepT0 0 (vkB 0) + 1 else vkCurA s
 theorem vkStepsT_eq : vkStepsT = ((List.range 12).map vkStep).flatten :=
   stmtsEqb_sound (by decide +kernel)
 
+/-- Step `s`'s returned cursor, the value `CoreMode.vkCurs` names. -/
+theorem vkCall_rets : (List.range 12).all (fun s ↦ (vkCall s).2.2.getD 5 (.n 0) ==
+    .n ([489, 524, 558, 601, 642, 685, 718, 759, 797, 840, 881, 921].getD s 0)) = true := by
+  decide +kernel
+
 /-- The calls' cursors, rates and streams at their places, each step's returned cursor the next
 one's cursor. -/
 theorem vkCall_facts : (List.range 12).all (fun s ↦ (vkCall s).2.1.length == 16 &&

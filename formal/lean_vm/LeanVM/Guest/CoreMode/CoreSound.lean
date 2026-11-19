@@ -3613,7 +3613,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                   exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
           -- a callee of a mode contract, through `fitB`
           have hCn : Ct s'.pc = none := by rw [hCtt]; simp [hcAt, hl]
-          simp only [callOkC, hl, fitB, Bool.and_eq_true, List.isEmpty_iff, List.contains_iff_mem,
+          simp only [callOkC, hl, fitB, Bool.and_eq_true, List.contains_iff_mem,
             List.all_eq_true] at hfit
           obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, ⟨hhretM, hhpostQ⟩⟩, hGpre⟩, hGpb⟩, hGpreR⟩,
             hhpost⟩, hhpostR⟩, hhgh⟩, hpa⟩ := hfit
@@ -3865,8 +3865,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                   (List.mem_append.mp hr).elim (hR.2.2.1 r) (hL r)
                 have hPL : ∀ q ∈ G.postP ++ G.postLP, Mode.PW (Mode.stOf m s'.fp) q.1 q.2 := fun q hq ↦
                   (List.mem_append.mp hq).elim (hR.2.2.2.1 q) (hLP q)
-                replace hwe := hwe.imp_right fun h ↦ h.resolve_right fun ⟨q, hq, _⟩ ↦ by rw [hhpostQ] at hq; cases hq
-                rcases hwe with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | (⟨p, hp, hps⟩ | ⟨p, hp, a, ha', hpa⟩)
+                rcases hwe with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | (⟨p, hp, hps⟩ | ⟨p, hp, a, ha', hpa⟩) |
+                  ⟨p, hp, w', hw', hrs⟩
                 · rcases Bool.or_eq_true_iff.mp (hhpost c hc) with h | h
                   · obtain ⟨m0, hm0', hmc⟩ := List.any_eq_true.mp h
                     rw [Bool.and_eq_true] at hmc
@@ -3929,7 +3929,12 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                         hm' rfl (hRL r' hr')) y hx
                     · cases hrq
                 · obtain ⟨w', hw', o, ho, rfl⟩ := hps
-                  have hall := hhpostP p hp
+                  rcases Bool.or_eq_true_iff.mp (hhpostP p hp) with hall | hall
+                  swap
+                  · -- a pointer fact a guaranteed run over one pointer base gives (`hpRunIn`)
+                    rw [hrd2] at hw'
+                    exact hpRun_wr hκ ham' hall (fun r hr ↦ Mode.RW.mono (s := Mode.stOf m s'.fp)
+                      (s' := Mode.stOf m' s'.fp) hm' rfl (hR.2.2.1 r hr)) hSE hw' ho
                   unfold hpAll at hall
                   obtain ⟨m0, hm0', hmm⟩ := List.any_eq_true.mp (List.all_eq_true.mp hall o ho)
                   split at hmm
@@ -3954,6 +3959,14 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                       (Mode.PW.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp) hm' rfl (hPL r' hr'))
                       y ⟨a, ha', hpa⟩
                   · cases hrq
+                · -- a run at a cell's word, one of the guaranteed runs over one pointer base (`rngQIn`)
+                  obtain ⟨r', hr', hrq⟩ := List.any_eq_true.mp (hhpostQ p hp)
+                  rw [Bool.and_eq_true, decide_eq_true_eq] at hrq
+                  obtain ⟨hq, hsl⟩ := hrq
+                  rw [hrd2] at hw'
+                  exact rw_slotQ (c := p.1) (q := p.2) hκ ham' hq (fun q' d bs hs ↦ by rw [hs] at hsl; exact hSE hsl)
+                    (Mode.RW.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp) hm' rfl (hR.2.2.1 r' hr'))
+                    y ⟨w', hw', hrs⟩
               · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
                 exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
 

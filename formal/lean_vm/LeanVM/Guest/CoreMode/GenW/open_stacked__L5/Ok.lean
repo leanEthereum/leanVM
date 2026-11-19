@@ -23,8 +23,8 @@ theorem head_ok : headOkF Fn.«open_stacked__L5».pows sigW core hcert st0 = tru
   simp only [headOkF, withCx_cx hcx]
   decide +kernel
 
-/-- Statements 447 to the end. -/
-theorem last_ok : lastOkF Fn.«open_stacked__L5».pows sigW core hcert 447 st1 = true := by
+/-- Statements 449 to the end. -/
+theorem last_ok : lastOkF Fn.«open_stacked__L5».pows sigW core hcert 449 st1 = true := by
   simp only [lastOkF, withCx_cx hcx]
   decide +kernel
 
@@ -39,7 +39,7 @@ namespace LeanVM.Guest.Fn.«open_stacked__L5»
 theorem heap_okW : CoreMode.heapOkC Fn.«open_stacked__L5».pows
     (fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})
     core hcert = true :=
-  CoreMode.heapOkC_of_winsF (l := [(447, HeapWG.st1)]) HeapWG.head_ok
+  CoreMode.heapOkC_of_winsF (l := [(449, HeapWG.st1)]) HeapWG.head_ok
     ⟨HeapWG.win0, by omega,
     trivial⟩ rfl HeapWG.last_ok
 

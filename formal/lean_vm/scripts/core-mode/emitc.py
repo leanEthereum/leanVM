@@ -605,7 +605,82 @@ class Solver:
         w = self.back(st, c)
         if w is not None:
             return w
-        return self.cursor(st, c)
+        w = self.cursor(st, c)
+        if w is not None or depth or 'der' not in I.F:
+            return w
+        # a run in scope made up for the read (`ptOkD`)
+        return self.der(st, c)
+
+    def der_cands(self, st, c):
+        """Runs `⟨B, 1, g^0, J·g⟩` for `c = B·J`, `B` a run's base in scope (`der`)."""
+        out = []
+        for r in sorted(st.rs, reverse=True):
+            B = st.rs[r][0]
+            if any(C.expOf(c[0], b) < e for b, e in B[0]) or c[1] < B[1]:
+                continue
+            J = (tuple((b, e - C.expOf(B[0], b)) for b, e in c[0] if e > C.expOf(B[0], b)), c[1] - B[1])
+            Q = (B, 1, ((), 0), C.cshift(J, 1))
+            if J[0] and Q not in out:
+                out.append(Q)
+        return out
+
+    def der(self, st, c):
+        """`der Q res ws`: `c` in a run `Q` not in scope, which its witnesses `ws` make up (`ptOkD`)."""
+        if getattr(self, '_in_der', False):
+            return None
+        self._in_der = True
+        try:
+            for Q in self.der_cands(st, c):
+                f = self.in_run(st, Q, c)
+                if f is None:
+                    continue
+                ws = self.run(st, Q)
+                if ws is None:
+                    continue
+                self.stats['der'] += 1
+                return ('der', Q, f, tuple(ws))
+        finally:
+            self._in_der = False
+        return None
+
+    def drv(self, st, Q):
+        """`drv R res`: a needed run `Q` inside a run `R` its witnesses make up (`runOkD`), `R = ⟨B, 1, g^0, H⟩` from
+        `Q`'s base's runs in scope."""
+        if getattr(self, '_in_der', False):
+            return None
+        self._in_der = True
+        try:
+            base, S, lo, hi = Q
+            cands = []
+            for r in sorted(st.rs, reverse=True):
+                B = st.rs[r][0]
+                if any(C.expOf(base[0], b) < e for b, e in B[0]) or base[1] < B[1]:
+                    continue
+                for a, b in st.eqs:
+                    for H in (a, b):
+                        R = (B, 1, ((), 0), H)
+                        if R not in cands:
+                            cands.append(R)
+                cands.append((B, 1, ((), 0), C.cshift(hi, 1)))
+            for R in cands:
+                ws = self.run(st, R)
+                if ws is None:
+                    continue
+                F = self.X.facts(st.env, [])
+                if C.runRun(F, st.eqs, Q, R):
+                    self.stats['drv'] += 1
+                    return [('drv', R, [])] + ws
+                # a residual `subR Q R` (under the site's path)
+                g = tuple(dict.fromkeys(self.X.path))
+                q, Rr = (base, S, self.idx(st, lo), self.idx(st, hi)), (R[0], 1, ('num', 0), self.idx(st, R[3]))
+                if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
+                    continue
+                res = ('subR', q, Rr)
+                self.stats['drvR'] += 1
+                return [('drv', R, [self.use(('drv', q, Rr, g), ('under', g, res) if g else res)])] + ws
+        finally:
+            self._in_der = False
+        return None
 
     def cursor(self, st, c):
         """`c = v·g^o`, `v` a word returned by a call one of whose arguments is the base of a long hint's run in scope
@@ -785,6 +860,9 @@ class Solver:
         w = self.negshift(st, Q)
         if w is not None:
             return w
+        w = self.negshiftR(st, Q) if 'der' in I.F else None
+        if w is not None:
+            return w
         w = self.coarse(st, Q)
         if w is not None:
             return w
@@ -827,6 +905,30 @@ class Solver:
             res = ('subR', q, Rr)
             self.stats['negshift'] += 1
             return [('run', r, [self.use(('negshift', q, Rr, g), ('under', g, res) if g else res)])]
+        return None
+
+    def negshiftR(self, st, Q):
+        """`Q = ⟨B·g^k, 1, g^0, X·v⟩`, `v` a constant `g^-k`, and a run `⟨B, 1, g^0, X⟩` in scope: the same cells
+        (`negshift`'s other side), the residual `subR Q R` stated (under the site's path)."""
+        base, S, lo, hi = Q
+        if S != 1 or lo != ((), 0) or not hi[0] or not base[1]:
+            return None
+        neg = I.neg_pows(self.P)
+        vs = [(b, e) for b, e in hi[0] if neg.get(b) == base[1] and e == 1]
+        if len(vs) != 1:
+            return None
+        X = (tuple(x for x in hi[0] if x != vs[0]), hi[1])
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            if R != ((base[0], 0), 1, ((), 0), X):
+                continue
+            g = tuple(dict.fromkeys(self.X.path))
+            q, Rr = (base, 1, ('num', 0), self.idx(st, hi)), (R[0], 1, ('num', 0), self.idx(st, X))
+            if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
+                continue
+            res = ('subR', q, Rr)
+            self.stats['negshiftR'] += 1
+            return [('run', r, [self.use(('negshiftR', q, Rr, g), ('under', g, res) if g else res)])]
         return None
 
     def divides(self, st, h, H):
@@ -1106,6 +1208,8 @@ class Solver:
         for r in G.preR:
             t = C.instR(ms, r)
             w = self.run(st, t) if t is not None else None
+            if w is None and t is not None and 'der' in I.F:
+                w = self.drv(st, t)
             if w is None:
                 self.miss.append((where, 'preR', t))
                 return None
@@ -1545,6 +1649,10 @@ def wit_res(w, f):
         return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
     if k in ('evs', 'back'):
         return (k, w[1], w[2], [f(i) for i in w[3]])
+    if k == 'drv':
+        return (k, w[1], [f(i) for i in w[2]])
+    if k == 'der':
+        return (k, w[1], [f(i) for i in w[2]], tuple(wit_res(x, f) for x in w[3]))
     return w
 
 
@@ -1684,6 +1792,15 @@ def lwit(w):
         return f'.catM {lcell(w[1])} {lcell(w[2])} {lnums(w[3])}'
     if k == 'ab':
         return f'.ab {lcell(w[1])} {w[2]} {w[3]}'
+    if k == 'der':
+        (b, S, lo, hi), res, ws = w[1], w[2], w[3]
+        chain = '.wnil'
+        for x in reversed(ws):
+            chain = f'(.wcons ({lwit(x)}) {chain})'
+        return f'.der {lcell(b)} {S} {lcell(lo)} {lcell(hi)} {lnums(res)} {chain}'
+    if k == 'drv':
+        (b, S, lo, hi), res = w[1], w[2]
+        return f'.drv {lcell(b)} {S} {lcell(lo)} {lcell(hi)} {lnums(res)}'
     raise ValueError(w)
 
 
