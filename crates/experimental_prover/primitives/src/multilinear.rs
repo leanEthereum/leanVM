@@ -172,6 +172,10 @@ pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
     if table.len() == 1 << point.len() && table.len() < PAR_THRESHOLD {
         return mle_eval(table, point);
     }
+    // Below three variables a whole number of rows is the full table, taken above, or none.
+    if table.is_empty() {
+        return F128::ZERO;
+    }
     let low_vars = point.len().min(MLE_LOW_VARS);
     assert!(low_vars >= 3 && table.len().is_multiple_of(1 << low_vars));
     let low = packed_eq(&point[..low_vars]);
@@ -218,6 +222,7 @@ mod tests {
             let point: Vec<_> = (0..n).map(|i| F128::new(17 + i, 231 + 3 * i)).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
+            assert_eq!(mle_eval_par(&[], &point), F128::ZERO);
             let point: Vec<_> = (0..n).map(|i| F128::from(F64(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
