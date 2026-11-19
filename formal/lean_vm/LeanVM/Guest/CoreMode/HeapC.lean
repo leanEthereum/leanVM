@@ -1095,11 +1095,34 @@ noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (Li
       | none => none) else none
   | ws => runOk0 X st Q ws
 
-/-- Signature runs at the slots `ms`, each with its witnesses: the witnesses left. -/
+/-- A chain of witnesses as a list. -/
+def Wit.toL : Wit → List Wit
+  | .wcons w ws => w :: ws.toL
+  | _ => []
+
+/-- **A read's witness**: `ptOk`'s, or `der b S lo hi res ws`: the cell in the run `⟨b, S, lo, hi⟩` (`ptRun`, by these
+residuals' facts), the run made up by the chain `ws`, all of it (`runOk`). -/
+noncomputable def ptOkD (X : CX) (st : CSt) (c : CCell) : Wit → Bool
+  | .der b S lo hi res ws => ptRun (facts X st.env res) ⟨b, S, lo, hi⟩ c && match runOk X st ⟨b, S, lo, hi⟩ ws.toL with
+    | some [] => true
+    | _ => false
+  | w => ptOk X st c w
+
+/-- **A run needed, inside one made up** (`drv b S lo hi res` and its witnesses): the run `⟨b, S, lo, hi⟩` by its
+witnesses (`runOk`), `Q` in it (`runRun` by these residuals' facts, or a residual `subR`); else `runOk`. The witnesses
+left. -/
+noncomputable def runOkD (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .drv b S lo hi res :: ws => match runOk X st ⟨b, S, lo, hi⟩ ws with
+    | some ws' => bif runRun (facts X st.env res) st.eqs Q ⟨b, S, lo, hi⟩ || subRun X st.env res Q ⟨b, S, lo, hi⟩
+        then some ws' else none
+    | none => none
+  | ws => runOk X st Q ws
+
+/-- Signature runs at the slots `ms`, each with its witnesses (`runOkD`): the witnesses left. -/
 noncomputable def reqR (X : CX) (st : CSt) (ms : List CCell) : List CRun → List Wit → Option (List Wit)
   | [], ws => some ws
   | r :: rs, ws => match instR ms r with
-    | some q => match runOk X st q ws with
+    | some q => match runOkD X st q ws with
       | some ws' => reqR X st ms rs ws'
       | none => none
     | none => none
@@ -1671,7 +1694,7 @@ cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`
 noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with
     | some m => (m.shift off).seq fun c ↦ match readWitT X.R d p off with
-      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush (gwDef X.sig st1 c d) c d)
+      | some w => bif ptOkD X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush (gwDef X.sig st1 c d) c d)
           else none
       | none => some (loadPush (gwDef X.sig st c d) c d)
     | none => none
