@@ -7,7 +7,7 @@ Nim bindings for post-quantum signatures and their recursive aggregation:
 
 The bindings follow the [Status Nim style guide](https://status-im.github.io/nim-style-guide/). Every module is `{.push raises: [], gcsafe.}`, fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results), and verification returns `bool`. They build with Nim 2.2.12 or newer under both `--mm:refc` and `--mm:orc`, and the tests compile with `--styleCheck:error` and a strict `warningAsError` and `hintAsError` set.
 
-Public keys and messages are `array[32, byte]`; signatures are `array[2404, byte]` (leanXMSS) and `array[7740, byte]` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey` and `LeanPqAggregate` are references to native handles. The garbage collector frees each handle once nothing refers to it, and `close` frees it at once; every later call on a closed value returns an error.
+Public keys and messages are `array[32, byte]`; signatures are `array[2404, byte]` (leanXMSS) and `array[7740, byte]` (leanSPHINCS). `XmssSecretKey`, `SphincsSecretKey`, `LeanPqSidecar` and `LeanPqAggregate` are references to native handles. The garbage collector frees each handle once nothing refers to it, and `close` frees it at once; every later call on a closed value returns an error.
 
 The binding links the Rust bridge's static `liblean_pq_native.a` for the target. Each release attaches it for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, Nim's default Windows compiler), and the package's first build downloads it with curl.
 
@@ -63,7 +63,7 @@ nimble test
 | `universal2-apple-darwin` (on macOS) | `native/universal-macos` |
 | `x86_64-pc-windows-gnu` | `native/x86_64-windows-gnu` |
 
-The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory. `scripts/stage-release.sh` stages the archives a release attaches, and `scripts/consumer-smoke.sh` proves the package works as a Nimble dependency without Rust.
+The aggregation tests prove through the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and one starts its own from the executable at `LEANVM_SIDECAR_BIN`; on Windows they only check that the sidecar is unsupported. `scripts/stage-release.sh` stages the archives a release attaches, and `scripts/consumer-smoke.sh` proves the package works as a Nimble dependency without Rust.
 
 ## Example
 
@@ -89,24 +89,6 @@ proc main() =
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
 
-  let
-    leaf = LeanPqAggregate.init(
-      xmss = [XmssSignedMessage(
-        publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
-      sphincs = [SphincsSignedMessage(
-        publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
-    ).expect("leaf")
-    root = LeanPqAggregate.init([leaf]).expect("root")
-
-  # The encoding is the proof alone: the receiver supplies the claims it expects.
-  let
-    encoded = root.toBytes().expect("bytes")
-    expectedXmss = [LeanPqClaim(publicKey: xmssPublicKey, message: message)]
-    expectedSphincs = [LeanPqClaim(publicKey: sphincsPublicKey, message: message)]
-    received = LeanPqAggregate.fromBytes(encoded, expectedXmss, expectedSphincs).expect("verifies")
-  doAssert received.xmssClaims().expect("claims") == @expectedXmss
-  doAssert LeanPqAggregate.fromBytes(encoded, expectedXmss).isErr()
-
   # Handles are freed when collected; `close` frees them now.
   xmssKey.close()
   doAssert xmssKey.sign(message, 8).isErr()
@@ -116,6 +98,35 @@ main()
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.toBytes()` and advance it before publishing a signature. Secret key bytes are secret material, the leanXMSS or leanSPHINCS seed; wipe your copies when done.
 
-`LeanPqAggregate.init` verifies every raw signature before proving and runs one proof at a time per process; one aggregation takes seconds and over a gigabyte of memory. `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `LeanPqAggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `fromBytes` takes. `leanPqSetup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
-
 Do not `close` a value while another thread uses it.
+
+## Aggregate
+
+Aggregation runs in a leanVM sidecar, a process of its own on Linux and macOS: see [the sidecar](../README.md#sidecar) for how to get and run it.
+
+`LeanPqSidecar.connect(socketPath)` connects to a running sidecar; `LeanPqSidecar.start(binaryPath, socketPath)` launches one, waits until it listens and connects, and `close` (or collection) stops it. Calls on one `LeanPqSidecar` run one at a time, and a broken connection is reopened on the next call. On Windows `connect` and `start` return an error. With the keys and signatures of the example above:
+
+```nim
+let
+  sidecar = LeanPqSidecar.connect("/home/me/.leanvm/sidecar.sock").expect("sidecar")
+  leaf = sidecar.aggregate(
+    xmss = [XmssSignedMessage(
+      publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
+    sphincs = [SphincsSignedMessage(
+      publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
+  ).expect("leaf")
+  root = sidecar.aggregate([leaf]).expect("root")
+
+# The encoding is the proof alone: the receiver supplies the claims it expects.
+let
+  encoded = root.toBytes().expect("bytes")
+  expectedXmss = [LeanPqClaim(publicKey: xmssPublicKey, message: message)]
+  expectedSphincs = [LeanPqClaim(publicKey: sphincsPublicKey, message: message)]
+  received = sidecar.verify(encoded, expectedXmss, expectedSphincs).expect("verifies")
+doAssert received.xmssClaims().expect("claims") == @expectedXmss
+doAssert sidecar.verify(encoded, expectedXmss).isErr()
+```
+
+- `aggregate` verifies every raw signature before proving, and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
+- `LeanPqAggregate.toBytes` encodes the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them.
+- `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the given claims, in any order with a repeated claim counting once, and fails for any other claim set, so every `LeanPqAggregate` value is proven. `xmssClaims` and `sphincsClaims` return the claims strictly sorted, in the form `verify` takes.

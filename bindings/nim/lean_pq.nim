@@ -5,12 +5,13 @@
 ## - **leanSPHINCS** is stateless: a key signs at most `2^30` messages; signing is deterministic.
 ##
 ## Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Fallible calls
-## return `Result[T, string]` and never raise; verification returns `bool`.
+## return `Result[T, string]` and never raise; verification returns `bool`. A leanVM sidecar, a
+## separate process reached over a Unix socket, proves and verifies aggregates.
 ##
-## `XmssSecretKey`, `SphincsSecretKey` and `LeanPqAggregate` are references to native handles. The
-## garbage collector frees a handle once nothing refers to it; `close` frees it at once, after
-## which every call on that value returns an error. Do not `close` a value while another thread
-## uses it.
+## `XmssSecretKey`, `SphincsSecretKey`, `LeanPqSidecar` and `LeanPqAggregate` are references to
+## native handles. The garbage collector frees a handle once nothing refers to it; `close` frees it
+## at once, after which every call on that value returns an error. Do not `close` a value while
+## another thread uses it.
 
 {.push raises: [], gcsafe.}
 
@@ -29,7 +30,7 @@ const
   SphincsSecretKeyLen* = 32
   SphincsSignatureLen* = 7740
   MaxAggregateChildren* = 16
-    ## The most child aggregates one `LeanPqAggregate.init` call accepts.
+    ## The most child aggregates one `LeanPqSidecar.aggregate` call accepts.
 
 type
   LeanPqMessage* = array[LeanPqMessageLen, byte]
@@ -40,13 +41,13 @@ type
   SphincsSignature* = array[SphincsSignatureLen, byte]
 
   XmssSignedMessage* = object
-    ## A raw leanXMSS signature input to `LeanPqAggregate.init`.
+    ## A raw leanXMSS signature input to `LeanPqSidecar.aggregate`.
     publicKey*: XmssPublicKey
     message*: LeanPqMessage
     signature*: XmssSignature
 
   SphincsSignedMessage* = object
-    ## A raw leanSPHINCS signature input to `LeanPqAggregate.init`.
+    ## A raw leanSPHINCS signature input to `LeanPqSidecar.aggregate`.
     publicKey*: SphincsPublicKey
     message*: LeanPqMessage
     signature*: SphincsSignature
@@ -74,6 +75,13 @@ type
   LeanPqAggregate* = ref LeanPqAggregateObj
     ## A verified proof that each listed public key signed its message.
 
+  LeanPqSidecarObj = object
+    handle: ptr LpqSidecar
+
+  LeanPqSidecar* = ref LeanPqSidecarObj
+    ## A connection to a leanVM sidecar, which proves and verifies aggregates. Calls on one
+    ## connection run one at a time, and a broken connection is reopened on the next call.
+
 # The native records are these objects' bytes, so slices of them pass to the bridge as they are.
 static:
   doAssert sizeof(XmssSignedMessage) == 2468
@@ -96,9 +104,15 @@ proc `=destroy`(aggregate: var LeanPqAggregateObj) =
     lpqAggregateDestroy(aggregate.handle)
     aggregate.handle = nil
 
+proc `=destroy`(sidecar: var LeanPqSidecarObj) =
+  if not sidecar.handle.isNil:
+    lpqSidecarDestroy(sidecar.handle)
+    sidecar.handle = nil
+
 proc `=copy`(dest: var XmssSecretKeyObj, source: XmssSecretKeyObj) {.error.}
 proc `=copy`(dest: var SphincsSecretKeyObj, source: SphincsSecretKeyObj) {.error.}
 proc `=copy`(dest: var LeanPqAggregateObj, source: LeanPqAggregateObj) {.error.}
+proc `=copy`(dest: var LeanPqSidecarObj, source: LeanPqSidecarObj) {.error.}
 
 ##############################################################
 # Private helpers
@@ -174,13 +188,14 @@ func nativeHandle(aggregate: LeanPqAggregate): Result[ptr LpqAggregate, string] 
   else:
     ok(aggregate.handle)
 
-##############################################################
-# Setup
-##############################################################
+func nativeHandle(sidecar: LeanPqSidecar): Result[ptr LpqSidecar, string] =
+  if sidecar.isNil or sidecar.handle.isNil:
+    err("sidecar is closed")
+  else:
+    ok(sidecar.handle)
 
-proc leanPqSetup*(): Result[void, string] =
-  ## Moves the one-time aggregation setup ahead of the first proof. Optional and idempotent.
-  check(lpqSetup())
+func pathPtr(path: string): ptr byte =
+  bytesPtr(path.toOpenArrayByte(0, path.high))
 
 ##############################################################
 # leanXMSS
@@ -317,15 +332,45 @@ proc sphincsVerify*(
 # Aggregation
 ##############################################################
 
-proc init*(
-    T: type LeanPqAggregate,
+proc connect*(T: type LeanPqSidecar, socketPath: string): Result[LeanPqSidecar, string] =
+  ## Connects to the sidecar listening on the Unix socket at `socketPath`. Fails on Windows.
+  var handle: ptr LpqSidecar
+  ? check(lpqSidecarConnect(pathPtr(socketPath), csize_t(socketPath.len), addr handle))
+  if handle.isNil:
+    return err("native sidecar is null")
+  ok(LeanPqSidecar(handle: handle))
+
+proc start*(
+    T: type LeanPqSidecar, binaryPath, socketPath: string
+): Result[LeanPqSidecar, string] =
+  ## Launches the `leanvm-sidecar` executable at `binaryPath` on `socketPath`, waits until it
+  ## listens, and connects; `close` or collection stops it. Its log goes to `socketPath` plus
+  ## `.log`. Fails when a sidecar already listens there, and on Windows.
+  var handle: ptr LpqSidecar
+  ? check(lpqSidecarStart(
+    pathPtr(binaryPath), csize_t(binaryPath.len),
+    pathPtr(socketPath), csize_t(socketPath.len),
+    addr handle))
+  if handle.isNil:
+    return err("native sidecar is null")
+  ok(LeanPqSidecar(handle: handle))
+
+proc close*(sidecar: LeanPqSidecar) =
+  ## Closes the connection now, and stops the sidecar if `start` launched it. Safe to call more
+  ## than once.
+  if not sidecar.isNil and not sidecar.handle.isNil:
+    lpqSidecarDestroy(sidecar.handle)
+    sidecar.handle = nil
+
+proc aggregate*(
+    sidecar: LeanPqSidecar,
     children: openArray[LeanPqAggregate] = [],
     xmss: openArray[XmssSignedMessage] = [],
     sphincs: openArray[SphincsSignedMessage] = [],
 ): Result[LeanPqAggregate, string] =
   ## Verifies the raw signatures, then proves the union of their claims and the children's. At
-  ## least one input is required. Children are neither consumed nor closed. Runs one proof at a
-  ## time per process.
+  ## least one input is required. Children are neither consumed nor closed.
+  let sidecarHandle = ? sidecar.nativeHandle()
   if children.len > MaxAggregateChildren:
     return err("at most " & $MaxAggregateChildren & " child aggregates, got " & $children.len)
   var handles: array[MaxAggregateChildren, ptr LpqAggregate]
@@ -338,6 +383,7 @@ proc init*(
     sphincsPtr = if sphincs.len == 0: nil else: cast[ptr byte](addr sphincs[0])
   var handle: ptr LpqAggregate
   ? check(lpqAggregateCreate(
+    sidecarHandle,
     childrenPtr, csize_t(children.len),
     xmssPtr, csize_t(xmss.len),
     sphincsPtr, csize_t(sphincs.len),
@@ -346,21 +392,22 @@ proc init*(
     return err("native aggregate is null")
   ok(LeanPqAggregate(handle: handle))
 
-proc fromBytes*(
-    T: type LeanPqAggregate,
+proc verify*(
+    sidecar: LeanPqSidecar,
     bytes: openArray[byte],
     xmssClaims: openArray[LeanPqClaim] = [],
     sphincsClaims: openArray[LeanPqClaim] = [],
 ): Result[LeanPqAggregate, string] =
-  ## Decodes a proof from `toBytes` and verifies that it proves exactly `xmssClaims` and
-  ## `sphincsClaims`, in any order, a repeated claim counting once. The encoding holds no claims:
-  ## send them alongside the proof or rebuild them on the receiving side. Every
-  ## `LeanPqAggregate` is proven.
+  ## Verifies that a proof from `toBytes` proves exactly `xmssClaims` and `sphincsClaims`, in any
+  ## order, a repeated claim counting once. The encoding holds no claims: send them alongside the
+  ## proof or rebuild them on the receiving side. Every `LeanPqAggregate` is proven.
+  let sidecarHandle = ? sidecar.nativeHandle()
   let
     xmssPtr = if xmssClaims.len == 0: nil else: cast[ptr byte](addr xmssClaims[0])
     sphincsPtr = if sphincsClaims.len == 0: nil else: cast[ptr byte](addr sphincsClaims[0])
   var handle: ptr LpqAggregate
   ? check(lpqAggregateFromBytes(
+    sidecarHandle,
     bytesPtr(bytes), csize_t(bytes.len),
     xmssPtr, csize_t(xmssClaims.len),
     sphincsPtr, csize_t(sphincsClaims.len),

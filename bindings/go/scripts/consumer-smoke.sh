@@ -39,8 +39,8 @@ cd "$project"
 go mod init example.com/consumer
 go get "$module@v$version"
 
-# The README's example is the program; it exits non-zero on any error.
-sed -n '/^## Example$/,$p' "$readme" | sed -n '/^```go$/,/^```$/p' | sed '1d;$d' > main.go
+# The README's example section, up to the next heading, is the program; it exits non-zero on any error.
+sed -n '/^## Example$/,/^## /p' "$readme" | sed -n '/^```go$/,/^```$/p' | sed '1d;$d' > main.go
 test -s main.go
 
 # -ldflags=-v logs the external link command, which shows the platform's link line.

@@ -1,6 +1,6 @@
 const native = require('./index.js')
 
-const { Aggregate, SphincsSecretKey, XmssSecretKey } = native
+const { Aggregate, Sidecar, SphincsSecretKey, XmssSecretKey } = native
 
 XmssSecretKey.generate = native.generateXmssSecretKey
 XmssSecretKey.fromSeed = native.xmssSecretKeyFromSeed
@@ -10,20 +10,20 @@ SphincsSecretKey.generate = native.generateSphincsSecretKey
 SphincsSecretKey.fromSeed = native.sphincsSecretKeyFromSeed
 SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
 
-Aggregate.fromBytes = function fromBytes(data, { xmss = [], sphincs = [] } = {}) {
-  return native.aggregateFromBytes(data, xmss, sphincs)
+Sidecar.connect = native.sidecarConnect
+Sidecar.start = native.sidecarStart
+Sidecar.prototype.aggregate = function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
+  return this.prove(children, xmss, sphincs)
 }
-
-function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
-  return native.aggregate(children, xmss, sphincs)
+Sidecar.prototype.verify = function verify(data, { xmss = [], sphincs = [] } = {}) {
+  return this.check(data, xmss, sphincs)
 }
 
 module.exports = {
-  setup: native.setup,
   XmssSecretKey,
   xmssVerify: native.xmssVerify,
   SphincsSecretKey,
   sphincsVerify: native.sphincsVerify,
   Aggregate,
-  aggregate,
+  Sidecar,
 }

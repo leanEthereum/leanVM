@@ -7,7 +7,7 @@ Java 25 bindings for post-quantum signatures and their aggregation:
 
 Public keys and messages are 32 bytes; signatures are `byte[]` of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. An `Aggregate` proves that each listed public key signed its message, across both schemes, and can absorb earlier aggregates.
 
-The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+The API is the named module `org.ethereum.leanpq`, built on the Foreign Function & Memory API. `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate` are `AutoCloseable`: use try-with-resources.
 
 ## Install
 
@@ -65,14 +65,14 @@ To load a different build instead, set `-Dlean.pq.native.path=/path/to/liblean_p
 Requirements: JDK 25, Gradle 9.1 or newer, and Rust (stable toolchain). From the repository root:
 
 ```sh
-gradle -p bindings/java test
+LEANVM_SIDECAR_SOCKET=~/.leanvm/sidecar.sock LEANVM_SIDECAR_BIN=/path/to/leanvm-sidecar gradle -p bindings/java test
 ```
 
-The test task builds the shared `lean_pq_native` library in release mode and passes its path as `-Dlean.pq.native.path`. One aggregation takes seconds and over a gigabyte of memory.
+The test task builds the shared `lean_pq_native` library in release mode and passes its path as `-Dlean.pq.native.path`. The aggregation tests prove through the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and one of them starts its own from `LEANVM_SIDECAR_BIN`; on Windows they only check that connecting fails.
 
 `gradle -p bindings/java jar` bundles the freshly built host library only. To bundle prebuilt libraries instead, pass `-PleanPqNativeDir=DIR`, where `DIR/<platform>/` holds the library for each platform in the table above; `scripts/build-native.sh <platform> DIR` builds one (the Linux builds need [Zig 0.15.2](https://ziglang.org/download/) and `cargo install cargo-zigbuild`, the macOS build needs a Mac, and the Windows build needs Windows with Git Bash, the `x86_64-pc-windows-gnu` Rust target and MinGW-w64's `gcc` and `objdump` on `PATH`). Local builds have version `0.0.0-SNAPSHOT`; `-Pversion=X.Y.Z` overrides it.
 
-`scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway Maven repository and signs, verifies and aggregates through it from a fresh modular project, with the bundled library (set `GRADLE` if Gradle is not on `PATH`). CI runs it on Linux x86_64, the release workflow on every bundled platform.
+`scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway Maven repository and signs and verifies through it from a fresh modular project, with the bundled library (set `GRADLE` if Gradle is not on `PATH`). CI runs it on Linux x86_64, the release workflow on every bundled platform.
 
 ## Releasing
 
@@ -126,19 +126,21 @@ leanXMSS keys are stateful: persist your own durable high-water leaf index along
 
 ## Aggregation
 
-`LeanPq.aggregate(children, xmss, sphincs)` verifies every raw signature before proving, accepts at most 16 children, and runs one proof at a time per process. `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields. `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven. `LeanPq.setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
+Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `Sidecar.connect(socket)` connects to a running sidecar; `Sidecar.start(binary, socket)` launches one, and `close()` stops it. A `Sidecar` is safe to share between threads.
 
 ```java
+import java.nio.file.Path;
 import java.util.List;
 import org.ethereum.leanpq.*;
 
-try (Aggregate leaf = LeanPq.aggregate(
+try (Sidecar sidecar = Sidecar.connect(Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock"));
+     Aggregate leaf = sidecar.aggregate(
          List.of(),
          List.of(new SignedMessage(xmss.publicKey(), message32, xmss.sign(message32, 7))),
          List.of(new SignedMessage(sphincs.publicKey(), message32, sphincs.sign(message32))));
-     Aggregate root = LeanPq.aggregate(List.of(leaf), List.of(), List.of());
+     Aggregate root = sidecar.aggregate(List.of(leaf), List.of(), List.of());
      // The bytes are the proof alone: the receiver supplies the claims it expects.
-     Aggregate received = Aggregate.fromBytes(
+     Aggregate received = sidecar.verify(
          root.toBytes(),
          List.of(new SignatureClaim(xmss.publicKey(), message32)),
          List.of(new SignatureClaim(sphincs.publicKey(), message32)))) {
@@ -146,3 +148,7 @@ try (Aggregate leaf = LeanPq.aggregate(
     List<SignatureClaim> sphincsClaims = received.sphincsClaims();
 }
 ```
+
+- `aggregate(children, xmss, sphincs)` verifies every raw signature before proving, and accepts at most 16 children.
+- `toBytes()` encodes the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
+- `verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly the claims you pass, in any order (a repeated claim counts once), and throws `LeanPqException` for any other set of claims or bytes that are not a proof, so every `Aggregate` is proven.

@@ -37,10 +37,10 @@ rustup target add x86_64-unknown-linux-gnu
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/go/internal/native/linux_amd64
 cd bindings/go
-go test ./...
+LEANVM_SIDECAR_SOCKET=~/.leanvm/sidecar.sock LEANVM_SIDECAR_BIN=/path/to/leanvm-sidecar go test ./...
 ```
 
-The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory.
+The aggregation tests prove through the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and one of them starts its own from `LEANVM_SIDECAR_BIN`; on Windows they only check that connecting fails.
 
 Each platform stages its archive from one Rust target:
 
@@ -53,7 +53,7 @@ Each platform stages its archive from one Rust target:
 
 The universal macOS build requires both `x86_64-apple-darwin` and `aarch64-apple-darwin` Rust targets and runs on macOS so `cargo-zigbuild` can use the installed SDK.
 
-`scripts/assemble-module.sh` builds the published module's proxy files from the release archives, and `scripts/consumer-smoke.sh` proves it works through `go get` without Rust. A release attaches the files to its GitHub release, and the Website workflow serves every release's files from `leanvm.org/goproxy`, which `leanvm.org/go`'s `go-import` tag names.
+`scripts/assemble-module.sh` builds the published module's proxy files from the release archives, and `scripts/consumer-smoke.sh` proves it works through `go get` without Rust, by running the example below. A release attaches the files to its GitHub release, and the Website workflow serves every release's files from `leanvm.org/goproxy`, which `leanvm.org/go`'s `go-import` tag names.
 
 ## Example
 
@@ -99,44 +99,63 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-
-    leaf, err := leanpq.AggregateSignatures(
-        nil,
-        []leanpq.XmssSignedMessage{{PublicKey: xmssPublicKey, Message: message, Signature: xmssSignature}},
-        []leanpq.SphincsSignedMessage{{PublicKey: sphincsPublicKey, Message: message, Signature: sphincsSignature}},
-    )
-    if err != nil {
+    if err := leanpq.SphincsVerify(sphincsPublicKey, message, sphincsSignature); err != nil {
         log.Fatal(err)
     }
-    defer leaf.Close()
-    root, err := leanpq.AggregateSignatures([]*leanpq.Aggregate{leaf}, nil, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer root.Close()
-
-    encoded, err := root.Bytes() // the proof alone: send the claims alongside it
-    if err != nil {
-        log.Fatal(err)
-    }
-    xmssClaims, err := root.XmssClaims()
-    if err != nil {
-        log.Fatal(err)
-    }
-    sphincsClaims, err := root.SphincsClaims()
-    if err != nil {
-        log.Fatal(err)
-    }
-    // Decodes the proof and verifies it proves exactly these claims.
-    received, err := leanpq.AggregateFromBytes(encoded, xmssClaims, sphincsClaims)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer received.Close()
-    log.Printf("leanXMSS claims: %x", xmssClaims)
+    log.Print("signed and verified with leanXMSS and leanSPHINCS")
 }
 ```
 
 leanXMSS keys are stateful: persist your own durable high-water leaf index alongside `XmssSecretKey.Bytes()` and never sign two different messages at the same leaf index. leanSPHINCS keys are stateless and deterministic: `SphincsSecretKey.Bytes()` is the 32-byte seed, and a key signs at most 2^30 messages.
 
-`Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects. `AggregateFromBytes(bytes, xmssClaims, sphincsClaims)` verifies the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set. `AggregateSignatures` verifies every raw signature before proving, so every `Aggregate` is proven. `Setup` moves the one-time setup ahead of the first proof; calling it is optional.
+## Aggregation
+
+Aggregation runs in a leanVM sidecar, a separate process on Linux and macOS: see [the bindings README](../README.md#sidecar) to get and run it. `ConnectSidecar(socketPath)` connects to a running sidecar; `StartSidecar(binaryPath, socketPath)` launches one, and `Close` stops it. A `Sidecar` is safe for concurrent use.
+
+Continuing the example above:
+
+```go
+home, err := os.UserHomeDir()
+if err != nil {
+    log.Fatal(err)
+}
+sidecar, err := leanpq.ConnectSidecar(filepath.Join(home, ".leanvm", "sidecar.sock"))
+if err != nil {
+    log.Fatal(err)
+}
+defer sidecar.Close()
+
+leaf, err := sidecar.Aggregate(
+    nil,
+    []leanpq.XmssSignedMessage{{PublicKey: xmssPublicKey, Message: message, Signature: xmssSignature}},
+    []leanpq.SphincsSignedMessage{{PublicKey: sphincsPublicKey, Message: message, Signature: sphincsSignature}},
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer leaf.Close()
+root, err := sidecar.Aggregate([]*leanpq.Aggregate{leaf}, nil, nil)
+if err != nil {
+    log.Fatal(err)
+}
+defer root.Close()
+
+encoded, err := root.Bytes() // the proof alone: send the claims alongside it
+if err != nil {
+    log.Fatal(err)
+}
+// The receiver supplies the claims it expects; Verify checks the proof proves exactly these.
+received, err := sidecar.Verify(
+    encoded,
+    []leanpq.Claim{{PublicKey: xmssPublicKey, Message: message}},
+    []leanpq.Claim{{PublicKey: sphincsPublicKey, Message: message}},
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer received.Close()
+```
+
+- `Sidecar.Aggregate` verifies every raw signature before proving, and accepts at most 16 children.
+- `Aggregate.Bytes()` encodes the proof alone, not its claims: send `XmssClaims()` and `SphincsClaims()` alongside it, or have the receiver rebuild the claims it expects.
+- `Sidecar.Verify(bytes, xmssClaims, sphincsClaims)` checks the proof against exactly those claims, given in any order with a repeated claim counted once, and rejects any other claim set, so every `Aggregate` is proven.

@@ -6,7 +6,7 @@ Python bindings for post-quantum signatures and their aggregation, over the Rust
 - **leanSPHINCS**: stateless hash-based signatures.
 - **Aggregation**: a recursive proof that every listed public key signed its message. Aggregates can be combined into larger aggregates.
 
-Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification, aggregation, and aggregate decoding release the GIL.
+Public keys and messages are 32 bytes. Signatures are plain fixed-length `bytes` (2404 for leanXMSS, 7740 for leanSPHINCS). Errors raise `LeanPqError`; a seed, secret key, message, public key, or signature of the wrong length raises `ValueError`. Key generation, signing, verification and sidecar calls release the GIL.
 
 Requires Python >= 3.11. Wheels are built for Linux (x86_64, aarch64; glibc + musl), macOS arm64, and Windows x86_64. The Windows wheels link the C runtime statically, so they need no Visual C++ redistributable. x86_64 wheels require a CPU with AVX2 and PCLMULQDQ.
 
@@ -52,16 +52,19 @@ assert restored.public_key == key.public_key
 
 ## Aggregation
 
-`aggregate` proves raw `(public_key, message, signature)` tuples of either scheme together with up to 16 child aggregates. The result's claims are the union of its inputs' claims. Raw signatures are verified before proving.
+Aggregation runs in a leanVM sidecar, a separate process that proves and verifies (Linux and macOS). [The bindings README](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar) says how to get and run it. Then connect to its socket, or let `Sidecar.start` launch it:
 
 ```python
+sidecar = lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock"))
+# or: sidecar = lpq.Sidecar.start("./leanvm-sidecar", "/tmp/leanvm/sidecar.sock"), stopped by close()
+
 xmss_key = lpq.XmssSecretKey.from_seed(b"\x05" * 32)
 sphincs_key = lpq.SphincsSecretKey.from_seed(b"\x06" * 32)
 first, second = b"\x11" * 32, b"\x22" * 32
 
-left = lpq.aggregate(xmss=[(xmss_key.public_key, first, xmss_key.sign(first, 0))])
-right = lpq.aggregate(sphincs=[(sphincs_key.public_key, second, sphincs_key.sign(second))])
-root = lpq.aggregate(
+left = sidecar.aggregate(xmss=[(xmss_key.public_key, first, xmss_key.sign(first, 0))])
+right = sidecar.aggregate(sphincs=[(sphincs_key.public_key, second, sphincs_key.sign(second))])
+root = sidecar.aggregate(
     children=[left, right],
     xmss=[(xmss_key.public_key, second, xmss_key.sign(second, 1))],
 )
@@ -69,13 +72,15 @@ root = lpq.aggregate(
 # The encoding is the proof alone: send the claims alongside it, or let the
 # receiver rebuild the claims it expects.
 proof = root.to_bytes()
-received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims)
+received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
 assert received.sphincs_claims == [(sphincs_key.public_key, second)]
+sidecar.close()
 ```
 
-Every `Aggregate` value has been proven or verified. `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` takes the `(public_key, message)` pairs the receiver expects and verifies the proof against exactly them: they may come in any order and a duplicate counts once, but a proof of any other claim set raises `LeanPqError`. `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
-
-`aggregate` and `Aggregate.from_bytes` build the aggregation guest on first use; call `setup()`, which is idempotent, to pay that cost earlier. Proving is serialized process-wide and takes seconds and over a gigabyte of memory. `setup()` and the first `aggregate` also start the prover's threads, which a forked child does not inherit: in a child forked after that, `aggregate` raises `LeanPqError`, so give `multiprocessing` the `spawn` or `forkserver` start method.
+- `aggregate` proves raw `(public_key, message, signature)` tuples of either scheme together with up to 16 child aggregates; the result's claims are the union of its inputs' claims. Raw signatures are verified before proving.
+- `verify(data, xmss_claims=(), sphincs_claims=())` checks the proof against exactly the `(public_key, message)` pairs the receiver expects, in any order, a duplicate counting once; any other claim set raises `LeanPqError`. Every `Aggregate` value has been proven or verified.
+- `xmss_claims` and `sphincs_claims` return the claims as sorted lists of `(public_key, message)` tuples.
+- A `Sidecar` is a context manager, safe to share between threads; its calls run one at a time. In a forked child, connect again.
 
 ## Development
 
@@ -83,6 +88,8 @@ Every `Aggregate` value has been proven or verified. `Aggregate.from_bytes(data,
 uv run --extra dev pytest tests/ -v
 uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
 ```
+
+The aggregation tests need a running sidecar's socket in `LEANVM_SIDECAR_SOCKET` and its binary in `LEANVM_SIDECAR_BIN`.
 
 ## License
 

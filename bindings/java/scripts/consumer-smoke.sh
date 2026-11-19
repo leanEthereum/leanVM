@@ -58,11 +58,7 @@ package consumer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
-import org.ethereum.leanpq.Aggregate;
 import org.ethereum.leanpq.LeanPq;
-import org.ethereum.leanpq.SignatureClaim;
-import org.ethereum.leanpq.SignedMessage;
 import org.ethereum.leanpq.SphincsSecretKey;
 import org.ethereum.leanpq.XmssSecretKey;
 
@@ -82,17 +78,6 @@ public final class Main {
             byte[] sphincsSignature = sphincs.sign(message);
             check(LeanPq.sphincsVerify(sphincs.publicKey(), message, sphincsSignature), "leanSPHINCS signature must verify");
             check(!LeanPq.sphincsVerify(sphincs.publicKey(), other, sphincsSignature), "leanSPHINCS signature must not verify another message");
-
-            List<SignatureClaim> xmssClaims = List.of(new SignatureClaim(xmss.publicKey(), message));
-            List<SignatureClaim> sphincsClaims = List.of(new SignatureClaim(sphincs.publicKey(), message));
-            try (Aggregate aggregate = LeanPq.aggregate(
-                     List.of(),
-                     List.of(new SignedMessage(xmss.publicKey(), message, xmssSignature)),
-                     List.of(new SignedMessage(sphincs.publicKey(), message, sphincsSignature)));
-                 Aggregate received = Aggregate.fromBytes(aggregate.toBytes(), xmssClaims, sphincsClaims)) {
-                check(received.xmssClaims().equals(xmssClaims), "aggregate must attest the leanXMSS claim");
-                check(received.sphincsClaims().equals(sphincsClaims), "aggregate must attest the leanSPHINCS claim");
-            }
         }
 
         System.out.println("module " + module.getName() + " loaded from " + LeanPq.class.getProtectionDomain().getCodeSource().getLocation());
@@ -105,7 +90,7 @@ public final class Main {
                 .orElseThrow(() -> new AssertionError("liblean_pq_native is not mapped"));
             System.out.println("native library mapped from " + mapped);
         }
-        System.out.println("signed and verified with leanXMSS and leanSPHINCS, aggregated both");
+        System.out.println("signed and verified with leanXMSS and leanSPHINCS");
     }
 
     private static byte[] filled(int value) {

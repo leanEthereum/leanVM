@@ -38,19 +38,29 @@ test('round trips secret keys through bytes', async () => {
   lpq.sphincsVerify(sphincsKey.publicKey, message, await sphincsRestored.sign(message))
 })
 
-test('aggregates both schemes recursively', async () => {
+const unix = process.platform !== 'win32'
+const skip = unix ? false : 'the sidecar needs Unix sockets'
+
+function env(name) {
+  const value = process.env[name]
+  if (!value) throw new Error(`set ${name} to run the aggregation tests`)
+  return value
+}
+
+test('aggregates both schemes recursively', { skip }, async () => {
+  const sidecar = await lpq.Sidecar.connect(env('LEANVM_SIDECAR_SOCKET'))
   const first = Buffer.alloc(32, 0x11)
   const second = Buffer.alloc(32, 0x22)
   const xmssKey = await lpq.XmssSecretKey.fromSeed(seed(5))
   const sphincsKey = await lpq.SphincsSecretKey.fromSeed(seed(6))
 
-  const left = await lpq.aggregate({
+  const left = await sidecar.aggregate({
     xmss: [{ publicKey: xmssKey.publicKey, message: first, signature: await xmssKey.sign(first, 0) }],
   })
-  const right = await lpq.aggregate({
+  const right = await sidecar.aggregate({
     sphincs: [{ publicKey: sphincsKey.publicKey, message: first, signature: await sphincsKey.sign(first) }],
   })
-  const root = await lpq.aggregate({
+  const root = await sidecar.aggregate({
     children: [left, right],
     xmss: [{ publicKey: xmssKey.publicKey, message: second, signature: await xmssKey.sign(second, 1) }],
   })
@@ -64,34 +74,62 @@ test('aggregates both schemes recursively', async () => {
   assert.deepEqual(root.sphincsClaims, sphincsClaims)
 
   const proof = root.toBytes()
-  const received = await lpq.Aggregate.fromBytes(proof, { xmss: xmssClaims, sphincs: sphincsClaims })
+  const received = await sidecar.verify(proof, { xmss: xmssClaims, sphincs: sphincsClaims })
   assert.deepEqual(received.xmssClaims, xmssClaims)
   assert.deepEqual(received.sphincsClaims, sphincsClaims)
   assert.deepEqual(received.toBytes(), proof)
 
   // Claims may come in any order, and a repeated claim counts once.
-  const reordered = await lpq.Aggregate.fromBytes(proof, {
+  const reordered = await sidecar.verify(proof, {
     xmss: [xmssClaims[1], xmssClaims[0], xmssClaims[1]],
     sphincs: sphincsClaims,
   })
   assert.deepEqual(reordered.xmssClaims, xmssClaims)
 
   const rejected = /does not prove the given claims/
-  await assert.rejects(lpq.Aggregate.fromBytes(proof, { xmss: xmssClaims }), rejected)
-  await assert.rejects(lpq.Aggregate.fromBytes(proof, { xmss: xmssClaims.slice(1), sphincs: sphincsClaims }), rejected)
+  await assert.rejects(sidecar.verify(proof, { xmss: xmssClaims }), rejected)
+  await assert.rejects(sidecar.verify(proof, { xmss: xmssClaims.slice(1), sphincs: sphincsClaims }), rejected)
   await assert.rejects(
-    lpq.Aggregate.fromBytes(proof, {
+    sidecar.verify(proof, {
       xmss: xmssClaims,
       sphincs: [{ publicKey: sphincsKey.publicKey, message: second }],
     }),
     rejected,
   )
-
   const tampered = Buffer.from(proof)
   tampered[tampered.length - 1] ^= 1
-  await assert.rejects(lpq.Aggregate.fromBytes(tampered, { xmss: xmssClaims, sphincs: sphincsClaims }))
+  await assert.rejects(sidecar.verify(tampered, { xmss: xmssClaims, sphincs: sphincsClaims }), rejected)
   await assert.rejects(
-    lpq.Aggregate.fromBytes(proof.subarray(0, proof.length - 1), { xmss: xmssClaims, sphincs: sphincsClaims }),
-    /malformed aggregate/,
+    sidecar.verify(proof.subarray(0, proof.length - 1), { xmss: xmssClaims, sphincs: sphincsClaims }),
+    rejected,
   )
+  await assert.rejects(sidecar.aggregate(), /aggregation failed/)
+  await sidecar.close()
+  await assert.rejects(sidecar.verify(proof, { xmss: xmssClaims, sphincs: sphincsClaims }), /closed/)
+})
+
+test('starts and stops its own sidecar', { skip }, async () => {
+  const fs = require('node:fs')
+  const os = require('node:os')
+  const path = require('node:path')
+  const shared = await lpq.Sidecar.connect(env('LEANVM_SIDECAR_SOCKET'))
+  const key = await lpq.XmssSecretKey.fromSeed(seed(7))
+  const message = Buffer.alloc(32, 0x33)
+  const proof = await shared.aggregate({
+    xmss: [{ publicKey: key.publicKey, message, signature: await key.sign(message, 0) }],
+  })
+  await shared.close()
+
+  // Short: a Unix socket path holds at most 104 bytes on macOS.
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'lpq'))
+  const socket = path.join(directory, 's.sock')
+  const started = await lpq.Sidecar.start(env('LEANVM_SIDECAR_BIN'), socket)
+  await started.verify(proof.toBytes(), { xmss: proof.xmssClaims })
+  await started.close()
+  await assert.rejects(lpq.Sidecar.connect(socket), /leanVM sidecar/)
+  fs.rmSync(directory, { recursive: true })
+})
+
+test('connecting where no sidecar listens fails', async () => {
+  await assert.rejects(lpq.Sidecar.connect('/nonexistent/sidecar.sock'), unix ? /leanVM sidecar/ : /Unix sockets/)
 })

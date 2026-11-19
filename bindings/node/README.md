@@ -5,7 +5,7 @@ Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their 
 - **leanXMSS** is stateful: a key signs at `2^32` leaf indices; never sign two different messages at the same leaf index.
 - **leanSPHINCS** is stateless: a key signs at most `2^30` messages, and signing is deterministic.
 
-Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Key generation, preparation, signing, setup, aggregation, and aggregate decoding return Promises so their native work does not block the JavaScript event loop.
+Public keys and messages are 32-byte `Buffer`s; signatures are `Buffer`s of 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Key generation, preparation, signing and every sidecar call return Promises, so their work does not block the JavaScript event loop.
 
 ## Install
 
@@ -49,26 +49,29 @@ Persist your own durable high-water leaf index alongside a leanXMSS key's `toByt
 
 ## Aggregation
 
-`aggregate` verifies every raw signature before proving and runs one proof at a time per process. `setup()` moves the one-time guest build ahead of the first proof; calling it is optional and idempotent.
-
-An aggregate's encoding is the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `Aggregate.fromBytes(data, { xmss, sphincs })` verifies the proof against exactly the claims you give it and rejects any other claim set, so every `Aggregate` is proven. The claims may come in any order, a repeated claim counts once, and an omitted list means no claims of that scheme.
+Aggregation runs in a leanVM sidecar, a separate process that proves and verifies (Linux and macOS). [The bindings README](../README.md#sidecar) says how to get and run it. Then connect to its socket, or let `Sidecar.start` launch it:
 
 ```js
-const leaf = await lpq.aggregate({
+const sidecar = await lpq.Sidecar.connect(`${os.homedir()}/.leanvm/sidecar.sock`)
+// or: const sidecar = await lpq.Sidecar.start('./leanvm-sidecar', '/tmp/leanvm/sidecar.sock'), stopped by close()
+
+const leaf = await sidecar.aggregate({
   xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSignature }],
   sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSignature }],
 })
-const root = await lpq.aggregate({ children: [leaf] })
+const root = await sidecar.aggregate({ children: [leaf] })
 
-const received = await lpq.Aggregate.fromBytes(root.toBytes(), {
+const received = await sidecar.verify(root.toBytes(), {
   xmss: [{ publicKey: xmssKey.publicKey, message }],
   sphincs: [{ publicKey: sphincsKey.publicKey, message }],
 })
 received.xmssClaims // [{ publicKey: xmssKey.publicKey, message }]
-received.sphincsClaims // [{ publicKey: sphincsKey.publicKey, message }]
+await sidecar.close()
 ```
 
-One aggregation takes seconds and over a gigabyte of memory.
+- `aggregate` verifies every raw signature before proving; at most 16 children.
+- An aggregate's encoding is the proof alone, without its claims: send the claims alongside it, or let the receiver rebuild them. `verify(data, { xmss, sphincs })` checks the proof against exactly those claims and rejects any other set, so every `Aggregate` is proven or verified. The claims may come in any order, a repeated claim counts once, and an omitted list means no claims of that scheme.
+- Calls on one `Sidecar` run one at a time, each on a thread of its own.
 
 ## Development
 

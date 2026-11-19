@@ -45,7 +45,6 @@ final class Native {
     private static final FunctionDescriptor DESTROY = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
     private static final FunctionDescriptor VERIFY = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE);
 
-    private static final MethodHandle SETUP = downcall("lpq_setup", FunctionDescriptor.of(ValueLayout.JAVA_INT));
     private static final MethodHandle LAST_ERROR = downcall("lpq_last_error", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle BUFFER_FREE = downcall("lpq_buffer_free", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, SIZE));
 
@@ -67,18 +66,18 @@ final class Native {
     private static final MethodHandle SPHINCS_DESTROY = downcall("lpq_sphincs_secret_key_destroy", DESTROY);
     private static final MethodHandle SPHINCS_VERIFY = downcall("lpq_sphincs_verify", VERIFY);
 
-    private static final MethodHandle AGGREGATE_CREATE = downcall("lpq_aggregate_create", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
-    private static final MethodHandle AGGREGATE_FROM_BYTES = downcall("lpq_aggregate_from_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_CONNECT = downcall("lpq_sidecar_connect", BYTES_TO_HANDLE);
+    private static final MethodHandle SIDECAR_START = downcall("lpq_sidecar_start", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle SIDECAR_DESTROY = downcall("lpq_sidecar_destroy", DESTROY);
+
+    private static final MethodHandle AGGREGATE_CREATE = downcall("lpq_aggregate_create", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle AGGREGATE_FROM_BYTES = downcall("lpq_aggregate_from_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle AGGREGATE_TO_BYTES = downcall("lpq_aggregate_to_bytes", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_XMSS_CLAIMS = downcall("lpq_aggregate_xmss_claims", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_SPHINCS_CLAIMS = downcall("lpq_aggregate_sphincs_claims", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_DESTROY = downcall("lpq_aggregate_destroy", DESTROY);
 
     private Native() {}
-
-    static void setup() {
-        check(status(SETUP));
-    }
 
     /** Returns {@code bytes} after checking it is non-null and exactly {@code length} bytes long. */
     static byte[] requireLength(byte[] bytes, int length, String name) {
@@ -164,10 +163,31 @@ final class Native {
         invoke(SPHINCS_DESTROY, pointer);
     }
 
-    /** Records are concatenated {@code pk|msg|sig} entries of the scheme's fixed record width. */
-    static MemorySegment aggregate(List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount) {
+    static MemorySegment sidecarConnect(Path socket) {
+        byte[] path = pathBytes(socket);
         try (Arena arena = Arena.ofConfined()) {
-            return handle(AGGREGATE_CREATE,
+            return handle(SIDECAR_CONNECT, copy(arena, path), (long) path.length);
+        }
+    }
+
+    static MemorySegment sidecarStart(Path binary, Path socket) {
+        byte[] binaryPath = pathBytes(binary);
+        byte[] socketPath = pathBytes(socket);
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(SIDECAR_START,
+                copy(arena, binaryPath), (long) binaryPath.length,
+                copy(arena, socketPath), (long) socketPath.length);
+        }
+    }
+
+    static void destroySidecar(MemorySegment pointer) {
+        invoke(SIDECAR_DESTROY, pointer);
+    }
+
+    /** Records are concatenated {@code pk|msg|sig} entries of the scheme's fixed record width. */
+    static MemorySegment aggregate(MemorySegment sidecar, List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount) {
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(AGGREGATE_CREATE, sidecar,
                 pointerArray(arena, children), (long) children.size(),
                 copy(arena, xmss), xmssCount,
                 copy(arena, sphincs), sphincsCount);
@@ -175,9 +195,9 @@ final class Native {
     }
 
     /** Claims are concatenated 64-byte {@code pk|msg} records. */
-    static MemorySegment aggregateFromBytes(byte[] bytes, byte[] xmssClaims, long xmssCount, byte[] sphincsClaims, long sphincsCount) {
+    static MemorySegment verifyAggregate(MemorySegment sidecar, byte[] bytes, byte[] xmssClaims, long xmssCount, byte[] sphincsClaims, long sphincsCount) {
         try (Arena arena = Arena.ofConfined()) {
-            return handle(AGGREGATE_FROM_BYTES,
+            return handle(AGGREGATE_FROM_BYTES, sidecar,
                 copy(arena, bytes), (long) bytes.length,
                 copy(arena, xmssClaims), xmssCount,
                 copy(arena, sphincsClaims), sphincsCount);
@@ -394,6 +414,10 @@ final class Native {
     private static String errorMessage() {
         String message = new String(buffer(LAST_ERROR), StandardCharsets.UTF_8);
         return message.isBlank() ? "native lean-pq operation failed" : message;
+    }
+
+    private static byte[] pathBytes(Path path) {
+        return path.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     private static MemorySegment copy(Arena arena, byte[] bytes) {

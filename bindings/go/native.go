@@ -1,7 +1,7 @@
 //go:build cgo
 
 // Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures and their recursive
-// zkVM-backed aggregation.
+// aggregation through a leanVM sidecar.
 package leanpq
 
 // #cgo CFLAGS: -I${SRCDIR}/internal/native/include
@@ -68,17 +68,20 @@ type SphincsSecretKey struct {
 	handle *C.lpq_sphincs_secret_key
 }
 
+// Sidecar is a connection to a leanVM sidecar, the separate process that proves and verifies
+// aggregates. It is safe for concurrent use; its calls run one at a time. A broken connection is
+// reopened on the next call. Call Close when finished.
+type Sidecar struct {
+	// Calls hold the read lock and Close the write lock: the native side serializes the calls.
+	mu     sync.RWMutex
+	handle *C.lpq_sidecar
+}
+
 // Aggregate owns a verified recursive proof that each of its claims was signed. Call Close when
 // finished.
 type Aggregate struct {
 	mu     sync.Mutex
 	handle *C.lpq_aggregate
-}
-
-// Setup moves the one-time aggregation setup ahead of the first proof. It is optional and safe to
-// call repeatedly.
-func Setup() error {
-	return call(func() C.int32_t { return C.lpq_setup() })
 }
 
 // GenerateXmssSecretKey creates a random leanXMSS key.
@@ -278,10 +281,43 @@ func SphincsVerify(publicKey, message [32]byte, signature SphincsSignature) erro
 	})
 }
 
-// AggregateSignatures proves the union of the children's claims and the raw signatures' claims.
-// Raw signatures are verified first; children are neither consumed nor closed. At least one input
-// is required.
-func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
+// ConnectSidecar connects to the leanVM sidecar listening on the Unix socket socketPath. It fails on
+// platforms without Unix sockets.
+func ConnectSidecar(socketPath string) (*Sidecar, error) {
+	path := []byte(socketPath)
+	var handle *C.lpq_sidecar
+	if err := call(func() C.int32_t {
+		return C.lpq_sidecar_connect(bytesPointer(path), C.size_t(len(path)), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &Sidecar{handle: handle}, nil
+}
+
+// StartSidecar launches the leanvm-sidecar executable binaryPath on socketPath, waits until it
+// listens, and connects to it; Close stops it. Its log goes to socketPath with ".log" appended. It
+// fails when a sidecar already listens on socketPath, and on platforms without Unix sockets.
+func StartSidecar(binaryPath, socketPath string) (*Sidecar, error) {
+	binary := []byte(binaryPath)
+	path := []byte(socketPath)
+	var handle *C.lpq_sidecar
+	if err := call(func() C.int32_t {
+		return C.lpq_sidecar_start(bytesPointer(binary), C.size_t(len(binary)), bytesPointer(path), C.size_t(len(path)), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &Sidecar{handle: handle}, nil
+}
+
+// Aggregate proves the union of the children's claims and the raw signatures' claims. Raw
+// signatures are verified first; children are neither consumed nor closed. At least one input is
+// required, and at most 16 children.
+func (sidecar *Sidecar) Aggregate(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
+	sidecarHandle, releaseSidecar, err := sidecar.acquire()
+	if err != nil {
+		return nil, err
+	}
+	defer releaseSidecar()
 	handles, release, err := acquireAggregates(children)
 	if err != nil {
 		return nil, err
@@ -302,6 +338,7 @@ func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 	var output *C.lpq_aggregate
 	if err := call(func() C.int32_t {
 		return C.lpq_aggregate_create(
+			sidecarHandle,
 			aggregatePointer(handles), C.size_t(len(handles)),
 			bytesPointer(xmssRecords), C.size_t(len(xmss)),
 			bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
@@ -313,15 +350,21 @@ func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 	return &Aggregate{handle: output}, nil
 }
 
-// AggregateFromBytes decodes a proof and verifies that it proves exactly the given claims, which
-// may be in any order; a repeated claim counts once. The encoding is the proof alone: send the
-// claims alongside it or have the receiver rebuild them. Any other claim set is rejected.
-func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
+// Verify checks that bytes, from Aggregate.Bytes, prove exactly the given claims, which may be in
+// any order; a repeated claim counts once. The encoding is the proof alone: send the claims
+// alongside it or have the receiver rebuild them. Any other claim set is rejected.
+func (sidecar *Sidecar) Verify(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
+	sidecarHandle, release, err := sidecar.acquire()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 	xmssRecords := claimRecords(xmssClaims)
 	sphincsRecords := claimRecords(sphincsClaims)
 	var handle *C.lpq_aggregate
 	if err := call(func() C.int32_t {
 		return C.lpq_aggregate_from_bytes(
+			sidecarHandle,
 			bytesPointer(bytes), C.size_t(len(bytes)),
 			bytesPointer(xmssRecords), C.size_t(len(xmssClaims)),
 			bytesPointer(sphincsRecords), C.size_t(len(sphincsClaims)),
@@ -331,6 +374,32 @@ func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggre
 		return nil, err
 	}
 	return &Aggregate{handle: handle}, nil
+}
+
+// Close closes the connection, and stops the sidecar if StartSidecar launched it. It waits for
+// calls in progress and is safe to call repeatedly.
+func (sidecar *Sidecar) Close() {
+	if sidecar == nil {
+		return
+	}
+	sidecar.mu.Lock()
+	defer sidecar.mu.Unlock()
+	if sidecar.handle != nil {
+		C.lpq_sidecar_destroy(sidecar.handle)
+		sidecar.handle = nil
+	}
+}
+
+func (sidecar *Sidecar) acquire() (*C.lpq_sidecar, func(), error) {
+	if sidecar == nil {
+		return nil, nil, errors.New("leanpq: sidecar is nil")
+	}
+	sidecar.mu.RLock()
+	if sidecar.handle == nil {
+		sidecar.mu.RUnlock()
+		return nil, nil, errClosed("sidecar")
+	}
+	return sidecar.handle, sidecar.mu.RUnlock, nil
 }
 
 // Bytes returns the aggregate's proof encoding, without its claims.

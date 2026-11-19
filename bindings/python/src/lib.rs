@@ -3,8 +3,10 @@ use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyType};
+use pyo3::types::{PyBytes, PyTuple, PyType};
 use pyo3::wrap_pyfunction;
+use std::path::PathBuf;
+use std::sync::{Mutex, PoisonError};
 
 create_exception!(py_lean_pq, LeanPqError, PyException);
 
@@ -167,37 +169,6 @@ fn claims<'py, const N: usize>(
 
 #[pymethods]
 impl PyAggregate {
-    #[classmethod]
-    #[pyo3(
-        signature = (data, xmss_claims = Vec::new(), sphincs_claims = Vec::new()),
-        text_signature = "(data, xmss_claims=(), sphincs_claims=())"
-    )]
-    fn from_bytes(
-        _cls: &Bound<'_, PyType>,
-        py: Python<'_>,
-        data: &[u8],
-        xmss_claims: Vec<Claim>,
-        sphincs_claims: Vec<Claim>,
-    ) -> PyResult<Self> {
-        let xmss_claims = xmss_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((xmss_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        let sphincs_claims = sphincs_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((sphincs_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        Ok(Self {
-            inner: py
-                .detach(|| lean_pq::Aggregate::from_bytes(data, &xmss_claims, &sphincs_claims))
-                .map_err(api_error)?,
-        })
-    }
-
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
         PyBytes::new(py, &self.inner.to_bytes())
     }
@@ -229,11 +200,6 @@ impl PyAggregate {
 }
 
 #[pyfunction]
-fn setup(py: Python<'_>) {
-    py.detach(lean_pq::setup);
-}
-
-#[pyfunction]
 fn xmss_verify(
     py: Python<'_>,
     public_key: &[u8],
@@ -261,44 +227,144 @@ fn sphincs_verify(
         .map_err(api_error)
 }
 
-#[pyfunction]
-#[pyo3(
-    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
-    text_signature = "(children=(), xmss=(), sphincs=())"
-)]
-fn aggregate(
-    py: Python<'_>,
-    children: Vec<Bound<'_, PyAggregate>>,
-    xmss: Vec<SignedMessage>,
-    sphincs: Vec<SignedMessage>,
-) -> PyResult<PyAggregate> {
-    let children = children
-        .iter()
-        .map(|child| &child.get().inner)
-        .collect::<Vec<_>>();
-    let xmss = xmss
-        .iter()
-        .map(|(public_key, message, signature)| {
-            Ok((
-                xmss_public_key(public_key)?,
-                self::message(message)?,
-                xmss_signature(signature)?,
-            ))
+#[pyclass(name = "Sidecar", frozen, module = "py_lean_pq")]
+struct PySidecar {
+    // `close` takes it, which stops a sidecar `start` launched.
+    inner: Mutex<Option<lean_pq::Sidecar>>,
+}
+
+impl PySidecar {
+    fn new(inner: lean_pq::Sidecar) -> Self {
+        Self {
+            inner: Mutex::new(Some(inner)),
+        }
+    }
+
+    /// Runs `call` on the open sidecar, without the GIL.
+    fn with<T: Send>(
+        &self,
+        py: Python<'_>,
+        call: impl FnOnce(&lean_pq::Sidecar) -> Result<T, lean_pq::Error> + Send,
+    ) -> PyResult<T> {
+        py.detach(|| {
+            let sidecar = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
+            match sidecar.as_ref() {
+                Some(sidecar) => call(sidecar).map_err(api_error),
+                None => Err(LeanPqError::new_err("the sidecar is closed")),
+            }
         })
-        .collect::<PyResult<Vec<_>>>()?;
-    let sphincs = sphincs
-        .iter()
-        .map(|(public_key, message, signature)| {
-            Ok((
-                sphincs_public_key(public_key)?,
-                self::message(message)?,
-                sphincs_signature(signature)?,
-            ))
+    }
+}
+
+#[pymethods]
+impl PySidecar {
+    #[classmethod]
+    fn connect(_cls: &Bound<'_, PyType>, py: Python<'_>, socket: PathBuf) -> PyResult<Self> {
+        py.detach(|| lean_pq::Sidecar::connect(socket))
+            .map(Self::new)
+            .map_err(api_error)
+    }
+
+    #[classmethod]
+    fn start(
+        _cls: &Bound<'_, PyType>,
+        py: Python<'_>,
+        binary: PathBuf,
+        socket: PathBuf,
+    ) -> PyResult<Self> {
+        py.detach(|| lean_pq::Sidecar::start(binary, socket))
+            .map(Self::new)
+            .map_err(api_error)
+    }
+
+    #[pyo3(
+        signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
+        text_signature = "(self, children=(), xmss=(), sphincs=())"
+    )]
+    fn aggregate(
+        &self,
+        py: Python<'_>,
+        children: Vec<Bound<'_, PyAggregate>>,
+        xmss: Vec<SignedMessage>,
+        sphincs: Vec<SignedMessage>,
+    ) -> PyResult<PyAggregate> {
+        let children = children
+            .iter()
+            .map(|child| &child.get().inner)
+            .collect::<Vec<_>>();
+        let xmss = xmss
+            .iter()
+            .map(|(public_key, message, signature)| {
+                Ok((
+                    xmss_public_key(public_key)?,
+                    self::message(message)?,
+                    xmss_signature(signature)?,
+                ))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let sphincs = sphincs
+            .iter()
+            .map(|(public_key, message, signature)| {
+                Ok((
+                    sphincs_public_key(public_key)?,
+                    self::message(message)?,
+                    sphincs_signature(signature)?,
+                ))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        self.with(py, |sidecar| sidecar.aggregate(&children, &xmss, &sphincs))
+            .map(|inner| PyAggregate { inner })
+    }
+
+    #[pyo3(
+        signature = (data, xmss_claims = Vec::new(), sphincs_claims = Vec::new()),
+        text_signature = "(self, data, xmss_claims=(), sphincs_claims=())"
+    )]
+    fn verify(
+        &self,
+        py: Python<'_>,
+        data: &[u8],
+        xmss_claims: Vec<Claim>,
+        sphincs_claims: Vec<Claim>,
+    ) -> PyResult<PyAggregate> {
+        let xmss_claims = xmss_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((xmss_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let sphincs_claims = sphincs_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((sphincs_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        self.with(py, |sidecar| {
+            sidecar.verify(data, &xmss_claims, &sphincs_claims)
         })
-        .collect::<PyResult<Vec<_>>>()?;
-    py.detach(|| lean_pq::aggregate(&children, &xmss, &sphincs))
         .map(|inner| PyAggregate { inner })
-        .map_err(api_error)
+    }
+
+    /// Closes the connection, and stops a sidecar `start` launched.
+    fn close(&self, py: Python<'_>) {
+        py.detach(|| {
+            drop(
+                self.inner
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .take(),
+            );
+        });
+    }
+
+    fn __enter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    #[pyo3(signature = (*_args))]
+    fn __exit__(&self, py: Python<'_>, _args: &Bound<'_, PyTuple>) {
+        self.close(py);
+    }
 }
 
 #[pymodule]
@@ -308,9 +374,8 @@ fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyXmssSecretKey>()?;
     module.add_class::<PySphincsSecretKey>()?;
     module.add_class::<PyAggregate>()?;
-    module.add_function(wrap_pyfunction!(setup, module)?)?;
     module.add_function(wrap_pyfunction!(xmss_verify, module)?)?;
     module.add_function(wrap_pyfunction!(sphincs_verify, module)?)?;
-    module.add_function(wrap_pyfunction!(aggregate, module)?)?;
+    module.add_class::<PySidecar>()?;
     Ok(())
 }
