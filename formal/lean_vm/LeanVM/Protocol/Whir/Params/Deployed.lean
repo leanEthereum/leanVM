@@ -450,7 +450,6 @@ theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     exact F.hgap
   · rw [listMax₀, hl, hthr0, ← hκ, ← hR]
     simp only [jlStart, degOf, hk, List.headD_cons]
-    rfl
 
 /-! ## Level 0's list -/
 

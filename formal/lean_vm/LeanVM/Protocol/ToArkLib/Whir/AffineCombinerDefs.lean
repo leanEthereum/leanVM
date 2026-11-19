@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerJohnson
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 public import Mathlib.Algebra.Polynomial.Roots
 public import Mathlib.Data.Set.Finite.Lattice
 
