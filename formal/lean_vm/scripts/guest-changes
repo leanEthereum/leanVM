@@ -12,7 +12,8 @@ Functions are matched by stable name (`Data/Names.lean`: a function's name, a lo
 
 A module states a function's body when it reads it (`(fn% «s»).body`, `core% «s» m`, `core_eq% «s»`,
 `Fn.«s».core.body`, `(coreOf (fn_idx% «s»)).body`, or the index forms `Data.core{j}.body`, `(coreOf N).body`)
-or uses a definition that does (`lyBody := (fn% «s»).body`, and the definitions built on it). Its template
+or uses a definition that does (`lyBody := (fn% «s»).body`, and the definitions built on it), or proves it
+by the `vc` tactic (a `vc` call and the function's `fn% «s»`, `idx% «s»` or `Fn.«s».core`). Its template
 fails under `--dev` too (`lake-build.py`'s `ties`), but build the modules listed under `states its body`
 first (formal/AGENTS.md, Changing the spec). Run from `lean_vm`.
 """
@@ -96,6 +97,9 @@ def hand_written():
 BODY_KEY = re.compile(r"\(fn% «([^»]+)»\)\.body\b|\bFn\.body \(fn% «([^»]+)»\)|\bcore% «([^»]+)» (?!name\b|params\b)\w"
                       r"|\bcore_eq% «([^»]+)»|\bFn\.«([^»]+)»\.core\.(?!name\b|params\b)\w"
                       r"|\(coreOf \(fn_idx% «([^»]+)»\)\)\.body\b")
+# A proof by the `vc` tactic reads the body of each function it names.
+VC = re.compile(r"(?:^\s*|<;>\s*|·\s*)vc(?: \[|\s*$| <;>)", re.M)
+VC_KEY = re.compile(r"\b(?:fn|idx|fn_idx)% «([^»]+)»|\bFn\.«([^»]+)»\.core\b")
 BODY_IDX = re.compile(r"\bData\.core(\d+)\.body\b|\bFn\.body Data\.core(\d+)\b|\(coreOf (\d+)\)\.body\b")
 # A definition and its text, up to the next declaration.
 DEF = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|public|noncomputable)\s+)*(?:def|abbrev)\s+([\w.']+)"
@@ -105,6 +109,8 @@ DEF = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|public|noncomputa
 def body_reads(text, key_at):
     """The stable names whose bodies `text` reads directly."""
     keys = {next(g for g in m.groups() if g) for m in BODY_KEY.finditer(text)}
+    if VC.search(text):
+        keys |= {next(g for g in m.groups() if g) for m in VC_KEY.finditer(text)}
     for m in BODY_IDX.finditer(text):
         j = int(m.group(1) or m.group(2)) if not m.group(3) else int(m.group(3)) - 1
         if j in key_at:

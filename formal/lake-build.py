@@ -468,11 +468,13 @@ def fake_sysroot(real: Path, into: Path) -> None:
 
 # The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body,
 # or the core data, with a template, which a guest change makes stale and elaboration alone does not check: a
-# `stmtsEqb` tie (`tbStmtsEqb` too), or a `decide +kernel` in a module that reads a body or the core program
-# (`fn% «s»`, `core% «s» m`, `coreOf`, `certOf`, …) or imports the core IR. `all`: every module the kernel decides
+# `stmtsEqb` tie (`tbStmtsEqb` too), a proof by the `vc` tactic (whose proof of a body's condition only the kernel
+# checks), or a `decide +kernel` in a module that reads a body or the core program (`fn% «s»`, `core% «s» m`,
+# `coreOf`, `certOf`, …) or imports the core IR. `all`: every module the kernel decides
 # something in (budgets, tables), and every `kernel_lit` and `win_lit` value, but the other certificates `guest-cert`,
 # `guest-core` and `guest-memory` write, the generators' exact output, left to the gate.
 TIE = re.compile(r"stmtsEqb", re.I)
+VC = re.compile(r"(?:^\s*|<;>\s*|·\s*)vc(?: \[|\s*$| <;>)", re.M)
 CORE_READ = re.compile(r"\bfn% «|\bcore(?:_eq)?% «|\bFn\.«[^»]+»\.core\b|\bData\.core\d|\bcoreOf\b|\bcertOf\b|\bcoreProgram\b"
                        r"|^(?:(?:public|private)\s+)?(?:meta\s+)?import\s+(?:all\s+)?LeanVM\.Guest\.(?:Data|Pack)\.", re.M)
 LIT = re.compile(r"^\s*(?:kernel_lit|win_lit)\b", re.M)
@@ -487,7 +489,8 @@ def kernel_checked(text: str, which: str) -> bool:
         return False
     if which == "all":
         return "decide +kernel" in text
-    return bool(TIE.search(text)) or "decide +kernel" in text and bool(CORE_READ.search(text))
+    return (bool(TIE.search(text)) or bool(VC.search(text))
+            or "decide +kernel" in text and bool(CORE_READ.search(text)))
 
 
 def kernel_modules(pkg: Path, which: str) -> list[str]:
