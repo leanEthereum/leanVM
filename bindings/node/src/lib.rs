@@ -13,11 +13,13 @@ use napi_derive::napi;
 /// libuv's pool, which Node's file, DNS and crypto work share.
 fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
     let (deferred, promise) = env.create_deferred()?;
-    thread::spawn(move || match catch_unwind(AssertUnwindSafe(|| task.compute())) {
-        Ok(Ok(output)) => deferred.resolve(move |env| task.resolve(env, output)),
-        Ok(Err(error)) => deferred.reject(error),
-        Err(_) => deferred.reject(Error::new(Status::GenericFailure, "lean-pq panicked")),
-    });
+    thread::spawn(
+        move || match catch_unwind(AssertUnwindSafe(|| task.compute())) {
+            Ok(Ok(output)) => deferred.resolve(move |env| task.resolve(env, output)),
+            Ok(Err(error)) => deferred.reject(error),
+            Err(_) => deferred.reject(Error::new(Status::GenericFailure, "lean-pq panicked")),
+        },
+    );
     Ok(promise)
 }
 
@@ -503,12 +505,12 @@ pub fn aggregate_from_bytes(
 }
 
 #[napi(ts_return_type = "Promise<Aggregate>")]
-pub fn aggregate(
-    env: &Env,
+pub fn aggregate<'env>(
+    env: &'env Env,
     children: Vec<&Aggregate>,
     xmss: Vec<SignedMessage>,
     sphincs: Vec<SignedMessage>,
-) -> Result<Object<'_>> {
+) -> Result<Object<'env>> {
     on_own_thread(
         env,
         AggregateTask {
