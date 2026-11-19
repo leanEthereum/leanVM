@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.MeaningP
-public import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Vc
 public import LeanVM.Guest.Pack.P41.Core
 
 /-!

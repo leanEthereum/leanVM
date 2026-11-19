@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
-public import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `sumcheck_round4` (TRIAGE #30)
