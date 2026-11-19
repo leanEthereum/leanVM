@@ -19,6 +19,8 @@ members = [
     "bench",
     "bins/*",
 ]
+# The language bindings are their own workspace (bindings/Cargo.toml).
+exclude = ["bindings"]
 resolver = "3"
 
 [workspace.package]

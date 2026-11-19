@@ -1,0 +1,424 @@
+name: Bindings CI
+
+# Changes to the bindings, or to the crates, guest and build settings they build from, run it, and
+# so does every update of the release pull request.
+on:
+  push:
+    branches: [main]
+    paths:
+      - bindings/**
+      - crates/**
+      - guests/**
+      - Cargo.toml
+      - Cargo.lock
+      - .cargo/config.toml
+      - .github/workflows/bindings-ci.yml
+  pull_request:
+    paths:
+      - bindings/**
+      - crates/**
+      - guests/**
+      - Cargo.toml
+      - Cargo.lock
+      - .cargo/config.toml
+      - .github/workflows/bindings-ci.yml
+  # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+        working-directory: bindings
+
+      - name: Check the header copies match
+        run: for copy in go/internal/native nim zig; do cmp native/include/lean_pq_native.h $copy/include/lean_pq_native.h; done
+        working-directory: bindings
+
+      # A change to the crates' dependencies must update bindings/Cargo.lock too, or every build
+      # would resolve them anew.
+      - name: Check Cargo.lock is up to date
+        run: cargo metadata --locked --format-version 1 > /dev/null
+        working-directory: bindings
+
+      - name: Test Rust bindings
+        run: cargo test --release -p lean-pq
+        working-directory: bindings
+
+      - name: Lint Rust bindings
+        run: cargo clippy --release -p lean-pq --all-targets -- -D warnings
+        working-directory: bindings
+
+      # Consumers that only sign and verify build without the prover.
+      # The README's aggregation example is a doctest, so only the lib and integration tests run.
+      - name: Test Rust bindings without aggregation
+        run: cargo test --release -p lean-pq --no-default-features --lib --tests
+        working-directory: bindings
+
+      - name: Lint Rust bindings without aggregation
+        run: cargo clippy --release -p lean-pq --no-default-features --all-targets -- -D warnings
+        working-directory: bindings
+
+  test:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        # One Windows row keeps CI affordable; the release workflow tests every Windows wheel.
+        include:
+          - os: windows-latest
+            python: "3.14"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: astral-sh/setup-uv@v7
+
+      # rust-toolchain.toml pins the rustc version; this action honors it.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      # uv builds the extension (in release, pyproject.toml's [tool.maturin]) into its virtualenv.
+      - name: Run tests
+        run: uv run --extra dev pytest tests/ -v
+        working-directory: bindings/python
+
+      - name: Check type stubs match runtime
+        run: uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
+        working-directory: bindings/python
+
+  java:
+    name: Java 25
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test the native ABI
+        run: cargo test --release -p lean-pq-native --test abi
+        working-directory: bindings
+
+      - name: Test Java bindings
+        run: gradle -p bindings/java test
+
+      # Publishes the jar (bundling the host-built library) to a throwaway Maven repository and runs a
+      # fresh modular consumer of io.github.crate-crypto:lean-pq without lean.pq.native.path.
+      - name: Run a Maven consumer of the Java bindings
+        run: sh bindings/java/scripts/consumer-smoke.sh
+
+  # The release's Windows build: x86_64-pc-windows-gnu, checked to import only DLLs Windows ships,
+  # then loaded from the jar through the per-user cache by a fresh modular consumer.
+  java-windows:
+    name: Java 25 / Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the Windows native library
+        run: sh bindings/java/scripts/build-native.sh windows-x86_64 native
+
+      - name: Run a Maven consumer of the Java bindings
+        run: sh bindings/java/scripts/consumer-smoke.sh -PleanPqNativeDir="$GITHUB_WORKSPACE/native"
+
+  node:
+    name: Node.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: bindings/node/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - name: Build and test Node bindings
+        run: |
+          npm ci
+          npm run build
+          npm test
+        working-directory: bindings/node
+
+      # napi generates index.js, index.d.ts and the per-platform npm/ packages; they must be committed.
+      - name: Check generated Node files are committed
+        run: |
+          npx napi create-npm-dirs
+          git status --porcelain -- index.js index.d.ts npm
+          test -z "$(git status --porcelain -- index.js index.d.ts npm)"
+        working-directory: bindings/node
+
+      # Packs the root and host platform packages, installs both tarballs into a fresh project and
+      # signs and verifies through the installed copy. Nothing is published.
+      - name: Pack and install Node packages
+        run: |
+          pack="$RUNNER_TEMP/npm-pack"
+          mkdir -p "$pack"
+          cp lean_pq_node.linux-x64-gnu.node npm/linux-x64-gnu/
+          npm pack --ignore-scripts --pack-destination "$pack"
+          npm pack --ignore-scripts --pack-destination "$pack" ./npm/linux-x64-gnu
+          sh scripts/install-check.sh "$pack/kevaundray-lean-pq-0.0.0-dev.tgz" "$pack/kevaundray-lean-pq-linux-x64-gnu-0.0.0-dev.tgz"
+        working-directory: bindings/node
+
+  # One static bridge archive per platform, built as the release builds them, for the Zig, Nim and
+  # Go jobs.
+  native:
+    name: Native / ${{ matrix.platform.bundle_dir }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            rust_targets: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-gnu
+            bundle_dir: x86_64-linux-gnu
+          - runner: ubuntu-latest
+            rust_targets: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-gnu
+            bundle_dir: aarch64-linux-gnu
+          - runner: macos-15
+            rust_targets: x86_64-apple-darwin aarch64-apple-darwin
+            target: universal2-apple-darwin
+            bundle_dir: universal-macos
+          - runner: ubuntu-latest
+            rust_targets: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-gnu
+            bundle_dir: x86_64-windows-gnu
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild --version 0.24.1 --locked
+
+      - name: Add Rust target support
+        run: rustup target add ${{ matrix.platform.rust_targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - name: Stage static native bridge
+        run: sh bindings/native/scripts/stage-static.sh ${{ matrix.platform.target }} native/${{ matrix.platform.bundle_dir }}
+
+      - name: Check universal macOS archive slices
+        if: matrix.platform.target == 'universal2-apple-darwin'
+        run: lipo native/universal-macos/liblean_pq_native.a -verify_arch arm64 x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform.bundle_dir }}
+          path: native/
+          if-no-files-found: error
+
+  zig:
+    name: Zig / ${{ matrix.platform.name }}
+    needs: native
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Linux x86_64
+            runner: ubuntu-latest
+            bundle_dir: x86_64-linux-gnu
+          - name: macOS universal
+            runner: macos-15
+            bundle_dir: universal-macos
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.platform.bundle_dir }}
+          path: native
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Test Zig bindings
+        run: zig build test -Dnative-dir="$GITHUB_WORKSPACE/native/${{ matrix.platform.bundle_dir }}"
+        working-directory: bindings/zig
+
+      - name: Package and consume the Zig release tarball
+        run: |
+          sh bindings/zig/scripts/package.sh 0.0.0 native "$RUNNER_TEMP/lean-pq-zig.tar.gz"
+          sh bindings/zig/scripts/consumer-smoke.sh "$RUNNER_TEMP/lean-pq-zig.tar.gz"
+
+  nim:
+    name: Nim / ${{ matrix.platform.name }}
+    needs: native
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Linux x86_64
+            runner: ubuntu-latest
+            bundle_dir: x86_64-linux-gnu
+          - name: macOS universal
+            runner: macos-15
+            bundle_dir: universal-macos
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.platform.bundle_dir }}
+          path: bindings/nim/native
+
+      # llvm-tools strips the release archive.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: 2.2.12
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Builds and runs the tests under --mm:refc and --mm:orc, with the warning and hint checks in
+      # tests/config.nims.
+      - name: Test Nim bindings
+        run: nimble test -y
+        working-directory: bindings/nim
+
+      - name: Package and consume the Nimble package
+        run: |
+          sh bindings/nim/scripts/stage-release.sh bindings/nim/native "$RUNNER_TEMP/nim-package"
+          # The consumer must build without Rust. Drop every PATH directory holding cargo, rustc or
+          # rustup: ~/.cargo/bin, and on macOS Homebrew's rustup.
+          no_rust_path=$(printf '%s\n' "$PATH" | tr ':' '\n' | while IFS= read -r dir; do
+            [ -x "$dir/cargo" ] || [ -x "$dir/rustc" ] || [ -x "$dir/rustup" ] || printf '%s\n' "$dir"
+          done | paste -sd: -)
+          PATH=$no_rust_path sh bindings/nim/scripts/consumer-smoke.sh "$RUNNER_TEMP/nim-package" 0.0.0
+
+  go:
+    name: Go cgo / ${{ matrix.platform.name }}
+    needs: native
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Linux amd64
+            runner: ubuntu-latest
+            bundle_dir: x86_64-linux-gnu
+            go_dir: linux_amd64
+            go_test_command: go test ./...
+          - name: Linux arm64
+            runner: ubuntu-latest
+            bundle_dir: aarch64-linux-gnu
+            go_dir: linux_arm64
+            go_test_command: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" go test -c -o /tmp/leanpq-arm64.test .
+          - name: macOS universal
+            runner: macos-15
+            bundle_dir: universal-macos
+            go_dir: darwin_universal
+            go_test_command: go test ./...
+          # cgo links with the runner's MinGW-w64 gcc.
+          - name: Windows amd64
+            runner: windows-latest
+            bundle_dir: x86_64-windows-gnu
+            go_dir: windows_amd64
+            go_test_command: go test ./...
+    runs-on: ${{ matrix.platform.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.platform.bundle_dir }}
+          path: bindings/go/internal/native
+
+      - name: Place the archive
+        run: mv bindings/go/internal/native/${{ matrix.platform.bundle_dir }} bindings/go/internal/native/${{ matrix.platform.go_dir }}
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: bindings/go/go.mod
+          cache-dependency-path: bindings/go/go.mod
+
+      - if: matrix.platform.go_dir == 'linux_arm64'
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Test Go bindings
+        run: ${{ matrix.platform.go_test_command }}
+        working-directory: bindings/go

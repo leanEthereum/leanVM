@@ -1,0 +1,50 @@
+# The binary-field and Keccak kernels are selected by compile-time target feature, and the root
+# .cargo/config.toml builds with `target-cpu=native`. Released bindings
+# (wheels, addons, archives, libraries) must run on any machine of their target, so they pin a
+# portable baseline instead: AVX2 and PCLMULQDQ enable the x86_64 carry-less multiplication
+# kernels and are present on every AVX2-capable CPU; the aarch64 targets keep their defaults.
+#
+# How the root's `target-cpu=native` is overridden. Cargo reads this file and the root's for every
+# command run under bindings/ (it reads config files from the working directory and its ancestors,
+# not from the manifest's directory, so run cargo from bindings/ or below: `--manifest-path` from
+# the repository root picks up only the root's config). Cargo joins every matching
+# `target.<triple>.rustflags` and `target.'cfg(..)'.rustflags`: the triple's flags first, then the
+# cfg tables in key order, so the root's `cfg(all())` comes before every `cfg(all(target_arch ..))`
+# table below. rustc takes the last `-C target-cpu`, so the tables below, one per target family and
+# mutually exclusive, set the target's default CPU back after the root's `native`; target features
+# accumulate, so the triple tables add the x86_64 features. A target matching none of these tables
+# (neither x86_64 nor aarch64) still builds for the host CPU. `RUSTFLAGS` or
+# `CARGO_ENCODED_RUSTFLAGS` replaces all of this, as napi does for the musl targets.
+#
+# The final flags, e.g. for x86_64-unknown-linux-gnu:
+#   -C target-feature=+avx2,+pclmulqdq -C target-cpu=native -C target-cpu=x86-64
+# Check them with `cargo build -vv --release -p lean-pq` (look at the `Running rustc` lines).
+
+[target.'cfg(all(target_arch = "x86_64", target_vendor = "apple"))']
+# x86_64-apple-darwin's default CPU.
+rustflags = ["-C", "target-cpu=penryn"]
+
+[target.'cfg(all(target_arch = "x86_64", not(target_vendor = "apple")))']
+rustflags = ["-C", "target-cpu=x86-64"]
+
+[target.'cfg(all(target_arch = "aarch64", target_vendor = "apple"))']
+# The default Apple CPU already enables the AES (PMULL) and SHA3 kernels.
+rustflags = ["-C", "target-cpu=apple-m1"]
+
+[target.'cfg(all(target_arch = "aarch64", not(target_vendor = "apple")))']
+# NEON is enabled by default on aarch64.
+rustflags = ["-C", "target-cpu=generic"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
+
+# Node.js addons and Python extensions on Windows use MSVC; link the C runtime statically so they
+# load without the Visual C++ redistributable.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+avx2,+pclmulqdq,+crt-static"]

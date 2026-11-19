@@ -1,0 +1,25 @@
+[workspace]
+# Its own workspace, excluded from the root one: the root workspace's `cargo testall`, `clippyall`,
+# `docall` and `fmt --all` never build the bindings.
+members = [
+    "python",
+    "native",
+    "node",
+    "rust",
+]
+resolver = "2"
+
+[workspace.package]
+# The release version of every binding; release-please updates it.
+version = "0.11.1"
+
+[workspace.dependencies]
+# The signature schemes, and `lean_vm`, which re-exports them beside the aggregation prover.
+lean_vm = { path = "../crates/lean_vm" }
+lean_xmss = { path = "../crates/lean_xmss" }
+lean_sphincs = { path = "../crates/lean_sphincs" }
+lean-pq = { path = "rust" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

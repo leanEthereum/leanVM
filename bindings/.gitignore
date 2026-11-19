@@ -1,0 +1,19 @@
+target/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.venv/
+.python-version
+*.so
+*.pyd
+*.dll
+*.node
+/node/node_modules/
+.maturin/
+/java/.gradle/
+/java/build/
+# Staged static bridge archives (bindings/native/scripts/stage-static.sh): the Go module release
+# bundles them, main never holds them.
+/go/internal/native/*/liblean_pq_native.a
