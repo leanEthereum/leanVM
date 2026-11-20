@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `eq_prefix_run`, `eq_prefix_chain` (TRIAGE #25, #26)
@@ -465,43 +466,25 @@ theorem eq_prefix_chain_body : Fn.body fn% «eq_prefix_chain» =
       .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
+theorem word_g40 : word 1099511627776 0 = gen ^ 40 := word_two_pow (a := 40) (by decide)
+
 /-- **`eq_prefix_chain`'s core IR is its meaning.** -/
 theorem eq_prefix_chain_holds : eq_prefix_chain_Spec := by
   intro rd args rets
-  have hlen : eqPrefixRunNames.length = 41 := rfl
-  have hname : ∀ j (hj : j < eqPrefixRunNames.length), eqPrefixRunNames[j] = eqPrefixRunNames.getD j "" :=
-    fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
-  rw [rel_iff_sem find_eq_prefix_chain,
-    show Fn.params fn% «eq_prefix_chain» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-        eq_prefix_chain_body]
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  rw [word_two_pow (by norm_num)]
+  rw [rel_iff_fnSem find_eq_prefix_chain]
+  rcases args with _ | ⟨chain, _ | ⟨seed, _ | ⟨a, _ | ⟨b1, _ | ⟨cg, _ | ⟨_, _⟩⟩⟩⟩⟩⟩ <;> vc [] <;>
+    simp only [MeaningEqPrefixChain]
+  have hrun : ∀ j (hj : j < 41) (r : List E), coreProgram.Rel rd eqPrefixRunNames[j]
+      [chain, seed, a, b1] r ↔ EqPrefix rd chain seed a b1 j ∧ r = [0] := fun j hj r =>
+    List.getD_eq_getElem eqPrefixRunNames "" hj ▸ eq_prefix_run_holds j (by omega) rd _ r
+  rw [word_g40]
   constructor
-  · rintro ⟨σ, hp, h5, ⟨r1, r2, r3⟩, ⟨j, hj, hx, hcall⟩, hret⟩
-    subst hp
-    rw [hname j hj, eq_prefix_run_holds j (by omega)] at hcall
-    obtain ⟨hep, h9⟩ := hcall
-    refine ⟨hret.symm, ⟨σ (.n 6), σ (.n 7), σ (.n 8), r1, by rw [← h5]; exact r2, r3⟩, j,
-      by omega, by rw [hx, gen_pow_eq_ofK], hep⟩
-  · intro hm
-    obtain ⟨chain, seed, a, b1, cg, rfl⟩ : ∃ chain seed a b1 cg, args = [chain, seed, a, b1, cg] := by
-      match args, hm with
-      | [c, s, x, y, z], _ => exact ⟨c, s, x, y, z, rfl⟩
-    obtain ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, n, hn, rfl, hep⟩ := hm
-    refine ⟨setl (Val.ofArgs [chain, seed, a, b1, gen ^ n]) 5 [gen ^ 40, y, t1, t2, 0], ?_, ?_, ?_,
-      ?_, ?_⟩
-    · b1_look
-    · b1_look
-    · refine ⟨?_, ?_, ?_⟩
-      all_goals b1_look
-      exacts [r1, r2, r3]
-    · refine ⟨n, by rw [hlen]; exact hn, ?_, ?_⟩
-      · b1_look
-        rw [gen_pow_eq_ofK]
-      · rw [hname n (by rw [hlen]; exact hn), eq_prefix_run_holds n (by omega)]
-        b1_look
-        exact ⟨hep, rfl⟩
-    · b1_look
+  · rintro ⟨y, t1, r1, r2, t2, r3, _, ⟨j, hx, hj, hcall⟩, rfl⟩
+    exact ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, j, hj, by rw [hx, gen_pow_eq_ofK],
+      ((hrun j hj _).mp hcall).1⟩
+  · rintro ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, n, hn, rfl, hep⟩
+    exact ⟨y, t1, r1, r2, t2, r3, 0, ⟨n, by rw [gen_pow_eq_ofK], hn, (hrun n hn _).mpr ⟨hep, rfl⟩⟩,
+      rfl⟩
 
 end
 end LeanVM.Guest.B1

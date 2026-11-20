@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `assert_small_g_power`
@@ -19,8 +20,10 @@ exponent table (`ExpTables`) the share of `d_j = g^n` is `g^(n·16^j)`, so `x = 
 `e = Σ n_j 16^j < 2^36`, and conversely every such `x` passes with the digits of `e`
 (`assert_small_g_power_holds`).
 
-The expansion is `asgHead` (the hint and digit `0`), `asgBlk j` per digit `j + 1` (values
-`17 + 7j ..`, its share multiplied into the running product `asgAcc j`), the check.
+`vc` computes its condition; `asg_digit` reads it a digit at a time. The expansion `asgHead` (the
+hint and digit `0`), `asgBlk j` per digit `j + 1` (values `17 + 7j ..`, its share multiplied into
+the running product `asgAcc j`), the check, and its honest valuation (`asg_holds_of`) are what
+`Log2Placed`'s placed completeness walks.
 -/
 
 namespace LeanVM.Guest.B1
@@ -108,63 +111,40 @@ theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → 
   simp only [holdsList_append, holdsList_range_flatten 8 asgBlk (fun _ => rfl), holds_asgBlk,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_nil, true_and]
 
-/-- The body, unfolded to its conditions. -/
-theorem asg_unfold (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "assert_small_g_power" args rets ↔ ∃ σ : Val,
-      [σ (.n 0), σ (.n 1)] = args ∧ σ (.n 11) = word 32768 0 ∧
-      (LoadHolds rd (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
-      σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
-      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ [] = rets := by
-  rw [rel_iff_sem find_assert_small_g_power, assert_small_g_power_body,
-    show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]
-  simp only [asg_holds_iff, List.map_cons, List.map_nil]
+/-! ## The digits -/
 
-/-! ## Soundness -/
+/-- On the exponent table at `q`, `q·g^n` at `34 + 16 j` holds digit `j`'s share `g^(n·16^j)`. -/
+theorem asg_load {rd : Reader} {q : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9) (hn : n < 16) :
+    LoadHolds rd (q * gen ^ n) (34 + 16 * j) (gen ^ (n * 16 ^ j)) := by
+  rw [loadHolds_mul_gen_pow]
+  have := ht.2.1 j hj n hn
+  rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
 
 /-- The share of digit `j` read through `q·g^n` at `34 + 16 j`: `g^(n·16^j)`. -/
 theorem asg_share {rd : Reader} {q s : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9)
-    (hn : n < 16) (h : LoadHolds rd (q * gen ^ n) (34 + 16 * j) s) : s = gen ^ (n * 16 ^ j) := by
-  rw [loadHolds_mul_gen_pow] at h
-  exact loadHolds_unique h (by
-    have := ht.2.1 j hj n hn
-    rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this)
+    (hn : n < 16) (h : LoadHolds rd (q * gen ^ n) (34 + 16 * j) s) : s = gen ^ (n * 16 ^ j) :=
+  loadHolds_unique h (asg_load ht hj hn)
 
-theorem asg_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ) {q : E}
-    (ht : ExpTables Lm.read q) {σ : Val} (h1 : σ (.n 1) = q)
-    (h11 : σ (.n 11) = word 32768 0)
-    (r0 : LoadHolds Lm.read (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
-      LoadHolds Lm.read (σ (.n 12)) 0 (σ (.n 14)))
-    (h15 : σ (.n 15) = σ (.n 1) * σ (.n 2)) (l16 : LoadHolds Lm.read (σ (.n 15)) 34 (σ (.n 16)))
-    (hb : ∀ j < 8, AsgOk Lm.read σ j) :
-    ∀ j < 9, ∃ e < 16 ^ (j + 1), σ (.n (asgAcc j)) = gen ^ e := by
+/-- One digit, as the body's condition has it: its range check below `16` and its share read
+at `34 + 16 j` are a digit `n < 16` and its share `g^(n·16^j)`. -/
+private theorem asg_digit {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) {Lm : MemoryImage κ} {q : E}
+    (ht : ExpTables Lm.read q) {j : ℕ} (hj : j < 9) (off : ℕ) (hoff : off = 34 + 16 * j)
+    {R : E → E → Prop} :
+    (∃ d y t1, LoadHolds Lm.read d 0 t1 ∧ word 32768 0 = d * y ∧ ∃ t2, LoadHolds Lm.read y 0 t2 ∧
+      ∃ s, LoadHolds Lm.read (q * d) off s ∧ R d s) ↔
+      ∃ n < 16, R (gen ^ n) (gen ^ (n * 16 ^ j)) := by
   have hK : (16 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
-  have digit : ∀ {d t1 y t2 c : E}, c = word 32768 0 → LoadHolds Lm.read d 0 t1 →
-      c = d * y → LoadHolds Lm.read y 0 t2 → ∃ n < 16, d = gen ^ n := by
-    intro d t1 y t2 c hc a b c'
-    exact (rangeCheck_gen_iff hκ Lm d (K := 16) (by decide) hK (by decide)).1
-      ⟨y, t1, t2, a, by rw [← b, hc]; norm_num, c'⟩
-  intro j hj
-  induction j with
-  | zero =>
-    obtain ⟨n, hn, hd⟩ := digit h11 r0.1 r0.2.1 r0.2.2
-    rw [h15, h1, hd] at l16
-    refine ⟨n, by omega, ?_⟩
-    rw [asgAcc, asg_share ht (j := 0) (by decide) hn l16, pow_zero, mul_one]
-  | succ j ih =>
-    obtain ⟨e, he, hA⟩ := ih (by omega)
-    obtain ⟨c, ⟨a, b, c'⟩, m, l, p⟩ := hb j (by omega)
-    obtain ⟨n, hn, hd⟩ := digit c a b c'
-    rw [m, h1, hd] at l
-    have hs := asg_share ht (j := j + 1) (by omega) hn (by
-      rwa [show 50 + 16 * j = 34 + 16 * (j + 1) by omega] at l)
-    refine ⟨e + n * 16 ^ (j + 1), ?_, ?_⟩
-    · have : n * 16 ^ (j + 1) ≤ 15 * 16 ^ (j + 1) := Nat.mul_le_mul_right _ (by omega)
-      rw [pow_succ 16 (j + 1)]
-      omega
-    · rw [show asgAcc (j + 1) = 23 + 7 * j from rfl, p, hA, hs, ← pow_add]
+  have hrc := fun d ↦ rangeCheck_gen_iff hκ Lm d (K := 16) (by decide) hK (by decide)
+  subst hoff
+  constructor
+  · rintro ⟨d, y, t1, l1, hw, t2, l2, s, ls, hR⟩
+    obtain ⟨n, hn, rfl⟩ := (hrc d).1 ⟨y, t1, t2, l1, hw, l2⟩
+    exact ⟨n, hn, asg_share ht hj hn ls ▸ hR⟩
+  · rintro ⟨n, hn, hR⟩
+    obtain ⟨y, t1, t2, l1, hw, l2⟩ := (hrc _).2 ⟨n, hn, rfl⟩
+    exact ⟨_, y, t1, l1, hw, t2, l2, _, asg_load ht hj hn, hR⟩
 
-/-! ## Completeness -/
+/-! ## The honest valuation -/
 
 /-- The honest values: the arguments, the nine digits `g^(n_j)`, each block's constant, range
 check words, pointer, share and product (`n_j = e / 16^j % 16`). -/
@@ -287,35 +267,28 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     rw [Nat.mod_eq_of_lt (by simpa using he)]
     exact e_add_eq_zero_iff.mpr rfl
 
+/-! ## The theorem -/
+
 /-- **`assert_small_g_power`'s core IR is its meaning.** -/
 theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
   intro κ hκ hκ6 Lm x q ht rets
-  rw [asg_unfold]
-  have hK : (16 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
+  rw [rel_iff_fnSem find_assert_small_g_power]
+  vc []
+  have d := @asg_digit κ hκ hκ6 Lm q ht
+  simp only [MeaningAssertSmallGPower, @d 0 (by decide) 34 rfl, @d 1 (by decide) 50 rfl,
+    @d 2 (by decide) 66 rfl, @d 3 (by decide) 82 rfl, @d 4 (by decide) 98 rfl,
+    @d 5 (by decide) 114 rfl, @d 6 (by decide) 130 rfl, @d 7 (by decide) 146 rfl,
+    @d 8 (by decide) 162 rfl, ← pow_add, e_add_eq_zero_iff, @eq_comm _ []]
   constructor
-  · rintro ⟨σ, hp, h11, r0, h15, l16, hb, ha, hret⟩
-    simp only [List.cons.injEq, and_true] at hp
-    obtain ⟨rfl, rfl⟩ := hp
-    obtain ⟨e, he, hA⟩ := asg_sound hκ hκ6 Lm ht rfl h11 r0 h15 l16 hb 8 (by omega)
-    refine ⟨⟨e, by simpa using he, ?_⟩, hret.symm⟩
-    rw [← hA]
-    exact (e_add_eq_zero_iff.mp ha).symm
+  · rintro ⟨n0, h0, n1, h1, n2, h2, n3, h3, n4, h4, n5, h5, n6, h6, n7, h7, n8, h8, hx, rfl⟩
+    exact ⟨⟨_, by omega, hx.symm⟩, rfl⟩
   · rintro ⟨⟨e, he, rfl⟩, rfl⟩
-    -- the range checks' words for each digit
-    have hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds Lm.read (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
-        word (2 ^ (16 - 1)) 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds Lm.read y 0 t2 :=
-      fun j ↦ (rangeCheck_gen_iff hκ Lm _ (K := 16) (by decide) hK (by decide)).2
-        ⟨_, Nat.mod_lt _ (by decide), rfl⟩
-    have hshare : ∀ j < 9, LoadHolds Lm.read (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
-        (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun j hj ↦ by
-      rw [loadHolds_mul_gen_pow]
-      have := ht.2.1 j hj (e / 16 ^ j % 16) (Nat.mod_lt _ (by decide))
-      rwa [show sizeBits + 16 * j + e / 16 ^ j % 16 = e / 16 ^ j % 16 + (34 + 16 * j) by
-        simp only [sizeBits]; omega] at this
-    obtain ⟨σ, e0, e1, -, hh⟩ :=
-      asg_holds_of (C := coreProgram.Rel Lm.read) (by simpa using he) hrc hshare
-    obtain ⟨a, b, c, d, f, g, -⟩ := (asg_holds_iff _ _ _ _).1 hh
-    exact ⟨σ, by rw [e0, e1], a, b, c, d, f, g, rfl⟩
+    have hd : ∀ j, e / 16 ^ j % 16 < 16 := fun _ ↦ Nat.mod_lt _ (by decide)
+    refine ⟨_, hd 0, _, hd 1, _, hd 2, _, hd 3, _, hd 4, _, hd 5, _, hd 6, _, hd 7, _, hd 8, ?_,
+      rfl⟩
+    congr 1
+    conv_rhs => rw [← Nat.mod_eq_of_lt (show e < 16 ^ 9 by omega)]
+    simp only [mod_sixteen_succ, pow_zero, Nat.mod_one, zero_add]
 
 end
 end LeanVM.Guest.B1
