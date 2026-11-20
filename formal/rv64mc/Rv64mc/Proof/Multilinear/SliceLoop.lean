@@ -7,6 +7,7 @@
 -/
 
 import Rv64mc.Core.Repr
+import Rv64mc.Model.Field
 
 namespace Rv64mc.Proof.Multilinear
 
@@ -35,5 +36,25 @@ theorem len_eq {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : BitVec.ofNat
 
 theorem len_zero {a : Nat} (ha : a < 2 ^ 64) : BitVec.ofNat 64 a = 0#64 ↔ a = 0 := by
   rw [← BitVec.toNat_inj]; simp; omega
+
+/-! ## A pointer at the element itself: `q + 16 j`, the end `q + len <<< 4` -/
+
+theorem step_ptr0 (q : Word) (j : Nat) :
+    q + BitVec.ofNat 64 (16 * j) + 16#64 = q + BitVec.ofNat 64 (16 * (j + 1)) := by
+  rw [show 16 * (j + 1) = 16 * j + 16 by omega, BitVec.ofNat_add, BitVec.add_assoc]
+
+theorem start_ptr0 (q : Word) : q = q + BitVec.ofNat 64 (16 * 0) := by simp
+
+theorem end_iff0 {q : Word} {j len : Nat} (hq : q.toNat + 16 * len < 2 ^ 64) (hj : j < len) :
+    q + BitVec.ofNat 64 (16 * j) + 16#64 = q + BitVec.ofNat 64 len <<< 4 ↔ j + 1 = len := by
+  rw [step_ptr0, BitVec.add_right_inj, ← BitVec.toNat_inj]
+  simp [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]; omega
+
+/-! ## Limbs -/
+
+/-- `ONE + x` on limbs, as the code computes it: the low limb XORed with `1`. -/
+theorem limbs_one_add (x : LeanVM.Parameters.E) :
+    Model.limbs (1 + x) = ((Model.limbs x).1 ^^^ 1#64, (Model.limbs x).2) := by
+  rw [← Model.eAdd_eq, Model.limbs_one, Model.eAdd, Model.eOne, BitVec.xor_comm, BitVec.zero_xor]
 
 end Rv64mc.Proof.Multilinear
