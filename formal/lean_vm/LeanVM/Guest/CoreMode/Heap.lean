@@ -22,6 +22,8 @@ A `load` the certificate names as a read (`HCert.readWit`) must have the cell of
 
 `heapOk` also asks the parameters to be `V.n 0, V.n 1, …`, the preconditions over them, and the rest of the signature empty: the facts a caller translates.
 
+It is kept beside `heapOkC` (`HeapC.lean`, `HeapK.c`) for the functions with no call and no loop: their guarantees are cells their own loads witness (`postOk`, `CFun.post`), which `heapOkC`'s route does not take, and its pass keeps three tries where `heapOkC`'s keeps fifteen.
+
 Written for the kernel: tries keyed by `ℕ` (`Check.getF`, `setF`), every state and cell handed on evaluated (`HSt.seq`, `CCell.seq`).
 -/
 
@@ -79,6 +81,14 @@ def basesSeq : List (ℕ × ℕ) → (List (ℕ × ℕ) → β) → β
 def CCell.seq (c : CCell) (k : CCell → β) : β :=
   basesSeq c.bases fun bs ↦ natSeq c.off fun o ↦ k ⟨bs, o⟩
 
+theorem basesSeq_eq : ∀ (l : List (ℕ × ℕ)) (k : List (ℕ × ℕ) → β), basesSeq l k = k l
+  | [], _ => rfl
+  | (a, e) :: l, k => by
+    rw [basesSeq, Exec.natSeq_eq, Exec.natSeq_eq, basesSeq_eq l]
+
+theorem CCell.seq_eq (c : CCell) (k : CCell → β) : c.seq k = k c := by
+  rw [CCell.seq, basesSeq_eq, Exec.natSeq_eq]
+
 end Seq
 
 /-- The exponent of a constant power of `g`: `g^0 = 1`, the others by the table. -/
@@ -98,6 +108,9 @@ structure HSt where
 /-- `k st`, `st` evaluated first. -/
 def HSt.seq {β : Type} (st : HSt) (k : HSt → β) : β :=
   st.env.seq fun e ↦ st.sc.seq fun s ↦ natSeq st.n fun n ↦ k ⟨e, s, n⟩
+
+theorem HSt.seq_eq {β : Type} (st : HSt) (k : HSt → β) : st.seq k = k st := by
+  rw [HSt.seq, Trie.seq_eq, Trie.seq_eq, Exec.natSeq_eq]
 
 /-- The state with another next serial. -/
 def HSt.withN (st : HSt) (n : ℕ) : HSt := ⟨st.env, st.sc, n⟩

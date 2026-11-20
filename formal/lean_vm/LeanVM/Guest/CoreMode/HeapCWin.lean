@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.CoreMode.HeapCSound
 public import LeanVM.Guest.Memory.StaticCut
 
 /-!
