@@ -103,26 +103,27 @@ ul.tight li { margin: 4px 0; }
 <main>
 
 <h1>Decompiling the RISC-V verifier into Lean: how cheap is it to re-prove after a change?</h1>
-<p class="sub">Experimental draft, 2026-11-20. Project <code>formal/rv64mc</code>, compared with draft PR #738. CPU-seconds (CPU-s) are the primary metric throughout: the host was shared (load 15 to 100 on 32 cores), so wall times are inflated and only indicative.</p>
+<p class="sub">Experimental draft, 2026-11-20, <code>formal/rv64mc</code>, compared with draft PR #738. Costs are in CPU-seconds (CPU-s); wall times come from a shared 32-core host under load 15 to 100 and are indicative only. "The kernel" is Lean's small trusted proof checker; "standard axioms" are Lean's three (<code>propext</code>, <code>Classical.choice</code>, <code>Quot.sound</code>); estimates are marked as such.</p>
 
 <div class="tiles">
-  <div class="tile"><div class="k"><span class="sw ours"></span>Ours: regenerate and re-check after a change (C1 to C5)</div><div class="v">1,245 to 2,792 <span class="vs">CPU-s</span></div></div>
-  <div class="tile"><div class="k"><span class="sw pr"></span>#738: cold build (every proof imports the image)</div><div class="v">73,440 <span class="vs">CPU-s (20.4 CPU-h)</span></div></div>
-  <div class="tile"><div class="k">Agent repair per change (ours)</div><div class="v">0 to 20 <span class="vs">minutes</span></div></div>
-  <div class="tile"><div class="k">Lines tied to the binary</div><div class="v">8.8% <span class="vs">vs 29% in #738</span></div></div>
+  <div class="tile"><div class="k"><span class="sw ours"></span>Ours: re-check after each of 13 changes</div><div class="v">300 to 3,230 <span class="vs">CPU-s</span></div></div>
+  <div class="tile"><div class="k"><span class="sw ours"></span>Ours: cold build</div><div class="v">4,333 <span class="vs">CPU-s (1.2 CPU-h)</span></div></div>
+  <div class="tile"><div class="k"><span class="sw pr"></span>#738: cold build, the bound on its rebuild</div><div class="v">about 23.4 <span class="vs">CPU-h</span></div></div>
+  <div class="tile"><div class="k"><span class="sw pr"></span>#738 proof files naming a moved address after C1</div><div class="v">225 to 228 <span class="vs">of 823</span></div></div>
 </div>
 
 <h2>1. Summary</h2>
 <ul class="summary">
-<li><strong>Iteration, the main question.</strong> After a small or medium change to the verifier, our pipeline regenerates and re-checks everything in 1,250 to 2,800 CPU-s (6 to 11 minutes wall on 6 jobs), and repair took 0 to 20 minutes of agent work, local to the changed function's own proof, proofs that hard-coded a layout offset, and contract tables. #738 rebuilds nearly everything on the same change, because every proof imports the absolute-address image; its cold build is 20.4 CPU-hours (4 h 45 min wall, 26.5 GB peak). Measured #738 rebuild after the same change: <span class="ph">{{PR738_C1}}</span>. Order of magnitude: <strong>minutes and a fraction of a CPU-hour, against hours and tens of CPU-hours</strong>.</li>
-<li><strong>Proved end to end, standard axioms only:</strong> <code>rv64_sound</code>: every code word decodes, and a run of the binary that halts with "accept" read a proof that the Lean verifier <code>verifyWith</code> accepts, <em>given <code>main</code>'s contract</em>. The Lean mirror of the Rust is complete and proved to imply the Lean verifier. Real proofs run in the statement's own machine halt with accept (honest), reject (mutated) or malformed (truncated), so the statement is not vacuous.</li>
-<li><strong>Not proved yet:</strong> <code>main</code>'s contract, i.e. the machine-code proofs of the top of the call graph (<span class="ph">{{STATUS}}</span>). The theorem is partial correctness (a trap is not excluded), is about a <code>no_std</code> copy of the verifier with inserted inline attributes, and trusts riscv-zkvm's decoder and an ELF reader.</li>
-<li><strong>Framework gaps.</strong> machine-checked's proved lift worked (230 of 230 functions) and its soundness theorem was reused unforked. Almost everything around it had to be built: relocatable per-function templates and a link step (its contracts are whole-program and its output names absolute addresses and indices), a symbolic executor 100 times cheaper than its <code>lsym</code>, a heap and frame vocabulary, a bridge from SP1's machine to the statement's. braid, which is <strong>very experimental</strong>, has a nicer logic but rests on native <code>bv_decide</code> axioms, absolute addresses and a quadratic composition certificate.</li>
-<li><strong>Recommendation.</strong> The per-function, relocatable design is the right shape: iteration is cheap and breakage is local. What blocks completion is missing framework features (heap and <code>sret</code> frames, nested representations, closures), not CPU. machine-checked should add, first: a relocatable lift with symbol-keyed output; full instruction coverage; an <code>lsym</code> that states the next state, with a memory vocabulary; machine contexts as parameters, with a fault-freedom judgement.</li>
+<li><strong>Iteration.</strong> Across 13 measured changes to the Rust verifier, our pipeline re-checked everything in 300 to 3,230 CPU-s (4 to 13 minutes wall); our cold build is 4,333 CPU-s (1.2 CPU-hours). A change to a proved function's code never reached its callers, which import its contract, not its code: only its own proof broke, and the compiler set the repair cost, minutes when it reallocated registers, an estimated 1 to 2 hours when it turned unrolled code into a loop (left unrepaired, as was one 20-minute attempt, C5).</li>
+<li><strong>Against #738.</strong> After the same one-token change, 225 to 228 of #738's 823 proof files (a third) name an address or lemma that moved, a lower bound on what must be renamed; its rebuild was still running at the time of writing, bounded above by its cold build of about 23.4 CPU-hours. Order of magnitude: a fraction of a CPU-hour and minutes of repair, against renaming a third of the proofs plus up to about 23 CPU-hours. In a complete tree we estimate an edit to a widely imported mirror or contract at 1.5 to 3+ CPU-hours, narrowing that worst case to roughly 8 to 15 times; code-only changes would not grow.</li>
+<li><strong>Proved, standard axioms only:</strong> <code>rv64_sound</code>: every code word decodes, and a run of the binary that halts with "accept" read a proof that the trusted Lean verifier accepts, given <code>main</code>'s contract, its one hypothesis. 94 of 230 functions (15% of instructions) are proved and linked at the image. Real proofs run in the statement's own machine are accepted, mutated ones rejected.</li>
+<li><strong>Not proved:</strong> <code>main</code>'s contract and the 136 functions without proofs; absence of traps (the theorem is partial correctness). The decoder and ELF reader are trusted, and the binary is a <code>no_std</code> copy of the verifier with inserted inline attributes.</li>
+<li><strong>Frameworks.</strong> machine-checked's proved lift covered all 230 functions and its soundness theorem was reused unforked; we built relocatable templates, a link step, a symbolic executor (100 times cheaper on the one function measured) and a heap vocabulary around it. braid is very experimental: a nicer logic, but native axioms, absolute addresses and quadratic composition.</li>
+<li><strong>Recommendation.</strong> The per-function, relocatable design is the right shape. Completion needs framework features first (heap and <code>sret</code> frames, nested representations, closures), then agent effort on loop invariants; CPU is not the constraint.</li>
 </ul>
 
 <h2>2. The question, and the two approaches</h2>
-<p>The question: if the Rust verifier changes a little, how much proving and building does it take to re-establish <code>Rust verifier accepts ⇒ Lean verifier accepts</code> for its RISC-V build?</p>
+<p>After a small or medium change to the Rust verifier, how much proving and building does it take to re-establish <code>Rust verifier accepts ⇒ Lean verifier accepts</code> for its RISC-V build? (The brief named PR #768 in places; it meant #738. We built on current <code>main</code>, which has moved on since #738 forked.)</p>
 
 <figure>
 <svg viewBox="0 0 960 345" role="img" aria-labelledby="dgT dgD">
@@ -174,266 +175,222 @@ ul.tight li { margin: 4px 0; }
     <text x="440" y="328" font-size="11" class="t2" text-anchor="middle">the real binary, checked against every template</text>
   </g>
 </svg>
-<figcaption>A proof imports only its own template and its callees' contracts, so it is rebuilt only when that function's code or a callee's contract changes.</figcaption>
+<figcaption>A proof imports only its own template and its callees' contracts, so it is rebuilt only when that function's code, or a contract, mirror or layout it imports, changes.</figcaption>
 </figure>
 
-<div class="two">
-<div class="card pr">
-<h3>#738</h3>
-<p>Compiles the verifier for RV64IM (64-bit RISC-V, integer and multiply), exports the binary as one Lean file (<code>Image.lean</code>: 101 functions, 18,870 instructions), cuts it into 2,352 basic blocks keyed by absolute address, checks each by symbolic execution (412,827 generated lines), and proves 823 files (229,028 lines) of per-function proofs that name program counters, registers and stack offsets: about 680k lines, written by agents in one day. For iteration, its weakness is that every proof imports the image, and 29% of proof lines contain binary-specific tokens (6,962 distinct code addresses). Moving one function by 4 bytes changes the addresses of everything after it.</p>
-</div>
-<div class="card ours">
-<h3>Ours</h3>
-<p>Treats the binary like position-independent code with a linker. machine-checked decompiles each function with a <em>proved</em> lift into Lprog, its intermediate language. A generator turns each lifted function into a <strong>template</strong> parametric in where it lives and where its callees and constants live. Each function is proved once against its template, with its callees' <strong>contracts</strong> as hypotheses; a contract states the function's effect in terms of a <strong>Lean mirror</strong> of the Rust function. A proof-free <strong>link step</strong> checks by kernel evaluation that the real binary is an instance of the templates. The mirrors are proved, once, to imply the trusted Lean verifier.</p>
-</div>
-</div>
+<p><strong>#738</strong> (RV64IM: 64-bit RISC-V with multiply) is about 680k lines, 89 commits in one day by agents; every proof imports the image, so moving one function by 4 bytes renames everything after it. <strong>Ours</strong> treats the binary like position-independent code with a linker: each function is proved once against its template, with its callees' <strong>contracts</strong> (pre- and postconditions, stated with a <strong>Lean mirror</strong> of the Rust) as hypotheses. About 30 agent runs over roughly one day (about 20 hours wall) built both the framework and the proofs.</p>
 
-<h2>3. What was built, layer by layer</h2>
+<h2>3. What was built</h2>
 
-<p><strong>Hermetic guest build and provability rewrites.</strong> The ELF is a pure function of the sources: built in a fresh directory with the guest's own flags (a stray <code>-C target-cpu=native</code> from a parent Cargo config silently changed 128 of 230 functions), its sha256 pinned and rechecked by <code>regen.sh --check</code>. Function boundaries are frozen (<code>#[inline(never)]</code> on every verifier function except 28 listed straight-line helpers; jump tables and function merging off; relocations emitted). Six behaviour-preserving rewrites of <code>crates/verifier</code> (enums instead of boxed closures, sorted <code>Vec</code>s instead of <code>BTreeMap</code>s, no divisions or <code>expect</code>s on the verification path) removed every instruction the lift cannot handle; an adversarial review found no soundness bug, and 2,124 mutated proofs gave identical verdicts before and after. Result: 230 functions, 20,723 instructions.</p>
+<p><strong>Hermetic build and provability rewrites.</strong> The binary is a pure function of the sources (a stray <code>-C target-cpu=native</code> in a parent Cargo config had silently changed 128 of 230 functions), with function boundaries frozen, jump tables off and its sha256 pinned. Six behaviour-preserving rewrites of <code>crates/verifier</code> (enums for boxed closures, sorted <code>Vec</code>s for <code>BTreeMap</code>s, no divisions or <code>expect</code>s) removed every instruction the lift rejects; a review found no soundness bug, and 2,124 mutated proofs got identical verdicts before and after. Final image: 230 functions, 20,888 instructions.</p>
 
-<p><strong>machine-checked's lift.</strong> <code>decompile --to lean --proved</code> lifts all 230 functions in about 5 s, and its transfer theorem turns a contract on the lifted program into a statement about the machine. Both are used unchanged.</p>
+<p><strong>Lift, templates and link.</strong> machine-checked's <code>decompile --to lean --proved</code> lifts all 230 functions into Lprog, its intermediate language, in about 5 s. Its transfer theorem says: if every function of the lifted program keeps its contract, every machine run from the entry that reaches the accepting system call satisfies the property the entry's contract promises. <code>scripts/gen.py</code> turns each lifted function into <code>tmpl (L : Link)</code>, <code>L</code> holding its base address and one entry per callee and per constant table, keyed by symbol name. A proof imports only its template and its callees' contracts, so Lake (Lean's build tool) rebuilds it only when that function's code changes, or the mirror, type layouts or contract framework it imports. The link step proves, per function, <code>(liftProg fns)[i]? = some (tmpl L)</code> and the link's well-formedness (each callee entry is the call target's address, each data reference points where the code computes it) by kernel evaluation, with no proof search.</p>
 
-<p><strong>Templates and the link step.</strong> <code>scripts/gen.py</code> rewrites each lifted function into <code>tmpl (L : Link)</code>, where <code>L</code> holds the function's base address, one entry per callee and one per constant table, keyed by demangled symbol, never by address or index. A proof imports only its own template, so Lake rebuilds it only if that function's code changes. Each function's link module checks <code>(liftProg fns)[i]? = some (tmpl L)</code> and the link's well-formedness by kernel evaluation: about 1,000 CPU-s for the whole image, no proof search.</p>
+<p><strong>Contracts.</strong> <code>Holds env p i need Pre Post Out</code> is machine-checked's contract plus the calling convention: on entry, enough stack, <code>sp</code> 16-aligned, static data intact; on return, <code>sp</code> and the callee-saved registers restored, memory unchanged outside the function's stack, its allocations and its declared out-buffer, and <code>Post</code>. It is partial correctness: a run that traps or diverges satisfies any contract. <code>env</code> abstracts the static data, the stack limit and the pointer of the bump allocator (which only increments, never frees), so no proof names an address.</p>
 
-<p><strong>The contract framework.</strong> <code>Holds env p i need Pre Post Out</code> (<code>Core/Holds.lean</code>) is machine-checked's contract plus the calling convention: on entry, <code>need</code> bytes of stack, <code>sp</code> 16-aligned, static data intact; on return, <code>sp</code> and <code>s0</code> to <code>s11</code> restored, memory unchanged outside the function's stack, its allocations and its declared out-buffer (<code>Out</code>), and <code>Post</code>. It is partial correctness: a run that traps or diverges satisfies any contract. The environment <code>Env</code> abstracts the static data, the bump allocator's <code>NEXT</code> pointer and the stack limit, so no proof mentions the image's addresses.</p>
-
-<p><strong><code>rv_auto</code>, a symbolic executor.</strong> machine-checked's <code>lsym</code> cost 1.5 CPU-s per instruction on <code>E::mul</code> (61 instructions), mostly <code>simp</code> over the whole context and <code>bv_omega</code> side conditions. <code>rv_auto</code> applies one named rule per instruction form and states the next state itself, keeps addresses as base plus literal offset with kernel-decided side conditions, and carries the body's suffix instead of looking instructions up by index. Result: 0.015 CPU-s per instruction on <code>E::mul</code> (91 to 0.9 CPU-s, a 100 times cut), and every path of all 230 functions stepped in 354 CPU-s. A whole straight-line proof:</p>
+<p><strong><code>rv_auto</code>.</strong> An automated symbolic executor: it follows every path of a function's machine code, tracking registers and memory as formulas, applies callees' contracts at calls, and leaves only what needs insight, the functional identity and loop invariants. machine-checked's executor (<code>lsym</code>) cost 1.5 CPU-s per instruction on <code>E::mul</code>, <code>rv_auto</code> 0.015; it steps every path of all 230 functions in 354 CPU-s. The complete proof of <code>E::mul</code> (61 instructions, Karatsuba):</p>
 <pre><code>theorem ok … (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     (hcl : Clmul.spec env p L.clmul.idx needC) (hrd : Reduce.spec env p L.reduce.idx needR) :
     EMul.spec env p i need := by
   rv_auto hp with [hL] using [hcl, hrd]
   all_goals simp only [Model.eMul, ← hi128_xor, ← lo128_xor, ← hi128_shl1, ← lo128_shl1]
   all_goals simp only [BitVec.xor_assoc, BitVec.xor_comm, xor_left_comm, append_hi_lo]</code></pre>
-<p>What remains manual: the functional algebra, loop invariants (a lemma by induction at each loop head), and heap reasoning beyond what the opt-in heap mode (<code>rv_sym.heap</code>) closes.</p>
 
-<p><strong>Model mirrors and their capstone.</strong> <code>Rv64mc/Model</code> (11,932 lines, no binary coupling) mirrors each Rust function in Lean, following its loop order, wrapping arithmetic and early returns. The capstone <code>mainVerdictRust_sound</code> proves that if the mirror of <code>main</code>'s verdict accepts, then <code>verifyWith keccakF1600</code> accepts, with one hypothesis (Merkle leaf indices below 2^64, which <code>u64</code> guarantees). Three adversarial reviews found no fidelity or soundness defect. A compiled runner (<code>rv64mc-model</code>) checks the mirror on real inputs: 4 of 4 honest proofs accepted, 4 of 4 mutated rejected, 4 of 4 truncated undecodable, each agreeing with the Lean verifier.</p>
-
-<p><strong>The end statement and its non-vacuity.</strong> <code>EndStatement.lean</code> (trusted, about 200 lines) defines the machine, the loader, the input format and:</p>
+<p><strong>Mirrors, statement and non-vacuity.</strong> <code>Rv64mc/Model</code> (12,011 lines, binary-free) mirrors each Rust function's loops, wrapping arithmetic and early returns. Its top theorem, <code>mainVerdictRust_sound</code>, proves that if the mirror of <code>main</code>'s verdict accepts, then <code>verifyWith</code> (the trusted Lean verifier of <code>formal/Statement</code>) accepts. Three reviews found no fidelity defect; where no machine proof exists yet, a mirror is tied to the Rust only by those reviews, a runner and a drift script. The trusted <code>EndStatement.lean</code> defines the machine, the loader, the input format, and:</p>
 <pre><code>def Sound (img : Image) : Prop :=
   ∀ words s n, Loaded img words s → Halts s n 0 →
     ∃ bytecode publicInput proof, decodeInput words = some (bytecode, publicInput, proof) ∧
       verify bytecode publicInput proof = true
-theorem rv64_sound (hmain : MainSpec env (liftProg Gen.fns) Gen.Start.link.main.idx need) :
+theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main Needs.Main) :
     AllDecode image ∧ Sound image</code></pre>
-<p><code>AllDecode</code> (every code word decodes) is proved by the kernel, so <code>Sound</code> cannot hold vacuously by the machine stopping on an unknown instruction, and <code>loaded_nonempty</code> proves the loader satisfiable. A runner (<code>rv64mc-run</code>) executes the statement's own <code>step</code> on real proofs of four programs:</p>
-<table>
-<thead><tr><th>program</th><th class="num">input words</th><th class="num">honest: accept (a0 = 0)</th><th class="num">bit flipped: reject (a0 = 1)</th><th class="num">truncated: malformed (a0 = 2)</th></tr></thead>
-<tbody>
-<tr><td>fibonacci, rate 4</td><td class="num">16,664</td><td class="num">127,045,937 steps</td><td class="num">2,600,063</td><td class="num">1,667,432</td></tr>
-<tr><td>conditionals, rate 2</td><td class="num">24,906</td><td class="num">154,632,148</td><td class="num">4,009,179</td><td class="num">3,076,546</td></tr>
-<tr><td>chain1000, rate 3</td><td class="num">24,044</td><td class="num">159,582,002</td><td class="num">4,071,083</td><td class="num">3,137,094</td></tr>
-<tr><td>chain4, rate 1</td><td class="num">38,700</td><td class="num">204,975,556</td><td class="num">4,334,868</td><td class="num">3,402,212</td></tr>
-</tbody>
-</table>
+<p><code>Halts</code> reaches the contracts through a bridge: each step of our machine is a step of SP1's (SP1 is a RISC-V zkVM whose machine machine-checked builds in), and our halt is its accepting state. <code>AllDecode</code>, proved by the kernel, stops <code>Sound</code> holding vacuously because the machine halts on an unknown instruction. On the current image, 24 runs of the statement's own machine and of the mirror on real proofs of four programs all came out as expected: honest proofs accepted after 127 to 205 million steps, bit-flipped ones rejected, truncated ones malformed.</p>
 
 <h2>4. Results</h2>
 
-<h3>Iteration benchmark</h3>
-<p>Each change is applied to a copy of a green tree (66 proof files, 74 contracts linked): regenerate, rebuild, sweep, repair. The total includes the repair rebuilds.</p>
-
 <figure>
-<svg viewBox="0 0 960 372" role="img" aria-labelledby="chT chD">
+<svg viewBox="0 0 960 436" role="img" aria-labelledby="chT chD">
   <title id="chT">CPU-seconds per change, log scale</title>
-  <desc id="chD">Ours: C0 194, C2 1,245, C3 1,354, C5 1,461, I2 2,212, C1 2,751, C4 2,792, I1 2,948 CPU-s. #738 cold build 73,440 CPU-s; #738 after C1 not yet measured.</desc>
-  <!-- plot area: x 250..770 is 10^2..10^5 -->
-  <g>
-    <line class="grid" x1="250" y1="34" x2="250" y2="332"/>
-    <line class="grid" x1="423.3" y1="34" x2="423.3" y2="332"/>
-    <line class="grid" x1="596.7" y1="34" x2="596.7" y2="332"/>
-    <line class="grid" x1="770" y1="34" x2="770" y2="332"/>
-    <line class="floor" x1="420" y1="34" x2="420" y2="332"/>
-    <text x="424" y="28" font-size="11" class="t2">link floor ~1,000</text>
-  </g>
-  <g font-size="12" text-anchor="end">
-    <text x="240" y="54">C0 nothing</text>
-    <text x="240" y="84">C2 Rust-only rewrite</text>
-    <text x="240" y="114">C3 pure relocation</text>
-    <text x="240" y="144">C5 real 5-function commit</text>
-    <text x="240" y="174">I2 contract framework change</text>
-    <text x="240" y="204">C1 eq_eval, with spec and mirror</text>
-    <text x="240" y="234">C4 struct fields swapped</text>
-    <text x="240" y="264">I1 allocator alignment</text>
-    <text x="240" y="294">#738 cold build</text>
-    <text x="240" y="324">#738 after C1</text>
-  </g>
-  <g>
-    <rect class="bar-ours" x="250" y="41" width="49.9" height="18" rx="3"><title>C0: 194 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="71" width="189.8" height="18" rx="3"><title>C2: 1,245 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="101" width="196.1" height="18" rx="3"><title>C3: 1,354 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="131" width="201.9" height="18" rx="3"><title>C5: 1,461 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="161" width="233.1" height="18" rx="3"><title>I2: 2,212 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="191" width="249.5" height="18" rx="3"><title>C1: 2,751 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="221" width="250.6" height="18" rx="3"><title>C4: 2,792 CPU-s</title></rect>
-    <rect class="bar-ours" x="250" y="251" width="254.7" height="18" rx="3"><title>I1: 2,948 CPU-s</title></rect>
-    <rect class="bar-pr" x="250" y="281" width="496.8" height="18" rx="3"><title>#738 cold build: 73,440 CPU-s (20.4 CPU-hours)</title></rect>
-    <rect class="bar-ph" x="250" y="311" width="496.8" height="18" rx="3"><title>#738 after C1: not yet measured; expected 4 to 5 hours wall</title></rect>
-  </g>
-  <g font-size="12" class="t2">
-    <text x="306" y="54">194</text>
-    <text x="446" y="84">1,245</text>
-    <text x="452" y="114">1,354</text>
-    <text x="458" y="144">1,461</text>
-    <text x="489" y="174">2,212</text>
-    <text x="505" y="204">2,751</text>
-    <text x="507" y="234">2,792</text>
-    <text x="511" y="264">2,948</text>
-    <text x="753" y="294">73,440</text>
-    <text x="256" y="324">{{PR738_C1}} (expected 4 to 5 h wall)</text>
-  </g>
+  <desc id="chD">C7 dot as index loop (same binary) 300; C8 duplex lanes (unrepaired) 1,073; C2 MerklePath::root, Rust only 1,245; C3 pure relocation 1,354; C5 real 5-function commit (so far) 1,461; C8b duplex counter moved 1,485; I2 contract framework change 2,212; C7b dot from the last index 2,627; C1 eq_eval, with spec and mirror 2,751; C4 struct fields swapped 2,792; I1 allocator alignment 2,948; C9 poly_eval contract change 3,054; C6 E::mul schoolbook 3,230; ours: cold build 4,333; #738: cold build 84,240; #738 after C1: rebuild in progress, bounded above by its cold build.</desc>
+  <line class="grid" x1="270.0" y1="34" x2="270.0" y2="396"/>
+  <line class="grid" x1="430.0" y1="34" x2="430.0" y2="396"/>
+  <line class="grid" x1="590.0" y1="34" x2="590.0" y2="396"/>
+  <line class="grid" x1="750.0" y1="34" x2="750.0" y2="396"/>
+  <line class="axis" x1="270" y1="396" x2="750" y2="396"/>
   <g font-size="11" class="t2" text-anchor="middle">
-    <line class="axis" x1="250" y1="332" x2="770" y2="332"/>
-    <text x="250" y="348">100</text>
-    <text x="423.3" y="348">1,000</text>
-    <text x="596.7" y="348">10,000</text>
-    <text x="770" y="348">100,000</text>
-    <text x="510" y="366">CPU-seconds, log scale</text>
+    <text x="270.0" y="411">100</text>
+    <text x="430.0" y="411">1,000</text>
+    <text x="590.0" y="411">10,000</text>
+    <text x="750.0" y="411">100,000</text>
+    <text x="510" y="428">CPU-seconds, log scale</text>
   </g>
+  <text x="260" y="51" font-size="12" text-anchor="end">C7 dot as index loop (same binary)</text>
+  <rect class="bar-ours" x="270" y="40" width="76.3" height="14" rx="3"><title>C7 dot as index loop (same binary): 300 CPU-s</title></rect>
+  <text x="352.3" y="51" font-size="11" class="t2">300</text>
+  <text x="260" y="73" font-size="12" text-anchor="end">C8 duplex lanes (unrepaired)</text>
+  <rect class="bar-ours" x="270" y="62" width="164.9" height="14" rx="3"><title>C8 duplex lanes (unrepaired): 1,073 CPU-s</title></rect>
+  <text x="440.9" y="73" font-size="11" class="t2">1,073</text>
+  <text x="260" y="95" font-size="12" text-anchor="end">C2 MerklePath::root, Rust only</text>
+  <rect class="bar-ours" x="270" y="84" width="175.2" height="14" rx="3"><title>C2 MerklePath::root, Rust only: 1,245 CPU-s</title></rect>
+  <text x="451.2" y="95" font-size="11" class="t2">1,245</text>
+  <text x="260" y="117" font-size="12" text-anchor="end">C3 pure relocation</text>
+  <rect class="bar-ours" x="270" y="106" width="181.1" height="14" rx="3"><title>C3 pure relocation: 1,354 CPU-s</title></rect>
+  <text x="457.1" y="117" font-size="11" class="t2">1,354</text>
+  <text x="260" y="139" font-size="12" text-anchor="end">C5 real 5-function commit (so far)</text>
+  <rect class="bar-ours" x="270" y="128" width="186.3" height="14" rx="3"><title>C5 real 5-function commit (so far): 1,461 CPU-s</title></rect>
+  <text x="462.3" y="139" font-size="11" class="t2">1,461</text>
+  <text x="260" y="161" font-size="12" text-anchor="end">C8b duplex counter moved</text>
+  <rect class="bar-ours" x="270" y="150" width="187.5" height="14" rx="3"><title>C8b duplex counter moved: 1,485 CPU-s</title></rect>
+  <text x="463.5" y="161" font-size="11" class="t2">1,485</text>
+  <text x="260" y="183" font-size="12" text-anchor="end">I2 contract framework change</text>
+  <rect class="bar-ours" x="270" y="172" width="215.2" height="14" rx="3"><title>I2 contract framework change: 2,212 CPU-s</title></rect>
+  <text x="491.2" y="183" font-size="11" class="t2">2,212</text>
+  <text x="260" y="205" font-size="12" text-anchor="end">C7b dot from the last index</text>
+  <rect class="bar-ours" x="270" y="194" width="227.1" height="14" rx="3"><title>C7b dot from the last index: 2,627 CPU-s</title></rect>
+  <text x="503.1" y="205" font-size="11" class="t2">2,627</text>
+  <text x="260" y="227" font-size="12" text-anchor="end">C1 eq_eval, with spec and mirror</text>
+  <rect class="bar-ours" x="270" y="216" width="230.3" height="14" rx="3"><title>C1 eq_eval, with spec and mirror: 2,751 CPU-s</title></rect>
+  <text x="506.3" y="227" font-size="11" class="t2">2,751</text>
+  <text x="260" y="249" font-size="12" text-anchor="end">C4 struct fields swapped</text>
+  <rect class="bar-ours" x="270" y="238" width="231.3" height="14" rx="3"><title>C4 struct fields swapped: 2,792 CPU-s</title></rect>
+  <text x="507.3" y="249" font-size="11" class="t2">2,792</text>
+  <text x="260" y="271" font-size="12" text-anchor="end">I1 allocator alignment</text>
+  <rect class="bar-ours" x="270" y="260" width="235.1" height="14" rx="3"><title>I1 allocator alignment: 2,948 CPU-s</title></rect>
+  <text x="511.1" y="271" font-size="11" class="t2">2,948</text>
+  <text x="260" y="293" font-size="12" text-anchor="end">C9 poly_eval contract change</text>
+  <rect class="bar-ours" x="270" y="282" width="237.6" height="14" rx="3"><title>C9 poly_eval contract change: 3,054 CPU-s</title></rect>
+  <text x="513.6" y="293" font-size="11" class="t2">3,054</text>
+  <text x="260" y="315" font-size="12" text-anchor="end">C6 E::mul schoolbook</text>
+  <rect class="bar-ours" x="270" y="304" width="241.5" height="14" rx="3"><title>C6 E::mul schoolbook: 3,230 CPU-s</title></rect>
+  <text x="517.5" y="315" font-size="11" class="t2">3,230</text>
+  <text x="260" y="337" font-size="12" text-anchor="end">ours: cold build</text>
+  <rect class="bar-ours" x="270" y="326" width="261.9" height="14" rx="3"><title>ours: cold build: 4,333 CPU-s</title></rect>
+  <text x="537.9" y="337" font-size="11" class="t2">4,333</text>
+  <text x="260" y="359" font-size="12" text-anchor="end">#738: cold build</text>
+  <rect class="bar-pr" x="270" y="348" width="468.1" height="14" rx="3"><title>#738: cold build: 84,240 CPU-s</title></rect>
+  <text x="744.1" y="359" font-size="11" class="t2">84,240</text>
+  <text x="260" y="381" font-size="12" text-anchor="end">#738: after C1</text>
+  <rect class="bar-ph" x="270" y="370" width="468.1" height="14" rx="3"><title>#738 after C1: rebuild in progress (52 modules rebuilt, 0 failed, after 35 min); bounded above by the cold build</title></rect>
+  <text x="276" y="381" font-size="11" class="t2">in progress; at most the cold build</text>
   <g font-size="12">
-    <rect x="800" y="44" width="10" height="10" rx="2" class="bar-ours"/><text x="816" y="54">ours</text>
-    <rect x="800" y="64" width="10" height="10" rx="2" class="bar-pr"/><text x="816" y="74">#738</text>
+    <rect x="790" y="40" width="10" height="10" rx="2" class="bar-ours"/><text x="806" y="50">ours</text>
+    <rect x="790" y="60" width="10" height="10" rx="2" class="bar-pr"/><text x="806" y="70">#738</text>
   </g>
 </svg>
-<figcaption>Total CPU per change, including regeneration, rebuild and repair rebuilds. I1 includes 756 CPU-s of an unrelated unfinished module. The #738 bar for C1 is a placeholder until measured.</figcaption>
+<figcaption>Total CPU per change, including regeneration, rebuild and repair rebuilds; I1 includes 756 CPU-s of an unrelated module. The #738 rebuild after C1 was still running at the time of writing.</figcaption>
 </figure>
 
+<h3>Changes to proved functions (round 2, tree of 104 proof files)</h3>
 <table>
-<thead><tr><th>change</th><th>templates changed</th><th class="num">proof modules rebuilt</th><th>broke</th><th>repair (agent)</th><th class="num">total CPU-s (wall)</th></tr></thead>
+<thead><tr><th>change</th><th>callers proved</th><th>rebuilt</th><th>broke</th><th>repair</th><th class="num">CPU-s (wall)</th></tr></thead>
 <tbody>
-<tr><td>C0 nothing</td><td>0</td><td class="num">0</td><td>nothing</td><td>none</td><td class="num">194 (172 s)</td></tr>
-<tr><td>C1 <code>eq_eval</code>: <code>1 + x + y</code> to <code>1 + x * y</code>, with Lean spec and mirror</td><td>1</td><td class="num">47</td><td>its own proof</td><td>1 file, 3 min</td><td class="num">2,751 (584 s)</td></tr>
-<tr><td>C2 <code>MerklePath::root</code> rewritten, Rust only</td><td>1</td><td class="num">0</td><td>nothing</td><td>none</td><td class="num">1,245 (380 s)</td></tr>
-<tr><td>C3 an unused function added (pure relocation)</td><td>1 added</td><td class="num">0</td><td>8 tables (literal indices)</td><td>script, 3 min</td><td class="num">1,354 (413 s)</td></tr>
-<tr><td>C4 two <code>Sponge</code> fields swapped (representation)</td><td>5</td><td class="num">56</td><td>3 proofs (literal offsets, a layout assumption)</td><td>21 lines, 9 min</td><td class="num">2,792 (658 s)</td></tr>
-<tr><td>C5 a real 5-function commit reverted</td><td>4 changed, 1 added, 4 removed</td><td class="num">1</td><td>16 (removed functions, tables, one drop proof)</td><td>20 min, 1 proof left</td><td class="num">1,461 (420 s)</td></tr>
-<tr><td>I1 allocator alignment (unplanned)</td><td>75</td><td class="num">full build</td><td><code>alloc</code>'s own proof</td><td>spec 13 lines, proof 42 added, 37 removed</td><td class="num">2,948</td></tr>
-<tr><td>I2 framework: stack alignment added to every contract</td><td>0</td><td class="num">all</td><td>23 files</td><td>hypotheses threaded, 20 min</td><td class="num">2,212</td></tr>
+<tr><td>C6 <code>E::mul</code> Karatsuba to schoolbook</td><td>11 of 32</td><td>1; 62 after mirror edit</td><td>own proof</td><td>mirror 10 lines, 9 min</td><td class="num">3,230 (797 s)</td></tr>
+<tr><td>C7 <code>dot</code> as an index loop</td><td>1 of 8</td><td>none (same binary)</td><td>nothing</td><td>none</td><td class="num">300 (235 s)</td></tr>
+<tr><td>C7b <code>dot</code> from the last index down</td><td>1 of 8</td><td>1; 45 after mirror edit</td><td>own proof</td><td>loop proof rewritten, 6 min</td><td class="num">2,627 (655 s)</td></tr>
+<tr><td>C8 <code>duplex</code> lanes via <code>chunks_exact_mut</code></td><td>3 of 3</td><td>1</td><td>own proof</td><td><strong>not repaired</strong>: unrolled writes became a loop (estimated 1 to 2 h)</td><td class="num">1,073 (312 s)</td></tr>
+<tr><td>C8b <code>duplex</code> counter reset moved</td><td>3 of 3</td><td>1</td><td>own proof</td><td>registers swapped, 9 min</td><td class="num">1,485 (468 s)</td></tr>
+<tr><td>C9 <code>poly_eval</code> Horner from the top (contract change)</td><td>0 of 4</td><td>58</td><td>own proof</td><td>loop proof reversed, 6 min</td><td class="num">3,054 (621 s)</td></tr>
+</tbody>
+</table>
+<p>Code changes never reached callers, not even to rebuild them; mirror edits rebuilt 45 to 62 importers, all green. Round 1's C1 is the contract change with proved callers (two, rebuilt green).</p>
+
+<h3>Earlier changes (round 1, tree of 66 proof files)</h3>
+<table>
+<thead><tr><th>change</th><th>changed function proved?</th><th>broke</th><th>repair</th><th class="num">CPU-s (wall)</th></tr></thead>
+<tbody>
+<tr><td>C1 <code>eq_eval</code>: <code>1 + x + y</code> to <code>1 + x * y</code>, with spec and mirror</td><td>yes; 2 callers proved</td><td>own proof</td><td>3 min</td><td class="num">2,751 (584 s)</td></tr>
+<tr><td>C2 <code>MerklePath::root</code> rewritten</td><td>no</td><td>nothing</td><td>none; a complete tree would re-prove <code>root</code></td><td class="num">1,245 (380 s)</td></tr>
+<tr><td>C3 unused function added (relocation)</td><td>none changed</td><td>8 tables (literal indices, since fixed)</td><td>script, 3 min</td><td class="num">1,354 (413 s)</td></tr>
+<tr><td>C4 two <code>Sponge</code> fields swapped</td><td>yes</td><td>3 proofs (literal offsets, a layout assumption)</td><td>21 lines, 9 min</td><td class="num">2,792 (658 s)</td></tr>
+<tr><td>C5 a real 5-function commit reverted</td><td>2 of 5</td><td>16 modules</td><td>unfinished after 20 min: a drop loop, and mirror drift caught only by the drift script</td><td class="num">1,461 (420 s) so far</td></tr>
+<tr><td>I1 allocator alignment</td><td>yes (<code>alloc</code>)</td><td><code>alloc</code>; 75 templates changed (LLVM dropped an argument program-wide)</td><td>untested on callers: one proved, written after</td><td class="num">2,948</td></tr>
+<tr><td>I2 16-byte stack alignment in every contract</td><td>framework</td><td>20 proof, 3 framework files</td><td>20 min</td><td class="num">2,212</td></tr>
 </tbody>
 </table>
 
-<p>For comparison, #738: cold build 73,440 CPU-s (20.4 CPU-hours, 1,053 modules). C1 on its own tree changes one function modulo addresses but 59 byte for byte (everything after it moves by 4 bytes), and the rebuild was expected to take 4 to 5 hours wall. Measured: <span class="ph">{{PR738_C1}}</span>. For the real gap between #738's fork point and today's <code>main</code> (<code>E</code> from three limbs to two, a new WHIR fold, a new ring switch), the three-limb accessor alone has 3,133 uses in 361 of its proof files: essentially every per-function proof would be redone.</p>
-
-<p><strong>Lessons.</strong> The floor of any change is the link step, 880 to 1,000 CPU-s, plus about 160 CPU-s to regenerate. A Rust-only change to an unproved function, or a relocation, rebuilds no proof. An edit to the Lean spec or mirror rebuilds every importer of the Model (C1); a layout change, every importer of the layouts (C4). I1 showed the design's predicted risk: a one-line allocator change made LLVM drop an argument program-wide and changed 75 templates, yet no caller proof needed an edit, because callers see only <code>alloc</code>'s contract and <code>rv_auto</code> re-steps the new call sequences. These numbers come from a partial proof tree: rebuild costs that scale with importers will grow with it; the link floor will not.</p>
-
-<h3>Coupling to the binary</h3>
-<div class="tiles">
-  <div class="tile"><div class="k">Written proof, spec and table lines</div><div class="v">14,432 <span class="vs">vs 215,295</span></div></div>
-  <div class="tile"><div class="k">Lines with a binary-specific token</div><div class="v">8.8% <span class="vs">(1,277) vs 29% (61,970)</span></div></div>
-  <div class="tile"><div class="k">Absolute code addresses</div><div class="v">1 line <span class="vs">vs 6,962 distinct</span></div></div>
-</div>
-<p>Ours first, #738 second. Our binary-specific lines are mostly argument registers in specs (the calling convention) and 32 numeric loop-head positions.</p>
-
-<h3>Per-function cost</h3>
-<p>From the proof logs; CPU-s are tactic plus kernel.</p>
+<h3>Against #738</h3>
 <table>
-<thead><tr><th>function</th><th class="num">instructions</th><th class="num">loops</th><th class="num">proof lines</th><th class="num">CPU-s</th><th>what was manual</th></tr></thead>
+<thead><tr><th></th><th>ours</th><th>#738</th></tr></thead>
 <tbody>
-<tr><td><code>E::mul</code></td><td class="num">61</td><td class="num">0</td><td class="num">3</td><td class="num">1.0</td><td>XOR order</td></tr>
-<tr><td><code>Layout::constant</code></td><td class="num">14</td><td class="num">0</td><td class="num">11</td><td class="num">5.5</td><td>one <code>rv_auto</code> line</td></tr>
-<tr><td><code>eq_eval</code></td><td class="num">40</td><td class="num">1</td><td class="num">63</td><td class="num">2.9</td><td>loop invariant</td></tr>
-<tr><td><code>dot</code></td><td class="num">44</td><td class="num">1</td><td class="num">102</td><td class="num">7.0</td><td>loop invariant</td></tr>
-<tr><td><code>K::inv</code></td><td class="num">291</td><td class="num">0</td><td class="num">58</td><td class="num">41.6</td><td>63 unrolled squarings cut into lemmas</td></tr>
-<tr><td><code>linear_transpose</code></td><td class="num">196</td><td class="num">5</td><td class="num">1,027</td><td class="num">70</td><td>segment lemmas, 1,600-element stack arrays</td></tr>
-<tr><td><code>finish_grow</code></td><td class="num">68</td><td class="num">0</td><td class="num">219</td><td class="num">90 to 102</td><td>three cuts, heap frames</td></tr>
-<tr><td><code>is_valid_encoding</code></td><td class="num">287</td><td class="num">2</td><td class="num">347</td><td class="num">135</td><td>loop and entry checks</td></tr>
+<tr><td>cold build</td><td>4,333 CPU-s (1.2 CPU-h), 516 s wall on 8 jobs</td><td>about 23.4 CPU-h, about 8 h wall (12 jobs, memory-capped to about 4.3 at once), peak 24.9 GB (13.3 GB for one module)</td></tr>
+<tr><td>after C1</td><td>2,751 CPU-s, a 3-minute repair</td><td>56 of 76 block files change (55 by addresses only); 225 to 228 of 823 proof files (about 75k lines) name a moved address or lemma, 2 for the semantic change; no renaming script (estimated half a day to a day to write); rebuild in progress (52 modules, 0 failed, after 35 min), bounded above by the cold build</td></tr>
+<tr><td>proof lines with a binary-specific token</td><td>8.8% of 14,432 (mid-campaign)</td><td>29% of 215,295</td></tr>
+<tr><td>absolute code addresses in proof text</td><td>1 line</td><td>6,962</td></tr>
 </tbody>
 </table>
-<p>In proof lines per instruction, ours runs from about 0.05 (<code>E::mul</code>) to 5 to 7 for loop and heap code (<code>linear_transpose</code>, <code>selector_point</code>); #738 averages about 12.</p>
+<p>Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean statement. #738's repair effort was never measured, only its textual breakage and rebuild; <code>eq_eval</code> sits late in its image (38 functions after it moved), and the same change early would touch most proofs. Our link step is a fixed floor of 670 to 1,000 CPU-s per change. The section 1 projection scales C1's non-link rebuild (about 1,650 CPU-s for 158 modules at 66 proof files) to all 230 functions, the unproved ones being the largest.</p>
+<p><strong>Per function</strong>, straight-line code costs seconds and a few lines (<code>E::mul</code>: 3 lines, 1.0 s); each loop needs a hand invariant of 50 to 250 lines (<code>eq_eval</code>: 63 lines, 2.9 s; <code>linear_transpose</code>, 5 loops: 1,027 lines, 70 s; <code>is_valid_encoding</code>: 347 lines, 135 s).</p>
 
 <h2>5. How far the full theorem got</h2>
+<div class="tiles">
+  <div class="tile"><div class="k">Proved and linked at the image</div><div class="v">94 <span class="vs">of 230 functions (15% of instructions)</span></div></div>
+  <div class="tile"><div class="k">With no open hypothesis</div><div class="v">47 <span class="vs">functions</span></div></div>
+  <div class="tile"><div class="k">Contract only / nothing</div><div class="v">66 / 70 <span class="vs">functions</span></div></div>
+  <div class="tile"><div class="k">Hand-written lines</div><div class="v">31,994</div></div>
+</div>
 <ul>
-<li><strong>End theorem:</strong> <code>rv64_sound</code> is proved with <code>main</code>'s contract (<code>MainSpec</code>) as its one hypothesis; <code>_start</code>, the bridge to the statement's machine, the Model-to-verdict step and <code>verify_execution</code> (a tail call of <code>walk</code>) are proved.</li>
-<li><strong>Model layer:</strong> complete, capstone proved.</li>
-<li><strong>Per-function machine proofs:</strong> <span class="ph">{{STATUS}}</span>.</li>
-<li><strong>What blocks the rest</strong> is mostly framework, not proof writing: frames for heap blocks and caller-owned <code>sret</code> slots (blocked <code>main</code>, <code>Bytecode::new</code>, <code>Input::digest</code>), callees whose out-buffer is not an <code>sret</code> (<code>memcpy</code>), representation predicates for nested types (<code>Vec&lt;Vec&lt;Form&gt;&gt;</code>, the layout tables), closure environments (rustc does not report their layout, so offsets were read off the code), <code>Result</code> layouts not yet generated, and 64-bit <code>omega</code> goals that exhaust memory.</li>
-<li><strong>Extrapolation, with its basis.</strong> CPU is not the constraint: stepping every instruction costs 354 CPU-s, and a proved function seconds to minutes. Agent effort is: loop invariants run 50 to 250 lines each, and the WHIR family estimated 1.5 to 2 agent-hours per function that allocates, grows a <code>Vec</code>, loops and returns through <code>sret</code>. The largest functions (<code>verify_bus_balance</code> 899 instructions, <code>verify_whir</code> 855 with 18 loops, <code>walk</code> 762 with 16 loops) did not fit a 3-hour time box. The heap mode already cut <code>finish_grow</code>'s leftover goals from 83 to 15; the framework items of section 7 should come before more proof writing.</li>
+<li><strong>Status.</strong> 94 of 230 functions (3,161 of 20,888 instructions, 15%) are proved and linked at the image, 47 of them with no open hypothesis; 66 (47% of instructions) have a contract only, including partial proofs of <code>main</code> and <code>counting_sort</code>; 70 (38%) have nothing. 31,994 hand-written lines, standard axioms, no <code>sorry</code>, build green. The Model layer is complete.</li>
+<li><strong>Blockers</strong> are mostly framework features: frames for heap blocks and for caller-owned <code>sret</code> slots (the hidden pointer through which a function returns a large value), callees whose output is not such a slot (<code>memcpy</code>), predicates for nested types, closure layouts (rustc does not report them), and arithmetic goals that exhaust memory.</li>
+<li><strong>Two lessons.</strong> Contracts belong to machine instances, not Rust functions: LLVM specialised <code>try_allocate_in</code> for <code>main</code> without its <code>init</code> argument, so a contract written from the Rust signature was wrong. And a contract can be unprovable as written: <code>Sponge::new</code>'s first one let its inputs lie where it writes, and was fixed by a stronger precondition.</li>
+<li><strong>Extrapolation (estimate).</strong> The WHIR family estimated 1.5 to 2 agent-hours per function that allocates, grows a <code>Vec</code>, loops and returns through <code>sret</code>; the largest functions (<code>verify_bus_balance</code> 899 instructions, <code>verify_whir</code> 855 with 18 loops, <code>walk</code> 762 with 16) did not fit a 3-hour time box, and <code>keccak_f</code> was estimated at 4 to 6 hours. At that rate the 136 functions left are 200 to 270 agent-hours if each cost as much (many are smaller, a few larger), after the framework features.</li>
 </ul>
 
 <h2>6. The frameworks</h2>
 <div class="two">
 <div class="card ours">
 <h3>machine-checked</h3>
-<p><strong>What worked.</strong> The proved lift covered 230 of 230 functions once the source was adapted. Its contracts are generic in the program <code>p</code>, so per-function proofs over symbolic templates worked without a fork (confirmed in the first probe). Its lift soundness and transfer theorems were reused unchanged. Decompiling takes seconds.</p>
-<p><strong>What did not, or had to be built.</strong></p>
+<p><strong>Worked.</strong> The proved lift covered all 230 functions once the source was adapted; its contracts are generic in the program, so per-function proofs over templates needed no fork; its soundness theorems were reused unchanged.</p>
+<p><strong>Missing</strong>, each built or worked around by us:</p>
 <ul class="tight">
-<li><strong>SP1-only machine:</strong> step, memory check and <code>ecall</code> are hard-wired to SP1 (about 47 references), and accept means <code>a0 = 0</code>. We changed the guest's verdict code and proved a bridge to our statement's machine.</li>
-<li><strong>The accepting function has no contract:</strong> the accepting <code>ecall</code> cannot occur inside one; only <code>_start</code> is proved directly.</li>
-<li><strong>Whole-program contracts:</strong> contracts mention <code>liftProg fns</code>, so any word change rebuilds everything; we wrote our own template generator. Even so, each link module evaluates <code>liftProg</code> over all functions, so every change pays the full 1,000 CPU-s link floor.</li>
-<li><strong>Index and address identity:</strong> functions are numbered in ELF order and statements carry literal addresses; a one-line source change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses).</li>
-<li><strong>Emitter literals:</strong> mangled names, 128-instruction chunks, callee indices only inside candidate lists; we recovered the structure by parsing the output.</li>
-<li><strong><code>lsym</code> cost and hazards:</strong> quadratic in function length, <code>simp</code> over the context, <code>bv_omega</code> that hangs, kernel unfolding hazards (deep recursion on <code>0 + 0xfff…f</code>, 16 GB unfolding a <code>mulhu</code> value).</li>
-<li><strong>No memory vocabulary:</strong> no regions, ownership, freshness or byte-in-doubleword reasoning; we built <code>Env.Frame</code>, the heap mode and byte lemmas.</li>
-<li><strong>Coverage:</strong> <code>--proved</code> drops any function containing <code>unimp</code> or most 32-bit <code>W</code> operations: 109 of our first build's 198 functions. Jump tables are never lifted, so we build with them off. An indirect call with an unknown target gets every function as candidate.</li>
-<li><strong>No proved composition table</strong> at the Lprog level; composition is by hand.</li>
-<li><strong>Partial correctness only:</strong> traps count as safe, so fault freedom cannot be stated.</li>
-<li><strong>Trust:</strong> the decoder is not tied to Sail, the ELF is read at elaboration time, and no theorem produces the loaded state.</li>
+<li><strong>Identity:</strong> contracts mention the whole lifted program, and statements carry ELF-order indices and absolute addresses; a one-line change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses). Our link step still evaluates the whole program per function, hence the floor.</li>
+<li><strong>Machine:</strong> hard-wired to SP1 (about 47 references), with accept as <code>a0 = 0</code> and no contract possible for the function that halts; partial correctness only, so fault freedom cannot be stated.</li>
+<li><strong>Coverage:</strong> functions with <code>unimp</code> or most 32-bit <code>W</code> instructions are dropped (109 of our first build's 198); jump tables are never lifted.</li>
+<li><strong>Executor:</strong> <code>lsym</code> is quadratic, runs <code>simp</code> (Lean's rewriter) over the whole context, and its <code>bv_omega</code> arithmetic side conditions hang or exhaust kernel memory.</li>
+<li><strong>Memory and composition:</strong> no regions, ownership, freshness or byte-in-word reasoning; no proved table composing contracts.</li>
 </ul>
 </div>
 <div class="card pr">
 <h3>braid (very experimental)</h3>
-<p>A successor redesign by machine-checked's author, begun two days before this run, tried on the side.</p>
-<p><strong>Good:</strong> a generic RISC-V step (not SP1), an exit convention matching our guest, an Iris separation logic with framing built in, loops by plain induction, and cheap stepping (about 0.03 CPU-s per instruction to lower and certify the whole image, 99% of it lowered). <code>E::mul</code> took about 8 CPU-s.</p>
-<p><strong>Blockers:</strong></p>
-<ul class="tight">
-<li>the stepper discharges alignment with <code>bv_decide</code>, so <code>eq_eval</code>'s proof rests on 132 native axioms, which this repository forbids;</li>
-<li>statements use absolute addresses: shifting code by 0x100 changed 677 of 753 lines and failed every proof;</li>
-<li>callers embed callee blocks, with a composition certificate quadratic in blocks (17 to 24 s for about 300);</li>
-<li>triples are total and fault-free, which does not fit reachable panics or a halting <code>ecall</code>;</li>
-<li>omitting one read-only data cell made a hypothesis unsatisfiable and its theorems vacuous, caught only one level up.</li>
-</ul>
+<p>A successor design by machine-checked's author, started two days earlier, tried on the side. It has a generic RISC-V machine, Iris separation logic (framing built in) and loops by plain induction; it lowered an earlier build at about 0.03 CPU-s per instruction, and proved <code>E::mul</code> in about 8 CPU-s assuming its callee's contract, never carried to the machine.</p>
+<p>Its blockers: proofs rest on native axioms (<code>bv_decide</code> results trusted from compiled code, 132 in <code>eq_eval</code>), which this repository forbids; statements use absolute addresses (shifting code by 0x100 failed every proof until 22 literals were edited); triples are total and fault-free, which does not fit reachable panics; composition is quadratic in blocks.</p>
 </div>
 </div>
 
 <table>
 <thead><tr><th></th><th>machine-checked</th><th>braid</th></tr></thead>
 <tbody>
-<tr><td>machine</td><td>SP1 step, hard-wired</td><td>generic RV64 step</td></tr>
-<tr><td>lift or lowering</td><td>proved, 230 of 230 after rewrites</td><td>proved, 99% of the image</td></tr>
+<tr><td>machine</td><td>SP1, hard-wired</td><td>generic RV64</td></tr>
+<tr><td>lift or lowering</td><td>proved generically, 230 of 230 after rewrites</td><td>certified per function, 99% of an earlier build</td></tr>
 <tr><td>identity</td><td>indices and absolute addresses</td><td>absolute addresses</td></tr>
 <tr><td>logic</td><td>partial, traps safe</td><td>total, fault-free</td></tr>
 <tr><td>memory</td><td>none</td><td>separation logic</td></tr>
 <tr><td>axioms</td><td>standard</td><td>native <code>bv_decide</code></td></tr>
 <tr><td>composition</td><td>manual, whole program</td><td>callee blocks inside callers, quadratic check</td></tr>
-<tr><td>maturity</td><td>usable with additions</td><td>very experimental</td></tr>
 </tbody>
 </table>
 
 <h2>7. What to add to machine-checked (and braid)</h2>
-<p>Effort: S days, M one to two weeks, L a month or more (our judgment). The five that matter most:</p>
+<p>Effort: S days, M one to two weeks, L a month or more (our judgment).</p>
 <ol>
-<li><strong>A relocatable lift theorem with symbol-keyed, address-free output</strong> (M): <code>liftFn</code> parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Removes the 1,000 CPU-s link floor and the C3 kind of breakage.</li>
-<li><strong>Full instruction coverage</strong> (S to M): <code>unimp</code> and every <code>W</code> operation lifted (an undecoded op traps, so <code>Sound</code> would hold vacuously), and jump tables, so the proved binary is the default build.</li>
-<li><strong>An <code>lsym</code> that states the next state, with a memory vocabulary</strong> (M to L): one rule per instruction form, no <code>simp</code> on hypotheses, no <code>bv_omega</code> side conditions, loop heads from the control flow; regions, ownership, freshness, bytes; frames for heap blocks and caller-owned out-buffers; stack room and alignment in the contract from the start (adding alignment late cost a 23-file migration).</li>
-<li><strong>Machine contexts as parameters, with a fault-freedom judgement</strong> (M): a context declares its step, memory check and halt convention; a judgement where a trap is an error makes <code>TrapFree</code> provable.</li>
+<li><strong>A relocatable lift theorem with symbol-keyed, address-free output</strong> (M): <code>liftFn</code> parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Removes the link floor; our tables already moved to names (the C3 breakage is fixed), but link modules still reach the whole program through the index.</li>
+<li><strong>Full instruction coverage</strong> (S to M): <code>unimp</code>, every <code>W</code> operation, jump tables. An undecoded instruction traps, so without a decode check a soundness theorem can hold vacuously; we close this with a kernel-checked <code>AllDecode</code> conjunct, which the framework could provide.</li>
+<li><strong>An executor that states the next state, with a memory vocabulary</strong> (M to L): one rule per instruction form, no <code>simp</code> over hypotheses, loop heads from the control flow; regions, ownership, freshness, bytes; frames for heap blocks and caller-owned outputs; stack room and alignment in the contract from the start (adding alignment late cost the I2 migration).</li>
+<li><strong>Machine contexts as parameters, with a fault-freedom judgement</strong> (M): a context declares its step, memory check and halt convention, and a judgement where a trap is an error makes "every run stops only at the halting call" provable.</li>
 <li><strong>For braid: kernel-only proofs and entry-relative statements</strong> (M).</li>
 </ol>
-<p>Also: a contract table with a soundness theorem, keyed by name (M); per-function word modules (S); content-hash caching per template (M); loop schemas and path merging (L; without merging, <code>walk</code>'s 763 instructions took 25,282 steps); generated type layouts including closures and <code>Result</code> niches (M); exact stack needs (S); inline and ABI control, so that whole-program argument elimination cannot change callers (M); hermetic builds (S). For braid: composition by callee contract, partial-correctness and exit triples, frame ergonomics, <code>braid-lower</code> split per ISA (its build cost 3,466 CPU-s).</p>
+<p>Further items in the roadmap: a contract table with a soundness theorem, per-function word modules, content-hash caching, loop schemas and path merging, generated layouts including closures, inline and ABI control.</p>
 
 <h2>8. Trust and caveats</h2>
 <ul>
-<li><strong>What is proved:</strong> if the loaded binary halts at an <code>ecall</code> with <code>t0 = 0</code> and <code>a0 = 0</code>, its input decodes to a bytecode, public input and proof that the Lean verifier accepts. Not proved: completeness, termination, or that the binary never traps; a machine that continues where ours stops (misaligned or out-of-window access, system calls) is not covered (<code>TrapFree</code> is named, not proved).</li>
+<li><strong>Not stated:</strong> completeness, termination, absence of traps. A machine that continues where ours stops (misaligned or out-of-window access, system calls) is not covered; <code>TrapFree</code>, the theorem that every run stops only at the halting call, is unproved. <code>main</code>'s contract is the open hypothesis.</li>
 <li><strong>Which binary:</strong> the build of a <code>no_std</code> copy of <code>crates/verifier</code> written by <code>scripts/nostd-verifier.sh</code>, with inline attributes inserted from <code>boundaries.txt</code>, not the crate as shipped.</li>
-<li><strong>Trusted:</strong> <code>EndStatement.lean</code>; riscv-zkvm's decoder (no theorem ties it to Sail); its instruction semantics (tied to Sail except for a few instructions, among them <code>SRLW</code> and <code>SRLIW</code>, which the image uses); SP1's memory check; the ELF reader.</li>
-<li><strong>Bytecode encoding gap (M5):</strong> the composition with the leanVM statement assumes the program's encoded bytecode equals the words read; not closed.</li>
-<li><strong>Open hypothesis:</strong> <code>main</code>'s contract (section 5).</li>
-<li><strong>Non-vacuity runs</strong> were made on the image before I1 (sha256 <code>8cb4e7b8…</code>); the pinned image is now <code>d58fd6eb…</code>, and the runs should be repeated.</li>
-<li><strong>Timings:</strong> CPU-s are primary; wall times were taken under load 15 to 100 from other sessions.</li>
+<li><strong>Trusted:</strong> <code>EndStatement.lean</code>; riscv-zkvm's decoder (no theorem ties it to Sail, the reference ISA model) and its instruction semantics (tied to Sail except for a few instructions, among them <code>SRLW</code> and <code>SRLIW</code>, which the image uses); SP1's memory check; the ELF reader.</li>
+<li><strong>Bytecode encoding gap (open obligation M5):</strong> composing with the leanVM statement assumes the program's encoded bytecode equals the words read.</li>
 </ul>
 
 <h2>9. Reproduce</h2>
-<pre><code>cd formal/rv64mc
-scripts/regen.sh                # hermetic guest build, lift, templates (--check: sha256 and files unchanged)
-scripts/type-layouts.sh         # Rust type layouts into Rv64mc/Gen/Layouts.lean
-lake build Rv64mc               # link step, proofs, rv64_sound
-scripts/iterate.sh --init       # benchmark base copy, then one change:
-scripts/iterate.sh bench/patches/C1.patch --label C1
-lake build rv64mc-run rv64mc-model
-python3 -I scripts/input-words.py FIX/fibonacci-rate4 fib.words   # FIX from formal/lean_vm/scripts/export-verifier-fixtures-rust.sh
-.lake/build/bin/rv64mc-run out/canon.elf fib.words --verify       # halted, a0 = 0; verify: true
-.lake/build/bin/rv64mc-model fib.words                            # mainVerdictRust: true, verify: true</code></pre>
-
-<h2>10. A note on the brief</h2>
-<p>The request named PR #768 in places; it meant #738 (#768 is the sidecar PR). The work is based on current <code>main</code>, not on #738's fork, so it does not inherit #738's Rust rewrites, and the gap between the two is the "real change" against which #738's reuse is judged.</p>
+<pre><code>cd formal/rv64mc &amp;&amp; scripts/regen.sh &amp;&amp; scripts/type-layouts.sh &amp;&amp; lake build Rv64mc   # image, templates, proofs
+scripts/iterate.sh --init &amp;&amp; scripts/iterate.sh bench/patches/C1.patch --label C1         # one benchmark change
+lake build rv64mc-run &amp;&amp; .lake/build/bin/rv64mc-run out/canon.elf WORDS --verify          # run the statement's machine</code></pre>
 
 </main>
 </body>
