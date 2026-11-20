@@ -1,5 +1,7 @@
 # The hint bridge: ISA hints against core hint atoms
 
+The mode walk this note names beside the bridge is deleted; the core route (`core-mode.md`) took its place, and its pairing (`CoreMode/PairDefs.lean`) is `alignOk`'s pass with the heap events. `Bridge/AlignWin` is deleted: a long function's alignment pass is checked in windows from the pairing's states (`CoreMode/AlignK.lean`, `Gen/<pack>/<fn>/AW*`).
+
 Scope: what `step_at`'s `hhint` (`Mode/Step.lean`) needs at each hint the executor runs on the deployed guest, beyond the mode walk: that a witness hint's entry is its stream's next and its words are the reference's at its destination, that a computed hint's destination holds its formula, and that an allocation lands at the bump pointer the reference names. The reference is `honestX` of the honest tree `T`, whose pops match `Hints.honestPushes` stream by stream (`MainCompleteP`). Built: `lean_vm/LeanVM/Guest/Bridge/` (below).
 
 ## What the data says
