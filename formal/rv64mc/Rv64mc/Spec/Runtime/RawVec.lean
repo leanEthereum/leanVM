@@ -88,6 +88,15 @@ def FinishGrowOut (regs : Reg → Word) (_m : MachineState) : Word → Prop :=
 def FinishGrowSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   Holds env p i need (FinishGrowPre env) (FinishGrowPost env) FinishGrowOut
 
+/-! ## `do_reserve_and_handle(self, len, additional, align, size)` -/
+
+/-- **The contract of `RawVecInner::reserve::do_reserve_and_handle`**: `grow_amortized`'s arguments; it returns
+    only when the buffer grew (else `handle_error`). -/
+def DoReserveSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
+  Holds env p i need (fun regs m => GrowPre env (regs .x13).toNat (regs .x14).toNat regs m)
+    (fun regs m _ m' => Grown env m m' (regs .x10) ((regs .x11).toNat + (regs .x12).toNat) (regs .x14).toNat)
+    GrowOut
+
 /-! ## `grow_one(self)` for elements of `size` bytes aligned to `align` -/
 
 /-- `grow_one`'s postcondition: the buffer grew by at least one element. -/

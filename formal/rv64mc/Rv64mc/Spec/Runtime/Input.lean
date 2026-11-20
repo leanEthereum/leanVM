@@ -36,4 +36,36 @@ def WordOut (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop :=
 def InputWordSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   Holds env p i need (WordPre env) WordPost WordOut
 
+/-! ## `Input::digest(sret, self)` -/
+
+/-- `Input::digest`'s precondition: the reader (at `a1`) and the 32-byte result (at `a0`) lie in a caller's frame,
+    apart, and the four words the reader gives lie below the stack. -/
+def DigestPre (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
+  env.stackLimit.toNat ≤ (regs .x11).toNat ∧ (regs .x11).toNat + Layouts.Input.byteSize < 2 ^ 64 ∧
+    (regs .x2).toNat ≤ (regs .x10).toNat ∧ (regs .x10).toNat + Layouts.Digest.byteSize < 2 ^ 64 ∧
+    (∀ b, InRange (regs .x11) Layouts.Input.byteSize b →
+      ¬ InRange (alignToDword (regs .x10)) (Layouts.Digest.byteSize + (regs .x10).toNat % 8) b) ∧
+    (m.getMem (inputPtrAt (regs .x11))).toNat + 32 ≤ env.stackLimit.toNat
+
+/-- `Input::digest`'s postcondition: the reader held at least four words; byte `k` of the result is byte `k % 8`
+    of word `k / 8` (little-endian); the reader holds the rest; no other byte changed. -/
+def DigestPost (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
+  let q := m.getMem (inputPtrAt (regs .x11))
+  let l := m.getMem (inputLenAt (regs .x11))
+  4 ≤ l.toNat ∧
+    (∀ k, k < Layouts.Digest.byteSize → m'.getByte (regs .x10 + BitVec.ofNat 64 k) =
+      extractByte (m.getMem (q + BitVec.ofNat 64 (8 * (k / 8)))) (k % 8)) ∧
+    m'.getMem (inputPtrAt (regs .x11)) = q + 32#64 ∧ m'.getMem (inputLenAt (regs .x11)) = l - 4#64 ∧
+    ∀ b, ¬ InRange (regs .x10) Layouts.Digest.byteSize b → ¬ InRange (regs .x11) Layouts.Input.byteSize b →
+      m'.getByte b = m.getByte b
+
+/-- `Input::digest` writes the result's doublewords and the reader. -/
+def DigestOut (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop :=
+  InRange (alignToDword (regs .x10)) (Layouts.Digest.byteSize + (regs .x10).toNat % 8) b ∨
+    b = inputPtrAt (regs .x11) ∨ b = inputLenAt (regs .x11)
+
+/-- **The contract of `Input::digest`.** -/
+def InputDigestSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
+  Holds env p i need (DigestPre env) DigestPost DigestOut
+
 end Rv64mc.Spec.Runtime
