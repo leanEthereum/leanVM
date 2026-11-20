@@ -109,6 +109,7 @@ LeanVM/Guest/B1/Main/MainAt.lean main
 LeanVM/Guest/B1/Main/MainCore.lean main
 LeanVM/Guest/B1/Main/MainCoreThm.lean main
 LeanVM/Guest/B1/Main/MainHeap.lean main
+LeanVM/Guest/B1/Main/MainHeap.lean@l5From_heap main_loop4
 LeanVM/Guest/B1/Main/MainPops.lean main
 LeanVM/Guest/B1/Main/HintsX.lean main
 LeanVM/Guest/B1/Main/Facts.lean main
