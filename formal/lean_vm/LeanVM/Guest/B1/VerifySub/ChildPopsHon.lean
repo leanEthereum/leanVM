@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.ChildPops
 public import LeanVM.Guest.B1.VerifySub.CSig
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The honest valuation's own entries
@@ -25,8 +27,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 /-- **The honest valuation's stream and `dims_g` pointers** are their buffers' bases. -/
 theorem vs_hon_ptrs {rd : Reader} {args : List E} (hl : args.length = 6) (bs : List ℕ)
     (outs : List (List E × Main.Layout)) (hbs : bs.length = 15) :
-    vsσ rd (vsW bs outs) args (.n 25) = ofK (addressOfIndex (bs.getD 1 0)) ∧
-      vsσ rd (vsW bs outs) args (.n 71) = ofK (addressOfIndex (bs.getD 3 0)) := by
+    vsσ rd (vsW bs outs) args (.n (val% «verify_sub» "stream")) = ofK (addressOfIndex (bs.getD 1 0)) ∧
+      vsσ rd (vsW bs outs) args (.n (val% «verify_sub» "dims_g")) = ofK (addressOfIndex (bs.getD 3 0)) := by
   have h := vs_alloc_bases (rd := rd) hl bs outs hbs
   rw [vs_allocs] at h
   have h1 := congrArg (·[1]?) h

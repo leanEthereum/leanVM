@@ -9,6 +9,10 @@ module
 public import LeanVM.Guest.B1.Common.PopsSeg
 public import LeanVM.Guest.B1.Common.NoWitMute
 public import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The bodies' shapes
@@ -44,13 +48,13 @@ def vsOpen : List String :=
     "open_stacked__L10"]
 
 /-- `verify_sub`'s stream hint. -/
-def vsStreamA : Atom := .hint (.witness "stream" (.heap (.n 25) 0 8192))
+def vsStreamA : Atom := .hint (.witness "stream" (.heap (.n (val% «verify_sub» "stream")) 0 8192))
 
 /-- `verify_sub`'s table logs hint. -/
-def vsLogsA : Atom := .hint (.witness "table_logs" (.heap (.n 71) 1 6))
+def vsLogsA : Atom := .hint (.witness "table_logs" (.heap (.n (val% «verify_sub» "dims_g")) 1 6))
 
 /-- `verify_sub`'s call of `certify_placement`. -/
-def vsCpS : Stmt := .call "certify_placement" [.n 83, .n 4] [.n 274, .n 275]
+def vsCpS : Stmt := .call "certify_placement" [.n (val% «verify_sub» "kappa_base"), .n (val% «verify_sub» "g_squares")] [.n (val% «verify_sub» "g_total"), .n (val% «verify_sub» "col_offsets")]
 
 /-- `verify_sub`'s call of `verify_tables`. -/
 def vsVtS : Stmt :=
@@ -59,7 +63,7 @@ def vsVtS : Stmt :=
 
 /-- `verify_sub`'s dispatch to `open_stacked`. -/
 def vsOsS : Stmt :=
-  .dispatch (.n 278) vsOpen ([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map .n)
+  .dispatch (.n (val% «verify_sub» "size_sel")) vsOpen ([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map .n)
     ((List.range 5).map fun k => .n (1888 + k))
 
 /-- `verify_sub`'s shape. -/
@@ -73,7 +77,7 @@ noncomputable def vsShapeOk : Bool :=
 theorem vsShape_ok : vsShapeOk = true := by decide +kernel
 
 /-- `certify_placement`'s group order hint. -/
-def cpOrdA : Atom := .hint (.witness "col_group_order" (.heap (.n 136) 0 9))
+def cpOrdA : Atom := .hint (.witness "col_group_order" (.heap (.n (val% «certify_placement» "group_order")) 0 9))
 
 /-- `certify_placement`'s shape. -/
 noncomputable def cpShapeOk : Bool :=
@@ -84,10 +88,10 @@ noncomputable def cpShapeOk : Bool :=
 theorem cpShape_ok : cpShapeOk = true := by decide +kernel
 
 /-- `verify_tables`' block group order hint. -/
-def vtOrdA : Atom := .hint (.witness "block_group_order" (.heap (.n 37) 0 24))
+def vtOrdA : Atom := .hint (.witness "block_group_order" (.heap (.n (val% «verify_tables» "group_order")) 0 24))
 
 /-- `verify_tables`' round count hint. -/
-def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n 2544]))
+def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")]))
 
 /-- `verify_tables`' shape. -/
 noncomputable def vtShapeOk : Bool :=

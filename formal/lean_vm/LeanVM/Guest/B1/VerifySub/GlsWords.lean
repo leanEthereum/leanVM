@@ -13,6 +13,10 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Budget.Chain
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 
 /-!
 # The radix-four layers' words
@@ -287,17 +291,17 @@ def glcCalls (o : ℕ) (hd : List V) (x0 c0 r : ℕ) : List (Option V × String 
 
 /-- `gkr_last_layers__L{r}_L{o}`'s checks. -/
 noncomputable def glLastChk (r o : ℕ) : Bool :=
-  gwChk (glcLastBody r o) [.n (9 + 2 * (r - 1))] (glcCalls o [.n 0, .n 1, .n 2, .n 3] 4 9 r) [] &&
+  gwChk (glcLastBody r o) [.n (9 + 2 * (r - 1))] (glcCalls o [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four")] 4 9 r) [] &&
     (glcLastBody r o).dropLast.all gwNoDisp
 
 /-- `gkr_layers__L{o}`'s loop's checks: the four layers at `x_m = σ 0`, the guard
 `σ 19 = σ 0·g + σ 1`, the next counter `σ 21 = σ 0·g`. -/
 noncomputable def glslChk (o : ℕ) : Bool :=
   gwChk (glcLsLBody o) []
-    (glcCalls o [.n 2, .n 3, .n 4, .n 0] 10 11 4 ++
-      [(some (.n 19), glcLsLN o, [.n 21, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8], [])])
-    [.const (.n 17) (word 2 0), .mul (.n 18) (.n 0) (.n 17), .add (.n 19) (.n 18) (.n 1),
-      .const (.n 20) (word 2 0), .mul (.n 21) (.n 0) (.n 20)] &&
+    (glcCalls o [.n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "x_m")] 10 11 4 ++
+      [(some (.n (valf% «gkr_layers» «_loop0» "s6#2")), glcLsLN o, [.n (valf% «gkr_layers» «_loop0» "s6#4"), .n (valf% «gkr_layers» «_loop0» "bound"), .n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "start_g"), .n (valf% «gkr_layers» «_loop0» "g_bus_mu"), .n (valf% «gkr_layers» «_loop0» "tabs"), .n (valf% «gkr_layers» «_loop0» "stream")], [])])
+    [.const (.n (valf% «gkr_layers» «_loop0» "s6#0")) (word 2 0), .mul (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#0")), .add (.n (valf% «gkr_layers» «_loop0» "s6#2")) (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "bound")),
+      .const (.n (valf% «gkr_layers» «_loop0» "s6#3")) (word 2 0), .mul (.n (valf% «gkr_layers» «_loop0» "s6#4")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#3"))] &&
     (glcLsLBody o).dropLast.all gwNoDisp
 
 set_option maxRecDepth 100000 in
@@ -397,16 +401,16 @@ theorem glsl_total {Kg : ℕ → ℕ → ℕ}
 /-! ## `gkr_layers__L{o}` -/
 
 /-- `gkr_layers__L{o}`'s statements before its `ret`. -/
-theorem gls_split (o : ℕ) : glcLsBody o = (glcLsBody o).dropLast ++ [.ret [.n 15]] := rfl
+theorem gls_split (o : ℕ) : glcLsBody o = (glcLsBody o).dropLast ++ [.ret [.n (valf% «gkr_layers» "s3#0")]] := rfl
 
 theorem gls_flat : ∀ o < 2, (glcLsBody o).dropLast.all Stmt.flat = true := by decide +kernel
 
 theorem gls_alloc (o : ℕ) : (glcLsBody o).dropLast.filterMap Main.Stmt.allocSz = [] := rfl
 
 theorem gls_calls (o : ℕ) (σ : Val) : flatCalls (glcLsBody o).dropLast σ =
-    [⟨glcLsLN o, [.n 11, .n 3, .n 0, .n 1, .n 2, .n 5, .n 6, .n 7, .n 8], [], decide (σ (.n 10) ≠ 0)⟩,
-      ⟨[glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD (logG (σ (.n 4))) "",
-        [.n 0, .n 1, .n 2, .n 3, .n 13, .n 5, .n 6, .n 7, .n 8], [.n 14], true⟩] := rfl
+    [⟨glcLsLN o, [.n (valf% «gkr_layers» "s0#2"), .n (valf% «gkr_layers» "n_four"), .n (valf% «gkr_layers» "layers"), .n (valf% «gkr_layers» "rounds"), .n (valf% «gkr_layers» "gkr_pts"), .n (valf% «gkr_layers» "start_g"), .n (valf% «gkr_layers» "g_bus_mu"), .n (valf% «gkr_layers» "tabs"), .n (valf% «gkr_layers» "stream")], [], decide (σ (.n (valf% «gkr_layers» "s0#1")) ≠ 0)⟩,
+      ⟨[glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD (logG (σ (.n (valf% «gkr_layers» "rem_g")))) "",
+        [.n (valf% «gkr_layers» "layers"), .n (valf% «gkr_layers» "rounds"), .n (valf% «gkr_layers» "gkr_pts"), .n (valf% «gkr_layers» "n_four"), .n (valf% «gkr_layers» "m4"), .n (valf% «gkr_layers» "start_g"), .n (valf% «gkr_layers» "g_bus_mu"), .n (valf% «gkr_layers» "tabs"), .n (valf% «gkr_layers» "stream")], [.n (valf% «gkr_layers» "done")], true⟩] := rfl
 
 /-- **`gkr_layers__L{o}` within `glsKL` at `n_four = g^n`, `n ≤ 3`, and `rem_g = g^r`, `r < 4`.** -/
 theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
@@ -426,15 +430,15 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
   obtain ⟨fn', hf', hpar0, -⟩ := hv'
   rw [hf, Option.some.injEq] at hf'
   subst hf'
-  have h3' : σ (.n 3) = gen ^ n := by rw [← hpar0, hps] at h3; exact h3
-  have h4' : σ (.n 4) = gen ^ r := by rw [← hpar0, hps] at h4; exact h4
-  have e : (glcLsBody o).dropLast = [.atom (.const (.n 9) (word 1 0)),
-      .atom (.add (.n 10) (.n 9) (.n 3)), .atom (.const (.n 11) (word 1 0)),
-      .callIf (.n 10) (glcLsLN o) [.n 11, .n 3, .n 0, .n 1, .n 2, .n 5, .n 6, .n 7, .n 8],
-      .atom (.mul (.n 12) (.n 3) (.n 3)), .atom (.mul (.n 13) (.n 12) (.n 12)),
-      .dispatch (.n 4) [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o]
-        [.n 0, .n 1, .n 2, .n 3, .n 13, .n 5, .n 6, .n 7, .n 8] [.n 14],
-      .atom (.const (.n 15) (word 0 0))] := rfl
+  have h3' : σ (.n (valf% «gkr_layers» "n_four")) = gen ^ n := by rw [← hpar0, hps] at h3; exact h3
+  have h4' : σ (.n (valf% «gkr_layers» "rem_g")) = gen ^ r := by rw [← hpar0, hps] at h4; exact h4
+  have e : (glcLsBody o).dropLast = [.atom (.const (.n (valf% «gkr_layers» "s0#0")) (word 1 0)),
+      .atom (.add (.n (valf% «gkr_layers» "s0#1")) (.n (valf% «gkr_layers» "s0#0")) (.n (valf% «gkr_layers» "n_four"))), .atom (.const (.n (valf% «gkr_layers» "s0#2")) (word 1 0)),
+      .callIf (.n (valf% «gkr_layers» "s0#1")) (glcLsLN o) [.n (valf% «gkr_layers» "s0#2"), .n (valf% «gkr_layers» "n_four"), .n (valf% «gkr_layers» "layers"), .n (valf% «gkr_layers» "rounds"), .n (valf% «gkr_layers» "gkr_pts"), .n (valf% «gkr_layers» "start_g"), .n (valf% «gkr_layers» "g_bus_mu"), .n (valf% «gkr_layers» "tabs"), .n (valf% «gkr_layers» "stream")],
+      .atom (.mul (.n (valf% «gkr_layers» "m4~0")) (.n (valf% «gkr_layers» "n_four")) (.n (valf% «gkr_layers» "n_four"))), .atom (.mul (.n (valf% «gkr_layers» "m4")) (.n (valf% «gkr_layers» "m4~0")) (.n (valf% «gkr_layers» "m4~0"))),
+      .dispatch (.n (valf% «gkr_layers» "rem_g")) [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o]
+        [.n (valf% «gkr_layers» "layers"), .n (valf% «gkr_layers» "rounds"), .n (valf% «gkr_layers» "gkr_pts"), .n (valf% «gkr_layers» "n_four"), .n (valf% «gkr_layers» "m4"), .n (valf% «gkr_layers» "start_g"), .n (valf% «gkr_layers» "g_bus_mu"), .n (valf% «gkr_layers» "tabs"), .n (valf% «gkr_layers» "stream")] [.n (valf% «gkr_layers» "done")],
+      .atom (.const (.n (valf% «gkr_layers» "s3#0")) (word 0 0))] := rfl
   have hd : ∀ s ∈ (glcLsBody o).dropLast, DispOk σ s := by
     intro s hs
     rw [e] at hs
@@ -444,11 +448,11 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
       by rw [h4', gen_pow_eq_ofK]⟩
   obtain ⟨-, hat, htot⟩ := gw_node (fs := fs) hf (hbody.trans (gls_split o))
     (gls_flat o ho) (gls_alloc o) hv hb hd
-  have e9 := hat (.const (.n 9) (word 1 0)) (by rw [e]; simp)
-  have e10 := hat (.add (.n 10) (.n 9) (.n 3)) (by rw [e]; simp)
-  have e11 := hat (.const (.n 11) (word 1 0)) (by rw [e]; simp)
+  have e9 := hat (.const (.n (valf% «gkr_layers» "s0#0")) (word 1 0)) (by rw [e]; simp)
+  have e10 := hat (.add (.n (valf% «gkr_layers» "s0#1")) (.n (valf% «gkr_layers» "s0#0")) (.n (valf% «gkr_layers» "n_four"))) (by rw [e]; simp)
+  have e11 := hat (.const (.n (valf% «gkr_layers» "s0#2")) (word 1 0)) (by rw [e]; simp)
   simp only [Atom.Holds, tb_word_one] at e9 e10 e11
-  have hlog : logG (σ (.n 4)) = r := by rw [h4', gen_pow_eq_ofK, logG_spec (by omega)]
+  have hlog : logG (σ (.n (valf% «gkr_layers» "rem_g"))) = r := by rw [h4', gen_pow_eq_ofK, logG_spec (by omega)]
   have hlast : [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD r "" = glcLastN r o := by
     interval_cases r <;> rfl
   have hB : fs (glcLsN o) + [Budget.iterSum (glsIter fs Kg o) 0 n + fs (glcLsLN o),
@@ -470,7 +474,7 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
       (by simp [e11]) (by simp [h3']) htv htb
   · have htn' : t'.name = glcLastN r o := by
       rw [htn]
-      show [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD (logG (σ (.n 4))) "" = _
+      show [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD (logG (σ (.n (valf% «gkr_layers» "rem_g")))) "" = _
       rw [hlog, hlast]
     exact glLast_totalLeOn hK hr ho (by omega) rd t' _ rets' htn' (by simp [h3']) htv htb
 

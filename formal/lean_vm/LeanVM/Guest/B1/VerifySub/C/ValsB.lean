@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.VerifySub.C.Vals
 public import LeanVM.Guest.B1.VerifySub.Ctab
 public import LeanVM.Guest.B1.VerifySub.Lam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The back, honestly
@@ -55,10 +57,10 @@ theorem vs_flatMap_noSide {f : ℕ → List Stmt} (hf : ∀ i, (f i).all vsNoSid
   | i :: l => by rw [List.flatMap_cons, List.all_append, hf i, vs_flatMap_noSide hf l]; rfl
 
 theorem vsMapsT_split : vsMapsT =
-    (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n 578) 0 585 ++
-    [keccakA [.n 586, .n 587, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 580, .n 581, .n 582,
-      .n 583, .n 584] (vsRun 588 13)] ++ vsTabsT 601 602 ++
-    [grindCallT 13 (.n 589) (.n 602), vsCopy 603 588] ++
+    (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 585 ++
+    [keccakA [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"), .n (val% «verify_sub» "sp[2]@3"),
+      .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13)] ++ vsTabsT 601 602 ++
+    [grindCallT 13 (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")), vsCopy 603 588] ++
     (List.range' 0 15).flatMap vsMapSqz ++
     (vsAlloc 814 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 814 i)) := by
   rw [vsMapsT, ← List.range_eq_range']
@@ -68,11 +70,11 @@ theorem vsMapsT_split : vsMapsT =
 the grind's permutation `vsMapSt`, its cell `1` for `grind_check`, `tabs`, the sixteen
 challenges `vsRchs` at `vsCh i`, and the capacity after them at `808 .. 812`. -/
 theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
-    ς (.n 585) = n ∧ ς (.n 589) = cellsOfState (vsMapSt (vsKCap w) n) false 1 ∧
-      ς (.n 602) = ς (.n 4) * gen ^ winTabAt ∧
+    ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = n ∧ ς (.n (val% «verify_sub» "nxt[1]@20")) = cellsOfState (vsMapSt (vsKCap w) n) false 1 ∧
+      ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧
       (∀ i < 16, ς (.n (vsCh i)) = (vsRchs (vsKCap w) n).getD i 0) ∧
       ((⟨capOf (vsMapSt (vsKCap w) n), []⟩ : Fs).squeezeN 15).2 =
-        ⟨[ς (.n 808), ς (.n 809), ς (.n 810), ς (.n 811), ς (.n 812)], []⟩ := by
+        ⟨[ς (.n (val% «verify_sub» "nxt[8]@35")), ς (.n (val% «verify_sub» "nxt[9]@35")), ς (.n (val% «verify_sub» "nxt[10]@35")), ς (.n (val% «verify_sub» "nxt[11]@35")), ς (.n (val% «verify_sub» "nxt[12]@35"))], []⟩ := by
   have hG := vsMapsT_good (rd := rd) (w := w) hl
   rw [vsMapsT_split] at hG
   have hz := vs_zero (rd := rd) (w := w) hl
@@ -80,7 +82,7 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
       GoodS rd vsSL w ς s := fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
           (List.mem_append_left _ hs))))))
-  have mN : ∀ s ∈ fsNonceT (.n 578) 0 585, GoodS rd vsSL w ς s :=
+  have mN : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 585, GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs))))))
   have mT : ∀ s ∈ vsTabsT 601 602, GoodS rd vsSL w ς s :=
@@ -88,10 +90,10 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
       (List.mem_append_right _ hs))))
   have mQ : ∀ s ∈ (List.range' 0 15).flatMap vsMapSqz, GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_right _ hs))
-  have hk : (Atom.keccak [.n 586, .n 587, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 580, .n 581,
-      .n 582, .n 583, .n 584] (vsRun 588 13) false false).Holds rd ς :=
+  have hk : (Atom.keccak [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"),
+      .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13) false false).Holds rd ς :=
     vsg_atom (hG _ (by simp [keccakA])) rfl
-  have c603 : ς (.n 603) = ς (.n 588) := vsg_copy (hG _ (by simp [vsCopy]))
+  have c603 : ς (.n (val% «verify_sub» "ch[0]")) = ς (.n (val% «verify_sub» "nxt[0]@20")) := vsg_copy (hG _ (by simp [vsCopy]))
   have cA : ∀ i < 5, ς (.n (580 + i)) = w (573 + i) := fun i hi ↦ by
     rw [vsg_copy (mA _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩)),
       vs_w hl (by interval_cases i <;> decide)]
@@ -101,9 +103,9 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
   have c3 := cA 3 (by omega)
   have c4 := cA 4 (by omega)
   simp only [Nat.reduceAdd] at c0 c1 c2 c3 c4
-  have e585 : ς (.n 585) = n :=
+  have e585 : ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = n :=
     vsg_read (mN _ List.mem_cons_self) (by decide +kernel) (by rw [vs_w hl (by decide)]; exact hn)
-  have pk : FsPackOk ς (.n 585) 586 dsPowNonce := vsg_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
+  have pk : FsPackOk ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) 586 dsPowNonce := vsg_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
   have h619 := vsg_tabs (c := 601) (by decide) mT
   have hsqH := vs_holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
     (vs_flatMap_noSide vsMapSqz_noSide _) mQ (next := True) trivial
@@ -208,11 +210,11 @@ theorem vs_word_gen1 : word 2 0 = gen := by
 
 /-- `rate_sel = g^(rate - 1)`. -/
 theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : w 64 = gen ^ rate) :
-    ς (.n 66) = gen ^ (rate - 1) := by
+    ς (.n (val% «verify_sub» "rate_sel")) = gen ^ (rate - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have h65w : ς (.n 65) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h65 : ς (.n 65) = gen := by rw [h65w, vs_word_gen1]
-  have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
+  have h65w : ς (.n (val% «verify_sub» "rate_sel~1")) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n (val% «verify_sub» "rate_sel~1")) = gen := by rw [h65w, vs_word_gen1]
+  have h66 : ς (.n (val% «verify_sub» "rate_sel")) = ς (.n (val% «verify_sub» "rate_sel~0")) * (ς (.n (val% «verify_sub» "rate_sel~1")))⁻¹ :=
     vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
   rw [h66, h65, vs_w hl (by decide), h64, show gen⁻¹ = (gen ^ 1)⁻¹ by rw [pow_one],
     ← pow_sub₀ _ gen_ne_zero hr]
@@ -221,26 +223,26 @@ theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : 
 `g^(logMem - 1)` and its bound `g^32`, and `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
 theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (hm : 1 ≤ logMem)
     (h64 : w 64 = gen ^ rate) (h72 : w 72 = gen ^ logMem) :
-    ς (.n 65) = gen ∧ ς (.n 66) = gen ^ (rate - 1) ∧ ς (.n 67) = gen ^ 3 ∧
-      ς (.n 72) = gen ^ logMem ∧ ς (.n 73) = gen ^ 30 ∧ ς (.n 78) = gen ∧
-      ς (.n 79) = gen ^ (logMem - 1) ∧ ς (.n 77) = gen ^ 32 ∧
-      ς (.n 84) = 1 ∧ ς (.n 85) = gen ^ logMem ∧
+    ς (.n (val% «verify_sub» "rate_sel~1")) = gen ∧ ς (.n (val% «verify_sub» "rate_sel")) = gen ^ (rate - 1) ∧ ς (.n (val% «verify_sub» "s13#0")) = gen ^ 3 ∧
+      ς (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem ∧ ς (.n (val% «verify_sub» "s16#0")) = gen ^ 30 ∧ ς (.n (val% «verify_sub» "s17#1")) = gen ∧
+      ς (.n (val% «verify_sub» "s17#2")) = gen ^ (logMem - 1) ∧ ς (.n (val% «verify_sub» "s17#0")) = gen ^ 32 ∧
+      ς (.n (val% «verify_sub» "kb[0]")) = 1 ∧ ς (.n (val% «verify_sub» "kb[1]")) = gen ^ logMem ∧
       ∀ t < 6, ς (.n (86 + t)) = rdAt rd (w 71) (1 + t) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have h65w : ς (.n 65) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h65 : ς (.n 65) = gen := by rw [h65w, vs_word_gen1]
-  have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
+  have h65w : ς (.n (val% «verify_sub» "rate_sel~1")) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n (val% «verify_sub» "rate_sel~1")) = gen := by rw [h65w, vs_word_gen1]
+  have h66 : ς (.n (val% «verify_sub» "rate_sel")) = ς (.n (val% «verify_sub» "rate_sel~0")) * (ς (.n (val% «verify_sub» "rate_sel~1")))⁻¹ :=
     vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
-  have h67 : ς (.n 67) = word 8 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h73 : ς (.n 73) = word 1073741824 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h77 : ς (.n 77) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h78 : ς (.n 78) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h79 : ς (.n 79) = ς (.n 72) * (ς (.n 78))⁻¹ :=
+  have h67 : ς (.n (val% «verify_sub» "s13#0")) = word 8 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h73 : ς (.n (val% «verify_sub» "s16#0")) = word 1073741824 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h77 : ς (.n (val% «verify_sub» "s17#0")) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h78 : ς (.n (val% «verify_sub» "s17#1")) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h79 : ς (.n (val% «verify_sub» "s17#2")) = ς (.n (val% «verify_sub» "g_log_mem")) * (ς (.n (val% «verify_sub» "s17#1")))⁻¹ :=
     vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
-  have h84 : ς (.n 84) = word 1 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h85 : ς (.n 85) = ς (.n 72) := vsg_copy (hG _ (by simp [vsSizesT, vsCopy]))
-  have e72 : ς (.n 72) = gen ^ logMem := by rw [vs_w hl (by decide), h72]
-  have e78 : ς (.n 78) = gen := by rw [h78, vs_word_gen1]
+  have h84 : ς (.n (val% «verify_sub» "kb[0]")) = word 1 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h85 : ς (.n (val% «verify_sub» "kb[1]")) = ς (.n (val% «verify_sub» "g_log_mem")) := vsg_copy (hG _ (by simp [vsSizesT, vsCopy]))
+  have e72 : ς (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem := by rw [vs_w hl (by decide), h72]
+  have e78 : ς (.n (val% «verify_sub» "s17#1")) = gen := by rw [h78, vs_word_gen1]
   have e30 : word 1073741824 0 = gen ^ 30 := by
     rw [show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_two_pow (by norm_num)]
   have e32 : word 4294967296 0 = gen ^ 32 := by
@@ -260,12 +262,12 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
 
 /-- **The stack's log's selector**: `g^(m - 20)` and its bound `g^10`. -/
 theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 20 ≤ m) (h276 : w 276 = gen ^ m) :
-    ς (.n 278) = gen ^ (m - 20) ∧ ς (.n 279) = gen ^ 10 := by
+    ς (.n (val% «verify_sub» "size_sel")) = gen ^ (m - 20) ∧ ς (.n (val% «verify_sub» "s37#0")) = gen ^ 10 := by
   have hG := vsPlaceT_good (rd := rd) (w := w) hl
-  have h277 : ς (.n 277) = vsGinv20 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
-  have h278 : ς (.n 278) = ς (.n 276) * ς (.n 277) :=
+  have h277 : ς (.n (val% «verify_sub» "size_sel~0")) = vsGinv20 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
+  have h278 : ς (.n (val% «verify_sub» "size_sel")) = ς (.n (val% «verify_sub» "gmv")) * ς (.n (val% «verify_sub» "size_sel~0")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsPlaceT, vsMul]))
-  have h279 : ς (.n 279) = word 1024 0 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
+  have h279 : ς (.n (val% «verify_sub» "s37#0")) = word 1024 0 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
   refine ⟨?_, by rw [h279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]⟩
   rw [h278, h277, vs_w hl (by decide), h276, show m = (m - 20) + 20 by omega, pow_add,
     Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 20), vsGinv20_mul, mul_one]
@@ -288,7 +290,7 @@ theorem vsPushStep_ld (b : ℕ) :
 
 /-- **The push blocks' pointers**: `g_squares · kb[src]`. -/
 theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
-    ς (.n (vsPushP b)) = ς (.n 4) * ς (.n (84 + Tables.blockKappaSrc.getD b 0)) := by
+    ς (.n (vsPushP b)) = ς (.n (val% «verify_sub» "g_squares")) * ς (.n (84 + Tables.blockKappaSrc.getD b 0)) := by
   have hm : vsMul (vsPushP b) 4 (84 + Tables.blockKappaSrc.getD b 0) ∈ vsPushT := by
     rw [vsPushT]
     exact List.mem_append_left _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, vsPushStep_mul b⟩)
@@ -301,15 +303,15 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
 /-- **The tail's values**: the stream's pointer past `verify_keccak`'s cursor,
 `tabs`. -/
 theorem vs_tailV (hl : args.length = 6) :
-    ς (.n 1885) = w 578 * gen ∧ ς (.n 1887) = ς (.n 4) * gen ^ winTabAt := by
+    ς (.n (val% «verify_sub» "sumcheck_target~2")) = w 578 * gen ∧ ς (.n (val% «verify_sub» "sumcheck_target~4")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := by
   have hG := vsTailP_good (rd := rd) (w := w) hl
   have hP : ∀ s ∈ [vsConst 1884 (word 2 0), vsMul 1885 578 1884], GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (by
       rw [vsTailP]
       exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ hs)))))
-  have c27 : ς (.n 1884) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
-  have m28 : ς (.n 1885) = ς (.n 578) * ς (.n 1884) :=
+  have c27 : ς (.n (val% «verify_sub» "sumcheck_target~1")) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
+  have m28 : ς (.n (val% «verify_sub» "sumcheck_target~2")) = ς (.n (val% «verify_sub» "cursor@4")) * ς (.n (val% «verify_sub» "sumcheck_target~1")) :=
     vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
   have h30 := vsg_tabs (c := 1886) (d := 1887) (by decide) fun s hs ↦ hG s (by
     rw [vsTailP]
@@ -354,7 +356,7 @@ theorem vsLamT_notS : ∀ i < 134,
 
 theorem vsLamT_loads {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ vsLamT) :
     (∃ i < 134, d = .n (1342 + 4 * i) ∧ p = .n (vsClaimAt (vsKept i)).1 ∧
-      off = (vsClaimAt (vsKept i)).2) ∨ (d = .n 1881 ∧ p = .n 309 ∧ off = 0) := by
+      off = (vsClaimAt (vsKept i)).2) ∨ (d = .n (val% «verify_sub» "target@136~1") ∧ p = .n (val% «verify_sub» "ood_value") ∧ off = 0) := by
   simp only [vsLamT, vsPermT, keccakA, vsLamStep, vsLd, vsMul, vsAdd, List.mem_append,
     List.mem_cons, List.mem_flatMap, List.mem_range, List.not_mem_nil, or_false,
     Stmt.atom.injEq, reduceCtorEq, false_or, Atom.load.injEq] at h
@@ -371,9 +373,9 @@ theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.
     (hcew : ReadsAt rd (w 565) (((claims.drop 4).take 153).map (·.value)))
     (hpi : ReadsAt rd (w 6 * gen ^ 157) ((claims.drop 157).map (·.value)))
     {v : E} (hv : ReadsAt rd (w 309) [v]) :
-    (⟨[ς (.n 808), ς (.n 809), ς (.n 810), ς (.n 811), ς (.n 812)], []⟩ : Fs).squeeze =
-        (ς (.n 1329), ⟨[ς (.n 1337), ς (.n 1338), ς (.n 1339), ς (.n 1340), ς (.n 1341)], []⟩) ∧
-      ς (.n 1883) = dot (powers (ς (.n 1329)) 137)
+    (⟨[ς (.n (val% «verify_sub» "nxt[8]@35")), ς (.n (val% «verify_sub» "nxt[9]@35")), ς (.n (val% «verify_sub» "nxt[10]@35")), ς (.n (val% «verify_sub» "nxt[11]@35")), ς (.n (val% «verify_sub» "nxt[12]@35"))], []⟩ : Fs).squeeze =
+        (ς (.n (val% «verify_sub» "nxt[0]@36")), ⟨[ς (.n (val% «verify_sub» "nxt[8]@36")), ς (.n (val% «verify_sub» "nxt[9]@36")), ς (.n (val% «verify_sub» "nxt[10]@36")), ς (.n (val% «verify_sub» "nxt[11]@36")), ς (.n (val% «verify_sub» "nxt[12]@36"))], []⟩) ∧
+      ς (.n (val% «verify_sub» "target@136")) = dot (powers (ς (.n (val% «verify_sub» "nxt[0]@36"))) 137)
         (w 1328 :: ((claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map (·.value) ++
           [w 579, v])) := by
   have hz := vs_zero (rd := rd) (w := w) hl

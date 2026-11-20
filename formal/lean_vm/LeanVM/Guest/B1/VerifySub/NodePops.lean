@@ -8,6 +8,10 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.NodeShapes
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The nodes' pops
@@ -40,7 +44,7 @@ theorem segOk_parts {j : ℕ} {l : List Stmt} {a n : ℕ} (h : segOk j l a n = t
   exact ⟨h.1, noWitBlock_mute h.2⟩
 
 /-- `certify_placement`'s entry: its group order's buffer. -/
-def cpPop (rd : Reader) (σ : Val) : Pop := ("col_group_order", (Dest.heap (.n 136) 0 9).words rd σ)
+def cpPop (rd : Reader) (σ : Val) : Pop := ("col_group_order", (Dest.heap (.n (val% «certify_placement» "group_order")) 0 9).words rd σ)
 
 /-- **`certify_placement` pops its group order's buffer.** -/
 theorem cp_pops (hv : (Memory.Tree.node "certify_placement" σ bufs kids).Valid coreProgram rd args rets) :
@@ -57,7 +61,7 @@ theorem cp_pops (hv : (Memory.Tree.node "certify_placement" σ bufs kids).Valid 
 
 /-- `verify_tables`' entries: its block group order's buffer, its round count. -/
 def vtPops (rd : Reader) (σ : Val) : List Pop :=
-  [("block_group_order", (Dest.heap (.n 37) 0 24).words rd σ), ("zc_tau_max", [σ (.n 2544)])]
+  [("block_group_order", (Dest.heap (.n (val% «verify_tables» "group_order")) 0 24).words rd σ), ("zc_tau_max", [σ (.n (val% «verify_tables» "g_zc_n"))])]
 
 /-- **`verify_tables` pops its block group order's buffer, then its round count.** -/
 theorem vt_pops (hv : (Memory.Tree.node "verify_tables" σ bufs kids).Valid coreProgram rd args rets) :
@@ -76,13 +80,13 @@ theorem vt_pops (hv : (Memory.Tree.node "verify_tables" σ bufs kids).Valid core
 
 /-- `verify_sub`'s own entries: its stream's buffer, `dims_g`'s heights. -/
 def vsPops (rd : Reader) (σ : Val) : List Pop :=
-  [("stream", (Dest.heap (.n 25) 0 8192).words rd σ), ("table_logs", (Dest.heap (.n 71) 1 6).words rd σ)]
+  [("stream", (Dest.heap (.n (val% «verify_sub» "stream")) 0 8192).words rd σ), ("table_logs", (Dest.heap (.n (val% «verify_sub» "dims_g")) 1 6).words rd σ)]
 
 /-- **`verify_sub` pops its stream and its tables' heights, then its `certify_placement`'s, `verify_tables`' and
 `open_stacked`'s entries.** -/
 theorem vs_pops (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid coreProgram rd args rets) :
-    ∃ (tcp tvt tos : Memory.Tree) (i : ℕ), ∃ hi : i < vsOpen.length, σ (.n 278) = ofK (addressOfIndex i) ∧
-      tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n 83), σ (.n 4)] [σ (.n 274), σ (.n 275)] ∧
+    ∃ (tcp tvt tos : Memory.Tree) (i : ℕ), ∃ hi : i < vsOpen.length, σ (.n (val% «verify_sub» "size_sel")) = ofK (addressOfIndex i) ∧
+      tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n (val% «verify_sub» "kappa_base")), σ (.n (val% «verify_sub» "g_squares"))] [σ (.n (val% «verify_sub» "g_total")), σ (.n (val% «verify_sub» "col_offsets"))] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
         (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)

@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.VerifySub.CompleteBT
 public import LeanVM.Guest.B1.VerifySub.ChildPopsHon
 public import LeanVM.Guest.B1.VerifySub.GroupOrderBlock
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
 # `verify_sub`'s pops
@@ -41,7 +43,7 @@ def vsPos (bytecode : List K) (seed : Digest) (c : Child) (rd : Reader) (t : Tre
   SameStreams (t.pops coreProgram rd) (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings)
 
 theorem cpσ_136 {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd : Reader} :
-    Tables.cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n 136) = ofK (addressOfIndex e136) := by
+    Tables.cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (val% «certify_placement» "group_order")) = ofK (addressOfIndex e136) := by
   show Tables.cpF lm hs ekb esq e10 e11 e136 e137 e293 rd 136 = _
   unfold Tables.cpF
   rw [Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega),

@@ -25,3 +25,38 @@ tie l8Body verify_bus_gkr_loop0
 tie glcLsBody gkr_layers__L
 tie glcLsLBody gkr_layers__L_loop0
 tie glcLastBody gkr_last_layers__L
+# VerifySub
+LeanVM/Guest/B1/VerifySub/Bus.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/Body.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/Vals.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/ValsB.lean verify_sub
+LeanVM/Guest/B1/VerifySub/CLoads.lean verify_sub
+LeanVM/Guest/B1/VerifySub/CMatch.lean verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPopsHon.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Ctab.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Dispatch.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Front.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Known.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Lam.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Mid.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Ood.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Proof.lean verify_sub
+LeanVM/Guest/B1/VerifySub/SoundFront.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Tail.lean verify_sub
+LeanVM/Guest/B1/VerifySub/NodePops.lean@cpPop certify_placement
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vtPops verify_tables
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vsPops verify_sub
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vs_pops verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsStreamA verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsLogsA verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsCpS verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsOsS verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@cpOrdA certify_placement
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtOrdA verify_tables
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtZcA verify_tables
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vsPops_honest verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vs_child_pops verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@cpPop_honest certify_placement
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vtPops_honest verify_tables
+LeanVM/Guest/B1/VerifySub/CompleteBP.lean@cpσ_136 certify_placement
+LeanVM/Guest/B1/VerifySub/C/ValsB.lean@vs_maps verify_sub
