@@ -11,6 +11,11 @@ module
 public import LeanVM.Guest.Memory.GuestHints
 public import LeanVM.Guest.Memory.HonestMain
 public import LeanVM.Guest.B1.Main.MainAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.Data.ValNames.«main_loop0»
+import LeanVM.Guest.Data.ValNames.«main_loop1»
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # `main`'s heap hints
@@ -114,12 +119,12 @@ def dupPre (f : String) : List Stmt := [
   .callIf (.n 10) f [.n 12, .n 1, .n 2, .n 3]]
 
 theorem loop0_found : coreProgram.find? (name% «main_loop0») = some fn% «main_loop0» ∧
-    (fn% «main_loop0»).params = [.n 0, .n 1, .n 2, .n 3] ∧
+    (fn% «main_loop0»).params = [.n (val% «main_loop0» "xd"), .n (val% «main_loop0» "bound"), .n (val% «main_loop0» "lx_table"), .n (val% «main_loop0» "n_lx_g")] ∧
     (fn% «main_loop0»).body = dupPre (name% «main_loop0») ++ [.ret []] :=
   ⟨coreProgram_find?_at (j := idx% «main_loop0») rfl, rfl, rfl⟩
 
 theorem loop1_found : coreProgram.find? (name% «main_loop1») = some fn% «main_loop1» ∧
-    (fn% «main_loop1»).params = [.n 0, .n 1, .n 2, .n 3] ∧
+    (fn% «main_loop1»).params = [.n (val% «main_loop1» "xd"), .n (val% «main_loop1» "bound"), .n (val% «main_loop1» "lean_sphincs_table"), .n (val% «main_loop1» "n_lean_sphincs_g")] ∧
     (fn% «main_loop1»).body = dupPre (name% «main_loop1») ++ [.ret []] :=
   ⟨coreProgram_find?_at (j := idx% «main_loop1») rfl, rfl, rfl⟩
 
@@ -183,49 +188,49 @@ theorem dupStep {rd : Reader} {f : String} {σ : Val} {es : List Ev} {vs : List 
 /-- **The children's loop** (`main_loop4`), but its return: child `x`'s carried claim, `24` words at
 `g^(24·x)` past the table at parameter `9`, and its DA digest, which it loads. -/
 def l5HPre : List Stmt := [
-  .atom (.mul (.n 16) (.n 2) (.n 0)),
-  .atom (.load (.n 17) (.n 16) 0),
-  .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))),
-  .atom (.touch (.n 20) (.n 18)),
-  .atom (.touch (.n 21) (.n 19)),
-  .atom (.mul (.n 22) (.n 18) (.n 19)),
-  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24],
-  .atom (.mul (.n 25) (.n 17) (.n 18)),
-  .call "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27],
-  .atom (.mul (.n 28) (.n 0) (.n 0)),
-  .atom (.mul (.n 29) (.n 28) (.n 0)),
-  .atom (.mul (.n 30) (.n 29) (.n 29)),
-  .atom (.mul (.n 31) (.n 30) (.n 30)),
-  .atom (.mul (.n 32) (.n 31) (.n 31)),
-  .atom (.mul (.n 33) (.n 9) (.n 32)),
-  .atom (.hint (.witness "child_defer" (.heap (.n 33) 0 24))),
-  .atom (.mul (.n 34) (.n 0) (.n 0)),
-  .atom (.mul (.n 35) (.n 10) (.n 34)),
-  .atom (.hint (.witness "child_da" (.heap (.n 35) 0 2))),
-  .atom (.load (.n 36) (.n 35) 0),
-  .atom (.load (.n 37) (.n 35) 1),
-  .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33] [.n 38, .n 39],
-  .atom (.mul (.n 40) (.n 0) (.n 0)),
-  .atom (.mul (.n 41) (.n 13) (.n 40)),
-  .atom (.load (.n 38) (.n 41) 0),
-  .atom (.mul (.n 42) (.n 13) (.n 40)),
-  .atom (.load (.n 39) (.n 42) 1),
-  .atom (.mul (.n 43) (.n 0) (.n 0)),
-  .atom (.mul (.n 44) (.n 43) (.n 0)),
-  .atom (.mul (.n 45) (.n 44) (.n 44)),
-  .atom (.mul (.n 46) (.n 45) (.n 45)),
-  .atom (.mul (.n 47) (.n 46) (.n 46)),
-  .atom (.mul (.n 48) (.n 15) (.n 47)),
-  .call "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [],
-  .atom (.mul (.n 49) (.n 17) (.n 22)),
-  .atom (.mul (.n 50) (.n 2) (.n 0)),
-  .atom (.load (.n 49) (.n 50) 1),
-  .atom (.const (.n 51) (word 2 0)),
-  .atom (.mul (.n 52) (.n 0) (.n 51)),
-  .atom (.add (.n 53) (.n 52) (.n 1)),
-  .atom (.const (.n 54) (word 2 0)),
-  .atom (.mul (.n 55) (.n 0) (.n 54)),
-  .callIf (.n 53) name% «main_loop4» [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15]]
+  .atom (.mul (.n (val% «main_loop4» "base~0")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc"))),
+  .atom (.load (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "base~0")) 0),
+  .atom (.hint (.witness "child_meta" (.stack [.n (val% «main_loop4» "child_meta[0]"), .n (val% «main_loop4» "child_meta[1]")]))),
+  .atom (.touch (.n (val% «main_loop4» "s5#0")) (.n (val% «main_loop4» "child_meta[0]"))),
+  .atom (.touch (.n (val% «main_loop4» "s6#0")) (.n (val% «main_loop4» "child_meta[1]"))),
+  .atom (.mul (.n (val% «main_loop4» "nsub_g")) (.n (val% «main_loop4» "child_meta[0]")) (.n (val% «main_loop4» "child_meta[1]"))),
+  .call "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")],
+  .atom (.mul (.n (val% «main_loop4» "cs_0~2")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "child_meta[0]"))),
+  .call "child_claim_list_digest" [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")] [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")],
+  .atom (.mul (.n (val% «main_loop4» "carried~0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "carried~1")) (.n (val% «main_loop4» "carried~0")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "carried~2")) (.n (val% «main_loop4» "carried~1")) (.n (val% «main_loop4» "carried~1"))),
+  .atom (.mul (.n (val% «main_loop4» "carried~3")) (.n (val% «main_loop4» "carried~2")) (.n (val% «main_loop4» "carried~2"))),
+  .atom (.mul (.n (val% «main_loop4» "carried~4")) (.n (val% «main_loop4» "carried~3")) (.n (val% «main_loop4» "carried~3"))),
+  .atom (.mul (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "carried~4"))),
+  .atom (.hint (.witness "child_defer" (.heap (.n (val% «main_loop4» "carried")) 0 24))),
+  .atom (.mul (.n (val% «main_loop4» "child_da~0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "child_da")) (.n (val% «main_loop4» "da_digests")) (.n (val% «main_loop4» "child_da~0"))),
+  .atom (.hint (.witness "child_da" (.heap (.n (val% «main_loop4» "child_da")) 0 2))),
+  .atom (.load (.n (val% «main_loop4» "pi_0~2")) (.n (val% «main_loop4» "child_da")) 0),
+  .atom (.load (.n (val% «main_loop4» "pi_0~3")) (.n (val% «main_loop4» "child_da")) 1),
+  .call "statement_digest" [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")] [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")],
+  .atom (.mul (.n (val% «main_loop4» "pi")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "s16#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "pi"))),
+  .atom (.load (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0),
+  .atom (.mul (.n (val% «main_loop4» "s17#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "pi"))),
+  .atom (.load (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1),
+  .atom (.mul (.n (val% «main_loop4» "s18#0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "s18#1")) (.n (val% «main_loop4» "s18#0")) (.n (val% «main_loop4» "xc"))),
+  .atom (.mul (.n (val% «main_loop4» "s18#2")) (.n (val% «main_loop4» "s18#1")) (.n (val% «main_loop4» "s18#1"))),
+  .atom (.mul (.n (val% «main_loop4» "s18#3")) (.n (val% «main_loop4» "s18#2")) (.n (val% «main_loop4» "s18#2"))),
+  .atom (.mul (.n (val% «main_loop4» "s18#4")) (.n (val% «main_loop4» "s18#3")) (.n (val% «main_loop4» "s18#3"))),
+  .atom (.mul (.n (val% «main_loop4» "s18#5")) (.n (val% «main_loop4» "child_fresh")) (.n (val% «main_loop4» "s18#4"))),
+  .call "verify_sub" [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")] [],
+  .atom (.mul (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "nsub_g"))),
+  .atom (.mul (.n (val% «main_loop4» "s19#1")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc"))),
+  .atom (.load (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1),
+  .atom (.const (.n (val% «main_loop4» "s21#0")) (word 2 0)),
+  .atom (.mul (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "s21#0"))),
+  .atom (.add (.n (val% «main_loop4» "s21#2")) (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "bound"))),
+  .atom (.const (.n (val% «main_loop4» "s21#3")) (word 2 0)),
+  .atom (.mul (.n (val% «main_loop4» "s21#4")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "s21#3"))),
+  .callIf (.n (val% «main_loop4» "s21#2")) name% «main_loop4» [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"), .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")]]
 
 theorem loop4_found : coreProgram.find? (name% «main_loop4») = some fn% «main_loop4» ∧
     (fn% «main_loop4»).params = (List.range 16).map V.n ∧
@@ -236,7 +241,7 @@ theorem loop4_found : coreProgram.find? (name% «main_loop4») = some fn% «main
 words, its DA digest's it loads, and its tail call is the next child's, below `c`. -/
 theorem l5Step {rd : Reader} {σ : Val} {es : List Ev} {vs : List V}
     (hw : walk σ (l5HPre ++ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
-    {x c β : ℕ} (h0 : σ (.n 0) = gen ^ x) (h1 : σ (.n 1) = gen ^ c) (h9 : σ (.n 9) = gen ^ β)
+    {x c β : ℕ} (h0 : σ (.n (val% «main_loop4» "xc")) = gen ^ x) (h1 : σ (.n (val% «main_loop4» "bound")) = gen ^ c) (h9 : σ (.n (val% «main_loop4» "child_carried")) = gen ^ β)
     (hxc : x < c) :
     (∀ A ∈ heapHintAddrs σ es, A ∈ loadAddrs σ es ∨
       ∃ i, A = addressOfIndex i ∧ β ≤ i ∧ i < β + 24 * c) ∧
@@ -253,7 +258,7 @@ theorem l5Step {rd : Reader} {σ : Val} {es : List Ev} {vs : List V}
   obtain ⟨-, -, -, -, -, -, -, -, -, e28, e29, e30, e31, e32, e33, -, -, -, -, -, -, -, -, -, -, -,
     -, -, -, -, -, -, -, -, -, -, -, e51, e52, e53, e54, e55, -, -⟩ := hh'
   rw [word_gen] at e51 e54
-  have v33 : σ (.n 33) = gen ^ (β + 24 * x) := by
+  have v33 : σ (.n (val% «main_loop4» "carried")) = gen ^ (β + 24 * x) := by
     rw [e33, e32, e31, e30, e29, e28, h9, h0, ← pow_add, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add]
     congr 1; ring
@@ -276,7 +281,7 @@ theorem l5Step {rd : Reader} {σ : Val} {es : List Ev} {vs : List V}
     · simp only [Ev.hintAddrs, hintDest?, destHeap?, Option.bind_some, List.mem_map, List.mem_range] at hA
       obtain ⟨k, hk, rfl⟩ := hA
       left
-      refine List.mem_filterMap.mpr ⟨.atom (.load (.n (36 + k)) (.n 35) k), ?_, ?_⟩
+      refine List.mem_filterMap.mpr ⟨.atom (.load (.n (36 + k)) (.n (val% «main_loop4» "child_da")) k), ?_, ?_⟩
       · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl <;>
           simp [l5HPre, slEvs]
       · simp [Ev.loadAddr?]
@@ -344,16 +349,16 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- The atoms of `main`'s path its loop helpers' tables rest on. -/
 def mHAtoms : List Atom := [
-  .touch (.n 8) (.n 0), .touch (.n 9) (.n 1), .touch (.n 11) (.n 3), .touch (.n 12) (.n 4),
-  .rangeCheck (.n 6) (.n 15) (.n 16) (.n 17) (.n 14),
-  .mul (.n 22) (.n 0) (.n 1), .mul (.n 23) (.n 3) (.n 4),
-  .mul (.n 29) (.n 22) (.n 22), .mul (.n 30) (.n 29) (.n 29),
-  .mul (.n 32) (.n 23) (.n 23), .mul (.n 33) (.n 32) (.n 32),
-  .const (.n 39) (word 1 0), .add (.n 40) (.n 39) (.n 1), .const (.n 41) (word 1 0),
-  .const (.n 42) (word 1 0), .add (.n 43) (.n 42) (.n 4), .const (.n 44) (word 1 0),
-  .mul (.n 390) (.n 6) (.n 6), .mul (.n 391) (.n 390) (.n 6), .mul (.n 392) (.n 391) (.n 391),
-  .mul (.n 393) (.n 392) (.n 392), .mul (.n 394) (.n 393) (.n 393),
-  .const (.n 400) (word 1 0), .add (.n 401) (.n 400) (.n 6), .const (.n 402) (word 1 0)]
+  .touch (.n (val% «main» "s10#0")) (.n (val% «main» "meta[0]")), .touch (.n (val% «main» "s11#0")) (.n (val% «main» "meta[1]")), .touch (.n (val% «main» "s13#0")) (.n (val% «main» "meta[3]")), .touch (.n (val% «main» "s14#0")) (.n (val% «main» "meta[4]")),
+  .rangeCheck (.n (val% «main» "meta[6]")) (.n (val% «main» "s16#1")) (.n (val% «main» "s16#2")) (.n (val% «main» "s16#3")) (.n (val% «main» "s16#0")),
+  .mul (.n (val% «main» "lx_slots_g")) (.n (val% «main» "meta[0]")) (.n (val% «main» "meta[1]")), .mul (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "meta[3]")) (.n (val% «main» "meta[4]")),
+  .mul (.n (val% «main» "lx_table~0")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lx_slots_g")), .mul (.n (val% «main» "lx_table~1")) (.n (val% «main» "lx_table~0")) (.n (val% «main» "lx_table~0")),
+  .mul (.n (val% «main» "lean_sphincs_table~0")) (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")), .mul (.n (val% «main» "lean_sphincs_table~1")) (.n (val% «main» "lean_sphincs_table~0")) (.n (val% «main» "lean_sphincs_table~0")),
+  .const (.n (val% «main» "s31#0")) (word 1 0), .add (.n (val% «main» "s31#1")) (.n (val% «main» "s31#0")) (.n (val% «main» "meta[1]")), .const (.n (val% «main» "s31#2")) (word 1 0),
+  .const (.n (val% «main» "s32#0")) (word 1 0), .add (.n (val% «main» "s32#1")) (.n (val% «main» "s32#0")) (.n (val% «main» "meta[4]")), .const (.n (val% «main» "s32#2")) (word 1 0),
+  .mul (.n (val% «main» "child_carried~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried~1")) (.n (val% «main» "child_carried~0")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried~2")) (.n (val% «main» "child_carried~1")) (.n (val% «main» "child_carried~1")),
+  .mul (.n (val% «main» "child_carried~3")) (.n (val% «main» "child_carried~2")) (.n (val% «main» "child_carried~2")), .mul (.n (val% «main» "child_carried~4")) (.n (val% «main» "child_carried~3")) (.n (val% «main» "child_carried~3")),
+  .const (.n (val% «main» "s49#0")) (word 1 0), .add (.n (val% «main» "s49#1")) (.n (val% «main» "s49#0")) (.n (val% «main» "meta[6]")), .const (.n (val% «main» "s49#2")) (word 1 0)]
 
 theorem mHAtoms_mem : ∀ a ∈ mHAtoms, a ∈ atomsIn mPre ∨ a ∈ atomsIn mMid := by decide +kernel
 
@@ -384,10 +389,10 @@ theorem mEvs_alloc {σ : Val} {d s : V} (h : ((d, .inr s) : V × (ℕ ⊕ V)) �
 
 /-- **`main`'s calls of its loop helpers writing into its buffers.** -/
 theorem mEvs_callsX {σ : Val} {c : Call} (hc : c ∈ calls (mEvs σ)) (hx : c.f ∈ hintsX) :
-    c = ⟨name% «main_loop0», [.n 41, .n 1, .n 31, .n 0], [], decide (σ (.n 40) ≠ 0)⟩ ∨
-      c = ⟨name% «main_loop1», [.n 44, .n 4, .n 34, .n 3], [], decide (σ (.n 43) ≠ 0)⟩ ∨
-      c = ⟨name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23,
-        .n 395, .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [], decide (σ (.n 401) ≠ 0)⟩ := by
+    c = ⟨name% «main_loop0», [.n (val% «main» "s31#2"), .n (val% «main» "meta[1]"), .n (val% «main» "lx_table"), .n (val% «main» "meta[0]")], [], decide (σ (.n (val% «main» "s31#1")) ≠ 0)⟩ ∨
+      c = ⟨name% «main_loop1», [.n (val% «main» "s32#2"), .n (val% «main» "meta[4]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")], [], decide (σ (.n (val% «main» "s32#1")) ≠ 0)⟩ ∨
+      c = ⟨name% «main_loop4», [.n (val% «main» "s49#2"), .n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"),
+        .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")], [], decide (σ (.n (val% «main» "s49#1")) ≠ 0)⟩ := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
   have e1 := (straight_parts σ _ s1).2.2.2
   have e2 := (straight_parts σ _ s2).2.2.2
@@ -529,14 +534,14 @@ theorem main_hintsIn {κ : ℕ} (hκ : κ ≤ 30) {M : MemoryImage κ} {t : Tree
     obtain ⟨β, hβ, hz⟩ := alloc_words hp'.1.1 hbo.1 (mEvs_alloc hm) rfl rfl
     rw [hs, gen_pow_eq_ofK, logG_spec hn] at hz
     exact ⟨β, by rw [hβ, gen_pow_eq_ofK], fun i h1 h2 => Or.inl ⟨_, hz, h1, h2⟩⟩
-  obtain ⟨β0, hβ0, hQ0⟩ := hbuf (d := .n 31) (s := .n 30) (Or.inl (by rw [s1]; exact List.mem_cons_self))
+  obtain ⟨β0, hβ0, hQ0⟩ := hbuf (d := .n (val% «main» "lx_table")) (s := .n (val% «main» "lx_table~1")) (Or.inl (by rw [s1]; exact List.mem_cons_self))
     (n := 4 * (a + b)) (by rw [m30, m29, m22, h0, h1, ← pow_add, ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))
     (by have := pow30 (lt_of_lt_of_le ha h2κ) (lt_of_lt_of_le hb1 h2κ); omega)
-  obtain ⟨β1, hβ1, hQ1⟩ := hbuf (d := .n 34) (s := .n 33)
+  obtain ⟨β1, hβ1, hQ1⟩ := hbuf (d := .n (val% «main» "lean_sphincs_table")) (s := .n (val% «main» "lean_sphincs_table~1"))
     (Or.inl (by rw [s1]; exact List.mem_cons_of_mem _ List.mem_cons_self))
     (n := 4 * (a' + b')) (by rw [m33, m32, m23, h3, h4, ← pow_add, ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))
     (by have := pow30 (lt_of_lt_of_le ha' h2κ) (lt_of_lt_of_le hb' h2κ); omega)
-  obtain ⟨β4, hβ4, hQ4⟩ := hbuf (d := .n 395) (s := .n 394)
+  obtain ⟨β4, hβ4, hQ4⟩ := hbuf (d := .n (val% «main» "child_carried")) (s := .n (val% «main» "child_carried~4"))
     (Or.inr (by rw [s3]; exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))
     (n := 24 * c6) (by rw [m394, m393, m392, m391, m390, h6, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))

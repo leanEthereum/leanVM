@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Main.SpWotsAtP
 public import LeanVM.Guest.B1.Sig.SphincsExact
 public import LeanVM.Guest.Exact.FreeSpWots
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # `verify_sig_lean_sphincs`, placed with its pops
@@ -110,7 +112,7 @@ theorem verifySigPE (fs : String → ℕ) (cert : String → V → ℕ) :
     Sig.find_verify_sig_lean_sphincs (Or.inl verify_sig_lean_sphincs_not_loop)
     (by
       rw [Sig.verify_sig_lean_sphincs_params]
-      show [σ (.n 0), σ (.n 1)] = _
+      show [σ (.n (val% «verify_sig_lean_sphincs» "signer")), σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))] = _
       rw [h0, h1]) hw rfl (fun e he => (hsat.1 e he).1) (by rw [allocDsts_pure hpure, hal]; rfl)
     (fun q hq => by rw [addrs_pure hpure] at hq; simp at hq)
     (by

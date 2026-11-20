@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.RawAtSP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`, placed with its pops
@@ -46,7 +48,7 @@ theorem spWots_relAtInP (fs : String → ℕ) (cert : String → V → ℕ) {rd 
     (ps := Sig.spWotsPops digest values) Sig.find_sp_wots (Or.inr hc)
     (by
       rw [Sig.sp_wots_params]
-      show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = _
+      show [σ (.n (val% «sp_wots» "pp")), σ (.n (val% «sp_wots» "a0")), σ (.n (val% «sp_wots» "a1")), σ (.n (val% «sp_wots» "encoding"))] = _
       rw [h0, h3, ← h12]) hw hsat.2
     (fun e he => (hsat.1 e he).1) (by rw [allocDsts_pure hpure, hal]; rfl)
     (fun q hq => by rw [addrs_pure hpure] at hq; simp at hq)

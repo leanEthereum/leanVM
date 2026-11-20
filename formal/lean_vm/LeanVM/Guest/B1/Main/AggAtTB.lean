@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.Budget.BoundedE
 public import LeanVM.Guest.B1.Bits.GrindPlaced
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 
 /-!
 # `aggregate_claims`, bounded
@@ -250,7 +252,7 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
     (args := [gen ^ m, cpi, cfresh, ccarried, gen ^ ds, tabs]) (rets := [])
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4, o5] i)
     coreProgram_wf find_aggregate_claims (Or.inl agg_loop) (by
-      show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] = _
+      show [σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "child_pi")), σ (.n (val% «aggregate_claims» "child_fresh")), σ (.n (val% «aggregate_claims» "child_carried")), σ (.n (val% «aggregate_claims» "defer_stmt")), σ (.n (val% «aggregate_claims» "tabs"))] = _
       rw [hV.e0, hV.e1, hV.e2, hV.e3, hV.e4, hV.e5]) hw rfl hev
     (by
       rw [hal, hes, hpd, aggP_allocs]
@@ -280,18 +282,18 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
     · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩,
         rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 33), σ (.n 0), σ (.n 30), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)] = _
+      · show [σ (.n (val% «aggregate_claims» "s12#2")), σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "absorb")), σ (.n (val% «aggregate_claims» "child_fresh")), σ (.n (val% «aggregate_claims» "fresh_row")), σ (.n (val% «aggregate_claims» "child_carried")), σ (.n (val% «aggregate_claims» "carried_row")), σ (.n (val% «aggregate_claims» "child_pi"))] = _
         rw [hV.g36, hV.e0, hV.v33, hV.e2, hV.v8, hV.e3, hV.v9, hV.e1]
       · rw [(h1 rfl).1]; rfl
       · exact hV.grArgs
       · rw [(h2 rfl).1]; rfl
-      · show [σ (.n 100), σ (.n 0), σ (.n 95), σ (.n 8), σ (.n 9), σ (.n 91), σ (.n 78)] = _
+      · show [σ (.n (val% «aggregate_claims» "s22#2")), σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "bc_chain")), σ (.n (val% «aggregate_claims» "fresh_row")), σ (.n (val% «aggregate_claims» "carried_row")), σ (.n (val% «aggregate_claims» "lam_sq")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[0]"))] = _
         rw [hV.g103, hV.e0, hV.v98, hV.v8, hV.v9, hV.v94, hV.v81]
       · rw [(h3 rfl).1]; rfl
       · exact hV.bsArgs
       · rw [(h4 rfl).1]; exact hV.bsRets
-      · show [σ (.n 189), σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 113), σ (.n 95), σ (.n 185),
-          σ (.n 78)] = _
+      · show [σ (.n (val% «aggregate_claims» "s31#2")), σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "fresh_row")), σ (.n (val% «aggregate_claims» "carried_row")), σ (.n (val% «aggregate_claims» "bc_point1")), σ (.n (val% «aggregate_claims» "bc_chain")), σ (.n (val% «aggregate_claims» "bc_wsum")),
+          σ (.n (val% «aggregate_claims» "fs_perm.nxt[0]"))] = _
         rw [hV.g192, hV.e0, hV.v8, hV.v9, hV.v116, hV.v98, hV.v188, hV.v81]
       · rw [(h5 rfl).1]; rfl
     · intro q hq
@@ -320,54 +322,54 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 30)).limb 0 * addressOfIndex i = _
+      show (σ (.n (val% «aggregate_claims» "absorb"))).limb 0 * addressOfIndex i = _
       rw [hV.v33]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 0, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 95)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n (val% «aggregate_claims» "bc_chain"))).limb 0 * addressOfIndex 0 = _
       rw [hV.v98]; exact limb0_gen_pow_mul _ _
     · refine ⟨axChain m b0 + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp) (by omega) (by omega))⟩
-      show (σ (.n 95)).limb 0 * addressOfIndex 1 = _
+      show (σ (.n (val% «aggregate_claims» "bc_chain"))).limb 0 * addressOfIndex 1 = _
       rw [hV.v98]; exact limb0_gen_pow_mul _ _
     · refine ⟨axW m b0 + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 185)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n (val% «aggregate_claims» "bc_wsum"))).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
         simp [aggOut, DeferredBytecodeClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
-      show (σ (.n 4)).limb 0 * addressOfIndex k = _
+      show (σ (.n (val% «aggregate_claims» "defer_stmt"))).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _
     · refine ⟨axAbs m b0 + 13 * m + k, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 39)).limb 0 * addressOfIndex k = _
+      show (σ (.n (val% «aggregate_claims» "absorbed"))).limb 0 * addressOfIndex k = _
       rw [hV.p42, show P.absorb = gen ^ axAbs m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 13]
     · refine ⟨axChain m b0 + 2 * m + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 102)).limb 0 * addressOfIndex 1 = _
+      show (σ (.n (val% «aggregate_claims» "bc_end"))).limb 0 * addressOfIndex 1 = _
       rw [hV.p105, show P.chain = gen ^ axChain m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 2]
     · refine ⟨axW m b0 + m + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 190)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n (val% «aggregate_claims» "s32#0"))).limb 0 * addressOfIndex 0 = _
       rw [hV.p193, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
     · refine ⟨axPt m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 104)).limb 0 * addressOfIndex k = _
+      show (σ (.n (val% «aggregate_claims» "bc_point"))).limb 0 * addressOfIndex k = _
       rw [hV.v107]; exact limb0_gen_pow_mul _ _
     · refine ⟨axPt1 m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt1 m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 113)).limb 0 * addressOfIndex k = _
+      show (σ (.n (val% «aggregate_claims» "bc_point1"))).limb 0 * addressOfIndex k = _
       rw [hV.v116]; exact limb0_gen_pow_mul _ _
     · refine ⟨b0 + 0, ?_, Or.inl (hz (s := 47) (x := b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 6)).limb 0 * addressOfIndex 0 = _
+      show (σ (.n (val% «aggregate_claims» "bc_msgs"))).limb 0 * addressOfIndex 0 = _
       rw [hV.v6]; exact limb0_gen_pow_mul _ _
 /-- **`aggregate_claims` is complete, placed, its tree of honest shape popping the batching's hints, within `aggB`**
 (`aggregate_claims_completeAtTBRE`, its exactness forgotten). -/

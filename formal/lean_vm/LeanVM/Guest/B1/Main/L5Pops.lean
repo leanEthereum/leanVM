@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5T
 public import LeanVM.Guest.B1.Main.MainPops
 public import LeanVM.Guest.B1.Main.MainNoWit
 public import LeanVM.Guest.B1.Digest.ClaimListPops
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # The children loop's pops
@@ -35,13 +37,13 @@ digest, `verify_sub`'s `pv`. -/
 def l5Seg (ex es : ℕ) (px ps : List Pop) (defer : List E) (da : E × E) (pv : List Pop) : List Pop :=
   ("child_meta", [gen ^ ex, gen ^ es]) :: (px ++ ps ++ [("child_defer", defer), ("child_da", [da.1, da.2])] ++ pv)
 
-theorem l5_popS : (l5Pre ++ [l5Tail]).filterMap Stmt.popS = [some ("child_meta", .stack [.n 18, .n 19]), none, none,
-    some ("child_defer", .heap (.n 33) 0 24), some ("child_da", .heap (.n 35) 0 2), none, none, none] := by
+theorem l5_popS : (l5Pre ++ [l5Tail]).filterMap Stmt.popS = [some ("child_meta", .stack [.n (val% «main_loop4» "child_meta[0]"), .n (val% «main_loop4» "child_meta[1]")]), none, none,
+    some ("child_defer", .heap (.n (val% «main_loop4» "carried")) 0 24), some ("child_da", .heap (.n (val% «main_loop4» "child_da")) 0 2), none, none, none] := by
   decide +kernel
 
-theorem l5_chk : l5Pre.all Digest.Stmt.flat = true ∧ monoIs (atomsIn l5Pre) (.n 33) (.n 9) (.n 0) 24 = true ∧
-    monoIs (atomsIn l5Pre) (.n 35) (.n 10) (.n 0) 2 = true ∧ genMulOk (atomsIn l5Pre) (.n 55) (.n 0) = true ∧
-    genMulOk (atomsIn l5Pre) (.n 52) (.n 0) = true ∧ (atomsIn l5Pre).any (isAddAt (.n 53) (.n 52) (.n 1)) = true := by
+theorem l5_chk : l5Pre.all Digest.Stmt.flat = true ∧ monoIs (atomsIn l5Pre) (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "xc")) 24 = true ∧
+    monoIs (atomsIn l5Pre) (.n (val% «main_loop4» "child_da")) (.n (val% «main_loop4» "da_digests")) (.n (val% «main_loop4» "xc")) 2 = true ∧ genMulOk (atomsIn l5Pre) (.n (val% «main_loop4» "s21#4")) (.n (val% «main_loop4» "xc")) = true ∧
+    genMulOk (atomsIn l5Pre) (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "xc")) = true ∧ (atomsIn l5Pre).any (isAddAt (.n (val% «main_loop4» "s21#2")) (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "bound"))) = true := by
   decide +kernel
 
 /-- A heap destination through `g^a` of a run the memory holds reads the run. -/
@@ -55,8 +57,8 @@ theorem l5_words_of_reads (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) {L 
   rw [hl]
   rfl
 
-theorem l5_tail_args (σ : Val) : ([V.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-    .n 13, .n 14, .n 15] : List V).map σ = σ (.n 55) :: ((List.range 16).map V.n).tail.map σ := rfl
+theorem l5_tail_args (σ : Val) : ([V.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"), .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"),
+    .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")] : List V).map σ = σ (.n (val% «main_loop4» "s21#4")) :: ((List.range 16).map V.n).tail.map σ := rfl
 
 /-- **A valid tree of `main_loop4` from child `c`** (`L5From`), its callees' predicates giving their entries `px`,
 `ps`, `pv`, the deferred claims and DA digests in memory: it pops each child's `l5Seg` up to the count `nk`. -/
@@ -99,22 +101,22 @@ theorem l5From_pops {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} 
   have hrest : ((List.range 16).map V.n).tail.map σ = rest := by
     have := congrArg List.tail hpar
     rwa [← List.map_tail] at this
-  have h0 : σ (.n 0) = gen ^ c := pr 0 (by omega)
-  have h1 : σ (.n 1) = gen ^ nk := (pr 1 (by omega)).trans hnk
-  have h9 : σ (.n 9) = gen ^ Cr := (pr 9 (by omega)).trans hCr
-  have h10 : σ (.n 10) = gen ^ D := (pr 10 (by omega)).trans hD
+  have h0 : σ (.n (val% «main_loop4» "xc")) = gen ^ c := pr 0 (by omega)
+  have h1 : σ (.n (val% «main_loop4» "bound")) = gen ^ nk := (pr 1 (by omega)).trans hnk
+  have h9 : σ (.n (val% «main_loop4» "child_carried")) = gen ^ Cr := (pr 9 (by omega)).trans hCr
+  have h10 : σ (.n (val% «main_loop4» "da_digests")) = gen ^ D := (pr 10 (by omega)).trans hD
   rw [l5_body, holdsList_append] at hb
   obtain ⟨hflat, hm33, hm35, hg55, hg52, ha53⟩ := l5_chk
   obtain ⟨hall, -⟩ := holdsList_flat _ hflat _ _ hb
   have hat := atoms_of_flat hall
-  have h33 : σ (.n 33) = gen ^ (Cr + 24 * c) := by
+  have h33 : σ (.n (val% «main_loop4» "carried")) = gen ^ (Cr + 24 * c) := by
     rw [monoIs_sound hm33 hat, h9, h0, ← pow_mul, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have h35 : σ (.n 35) = gen ^ (D + 2 * c) := by
+  have h35 : σ (.n (val% «main_loop4» "child_da")) = gen ^ (D + 2 * c) := by
     rw [monoIs_sound hm35 hat, h10, h0, ← pow_mul, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have h55 : σ (.n 55) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
-  have h53 : σ (.n 53) = gen ^ (c + 1) + gen ^ nk := by
+  have h55 : σ (.n (val% «main_loop4» "s21#4")) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
+  have h53 : σ (.n (val% «main_loop4» "s21#2")) = gen ^ (c + 1) + gen ^ nk := by
     rw [add_sound ha53 hat, genMul_sound hg52 hat, h0, h1, pow_succ]
   obtain ⟨hdl, hdef, hd0, hd1⟩ := hmem c (by omega)
   have hda : ReadsAt rd (gen ^ (D + 2 * c)) [(da c).1, (da c).2] := by
@@ -138,28 +140,28 @@ theorem l5From_pops {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} 
     (show kst.Valid coreProgram rd _ _ from hv3) hn3 rd
   have pt : kt.pops coreProgram rd = (List.range' (c + 1) m).flatMap fun c =>
       l5Seg (ex c) (es c) (px c) (ps c) (defer c) (da c) (pv c) := by
-    by_cases h0' : σ (.n 53) = 0
+    by_cases h0' : σ (.n (val% «main_loop4» "s21#2")) = 0
     · have hcm' : c + 1 = nk := by
         rw [h53] at h0'
         exact Digest.gen_pow_inj' (by omega) hnk34 (e_add_eq_zero_iff.mp h0')
       rw [show m = 0 by omega, List.range'_zero, List.flatMap_nil]
-      have : (decide (σ (.n 53) ≠ 0)) = false := by simpa using h0'
+      have : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = false := by simpa using h0'
       simp only [this, Bool.false_eq_true, ↓reduceIte] at hvt
       obtain ⟨⟨g, σ', rfl⟩, -⟩ := hvt
       rfl
-    · have ht : (decide (σ (.n 53) ≠ 0)) = true := by simpa using h0'
+    · have ht : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = true := by simpa using h0'
       simp only [ht, ↓reduceIte] at hvt
       rw [l5_tail_args, h55, hrest] at hvt
       exact ih (c + 1) kt [] (by omega) hvt (hTt ht)
   rw [Tree.pops_node (find_l5) hw', l5Evs, splice_straight _ l5Pre_straight, l5_popS]
   simp only [spliceS, Tree.popsKids, List.headD_cons, List.tail_cons]
   rw [px', ps', pst, pv', pt, List.range'_succ, List.flatMap_cons, l5Seg]
-  have w1 : Dest.words rd σ (.stack [.n 18, .n 19]) = [gen ^ ex c, gen ^ es c] := by
-    show [σ (.n 18), σ (.n 19)] = _
+  have w1 : Dest.words rd σ (.stack [.n (val% «main_loop4» "child_meta[0]"), .n (val% «main_loop4» "child_meta[1]")]) = [gen ^ ex c, gen ^ es c] := by
+    show [σ (.n (val% «main_loop4» "child_meta[0]")), σ (.n (val% «main_loop4» "child_meta[1]"))] = _
     rw [h18, h19]
-  have w2 : Dest.words rd σ (.heap (.n 33) 0 24) = defer c := by
+  have w2 : Dest.words rd σ (.heap (.n (val% «main_loop4» "carried")) 0 24) = defer c := by
     rw [← hdl]; exact l5_words_of_reads σ h33 hdef
-  have w3 : Dest.words rd σ (.heap (.n 35) 0 2) = [(da c).1, (da c).2] :=
+  have w3 : Dest.words rd σ (.heap (.n (val% «main_loop4» "child_da")) 0 2) = [(da c).1, (da c).2] :=
     l5_words_of_reads σ h35 hda
   rw [w1, w2, w3]
   simp only [List.append_assoc, List.cons_append, List.nil_append, List.append_nil]

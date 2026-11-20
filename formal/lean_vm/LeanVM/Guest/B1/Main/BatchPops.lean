@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Main.AggAt
 public import LeanVM.Guest.B1.Common.MutePops
 public import LeanVM.Guest.B1.Common.NoWitMute
 public import LeanVM.Guest.Hints
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 
 /-!
 # The batching's pops
@@ -30,8 +32,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 
 /-- `aggregate_claims`' first statements: the messages' buffer, its hint, the bytecode's value's hint. -/
 def aggHead : List Stmt :=
-  [.atom (.hint (.alloc (.n 6) 47)), .atom (.hint (.witness "bc_sumcheck_msgs" (.heap (.n 6) 0 47))),
-    .atom (.hint (.witness "bc_star_hint" (.stack [.n 7])))]
+  [.atom (.hint (.alloc (.n (val% «aggregate_claims» "bc_msgs")) 47)), .atom (.hint (.witness "bc_sumcheck_msgs" (.heap (.n (val% «aggregate_claims» "bc_msgs")) 0 47))),
+    .atom (.hint (.witness "bc_star_hint" (.stack [.n (val% «aggregate_claims» "bytecode_star")])))]
 
 /-- `aggregate_claims` starts with `aggHead`, then has no witness hint, nor its callees' subtrees. -/
 noncomputable def aggShapeOk : Bool :=
@@ -42,13 +44,13 @@ theorem agg_shape_ok : aggShapeOk = true := by decide +kernel
 
 /-- The entries `aggHead` pops on `σ`: the buffer's words, the value. -/
 def aggPops (rd : Reader) (σ : Val) : List Pop :=
-  [("bc_sumcheck_msgs", (List.range 47).map fun k => (rd ((σ (.n 6)).limb 0 * addressOfIndex (0 + k))).getD 0),
-    ("bc_star_hint", [σ (.n 7)])]
+  [("bc_sumcheck_msgs", (List.range 47).map fun k => (rd ((σ (.n (val% «aggregate_claims» "bc_msgs"))).limb 0 * addressOfIndex (0 + k))).getD 0),
+    ("bc_star_hint", [σ (.n (val% «aggregate_claims» "bytecode_star"))])]
 
 theorem aggHead_pops (rd : Reader) (σ : Val) : FallPops rd σ aggHead (aggPops rd σ) := by
-  have h := (FallPops.atom (rd := rd) (σ := σ) (.hint (.alloc (.n 6) 47))).append
-    ((FallPops.atom (.hint (.witness "bc_sumcheck_msgs" (.heap (.n 6) 0 47)))).append
-      (FallPops.atom (.hint (.witness "bc_star_hint" (.stack [.n 7])))))
+  have h := (FallPops.atom (rd := rd) (σ := σ) (.hint (.alloc (.n (val% «aggregate_claims» "bc_msgs")) 47))).append
+    ((FallPops.atom (.hint (.witness "bc_sumcheck_msgs" (.heap (.n (val% «aggregate_claims» "bc_msgs")) 0 47)))).append
+      (FallPops.atom (.hint (.witness "bc_star_hint" (.stack [.n (val% «aggregate_claims» "bytecode_star")])))))
   simpa [aggHead, aggPops, Atom.pops, Hint.pops, Dest.words] using h
 
 theorem length_msgs (ms : List (E × E)) : (ms.flatMap fun g => [g.1, g.2]).length = 2 * ms.length := by
