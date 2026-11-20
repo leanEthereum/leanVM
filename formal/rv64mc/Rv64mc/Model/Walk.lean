@@ -13,11 +13,9 @@ the Rust's order, and `walkRust_sound`: where the mirror returns `Ok` from the t
 `true`. A mirror fails exactly where the Rust returns `Err`; where the Rust panics it may return
 anything.
 
-The stack's root is read in step 2 and opened in step 7; between them every step keeps the roots
-the transcript has read (`KeepsRoots`), so the opening runs from the stack's root alone
-(`SimRoots`, `StackRoots`, `Model.Whir`). The Keccak reduction's mirror is the one step whose
-`KeepsRoots` is not proved here: `KeccakKeepsRoots` states it, an explicit hypothesis of the end
-theorem (it reads no commitment: `Model.KeccakGkr`).
+The stack's root is read in step 2 and opened in step 7; every step between them mirrors a program
+that reads no commitment (`NoCommit`, `Model.Transcript`), so it keeps the roots and the opening runs
+from the stack's root alone (`SimRoots`, `StackRoots`, `Model.Whir`).
 -/
 
 namespace Rv64mc.Model
@@ -26,6 +24,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
   LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 
 @[expose] public section
+
+/- `NoCommit` of a statement program unfolds the program to its constructors, which is costly for
+the Keccak reduction's: it is closed by the lemmas below, never by unfolding. -/
+attribute [local irreducible] NoCommit
 
 /-! ## Step 1: the announced sizes and the layout -/
 
@@ -123,201 +125,6 @@ theorem SimR.announced (words : List K) (bc : BytecodeRust) (hbc : BytecodeOk wo
     · split_ifs at hb
       cases hb
       rfl
-
-/-! ## The steps keep the roots -/
-
-section KeepsRootsBase
-
-variable {α β : Type}
-
-/-- `m` reads no root: the roots it ends with are those it started with. -/
-def KeepsRoots (m : TM α) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → t'.roots = t.roots
-
-theorem KeepsRoots.pure (a : α) : KeepsRoots (Pure.pure a : TM α) := by
-  intro t b t' h
-  simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
-  rw [← h.2]
-
-theorem KeepsRoots.bind {m : TM α} {k : α → TM β} (hm : KeepsRoots m) (hk : ∀ a, KeepsRoots (k a)) :
-    KeepsRoots (m >>= k) := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    exact (hk a t₁ b t' h).trans (hm t a t₁ hmt)
-
-theorem KeepsRoots.nextScalar : KeepsRoots TM.nextScalar := by
-  intro t a t' h
-  obtain ⟨s, -, -, rfl⟩ := nextScalar_some h
-  rfl
-
-theorem KeepsRoots.sample : KeepsRoots TM.sample := by
-  intro t a t' h
-  simp only [TM.sample, StateT.run, Option.some.injEq, Prod.mk.injEq] at h
-  rw [← h.2]
-
-theorem KeepsRoots.nextScalars : ∀ n, KeepsRoots (TM.nextScalars n)
-  | 0 => KeepsRoots.pure _
-  | n + 1 => KeepsRoots.bind KeepsRoots.nextScalar fun _ ↦
-      KeepsRoots.bind (KeepsRoots.nextScalars n) fun _ ↦ KeepsRoots.pure _
-
-theorem KeepsRoots.samples : ∀ n, KeepsRoots (TM.samples n)
-  | 0 => KeepsRoots.pure _
-  | n + 1 => KeepsRoots.bind KeepsRoots.sample fun _ ↦
-      KeepsRoots.bind (KeepsRoots.samples n) fun _ ↦ KeepsRoots.pure _
-
-theorem KeepsRoots.grindCheck (bits : ℕ) : KeepsRoots (TM.grindCheck bits) := by
-  intro t a t' h
-  simp only [TM.grindCheck, StateT.run] at h
-  split_ifs at h
-  · cases h; rfl
-  · split at h
-    · split at h
-      · split_ifs at h
-        cases h; rfl
-      · cases h
-    · cases h
-
-theorem KeepsRoots.ofOption (o : Option α) : KeepsRoots (TM.ofOption o) := by
-  cases o with
-  | none => intro t a t' h; cases h
-  | some a => exact KeepsRoots.pure a
-
-theorem KeepsRoots.require (c : Prop) [Decidable c] : KeepsRoots (TM.require c) := by
-  intro t a t' h
-  simp only [TM.require, StateT.run] at h
-  split_ifs at h
-  cases h; rfl
-
-theorem KeepsRoots.checked : KeepsRoots TM.checked := by
-  intro t a t' h
-  cases h; rfl
-
-theorem KeepsRoots.whenChecked {body : TM Unit} (h : KeepsRoots body) :
-    KeepsRoots (TM.whenChecked body) :=
-  KeepsRoots.bind KeepsRoots.checked fun c ↦ by
-    cases c
-    · exact KeepsRoots.pure ()
-    · exact h
-
-
-theorem KeepsRoots.sumcheck (claim : E) (count : ℕ) (eqs : List (Option E)) :
-    KeepsRoots (TM.sumcheck claim count eqs) := by
-  have hpoly : ∀ c e, KeepsRoots (TM.sumcheckRoundPoly count c e) := by
-    intro c e
-    cases e with
-    | none =>
-      exact KeepsRoots.bind KeepsRoots.nextScalar fun _ ↦
-        KeepsRoots.bind (KeepsRoots.nextScalars _) fun _ ↦
-          KeepsRoots.bind (KeepsRoots.grindCheck _) fun _ ↦ KeepsRoots.pure _
-    | some f =>
-      exact KeepsRoots.bind (KeepsRoots.nextScalars _) fun _ ↦
-        KeepsRoots.bind (KeepsRoots.grindCheck _) fun _ ↦ KeepsRoots.pure _
-  suffices ∀ (eqs : List (Option E)) (acc : List E × E),
-      KeepsRoots (eqs.foldlM (TM.sumcheckRound count) acc) from this eqs _
-  intro eqs
-  induction eqs with
-  | nil => intro acc; exact KeepsRoots.pure _
-  | cons e es ih =>
-    intro acc
-    rw [List.foldlM_cons]
-    exact KeepsRoots.bind (KeepsRoots.bind (hpoly _ _) fun _ ↦
-      KeepsRoots.bind KeepsRoots.sample fun _ ↦ KeepsRoots.pure _) fun _ ↦ ih _
-
-end KeepsRootsBase
-
-/-- The Keccak reduction's mirror reads no root: the one fact the walk needs of it beyond
-`SimR.verifyKeccak`. -/
-def KeccakKeepsRoots : Prop :=
-  ∀ shape inst output, KeepsRoots (verifyKeccakRust shape inst output)
-
-/-- A simulated step that reads no root, then the rest from the same roots. -/
-theorem SimRoots.bindK {α β γ δ : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
-    {r : α → β → Prop} {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop}
-    (hm : SimR m P r) (hkept : KeepsRoots m) (hk : ∀ a b, r a b → SimRoots pre (k a) (Q b) r') :
-    SimRoots pre (m >>= k) (P >>= Q) r' :=
-  SimRoots.bind (SimRoots.of hm) (fun t a t' _ hp hmt ↦ by rw [hkept t a t' hmt]; exact hp) hk
-
-
-/-- Splits a mirror into its steps, each one keeping the roots. -/
-macro "roots_kept" : tactic => `(tactic| repeat (first
-  | refine KeepsRoots.bind ?_ ?_
-  | exact KeepsRoots.pure _
-  | exact KeepsRoots.nextScalar
-  | exact KeepsRoots.sample
-  | exact KeepsRoots.nextScalars _
-  | exact KeepsRoots.samples _
-  | exact KeepsRoots.grindCheck _
-  | exact KeepsRoots.require _
-  | exact KeepsRoots.ofOption _
-  | exact KeepsRoots.sumcheck _ _ _
-  | exact KeepsRoots.checked
-  | refine KeepsRoots.whenChecked ?_
-  | split
-  | intro))
-
-theorem KeepsRoots.gkrStep (layer : ℕ) (values point : List E) :
-    KeepsRoots (gkrStepRust layer values point) := by
-  unfold gkrStepRust
-  roots_kept
-
-theorem KeepsRoots.gkrLoop (layer : ℕ) :
-    ∀ values point, KeepsRoots (gkrLoopRust layer values point) := by
-  induction layer using Nat.strong_induction_on with
-  | _ layer ih =>
-    intro values point
-    rw [gkrLoopRust]
-    split
-    · exact KeepsRoots.bind (KeepsRoots.gkrStep _ _ _) fun vp ↦ ih _ (by split <;> omega) _ _
-    · exact KeepsRoots.pure _
-
-theorem KeepsRoots.verifyGkr (depth : ℕ) : KeepsRoots (verifyGkrRust depth) := by
-  unfold verifyGkrRust
-  refine KeepsRoots.bind KeepsRoots.nextScalar fun _ ↦ KeepsRoots.bind KeepsRoots.nextScalar fun _ ↦
-    KeepsRoots.bind (KeepsRoots.gkrLoop _ _ _) fun _ ↦ KeepsRoots.pure _
-
-theorem KeepsRoots.verifyBusBalance (l : LayoutRust) (bc : BytecodeRust) :
-    KeepsRoots (verifyBusBalanceRust l bc) := by
-  unfold verifyBusBalanceRust
-  refine KeepsRoots.bind (KeepsRoots.require _) fun _ ↦ KeepsRoots.bind (KeepsRoots.grindCheck _)
-    fun _ ↦ KeepsRoots.bind (KeepsRoots.samples _) fun _ ↦ KeepsRoots.bind KeepsRoots.sample fun _ ↦
-    KeepsRoots.bind (KeepsRoots.verifyGkr _) fun _ ↦ ?_
-  roots_kept
-
-theorem KeepsRoots.mapM {α β : Type} (f : α → TM β) (hf : ∀ a, KeepsRoots (f a)) :
-    ∀ l : List α, KeepsRoots (l.mapM f)
-  | [] => KeepsRoots.pure _
-  | a :: l => by
-    rw [List.mapM_cons]
-    exact KeepsRoots.bind (hf a) fun _ ↦ KeepsRoots.bind (KeepsRoots.mapM f hf l) fun _ ↦
-      KeepsRoots.pure _
-
-theorem KeepsRoots.tableSumcheck (tables : List TableRust) (heights : List ℕ)
-    (busForms : List (List Form)) (cp fp eq : List E) (target : E) :
-    KeepsRoots (tableSumcheckRust tables heights busForms cp fp eq target) := by
-  unfold tableSumcheckRust
-  refine KeepsRoots.bind (KeepsRoots.sumcheck _ _ _) fun _ ↦ ?_
-  split
-  refine KeepsRoots.bind (KeepsRoots.mapM _ (fun _ ↦ by roots_kept) _) fun _ ↦ ?_
-  roots_kept
-
-theorem KeepsRoots.readOod (vars bits : ℕ) : KeepsRoots (readOodRust vars bits) := by
-  unfold readOodRust
-  roots_kept
-
-theorem KeepsRoots.ringSwitch (point s : List E) : KeepsRoots (ringSwitchRust point s) := by
-  unfold ringSwitchRust
-  roots_kept
-
-theorem KeepsRoots.streamPosition : KeepsRoots TM.streamPosition := fun _ _ _ h ↦ by cases h; rfl
-
-theorem KeepsRoots.announced (bc : BytecodeRust) : KeepsRoots (announcedRust bc) := by
-  unfold announcedRust
-  roots_kept
 
 /-! ## The layout's bounds -/
 
@@ -631,11 +438,6 @@ theorem onStack_rel (l : LayoutRust) (L : Layout) (hl : l.Rel L) (hs : l.stackLo
     · simp only [List.filterMap_cons, h1, h2]
       exact .cons h3 ih
 
-theorem Returns.ringSwitch (point s : List E) :
-    Returns (ringSwitchRust point s) fun a ↦ a.2.point = point := by
-  unfold ringSwitchRust
-  exact Returns.bindAll fun _ ↦ Returns.bindAll fun _ ↦ Returns.pure rfl
-
 /-- A simulation followed by a pure step the statement does not take. -/
 theorem SimRoots.bind_pure {α β γ : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
     {r : α → β → Prop} (h : SimRoots pre m P r) (c : γ) :
@@ -696,23 +498,127 @@ theorem stackRoots_of {μ r : ℕ} {d : Digest} {roots : Roots}
 
 /-! ## The walk runs `verifyExecution` -/
 
-theorem KeepsRoots.tablePhase (l : LayoutRust) (bus : BusResultRust) :
-    KeepsRoots (tablePhaseRust l bus) := by
-  unfold tablePhaseRust
-  exact KeepsRoots.bind (KeepsRoots.grindCheck _) fun _ ↦ KeepsRoots.bind KeepsRoots.sample fun _ ↦
-    KeepsRoots.bind (KeepsRoots.ofOption _) fun _ ↦ KeepsRoots.tableSumcheck _ _ _ _ _ _ _
+section NoCommitSteps
 
-theorem KeepsRoots.publicInput (l : LayoutRust) (publicInput : List (BitVec 8)) :
-    KeepsRoots (publicInputRust l publicInput) := by
-  unfold publicInputRust
-  roots_kept
+/-- `no_commit`, with sumchecks. -/
+local macro "no_commit'" : tactic => `(tactic| repeat' (first
+  | exact NoCommit.sumcheck _ _ _
+  | exact NoCommit.ret _
+  | exact NoCommit.readScalar
+  | exact NoCommit.sampleChallenge
+  | apply NoCommit.bind
+  | exact NoCommit.readScalars _
+  | exact NoCommit.sampleChallenges _
+  | exact NoCommit.grindProofOfWork _
+  | exact NoCommit.require _
+  | intro _
+  | split))
 
-theorem KeepsRoots.keccakPhase (hk : KeccakKeepsRoots) (l : LayoutRust)
-    (evaluations : List (List E × List E)) : KeepsRoots (keccakPhaseRust l evaluations) := by
-  unfold keccakPhaseRust
-  exact KeepsRoots.bind (KeepsRoots.ofOption _) fun _ ↦ KeepsRoots.bind KeepsRoots.streamPosition
-    fun _ ↦ KeepsRoots.bind (KeepsRoots.ofOption _) fun _ ↦ KeepsRoots.bind (hk _ _ _) fun _ ↦
-    KeepsRoots.bind KeepsRoots.streamPosition fun _ ↦ KeepsRoots.pure _
+theorem NoCommit.liftOption {α : Type} (o : Option α) : NoCommit (liftOption o) := by
+  unfold NoCommit
+  cases o <;> trivial
+
+theorem NoCommit.gkrStep (step : ℕ) (last : Bool) (s : GkrState) :
+    NoCommit (LeanVM.Protocol.Verifier.gkrStep step last s) := by
+  unfold LeanVM.Protocol.Verifier.gkrStep
+  no_commit'
+
+theorem NoCommit.gkrLayers : ∀ n s, NoCommit (LeanVM.Protocol.Verifier.gkrLayers n s)
+  | 0, _ => NoCommit.ret _
+  | 1, _ => NoCommit.bind (NoCommit.gkrStep _ _ _) fun _ ↦ NoCommit.ret _
+  | n + 2, s => by
+    unfold LeanVM.Protocol.Verifier.gkrLayers
+    split
+    · exact NoCommit.bind (NoCommit.gkrStep _ _ _) fun _ ↦ NoCommit.gkrLayers _ _
+    · exact NoCommit.bind (NoCommit.gkrStep _ _ _) fun _ ↦ NoCommit.gkrLayers _ _
+
+theorem NoCommit.verifyBusBalance (layout : Layout) :
+    NoCommit (LeanVM.Protocol.Verifier.verifyBusBalance computedBytecodeValue layout) := by
+  unfold LeanVM.Protocol.Verifier.verifyBusBalance verifyGkrGrandProducts bytecodeShare
+    computedBytecodeValue
+  no_commit'
+  exact NoCommit.gkrLayers _ _
+
+theorem NoCommit.tableTerms (cp fp point : List E) :
+    ∀ rows cursor final, NoCommit (LeanVM.Protocol.Verifier.tableTerms cp fp point rows cursor final)
+  | [], _, _ => NoCommit.ret _
+  | _ :: rest, _, _ => by
+    unfold LeanVM.Protocol.Verifier.tableTerms
+    refine NoCommit.bind (NoCommit.readScalars _) fun _ ↦
+      NoCommit.bind (NoCommit.tableTerms cp fp point rest _ _) fun _ ↦ ?_
+    no_commit'
+
+theorem NoCommit.tablePhase (layout : Layout) (bus : BusResult) :
+    NoCommit (LeanVM.Protocol.Verifier.tablePhase layout bus) := by
+  unfold LeanVM.Protocol.Verifier.tablePhase LeanVM.Protocol.Verifier.tableSumcheck
+  no_commit'
+  exact NoCommit.tableTerms _ _ _ _ _ _
+
+theorem NoCommit.readAnnouncedSizes (bytecode : List K) :
+    NoCommit (LeanVM.Protocol.Verifier.readAnnouncedSizes bytecode) := by
+  unfold LeanVM.Protocol.Verifier.readAnnouncedSizes
+  no_commit'
+  exact NoCommit.liftOption _
+
+theorem NoCommit.readOod (stackLog : ℕ) :
+    NoCommit (LeanVM.Protocol.Verifier.readOod stackLog) := by
+  unfold LeanVM.Protocol.Verifier.readOod
+  no_commit'
+
+theorem NoCommit.publicInputPhase (layout : Layout) (d : Digest) :
+    NoCommit (LeanVM.Protocol.Verifier.publicInputPhase layout d) := by
+  unfold LeanVM.Protocol.Verifier.publicInputPhase
+  no_commit'
+
+theorem NoCommit.ringSwitch (point s : List E) :
+    NoCommit (LeanVM.Protocol.Verifier.ringSwitch point s) := by
+  unfold LeanVM.Protocol.Verifier.ringSwitch
+  no_commit'
+
+theorem NoCommit.verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
+    NoCommit (LeanVM.Protocol.Verifier.verifyKeccakLayer logSteps step claim) := by
+  unfold LeanVM.Protocol.Verifier.verifyKeccakLayer
+  no_commit'
+
+theorem NoCommit.keccakLayers (logSteps : ℕ) :
+    ∀ steps claim, NoCommit (LeanVM.Protocol.Verifier.keccakLayers logSteps steps claim)
+  | [], _ => NoCommit.ret _
+  | _ :: steps, _ => NoCommit.bind (NoCommit.verifyKeccakLayer _ _ _) fun _ ↦
+      NoCommit.keccakLayers logSteps steps _
+
+theorem NoCommit.keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
+    NoCommit (LeanVM.Protocol.Verifier.keccakOpen logSteps claim first count value) := by
+  unfold LeanVM.Protocol.Verifier.keccakOpen
+  no_commit'
+
+theorem NoCommit.verifyKeccak (logSteps : ℕ) (inst output : List E) :
+    NoCommit (LeanVM.Protocol.Verifier.verifyKeccak logSteps inst output) := by
+  unfold LeanVM.Protocol.Verifier.verifyKeccak
+  refine NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦
+    NoCommit.bind (NoCommit.sampleChallenges _) fun _ ↦
+    NoCommit.bind (NoCommit.sampleChallenges _) fun _ ↦ NoCommit.bind ?_ fun _ ↦
+    NoCommit.bind (NoCommit.keccakLayers _ _ _) fun _ ↦ NoCommit.bind ?_ fun _ ↦ ?_
+  · exact NoCommit.readScalar
+  · exact NoCommit.keccakOpen _ _ _ _ _
+  · split
+    refine NoCommit.bind NoCommit.readScalar fun _ ↦ NoCommit.bind (NoCommit.require _) fun _ ↦
+      NoCommit.bind (NoCommit.ret _) fun _ ↦ NoCommit.bind (NoCommit.sumcheck _ _ _) fun _ ↦ ?_
+    split
+    refine NoCommit.bind (NoCommit.keccakOpen _ _ _ _ _) fun _ ↦ ?_
+    no_commit'
+
+theorem NoCommit.keccakPhase (layout : Layout) (evaluations : List (List E × List E)) :
+    NoCommit (LeanVM.Protocol.Verifier.keccakPhase layout evaluations) := by
+  unfold LeanVM.Protocol.Verifier.keccakPhase
+  split
+  exact NoCommit.verifyKeccak _ _ _
+
+/-- **The Keccak reduction's mirror keeps the roots**: its program reads no commitment. -/
+theorem RootsKept.verifyKeccak (logSteps : ℕ) (inst output : List E) :
+    RootsKept (verifyKeccakRust ⟨logSteps, 12⟩ inst output) :=
+  RootsKept.ofSimR (SimR.verifyKeccak logSteps inst output) (NoCommit.verifyKeccak _ _ _)
+
+end NoCommitSteps
 
 theorem placement_of_committed {l : LayoutRust} {L : Layout} (hl : l.Rel L) {c : ℕ}
     {p : PlacementRust} (h : l.committed c = some p) : L.placement c = p.toSpec := by
@@ -724,20 +630,14 @@ theorem placement_of_committed {l : LayoutRust} {L : Layout} (hl : l.Rel L) {c :
   | none => rw [hc] at h; cases h
   | some o => rw [hc] at h; simp at h; subst h; rfl
 
-theorem RingWeightRust.length_of_evaluate {w : RingWeightRust} {x : List E} {v : E}
-    (h : w.evaluate x = some v) : w.point.length = x.length := by
-  unfold RingWeightRust.evaluate ringWeightRust at h
-  split_ifs at h with hl
-  exact hl
-
 /-- **`walk`'s body runs `verifyExecution`**, the deployed verifier's (`computedBytecodeValue`),
 from a transcript that has read no root, on a prepared bytecode of the statement's words. -/
-theorem SimRoots.walkBody (hk : KeccakKeepsRoots) (words : List K) (bc : BytecodeRust)
+theorem SimRoots.walkBody (words : List K) (bc : BytecodeRust)
     (hbc : BytecodeOk words bc) (hlen : words.length < 2 ^ 64) (d : Digest) :
     SimRoots (fun roots ↦ roots = []) (walkBodyRust bc (digestBits d))
       (verifyExecution computedBytecodeValue words d) fun _ _ ↦ True := by
   unfold walkBodyRust verifyExecution
-  refine SimRoots.bindK (SimR.announced words bc hbc hlen) (KeepsRoots.announced bc) ?_
+  refine SimRoots.bindR (SimR.announced words bc hbc hlen) (NoCommit.readAnnouncedSizes _) ?_
   rintro ⟨l, rows, rate⟩ ⟨L, r⟩ hab
   obtain ⟨lm, hbuilt⟩ := hab.built
   have hB := buildLayoutRust_bounds hbuilt hab.rows
@@ -749,25 +649,24 @@ theorem SimRoots.walkBody (hk : KeccakKeepsRoots) (words : List K) (bc : Bytecod
   dsimp only
   rw [← hrel.stackLog, commitStack_eq ⟨hab.stack16, hab.stack30⟩ ⟨hab.rate1, hab.rate4⟩]
   refine SimRoots.commit_bind fun dd ↦ ?_
-  refine SimRoots.bindK (SimR.readOod _) (KeepsRoots.readOod _ _) ?_
+  refine SimRoots.bindR (SimR.readOod _) (NoCommit.readOod _) ?_
   rintro ⟨oz, ov⟩ ood ⟨rfl, hoz⟩
-  refine SimRoots.bindK (SimR.verifyBusBalance l L hrel words bc hbc hab.bytecode hB.logMemory
-    hB.logBytecode hB.blocks hB.counts) (KeepsRoots.verifyBusBalance _ _) fun bus bus' hbus ↦ ?_
-  refine SimRoots.bindK (Sim.tablePhase l L hrel hB bus bus' hbus) (KeepsRoots.tablePhase _ _)
+  refine SimRoots.bindR (SimR.verifyBusBalance l L hrel words bc hbc hab.bytecode hB.logMemory
+    hB.logBytecode hB.blocks hB.counts) (NoCommit.verifyBusBalance _) fun bus bus' hbus ↦ ?_
+  refine SimRoots.bindR (Sim.tablePhase l L hrel hB bus bus' hbus) (NoCommit.tablePhase _ _)
     fun evs evs' hevs ↦ ?_
   subst hevs
-  refine SimRoots.bindK (Sim.publicInput l L hrel d) (KeepsRoots.publicInput _ _)
+  refine SimRoots.bindR (Sim.publicInput l L hrel d) (NoCommit.publicInputPhase _ _)
     fun pcs pcs' hpcs ↦ ?_
   subst hpcs
-  refine SimRoots.bindK (SimR.keccakPhase l L hrel evs) (KeepsRoots.keccakPhase hk _ _) ?_
+  refine SimRoots.bindR (SimR.keccakPhase l L hrel evs) (NoCommit.keccakPhase _ _) ?_
   rintro ⟨ko, k0, k1⟩ ko' hko
   simp only at hko
   subst hko
   dsimp only [KeccakOpenings.toSpec]
-  refine SimRoots.bindK (SimR.and_returns (SimR.ringSwitch _ _) (Returns.ringSwitch _ _))
-    (KeepsRoots.ringSwitch _ _) ?_
-  rintro ⟨rt, rw⟩ ⟨rt', rw'⟩ ⟨⟨h1, h2⟩, h3⟩
-  simp only at h1 h2 h3
+  refine SimRoots.bindR (SimR.ringSwitch_agree _ _) (NoCommit.ringSwitch _ _) ?_
+  rintro ⟨rt, rw⟩ ⟨rt', rw'⟩ ⟨h1, -, h3⟩
+  simp only at h1 h3
   subst h1
   refine SimRoots.ofOption_bind fun q hq ↦ ?_
   refine SimRoots.bind_pure (SimRoots.weaken (fun roots h ↦ stackRoots_of h)
@@ -780,12 +679,7 @@ theorem SimRoots.walkBody (hk : KeccakKeepsRoots) (words : List K) (bc : Bytecod
     rfl
   rw [hclaims]
   refine .cons (stackClaimRel_placedRing hs L q (placement_of_committed hrel hq).symm rw rw'
-    (fun x v hv ↦ ?_) rt) (List.rel_append (onStack_rel l L hrel hs _)
-      (.cons (stackClaimRel_eq _ _ _) .nil))
-  have hx := RingWeightRust.length_of_evaluate hv
-  rw [h3] at hx
-  rw [h2 x hx.symm] at hv
-  exact (Option.some.inj hv).symm
+    h3 rt) (List.rel_append (onStack_rel l L hrel hs _) (.cons (stackClaimRel_eq _ _ _) .nil))
 
 /-! ## The end theorem -/
 
@@ -793,8 +687,8 @@ theorem SimRoots.walkBody (hk : KeccakKeepsRoots) (words : List K) (bc : Bytecod
 (checked mode, from `Transcript::new` on the bytecode's IV) returns `Ok`, on a prepared bytecode of
 the statement's words (`BytecodeOk`, which `Bytecode::new` builds), the statement's verifier over
 Keccak-f[1600] accepts. The words' count fits a `usize`, every leaf index a `u64` (the wire
-format's), and the Keccak reduction's mirror reads no root (`KeccakKeepsRoots`). -/
-theorem walkRust_sound (hk : KeccakKeepsRoots) (words : List K) (bc : BytecodeRust)
+format's). -/
+theorem walkRust_sound (words : List K) (bc : BytecodeRust)
     (hbc : BytecodeOk words bc) (hlen : words.length < 2 ^ 64) (publicInput : Digest)
     (proof : Proof) (hl : ∀ phase ∈ proof.openings, ∀ o ∈ phase, o.leafIndex < 2 ^ 64)
     {summary : SummaryRust}
@@ -820,7 +714,7 @@ theorem walkRust_sound (hk : KeccakKeepsRoots) (words : List K) (bc : BytecodeRu
     | some q =>
       obtain ⟨⟨⟩, t2⟩ := q
       have hfin := finish_some hf
-      obtain ⟨-, b, hrk, -⟩ := SimRoots.walkBody hk words bc hbc hlen publicInput _ _ _
+      obtain ⟨-, b, hrk, -⟩ := SimRoots.walkBody words bc hbc hlen publicInput _ _ _
         (TState.inv_new proof _ publicInput hl) rfl hb
       rw [TState.toSpec_new] at hrk
       unfold verifyWith runProof spongeSeedWith

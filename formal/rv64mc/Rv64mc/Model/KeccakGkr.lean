@@ -34,13 +34,6 @@ open Finset LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.C
 
 section Helpers
 
-private theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
-  unfold sumE
-  suffices h : ∀ a : E, l.foldl (· + ·) a = a + l.sum by simpa using h 0
-  induction l with
-  | nil => simp
-  | cons x l ih => intro a; rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
 private theorem list_sum_range (f : ℕ → E) (n : ℕ) :
     ((List.range n).map f).sum = ∑ y ∈ range n, f y := by
   induction n with

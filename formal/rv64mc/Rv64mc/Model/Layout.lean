@@ -31,19 +31,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-section Helpers
-
-theorem foldl_add_eq_add_sum {α : Type} [AddCommMonoid α] (l : List α) (a : α) :
-    l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons x l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
-theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
-  rw [sumE, foldl_add_eq_add_sum, zero_add]
-
-end Helpers
-
 /-! ## `partition_point` -/
 
 /-- `pred` of `l[i]`, `false` out of range (core reads it unchecked, always in range). -/
@@ -1542,14 +1529,16 @@ private theorem keccakSlot_ge {c s : ℕ} (h : keccakSlot c = some s) : 66 ≤ c
   split_ifs at h with hc
   exact hc
 
-theorem mapM_some_map {α β γ : Type} (f : α → Option β) (g : β → γ) (s : α → γ) :
-    ∀ l : List α, (∀ x ∈ l, ∃ y, f x = some y ∧ g y = s x) →
-      ∃ ys, l.mapM f = some ys ∧ ys.map g = l.map s
-  | [], _ => ⟨[], rfl, rfl⟩
-  | x :: l, h => by
-    obtain ⟨y, hy, hgy⟩ := h x (by simp)
-    obtain ⟨ys, hys, hg⟩ := mapM_some_map f g s l fun z hz ↦ h z (by simp [hz])
-    exact ⟨y :: ys, by simp [List.mapM_cons, hy, hys], by simp [hgy, hg]⟩
+private theorem mapM_some_map {α β γ : Type} [Inhabited β] (f : α → Option β) (g : β → γ)
+    (s : α → γ) (l : List α) (h : ∀ x ∈ l, ∃ y, f x = some y ∧ g y = s x) :
+    ∃ ys, l.mapM f = some ys ∧ ys.map g = l.map s := by
+  refine ⟨_, mapM_eq_some_map f (fun x ↦ (f x).getD default) l fun x hx ↦ ?_, ?_⟩
+  · obtain ⟨y, hy, -⟩ := h x hx
+    rw [hy, Option.getD_some]
+  · rw [List.map_map]
+    refine List.map_congr_left fun x hx ↦ ?_
+    obtain ⟨y, hy, hg⟩ := h x hx
+    simp [hy, hg]
 
 /-- **`stack` and the placements are the statement's `placementsOf`**, for at most `1024` columns
 of at most `2^40` words: the placements exist (no `CommittedSize`), and the stack's log size. -/

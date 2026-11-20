@@ -1032,6 +1032,16 @@ def sumRust (values : List E) : E := ofLimbsW (eSum (values.map limbs))
 theorem sumRust_eq (values : List E) : sumRust values = sumE values := by
   rw [sumRust, eSum_eq, ofLimbsW_limbs]
 
+theorem foldl_add_eq_add_sum {α : Type} [AddCommMonoid α] (l : List α) (a : α) :
+    l.foldl (· + ·) a = a + l.sum := by
+  induction l generalizing a with
+  | nil => simp
+  | cons x l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
+
+/-- `E::sum`'s fold from `ZERO` is the list's sum. -/
+theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
+  rw [sumE, foldl_add_eq_add_sum, zero_add]
+
 namespace TM
 
 /-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`: the coefficients the stream holds,
