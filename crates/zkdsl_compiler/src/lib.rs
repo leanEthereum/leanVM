@@ -37,6 +37,7 @@ mod ast;
 mod field;
 mod ir;
 mod lower;
+mod opt;
 mod parser;
 pub use ast::*;
 pub(crate) use ir::*;
@@ -97,6 +98,9 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
             &mut tables,
         ));
     }
+    if std::env::var("DBG_NO_OPT").is_err() {
+        opt::optimize(&mut lowered, &mut tables);
+    }
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
     // one `SET` per slot writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
@@ -116,6 +120,8 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
+                keep: frame_size,
+                fixed: true,
             },
         );
     }
@@ -190,9 +196,10 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
+                        Hint::AllocFrameSwitch { ptr, x, callees } => RHint::AllocSwitch {
                             ptr,
-                            size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
+                            x,
+                            sizes: callees.iter().map(|c| frame_size[c]).collect(),
                         },
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },

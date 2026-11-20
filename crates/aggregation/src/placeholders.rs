@@ -233,8 +233,6 @@ fn constants(ph: &mut Placeholders) {
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
-        ("GKR_ROUNDS_CAP", &(MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2)),
-        ("GKR_POINTS_CAP", &((MU_CAP + 1) * MU_CAP)),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),
@@ -256,6 +254,7 @@ fn constants(ph: &mut Placeholders) {
         // The grinds: the bus's by the push depth, a sumcheck round of degree `d`, eq factor included, then each
         // other challenge the guest grinds for.
         ("BUS_GRIND_BITS", &(0..64).map(bus_grinding_bits).collect::<Vec<_>>()),
+        ("GKR_RECORDS", &(0..64).map(gkr_records).collect::<Vec<_>>()),
         ("ROUND2_GRIND_BITS", &grinding_bits(2)),
         ("ROUND3_GRIND_BITS", &grinding_bits(3)),
         ("ROUND5_GRIND_BITS", &ROUND_GRIND),
@@ -703,7 +702,9 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         ("LIG_FOLDS_OFF", OpeningShape::folds_before),
     ];
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
-    const SIZE_ONLY: [&str; 8] = [
+    const SIZE_ONLY: [&str; 10] = [
+        "LIG_POS_OFF",
+        "LIG_POS_TOTAL",
         "LIG_N_LEVELS",
         "LIG_YR_LEVEL",
         "LIG_YR_LOG_LEN",
@@ -724,6 +725,38 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     for (name, f) in per_candidate {
         table(name, cands.iter().map(|c| vec![f(c)]).collect());
     }
+    // A level's query positions take the most any rate of its size squeezes, the levels one after another.
+    let level_positions = |i: usize| -> Vec<usize> {
+        let size = &cands[i % n_log_sizes];
+        (0..size.levels())
+            .map(|lv| {
+                (i % n_log_sizes..cands.len())
+                    .step_by(n_log_sizes)
+                    .map(|j| cands[j].squeezes(lv) * cands[j].positions(lv))
+                    .max()
+                    .unwrap()
+            })
+            .collect()
+    };
+    let pos_off = |i: usize| -> Vec<usize> {
+        let mut row: Vec<usize> = level_positions(i)
+            .iter()
+            .scan(0, |at, &n| {
+                let off = *at;
+                *at += n;
+                Some(off)
+            })
+            .collect();
+        row.resize(maxlev, 0);
+        row
+    };
+    table("LIG_POS_OFF", (0..cands.len()).map(pos_off).collect());
+    table(
+        "LIG_POS_TOTAL",
+        (0..cands.len())
+            .map(|i| vec![level_positions(i).iter().sum()])
+            .collect(),
+    );
     for (name, f) in per_level {
         let padded = |c: &OpeningShape| {
             let mut row = c.per_level(f);
@@ -751,11 +784,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
-    ph.set("LIG_PATH_CAP", most(|c, lv| 4 * (c.tree_depths[lv] - c.cap_depth(lv))));
-    ph.set(
-        "LIG_LEVEL_POSITIONS_CAP",
-        most(|c, lv| c.squeezes(lv) * c.positions(lv)),
-    );
+    ph.set("LIG_PATH_CAP", most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv))));
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);
@@ -920,4 +949,19 @@ fn signature_placeholders(ph: &mut Placeholders) {
     ] {
         ph.set(name, cell(at.with_type(t), 1));
     }
+}
+
+/// The bus GKR's round records at push depth `depth` (`verify_bus_gkr`): the root layer's, then per radix-four layer
+/// of `2k + odd` rounds its head, one a loop step of eight rounds, one per pair of the `2 (k % 4)` left, the odd
+/// round's, and one past the last.
+fn gkr_records(depth: usize) -> usize {
+    let odd = depth % 2;
+    // Layer p (from 0) runs 2k + odd rounds, k = p + 1 - odd; the records start at index 1.
+    let layers = depth.saturating_sub(1) / 2;
+    2 + (0..layers)
+        .map(|p| {
+            let k = p + 1 - odd;
+            k / 4 + k % 4 + odd + 1
+        })
+        .sum::<usize>()
 }

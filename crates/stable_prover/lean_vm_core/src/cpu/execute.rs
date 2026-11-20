@@ -430,6 +430,7 @@ fn hint_name(h: &RHint) -> &'static str {
         RHint::AllocFrames { .. } => "AllocFrames",
         RHint::Alloc { .. } => "Alloc",
         RHint::AllocDyn { .. } => "AllocDyn",
+        RHint::AllocSwitch { .. } => "AllocSwitch",
         RHint::WitnessStack { .. } => "WitnessStack",
         RHint::WitnessHeap { .. } => "WitnessHeap",
         RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -712,6 +713,13 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             let size = in_k("HeapBuf size", m.get(fp + size))?;
             let cells = g.log(size).ok_or(not_a_g_power("HeapBuf size", size))?;
             alloc(m, g, &mut advice.next_free, fp + ptr, cells)?;
+        }
+        // The frame of the arm `m[fp + x] = g^j` selects.
+        RHint::AllocSwitch { ptr, x, ref sizes } => {
+            let sel = in_k("dispatch selector", m.get(fp + x))?;
+            let size = g.log(sel).and_then(|j| sizes.get(j as usize).copied());
+            let size = size.ok_or(not_a_g_power("dispatch selector", sel))?;
+            alloc(m, g, &mut advice.next_free, fp + ptr, size)?;
         }
         RHint::AllocFrames {
             ptr,

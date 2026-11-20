@@ -112,10 +112,10 @@ pub(crate) enum Hint {
     },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint frame for `callee`.
     AllocFrame { ptr: Off, callee: String },
-    /// `AllocFrame` sized to the **largest** of several callees, a shared frame
-    /// for a dispatched call (all `callees` share the arg/return layout; only
-    /// their local count, hence frame size, differs). See `FnLower::lower_dispatched_call`.
-    AllocFrameMax { ptr: Off, callees: Vec<String> },
+    /// The frame of the callee a dispatched call takes, `callees[j]` for `m[fp·g^x] = g^j`
+    /// (all `callees` share the arg/return layout; only their local count, hence frame
+    /// size, differs). See `FnLower::lower_dispatched_call`.
+    AllocFrameSwitch { ptr: Off, x: Off, callees: Vec<String> },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint heap region of `size`
     /// cells (a `HeapBuf(size)`), addressed by g-power offsets from the pointer.
     AllocBuffer { ptr: Off, size: u32 },
@@ -131,6 +131,11 @@ pub(crate) struct Lowered {
     pub(crate) name: String,
     pub(crate) code: Vec<LInstr>,
     pub(crate) frame_size: u32,
+    /// The cells below this one keep their offsets: the return target, the caller's frame, the arguments, the
+    /// return area and, in a loop frame, its own frame pointer. Callers address them.
+    pub(crate) keep: u32,
+    /// The frame keeps its layout and its copies (an `addr()` names its cells by offset).
+    pub(crate) fixed: bool,
 }
 
 /// The jump tables every `match` dispatches through: one cell per arm, holding the

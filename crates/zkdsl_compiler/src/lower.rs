@@ -220,6 +220,8 @@ struct FnLower<'a> {
     /// position; consumed by the next [`Self::stmt`] call, so nested lowering
     /// never inherits it.
     tail_call: bool,
+    /// An `addr()` names a frame cell by its offset, so the frame keeps its layout.
+    addr_taken: bool,
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
@@ -1681,6 +1683,7 @@ pub(crate) fn lower_func(
         fn_name: &f.name,
         params: &f.params,
         tail_call: false,
+        addr_taken: false,
         code: Vec::new(),
         cur_line: 0,
         heap_sizes: HashMap::new(),
@@ -1730,5 +1733,7 @@ pub(crate) fn lower_func(
         name: f.name.clone(),
         code: lowerer.code,
         frame_size: lowerer.next,
+        keep: abi_end + u32::from(loop_frame),
+        fixed: lowerer.addr_taken,
     }
 }
