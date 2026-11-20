@@ -22,6 +22,12 @@ import Rv64mc.Gen.Link.Verifier.Layout.Table.CountColumns
 import Rv64mc.Gen.Link.Verifier.Layout.Layout.Committed
 import Rv64mc.Gen.Link.Verifier.Layout.Gpow
 import Rv64mc.Gen.Link.Verifier.Layout.Form.Term
+import Rv64mc.Gen.Link.Verifier.Layout.Constant
+import Rv64mc.Gen.Link.Verifier.Layout.Col
+import Rv64mc.Gen.Link.Verifier.Layout.Prod
+import Rv64mc.Proof.Layout.Constant
+import Rv64mc.Proof.Layout.Col
+import Rv64mc.Proof.Layout.Prod
 
 namespace Rv64mc.Table.Layout
 
@@ -59,8 +65,31 @@ theorem gpow {need : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) Idx.Ve
   Proof.Layout.Gpow.ok env _ Idx.Verifier.Layout.Gpow need _ Verifier.Layout.Gpow.tmpl_eq Verifier.Layout.Gpow.wf hpow
 
 theorem term (halloc : Spec.Runtime.AllocSpec env (liftProg fns) Idx.VerifierRv64.Bump.AsGlobalAlloc.Alloc 0)
-    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicNounwindFmt 0) : Spec.Layout.Term.spec env (liftProg fns) Idx.Verifier.Layout.Form.Term :=
+    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicNounwindFmt 0) :
+    Spec.Layout.Term.spec env (liftProg fns) Idx.Verifier.Layout.Form.Term :=
   Proof.Layout.Term.ok env _ Idx.Verifier.Layout.Form.Term _ Verifier.Layout.Form.Term.tmpl_eq Verifier.Layout.Form.Term.wf halloc hpanic
+
+variable (halloc : Spec.Runtime.AllocSpec env (liftProg fns) Idx.VerifierRv64.Bump.AsGlobalAlloc.Alloc 0)
+  (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicNounwindFmt 0)
+
+include halloc hpanic in
+theorem constant : Spec.Layout.Constant.spec env (liftProg fns) Idx.Verifier.Layout.Constant :=
+  Proof.Layout.Constant.ok env _ _ _ Verifier.Layout.Constant.tmpl_eq Verifier.Layout.Constant.wf
+    (term env halloc hpanic)
+
+include halloc hpanic in
+theorem col {need needG : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) Idx.Verifier.Field.E.Pow needG)
+    (hn : 64 + needG ≤ need) (hn' : 64 + Spec.Layout.Term.need ≤ need) :
+    Spec.Layout.Constant.colSpec env (liftProg fns) Idx.Verifier.Layout.Col need :=
+  Proof.Layout.Col.ok env _ _ need needG _ Verifier.Layout.Col.tmpl_eq Verifier.Layout.Col.wf halloc (gpow env hpow)
+    (term env halloc hpanic) hpanic hn hn'
+
+include halloc hpanic in
+theorem prod {need needG : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) Idx.Verifier.Field.E.Pow needG)
+    (hn : 64 + needG ≤ need) (hn' : 64 + Spec.Layout.Term.need ≤ need) :
+    Spec.Layout.Constant.prodSpec env (liftProg fns) Idx.Verifier.Layout.Prod need :=
+  Proof.Layout.Prod.ok env _ _ need needG _ Verifier.Layout.Prod.tmpl_eq Verifier.Layout.Prod.wf halloc (gpow env hpow)
+    (term env halloc hpanic) hpanic hn hn'
 
 end Rv64mc.Table.Layout
 

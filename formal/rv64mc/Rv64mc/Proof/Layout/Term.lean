@@ -101,8 +101,8 @@ theorem chain_post {m1 : MachineState} {r a h q lo top : Word} {cap : Nat} {ms :
       unfold chain
       repeat rw [MachineState.getMem_setMem_ne (by addr_ne)]
   refine ⟨r, 1, ⟨?_, ?_, ?_, by simp, by norm_num,
-    ⟨by simp only [termSize, List.length_singleton]; omega, fun k hk => ?_⟩⟩,
-    Or.inr ⟨hlo, by simp only [termSize]; omega⟩⟩
+    ⟨by simp only [Layouts.VecUsizeE.byteSize, List.length_singleton]; omega, fun k hk => ?_⟩⟩,
+    Or.inr ⟨hlo, by simp only [Layouts.VecUsizeE.byteSize]; omega⟩⟩
   · simp only [vecPtr, Layouts.Vec.ptr, chain]
     rw [MachineState.getMem_setMem_ne (by addr_ne), MachineState.getMem_setMem_eq]
   · simp only [vecCap, Layouts.Vec.cap, chain, BitVec.add_zero]
@@ -126,7 +126,7 @@ theorem chain_post {m1 : MachineState} {r a h q lo top : Word} {cap : Nat} {ms :
       simp only [vecLen, Layouts.Vec.len, chain]
       repeat rw [MachineState.getMem_setMem_ne (by addr_ne)]
       rw [MachineState.getMem_setMem_eq]
-    · simp only [EAt, Layouts.E.c0, Layouts.E.c1, termCoeff, BitVec.add_zero]
+    · simp only [EAt, Layouts.E.c0, Layouts.E.c1, Layouts.VecUsizeE.f1, BitVec.add_zero]
       rw [BitVec.add_assoc, show (24#64 : Word) + 8#64 = 32#64 from rfl]
       unfold chain
       constructor

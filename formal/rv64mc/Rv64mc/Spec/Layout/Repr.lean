@@ -10,9 +10,6 @@
   * `FormIn`: a `Form` (`Vec<(Vec<usize>, E)>`) whose buffers all lie in `[lo, hi)` (`Region`), so that it is kept
     by whatever keeps that region and its header (`FormIn.keep`). The bump allocator never frees, so what one call
     allocates is such a region (`[NEXT before, NEXT after)`), apart from everything older.
-
-  `Gen/Layouts.lean` does not print the tuple `(Vec<usize>, E)`; its layout, read off `Form::term`'s code, is
-  `termSize` and `termCoeff` here.
 -/
 
 import Rv64mc.Core.Repr
@@ -52,10 +49,6 @@ def ResultPlacementAt (m : MachineState) (a : Word) : Option Model.PlacementRust
 
 /-! ## `Form` -/
 
-/-- `(Vec<usize>, E)`: 40 bytes, the monomial's `Vec` at 0 and the coefficient at 24 (`Form::term`). -/
-abbrev termSize : Nat := 40
-abbrev termCoeff : Nat := 24
-
 /-- `[q, q + n)` lies in `[lo, hi)`. -/
 def Region (lo hi q : Word) (n : Nat) : Prop := lo.toNat ≤ q.toNat ∧ q.toNat + n ≤ hi.toNat
 
@@ -72,10 +65,11 @@ def BufIn (lo hi q : Word) (cap size : Nat) : Prop := cap = 0 ∨ Region lo hi q
     `[lo, hi)`. -/
 def TermIn (lo hi : Word) (m : MachineState) (a : Word) (t : List Nat × E) : Prop :=
   ∃ q cap, VecAt UsizesAt m a q cap t.1 ∧ BufIn lo hi q cap 8 ∧
-    EAt m (a + BitVec.ofNat 64 termCoeff) (Model.limbs t.2)
+    EAt m (a + BitVec.ofNat 64 Layouts.VecUsizeE.f1) (Model.limbs t.2)
 
 /-- **The `Form` `f` at `a`**: its terms in order, every buffer in `[lo, hi)`. -/
 def FormIn (lo hi : Word) (m : MachineState) (a : Word) (f : Form) : Prop :=
-  ∃ q cap, VecAt (ElemsAt termSize (TermIn lo hi)) m a q cap f.terms ∧ BufIn lo hi q cap termSize
+  ∃ q cap, VecAt (ElemsAt Layouts.VecUsizeE.byteSize (TermIn lo hi)) m a q cap f.terms ∧
+    BufIn lo hi q cap Layouts.VecUsizeE.byteSize
 
 end Rv64mc.Spec.Layout
