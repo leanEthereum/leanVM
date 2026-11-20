@@ -113,13 +113,17 @@ theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → 
 
 /-! ## The digits -/
 
+/-- On the exponent table at `q`, `q·g^n` at `34 + 16 j` holds digit `j`'s share `g^(n·16^j)`. -/
+theorem asg_load {rd : Reader} {q : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9) (hn : n < 16) :
+    LoadHolds rd (q * gen ^ n) (34 + 16 * j) (gen ^ (n * 16 ^ j)) := by
+  rw [loadHolds_mul_gen_pow]
+  have := ht.2.1 j hj n hn
+  rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
+
 /-- The share of digit `j` read through `q·g^n` at `34 + 16 j`: `g^(n·16^j)`. -/
 theorem asg_share {rd : Reader} {q s : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9)
-    (hn : n < 16) (h : LoadHolds rd (q * gen ^ n) (34 + 16 * j) s) : s = gen ^ (n * 16 ^ j) := by
-  rw [loadHolds_mul_gen_pow] at h
-  exact loadHolds_unique h (by
-    have := ht.2.1 j hj n hn
-    rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this)
+    (hn : n < 16) (h : LoadHolds rd (q * gen ^ n) (34 + 16 * j) s) : s = gen ^ (n * 16 ^ j) :=
+  loadHolds_unique h (asg_load ht hj hn)
 
 /-- One digit, as the body's condition has it: its range check below `16` and its share read
 at `34 + 16 j` are a digit `n < 16` and its share `g^(n·16^j)`. -/
@@ -138,10 +142,7 @@ private theorem asg_digit {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) {Lm : M
     exact ⟨n, hn, asg_share ht hj hn ls ▸ hR⟩
   · rintro ⟨n, hn, hR⟩
     obtain ⟨y, t1, t2, l1, hw, l2⟩ := (hrc _).2 ⟨n, hn, rfl⟩
-    refine ⟨_, y, t1, l1, hw, t2, l2, _, ?_, hR⟩
-    rw [loadHolds_mul_gen_pow]
-    have := ht.2.1 j hj n hn
-    rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
+    exact ⟨_, y, t1, l1, hw, t2, l2, _, asg_load ht hj hn, hR⟩
 
 /-! ## The honest valuation -/
 
@@ -273,17 +274,11 @@ theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
   intro κ hκ hκ6 Lm x q ht rets
   rw [rel_iff_fnSem find_assert_small_g_power]
   vc []
-  simp only [MeaningAssertSmallGPower,
-    asg_digit hκ hκ6 ht (j := 0) (by decide) 34 rfl,
-    asg_digit hκ hκ6 ht (j := 1) (by decide) 50 rfl,
-    asg_digit hκ hκ6 ht (j := 2) (by decide) 66 rfl,
-    asg_digit hκ hκ6 ht (j := 3) (by decide) 82 rfl,
-    asg_digit hκ hκ6 ht (j := 4) (by decide) 98 rfl,
-    asg_digit hκ hκ6 ht (j := 5) (by decide) 114 rfl,
-    asg_digit hκ hκ6 ht (j := 6) (by decide) 130 rfl,
-    asg_digit hκ hκ6 ht (j := 7) (by decide) 146 rfl,
-    asg_digit hκ hκ6 ht (j := 8) (by decide) 162 rfl,
-    ← pow_add, e_add_eq_zero_iff, @eq_comm _ []]
+  have d := @asg_digit κ hκ hκ6 Lm q ht
+  simp only [MeaningAssertSmallGPower, @d 0 (by decide) 34 rfl, @d 1 (by decide) 50 rfl,
+    @d 2 (by decide) 66 rfl, @d 3 (by decide) 82 rfl, @d 4 (by decide) 98 rfl,
+    @d 5 (by decide) 114 rfl, @d 6 (by decide) 130 rfl, @d 7 (by decide) 146 rfl,
+    @d 8 (by decide) 162 rfl, ← pow_add, e_add_eq_zero_iff, @eq_comm _ []]
   constructor
   · rintro ⟨n0, h0, n1, h1, n2, h2, n3, h3, n4, h4, n5, h5, n6, h6, n7, h7, n8, h8, hx, rfl⟩
     exact ⟨⟨_, by omega, hx.symm⟩, rfl⟩

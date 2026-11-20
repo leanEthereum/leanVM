@@ -98,11 +98,8 @@ theorem list_split_sound : list_split_sound_Spec := by
   obtain ⟨c, hc, rfl⟩ := rc_const hm (c := 16) (by norm_num) word_g16 ⟨l6, e4, l7⟩
   obtain ⟨b, hb, rfl⟩ := rc_const hm (c := 7) (by norm_num) word_g7 ⟨l10, e8, l11⟩
   obtain ⟨a, ha, rfl⟩ := load_gpow hm l12
-  refine ⟨a, ha, b, by simp only [bigGroups]; omega, c, by simp only [claimGroup]; omega, ?_, rfl⟩
-  rw [← e_add_eq_zero_iff.mp aeq]
-  simp only [← pow_add]
-  congr 1
-  simp only [claimGroup, claimBig]
+  refine ⟨a, ha, b, Nat.lt_succ_of_le hb, c, Nat.lt_succ_of_le hc, ?_, rfl⟩
+  rw [← e_add_eq_zero_iff.mp aeq, claimBig, claimGroup]
   ring
 
 end

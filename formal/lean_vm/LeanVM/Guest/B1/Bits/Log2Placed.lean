@@ -88,11 +88,7 @@ theorem loadAddrs_app (σ : Val) (a b : List Ev) :
 /-- The shares `assert_small_g_power` reads, from the exponent table. -/
 theorem asg_shares {rd : Reader} {q : E} (ht : ExpTables rd q) (e : ℕ) :
     ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
-      (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun j hj ↦ by
-  rw [loadHolds_mul_gen_pow]
-  have := ht.2.1 j hj (e / 16 ^ j % 16) (Nat.mod_lt _ (by decide))
-  rwa [show sizeBits + 16 * j + e / 16 ^ j % 16 = e / 16 ^ j % 16 + (34 + 16 * j) by
-    simp only [sizeBits]; omega] at this
+      (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun _ hj ↦ asg_load ht hj (Nat.mod_lt _ (by decide))
 
 /-- A digit's range check against `g^15` on a memory defined below `2^κ`, `4 ≤ κ`. -/
 theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ rd) {n : ℕ}

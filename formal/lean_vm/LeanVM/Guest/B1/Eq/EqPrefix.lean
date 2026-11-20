@@ -466,6 +466,8 @@ theorem eq_prefix_chain_body : Fn.body fn% «eq_prefix_chain» =
       .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
+theorem word_g40 : word 1099511627776 0 = gen ^ 40 := word_two_pow (a := 40) (by decide)
+
 /-- **`eq_prefix_chain`'s core IR is its meaning.** -/
 theorem eq_prefix_chain_holds : eq_prefix_chain_Spec := by
   intro rd args rets
@@ -473,11 +475,9 @@ theorem eq_prefix_chain_holds : eq_prefix_chain_Spec := by
   rcases args with _ | ⟨chain, _ | ⟨seed, _ | ⟨a, _ | ⟨b1, _ | ⟨cg, _ | ⟨_, _⟩⟩⟩⟩⟩⟩ <;> vc [] <;>
     simp only [MeaningEqPrefixChain]
   have hrun : ∀ j (hj : j < 41) (r : List E), coreProgram.Rel rd eqPrefixRunNames[j]
-      [chain, seed, a, b1] r ↔ EqPrefix rd chain seed a b1 j ∧ r = [0] := fun j hj r => by
-    have := eq_prefix_run_holds j (by omega) rd [chain, seed, a, b1] r
-    rwa [List.getD_eq_getElem _ _ (by rw [show eqPrefixRunNames.length = 41 from rfl]; exact hj)]
-      at this
-  rw [show word 1099511627776 0 = gen ^ 40 from word_two_pow (a := 40) (by norm_num)]
+      [chain, seed, a, b1] r ↔ EqPrefix rd chain seed a b1 j ∧ r = [0] := fun j hj r =>
+    List.getD_eq_getElem eqPrefixRunNames "" hj ▸ eq_prefix_run_holds j (by omega) rd _ r
+  rw [word_g40]
   constructor
   · rintro ⟨y, t1, r1, r2, t2, r3, _, ⟨j, hx, hj, hcall⟩, rfl⟩
     exact ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, j, hj, by rw [hx, gen_pow_eq_ofK],
