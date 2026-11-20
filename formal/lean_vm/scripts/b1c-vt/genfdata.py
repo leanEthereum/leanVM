@@ -4,7 +4,10 @@
 # reads of `fp_w`: evaluations (0, k), permutations (1, j), weight blocks (3, t)), from vt_ir.txt.
 import re, os, textwrap
 here = os.path.dirname(os.path.abspath(__file__))
-LO, HI, FPW, CUR = 2690, 5529, 13, 2652
+import sys
+sys.path.insert(0, here)
+from vtanchor import WLO as LO, WHI as HI, CUR
+FPW = 13
 ir = {}
 for line in open(os.path.join(here, 'vt_ir.txt')):
     k, _, s = line.partition(': ')

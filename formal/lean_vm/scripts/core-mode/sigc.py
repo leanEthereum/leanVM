@@ -16,6 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.setrecursionlimit(100000)
 import compiled as C  # noqa: E402
+from sigseed import SEEDS  # noqa: E402
 
 ROOT = C.ROOT
 OUT = os.path.join(ROOT, 'CoreMode', 'Sig')
@@ -93,6 +94,10 @@ def signatures(fresh=()):
         if k in on and k in old and k not in fresh and layout_ok(old[k], D['fsig'][f['entry']]):
             out[n] = old[k]
             kept += 1
+            continue
+        if k in SEEDS:
+            # a contract given by hand (`sigseed.py`): a function new to the guest, no mode walk's inference
+            out[n] = ' '.join(SEEDS[k].split())
             continue
         if sigs is None:
             sigs = inferred()
