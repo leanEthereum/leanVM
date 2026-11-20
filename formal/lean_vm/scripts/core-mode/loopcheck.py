@@ -1,4 +1,4 @@
-"""Writes `Guest/CoreMode/Gen/LoopCheck*.lean`: the kernel's check of `Res.termChk` (`Guest/Res/LoopDefs.lean`)
+"""Writes `Guest/CoreMode/Gen/LoopCheck*.lean`: the kernel's check of `Res.termChk` (`Guest/CoreMode/Fam/LoopDefs.lean`)
 over the guest's core IR, by ranges of functions (`Memory.RangeOk`), each range at most `BUDGET`
 bytes of core IR, a function with a pack of its own alone; a function the memory check splits by ranges of its statements
 (`Memory/GuestMem/Fn{j}.lean`) is checked by the same ranges (`Res.entL_drop`). The functions' names

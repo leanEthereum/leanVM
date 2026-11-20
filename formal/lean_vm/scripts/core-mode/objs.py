@@ -1,4 +1,4 @@
-"""Objects for the core inference (`infer.py`, features `obj` and `narrow`): milestone 4's families on core names.
+"""Objects for the core inference (`infer.py`, features `obj` and `narrow`): its object families on core names.
 
 A read `c` the other rules leave uncovered is usually through a pointer: a stream cursor, a word loaded from a record,
 a callee's returned word. Its **object** is what that pointer points into: an allocation or a callee's returned buffer

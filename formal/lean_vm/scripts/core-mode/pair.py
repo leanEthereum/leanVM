@@ -1,4 +1,4 @@
-"""The order-aware pairing of the core route (`formal/notes/core-mode.md`, milestone 1, part D): inference and checks.
+"""The order-aware pairing of the core route (`formal/notes/core-mode.md`): inference and checks.
 
 The pass mirrors `CoreMode.pairOk` (`LeanVM/Guest/CoreMode/PairDefs.lean`), `Bridge.alignOk`'s pass with the heap events
 consumed in order: the normalization stops at every `load` atom besides the flow hints; a `DEREF` of mode `cell`
@@ -10,7 +10,7 @@ jumps skip the reads at the head first. Every other instruction leaves the posit
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit [--mods FILE]] [--check]
   [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export) [--all] (every function, reads by the def-use
-  designation: a measurement for the later milestones, nothing emitted)
+  designation: a measurement, nothing emitted)
 """
 import os, sys, glob, re, collections, json
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -374,7 +374,7 @@ def imports(ms):
 
 
 def data_mod(pack, f):
-    """The module of the function's heap certificate: milestone 1's, or the check with calls'."""
+    """The module of the function's heap certificate: the check without calls', or the check with calls'."""
     return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'l': 'DataL', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
 
 

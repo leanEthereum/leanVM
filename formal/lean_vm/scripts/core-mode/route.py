@@ -1,4 +1,4 @@
-"""The core route of milestone 1 (`formal/notes/core-mode.md`, `Guest/CoreMode/Core.lean`): the functions
+"""The core route's first check (`formal/notes/core-mode.md`, `Guest/CoreMode/Core.lean`): the functions
 passing `heapOk` and the pairing whose body is straight-line, whose only `JUMP` is its last
 instruction, a return the pairing takes by its head statement, and whose signature its callers know
 (`Mode.Sig`, `CoreMode/Sig/*.lean`) promises only frame cells, heap cells and runs of constant bounds over

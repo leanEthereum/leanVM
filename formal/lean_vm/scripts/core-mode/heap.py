@@ -1,4 +1,4 @@
-"""Heap certificates of the core IR (`formal/notes/core-mode.md`, milestone 1): inference and measurement.
+"""Heap certificates of the core IR (`formal/notes/core-mode.md`), the check without calls: inference and measurement.
 
 For every core function with no call and no loop, the pass `CoreMode.heapOk` runs (`LeanVM/Guest/CoreMode/Heap.lean`),
 mirrored here step for step, and its certificate (`HCert`) is inferred:

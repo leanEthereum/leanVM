@@ -2,7 +2,7 @@
 (`Res.carryG`: every call site passes the listed callees' carried facts, every heap witness pointer its spine does not
 pin is in `K` by the carried values) and the nonzero facts' check (`Res.carryNzG`: every call site passes its callees'
 nonzero parameters, every dynamic allocation's size is nonzero in `K`, every listed callee word is) over the whole
-program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`Res/CarryDefs.lean`);
+program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`) and its callee words (`Res.nzUp`) are derived here, by mirroring the check over
 the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to `CarryNzList.lean`. `--check` writes nothing and
 fails when a file differs.

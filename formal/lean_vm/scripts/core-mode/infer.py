@@ -1,4 +1,4 @@
-"""Heap certificates of the core IR for every function (`formal/notes/core-mode.md`, milestones 2 to 4): the
+"""Heap certificates of the core IR for every function (`formal/notes/core-mode.md`): the
 former bytecode walk's inference ported to core names. A measurement and the certificates'
 source, not a proof: `heapOk` (`LeanVM/Guest/CoreMode/Heap.lean`) checks what is emitted.
 

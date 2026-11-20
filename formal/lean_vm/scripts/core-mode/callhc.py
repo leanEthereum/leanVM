@@ -1,4 +1,4 @@
-"""The core route's functions on heap contracts (`CoreMode.heapCtr`, `CFun.hc`): leaves milestone 1's check leaves
+"""The core route's functions on heap contracts (`CoreMode.heapCtr`, `CFun.hc`): leaves the check without calls leaves
 uncovered (atoms, branches and `match`es, one final `ret`), checked by `heapOkC` at their own heap signature, inferred
 freely (preconditions only, no translation of their mode signature), every caller a body with calls (`callc.py`)
 re-inferred with that signature as its callee's (`CFun.hcs`). A leaf joins only when every caller then passes.
@@ -40,7 +40,7 @@ def callees_of(body, acc):
 
 
 def m1_pre(k, S):
-    """Milestone 1's check passes on `k` and its mode signature names each of its preconditions (`route.py`)."""
+    """The check without calls passes on `k` and its mode signature names each of its preconditions (`route.py`)."""
     import heap, route
     f = heap.Fn(k).run()
     if f.fail is not None:
@@ -52,7 +52,7 @@ def m1_pre(k, S):
 
 def candidates(out, S):
     """Leaves of atoms, branches and `match`es with one final `ret`, not loop helpers nor `main`, not already in `out`,
-    milestone 1's route not taking them for their preconditions."""
+    the route without calls not taking them for their preconditions."""
     res = []
     for k, (params, body) in sorted(I.CORE.items()):
         if k in out or k in I.IS_LOOP or k == 'main':
