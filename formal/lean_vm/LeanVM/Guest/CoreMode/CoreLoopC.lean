@@ -1545,7 +1545,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
           obtain ⟨hreads, hposts⟩ := loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
-          obtain ⟨as, hpairs, hpr⟩ := pair_retLC hok.pair hpos hci hrz hsh.self1 hsh.pc0 hst hwp (readsAt_of_C hreads)
+          obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hsh.self1 hsh.pc0 hst hwp (readsAt_of_C hreads)
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H img.read σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
             intro x hx
@@ -1568,7 +1568,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       · -- the tail call
         obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
         obtain ⟨c, f, args, pos', hcm, hloc, ⟨t0, ht0, hentT⟩, -, hrn, as, hpairs, hsplit⟩ :=
-          pair_tailLC hok.pair hpos hci htz htnz htsf htnx htod hst
+          pair_tailL hok.pair hpos hci htz (fun _ _ _ _ ↦ htnz) htsf htnx htod hst
         have hrw0 := hrwOf σ0 pre es vs img.read hσ0 hb hh0
         have hrw0C := (loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
         obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0

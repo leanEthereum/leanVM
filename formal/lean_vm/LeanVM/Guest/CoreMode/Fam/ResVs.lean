@@ -63,7 +63,7 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
       σ (.n 578) = σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
   have hfj : coreProgram.find? name% «verify_sub» = some (fn% «verify_sub») := VerifySub.find_vs
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv hfj
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfj
   rw [VerifySub.vs_body] at hb
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨hexp, hwin⟩ := carryQ_all hr I hI _ σ bufs kids hIt _ hfj (name% «verify_sub», 4, .tab)

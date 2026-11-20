@@ -380,8 +380,7 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   obtain ⟨o, ho, hal, h0, hG⟩ := hH
   -- the body at the instance's valuation
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
   rw [hbody, holdsList_append, holdsList_noRet _ (B1.Tables.csPre_noRet κ)] at hb
   obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0

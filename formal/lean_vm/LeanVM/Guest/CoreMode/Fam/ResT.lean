@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.Fam.Res
 public import LeanVM.Guest.CoreMode.Fam.LoopTree
 public import LeanVM.Guest.CoreMode.Gen.LoopCheck
 public import LeanVM.Guest.EndExecEntry
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # The termination facts of the entered instances
@@ -134,8 +135,7 @@ theorem termNode_of {Ks : List Mode.Cert} (h : ∀ K ∈ Ks, TermOk K) : TermNod
   -- the counter and the end
   have hT : r.T.total B2C.fs ≤ 2 ^ 28 :=
     (le_two_pow_logMem _).trans (Nat.pow_le_pow_right (by norm_num) hκ)
-  have hfs : ∀ g, 1 ≤ B2C.fs g := fun g ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ g, 1 ≤ B2C.fs g := Res.fs_pos
   have hroot : CtrOk coreProgram B2C.fs (r.T.total B2C.fs + 1) r.T := by
     intro g σ' _ _ fn' hT' hg hl
     have := (progOk_guest.loop g fn' hg hl).1

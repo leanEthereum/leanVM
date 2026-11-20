@@ -217,17 +217,9 @@ theorem linkQ_step {L : Res.Link} (hL : LinkOk L) (hr : r.Ok) :
 /-- **The link at every honest instance.** -/
 theorem linkQ_all {L : Res.Link} (hL : LinkOk L) (hr : r.Ok) :
     ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, LinkQ (refMem r.img) L J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (linkQ_step hL hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (linkQ_step hL hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt F hF hFf
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  exact absurd (hFf.trans hn) (hL.main F hF)
+  exact absurd (hFf.trans (hm _ _ _ _ hJt)) (hL.main F hF)
 
 end
 

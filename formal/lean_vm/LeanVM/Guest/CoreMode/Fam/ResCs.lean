@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResE
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # `column_selector`'s lowest digit

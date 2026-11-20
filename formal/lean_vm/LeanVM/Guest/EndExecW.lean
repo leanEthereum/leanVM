@@ -154,8 +154,7 @@ theorem inst_ctr (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
     simp only [Tree.name] at hn'
     subst hn'
     exact absurd this (by decide)
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨p0, prest, e1, hps, hσ0, -⟩ := Res.insts_ctr hfs progOk_guest r.T _ r.hdr hH.valid le_rfl hroot I hI
     f σ bufs kids fn hn hf hl
   exact ⟨p0, prest, e1, hps, hσ0⟩
@@ -273,17 +272,9 @@ theorem carryQ_step (hr : r.Ok) :
 
 /-- **The carried facts at every honest instance.** -/
 theorem carryQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, CarryQ r J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (carryQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (carryQ_step hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt fn _ c hc hcf
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   have : ∀ c ∈ carried, c.1 ≠ "main" := by decide
   exact absurd hcf (this c hc)

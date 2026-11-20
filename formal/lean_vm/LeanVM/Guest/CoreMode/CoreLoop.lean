@@ -621,8 +621,9 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
       · obtain ⟨oc, od, of, hci⟩ := hj
         rcases loopCode_jump hcode hcpre hci with ⟨-, rfl, rfl, rfl⟩ | ⟨-, rfl, rfl, rfl⟩
         · -- the tail call not taken: its condition `0`, the call skipped
-          obtain ⟨c, f, args, pos', -, hloc, hpos', -, as, hpairs, hsplit⟩ :=
-            pair_tailL hok.pair hpos hci htz htsf htnx htod hst
+          obtain ⟨c, f, args, pos', -, hloc, -, hpos', -, as, hpairs, hsplit⟩ :=
+            pair_tailL hok.pair hpos hci htz (fun _ _ _ h ↦ absurd (hst _ h) (by simp [loopStmt])) htsf htnx htod
+            (loopStmtC_of_leaf hst)
           obtain ⟨evs, cs, es', rfl, hwp', hcs, -, -, hW'⟩ := hsplit hwp (hrwOf σ pre _ vs rd hσ hb hh0)
           have hcond := hσ.jc.cond _ _ hb c (by simp)
           rw [hloc] at hcond
@@ -679,7 +680,7 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
           rw [Mode.postAt_none hCt.1]
           obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
           obtain ⟨hreads, hposts⟩ := loop_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT
-          obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hsh.self1 hsh.pc0 hst hwp (readsAt_of_C hreads)
+          obtain ⟨as, hpairs, hpr⟩ := pair_retL hok.pair hpos hci hrz hsh.self1 hsh.pc0 (loopStmtC_of_leaf hst) hwp (readsAt_of_C hreads)
           rw [hhd i] at hpairs
           have W1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ es) x → WrK s1.mem x := by
             intro x hx
@@ -694,8 +695,9 @@ theorem frameSpec_loop {K : Mode.Cert} {Cf : CFun} (hok : LoopOk K Cf) {adv : Pr
             (fun r hr x hx ↦ W1 x (hposts.1.2 r hr x hx))
       · -- the tail call
         obtain ⟨pos, pre, es, vs, rd, hrd, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
-        obtain ⟨c, f, args, pos', hcm, hloc, -, hrn, as, hpairs, hsplit⟩ :=
-          pair_tailL hok.pair hpos hci htz htsf htnx htod hst
+        obtain ⟨c, f, args, pos', hcm, hloc, -, -, hrn, as, hpairs, hsplit⟩ :=
+          pair_tailL hok.pair hpos hci htz (fun _ _ _ h ↦ absurd (hst _ h) (by simp [loopStmt])) htsf htnx htod
+            (loopStmtC_of_leaf hst)
         have hrw0 := hrwOf σ0 pre es vs rd hσ0 hb hh0
         have hrw0C := (loop_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
         obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0

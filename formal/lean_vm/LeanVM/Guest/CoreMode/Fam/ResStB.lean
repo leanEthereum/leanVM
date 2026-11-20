@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.Fam.SubDefs
 # The stream loops' cursors
 
 `loopCur`: a stream loop's cursor value. `loop_atoms_top`: a stream loop's top-level atoms hold its
-cursor's product. `hfs_guest`: every frame at least one cell.
+cursor's product.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -45,15 +45,6 @@ theorem loop_atoms_top {first : ℕ} (hf : first < 2) (rem : Bool) {fn : Fn}
   · rw [Option.some.inj (hfn.symm.trans find_packRem_459)]; decide +kernel
   · rw [Option.some.inj (hfn.symm.trans find_pack8_456)]; decide +kernel
   · rw [Option.some.inj (hfn.symm.trans find_packRem_457)]; decide +kernel
-
-section
-
-variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
-
-theorem hfs_guest : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-
-end
 
 end
 

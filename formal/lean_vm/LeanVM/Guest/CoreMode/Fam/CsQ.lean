@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.TermQ
 public import LeanVM.Guest.B1.Terminal.TermFacts
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # `column_selector`'s arguments
@@ -161,8 +162,7 @@ theorem csQ_step (hr : r.Ok) :
       have hc'n := List.mem_range.mp hc'
       -- the body at its own valuation
       obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-      have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-        unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+      have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
       obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hfI
       obtain ⟨fn0, hf0, -, hbody0⟩ := termFound
       obtain rfl : fn0 = fn% «check_opening_terminal» := Option.some.inj (hf0.symm.trans VerifySub.find_term)
@@ -238,17 +238,9 @@ theorem csQ_step (hr : r.Ok) :
 
 /-- **`column_selector`'s arguments at every honest instance.** -/
 theorem csQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, CsQ r J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (csQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (csQ_step hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt κ hκ hf
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   have hmain : "main" ≠ Tables.lName "column_selector" κ := by
     have := List.all_eq_true.mp main_not_cs κ (List.mem_range.mpr hκ)

@@ -428,17 +428,9 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
 /-- **The gap walk at every honest instance.** -/
 theorem monoQ_all (hO : MonoOk) (hr : r.Ok) :
     ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, MonoQ (refMem r.img) r.img.read J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (monoQ_step hO hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (monoQ_step hO hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   refine ⟨fun h ↦ absurd h (by decide), fun h ↦ absurd h (by decide), fun h ↦ absurd h (by decide)⟩
 

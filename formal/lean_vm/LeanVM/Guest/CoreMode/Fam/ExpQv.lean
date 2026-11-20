@@ -49,8 +49,7 @@ theorem vtPQ_step (hr : r.Ok) :
   rw [hJt] at hJv
   have hcf : c.f = "verify_tables" := by rw [← hname, hJt]; rfl
   have hc : c ∈ calls es := List.mem_of_getElem? hci
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   -- the callee's body
   obtain ⟨hpar, hbJ⟩ := Res.holds_of_valid hfs hJv VerifySub.find_vt
   obtain ⟨-, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) VerifySub.find_vt hbJ
@@ -97,17 +96,9 @@ theorem vtPQ_step (hr : r.Ok) :
 
 /-- **`verify_tables`' precondition at every honest instance.** -/
 theorem vtPQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, VtPQ r J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (vtPQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (vtPQ_step hr) fun J hm ↦ ?_
   intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   exact absurd hn (by decide)
 
 end

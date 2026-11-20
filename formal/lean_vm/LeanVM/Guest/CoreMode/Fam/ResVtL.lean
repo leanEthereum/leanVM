@@ -116,9 +116,6 @@ theorem vt_l10_site {c : Call} (ha : c.args = l10ArgsV) (hr : c.rets = []) :
 
 variable {r : Ref}
 
-theorem hfs_vt : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-
 /-- A loop's tail call: the loop's own last call, the counter stepped, the rest of the parameters
 kept, the header kept. -/
 theorem vt_tail {fI : String} {fnI : Fn} (hfI : coreProgram.find? fI = some fnI) (hl : fnI.loop = true)
@@ -220,7 +217,7 @@ theorem vtLQ_step (hr : r.Ok) :
     rw [h20] at hlt22 hm22
     -- `verify_tables`' cursor and its rounds' setup
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-    obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_vt hv hfI
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
     obtain ⟨hVt, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hfI hb
     obtain ⟨e2638, hrec0⟩ := vt_zc_front hVt
     obtain ⟨p, n, e5, e2545, hn, hroom⟩ := vtQ_all hr I hI σI bufsI kidsI hIt
@@ -264,17 +261,9 @@ theorem vtLQ_step (hr : r.Ok) :
 
 /-- **The rounds loop's cursor at every honest instance.** -/
 theorem vtLQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, VtLQ r J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (vtLQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (vtLQ_step hr) fun J hm ↦ ?_
   intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   exact absurd hn (by decide)
 
 end
