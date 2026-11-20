@@ -5,11 +5,15 @@
   prover at a child's witness: `LeanVM.Guest.Completeness.GuestChildComplete` with that prover.
 -/
 
-import LeanVM.Prover.Complete
-import LeanVM.Guest.Child.NZRpm
-import LeanVM.Guest.Child.Deployed
-import LeanVM.Guest.WithHash
-import LeanVM.Guest.Child.Refusing
+module
+
+public import LeanVM.Prover.Complete
+public import LeanVM.Guest.Child.NZRpm
+public import LeanVM.Guest.Child.Deployed
+public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.Child.Refusing
+
+@[expose] public section
 
 /-!
 # The guest's completeness for a prover that is the specification at a child's witness
@@ -81,3 +85,5 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
   exact (rpmChild_at hw.1 (by norm_num)).trans rpmChild_le
 
 end LeanVM.Prover
+
+end
