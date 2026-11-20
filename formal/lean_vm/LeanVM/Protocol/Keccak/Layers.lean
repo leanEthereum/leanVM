@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Start
+import LeanVM.Protocol.Keccak.Start
+public import LeanVM.Protocol.Keccak.Candidate
+public import LeanVM.Protocol.Keccak.Layer
 
 /-!
 # The layers

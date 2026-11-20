@@ -11,8 +11,12 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Lanes
-public import LeanVM.Protocol.ToArkLib.Whir.Ood
-public import LeanVM.Protocol.ToArkLib.Whir.Counting
+import LeanVM.Protocol.ToArkLib.Whir.Ood
+import LeanVM.Protocol.ToArkLib.Whir.Counting
+public import LeanVM.Protocol.Whir.Sound.Weights
+public import LeanVM.Protocol.Whir.Sound.Code
+public import LeanVM.Protocol.Whir.Sound.Tuple
+import LeanVM.Protocol.ToCompPoly.Multilinear
 
 /-!
 # Escapes at the level interface

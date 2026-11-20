@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.Table
-public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
+import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.Keccak.Complete
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity

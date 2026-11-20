@@ -8,8 +8,15 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.BusSpec
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Front.BusSpec
+import LeanVM.Protocol.Verifier
+public import Statement.LeanVmVerifier
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Multilinear.Basic
+public import CompPoly.Multivariate.Eval
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Forms as values

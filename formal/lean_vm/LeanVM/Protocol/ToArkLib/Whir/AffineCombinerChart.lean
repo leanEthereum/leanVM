@@ -8,9 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerHensel
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerHensel
 public import Mathlib.FieldTheory.RatFunc.Basic
 public import Mathlib.Algebra.MvPolynomial.PDeriv
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import Mathlib.Tactic
 
 /-!
 # The chart of a factor

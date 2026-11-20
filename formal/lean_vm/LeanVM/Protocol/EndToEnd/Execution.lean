@@ -7,8 +7,9 @@
 
 module
 
-public import LeanVM.Protocol.LeanIsa.Sound
-public import LeanVM.Arithmetization.Soundness.Theorem
+import LeanVM.Protocol.LeanIsa.Sound
+import LeanVM.Arithmetization.Soundness.Theorem
+public import LeanVM.Protocol.LeanIsa
 
 /-!
 # The extracted stack has an execution

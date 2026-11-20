@@ -7,13 +7,17 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Completeness
+import LeanVM.Protocol.EndToEnd.Completeness
 public import Statement.LeanVm
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
-public import LeanVM.Protocol.WithHash
+import LeanVM.Facts.Verifier
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
+import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.EndToEnd.Complete.Theorem
+import LeanVM.Protocol.LeanIsa.Complete
+import LeanVM.Arithmetization.Completeness.Theorem
+import LeanVM.Protocol.EndToEnd.Sound.Moves
 
 /-!
 # Completeness for executions within the budget

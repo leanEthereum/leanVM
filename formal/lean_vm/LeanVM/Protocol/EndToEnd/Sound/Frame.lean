@@ -10,8 +10,13 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
-public import LeanVM.Protocol.Compile.Prover
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Compile.Prover
+import LeanVM.Protocol.Verifier
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # Frame rules for the end-to-end assembly

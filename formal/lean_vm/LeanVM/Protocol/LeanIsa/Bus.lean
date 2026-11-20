@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.LeanIsa.Read
+import LeanVM.Protocol.LeanIsa.Read
+public import LeanVM.Protocol.LeanIsa
 
 /-!
 # The leanISA bus as one bus

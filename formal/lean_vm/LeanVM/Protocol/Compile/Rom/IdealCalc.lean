@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Protocol.Compile.Rom.Ideal
 public import LeanVM.Protocol.Compile.Cost
-public import LeanVM.Protocol.Verifier.Deferred
+import LeanVM.Protocol.Verifier.Deferred
 public import Statement.LeanVmGuestCompleteness
 
 /-!

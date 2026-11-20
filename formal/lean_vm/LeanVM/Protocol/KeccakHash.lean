@@ -7,10 +7,10 @@
 module
 
 public import LeanVM.Semantics.Lemmas
-public import LeanVM.Protocol.KeccakAbsorb
+import LeanVM.Protocol.KeccakAbsorb
 public import Statement.Field
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
 
 /-!
 # Lemmas about the digest encoding

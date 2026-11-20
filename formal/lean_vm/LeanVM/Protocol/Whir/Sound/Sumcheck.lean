@@ -8,9 +8,14 @@
 
 module
 
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.ToArkLib.Whir.Counting
-public import LeanVM.Protocol.Field
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.ToArkLib.Whir.Counting
+import LeanVM.Protocol.Field
+public import LeanVM.Parameters.Field
+public import Statement.LeanVmVerifier
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Weighted claims and the sumcheck step

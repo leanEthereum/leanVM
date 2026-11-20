@@ -14,7 +14,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Sizes
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
 public import LeanVM.Protocol.EndToEnd.Complete.KeccakPhase
-public import LeanVM.Protocol.Whir.Complete.OpeningProof
+import LeanVM.Protocol.Whir.Complete.OpeningProof
+public import LeanVM.Protocol.Whir.Complete.Opening
 
 /-!
 # Assembling the honest run

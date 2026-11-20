@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.RingVerifier
 public import LeanVM.Protocol.EndToEnd.Front.OodBind
+import LeanVM.Protocol.Whir.Sound.Prob
 
 /-!
 # Ring switching as a specification

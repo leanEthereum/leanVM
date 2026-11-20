@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Linear
+import LeanVM.Protocol.Keccak.Linear
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 
 /-!

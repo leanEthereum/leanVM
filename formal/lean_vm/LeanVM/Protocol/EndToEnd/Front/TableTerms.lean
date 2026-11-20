@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.BusSpec
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
 
 /-!
 # The table sumcheck's final values

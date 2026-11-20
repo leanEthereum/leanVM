@@ -7,7 +7,16 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Sound.CutXrun
+import LeanVM.Protocol.EndToEnd.Sound.CutXrun
+public import LeanVM.Protocol.Compile.Rom.Replay
+public import LeanVM.Protocol.Verifier.Deferred
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Multivariate.Eval
+public import CompPoly.Univariate.Lagrange
+public import Mathlib.Tactic
 
 /-!
 # Skeletons

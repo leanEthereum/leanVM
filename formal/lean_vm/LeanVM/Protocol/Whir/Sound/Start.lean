@@ -8,8 +8,9 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.LevelFinal
+import LeanVM.Protocol.Whir.Sound.LevelFinal
 public import LeanVM.Protocol.Whir.Sound.Candidates
+public import LeanVM.Protocol.Whir.Sound.LevelMid
 
 /-!
 # The starting relation

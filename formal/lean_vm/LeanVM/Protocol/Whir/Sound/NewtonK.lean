@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Newton
-public import LeanVM.Parameters.Field
+import LeanVM.Parameters.Field
+public import Statement.Field
 
 /-!
 # Newton decoding with nodes in `K`

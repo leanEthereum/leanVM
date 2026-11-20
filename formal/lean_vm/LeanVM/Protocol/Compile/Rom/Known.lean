@@ -8,7 +8,8 @@
 
 module
 
-public import LeanVM.Protocol.Compile.Rom.Potential
+import LeanVM.Protocol.Compile.Rom.Potential
+public import LeanVM.Protocol.Compile.Rom.Decode
 
 /-!
 # Stability of the decoding without failure

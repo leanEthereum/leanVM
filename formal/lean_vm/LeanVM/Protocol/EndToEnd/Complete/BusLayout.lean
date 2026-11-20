@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Complete.BusTables
+import LeanVM.Protocol.EndToEnd.Complete.BusTables
+public import LeanVM.Protocol.EndToEnd.Complete.Flushes
+public import LeanVM.Protocol.EndToEnd.Complete.BusSide
 
 /-!
 # The verifier's bus blocks

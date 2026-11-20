@@ -8,16 +8,18 @@
 
 module
 
-public import LeanVM.Protocol.LeanVM
-public import LeanVM.Protocol.ErrorBounds
-public import Common.Linear
+import LeanVM.Protocol.LeanVM
+import LeanVM.Protocol.ErrorBounds
+import Common.Linear
 public import LeanVM.Protocol.Rpm.Cost
 public import LeanVM.Protocol.Rpm.Duplex
-public import LeanVM.Protocol.Rpm.Extract
-public import LeanVM.Protocol.Rpm.RomRelabel
-public import LeanVM.Protocol.Rpm.RpmRelabel
+import LeanVM.Protocol.Rpm.Extract
+import LeanVM.Protocol.Rpm.RomRelabel
+import LeanVM.Protocol.Rpm.RpmRelabel
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.ExperimentBridge
+public import LeanVM.Protocol.Rpm.Game
+public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
 
 @[expose] public section
 

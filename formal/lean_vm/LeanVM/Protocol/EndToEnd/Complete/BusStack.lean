@@ -9,8 +9,9 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.Whir.Complete.Tables
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # Stacked leaves

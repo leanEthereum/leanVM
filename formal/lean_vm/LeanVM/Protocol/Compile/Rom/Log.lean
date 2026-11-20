@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.Compile.Rom.Encoding
 public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
+import LeanVM.Protocol.KeccakHash
 
 /-!
 # Logs and failure

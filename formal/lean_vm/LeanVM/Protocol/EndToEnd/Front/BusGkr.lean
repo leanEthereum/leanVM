@@ -11,8 +11,8 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Front.BusSpec
 public import LeanVM.Protocol.ToArkLib.GrandProductSecurity
-public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Protocol.Verifier
 
 /-!
 # The grand-product walk on doom

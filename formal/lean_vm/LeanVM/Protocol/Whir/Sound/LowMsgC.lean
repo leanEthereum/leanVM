@@ -7,7 +7,9 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Tuple
-public import LeanVM.Protocol.Extraction.Novel
+import LeanVM.Protocol.Extraction.Novel
+public import LeanVM.Protocol.Extraction.Extractor
+public import CompPoly.Fields.Binary.AdditiveNTT.Coset
 
 /-!
 # The low part, computed

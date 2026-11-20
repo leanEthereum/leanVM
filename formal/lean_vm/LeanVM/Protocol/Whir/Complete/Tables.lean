@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.EndToEnd.Claims
 
 /-!

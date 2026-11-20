@@ -7,8 +7,10 @@
 
 module
 
-public import LeanVM.Protocol.LeanIsa.Relation
+import LeanVM.Protocol.LeanIsa.Relation
 public import LeanVM.Arithmetization.Soundness.Bus
+public import LeanVM.Protocol.LeanIsa.Bus
+import LeanVM.Protocol.LeanIsa.Read
 
 /-!
 # The adaptor, soundness

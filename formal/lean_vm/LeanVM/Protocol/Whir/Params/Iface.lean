@@ -10,7 +10,8 @@ module
 public import LeanVM.Protocol.Whir.Params.Deployed
 public import LeanVM.Protocol.Whir.Params.Check
 public import LeanVM.Protocol.EndToEnd.Sound.Assemble
-public import LeanVM.Protocol.EndToEnd.Sound.Runs
+import LeanVM.Protocol.EndToEnd.Sound.Runs
+public import LeanVM.Protocol.Whir.Sound.Descent
 
 /-!
 # The opening's interface

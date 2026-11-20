@@ -8,8 +8,9 @@
 module
 
 public import LeanVM.Protocol.ToArkLib.Whir.Interleaved
-public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
+import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import Mathlib.Tactic
 
 /-!
 # The Johnson bound for interleaved codes

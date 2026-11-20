@@ -8,7 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.Weights
+import LeanVM.Protocol.Whir.Sound.Weights
+public import LeanVM.Protocol.Whir.Sound.Sumcheck
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import Mathlib.Tactic
 
 /-!
 # Lanes and folds

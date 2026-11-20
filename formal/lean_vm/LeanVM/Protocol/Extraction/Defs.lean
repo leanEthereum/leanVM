@@ -9,7 +9,8 @@
 module
 
 public import LeanVM.Protocol.Extraction.Extractor
-public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.RunWithHash
 
 /-!
 # Reference definitions for the extractor

@@ -10,12 +10,13 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Small
-public import LeanVM.Protocol.EndToEnd.Complete.BusDepth
+import LeanVM.Protocol.EndToEnd.Complete.BusDepth
 public import LeanVM.Protocol.Errors
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.Compile.Rom.Complete
 public import LeanVM.Protocol.Verifier.Cost
 public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.LeanIsa.Complete
 
 /-!
 # Completeness against the random oracle

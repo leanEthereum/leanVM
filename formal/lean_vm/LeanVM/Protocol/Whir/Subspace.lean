@@ -8,10 +8,11 @@
 
 module
 
-public import LeanVM.Parameters.Field
+import LeanVM.Parameters.Field
 public import Mathlib.Algebra.Polynomial.BigOperators
 public import Mathlib.Algebra.CharP.Two
 public import Mathlib.Algebra.MvPolynomial.Basic
+public import Statement.Field
 
 /-!
 # Subspace vanishing polynomials

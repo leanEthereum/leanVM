@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Generic
 public import LeanVM.Protocol.Whir.Sound.Lanes
+public import LeanVM.Protocol.Whir.NovelBasis
+import LeanVM.Protocol.Whir.Sound.Code
 
 /-!
 # The tail rounds

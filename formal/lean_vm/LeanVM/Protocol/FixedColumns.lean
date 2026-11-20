@@ -8,7 +8,9 @@ module
 
 public import LeanVM.Protocol.Field
 public import LeanVM.Protocol.ToCompPoly.BitProductTable
-public import LeanVM.Arithmetization.Bytecode
+import LeanVM.Arithmetization.Bytecode
+public import LeanVM.Protocol.ToCompPoly.Multilinear
+public import Statement.LeanIsa
 
 /-!
 # Fixed public columns

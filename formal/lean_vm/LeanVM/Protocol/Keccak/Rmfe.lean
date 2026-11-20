@@ -8,7 +8,16 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.Protocol.Keccak.Multilinear
+public import LeanVM.Protocol.Keccak.Linear
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # The embedding

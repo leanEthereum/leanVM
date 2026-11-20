@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
-public import LeanVM.Protocol.Verifier.Claims
+import LeanVM.Protocol.Verifier.Claims
 
 /-!
 # The bus phase's skeleton

@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.Field
 
 /-!

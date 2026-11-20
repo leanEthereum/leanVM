@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.SkelBus
-public import LeanVM.Protocol.EndToEnd.Complete.TableMath
+import LeanVM.Protocol.EndToEnd.Complete.TableMath
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Verifier.Phases
+import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.EndToEnd.Sound.Assemble
 
 /-!

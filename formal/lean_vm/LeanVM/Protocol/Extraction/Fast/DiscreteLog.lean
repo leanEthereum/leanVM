@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Parameters.PohligHellman
-public import LeanVM.Parameters.Generator
+import LeanVM.Parameters.Generator
 public import LeanVM.Protocol.Extraction.Fast.Address
 import all LeanVM.Protocol.Extraction.Fast.Address
 
