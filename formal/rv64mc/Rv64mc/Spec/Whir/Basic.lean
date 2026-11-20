@@ -31,4 +31,16 @@ export Rv64mc.Spec.Transcript (ResultEAt)
 /-- A function returning through `sret` (in `a0`) writes the `n` bytes of its slot. -/
 def SretOut (n : Nat) (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop := InRange (regs .x10) n b
 
+/-- **A fresh `Vec<u64>` (or `Vec<K>`, `Vec<usize>`) of `ws` at `a`**, allocated between `m` and `m'` (or empty,
+    its pointer the alignment). -/
+def FreshVecW (env : Env) (m m' : MachineState) (a : Word) (ws : List Word) : Prop :=
+  ∃ ptr cap, VecAt WordsAt m' a ptr cap ws ∧ (cap = 0 ∨ env.Fresh m m' ptr (Layouts.K.byteSize * cap))
+
+/-- **A `Vec<u64>` (or `Vec<K>`, `Vec<usize>`) of `ws` at `a`**, its elements live. -/
+def WVecAt (env : Env) (m : MachineState) (a : Word) (ws : List Word) : Prop :=
+  ∃ ptr cap, VecAt WordsAt m a ptr cap ws ∧ env.Live m ptr (Layouts.K.byteSize * ws.length)
+
+/-- The words of `K`s. -/
+def kWords (ks : List K) : List Word := ks.map BF64.toBitVec
+
 end Rv64mc.Spec.Whir
