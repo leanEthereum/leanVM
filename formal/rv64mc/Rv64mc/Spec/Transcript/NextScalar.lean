@@ -13,14 +13,15 @@ namespace Rv64mc.Spec.Transcript.NextScalar
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters
 
 /-- A result slot of `size` bytes at `a0`, beside the transcript at `a1`: both in a caller's frame, the slot apart
-    from the transcript and its `Proof`. -/
-def SlotArgs (size : Nat) (regs : Reg → Word) (m : MachineState) : Prop :=
+    from the transcript and its `Proof`, which is safe from the call. -/
+def SlotArgs (env : Env) (size : Nat) (regs : Reg → Word) (m : MachineState) : Prop :=
   InFrame (regs .x2) (regs .x11) Layouts.Transcript.byteSize ∧ InFrame (regs .x2) (regs .x10) size ∧
+    ProofSafe env m (regs .x2) (regs .x11) ∧
     Apart (regs .x10) size (regs .x11) Layouts.Transcript.byteSize ∧
     Apart (regs .x10) size (proofAddr m (regs .x11)) Layouts.Proof.byteSize
 
 def Pre (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) : Prop :=
-  TranscriptAt env m (regs .x11) t ∧ SlotArgs Layouts.ResultE.byteSize regs m
+  TranscriptAt env m (regs .x11) t ∧ SlotArgs env Layouts.ResultE.byteSize regs m
 
 def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word)
     (m' : MachineState) : Prop :=

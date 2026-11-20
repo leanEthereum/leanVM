@@ -2,9 +2,9 @@
   Rv64mc.Spec.Transcript.GrindCheck
 
   The contract of `Transcript::grind_check(&mut self, bits: u32) -> Result<(), VerifierError>`: the transcript in
-  `a0`, in a caller's frame, the bits in `a1`; the result's tag in `a0` (`Layouts.ResultUnit`: `Ok` is the niche
-  value). It returns `Ok` exactly where the mirror's step `Model.TM.grindCheck` succeeds, and then the transcript is
-  the mirror's. It writes the transcript (`Out`).
+  `a0`, in a caller's frame (its `Proof` safe from the call), the bits in `a1`; the result's tag in `a0`
+  (`Layouts.ResultUnit`: `Ok` is the niche value). It returns `Ok` exactly where the mirror's step
+  `Model.TM.grindCheck` succeeds, and then the transcript is the mirror's. It writes the transcript (`Out`).
 -/
 
 import Rv64mc.Spec.Transcript.Repr
@@ -15,7 +15,7 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 
 def Pre (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) : Prop :=
   TranscriptAt env m (regs .x10) t ∧ InFrame (regs .x2) (regs .x10) Layouts.Transcript.byteSize ∧
-    (regs .x11).toNat < 2 ^ 32
+    ProofSafe env m (regs .x2) (regs .x10) ∧ (regs .x11).toNat < 2 ^ 32
 
 def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (_m : MachineState) (r' : Reg → Word)
     (m' : MachineState) : Prop :=

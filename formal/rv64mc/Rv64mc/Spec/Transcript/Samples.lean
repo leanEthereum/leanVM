@@ -15,7 +15,7 @@ namespace Rv64mc.Spec.Transcript.Samples
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters
 
 def Pre (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) : Prop :=
-  TranscriptAt env m (regs .x11) t ∧ NextScalar.SlotArgs Layouts.Vec.byteSize regs m
+  TranscriptAt env m (regs .x11) t ∧ NextScalar.SlotArgs env Layouts.Vec.byteSize regs m
 
 def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word)
     (m' : MachineState) : Prop :=

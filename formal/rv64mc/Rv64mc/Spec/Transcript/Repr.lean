@@ -95,6 +95,11 @@ def Apart (a : Word) (n : Nat) (b : Word) (k : Nat) : Prop := a.toNat + n ≤ b.
 /-- The address of the `Proof` the transcript at `a` reads. -/
 def proofAddr (m : MachineState) (a : Word) : Word := m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)
 
+/-- **The `Proof` the transcript at `a` reads is safe from a call whose stack top is `top`**: allocated before, or
+    in a caller's frame (at or above `top`). -/
+def ProofSafe (env : Env) (m : MachineState) (top a : Word) : Prop :=
+  env.Live m (proofAddr m a) Layouts.Proof.byteSize ∨ top.toNat ≤ (proofAddr m a).toNat
+
 /-- The `checked` byte of a transcript. -/
 def boolByte (b : Bool) : BitVec 8 := if b then 1#8 else 0#8
 
