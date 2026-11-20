@@ -17,14 +17,14 @@ public import LeanVM.Guest.B1.Gkr.WalkC
 The buffers' honest words (`vbgLay`), as functions of the walk read back from the run
 (`gk_walk`: the slots `gkSl`, the steps' words `gkD`):
 
-* `layers` (at `g^eL`): the slot after the root-most step and after every step of two levels
-  (layer index `k`, `L = 2k + sh`, from `k = 1 - sh`), thirteen words each (`gkSlotWords`);
-* the point rows (at `g^eP`): slot `k`'s point at `40·(k + sh)`;
-* the round records (at `g^eR`): the loop's step `k`'s `L + 1` records from position
-  `gkPos sh k`, field `f` `862·f` on (`gkRecW`: the capacity, the cursor and the claim after `r`
-  rounds);
-* the tables `k_mod_next` (at `g^eK`), `loop_bounds` (at `g^eB`) and `depth_odd` (at `g^eO`),
-  and the last slot's values (at `g^eV`).
+* `layers` (at `g^eL`): the layer record of every slot (layer index `k`, `L = 2k + sh`, from
+  `k = 1 - sh`; record `k + sh - 1`), thirteen words each (`gkSlotWords`), the position word
+  `g^(7·gkPos sh k)`;
+* the point rows (at `g^eP`): record `k`'s point at `40·(k + sh)`;
+* the round records (at `g^eR`): the loop's step `k`'s `L + 1` records from record `gkPos sh k`,
+  seven words each (`gkRecW`: the capacity, the cursor and the claim after `r` rounds);
+* the tables `k_mod_next` (at `g^eK`), `loop_bounds` (at `g^eB`), `depth_odd` (at `g^eO`) and
+  `rounds_len` (at `g^eN`), and the last record's values (at `g^eV`).
 
 `verify_bus_gkr_complete`: at `1 ≤ depth ≤ 32`, an accepting run of `gkrPhase depth` from a
 carried capacity, its words at the cursor, its point at `zeta`, the memory defined at `g^depth`
@@ -65,8 +65,8 @@ def gkSlotWords (s : Fs) (cur : E) (st : GkrState) (row pos half par : E) : List
 theorem gkSlot_of {rd : Reader} {eL L : ℕ} {s : Fs} {cur : E} {st : GkrState}
     {row pos half par : E} (hcl : s.cap.length = 5) (hpe : s.pend = [])
     (hvl : st.values.length = 3) (hpl : st.point.length = L) (hpt : TbReadsAt rd row st.point)
-    (hw : TbReadsAt rd (ofK (addressOfIndex (eL + 13 * L))) (gkSlotWords s cur st row pos half
-        par)) :
+    (hw : TbReadsAt rd (ofK (addressOfIndex (eL + 13 * ((L - 1) / 2)))) (gkSlotWords s cur st row
+        pos half par)) :
     GkSlot rd (ofK (addressOfIndex eL)) L s cur st row pos half par := by
   obtain ⟨c0, c1, c2, c3, c4, hc⟩ := tb_list5_eq hcl
   obtain ⟨v0, v1, v2, hv⟩ := tb_list3_eq hvl
@@ -89,11 +89,47 @@ theorem tb_gkrRun_cap_len : ∀ (cs : List (List E)) (es : List E) (claim : E) (
     simp only [gkrRun]
     exact tb_gkrRun_cap_len _ _ _ _ (by simp [Fs.squeeze, capOf])
 
-/-- Step `j`'s first record's position: one record for the odd step at an odd depth, then
-`L + 1` for each step of `L` rounds. -/
-def gkPos (sh : ℕ) : ℕ → ℕ
-  | 0 => sh
-  | j + 1 => gkPos sh j + (2 * j + sh) + 1
+/-- Step `j`'s first record (records from `0`, the root-most step's first): `L + 1` records for
+each earlier step of `L = 2i + sh` rounds, from step `1 - sh`. -/
+def gkPos (sh j : ℕ) : ℕ := j * j + j * sh + sh - 1
+
+theorem gkPos_succ {sh j : ℕ} (h : sh = 1 ∨ 0 < j) :
+    gkPos sh (j + 1) = gkPos sh j + (2 * j + sh) + 1 := by
+  unfold gkPos
+  have key : (j + 1) * (j + 1) + (j + 1) * sh = j * j + j * sh + 2 * j + sh + 1 := by ring
+  have hjj : 0 < j → 1 ≤ j * j := fun hj => Nat.one_le_iff_ne_zero.mpr (by positivity)
+  omega
+
+/-- The records before step `k` fit the `vbgRecs depth` records of the round buffer. -/
+theorem gkPos_le_vbgRecs {depth k : ℕ} (hd1 : 1 ≤ depth) (hk : k ≤ depth / 2) :
+    gkPos (depth % 2) k ≤ vbgRecs depth := by
+  have hkk : k * k ≤ depth / 2 * (depth / 2) := Nat.mul_le_mul hk hk
+  unfold gkPos vbgRecs
+  simp only [show depth ≠ 0 by omega, ↓reduceIte]
+  rcases Nat.mod_two_eq_zero_or_one depth with h | h
+  · obtain ⟨N, hN⟩ : ∃ N, depth / 2 = N + 1 := ⟨depth / 2 - 1, by omega⟩
+    rw [hN, show (N + 1) * (N + 1) = N * N + 2 * N + 1 by ring] at hkk
+    rw [h, show (depth - 1) / 2 = N by omega]
+    simp only [Nat.mul_zero, Nat.add_zero, Nat.sub_zero, Nat.mul_one]
+    omega
+  · rw [h, show (depth - 1) / 2 = depth / 2 by omega]
+    simp only [Nat.mul_one, Nat.sub_self, Nat.mul_zero, Nat.add_zero]
+    omega
+
+/-- The records of every step: `vbgRecs depth`. -/
+theorem gkPos_last {depth : ℕ} (hd1 : 1 ≤ depth) :
+    gkPos (depth % 2) (depth / 2) = vbgRecs depth := by
+  unfold gkPos vbgRecs
+  simp only [show depth ≠ 0 by omega, ↓reduceIte]
+  rcases Nat.mod_two_eq_zero_or_one depth with h | h
+  · obtain ⟨N, hN⟩ : ∃ N, depth / 2 = N + 1 := ⟨depth / 2 - 1, by omega⟩
+    rw [h, hN, show (depth - 1) / 2 = N by omega,
+      show (N + 1) * (N + 1) = N * N + 2 * N + 1 by ring]
+    simp only [Nat.mul_zero, Nat.add_zero, Nat.sub_zero, Nat.mul_one]
+    omega
+  · rw [h, show (depth - 1) / 2 = depth / 2 by omega]
+    simp only [Nat.mul_one, Nat.sub_self, Nat.mul_zero, Nat.add_zero]
+    omega
 
 /-- Step `j`'s first `r` rounds: challenges, claim, sponge. -/
 def gkRunAt (cap0 xs : List E) (sh j r : ℕ) : List E × E × Fs :=
@@ -107,30 +143,31 @@ def gkRecW (cap0 xs : List E) (sh : ℕ) (cur : E) (j f r : ℕ) : E :=
   else if f = 5 then cur * gen ^ ((gkSl cap0 xs sh j).2.2 + 4 * r)
   else (gkRunAt cap0 xs sh j r).2.1
 
-/-- **Step `j`'s records**: field `f` of its `L + 1` records, `862·f` on from its position. -/
+/-- **Step `j`'s records**: its `L + 1` records, seven words each, from record `gkPos sh j`. -/
 def gkRecRuns (cap0 xs : List E) (sh : ℕ) (cur : E) (eR j : ℕ) : TLay :=
-  (List.range 7).map fun f ↦
-    (eR + 862 * f + gkPos sh j, (List.range (2 * j + sh + 1)).map (gkRecW cap0 xs sh cur j f))
+  [(eR + 7 * gkPos sh j,
+    (List.range (7 * (2 * j + sh + 1))).map fun i ↦ gkRecW cap0 xs sh cur j (i % 7) (i / 7))]
 
 /-- **The records from their runs.** -/
 theorem recsAt_of {rd : Reader} {cap0 xs : List E} {sh : ℕ} {cur : E} {eR j : ℕ}
     (hm : MemLay rd (gkRecRuns cap0 xs sh cur eR j))
     (hcs : (gkD cap0 xs sh j).cs.length = 2 * j + sh) :
-    RecsAt rd (ofK (addressOfIndex eR) * gen ^ gkPos sh j) (cur * gen ^ (gkSl cap0 xs sh j).2.2)
+    RecsAt rd (ofK (addressOfIndex eR) * gen ^ (7 * gkPos sh j))
+      (cur * gen ^ (gkSl cap0 xs sh j).2.2)
       (gkD cap0 xs sh j).cs (gkSl cap0 xs sh j).2.1.point
       (polyEval (gkSl cap0 xs sh j).2.1.values (gkSl cap0 xs sh j).1.squeeze.1)
       (gkSl cap0 xs sh j).1.squeeze.2 := by
   intro r hr
-  have F : ∀ f < 7, LoadHolds rd (ofK (addressOfIndex eR) * gen ^ gkPos sh j * gen ^ r) (f * 862)
-      (gkRecW cap0 xs sh cur j f r) := by
+  have F : ∀ f < 7, LoadHolds rd (ofK (addressOfIndex eR) * gen ^ (7 * gkPos sh j) *
+      gen ^ (7 * r)) f (gkRecW cap0 xs sh cur j f r) := by
     intro f hf
-    have hq := hm _ (List.mem_map.mpr ⟨f, List.mem_range.mpr hf, rfl⟩)
+    have hq := hm _ List.mem_cons_self
     simp only at hq
-    rw [Nat.add_assoc] at hq
-    have h := tb_reads_load hq (k := r) (by simp; omega)
+    have h := tb_reads_load hq (k := 7 * r + f) (by simp; omega)
     rw [tb_loadHolds_mul_gen_pow, tb_loadHolds_mul_gen_pow,
-      show gkPos sh j + (r + f * 862) = 862 * f + gkPos sh j + r by ring]
-    simpa [List.getD_eq_getElem?_getD, show r < 2 * j + sh + 1 by omega] using h
+      show 7 * gkPos sh j + (7 * r + f) = 7 * gkPos sh j + (7 * r + f) from rfl]
+    simpa [List.getD_eq_getElem?_getD, show 7 * r + f < 7 * (2 * j + sh + 1) by omega,
+      show (7 * r + f) % 7 = f by omega, show (7 * r + f) / 7 = r by omega] using h
   have hcl : (gkRunAt cap0 xs sh j r).2.2.cap.length = 5 :=
     tb_gkrRun_cap_len _ _ _ _ (by simp [Fs.squeeze, capOf])
   refine ⟨⟨hcl, fun i hi => ?_⟩, ?_, ?_⟩
@@ -139,7 +176,7 @@ theorem recsAt_of {rd : Reader} {cap0 xs : List E} {sh : ℕ} {cur : E} {eR j : 
     simp only [gkRecW, hi5, ↓reduceIte] at h
     unfold gkRunAt at h
     rw [List.getD_eq_getElem _ _ hi] at h
-    rw [Nat.zero_add]
+    rw [Nat.zero_add, Nat.mul_one]
     exact h
   · have h := F 5 (by omega)
     simp only [gkRecW, show ¬ (5 < 5) by omega, ↓reduceIte, pow_add, ← mul_assoc] at h
@@ -246,17 +283,16 @@ theorem kModNext_of {rd : Reader} {kmn : E} (h : TbReadsAt rd kmn kmnWords) : KM
 
 /-- **`verify_bus_gkr`'s buffers' honest words** on the walk from the carried capacity `cap0`
 over the words `xs` at the cursor `cur`: the slots of `layers` at `g^eL` (the slot of layer index
-`k` past the root-most step, `L = 2k + sh`), the point rows at `g^eP`, the loop's round records
-at `g^eR`, `k_mod_next` at `g^eK`, `loop_bounds` at `g^eB`, `depth_odd` at `g^eO` and the last
-slot's values at `g^eV`. -/
-def vbgLay (depth : ℕ) (cap0 xs : List E) (cur : E) (eL eR eP eK eB eO eV : ℕ) : TLay :=
-  (List.range (depth / 2 + depth % 2)).map (fun i ↦ (eL + 13 * (2 * (i + 1 - depth % 2) +
-    depth % 2),
+`k = i + 1 - sh` at record `i`, `L = 2k + sh`), the point rows at `g^eP`, the loop's round records
+at `g^eR`, `k_mod_next` at `g^eK`, `loop_bounds` at `g^eB`, `depth_odd` at `g^eO`, `rounds_len`
+at `g^eN` and the last slot's values at `g^eV`. -/
+def vbgLay (depth : ℕ) (cap0 xs : List E) (cur : E) (eL eR eP eK eB eO eN eV : ℕ) : TLay :=
+  (List.range (depth / 2 + depth % 2)).map (fun i ↦ (eL + 13 * i,
     gkSlotWords (gkSl cap0 xs (depth % 2) (i + 1 - depth % 2)).1
       (cur * gen ^ (gkSl cap0 xs (depth % 2) (i + 1 - depth % 2)).2.2)
       (gkSl cap0 xs (depth % 2) (i + 1 - depth % 2)).2.1
       (ofK (addressOfIndex eP) * gen ^ (40 * (i + 1 - depth % 2 + depth % 2)))
-      (gen ^ gkPos (depth % 2) (i + 1 - depth % 2)) (gen ^ ((i + 1 - depth % 2) / 4))
+      (gen ^ (7 * gkPos (depth % 2) (i + 1 - depth % 2))) (gen ^ ((i + 1 - depth % 2) / 4))
       (gen ^ ((i + 1 - depth % 2) % 4)))) ++
   (List.range (depth / 2 + depth % 2)).map (fun i ↦
     (eP + 40 * (i + 1 - depth % 2 + depth % 2),
@@ -264,7 +300,8 @@ def vbgLay (depth : ℕ) (cap0 xs : List E) (cur : E) (eL eR eP eK eB eO eV : �
   ((List.range ((depth - 1) / 2)).map fun j ↦
     gkRecRuns cap0 xs (depth % 2) cur eR (j + 1 - depth % 2)).flatten ++
   [(eB, (List.range 33).map fun k ↦ gen ^ ((k - 1) / 2)),
-    (eO, (List.range 33).map fun k ↦ gen ^ (k % 2)), (eK, kmnWords),
+    (eO, (List.range 33).map fun k ↦ gen ^ (k % 2)),
+    (eN, (List.range 33).map fun k ↦ gen ^ (7 * vbgRecs k)), (eK, kmnWords),
     (eV, (gkSl cap0 xs (depth % 2) (depth / 2)).2.1.values)]
 
 /-- **`verify_bus_gkr`'s body holds of its honest valuation** (TRIAGE G #43): at
@@ -276,19 +313,19 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
     {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {cur zeta tabs : E} (hx : TbReadsAt rd cur xs)
-    (hz : TbReadsAt rd zeta r.2.1) {eL eR eP eK eB eO eV : ℕ}
-    (hm : MemLay rd (vbgLay depth cap0 xs cur eL eR eP eK eB eO eV))
+    (hz : TbReadsAt rd zeta r.2.1) {eL eR eP eK eB eO eN eV : ℕ}
+    (hm : MemLay rd (vbgLay depth cap0 xs cur eL eR eP eK eB eO eN eV))
     (hrc : (rd (addressOfIndex depth)).isSome = true ∧ (rd (addressOfIndex (32 - depth))).isSome =
         true) :
     Stmt.HoldsList (coreProgram.Rel rd) rd
         (B1.Val.ofArgs (ev rd (vbgW (ofK (addressOfIndex eL)) (ofK (addressOfIndex eR))
           (ofK (addressOfIndex eP)) (ofK (addressOfIndex eK)) (ofK (addressOfIndex eB))
-          (ofK (addressOfIndex eO)) (ofK (addressOfIndex eV)))
+          (ofK (addressOfIndex eO)) (ofK (addressOfIndex eN)) (ofK (addressOfIndex eV)))
           (cap0 ++ [cur, gen ^ depth, zeta, tabs]) vbgEvL)) vbgPre True
         (fun rs => rs = cap' ++ [cur * gen ^ xs.length, ofK (addressOfIndex eV)]) ∧
       vbgRets.map (B1.Val.ofArgs (ev rd (vbgW (ofK (addressOfIndex eL)) (ofK (addressOfIndex eR))
         (ofK (addressOfIndex eP)) (ofK (addressOfIndex eK)) (ofK (addressOfIndex eB))
-        (ofK (addressOfIndex eO)) (ofK (addressOfIndex eV)))
+        (ofK (addressOfIndex eO)) (ofK (addressOfIndex eN)) (ofK (addressOfIndex eV)))
         (cap0 ++ [cur, gen ^ depth, zeta, tabs]) vbgEvL)) =
         cap' ++ [cur * gen ^ xs.length, ofK (addressOfIndex eV)] := by
   obtain ⟨hcnt, hx2, hodd, hsteps, hend, hsF, hr, hplm⟩ := gk_walk hrun hc
@@ -307,7 +344,7 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
   -- the slots
   have SL : ∀ k ≤ M, (sh = 1 ∨ 0 < k) → GkSlot rd (ofK (addressOfIndex eL)) (2 * k + sh)
       (gkSl cap0 xs sh k).1 (cur * gen ^ (gkSl cap0 xs sh k).2.2) (gkSl cap0 xs sh k).2.1
-      (ofK (addressOfIndex eP) * gen ^ (40 * (k + sh))) (gen ^ gkPos sh k) (gen ^ (k / 4))
+      (ofK (addressOfIndex eP) * gen ^ (40 * (k + sh))) (gen ^ (7 * gkPos sh k)) (gen ^ (k / 4))
       (gen ^ (k % 4)) := by
     intro k hk hk0
     have hi : k + sh - 1 < M + sh := by omega
@@ -316,7 +353,8 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
     have hP := hmP _ (List.mem_map.mpr ⟨k + sh - 1, List.mem_range.mpr hi, rfl⟩)
     simp only [hik] at hS hP
     exact gkSlot_of (inv k).1 ((inv k).2.2 hk0) (inv k).2.1 (hpl k hk)
-      (by rw [tb_ofK_gpow_mul]; exact hP) hS
+      (by rw [tb_ofK_gpow_mul]; exact hP)
+      (by rw [show (2 * k + sh - 1) / 2 = k + sh - 1 by omega]; exact hS)
   -- the offsets
   have hOle : ∀ j ≤ M, (gkSl cap0 xs sh j).2.2 ≤ xs.length := by
     intro j hj
@@ -358,9 +396,11 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
   have hrel := vbg_body_of (rd := rd) (tabs := tabs) (layers := ofK (addressOfIndex eL))
     (rows := ofK (addressOfIndex eP)) (rounds := ofK (addressOfIndex eR))
     (bnd := ofK (addressOfIndex eB)) (odd := ofK (addressOfIndex eO))
-    (vals := ofK (addressOfIndex eV)) hd1 hd hcl hrc hx0 hx1 hcnt hkmn
+    (rlen := ofK (addressOfIndex eN)) (vals := ofK (addressOfIndex eV)) hd1 hd hcl hrc hx0 hx1
+    hcnt hkmn
     (hmT (eB, (List.range 33).map fun k ↦ gen ^ ((k - 1) / 2)) List.mem_cons_self)
-    (hmT (eO, (List.range 33).map fun k ↦ gen ^ (k % 2)) (List.mem_cons_of_mem _ List.mem_cons_self))
+    (hmT (eO, (List.range 33).map fun k ↦ gen ^ (k % 2)) (by simp))
+    (hmT (eN, (List.range 33).map fun k ↦ gen ^ (7 * vbgRecs k)) (by simp))
     (fun h1 => ?_) (fun h0 => ?_) (fun j hj => ?_) hlast (by rw [hr] at hz; exact hz)
     (hmT (eV, (gkSl cap0 xs sh M).2.1.values) (by simp))
   · obtain ⟨h1, h2⟩ := hrel
@@ -421,7 +461,7 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
     have hLk : 2 * j + 2 - sh = 2 * k + sh := by omega
     have hk1 : j + 2 - sh = k + 1 := by omega
     refine ⟨(gkSl cap0 xs sh k).1, cur * gen ^ (gkSl cap0 xs sh k).2.2, (gkSl cap0 xs sh k).2.1,
-      ofK (addressOfIndex eP) * gen ^ (40 * (k + sh)), gen ^ gkPos sh k, gkD cap0 xs sh k,
+      ofK (addressOfIndex eP) * gen ^ (40 * (k + sh)), gen ^ (7 * gkPos sh k), gkD cap0 xs sh k,
       by rw [hLk]; exact SL k (by omega) hk0, hok, ?_, ?_, ?_⟩
     · have h := hdrop _ (hOle k (by omega))
       rw [hdr, tbReadsAt_append] at h
@@ -436,7 +476,7 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
         | omega
         | (rw [hxl, mul_assoc, ← pow_add]; ring_nf)
         | (rw [mul_assoc, ← pow_add]; ring_nf)
-        | (rw [← pow_add]; congr 1)
+        | (rw [← pow_add, gkPos_succ hk0]; ring_nf)
 
 end
 end LeanVM.Guest.B1.Tables

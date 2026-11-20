@@ -34,8 +34,11 @@ def ly7W29 (fs : String → ℕ) (K29 k : ℕ) : ℕ := fs name% «verify_bus_gk
 def ly7B (fs : String → ℕ) (K29 R sh : ℕ) (c : ℕ) : ℕ :=
   fs name% «verify_bus_gkr_loop0» + ly7W29 fs K29 (c + 1 - sh) + (1 + (if sh = 1 then 1 else 0)) * R
 
-/-- The buffers' sizes. -/
-def vbgSizes (depth : ℕ) : List ℕ := [13 * (depth + 2), 6034, 1640, 8, 33, 33, 3]
+/-- The buffers' sizes, in allocation order: `k_mod_next`, `loop_bounds`, `depth_odd`,
+`rounds_len`, the layer records (one per radix-four layer, the root-most's first), the round
+records (`7` words each), the point rows (`40` words each) and the last values. -/
+def vbgSizes (depth : ℕ) : List ℕ :=
+  [8, 33, 33, 33, 13 * ((depth - 1) / 2 + 1), 7 * vbgRecs depth, 40 * ((depth - 1) / 2 + 2), 3]
 
 /-- `verify_bus_gkr_loop0`'s words from `1` below `g^((depth - 1)/2)`: the iterations' bounds and
 the last

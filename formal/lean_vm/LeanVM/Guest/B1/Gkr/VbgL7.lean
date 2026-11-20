@@ -28,10 +28,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem gkPos_closed (sh : ℕ) : ∀ j, gkPos sh j = sh + j * j + j * sh
-  | 0 => by simp [gkPos]
-  | j + 1 => by rw [gkPos, gkPos_closed sh j]; ring
-
 /-- **`verify_bus_gkr_loop0` loads from the buffers** (TRIAGE G #43): at `3 ≤ depth ≤ 32`, an
 accepting run of `gkrPhase depth`, the buffers' honest words in memory (`vbgLay`),
 `verify_bus_gkr_loop0`'s relation from `1`
@@ -39,11 +35,12 @@ below `g^((depth - 1)/2)` loads from any region holding the cursor's words and t
 theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eV : ℕ} {rd : Reader}
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eN eV : ℕ} {rd : Reader}
     {R : ℕ → Prop}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eV))
-    (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 13 * (depth + 2), R (eL + i))
-    (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRK : ∀ i < 8, R (eK + i))
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eN eV))
+    (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 13 * ((depth - 1) / 2 + 1), R (eL + i))
+    (hRR : ∀ i < 7 * vbgRecs depth, R (eR + i))
+    (hRr : ∀ i < 40 * ((depth - 1) / 2 + 2), R (eP + i)) (hRK : ∀ i < 8, R (eK + i))
     (hm0 : 0 < (depth - 1) / 2) {tabs claim : E}
     (h : coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, gen ^ ((depth - 1) / 2),
         gen ^ (2 - depth % 2),
@@ -69,7 +66,7 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
   have SL : ∀ k ≤ M, (sh = 1 ∨ 0 < k) → GkSlot rd (ofK (addressOfIndex eL)) (2 * k + sh)
       (gkSl cap0 xs sh k).1 (ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2)
       (gkSl cap0 xs sh k).2.1 (ofK (addressOfIndex eP) * gen ^ (40 * (k + sh)))
-      (gen ^ gkPos sh k) (gen ^ (k / 4)) (gen ^ (k % 4)) := by
+      (gen ^ (7 * gkPos sh k)) (gen ^ (k / 4)) (gen ^ (k % 4)) := by
     intro k hk hk0
     have hi : k + sh - 1 < M + sh := by omega
     have hik : k + sh - 1 + 1 - sh = k := by omega
@@ -77,7 +74,8 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     have hP := hmP _ (List.mem_map.mpr ⟨k + sh - 1, List.mem_range.mpr hi, rfl⟩)
     simp only [hik] at hS hP
     exact gkSlot_of (inv k).1 ((inv k).2.2 hk0) (inv k).2.1 (hpl k hk)
-      (by rw [tb_ofK_gpow_mul]; exact hP) hS
+      (by rw [tb_ofK_gpow_mul]; exact hP)
+      (by rw [show (2 * k + sh - 1) / 2 = k + sh - 1 by omega]; exact hS)
   -- the iterations
   have hit : ∀ j < (depth - 1) / 2, Ly7In rd R (ofK (addressOfIndex eL))
       (ofK (addressOfIndex eR)) sh j := by
@@ -85,8 +83,10 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     set k := j + 1 - sh with hk
     have hkM : k < M := by omega
     obtain ⟨hok, hdr⟩ := hsteps k hkM
-    have hLk : 2 * j + 2 - sh = 2 * k + sh := by omega
-    obtain ⟨-, -, -, -, -, -, hrow, -, -, hpos, hhalf, hpar⟩ := SL k (by omega) (by omega)
+    have hk0 : sh = 1 ∨ 0 < k := by omega
+    have hrec : (2 * k + sh - 1) / 2 = j := by omega
+    obtain ⟨-, -, -, -, -, -, hrow, -, -, hpos, hhalf, hpar⟩ := SL k (by omega) hk0
+    rw [hrec] at hrow hpos hhalf hpar
     have hcs : (gkD cap0 xs sh k).cs.length = 2 * k + sh := hok.1.trans (hpl k (by omega))
     have hR := recsAt_of (fun q hq => hmC q (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨j,
       List.mem_range.mpr hj, rfl⟩, hq⟩)) hcs
@@ -97,20 +97,19 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
       refine tb_drop_le hdr ?_ (by rw [hO]; omega)
       rw [gkStepD_xs_length hok, hpl k (by omega), hO]
       omega
-    have hp := gkPos_closed sh k
-    have hkk : k * k ≤ 15 * 15 := Nat.mul_le_mul (by omega) (by omega)
-    have hks : k * sh ≤ 15 * 1 := Nat.mul_le_mul (by omega) (by omega)
-    refine ⟨ofK (addressOfIndex eP) * gen ^ (40 * (k + sh)), gen ^ gkPos sh k,
-      ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2, ?_, by rw [hLk]; exact hrow,
-      by rw [hLk]; exact hpos, by rw [hLk]; exact hhalf, by rw [hLk]; exact hpar, ?_, ?_, ?_,
-      fun r hr ↦ ?_⟩
-    · rw [hLk, tb_ofK_gpow_mul]
+    have hP1 := gkPos_succ hk0
+    have hPle := gkPos_le_vbgRecs (depth := depth) (k := k + 1) (by omega) (by omega)
+    rw [← hsh] at hPle
+    refine ⟨ofK (addressOfIndex eP) * gen ^ (40 * (k + sh)), gen ^ (7 * gkPos sh k),
+      ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2, ?_, hrow, hpos, hhalf, hpar, ?_,
+      ?_, ?_, fun r hr ↦ ?_⟩
+    · rw [tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRL _ (by omega)
-    · rw [hLk, tb_ofK_gpow_mul]
+    · rw [tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRr _ (by omega)
-    · rw [hLk, tb_ofK_gpow_mul]
+    · rw [tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRR _ (by omega)
-    · rw [hLk, tb_ofK_gpow_mul]
+    · rw [tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRx _ (by omega)
     · exact (hR r (by rw [hcs]; omega)).2.1
   obtain ⟨d, hd'⟩ := h
