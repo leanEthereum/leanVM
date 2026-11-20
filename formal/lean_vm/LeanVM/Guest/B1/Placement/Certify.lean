@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
 # `certify_placement` (TRIAGE G #67)
@@ -137,7 +139,7 @@ def cpRcS (gi : ℕ) : List Stmt :=
   [.atom (.const (.n (cpQ gi)) w33),
     .atom (.rangeCheck (.n (cpKv gi)) (.n (cpQ gi + 1)) (.n (cpQ gi + 2)) (.n (cpQ gi + 3))
       (.n (cpQ gi))),
-    .atom (.mul (.n (cpQ gi + 4)) (.n 1) (.n (cpKv gi))),
+    .atom (.mul (.n (cpQ gi + 4)) (.n (val% «certify_placement» "g_squares")) (.n (cpKv gi))),
     .atom (.load (.n (cpQ gi + 5)) (.n (cpQ gi + 4)) 178)]
 
 /-- The key times `INV_GEN^c₀`, when `c₀ ≠ 0`. -/
@@ -148,22 +150,22 @@ def cpKeyS (gi : ℕ) : List Stmt :=
 
 /-- The key's store, the size's chain and its store. -/
 def cpSizeS (gi : ℕ) : List Stmt :=
-  [.atom (.load (.n (cpZ gi - 1)) (.n 10) gi), .atom (.mul (.n (cpZ gi)) (.n 1) (.n (cpKv gi))),
+  [.atom (.load (.n (cpZ gi - 1)) (.n (val% «certify_placement» "group_key")) gi), .atom (.mul (.n (cpZ gi)) (.n (val% «certify_placement» "g_squares")) (.n (cpKv gi))),
     .atom (.load (.n (cpZ gi + 1)) (.n (cpZ gi)) 0)] ++
   cpChain (cpZ gi + 1) (cpCh gi) ++
-  [.atom (.load (.n (cpZ gi + 1 + (cpCh gi).length)) (.n 11) gi)]
+  [.atom (.load (.n (cpZ gi + 1 + (cpCh gi).length)) (.n (val% «certify_placement» "group_size")) gi)]
 
 /-- Group `gi`: its `g^κ`, key and size. -/
 def cpGroup (gi : ℕ) : List Stmt := cpKapS gi ++ cpRcS gi ++ cpKeyS gi ++ cpSizeS gi
 
 /-- Rank `0`, values `138 .. 148`. -/
 def cpRank0 : List Stmt :=
-  [.atom (.load (.n 138) (.n 136) 0), .atom (.const (.n 139) w8),
-    .atom (.rangeCheck (.n 138) (.n 140) (.n 141) (.n 142) (.n 139)),
-    .atom (.mul (.n 143) (.n 10) (.n 138)), .atom (.load (.n 144) (.n 143) 0),
-    .atom (.const (.n 145) (word 1 0)), .atom (.mul (.n 146) (.n 137) (.n 138)),
-    .atom (.load (.n 145) (.n 146) 0), .atom (.mul (.n 147) (.n 11) (.n 138)),
-    .atom (.load (.n 148) (.n 147) 0)]
+  [.atom (.load (.n (val% «certify_placement» "gi@1")) (.n (val% «certify_placement» "group_order")) 0), .atom (.const (.n (val% «certify_placement» "s10.u0.s1#0")) w8),
+    .atom (.rangeCheck (.n (val% «certify_placement» "gi@1")) (.n (val% «certify_placement» "s10.u0.s1#1")) (.n (val% «certify_placement» "s10.u0.s1#2")) (.n (val% «certify_placement» "s10.u0.s1#3")) (.n (val% «certify_placement» "s10.u0.s1#0"))),
+    .atom (.mul (.n (val% «certify_placement» "key@1~0")) (.n (val% «certify_placement» "group_key")) (.n (val% «certify_placement» "gi@1"))), .atom (.load (.n (val% «certify_placement» "key@1")) (.n (val% «certify_placement» "key@1~0")) 0),
+    .atom (.const (.n (val% «certify_placement» "s10.u0.s4#0")) (word 1 0)), .atom (.mul (.n (val% «certify_placement» "s10.u0.s4#1")) (.n (val% «certify_placement» "group_base")) (.n (val% «certify_placement» "gi@1"))),
+    .atom (.load (.n (val% «certify_placement» "s10.u0.s4#0")) (.n (val% «certify_placement» "s10.u0.s4#1")) 0), .atom (.mul (.n (val% «certify_placement» "g_total@1~0")) (.n (val% «certify_placement» "group_size")) (.n (val% «certify_placement» "gi@1"))),
+    .atom (.load (.n (val% «certify_placement» "g_total@1")) (.n (val% «certify_placement» "g_total@1~0")) 0)]
 
 /-- Rank `r`'s group, key, base (the total before it) and total after it, by value number. -/
 def cpRB (r : ℕ) : ℕ := if r = 0 then 138 else 131 + 18 * r
@@ -174,15 +176,15 @@ def cpRT (r : ℕ) : ℕ := 148 + 18 * r
 /-- Rank `r ≥ 1`, from value `B = 131 + 18·r`. -/
 def cpRank (r : ℕ) : List Stmt :=
   let B := 131 + 18 * r
-  [.atom (.load (.n B) (.n 136) r), .atom (.const (.n (B + 1)) w8),
+  [.atom (.load (.n B) (.n (val% «certify_placement» "group_order")) r), .atom (.const (.n (B + 1)) w8),
     .atom (.rangeCheck (.n B) (.n (B + 2)) (.n (B + 3)) (.n (B + 4)) (.n (B + 1))),
-    .atom (.mul (.n (B + 5)) (.n 10) (.n B)), .atom (.load (.n (B + 6)) (.n (B + 5)) 0),
+    .atom (.mul (.n (B + 5)) (.n (val% «certify_placement» "group_key")) (.n B)), .atom (.load (.n (B + 6)) (.n (B + 5)) 0),
     .atom (.const (.n (B + 7)) wRankBound),
     .atom (.mul (.n (cpRK (r - 1))) (.n (B + 8)) (.n (B + 6))),
     .atom (.const (.n (B + 9)) wInvGen), .atom (.mul (.n (B + 10)) (.n (B + 8)) (.n (B + 9))),
     .atom (.rangeCheck (.n (B + 10)) (.n (B + 11)) (.n (B + 12)) (.n (B + 13)) (.n (B + 7))),
-    .atom (.mul (.n (B + 14)) (.n 137) (.n B)), .atom (.load (.n (B - 1)) (.n (B + 14)) 0),
-    .atom (.mul (.n (B + 15)) (.n 11) (.n B)), .atom (.load (.n (B + 16)) (.n (B + 15)) 0),
+    .atom (.mul (.n (B + 14)) (.n (val% «certify_placement» "group_base")) (.n B)), .atom (.load (.n (B - 1)) (.n (B + 14)) 0),
+    .atom (.mul (.n (B + 15)) (.n (val% «certify_placement» "group_size")) (.n B)), .atom (.load (.n (B + 16)) (.n (B + 15)) 0),
     .atom (.mul (.n (B + 17)) (.n (B - 1)) (.n (B + 16)))]
 
 /-- Group `gi`'s columns' first value. -/
@@ -190,37 +192,37 @@ def cpD (gi : ℕ) : ℕ := 294 + 2 * gi + cpC0 gi
 
 /-- Group `gi`'s columns: the step `g_squares[g^κ]`, the base, and each column's offset. -/
 def cpCols (gi : ℕ) : List Stmt :=
-  [.atom (.mul (.n (cpD gi)) (.n 1) (.n (2 + cpSrc gi))),
+  [.atom (.mul (.n (cpD gi)) (.n (val% «certify_placement» "g_squares")) (.n (2 + cpSrc gi))),
     .atom (.load (.n (cpD gi + 1)) (.n (cpD gi)) (cpAdj gi)),
-    .atom (.load (.n (cpD gi + 2)) (.n 137) gi),
-    .atom (.load (.n (cpD gi + 2)) (.n 293) (cpC0 gi))] ++
+    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "group_base")) gi),
+    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi))] ++
   ((List.range (cpLen gi - 1)).map fun j ↦
     [.atom (.mul (.n (cpD gi + 3 + j)) (.n (cpD gi + 2 + j)) (.n (cpD gi + 1))),
-      .atom (.load (.n (cpD gi + 3 + j)) (.n 293) (cpC0 gi + 1 + j))]).flatten
+      .atom (.load (.n (cpD gi + 3 + j)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi + 1 + j))]).flatten
 
 /-- `certify_placement`'s statements before its `ret`. -/
 def cpPre : List Stmt :=
-  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n 0) i)]).flatten ++
-    [.atom (.hint (.alloc (.n 10) 9)), .atom (.hint (.alloc (.n 11) 9))] ++
+  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ++
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ++
     ((List.range 9).map cpGroup).flatten ++
-    [.atom (.hint (.alloc (.n 136) 9)),
-      .atom (.hint (.witness "col_group_order" (.heap (.n 136) 0 9))),
-      .atom (.hint (.alloc (.n 137) 9))] ++
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_order")) 9)),
+      .atom (.hint (.witness "col_group_order" (.heap (.n (val% «certify_placement» "group_order")) 0 9))),
+      .atom (.hint (.alloc (.n (val% «certify_placement» "group_base")) 9))] ++
     cpRank0 ++ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ++
-    [.atom (.hint (.alloc (.n 293) 94))] ++ ((List.range 9).map cpCols).flatten ++
-    [.atom (.copy (.n 406) (.n 292)), .atom (.copy (.n 407) (.n 293))]
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "col_off_g")) 94))] ++ ((List.range 9).map cpCols).flatten ++
+    [.atom (.copy (.n (val% «certify_placement» "s13#0")) (.n (val% «certify_placement» "g_total@9"))), .atom (.copy (.n (val% «certify_placement» "s13#0[1]")) (.n (val% «certify_placement» "col_off_g")))]
 
 /-- The function found by name is the template. -/
 noncomputable def cpCheck : Bool :=
   match coreProgram.find? "certify_placement" with
-  | some fn => decide (fn.params = [.n 0, .n 1]) &&
-      tbStmtsEqb fn.body (cpPre ++ [.ret [.n 406, .n 407]])
+  | some fn => decide (fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")]) &&
+      tbStmtsEqb fn.body (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]])
   | none => false
 
 theorem cpCheck_eq : cpCheck = true := by decide +kernel
 
 theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn ∧
-    fn.params = [.n 0, .n 1] ∧ fn.body = cpPre ++ [.ret [.n 406, .n 407]] := by
+    fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")] ∧ fn.body = cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]] := by
   have h := cpCheck_eq
   unfold cpCheck at h
   split at h
@@ -270,7 +272,7 @@ theorem cpPre_noRet : Stmt.noRetList cpPre = true := by
   simp only [cpPre, tb_noRetList_append, tb_noRetList_flatten_range _ _ cpGroup_noRet,
     tb_noRetList_flatten_range _ _ cpCols_noRet,
     tb_noRetList_flatten_range _ _ (fun r ↦ (rfl : Stmt.noRetList (cpRank (r + 1)) = true)),
-    tb_noRetList_flatten_range 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n 0) i)])
+    tb_noRetList_flatten_range 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)])
       (fun _ ↦ rfl)]
   rfl
 
@@ -285,25 +287,25 @@ def TbRcHolds (rd : Reader) (σ : Val) (x y t1 t2 k : ℕ) : Prop :=
 def CpGroupOk (rd : Reader) (σ : Val) (gi : ℕ) : Prop :=
   σ (.n (cpKv gi)) = σ (.n (2 + cpSrc gi)) * word (2 ^ cpAdj gi) 0 ∧
     σ (.n (cpQ gi)) = w33 ∧ TbRcHolds rd σ (cpKv gi) (cpQ gi + 1) (cpQ gi + 2) (cpQ gi + 3) (cpQ gi) ∧
-    LoadHolds rd (σ (.n 1) * σ (.n (cpKv gi))) 178 (σ (.n (cpQ gi + 5))) ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "g_squares")) * σ (.n (cpKv gi))) 178 (σ (.n (cpQ gi + 5))) ∧
     σ (.n (cpZ gi - 1)) = σ (.n (cpQ gi + 5)) * word (cpInvWords.getD gi 0) 0 ∧
-    LoadHolds rd (σ (.n 10)) gi (σ (.n (cpZ gi - 1))) ∧
-    LoadHolds rd (σ (.n 1) * σ (.n (cpKv gi))) 0 (σ (.n (cpZ gi + 1))) ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "group_key"))) gi (σ (.n (cpZ gi - 1))) ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "g_squares")) * σ (.n (cpKv gi))) 0 (σ (.n (cpZ gi + 1))) ∧
     (∀ j ≤ (cpCh gi).length,
       σ (.n (cpZ gi + 1 + j)) = σ (.n (cpZ gi + 1)) ^ cpChainExp ((cpCh gi).take j)) ∧
-    LoadHolds rd (σ (.n 11)) gi (σ (.n (cpZ gi + 1 + (cpCh gi).length)))
+    LoadHolds rd (σ (.n (val% «certify_placement» "group_size"))) gi (σ (.n (cpZ gi + 1 + (cpCh gi).length)))
 
 /-- What rank `r ≥ 1` asks of a valuation. -/
 def CpRankOk (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
   let B := 131 + 18 * r
-  LoadHolds rd (σ (.n 136)) r (σ (.n B)) ∧ σ (.n (B + 1)) = w8 ∧
-    TbRcHolds rd σ B (B + 2) (B + 3) (B + 4) (B + 1) ∧ σ (.n (B + 5)) = σ (.n 10) * σ (.n B) ∧
+  LoadHolds rd (σ (.n (val% «certify_placement» "group_order"))) r (σ (.n B)) ∧ σ (.n (B + 1)) = w8 ∧
+    TbRcHolds rd σ B (B + 2) (B + 3) (B + 4) (B + 1) ∧ σ (.n (B + 5)) = σ (.n (val% «certify_placement» "group_key")) * σ (.n B) ∧
     LoadHolds rd (σ (.n (B + 5))) 0 (σ (.n (B + 6))) ∧ σ (.n (B + 7)) = wRankBound ∧
     σ (.n (cpRK (r - 1))) = σ (.n (B + 8)) * σ (.n (B + 6)) ∧ σ (.n (B + 9)) = wInvGen ∧
     σ (.n (B + 10)) = σ (.n (B + 8)) * σ (.n (B + 9)) ∧
     TbRcHolds rd σ (B + 10) (B + 11) (B + 12) (B + 13) (B + 7) ∧
-    σ (.n (B + 14)) = σ (.n 137) * σ (.n B) ∧ LoadHolds rd (σ (.n (B + 14))) 0 (σ (.n (B - 1))) ∧
-    σ (.n (B + 15)) = σ (.n 11) * σ (.n B) ∧ LoadHolds rd (σ (.n (B + 15))) 0 (σ (.n (B + 16))) ∧
+    σ (.n (B + 14)) = σ (.n (val% «certify_placement» "group_base")) * σ (.n B) ∧ LoadHolds rd (σ (.n (B + 14))) 0 (σ (.n (B - 1))) ∧
+    σ (.n (B + 15)) = σ (.n (val% «certify_placement» "group_size")) * σ (.n B) ∧ LoadHolds rd (σ (.n (B + 15))) 0 (σ (.n (B + 16))) ∧
     σ (.n (B + 17)) = σ (.n (B - 1)) * σ (.n (B + 16))
 
 section
@@ -369,16 +371,16 @@ theorem holds_cpRank (r : ℕ) :
   simp only [cpRank, CpRankOk, TbRcHolds, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
 theorem holds_cpCols {gi : ℕ} (h : Stmt.HoldsList C rd σ (cpCols gi) True kret) :
-    LoadHolds rd (σ (.n 1) * σ (.n (2 + cpSrc gi))) (cpAdj gi) (σ (.n (cpD gi + 1))) ∧
-    LoadHolds rd (σ (.n 137)) gi (σ (.n (cpD gi + 2))) ∧
-    ∀ j < cpLen gi, LoadHolds rd (σ (.n 293)) (cpC0 gi + j)
+    LoadHolds rd (σ (.n (val% «certify_placement» "g_squares")) * σ (.n (2 + cpSrc gi))) (cpAdj gi) (σ (.n (cpD gi + 1))) ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "group_base"))) gi (σ (.n (cpD gi + 2))) ∧
+    ∀ j < cpLen gi, LoadHolds rd (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 gi + j)
       (σ (.n (cpD gi + 2)) * σ (.n (cpD gi + 1)) ^ j) := by
   rw [cpCols, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ fun _ ↦ rfl] at h
   obtain ⟨h0, h1⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   obtain ⟨m0, l1, l2, l3⟩ := h0
   have hv : ∀ j < cpLen gi, σ (.n (cpD gi + 2 + j)) = σ (.n (cpD gi + 2)) * σ (.n (cpD gi + 1)) ^ j ∧
-      LoadHolds rd (σ (.n 293)) (cpC0 gi + j) (σ (.n (cpD gi + 2 + j))) := by
+      LoadHolds rd (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 gi + j) (σ (.n (cpD gi + 2 + j))) := by
     intro j hj
     induction j with
     | zero => exact ⟨by rw [pow_zero, mul_one], l3⟩
@@ -400,9 +402,9 @@ end
 /-- What rank `r` gives, uniformly. -/
 def CpFacts (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
   (∃ gi < 9, σ (.n (cpRB r)) = gen ^ gi) ∧
-    LoadHolds rd (σ (.n 10) * σ (.n (cpRB r))) 0 (σ (.n (cpRK r))) ∧
-    LoadHolds rd (σ (.n 137) * σ (.n (cpRB r))) 0 (σ (.n (cpRP r))) ∧
-    (∃ t, LoadHolds rd (σ (.n 11) * σ (.n (cpRB r))) 0 t ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "group_key")) * σ (.n (cpRB r))) 0 (σ (.n (cpRK r))) ∧
+    LoadHolds rd (σ (.n (val% «certify_placement» "group_base")) * σ (.n (cpRB r))) 0 (σ (.n (cpRP r))) ∧
+    (∃ t, LoadHolds rd (σ (.n (val% «certify_placement» "group_size")) * σ (.n (cpRB r))) 0 t ∧
       σ (.n (cpRT r)) = σ (.n (cpRP r)) * t) ∧
     (r = 0 → σ (.n (cpRP r)) = 1) ∧ (1 ≤ r → σ (.n (cpRP r)) = σ (.n (cpRT (r - 1)))) ∧
     (1 ≤ r → ∃ e < 8398, σ (.n (cpRK (r - 1))) = gen ^ (e + 1) * σ (.n (cpRK r)))
@@ -449,13 +451,13 @@ theorem cpFacts_succ {σ : Val} {r : ℕ} (h : CpRankOk Lm.read σ (r + 1)) :
 /-- Group `gi`'s `κ`, key and size. -/
 theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : eb ≤ 33)
     (hkb : σ (.n (2 + cpSrc gi)) = gen ^ eb)
-    (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n 1)) j (gen ^ 2 ^ j))
-    (hrk : ∀ k < 34, LoadHolds Lm.read (σ (.n 1)) (178 + k) (gen ^ (k * rankStride)))
+    (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n (val% «certify_placement» "g_squares"))) j (gen ^ 2 ^ j))
+    (hrk : ∀ k < 34, LoadHolds Lm.read (σ (.n (val% «certify_placement» "g_squares"))) (178 + k) (gen ^ (k * rankStride)))
     (h : CpGroupOk Lm.read σ gi) :
     eb + cpAdj gi < 34 ∧
-      (∃ K, LoadHolds Lm.read (σ (.n 10)) gi K ∧
+      (∃ K, LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_key"))) gi K ∧
         K * gen ^ cpC0 gi = gen ^ ((eb + cpAdj gi) * rankStride)) ∧
-      LoadHolds Lm.read (σ (.n 11)) gi (gen ^ (cpLen gi * 2 ^ (eb + cpAdj gi))) := by
+      LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_size"))) gi (gen ^ (cpLen gi * 2 ^ (eb + cpAdj gi))) := by
   obtain ⟨hkv, hq, hrc, hload, hkey, hkeyL, hsqL, hch, hsz⟩ := h
   have hadj := cpAdj_le gi hgi
   have ekv : σ (.n (cpKv gi)) = gen ^ (eb + cpAdj gi) := by
@@ -493,7 +495,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hret
   obtain ⟨h0, h1⟩ := hpar
   simp only [cpPre, holdsList_append,
-    tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n 0) i)])
+    tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)])
       (fun _ ↦ rfl),
     tb_holdsList_range_flatten 9 cpGroup cpGroup_noRet,
     tb_holdsList_range_flatten 8 (fun r ↦ cpRank (r + 1)) (fun _ ↦ rfl),
@@ -543,19 +545,19 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
       rw [List.getD_eq_getElem _ _ (by omega)]
       have := hhs _ (List.getElem_mem (by omega : i < hs.length))
       omega
-  have hsq' : ∀ j < 34, LoadHolds Lm.read (σ (.n 1)) j (gen ^ 2 ^ j) := fun j hj ↦ by
+  have hsq' : ∀ j < 34, LoadHolds Lm.read (σ (.n (val% «certify_placement» "g_squares"))) j (gen ^ 2 ^ j) := fun j hj ↦ by
     have := hsq j (by simp [gSquaresList]; omega)
     rw [h1]; simpa [gSquaresList] using this
-  have hrk' : ∀ k < 34, LoadHolds Lm.read (σ (.n 1)) (178 + k) (gen ^ (k * rankStride)) :=
+  have hrk' : ∀ k < 34, LoadHolds Lm.read (σ (.n (val% «certify_placement» "g_squares"))) (178 + k) (gen ^ (k * rankStride)) :=
     fun k hk ↦ by
       have := tbReadsAt_gen_pow_mul.mp hrk k (by simp [rankKeysList]; omega)
       rw [h1]; simpa [rankKeysList] using this
   -- the columns' sizes
   set κc : ℕ → ℕ := fun c ↦ ebL.getD (colKappaSrc c) 0 + colKappaAdj c with hκc
   have hG : ∀ gi < 9, κc (cpC0 gi) < 34 ∧
-      (∃ K, LoadHolds Lm.read (σ (.n 10)) gi K ∧
+      (∃ K, LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_key"))) gi K ∧
         K * gen ^ cpC0 gi = gen ^ (κc (cpC0 gi) * rankStride)) ∧
-      LoadHolds Lm.read (σ (.n 11)) gi (gen ^ (cpLen gi * 2 ^ κc (cpC0 gi))) := fun gi hgi ↦
+      LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_size"))) gi (gen ^ (cpLen gi * 2 ^ κc (cpC0 gi))) := fun gi hgi ↦
     cp_group_meaning hμ Lm hgi (heb _ (cpSrc_lt gi hgi)).2 (heb _ (cpSrc_lt gi hgi)).1 hsq' hrk'
       (holds_cpGroup hgi (hgroups gi hgi))
   obtain ⟨Kf, hKf⟩ := tb_exists_fun_of_forall (n := 9) fun gi hgi ↦ (hG gi hgi).2.1
@@ -593,7 +595,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
       exact hstep r (by omega) (ih (by omega))
   have hT : ∀ r < 9, σ (.n (cpRP r)) = gen ^ P r ∧ σ (.n (cpRT r)) = gen ^ P (r + 1) :=
     fun r hr ↦ ⟨hTP r hr, hstep r hr (hTP r hr)⟩
-  have hbase : ∀ r < 9, LoadHolds Lm.read (σ (.n 137)) (π r) (gen ^ P r) := fun r hr ↦ by
+  have hbase : ∀ r < 9, LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_base"))) (π r) (gen ^ P r) := fun r hr ↦ by
     have := (hf r hr).2.2.1
     rw [(hπ r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero, (hT r hr).1] at this
     exact this
@@ -621,7 +623,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     refine ⟨by omega, fun ht ↦ cpC0_lt _ ha _ hb (by omega)⟩
   -- the columns
   have hoff : ∀ r < 9, ∀ i, cpC0 (π r) + i < cpC0 (π r + 1) →
-      LoadHolds Lm.read (σ (.n 293)) (cpC0 (π r) + i)
+      LoadHolds Lm.read (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 (π r) + i)
         (gen ^ (P r + i * 2 ^ κc (cpC0 (π r)))) := fun r hr i hi ↦ by
     have hg := hπ9 r hr
     obtain ⟨lstep, lbase, lcols⟩ := holds_cpCols (hcols _ hg)
@@ -636,13 +638,13 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     fun g hg c hc1 hc2 ↦ by
       obtain ⟨e1, e2⟩ := cp_group_const g hg c (by have := cpC0_le g hg; omega) hc1 hc2
       simp only [κc, e1, e2, cpSrc, cpAdj]
-  obtain ⟨hoffs, htot⟩ := tb_group_stack_cert (rd := Lm.read) (off := σ (.n 293)) (m := 9) cpC0 κc π
+  obtain ⟨hoffs, htot⟩ := tb_group_stack_cert (rd := Lm.read) (off := σ (.n (val% «certify_placement» "col_off_g"))) (m := 9) cpC0 κc π
     cpC0_zero cpC0_mono hconst hπ9 hadj hoff
   rw [cpC0_nine] at hoffs htot
   -- the statement's sizes
   have hκ : committedKappas (columnKappas logMem guestLogBytecode hs) = (List.range 94).map κc :=
     committedKappas_columnKappas logMem hs hl
-  refine ⟨σ (.n 407), ?_, columnKappas_length _ _ _, ?_⟩
+  refine ⟨σ (.n (val% «certify_placement» "s13#0[1]")), ?_, columnKappas_length _ _ _, ?_⟩
   · rw [← hret, e406, e407, stackTotal, hκ, List.map_map]
     have := (hT 8 (by omega)).2
     rw [show cpRT 8 = 292 from rfl] at this

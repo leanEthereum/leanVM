@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Placement.CertifyComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
 # `certify_placement`, placed (TRIAGE G #67)
@@ -58,7 +60,7 @@ theorem cp_flat : cpPre.all Stmt.flat = true := by decide +kernel
 theorem cp_addrs : cpPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem cp_allocs : cpPre.filterMap Main.Stmt.allocSz =
-    [(.n 10, .inl 9), (.n 11, .inl 9), (.n 136, .inl 9), (.n 137, .inl 9), (.n 293, .inl 94)] := by
+    [(.n (val% «certify_placement» "group_key"), .inl 9), (.n (val% «certify_placement» "group_size"), .inl 9), (.n (val% «certify_placement» "group_order"), .inl 9), (.n (val% «certify_placement» "group_base"), .inl 9), (.n (val% «certify_placement» "col_off_g"), .inl 94)] := by
   decide +kernel
 
 theorem cp_not_loop : coreProgram.loop "certify_placement" = false := by decide +kernel
@@ -73,25 +75,25 @@ def noCallB : Stmt → Bool
 theorem cp_noCall : cpPre.all noCallB = true := by decide +kernel
 
 theorem cpGroup_loads : ∀ gi < 9, (cpGroup gi).filterMap Stmt.loadS =
-    [(.n (cpQ gi + 4), 178), (.n 10, gi), (.n (cpZ gi), 0), (.n 11, gi)] := by decide +kernel
+    [(.n (cpQ gi + 4), 178), (.n (val% «certify_placement» "group_key"), gi), (.n (cpZ gi), 0), (.n (val% «certify_placement» "group_size"), gi)] := by decide +kernel
 
 theorem cpRank_loads : ∀ r < 8, (cpRank (r + 1)).filterMap Stmt.loadS =
-    [(.n 136, r + 1), (.n (131 + 18 * (r + 1) + 5), 0), (.n (131 + 18 * (r + 1) + 14), 0),
+    [(.n (val% «certify_placement» "group_order"), r + 1), (.n (131 + 18 * (r + 1) + 5), 0), (.n (131 + 18 * (r + 1) + 14), 0),
       (.n (131 + 18 * (r + 1) + 15), 0)] := by decide +kernel
 
 theorem cpCols_loads : ∀ gi < 9, (cpCols gi).filterMap Stmt.loadS =
-    (.n (cpD gi), cpAdj gi) :: (.n 137, gi) ::
-      (List.range (cpLen gi)).map fun j ↦ (.n 293, cpC0 gi + j) := by decide +kernel
+    (.n (cpD gi), cpAdj gi) :: (.n (val% «certify_placement» "group_base"), gi) ::
+      (List.range (cpLen gi)).map fun j ↦ (.n (val% «certify_placement» "col_off_g"), cpC0 gi + j) := by decide +kernel
 
 theorem cp_loads {q : V × ℕ} (hq : q ∈ cpPre.filterMap Stmt.loadS) :
-    (∃ i < 8, q = (.n 0, i)) ∨
-      (∃ gi < 9, q = (.n (cpQ gi + 4), 178) ∨ q = (.n 10, gi) ∨ q = (.n (cpZ gi), 0) ∨
-        q = (.n 11, gi)) ∨
-      q = (.n 136, 0) ∨ q = (.n 143, 0) ∨ q = (.n 146, 0) ∨ q = (.n 147, 0) ∨
-      (∃ r < 8, q = (.n 136, r + 1) ∨ q = (.n (131 + 18 * (r + 1) + 5), 0) ∨
+    (∃ i < 8, q = (.n (val% «certify_placement» "kappa_base"), i)) ∨
+      (∃ gi < 9, q = (.n (cpQ gi + 4), 178) ∨ q = (.n (val% «certify_placement» "group_key"), gi) ∨ q = (.n (cpZ gi), 0) ∨
+        q = (.n (val% «certify_placement» "group_size"), gi)) ∨
+      q = (.n (val% «certify_placement» "group_order"), 0) ∨ q = (.n (val% «certify_placement» "key@1~0"), 0) ∨ q = (.n (val% «certify_placement» "s10.u0.s4#1"), 0) ∨ q = (.n (val% «certify_placement» "g_total@1~0"), 0) ∨
+      (∃ r < 8, q = (.n (val% «certify_placement» "group_order"), r + 1) ∨ q = (.n (131 + 18 * (r + 1) + 5), 0) ∨
         q = (.n (131 + 18 * (r + 1) + 14), 0) ∨ q = (.n (131 + 18 * (r + 1) + 15), 0)) ∨
-      (∃ gi < 9, q = (.n (cpD gi), cpAdj gi) ∨ q = (.n 137, gi) ∨
-        ∃ j < cpLen gi, q = (.n 293, cpC0 gi + j)) := by
+      (∃ gi < 9, q = (.n (cpD gi), cpAdj gi) ∨ q = (.n (val% «certify_placement» "group_base"), gi) ∨
+        ∃ j < cpLen gi, q = (.n (val% «certify_placement» "col_off_g"), cpC0 gi + j)) := by
   simp only [cpPre, List.filterMap_append, List.filterMap_flatten, List.map_map,
     List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hq
   rcases hq with ((((((((⟨_, ⟨i, hi, rfl⟩, hq⟩ | hq) | ⟨_, ⟨gi, hgi, rfl⟩, hq⟩) | hq) | hq) |
@@ -181,15 +183,15 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
   · exact ⟨e11 + gi, tb_addr_ofK _ _, Or.inr (h11 gi hgi)⟩
   · exact ⟨e136 + 0, tb_addr_ofK _ _, Or.inr (h136 0 (by norm_num))⟩
   · refine ⟨e10 + cpPi lm hs 0, ?_, Or.inr (h10 _ hp0)⟩
-    rw [show σ (.n 143) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
+    rw [show σ (.n (val% «certify_placement» "key@1~0")) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 5) (by norm_num), cp_limb_mul]
     rfl
   · refine ⟨e137 + cpPi lm hs 0, ?_, Or.inr (h137 _ hp0)⟩
-    rw [show σ (.n 146) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from
+    rw [show σ (.n (val% «certify_placement» "s10.u0.s4#1")) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 8) (by norm_num), cp_limb_mul]
     rfl
   · refine ⟨e11 + cpPi lm hs 0, ?_, Or.inr (h11 _ hp0)⟩
-    rw [show σ (.n 147) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
+    rw [show σ (.n (val% «certify_placement» "g_total@1~0")) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 9) (by norm_num), cp_limb_mul]
     rfl
   · exact ⟨e136 + (r + 1), tb_addr_ofK _ _, Or.inr (h136 _ (by omega))⟩

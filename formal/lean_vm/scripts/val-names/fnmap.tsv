@@ -271,3 +271,7 @@ LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop2_iter level_residual__L_loop1
 LeanVM/Guest/B1/Place/LrProof.lean level_residual__L
+# Placement
+LeanVM/Guest/B1/Placement/Certify.lean certify_placement
+LeanVM/Guest/B1/Placement/CertifyAt.lean certify_placement
+LeanVM/Guest/B1/Placement/CertifyComplete.lean certify_placement
