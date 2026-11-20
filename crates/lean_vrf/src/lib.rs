@@ -75,7 +75,13 @@ impl VrfKey {
             return None;
         }
         let key = Self::uncached(seed, slots).with_cache(level, nodes.to_vec());
-        (key.root == *root).then_some(key)
+        // The root pins the cached nodes, not where the range ends inside the first and last: any
+        // other range treats a subtree beside one of its end slots wrongly, so that slot fails.
+        let opens = |slot: u32| {
+            key.proof(slot)
+                .is_some_and(|proof| verify_vrf_proof(root, slot.into(), &proof))
+        };
+        (key.root == *root && opens(key.slots.start) && opens(key.slots.end - 1)).then_some(key)
     }
 
     /// Encodes the cache: `start` and `end` (4 little-endian bytes each), then the cached layer. It

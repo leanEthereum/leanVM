@@ -75,8 +75,18 @@ fn vrf_cache_bytes() {
         assert!(VrfKey::from_cache_bytes([0; 32], &cache, &root).is_none());
         assert!(VrfKey::from_cache_bytes(seed(), &cache[..cache.len() - 1], &root).is_none());
         assert!(VrfKey::from_cache_bytes(seed(), &[&cache[..], &[0; 32]].concat(), &root).is_none());
-        let mut wrong_range = cache.clone();
-        wrong_range[4..8].copy_from_slice(&(slots.end + (1 << 20)).to_le_bytes());
-        assert!(VrfKey::from_cache_bytes(seed(), &wrong_range, &root).is_none());
+        // Ranges with as many cached nodes, which the root alone does not tell apart.
+        for (start, end) in [
+            (slots.start.wrapping_sub(1), slots.end),
+            (slots.start + 1, slots.end),
+            (slots.start, slots.end - 1),
+            (slots.start, slots.end + 1),
+        ] {
+            let wrong_range = [&start.to_le_bytes(), &end.to_le_bytes(), &cache[8..]].concat();
+            assert!(
+                VrfKey::from_cache_bytes(seed(), &wrong_range, &root).is_none(),
+                "{slots:?} loaded as {start}..{end}"
+            );
+        }
     }
 }

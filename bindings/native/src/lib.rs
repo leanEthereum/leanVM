@@ -36,6 +36,7 @@ pub struct SphincsSecretKeyHandle(sphincs::SecretKey);
 pub struct AggregateHandle(Aggregate);
 /// Opaque ownership handle. Bindings only ever pass its address back to this library.
 pub struct VrfKeyHandle(vrf::Key);
+/// Opaque ownership handle. Bindings only ever pass its address back to this library.
 pub struct SidecarHandle(Sidecar);
 
 fn set_error(message: impl Into<String>) {
