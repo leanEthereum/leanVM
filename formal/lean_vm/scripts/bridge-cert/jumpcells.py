@@ -10,6 +10,8 @@ function's `Bridge.jcData` (`Link*.lean`); the assembly over every function (`Al
 """
 import os, sys, glob, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 import data
 import progal
 
@@ -125,24 +127,10 @@ end
 
 end LeanVM.Guest.Bridge.JumpCells
 ''')
-    stale = []
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
-    for path in sorted(existing - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
+    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the jump cells of {len(lk)} functions over {len(groups)} data modules')
-    if check and stale:
-        for p in stale:
-            print(f'stale: {os.path.relpath(p, data.LEAN_VM)}', file=sys.stderr)
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 
 
 if __name__ == '__main__':

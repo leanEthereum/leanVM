@@ -9,11 +9,12 @@ pointers its `SET`s name, is its own (`fpows`, `frame_gen.py`).
 usage (from formal/lean_vm): python3 -I scripts/core-mode/pows.py [--check]
 """
 import sys, os, re, glob
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 
 LV = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GUEST = os.path.join(LV, 'LeanVM', 'Guest')
 OUT = os.path.join(GUEST, 'CoreMode', 'Pows')
-CHECK = '--check' in sys.argv
 
 NS = re.compile(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$(.*?)^end LeanVM\.Guest\.Fn\.«\1»$', re.M | re.S)
 SET = re.compile(r'\(\.set \d+ (\d+) 0\)')  # read by `frame_gen.py`
@@ -35,7 +36,7 @@ def tree(pairs):
     return f'(.node {k} {e} {tree(pairs[:m])} {tree(pairs[m + 1:])})'
 
 
-def main():
+def main(check=False):
     G = global_pows()
     consts, home = {}, {}
     for p in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean'))):
@@ -63,27 +64,10 @@ def main():
                        f'theorem Fn.«{k}».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)\n')
         out.append('\nend\n\nend LeanVM.Guest\n')
         want[os.path.join(OUT, pack + '.lean')] = ''.join(out)
-    stale = []
-    have = set(glob.glob(os.path.join(OUT, '*.lean')))
-    for path, text in sorted(want.items()):
-        if CHECK:
-            if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
-                stale.append(path)
-        else:
-            os.makedirs(OUT, exist_ok=True)
-            if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
-                with open(path, 'w', encoding='utf-8') as fh:
-                    fh.write(text)
-    for path in sorted(have - set(want)):
-        if CHECK:
-            stale.append(path)
-        else:
-            os.remove(path)
-    if stale:
-        print('stale:', *stale, sep='\n  ')
-        sys.exit(1)
+    stale = genfiles.sync(want, glob.glob(os.path.join(OUT, '*.lean')), check)
+    genfiles.fail_if_stale(stale, check)
     print('pows: %d packs, %d functions' % (len(want), sum(len(f) for f in packs.values())))
 
 
 if __name__ == '__main__':
-    main()
+    main('--check' in sys.argv)

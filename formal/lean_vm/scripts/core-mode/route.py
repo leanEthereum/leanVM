@@ -280,12 +280,12 @@ def _cell(c):
 
 
 def route_sub():
-    """`route()` in a fresh interpreter (the generators' own `data` modules clash with the pairing's)."""
-    import subprocess, tempfile, json
-    with tempfile.NamedTemporaryFile(suffix='.json') as fh:
-        subprocess.run([sys.executable, '-I', os.path.abspath(__file__), '--dump', fh.name], check=True,
-                       stdout=subprocess.DEVNULL)
-        R = json.load(open(fh.name))
+    """`route()` in a fresh interpreter (the generators' own `data` modules clash with the pairing's), its reads
+    recorded as the caller's (`memo.follow`)."""
+    import subprocess
+    r = subprocess.run([sys.executable, '-I', os.path.abspath(__file__), '--dump'], check=True, stdout=subprocess.PIPE,
+                       text=True)
+    R = json.loads(r.stdout)
     for r in R.values():
         r['post'] = [(_cell(c), tuple(w)) for c, w in r['post']]
         r['pre'] = [_cell(c) for c in r['pre']]
@@ -293,7 +293,10 @@ def route_sub():
 
 
 if __name__ == '__main__':
-    R = route(verbose=True)
     if '--dump' in sys.argv:
-        import json
-        json.dump(R, open(sys.argv[sys.argv.index('--dump') + 1], 'w'))
+        import memo
+        memo.follow()
+        out, sys.stdout = sys.stdout, open(os.devnull, 'w')
+        json.dump(route(), out)
+    else:
+        route(verbose=True)

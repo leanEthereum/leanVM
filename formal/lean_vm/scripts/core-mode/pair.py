@@ -15,6 +15,8 @@ usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [-
 import os, sys, glob, re, collections, json
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
 import data
 import align as AL
@@ -104,8 +106,7 @@ def pair(F, body, A, locs, extra, pows, jt, ents, reads, cuts=()):
         return s if s is not None and s[0] == args and s[1] == rets else None
 
     def compiles(c, h):
-        from gen import need
-        n = need(c, h)
+        n = data.need(c, h)
         if n is None or any(loc(v) != cell for v, cell in n):
             raise Fail(f'hint {h[0]} does not compile {c[0]}')
 
@@ -534,26 +535,12 @@ def emit(out, check):
         files.update(render_pack(pack, fs))
     existing = set(glob.glob(os.path.join(GEN, '*', 'Pair.lean'))) | set(glob.glob(os.path.join(GEN, '*', '*', '*.lean'))) | \
         set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*.lean')))
-    stale = []
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
-    for path in sorted(existing - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
+    stale = genfiles.sync(files, existing, check)
     lines = sum(t.count('\n') for t in files.values())
     mods = sorted('LeanVM.Guest.' + os.path.relpath(p, GUEST)[:-5].replace('/', '.') for p in files)
     mods = [re.sub(r'\.([^.«»]*[^A-Za-z0-9_.][^.]*?)(?=\.|$)', lambda m: '.«' + m.group(1) + '»', x) for x in mods]
     print(f'pair: {len(files)} modules, {lines} lines' + (f'; {len(stale)} stale' if check else ''))
-    if check and stale:
-        for p in stale[:10]:
-            print('stale:', os.path.relpath(p, data.LEAN_VM), file=sys.stderr)
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check, data.LEAN_VM, 10)
     return mods
 
 

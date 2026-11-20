@@ -14,6 +14,8 @@ cells packed ahead in pieces (`Bridge.packSt`), so no module walks its whole cod
 """
 import os, sys, glob, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 import data
 from data import parse, as_list, head, defs
 
@@ -219,8 +221,7 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
         return s if s is not None and s[0] == args and s[1] == rets else None
 
     def compiles(c, h):
-        from gen import need
-        n = need(c, h)
+        n = data.need(c, h)
         if n is None:
             raise Fail(f'hint {h[0]} does not compile {c[0]}')
         for v, cell in n:
@@ -341,8 +342,7 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
 
 
 def data_flow():
-    from gen import FLOW
-    return FLOW
+    return data.FLOW
 
 
 WIN = 4096
@@ -383,10 +383,9 @@ def ents_lit(f):
 
 
 def bases(f, pack):
-    from gen import core_module
     return ['LeanVM.Guest.Bridge.AlignDefs', 'Statement.Data.AdviceHints', 'LeanVM.Guest.Data.Pows',
             f'LeanVM.Guest.Pack.«{pack}».Bundle',
-            f'LeanVM.Guest.Pack.«{f["core_pack"]}».Core' if f['core_pack'] else core_module(f['key'])] + \
+            f'LeanVM.Guest.Pack.«{f["core_pack"]}».Core' if f['core_pack'] else data.core_module(f['key'])] + \
         [f'LeanVM.Guest.CoreMode.GlueE.«{q}»' for _, _, q in f['entk']]
 
 
@@ -638,30 +637,12 @@ def run(check):
     files = {os.path.join(OUT, f'{p}.lean'): render(p, fs) for p, fs in packs.items()}
     for p, f, n in wins:
         files.update(render_sliced(p, f, n) if n else render_win(p, f))
-    stale = []
     existing = set(glob.glob(os.path.join(OUT, '*.lean'))) | set(glob.glob(os.path.join(OUTW, '*', '*.lean'))) | \
         set(glob.glob(os.path.join(OLDW, '*', '*.lean')))
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
-    for path in sorted(existing - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    if not check:
-        for d in glob.glob(os.path.join(OUTW, '*')) + glob.glob(os.path.join(OLDW, '*')) + [OLDW]:
-            if os.path.isdir(d) and not os.listdir(d):
-                os.rmdir(d)
+    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: {sum(len(v) for v in packs.values()) + len(wins)} of {len(texts)} functions align, '
           f'{len(wins)} in windows ({sum(1 for w in wins if w[2])} over slices), {len(files)} modules')
-    if check and stale:
-        for p in stale:
-            print(f'stale: {os.path.relpath(p, data.LEAN_VM)}', file=sys.stderr)
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 
 
 def walk_stmts(block):

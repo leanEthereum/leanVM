@@ -23,10 +23,6 @@ def baseC(k):
     return (((k, 1),), 0)
 
 
-def C0(n):
-    return ((), n)
-
-
 def insB(k, e, l):
     for i, (k2, e2) in enumerate(l):
         if k == k2:
@@ -60,14 +56,6 @@ def tsub(a, b):
 
 def ndiv(a, b):
     return a // b if b else 0
-
-
-def nmod(a, b):
-    return a % b if b else a
-
-
-def isconst(c):
-    return not c[0]
 
 
 # ---- signatures and certificates
@@ -945,11 +933,6 @@ def armSkip(X, st, mx, j, ws, i):
     return None
 
 
-def pushL(st, cs):
-    for c in cs:
-        st.push(c)
-
-
 def condSt(mx, j, cd, st):
     """`cd`: per dispatch `(mx, arms)`, arm `j`'s guarantees `arms[j] = (cs, rs, ps, prs)`."""
     st = st.copy()
@@ -1698,11 +1681,6 @@ def atomDst(a):
             if d[0] == 'stack':
                 return list(d[1])
     return []
-
-
-# frame run cells past their runs a function's certificate also lists (`(kp, i)`, `i` at least the run's length), by
-# function: the frame walk's cells written at every return (`callc.fa_past`, `CoreMode.faRetAt`)
-FA_EXTRA = {}
 
 
 def fa_past_ok(body, kp, i):
