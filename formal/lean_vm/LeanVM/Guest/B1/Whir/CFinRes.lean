@@ -272,7 +272,7 @@ theorem osResiduals_complete {c : OsCfg} {ich bd ls la : ℕ} (mu I0 I1 S B A P 
     BlkA.nil fun _ _ i hi ↦ absurd hi (by simp)
   | lv :: rest, lvl, mats, k, σ, hbd, hich, hls, hla, hk, hmb, hmo, hoff, hrate, hm, hC => by
     have o0 := hoff 0 (by simp)
-    simp only [List.getD_cons_zero, Nat.add_zero] at o0
+    simp only [List.getD_cons_zero] at o0
     have h0 := osResidual_complete (H := H) (c := c) (ich := ich) (bd := bd) (ls := ls) (la := la)
       (lvl := lvl) (lv := lv) (mats := mats) (k := k) (σ := σ) (mu := mu lvl) (i0 := I0 lvl) (i1 := I1 lvl)
       (s := S lvl) (b := B lvl) (a := A lvl) (P := P lvl) (Q := Q lvl) hbd hich hls hla hk hmb hmo o0.1 o0.2.1

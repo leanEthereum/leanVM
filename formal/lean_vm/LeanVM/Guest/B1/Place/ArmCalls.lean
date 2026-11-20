@@ -123,7 +123,7 @@ theorem osHsCoefs_atoms (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
     refine atoms_append ?_ (osHsCoefs_atoms src dst sc si di n (i + 1) _)
     unfold osHsCoef; split_ifs <;> rfl
 
-theorem osHsMid_atoms (lvl : ℕ) (lv : OsLv) (s : OsSt) : Atoms (osHsMid lvl lv s).1 :=
+theorem osHsMid_atoms (lv : OsLv) (s : OsSt) : Atoms (osHsMid lv s).1 :=
   osHsCoefs_atoms _ _ _ _ _ _ _ _
 
 theorem osHsFinal_atoms (c : OsCfg) (lv : OsLv) (s : OsSt) : Atoms (osHsFinal c lv s).1 :=
@@ -214,7 +214,7 @@ def lvPre (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
 def lvPost (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
   let sq := osPositions c lvl lv (lvPosSt c lvl lv s)
   let la := if lvl = c.yrLevel then (([] : List Stmt), sq.2) else osLam sq.2
-  let h := if lvl = c.yrLevel then osHsFinal c lv la.2 else osHsMid lvl lv la.2
+  let h := if lvl = c.yrLevel then osHsFinal c lv la.2 else osHsMid lv la.2
   let q := osQueries c lvl lv h.2
   let g := if lvl = c.yrLevel then (([] : List Stmt), q.2) else osGlue lvl q.2
   la.1 ++ h.1 ++ q.1 ++ g.1
@@ -274,11 +274,11 @@ theorem lvPost_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) 
     split_ifs
     · rfl
     · exact callSF_atoms σ _ (osGlue_atoms _ _)
-  have hh : ∀ t : OsSt, ((if lvl = c.yrLevel then osHsFinal c lv t else osHsMid lvl lv t).1).filterMap
+  have hh : ∀ t : OsSt, ((if lvl = c.yrLevel then osHsFinal c lv t else osHsMid lv t).1).filterMap
       (Stmt.callSF σ) = [] := fun t ↦ by
     split_ifs
     · exact callSF_atoms σ _ (osHsFinal_atoms _ _ _)
-    · exact callSF_atoms σ _ (osHsMid_atoms _ _ _)
+    · exact callSF_atoms σ _ (osHsMid_atoms _ _)
   rw [ha, hg, hh, osQueries_callSF]
   rfl
 
