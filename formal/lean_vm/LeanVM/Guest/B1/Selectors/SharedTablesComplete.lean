@@ -392,10 +392,13 @@ theorem ss_bits {n : ℕ} (hn : n < 64) :
 
 theorem ssB_mul_self (n k : ℕ) : ssB n k = ssB n k * ssB n k := by rw [ssB, bitE_mul_self]
 
-/-- **`shared_selector_tables` is complete.** -/
-theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
-  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
-  obtain ⟨fn, hf, hp, hb⟩ := ssFound
+/-- **The honest valuation satisfies `shared_selector_tables`' body** on its words, returning the
+tables `eqt`, `gt`. -/
+theorem ss_holds (rd : Reader) {eqt gt z z1 gsq : E} {n : ℕ} {zs zs1 gs : List E} (hn : n < 64)
+    (hzl : zs.length = n) (hz1l : zs1.length = n) (hgl : gs.length = n) (hz : TbReadsAt rd z zs)
+    (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs) (hrt : RunTables rd eqt gt n zs zs1 gs) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ ssVal eqt gt z z1 gsq n x.idx) ssPre True
+      (fun rs ↦ rs = [eqt, gt]) := by
   obtain ⟨hr, hq⟩ := ss_bits hn
   have v18 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
     rw [ssF_eq n 0 0 (by norm_num), ssF_eq n 1 1 (by norm_num), ← pow_add, hr]; ring_nf
@@ -403,8 +406,6 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
     rw [ssF_eq n 2 0 (by norm_num), ssF_eq n 3 1 (by norm_num), ssF_eq n 4 2 (by norm_num),
       ssF_eq n 5 3 (by norm_num), ← pow_add, ← pow_add, ← pow_add, hq]; ring_nf
   have hn4 : n = 4 * (n / 4) + n % 4 := by omega
-  refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
-    by rw [hp]; rfl, ?_, rfl⟩
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true, List.map_cons,
     List.map_nil]
   simp (config := { decide := true }) only [ssVal, List.getD_eq_getElem?_getD,
@@ -449,6 +450,13 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · rw [h0]; exact tbReadsAt_nil _ _
       · rw [tb_ite_neg'' (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
+
+/-- **`shared_selector_tables` is complete.** -/
+theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
+  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
+  obtain ⟨fn, hf, hp, hb⟩ := ssFound
+  exact (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
+    by rw [hp]; rfl, ss_holds rd hn hzl hz1l hgl hz hz1 hg hrt, rfl⟩
 
 end
 end LeanVM.Guest.B1.Tables
