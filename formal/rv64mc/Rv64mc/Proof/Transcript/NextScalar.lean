@@ -150,13 +150,13 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         rcases hb with hb | hb
         · exact Or.inl ⟨by have := hlo (18446744073709551552#64) rfl; omega, by rw [hsp] at hb; omega⟩
         · subst hb
-          exact Or.inr (Or.inr (Or.inr (Or.inr (inRange_add hpre_8 (by decide)))))
+          exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr rfl))))
   all_goals try
     have hF2 : env.Frame top (Out Layouts.ResultE.byteSize regs m) m m2 :=
       hF1.trans hret2_14 (Tactic.slot_le hS rfl) fun b hb => Or.inr (Or.inr (Or.inr (Or.inr (by
         simp only [Spec.Transcript.Absorb.Out, InRange, Lprog.updReg_apply, Tactic.rf, reduceCtorEq,
           ↓reduceIte, Layouts.Sponge.byteSize] at hb
-        exact ⟨hb.1, by simp only [Layouts.Transcript.byteSize]; omega⟩))))
+        exact Or.inl hb))))
   all_goals try
     refine frame_store_obj (k := 16) (frame_store_obj (k := 8) (frame_store_out ?_ hlim hpre_9
       (Or.inl (inRange_self (by decide)))) hlim hpre_9 hpre_10 (by decide) (Or.inl (inRange_add hpre_10 (by decide))))

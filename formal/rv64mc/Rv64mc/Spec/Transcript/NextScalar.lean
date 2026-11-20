@@ -3,7 +3,7 @@
 
   The contract of `Transcript::next_scalar(&mut self) -> Result<E, VerifierError>`: the result's slot (`sret`) in
   `a0`, the transcript in `a1`, as `Transcript::next`'s. It is the mirror's step `Model.TM.nextScalar`: the next
-  scalar of the stream, observed. It writes the slot and the transcript (`Out`).
+  scalar of the stream, observed. It writes the slot, the sponge and the stream offset (`Out`).
 -/
 
 import Rv64mc.Spec.Transcript.Repr
@@ -29,9 +29,11 @@ def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (_m : MachineState
   | some (v, t') => ResultEAt m' (regs .x10) (some v) ∧ TranscriptAt env m' (regs .x11) t'
   | none => ResultEAt m' (regs .x10) none
 
-/-- What a transcript method with a result slot writes besides its stack: the slot and the transcript. -/
+/-- What a transcript method with a result slot writes besides its stack: the slot, the sponge and the stream
+    offset (never the transcript's other fields: its `Proof`'s address is kept). -/
 def Out (size : Nat) (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop :=
-  InRange (regs .x10) size b ∨ InRange (regs .x11) Layouts.Transcript.byteSize b
+  InRange (regs .x10) size b ∨ InRange (regs .x11) Layouts.Sponge.byteSize b ∨
+    b = regs .x11 + BitVec.ofNat 64 Layouts.Transcript.stream_offset
 
 /-- **The contract of `Transcript::next_scalar`**, function `i` of `p` with `need` bytes of stack (its frame is
     64 bytes; it calls `next` and `Sponge::absorb`), for every transcript state. -/

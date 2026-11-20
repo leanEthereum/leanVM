@@ -4,7 +4,7 @@
   The contract of `Transcript::grind_check(&mut self, bits: u32) -> Result<(), VerifierError>`: the transcript in
   `a0`, in a caller's frame (its `Proof` safe from the call), the bits in `a1`; the result's tag in `a0`
   (`Layouts.ResultUnit`: `Ok` is the niche value). It returns `Ok` exactly where the mirror's step
-  `Model.TM.grindCheck` succeeds, and then the transcript is the mirror's. It writes the transcript (`Out`).
+  `Model.TM.grindCheck` succeeds, and then the transcript is the mirror's. It writes the sponge and the stream offset (`Out`).
 -/
 
 import Rv64mc.Spec.Transcript.Repr
@@ -23,9 +23,9 @@ def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (_m : MachineState
   | some ((), t') => r' .x10 = BitVec.ofNat 64 Layouts.ResultUnit.Ok.tag ∧ TranscriptAt env m' (regs .x10) t'
   | none => r' .x10 ≠ BitVec.ofNat 64 Layouts.ResultUnit.Ok.tag
 
-/-- What it writes besides its stack: the transcript. -/
+/-- What it writes besides its stack: the sponge and the stream offset. -/
 def Out (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop :=
-  InRange (regs .x10) Layouts.Transcript.byteSize b
+  InRange (regs .x10) Layouts.Sponge.byteSize b ∨ b = regs .x10 + BitVec.ofNat 64 Layouts.Transcript.stream_offset
 
 /-- **The contract of `Transcript::grind_check`**, function `i` of `p` with `need` bytes of stack (its frame is 64
     bytes; it calls `next` and `Sponge::absorb_nonce`), for every transcript state. -/
