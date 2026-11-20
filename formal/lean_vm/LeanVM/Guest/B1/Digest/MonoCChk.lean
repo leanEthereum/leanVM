@@ -11,6 +11,9 @@ module
 public import LeanVM.Guest.B1.Digest.ChildListCChk
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop0»
 
 /-!
 # `child_claim_list_mono`, evaluated
@@ -110,9 +113,9 @@ def mcOk (fn : Fn) (f : String) (m p0 st0 cw ew : ℕ) : Bool :=
 /-- `child_claim_list_mono_last__L{k}`'s side atoms around its claims: the record's reads, the
 division of the walk's end by the region, the range check of its quotient `t`. -/
 def mlcSide (k : ℕ) (t : Option V) : Atom → Bool
-  | .load _ p off => decide (p = .n 0) && decide (off < 15)
-  | .mul d x y => decide (d = .n (mlEnd k)) && decide (y = .n 1) && decide (some x = t)
-  | .rangeCheck x y _ _ kk => decide (kk = .n 3) && decide (kk.idx < y.idx) && decide (some x = t)
+  | .load _ p off => decide (p = .n (valf% «child_claim_list_mono_last» "rec")) && decide (off < 15)
+  | .mul d x y => decide (d = .n (mlEnd k)) && decide (y = .n (valf% «child_claim_list_mono_last» "region")) && decide (some x = t)
+  | .rangeCheck x y _ _ kk => decide (kk = .n (valf% «child_claim_list_mono_last» "limit_g")) && decide (kk.idx < y.idx) && decide (some x = t)
   | _ => false
 
 /-- **`child_claim_list_mono_last__L{k}`, evaluated** (`[rec, region, mark, limit]`): in order,
@@ -124,12 +127,12 @@ def mlcOk (k : ℕ) (f : Fn) : Bool :=
     (storesOf 4 f.body).all (mStoresOk 6 0) &&
       (A.take 2).all (fun a => !needsSide a || mlcSide k (endOf A (.n (mlEnd k))) a) &&
       (A.drop (2 + 11 * k)).all (fun a => !needsSide a || mlcSide k (endOf A (.n (mlEnd k))) a) &&
-      mRecsC A 2 6 4 5 (.n 2) k 0 k &&
+      mRecsC A 2 6 4 5 (.n (valf% «child_claim_list_mono_last» "mark")) k 0 k &&
       (if k = 0 then true else mOutOk (A.filter pureB) (mlEnd k) (mCov 6 4 k) (2 ^ k))
   | none => false
 
 /-- Window `i` of `child_claim_list_mono_loop0`'s claims: `9i … 9i + 8`. -/
-noncomputable def mcWin (i : ℕ) : Bool := mRecsC mono136Atoms 9 13 11 12 (.n 3) 136 (9 * i) 9
+noncomputable def mcWin (i : ℕ) : Bool := mRecsC mono136Atoms 9 13 11 12 (.n (val% «child_claim_list_mono_loop0» "base")) 136 (9 * i) 9
 
 set_option maxRecDepth 100000 in
 theorem mlc_lo : ∀ k < 9, mlcOk k (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k)

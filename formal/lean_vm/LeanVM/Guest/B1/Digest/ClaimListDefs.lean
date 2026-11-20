@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Window
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest_loop0»
+import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 
 /-!
 # `claim_list_digest`: the checks
@@ -47,11 +50,11 @@ def clSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
 /-- `claim_list_last__L{k}`'s body is the chain over the cells at its second argument from the
 state at its first. -/
 def clOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1]) &&
+  decide (f.params = [V.n (valf% «claim_list_last» "state"), V.n (valf% «claim_list_last» "blk")]) &&
   match splitBody f.body with
   | some (atoms, [r0, r1]) =>
     (clSpec k atoms).check atoms && retOk atoms (clSpec k atoms) r0 r1 &&
-      loadsOk atoms (V.n 1) (clSpec k atoms).msg && stLoadsOk atoms (V.n 0) (clSt k) 0
+      loadsOk atoms (V.n (valf% «claim_list_last» "blk")) (clSpec k atoms).msg && stLoadsOk atoms (V.n (valf% «claim_list_last» "state")) (clSt k) 0
   | _ => false
 
 /-! ## The frame loops: `m` claims a frame -/
@@ -121,7 +124,7 @@ noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms
 searched
 from their atoms on. -/
 noncomputable def bigWin (i : ℕ) : Bool :=
-  bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n 20) bigSpec.msg (34 * i) 34
+  bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n (val% «claim_list_digest_loop0» "blk")) bigSpec.msg (34 * i) 34
 
 end
 end LeanVM.Guest.B1.Digest

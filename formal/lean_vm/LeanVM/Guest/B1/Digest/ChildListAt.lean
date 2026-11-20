@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Digest.ChildListAt0
 public import LeanVM.Guest.B1.Main.NodeHonestAt
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 
 /-!
 # The walk by hinted indices, placed
@@ -53,18 +55,18 @@ theorem regionL_append_right {L L' : Main.Layout} {i : ℕ} (h : RegionL L' i) :
 `child_claim_list_any_loop1`), the chain
 buffer's size `g^(13 (a + b + 1))` at `v16`, the loops' start `1` at `v33`, `v51`. -/
 def anyQ (n : ℕ) (σ : Val) : Prop :=
-  σ (.n 4) = gen ^ (n / 136) ∧ σ (.n 5) = gen ^ (n % 136 / 17) ∧ σ (.n 6) = gen ^ (n % 17) ∧
-    σ (.n 16) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧ σ (.n 33) = 1 ∧ σ (.n 51) = 1
+  σ (.n (val% «child_claim_list_any» "bigs")) = gen ^ (n / 136) ∧ σ (.n (val% «child_claim_list_any» "groups")) = gen ^ (n % 136 / 17) ∧ σ (.n (val% «child_claim_list_any» "rest")) = gen ^ (n % 17) ∧
+    σ (.n (val% «child_claim_list_any» "chain~7")) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧ σ (.n (val% «child_claim_list_any» "s3#2")) = 1 ∧ σ (.n (val% «child_claim_list_any» "s6#2")) = 1
 
 /-- `child_claim_list_any`'s calls: `child_claim_list_any_loop0` when `n / 136 ≠ 0`,
 `child_claim_list_any_loop1` when
 `n % 136 / 17 ≠ 0`, `child_claim_list_last__L{n % 17}`. -/
 def anyCalls (n : ℕ) (_ : Val) : List Call :=
-  [⟨name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], [],
+  [⟨name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "base"), .n (val% «child_claim_list_any» "last_g")], [],
       decide (n / 136 ≠ 0)⟩,
-    ⟨name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [],
+    ⟨name% «child_claim_list_any_loop1», [.n (val% «child_claim_list_any» "s6#2"), .n (val% «child_claim_list_any» "groups"), .n (val% «child_claim_list_any» "mid"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "mid_base"), .n (val% «child_claim_list_any» "last_g")], [],
         decide (n % 136 / 17 ≠ 0)⟩,
-    ⟨cclNames[n % 17]!, [.n 57, .n 0, .n 1, .n 63, .n 8], [.n 64, .n 65], true⟩]
+    ⟨cclNames[n % 17]!, [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")], [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")], true⟩]
 
 /-- `child_claim_list_any`'s `HeapBuf`: the chain buffer. -/
 def anyBufs (n : ℕ) (_ : Val) : List ℕ := [13 * (n / 136 + n % 136 / 17 + 1)]

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Digest.MonoAtP
 public import LeanVM.Guest.Budget.BoundedR
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 
 /-!
 # The gap walk, placed with its pops
@@ -219,16 +221,16 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
   simp only [List.cons.injEq, and_true] at hpar
   obtain ⟨e0, e1, e2, e3, e4, e5, e6⟩ := hpar
   -- the path
-  have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
+  have hx : σ (.n (val% «child_claim_list_mono» "rest")) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
   have hw : walk σ (Fn.body fn% «child_claim_list_mono») =
-      .ret (monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n 49, .n 1, .n 2, .n 3]
-        [.n 50, .n 51] :: monoPost.flatMap (Main.slEvs σ)) [.n 54, .n 55] := by
+      .ret (monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")]
+        [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")] :: monoPost.flatMap (Main.slEvs σ)) [.n (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")] := by
     rw [mono_body]
-    exact walk_dispatch σ monoP1 monoPost monoP1_straight monoPost_straight (.n 6) mlNames
-      [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51] [.n 54, .n 55] (i := r)
+    exact walk_dispatch σ monoP1 monoPost monoP1_straight monoPost_straight (.n (val% «child_claim_list_mono» "rest")) mlNames
+      [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")] [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")] [.n (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")] (i := r)
       (by simp [mlNames]; omega) (by simp [mlNames]) hx
-  set es := monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n 49, .n 1, .n 2, .n 3]
-    [.n 50, .n 51] :: monoPost.flatMap (Main.slEvs σ) with hes
+  set es := monoP1.flatMap (Main.slEvs σ) ++ .call mlNames[r]! [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")]
+    [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")] :: monoPost.flatMap (Main.slEvs σ) with hes
   have hmE : ∀ s ∈ monoP1 ++ monoPost, ∀ x, s = .atom x → x.Holds rd σ := by
     intro s hs x rfl
     refine hV.atoms x (cl_mem_atoms ?_)
@@ -244,9 +246,9 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
       rcases hk with (hk | hk) | hk
       · exact slOk_atomS hk (hmE s (by simp [hs]))
       · rw [stmtEqb_sound hk]
-        show IsInK (σ (.n 31)); rw [hV.v31, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+        show IsInK (σ (.n (val% «child_claim_list_mono» "s4#1"))); rw [hV.v31, ← pow_zero gen]; exact gen_pow_add_isInK _ _
       · rw [stmtEqb_sound hk]
-        show IsInK (σ (.n 41)); rw [hV.v41, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+        show IsInK (σ (.n (val% «child_claim_list_mono» "s6#1"))); rw [hV.v41, ← pow_zero gen]; exact gen_pow_add_isInK _ _
     rcases List.mem_cons.mp he with rfl | he
     · trivial
     · refine slEvs_holds (fun s hs => ?_) e he
@@ -264,14 +266,14 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     rw [hes, es3_allocs, hpa, hqa, monoP1_allocs, hpostA.1]
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, hV.v15, List.append_nil]
     rw [logG_gen_pow (show 15 * (a + b + 1) < 2 ^ 64 - 1 by omega)]
-  have h31 : decide (σ (.n 31) ≠ 0) = decide (a ≠ 0) := by
+  have h31 : decide (σ (.n (val% «child_claim_list_mono» "s4#1")) ≠ 0) = decide (a ≠ 0) := by
     rw [hV.v31]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-  have h41 : decide (σ (.n 41) ≠ 0) = decide (b ≠ 0) := by
+  have h41 : decide (σ (.n (val% «child_claim_list_mono» "s6#1")) ≠ 0) = decide (b ≠ 0) := by
     rw [hV.v41]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-  have hcalls : calls es = [⟨name% «child_claim_list_mono_loop0», [.n 32, .n 4, .n 16, .n 2], [],
+  have hcalls : calls es = [⟨name% «child_claim_list_mono_loop0», [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")], [],
         decide (a ≠ 0)⟩,
-      ⟨name% «child_claim_list_mono_loop1», [.n 42, .n 5, .n 39, .n 2], [], decide (b ≠ 0)⟩,
-      ⟨mlNames[r]!, [.n 49, .n 1, .n 2, .n 3], [.n 50, .n 51], true⟩] := by
+      ⟨name% «child_claim_list_mono_loop1», [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")], [], decide (b ≠ 0)⟩,
+      ⟨mlNames[r]!, [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")], [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")], true⟩] := by
     rw [hes, es3_calls, hpc, hqc, monoP1_calls, hpostA.2.2.1]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h31, h41, List.cons_append,
       List.nil_append]
@@ -285,7 +287,7 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3] i)
     coreProgram_wf find_child_claim_list_mono (Or.inl mono_loop)
     (by rw [mono_param, e0, e1, e2, e3, e4, e5, e6]) hw
-    (by show [σ (.n 54), σ (.n 55)] = _; rw [hV.v54, hV.v55]; rfl) hev
+    (by show [σ (.n (val% «child_claim_list_mono» "s11#0")), σ (.n (val% «child_claim_list_mono» "s11#0[1]"))] = _; rw [hV.v54, hV.v55]; rfl) hev
     (by
       rw [hal, hes, es3_allocDsts, hpd, hqd, monoP1_allocs, hpostA.1]
       simp only [List.map_cons, List.map_nil, List.append_nil, bases, hV.v16]
@@ -319,15 +321,15 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
     · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl,
         fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 32), σ (.n 4), σ (.n 16), σ (.n 2)] = _
+      · show [σ (.n (val% «child_claim_list_mono» "s4#2")), σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "chain")), σ (.n (val% «child_claim_list_mono» "base"))] = _
         rw [hV.v32, e4, hV.v16, e2]
       · rename_i ht; rw [(h1 ht).1]; rfl
-      · show [σ (.n 42), σ (.n 5), σ (.n 39), σ (.n 2)] = _
+      · show [σ (.n (val% «child_claim_list_mono» "s6#2")), σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "mid")), σ (.n (val% «child_claim_list_mono» "base"))] = _
         rw [hV.v42, e5, hV.v39, e2]
       · rename_i ht; rw [(h2 ht).1]; rfl
-      · show [σ (.n 49), σ (.n 1), σ (.n 2), σ (.n 3)] = _
+      · show [σ (.n (val% «child_claim_list_mono» "last")), σ (.n (val% «child_claim_list_mono» "region")), σ (.n (val% «child_claim_list_mono» "base")), σ (.n (val% «child_claim_list_mono» "limit_g"))] = _
         rw [hV.v49, e1, e2, e3]
-      · rw [(h3 rfl).1]; show [σ (.n 50), σ (.n 51)] = _; rw [hV.v50, hV.v51]; rfl
+      · rw [(h3 rfl).1]; show [σ (.n (val% «child_claim_list_mono» "d0")), σ (.n (val% «child_claim_list_mono» "d1"))] = _; rw [hV.v50, hV.v51]; rfl
     · intro q hq
       simp only [B1.Kid.lins, ks, List.flatMap_cons, List.flatMap_nil, List.append_nil,
         List.mem_append, or_assoc] at hq

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ClaimListCBigDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest_loop0»
 
 namespace LeanVM.Guest.B1.Digest
 
@@ -17,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 
 set_option maxRecDepth 100000 in
 theorem big_c2 : bigS.all (fun a => (List.range 13).any fun c =>
-    atomEqb a (.load (bigCSpec.outV (bigCSpec.nb - 1) c) (.n 9) (13 + c))) = true := by
+    atomEqb a (.load (bigCSpec.outV (bigCSpec.nb - 1) c) (.n (val% «claim_list_digest_loop0» "st")) (13 + c))) = true := by
   decide +kernel
 
 end

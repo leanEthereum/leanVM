@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimListCLast
 public import LeanVM.Guest.B1.Digest.ClaimListCBig
 public import LeanVM.Guest.B1.Digest.CompleteSmall
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 
 /-!
 # `claim_list_digest`, completely
@@ -133,7 +135,7 @@ theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     exact this
   · rw [gen_pow_pow, mul_assoc, ← pow_add]; congr 2; ring
 
-theorem cl_param (σ : Val) : (Fn.params fn% «claim_list_digest»).map σ = [σ (.n 0), σ (.n 1)] := rfl
+theorem cl_param (σ : Val) : (Fn.params fn% «claim_list_digest»).map σ = [σ (.n (val% «claim_list_digest» "entries_ptr")), σ (.n (val% «claim_list_digest» "n_g"))] := rfl
 
 end
 end LeanVM.Guest.B1.Digest
