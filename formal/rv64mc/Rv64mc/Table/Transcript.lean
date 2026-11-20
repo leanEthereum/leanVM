@@ -3,8 +3,8 @@
 
   The transcript's contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index, with the
   generated link (`Gen.….link`, `tmpl_eq`, `wf`) and the stack each needs (`Gen.Needs`, each bound by `decide`),
-  from the runtime's table and, where a callee is not proved at the image yet (`Sponge::duplex`, `Sponge::new`),
-  its contract as a hypothesis. The indices are the generator's (`Rv64mc/Gen/index.tsv`).
+  from the runtime's table and, where a callee is not proved at the image yet (`compiler_builtins`' `memcpy` and
+  `memset`, `keccak_f`, `Sponge::new`), its contract as a hypothesis. The indices are the generator's (`Rv64mc/Gen/index.tsv`).
 -/
 
 import Rv64mc.Proof.Transcript.Next
@@ -16,6 +16,8 @@ import Rv64mc.Proof.Transcript.NextScalar
 import Rv64mc.Proof.Transcript.GrindCheck
 import Rv64mc.Proof.Transcript.GrindingBits
 import Rv64mc.Proof.Transcript.New
+import Rv64mc.Proof.Transcript.Duplex
+import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.Duplex
 import Rv64mc.Table.Runtime
 import Rv64mc.Gen.Needs
 import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.Next
@@ -49,32 +51,39 @@ theorem grindingBits :
 
 section Duplex
 
-variable (hdup : Spec.Transcript.Duplex.spec env (liftProg fns) 113 Needs.Verifier.Transcript.Sponge.Duplex)
-include hdup
+variable (hcb : Spec.Runtime.MemcpySpec env (liftProg fns) 223 Needs.CompilerBuiltins.Mem.Memcpy)
+  (hsb : Spec.Runtime.MemsetSpec env (liftProg fns) 224 Needs.CompilerBuiltins.Mem.Memset)
+  (hkf : Spec.Hash.KeccakF.spec env (liftProg fns) 114 Needs.Verifier.Hash.KeccakF)
+include hcb hsb hkf
+
+theorem duplex : Spec.Transcript.Duplex.spec env (liftProg fns) 113 Needs.Verifier.Transcript.Sponge.Duplex :=
+  Proof.Transcript.Duplex.ok env _ 113 _ Verifier.Transcript.Sponge.Duplex.tmpl_eq
+    Verifier.Transcript.Sponge.Duplex.wf (by decide) (by decide) (by decide) (by decide)
+    (Table.Runtime.memcpy env hcb) (Table.Runtime.memset env hsb) hkf (Table.Runtime.sliceIndexFail env)
 
 theorem absorb : Spec.Transcript.Absorb.spec env (liftProg fns) 112 Needs.Verifier.Transcript.Sponge.Absorb :=
   Proof.Transcript.Absorb.ok env _ 112 _ Verifier.Transcript.Sponge.Absorb.tmpl_eq
-    Verifier.Transcript.Sponge.Absorb.wf (by decide) (by decide) (by decide) hdup (Table.Runtime.panicFmt env)
+    Verifier.Transcript.Sponge.Absorb.wf (by decide) (by decide) (by decide) (duplex env hcb hsb hkf) (Table.Runtime.panicFmt env)
     (Table.Runtime.panicBoundsCheck env)
 
 theorem sample : Spec.Transcript.Sample.spec env (liftProg fns) 52 Needs.Verifier.Transcript.Sponge.Sample :=
   Proof.Transcript.Sample.ok env _ 52 _ Verifier.Transcript.Sponge.Sample.tmpl_eq
-    Verifier.Transcript.Sponge.Sample.wf (by decide) hdup
+    Verifier.Transcript.Sponge.Sample.wf (by decide) (duplex env hcb hsb hkf)
 
 theorem absorbNonce :
     Spec.Transcript.AbsorbNonce.spec env (liftProg fns) 149 Needs.Verifier.Transcript.Sponge.AbsorbNonce :=
   Proof.Transcript.AbsorbNonce.ok env _ 149 _ Verifier.Transcript.Sponge.AbsorbNonce.tmpl_eq
-    Verifier.Transcript.Sponge.AbsorbNonce.wf (by decide) (by decide) (absorb env hdup) hdup
+    Verifier.Transcript.Sponge.AbsorbNonce.wf (by decide) (by decide) (absorb env hcb hsb hkf) (duplex env hcb hsb hkf)
 
 theorem nextScalar :
     Spec.Transcript.NextScalar.spec env (liftProg fns) 109 Needs.Verifier.Transcript.Transcript.NextScalar :=
   Proof.Transcript.NextScalar.ok env _ 109 _ Verifier.Transcript.Transcript.NextScalar.tmpl_eq
-    Verifier.Transcript.Transcript.NextScalar.wf (by decide) (by decide) (next env) (absorb env hdup)
+    Verifier.Transcript.Transcript.NextScalar.wf (by decide) (by decide) (next env) (absorb env hcb hsb hkf)
 
 theorem grindCheck :
     Spec.Transcript.GrindCheck.spec env (liftProg fns) 51 Needs.Verifier.Transcript.Transcript.GrindCheck :=
   Proof.Transcript.GrindCheck.ok env _ 51 _ Verifier.Transcript.Transcript.GrindCheck.tmpl_eq
-    Verifier.Transcript.Transcript.GrindCheck.wf (by decide) (by decide) (next env) (absorbNonce env hdup)
+    Verifier.Transcript.Transcript.GrindCheck.wf (by decide) (by decide) (next env) (absorbNonce env hcb hsb hkf)
 
 end Duplex
 
