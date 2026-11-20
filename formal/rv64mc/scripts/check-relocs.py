@@ -124,7 +124,8 @@ for sec, rs in relocs.items():
         elif struct.unpack_from("<Q", data, off + o - addr)[0] != (s + add) % 2**64:
             errors.append(f"R_RISCV_64 at {o:#x} does not hold its target")
 
-print(f"{len(auipcs)} auipc: {types['R_RISCV_CALL_PLT']} calls, {self_calls} self-calls without relocation, {len(hi_target)} addresses with "
+print(f"{len(auipcs)} auipc: {types['R_RISCV_CALL_PLT']} calls, {self_calls} self-calls without relocation, "
+      f"{len(hi_target)} addresses with "
       f"{sum(users.values())} lo12 users ({sum(1 for n in users.values() if n > 1)} with several); "
       f"{sum(len(rs) for s, rs in relocs.items() if s != '.text')} absolute data words")
 if errors:
