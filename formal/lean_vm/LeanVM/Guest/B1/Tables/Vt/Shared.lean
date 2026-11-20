@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Tables.Vt.SharedT
 public import LeanVM.Guest.B1.Tables.Squares
 public import LeanVM.Guest.B1.Eq.PlusOne
 public import LeanVM.Guest.B1.Selectors.SharedTables
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The selector tables
@@ -33,12 +35,12 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `idxc_tab`'s stores. -/
 def vtIdxcT : List Stmt :=
   ((List.range 34).map fun t ↦ [.atom (.const (.n (666 + t))
-    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (666 + t)) (.n 665) t)]).flatten
+    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (666 + t)) (.n (val% «verify_tables» "idxc_tab")) t)]).flatten
 
 theorem vtIdxc_check : tbStmtsEqb vtIdxcT ((vtAt 625).take vtIdxcT.length) = true := by
   decide +kernel
 
-theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n 9) plusOneRunNames [.n 700, .n 8] [.n 701]]
+theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]]
     ((vtAt 694).take 1) = true := by
   decide +kernel
 
@@ -50,7 +52,7 @@ theorem vt_word_g33 : vtW33 = ofK (Parameters.addressOfIndex 33) := by
     gen_pow_eq_ofK]
 
 theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    ∀ t < 34, LoadHolds rd (σ (.n 665)) t (1 + gen ^ 2 ^ t) := by
+    ∀ t < 34, LoadHolds rd (σ (.n (val% «verify_tables» "idxc_tab"))) t (1 + gen ^ 2 ^ t) := by
   obtain ⟨k, hs⟩ := h.sliceAt 625 vtIdxcT vtIdxc_check
   rw [vtIdxcT, tb_holdsList_flatten_range _ _ (fun _ => rfl)] at hs
   intro t ht
@@ -64,8 +66,8 @@ theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
   exact e2
 
 theorem vt_zeta1 {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
-    (hz : TbReadsAt rd (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)
-    (hml : point.length < 34) : TbReadsAt rd (σ (.n 700)) (point.map (1 + ·)) := by
+    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hml : point.length < 34) : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)) := by
   obtain ⟨j, hj, hjv, hrel⟩ := h.dispatchAt 694 _ _ _ _ vtZeta1_check
   have hj34 : j ≤ 33 := by simp [plusOneRunNames] at hj; omega
   rw [hmu, ← gen_pow_eq_ofK] at hjv
@@ -90,10 +92,10 @@ theorem tbReadsAt_take {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l)
 
 theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {t : ℕ} (ht : t < 6) :
-    σ (.n 9) = σ (.n (vtShLen t)) * σ (.n (28 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
+    σ (.n (val% «verify_tables» "g_bus_mu")) = σ (.n (vtShLen t)) * σ (.n (28 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
       coreProgram.Rel Lm.read "shared_selector_tables"
-        [σ (.n 702) * gen ^ (288 * t), σ (.n 703) * gen ^ (144 * t), σ (.n 8) * σ (.n (28 + t)),
-          σ (.n 700) * σ (.n (28 + t)), σ (.n 12) * σ (.n (28 + t)), σ (.n (vtShLen t))] [] := by
+        [σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t), σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t), σ (.n (val% «verify_tables» "zeta")) * σ (.n (28 + t)),
+          σ (.n (val% «verify_tables» "zeta1")) * σ (.n (28 + t)), σ (.n (val% «verify_tables» "g_squares")) * σ (.n (28 + t)), σ (.n (vtShLen t))] [] := by
   have rc : ∀ {x y t1 t2 k : V}, σ k = vtW33 → (Atom.rangeCheck x y t1 t2 k).Holds Lm.read σ →
       ∃ d < 34, σ x = gen ^ d := fun hk hr =>
     vt_rc hμ Lm (K := 34) (by omega) (by norm_num) (by rw [hk]; exact vt_word_g33) hr
@@ -110,8 +112,8 @@ def vtEqV (t : ℕ) : ℕ := [702, 720, 733, 746, 759, 772].getD t 0
 def vtGV (t : ℕ) : ℕ := [703, 722, 735, 748, 761, 774].getD t 0
 
 theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
-    σ (.n (vtEqV t)) = σ (.n 702) * gen ^ (288 * t) ∧
-      σ (.n (vtGV t)) = σ (.n 703) * gen ^ (144 * t) := by
+    σ (.n (vtEqV t)) = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+      σ (.n (vtGV t)) = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := by
   intro t ht
   interval_cases t
   · exact (vt_sh0 h).2.2.2.2
@@ -123,13 +125,13 @@ theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
 
 /-- **Table `t`'s shared tables.** -/
 theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
-    {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
-    (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt Lm.read (σ (.n 700)) (point.map (1 + ·)))
-    (hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList)
+    {point : List E} (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
+    (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
+    (hz1 : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hsq : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "g_squares"))) gSquaresList)
     {t τ : ℕ} (ht : t < 6) (hτ : τ < 33) (hkbt : σ (.n (28 + t)) = gen ^ τ) :
     ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ ∧
-      RunTables Lm.read (σ (.n 702) * gen ^ (288 * t)) (σ (.n 703) * gen ^ (144 * t)) d
+      RunTables Lm.read (σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t)) d
         (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) := by
   obtain ⟨m1, ⟨d, hd, hdv⟩, hcall⟩ := vt_shared_raw hμ Lm h ht
   have ev := hkbt

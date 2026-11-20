@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' body (TRIAGE G #52)
@@ -44,8 +46,8 @@ noncomputable def vtChunk : ℕ → List Stmt
   | _ => (core% «verify_tables» c14).take 153
 
 /-- `verify_tables`' returned values. -/
-def vtRets : List V := [.n 5974, .n 5975, .n 5976, .n 5977, .n 5978, .n 5981, .n 5982,
-  .n 5983, .n 5984, .n 5985]
+def vtRets : List V := [.n (val% «verify_tables» "s91#0"), .n (val% «verify_tables» "s91#0[1]"), .n (val% «verify_tables» "s91#0[2]"), .n (val% «verify_tables» "s91#0[3]"), .n (val% «verify_tables» "s91#0[4]"), .n (val% «verify_tables» "s91#0[5]"), .n (val% «verify_tables» "s91#0[6]"),
+  .n (val% «verify_tables» "s91#0[7]"), .n (val% «verify_tables» "s91#0[8]"), .n (val% «verify_tables» "s91#0[9]")]
 
 theorem vtChunk_noRet' : ∀ i < 15, Stmt.noRetList (vtChunk i) = true := by decide +kernel
 

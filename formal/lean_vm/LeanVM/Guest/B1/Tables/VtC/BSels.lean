@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Tables.VtC.BSel
 public import LeanVM.Guest.B1.Tables.VtC.BStack
 public import LeanVM.Guest.B1.Tables.VtC.SShT
 public import LeanVM.Guest.B1.Tables.Vt.SelsAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The block selectors, all
@@ -41,9 +43,9 @@ local notation "σv" => vtσ rd wo args
 
 /-- **All the block selectors, complete.** -/
 theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
-    (hmu : σv (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt rd (σv (.n 700)) (point.map (1 + ·)))
-    (hidxc : TbReadsAt rd (σv (.n 665)) vtIdxcW) {lm : ℕ} (hlmμ : lm ≤ point.length)
+    (hmu : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
+    (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hidxc : TbReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) {lm : ℕ} (hlmμ : lm ≤ point.length)
     (h19 : 19 ≤ point.length) {τ : ℕ → ℕ} (hτμ : ∀ t < 6, τ t ≤ point.length)
     (hkb : ∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hfitP : ((vtSizesP lm τ).map (2 ^ ·)).sum ≤ 2 ^ point.length)
@@ -51,7 +53,7 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
     (hoP : ∀ x < 54, σv (.n (vtBoffV x)) = gen ^ (stackOffsets (vtSizesP lm τ)).1.getD x 0)
     (hoC : ∀ x < 45, σv (.n (vtBoffV (108 + x))) = gen ^ (stackOffsets (vtSizesC τ)).1.getD x 0)
     (hsh : ∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t))
-    (hrun : ∀ t < 6, RunTables rd (σv (.n 702) * gen ^ (288 * t)) (σv (.n 703) * gen ^ (144 * t))
+    (hrun : ∀ t < 6, RunTables rd (σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
     (hbitsF : ∀ b < 3, TbReadsAt rd (wo (vtFwW b + 6))
@@ -82,17 +84,17 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
         (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2.1
         (vtCountSel.getD i default).2.2.2.2.2.1 (vtCountSel.getD i default).2.2.2.2.2.2.1
         (vtCountSel.getD i default).2.2.2.2.2.2.2, VSH (coreProgram.Rel rd) rd σv s) ∧
-      σv (.n 789) = blockSel (vtSizesP lm τ) point.length 0 point ∧
-      σv (.n 805) = blockSel (vtSizesP lm τ) point.length 1 point ∧
-      σv (.n 833) = blockSel (vtSizesP lm τ) point.length 2 point ∧
-      σv (.n 791) = σv (.n 789) ∧ σv (.n 808) = σv (.n 805) ∧ σv (.n 836) = σv (.n 833) ∧
+      σv (.n (val% «verify_tables» "eq_hi@1")) = blockSel (vtSizesP lm τ) point.length 0 point ∧
+      σv (.n (val% «verify_tables» "eq_hi@2")) = blockSel (vtSizesP lm τ) point.length 1 point ∧
+      σv (.n (val% «verify_tables» "eq_hi@3")) = blockSel (vtSizesP lm τ) point.length 2 point ∧
+      σv (.n (val% «verify_tables» "block_eq_hi[0]")) = σv (.n (val% «verify_tables» "eq_hi@1")) ∧ σv (.n (val% «verify_tables» "block_eq_hi[1]")) = σv (.n (val% «verify_tables» "eq_hi@2")) ∧ σv (.n (val% «verify_tables» "block_eq_hi[2]")) = σv (.n (val% «verify_tables» "eq_hi@3")) ∧
       (∀ i < 51, σv (.n (vtPushPadData.getD i default).2.2.1) =
         blockSel (vtSizesP lm τ) point.length (3 + i) point) ∧
-      σv (.n 1291) = σv (.n 789) + σv (.n 805) + σv (.n 833) +
+      σv (.n (val% «verify_tables» "selector_sum@53")) = σv (.n (val% «verify_tables» "eq_hi@1")) + σv (.n (val% «verify_tables» "eq_hi@2")) + σv (.n (val% «verify_tables» "eq_hi@3")) +
         (vtPushPadData.map fun x ↦ σv (.n x.2.2.1)).sum ∧
       (∀ i < 45, σv (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
-      σv (.n 1824) = (vtCountPadData.map fun x ↦ σv (.n x.2.2.1)).sum := by
+      σv (.n (val% «verify_tables» "selector_sum@150")) = (vtCountPadData.map fun x ↦ σv (.n x.2.2.1)).sum := by
   have hlow16 : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦
     hlow i (by norm_num; omega)
   have hkbt : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t := fun t ht => by
@@ -109,12 +111,12 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
   have hobC : ∀ b < 45, (stackOffsets (vtSizesC τ)).1.getD b 0 < 2 ^ point.length :=
     fun b hb ↦ vtB_stack_lt _ (by rw [hlenC]; exact hb) hfitC
   -- the framework blocks
-  have k0 : σv (.n 26) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
-  have k1 : σv (.n 27) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
-  have k2 : σv (.n 822) = gen ^ (vtSizesP lm τ).getD 2 0 := by
-    have e0 : σv (.n 26) = 1 := by simpa using hkb 0 (by norm_num)
+  have k0 : σv (.n (val% «verify_tables» "kb[0]")) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
+  have k1 : σv (.n (val% «verify_tables» "kb[1]")) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
+  have k2 : σv (.n (val% «verify_tables» "kappa_g@2")) = gen ^ (vtSizesP lm τ).getD 2 0 := by
+    have e0 : σv (.n (val% «verify_tables» "kb[0]")) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_mulAt hl 810 (d := 822) (x := 26) (y := 821) (by norm_num) (by norm_num)
-        (by decide +kernel), vt_constAt hl 809 (d := .n 821) (e := word 524288 0)
+        (by decide +kernel), vt_constAt hl 809 (d := .n (val% «verify_tables» "kappa_g@2~0")) (e := word 524288 0)
         (by decide +kernel), show (524288 : ℕ) = 2 ^ 19 by norm_num,
       tb_word_two_pow (by norm_num), e0, one_mul]
     rfl
@@ -137,8 +139,8 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
   obtain ⟨a2, s2, c2, u2⟩ := f2
   -- the pointers' steps
   have hstep : ∀ t < 6, 0 < t →
-      σv (.n (vtEqV (t - 1))) * vtW288 = σv (.n 702) * gen ^ (288 * t) ∧
-        σv (.n (vtGV (t - 1))) * word 21299200 0 = σv (.n 703) * gen ^ (144 * t) := by
+      σv (.n (vtEqV (t - 1))) * vtW288 = σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+        σv (.n (vtGV (t - 1))) * word 21299200 0 = σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := by
     intro t ht ht0
     obtain ⟨e1, e2⟩ := vtc_shptr (rd := rd) (w := wo) hl (t - 1) (by omega)
     obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
@@ -165,8 +167,8 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
         σv (.n (vtSelSum w t prev)) = (match prev with | none => 0 | some p => σv (.n p)) +
           σv (.n (vtSelE w t)) := by
     intro sizes b c w t prev pos es gs gw hc ht hd hes hgs hsz hal hob hoff hdig hw0 hw1
-    have hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 702) * gen ^ (288 * t) ∧
-        σv (.n gs) * word gw 0 = σv (.n 703) * gen ^ (144 * t) := fun ht0 => by
+    have hptr : 0 < t → σv (.n es) * vtW288 = σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+        σv (.n gs) * word gw 0 = σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := fun ht0 => by
       obtain ⟨rfl, hg⟩ := hd ht0
       refine ⟨(hstep t ht ht0).1, ?_⟩
       rcases hg with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -254,7 +256,7 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
       (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1)))
     (fun i ↦ σv (.n (if i = 0 then 835 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
       (vtPushSel.getD (i - 1) default).2.2.2.1 (vtPushSel.getD (i - 1) default).2.2.2.2.1)))
-    (fun i ↦ σv (.n (vtPushPadData.getD i default).2.2.1)) (σv (.n 835)) 51
+    (fun i ↦ σv (.n (vtPushPadData.getD i default).2.2.1)) (σv (.n (val% «verify_tables» "selector_sum@2"))) 51
     (fun i hi ↦ by rw [(hP i hi).2.2.2, (hP i hi).2.2.1]) (by simp)
     (fun i h0 _ ↦ by simp [show i ≠ 0 by omega]) 50 (by norm_num)
   have hsumC := vt_running_sum (fun i ↦ σv (.n (vtSelSum (vtCountSel.getD i default).2.2.1

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The index factors, `1 + ζ` and the shared tables
@@ -36,7 +38,7 @@ theorem vtIdxc_word {t : ℕ} (ht : t < 34) :
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/
-theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n 665)) vtIdxcW) :
+theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) :
     ∀ st ∈ vtIdxcT, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st := by
   intro st hst
   have hst' := hst
@@ -61,11 +63,11 @@ theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n 66
 
 /-- **`zeta1`'s `plus_one_run`.** -/
 theorem zeta1_ok (hl : args.length = 21) {point : List E}
-    (h9 : vtσ rd w args (.n 9) = gen ^ point.length) (hμ : point.length ≤ 33)
-    (hz : TbReadsAt rd (vtσ rd w args (.n 8)) point)
-    (hz1 : TbReadsAt rd (vtσ rd w args (.n 700)) (point.map (1 + ·))) (hw : w 701 = 0) :
+    (h9 : vtσ rd w args (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hμ : point.length ≤ 33)
+    (hz : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta"))) point)
+    (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hw : w 701 = 0) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args)
-      (.dispatch (.n 9) plusOneRunNames [.n 700, .n 8] [.n 701]) := by
+      (.dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]) := by
   have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop 694 ▸ vtZeta1_check)
     List.mem_cons_self)
   simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq] at hg

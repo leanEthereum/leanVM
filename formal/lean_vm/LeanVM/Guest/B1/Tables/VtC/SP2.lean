@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SPads
 public import LeanVM.Guest.B1.Tables.VtC.SShT
 public import LeanVM.Guest.B1.Tables.VtC.SSortAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # Statements `563 ..< 765`
@@ -30,10 +32,10 @@ open Finset (range)
 
 @[expose] public section
 
-theorem vtPad_read : ∀ t < 5, Atom.load (.n (579 + 13 * t + 4)) (.n 11) t ∉ vtSL := by
+theorem vtPad_read : ∀ t < 5, Atom.load (.n (579 + 13 * t + 4)) (.n (val% «verify_tables» "table_rows")) t ∉ vtSL := by
   decide +kernel
 
-theorem vtPad5_read : Atom.load (.n (644 + 4)) (.n 11) 5 ∉ vtSL := by decide +kernel
+theorem vtPad5_read : Atom.load (.n (val% «verify_tables» "rows@6")) (.n (val% «verify_tables» "table_rows")) 5 ∉ vtSL := by decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
@@ -63,9 +65,9 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
     (hkb : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t)
-    (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
-    (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
-    (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
+    (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hrows : ∀ t < 6, LoadHolds rd (σv (.n (val% «verify_tables» "table_rows"))) t (eOfNat (n t)))
+    (hsq : TbReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
     (hidxc : TbReadsAt rd (w 665) vtIdxcW) (hz1 : TbReadsAt rd (w 700) (point.map (1 + ·)))
@@ -78,13 +80,13 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (∀ s ∈ (vtPre.drop 563).take 202, VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      σv (.n 665) = w 665 ∧ σv (.n 700) = w 700 ∧
-      σv (.n 702) = w 702 ∧ σv (.n 703) = w 703 := by
-  have e668 : σv (.n 665) = w 665 := vt_allocAt hl 624 (k := 34) (by decide +kernel)
-  have e703 : σv (.n 700) = w 700 := vt_allocDynAt hl 693 (s := .n 9) (by decide +kernel)
-  have e705 : σv (.n 702) = w 702 := vt_allocAt hl 695 (k := 1728) (by decide +kernel)
-  have e706 : σv (.n 703) = w 703 := vt_allocAt hl 696 (k := 864) (by decide +kernel)
-  have hz1' : TbReadsAt rd (σv (.n 700)) (point.map (1 + ·)) := by rw [e703]; exact hz1
+      σv (.n (val% «verify_tables» "idxc_tab")) = w 665 ∧ σv (.n (val% «verify_tables» "zeta1")) = w 700 ∧
+      σv (.n (val% «verify_tables» "shared_eq")) = w 702 ∧ σv (.n (val% «verify_tables» "shared_g")) = w 703 := by
+  have e668 : σv (.n (val% «verify_tables» "idxc_tab")) = w 665 := vt_allocAt hl 624 (k := 34) (by decide +kernel)
+  have e703 : σv (.n (val% «verify_tables» "zeta1")) = w 700 := vt_allocDynAt hl 693 (s := .n (val% «verify_tables» "g_bus_mu")) (by decide +kernel)
+  have e705 : σv (.n (val% «verify_tables» "shared_eq")) = w 702 := vt_allocAt hl 695 (k := 1728) (by decide +kernel)
+  have e706 : σv (.n (val% «verify_tables» "shared_g")) = w 703 := vt_allocAt hl 696 (k := 864) (by decide +kernel)
+  have hz1' : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)) := by rw [e703]; exact hz1
   -- the pads
   have hpad : ∀ t < 5, (∀ st ∈ vtPadT (579 + 13 * t) t, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (579 + 13 * t + 5)) = paddingWeight (point.take (τ t)) (n t) := by
@@ -99,14 +101,14 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
       (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
       (by omega) w5 w6 (by rw [show 579 + 13 * t + 7 = 579 + 13 * t + 5 + 2 by ring]; exact w7)
   have hpad5 : (∀ st ∈ vtPad5T 644, VSH (coreProgram.Rel rd) rd σv st) ∧
-      σv (.n (644 + 5)) = paddingWeight (point.take (τ 5)) (n 5) := by
+      σv (.n (val% «verify_tables» "pad_weight[5]")) = paddingWeight (point.take (τ 5)) (n 5) := by
     obtain ⟨w5, w6, w7⟩ := hwp 5 (by norm_num)
-    have hm : Stmt.ite (.n (644 + 15)) [] [.atom (.const (.n (644 + 16)) (word 1 0)),
-      .atom (.assertEq (.n (644 + 6)) (.n (644 + 16))),
-      .atom (.const (.n (644 + 17)) (word 0 0)),
-      .atom (.add (.n (644 + 18)) (.n (644 + 7)) (.n (644 + 17))),
-      .atom (.hint (.inverse (.n (644 + 18)) (.n (644 + 19)))),
-      .atom (.assertNe (.n (644 + 18)) (.n (644 + 19)) (.n (644 + 20)))] ∈ vtPre :=
+    have hm : Stmt.ite (.n (val% «verify_tables» "s15.u5.s4.e.s1#1")) [] [.atom (.const (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s0#0")) (word 1 0)),
+      .atom (.assertEq (.n (val% «verify_tables» "lead@6")) (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s0#0"))),
+      .atom (.const (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#0")) (word 0 0)),
+      .atom (.add (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#1")) (.n (val% «verify_tables» "rest@6")) (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#0"))),
+      .atom (.hint (.inverse (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#1")) (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#2")))),
+      .atom (.assertNe (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#1")) (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#2")) (.n (val% «verify_tables» "s15.u5.s4.e.s1.t.s1#3")))] ∈ vtPre :=
       vt_mem_slice (vtPre_drop _ ▸ vtPad5_check) (by simp [vtPad5T])
     have hgb := vt_goodIte' (rd := rd) (w := w) hl hm
     rw [List.nil_append] at hgb
@@ -139,11 +141,11 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
       simpa using this
     have s3 : ∀ s ∈ (vtPre.drop 613).take 11, VSH (coreProgram.Rel rd) rd σv s :=
       vt_tmplSlice vtPad5_check hpad5.1
-    have s4 := vt_hintSlice (rd := rd) (w := w) (args := args) 624 (h := .alloc (.n 665) 34) (by decide +kernel)
+    have s4 := vt_hintSlice (rd := rd) (w := w) (args := args) 624 (h := .alloc (.n (val% «verify_tables» "idxc_tab")) 34) (by decide +kernel)
     have s5 : ∀ s ∈ (vtPre.drop 625).take 68, VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice vtIdxc_check (idxc_ok hl (by rw [e668]; exact hidxc))
       rwa [show vtIdxcT.length = 68 by decide +kernel] at h
-    have s6 := vt_hintSlice (rd := rd) (w := w) (args := args) 693 (h := .allocDyn (.n 700) (.n 9))
+    have s6 := vt_hintSlice (rd := rd) (w := w) (args := args) 693 (h := .allocDyn (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "g_bus_mu")))
       (by decide +kernel)
     have s7 : ∀ s ∈ (vtPre.drop 694).take 1, VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice (P := VSH (coreProgram.Rel rd) rd σv) vtZeta1_check (by
@@ -152,9 +154,9 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
         subst hs
         exact zeta1_ok hl h9 (by omega) hz hz1' hw704)
       exact h
-    have s8 := vt_hintSlice (rd := rd) (w := w) (args := args) 695 (h := .alloc (.n 702) 1728)
+    have s8 := vt_hintSlice (rd := rd) (w := w) (args := args) 695 (h := .alloc (.n (val% «verify_tables» "shared_eq")) 1728)
       (by decide +kernel)
-    have s9 := vt_hintSlice (rd := rd) (w := w) (args := args) 696 (h := .alloc (.n 703) 864)
+    have s9 := vt_hintSlice (rd := rd) (w := w) (args := args) 696 (h := .alloc (.n (val% «verify_tables» "shared_g")) 864)
       (by decide +kernel)
     have s10 : ∀ s ∈ (vtPre.drop 697).take 68, VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ [697, 705, 717, 729, 741, 753].getD t 0)

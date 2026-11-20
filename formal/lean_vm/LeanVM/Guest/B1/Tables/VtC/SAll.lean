@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.SP2
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # Statements `0 ..< 765`
@@ -42,10 +44,10 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
     -- the arguments' buffers
-    (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
-    (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
-    (hE : ExpTablesAt rd (σv (.n 12)))
+    (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hdims : TbReadsAt rd (σv (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
+    (hrows : ∀ t < 6, LoadHolds rd (σv (.n (val% «verify_tables» "table_rows"))) t (eOfNat (n t)))
+    (hE : ExpTablesAt rd (σv (.n (val% «verify_tables» "g_squares"))))
     -- the own buffers
     (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ))
@@ -69,8 +71,8 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
         gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      σv (.n 665) = w 665 ∧ σv (.n 700) = w 700 ∧
-      σv (.n 702) = w 702 ∧ σv (.n 703) = w 703 := by
+      σv (.n (val% «verify_tables» "idxc_tab")) = w 665 ∧ σv (.n (val% «verify_tables» "zeta1")) = w 700 ∧
+      σv (.n (val% «verify_tables» "shared_eq")) = w 702 ∧ σv (.n (val% «verify_tables» "shared_g")) = w 703 := by
   have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW

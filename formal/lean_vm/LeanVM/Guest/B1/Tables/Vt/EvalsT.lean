@@ -11,6 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.ZcRun
 public import LeanVM.Guest.B1.Gkr.Layer
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The table evaluations' templates
@@ -71,7 +73,7 @@ def vtEvB (k : ℕ) : ℕ := (vtEvalData.getD k (0, 0)).2
 
 /-- An evaluation's statements. -/
 def vtEvalT (b off : ℕ) : List Stmt :=
-  fsNextT (.n 2647) off b ++ [.atom (.copy (.n (b + 3)) (.n b))]
+  fsNextT (.n (val% «verify_tables» "cursor@5")) off b ++ [.atom (.copy (.n (b + 3)) (.n b))]
 
 /-- The capacity cells before permutation `j`. -/
 def vtPermCap (j : ℕ) : List V :=

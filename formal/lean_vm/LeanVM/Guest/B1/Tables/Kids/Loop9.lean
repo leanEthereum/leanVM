@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Tables.Kids.Walk
 public import LeanVM.Guest.B1.Tables.Kids.Families
 public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
 
 /-!
 # `shared_selector_tables_loop0` and `shared_selector_tables`, loading from a region
@@ -54,8 +56,8 @@ theorem filterMap_callSF {σ : Val} {pre : List Stmt} (h : pre.all noDispB = tru
   List.filterMap_congr fun s hs ↦ callSF_of_noDisp (List.all_eq_true.mp h s hs)
 
 /-- `shared_selector_tables_loop0`'s statements before its `ret`. -/
-def lpPreC : List Stmt := lpPre ++ [.callIf (.n 76) name% «shared_selector_tables_loop0» [.n 78,
-    .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
+def lpPreC : List Stmt := lpPre ++ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"),
+    .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"), .n (val% «shared_selector_tables_loop0» "g_tab"), .n (val% «shared_selector_tables_loop0» "gsq_hi")]]
 
 theorem lpBody_eq : lpBody = lpPreC ++ [.ret []] := by simp [lpBody, lpPreC]
 
@@ -69,8 +71,8 @@ def lpTbl : List (ℕ × ℕ) := [(12, 32), (13, 4), (14, 4), (53, 16), (54, 4)]
 theorem lp_loads : lpPreC.all (loadsViaB lpTbl) = true := by decide +kernel
 
 theorem lp_calls : lpPreC.filterMap Main.Stmt.callS =
-    [(some (.n 76), name% «shared_selector_tables_loop0», [.n 78, .n 1, .n 2, .n 3, .n 4, .n 5,
-        .n 6], [])] := by
+    [(some (.n (val% «shared_selector_tables_loop0» "s5#2")), name% «shared_selector_tables_loop0», [.n (val% «shared_selector_tables_loop0» "s5#4"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"), .n (val% «shared_selector_tables_loop0» "g_tab"),
+        .n (val% «shared_selector_tables_loop0» "gsq_hi")], [])] := by
   decide +kernel
 
 /-- **`shared_selector_tables_loop0` loads from `R`**, every iteration `k < K`. -/
@@ -108,8 +110,8 @@ theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq 
     obtain ⟨h7, h8, h9, h10, h11, h12, h13, h14⟩ := hh
     obtain ⟨h53, h54⟩ := hm
     obtain ⟨h74, h75, h76, h77, h78⟩ := ht
-    have ex4 : σ (.n 8) = gen ^ (4 * k) := by rw [h8, h7, p0]; ring
-    have ex16 : σ (.n 10) = gen ^ (16 * k) := by rw [h10, h9, h8, h7, p0]; ring
+    have ex4 : σ (.n (val% «shared_selector_tables_loop0» "x4")) = gen ^ (4 * k) := by rw [h8, h7, p0]; ring
+    have ex16 : σ (.n (val% «shared_selector_tables_loop0» "x16")) = gen ^ (16 * k) := by rw [h10, h9, h8, h7, p0]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp lp_noDisp s hs),
       loads_via lp_loads fun pb hpb ↦ ?_, fun c hc ht ↦ ?_⟩
     · simp only [lpTbl, List.mem_cons, List.not_mem_nil, or_false] at hpb
@@ -124,8 +126,8 @@ theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq 
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
       subst hc
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e76 : σ (.n 78) = gen ^ (k + 1) := by rw [h78, h77, tb_word_gen, p0, pow_succ]
-      have e74 : σ (.n 76) = gen ^ (k + 1) + gen ^ K := by
+      have e76 : σ (.n (val% «shared_selector_tables_loop0» "s5#4")) = gen ^ (k + 1) := by rw [h78, h77, tb_word_gen, p0, pow_succ]
+      have e74 : σ (.n (val% «shared_selector_tables_loop0» "s5#2")) = gen ^ (k + 1) + gen ^ K := by
         rw [h76, h75, h74, tb_word_gen, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'

@@ -10,6 +10,10 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Sumcheck.Round4
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
 
 /-!
 # The table sumcheck's rounds (`verify_tables_loop0`)
@@ -32,19 +36,19 @@ theorem vtWInvGen_mul : vtWInvGen * gen = 1 := by
 
 /-- `verify_tables_loop0`'s body. -/
 def l10Body : List Stmt :=
-  [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 0)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 0)),
-    .atom (.mul (.n 10) (.n 2) (.n 9)), .atom (.load (.n 11) (.n 10) 5),
-    .atom (.load (.n 12) (.n 10) 6),
-    .call "sumcheck_round4" [.n 10, .n 11, .n 12, .n 3] [.n 13, .n 14, .n 15],
-    .atom (.mul (.n 16) (.n 4) (.n 0)), .atom (.load (.n 15) (.n 16) 0),
-    .atom (.load (.n 13) (.n 10) 12), .atom (.load (.n 14) (.n 10) 13),
-    .atom (.mul (.n 17) (.n 5) (.n 0)), .atom (.load (.n 18) (.n 17) 0),
-    .atom (.mul (.n 19) (.n 18) (.n 15)), .atom (.mul (.n 20) (.n 5) (.n 0)),
-    .atom (.load (.n 19) (.n 20) 1), .atom (.const (.n 21) (word 2 0)),
-    .atom (.mul (.n 22) (.n 0) (.n 21)), .atom (.add (.n 23) (.n 22) (.n 1)),
-    .atom (.const (.n 24) (word 2 0)), .atom (.mul (.n 25) (.n 0) (.n 24)),
-    .callIf (.n 23) name% «verify_tables_loop0» [.n 25, .n 1, .n 2, .n 3, .n 4, .n 5],
+  [.atom (.mul (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk")) (.n (val% «verify_tables_loop0» "xk"))), .atom (.mul (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk"))),
+    .atom (.mul (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~1"))), .atom (.mul (.n (val% «verify_tables_loop0» "rd~3")) (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "xk"))),
+    .atom (.mul (.n (val% «verify_tables_loop0» "rd")) (.n (val% «verify_tables_loop0» "zc_rounds")) (.n (val% «verify_tables_loop0» "rd~3"))), .atom (.load (.n (val% «verify_tables_loop0» "ncur~3")) (.n (val% «verify_tables_loop0» "rd")) 5),
+    .atom (.load (.n (val% «verify_tables_loop0» "ncur~4")) (.n (val% «verify_tables_loop0» "rd")) 6),
+    .call "sumcheck_round4" [.n (val% «verify_tables_loop0» "rd"), .n (val% «verify_tables_loop0» "ncur~3"), .n (val% «verify_tables_loop0» "ncur~4"), .n (val% «verify_tables_loop0» "tabs")] [.n (val% «verify_tables_loop0» "ncur"), .n (val% «verify_tables_loop0» "nclaim"), .n (val% «verify_tables_loop0» "rk")],
+    .atom (.mul (.n (val% «verify_tables_loop0» "s2#0")) (.n (val% «verify_tables_loop0» "zc_rk")) (.n (val% «verify_tables_loop0» "xk"))), .atom (.load (.n (val% «verify_tables_loop0» "rk")) (.n (val% «verify_tables_loop0» "s2#0")) 0),
+    .atom (.load (.n (val% «verify_tables_loop0» "ncur")) (.n (val% «verify_tables_loop0» "rd")) 12), .atom (.load (.n (val% «verify_tables_loop0» "nclaim")) (.n (val% «verify_tables_loop0» "rd")) 13),
+    .atom (.mul (.n (val% «verify_tables_loop0» "s6#0")) (.n (val% «verify_tables_loop0» "zc_cprod")) (.n (val% «verify_tables_loop0» "xk"))), .atom (.load (.n (val% «verify_tables_loop0» "s6#1")) (.n (val% «verify_tables_loop0» "s6#0")) 0),
+    .atom (.mul (.n (val% «verify_tables_loop0» "s6#2")) (.n (val% «verify_tables_loop0» "s6#1")) (.n (val% «verify_tables_loop0» "rk"))), .atom (.mul (.n (val% «verify_tables_loop0» "s6#3")) (.n (val% «verify_tables_loop0» "zc_cprod")) (.n (val% «verify_tables_loop0» "xk"))),
+    .atom (.load (.n (val% «verify_tables_loop0» "s6#2")) (.n (val% «verify_tables_loop0» "s6#3")) 1), .atom (.const (.n (val% «verify_tables_loop0» "s8#0")) (word 2 0)),
+    .atom (.mul (.n (val% «verify_tables_loop0» "s8#1")) (.n (val% «verify_tables_loop0» "xk")) (.n (val% «verify_tables_loop0» "s8#0"))), .atom (.add (.n (val% «verify_tables_loop0» "s8#2")) (.n (val% «verify_tables_loop0» "s8#1")) (.n (val% «verify_tables_loop0» "bound"))),
+    .atom (.const (.n (val% «verify_tables_loop0» "s8#3")) (word 2 0)), .atom (.mul (.n (val% «verify_tables_loop0» "s8#4")) (.n (val% «verify_tables_loop0» "xk")) (.n (val% «verify_tables_loop0» "s8#3"))),
+    .callIf (.n (val% «verify_tables_loop0» "s8#2")) name% «verify_tables_loop0» [.n (val% «verify_tables_loop0» "s8#4"), .n (val% «verify_tables_loop0» "bound"), .n (val% «verify_tables_loop0» "zc_rounds"), .n (val% «verify_tables_loop0» "tabs"), .n (val% «verify_tables_loop0» "zc_rk"), .n (val% «verify_tables_loop0» "zc_cprod")],
         .ret []]
 
 noncomputable def l10Check : Bool :=
@@ -82,29 +86,13 @@ theorem l10_step {rd : Reader} {N rounds tabs rkb cprod : E} (d : ℕ) (x : E)
       (x * gen + N ≠ 0 →
         coreProgram.relN rd d name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, rkb,
             cprod]) []) := by
-  obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
-  obtain ⟨fn', hf', hp, hb⟩ := l10Found
-  rw [hf] at hf'
-  obtain rfl := Option.some.inj hf'
-  rw [hp] at hpar
-  simp only [List.map_cons, List.map_nil, List.range_succ, List.range_zero, List.nil_append,
-    List.cons_append, List.cons.injEq, and_true] at hpar
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hpar
-  rw [hb] at hbody
-  simp only [l10Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hbody
-  obtain ⟨m6, m7, m8, m9, m10, l11, l12, hcall, m16, l15, l13, l14, m17, l18, m19, m20, l19, c21,
-    m22, a23, c24, m25, ⟨-, hnext, -⟩⟩ := hbody
-  simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 l12 m16 l15 l13 l14 m17 l18 m19 m20 l19 c21 m22
-  simp only [Atom.Holds] at a23 c24 m25
-  have e10 : σ (.n 10) = σ (.n 2) * σ (.n 0) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
-  refine ⟨⟨σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14), σ (.n 15), by rw [← e10]; exact l11,
-    by rw [← e10]; exact l12, by rw [← e10]; exact relN_le_rel coreProgram d _ _ _ hcall,
-    by rw [← e10]; exact l13, by rw [← e10]; exact l14, by rw [← m16]; exact l15,
-    σ (.n 18), by rw [← m17]; exact l18, by rw [← m20, ← m19]; exact l19⟩, fun hne => ?_⟩
-  rw [tb_word_gen] at c21 c24
-  have := hnext (by rw [a23, m22, c21]; exact hne)
-  rw [m25, c24] at this
-  exact this
+  revert h
+  rw [B1.relN_succ_iff_fnSem (coreProgram_find?_at (j := idx% «verify_tables_loop0») rfl)]
+  vc [B1.word_gen]
+  simp only [show x * x * x * (x * x * x) * x = x ^ 7 by ring]
+  rintro ⟨cur, l11, claim, l12, ncur, nclaim, rk, hc, lrk, l13, l14, cp, lcp, lcp1, -, hn, -⟩
+  exact ⟨⟨cur, claim, ncur, nclaim, rk, l11, l12, relN_le_rel coreProgram d _ _ _ hc, l13, l14, lrk,
+    cp, lcp, lcp1⟩, hn⟩
 
 end
 end LeanVM.Guest.B1.Tables

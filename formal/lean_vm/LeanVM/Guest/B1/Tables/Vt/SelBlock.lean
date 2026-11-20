@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.SelBlocks
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # A table block's selector
@@ -39,11 +41,11 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
     {es gs gw : ℕ}
     (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
       ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
-    (hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 702) * gen ^ (288 * t) ∧
-      σ (.n gs) * word gw 0 = σ (.n 703) * gen ^ (144 * t))
+    (hptr : 0 < t → σ (.n es) * vtW288 = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+      σ (.n gs) * word gw 0 = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t))
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
     (hdv : σ (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables Lm.read (σ (.n 702) * gen ^ (288 * t)) (σ (.n 703) * gen ^ (144 * t)) d
+    (hrun : RunTables Lm.read (σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t)) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : σ (.n (vtBoffV b)) = gen ^ off) (hob : off < 2 ^ 62) :
     σ (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
@@ -53,7 +55,7 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
   obtain ⟨k, hs⟩ := h.sliceAt pos _ hcheck
   -- the template's facts, uniformly in `t`
   obtain ⟨eqt, gt, heqt, hgt, hd, hq, hrest⟩ : ∃ eqt gt : V,
-      σ eqt = σ (.n 702) * gen ^ (288 * t) ∧ σ gt = σ (.n 703) * gen ^ (144 * t) ∧
+      σ eqt = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧ σ gt = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) ∧
       (∃ (j : ℕ) (hj : j < vtBstNames.length), σ (.n (vtShLen t)) = ofK
           (Parameters.addressOfIndex j) ∧
         coreProgram.Rel Lm.read vtBstNames[j] [σ (.n w), σ eqt, σ gt]
@@ -65,7 +67,7 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
         Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hs
       obtain ⟨-, -, hdisp, qE, hr⟩ := hs
       simp only [Atom.Holds] at qE
-      exact ⟨.n 702, .n 703, by simp, by simp, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
+      exact ⟨.n (val% «verify_tables» "shared_eq"), .n (val% «verify_tables» "shared_g"), by simp, by simp, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
     · have ht' : t ≠ 0 := by omega
       simp only [vtSelT, ht', ↓reduceIte, List.cons_append, List.nil_append,
         Stmt.HoldsList, Stmt.Holds] at hs

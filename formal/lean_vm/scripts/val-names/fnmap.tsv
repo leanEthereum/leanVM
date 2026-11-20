@@ -25,3 +25,80 @@ tie l8Body verify_bus_gkr_loop0
 tie glcLsBody gkr_layers__L
 tie glcLsLBody gkr_layers__L_loop0
 tie glcLastBody gkr_last_layers__L
+# B1/Tables: verify_tables' chunks (Vt/Base: core% «verify_tables» c0 ..), its body read by position and flattened (vtPre, vtAt, vtEvL), the generated slice templates checked against the chunks (Vt/*T, VtC/FData, FWin, ZBase, ZSetup, ZTail), the call statements of its body (VtC/ARelIn); its loop's, shared_selector_tables' and padding_weight's bodies
+tie vtChunk verify_tables
+tie vtPre verify_tables
+tie vtAt verify_tables
+tie vtEvL verify_tables
+tie vtAirRest verify_tables
+tie vtAirT verify_tables
+tie vtBoffT verify_tables
+tie vtEvRest verify_tables
+tie vtEvalT verify_tables
+tie vtFwSelT verify_tables
+tie vtIdxcT verify_tables
+tie vtPad5T verify_tables
+tie vtPadT verify_tables
+tie vtRank0T verify_tables
+tie vtRankT verify_tables
+tie vtSelT verify_tables
+tie zBlk verify_tables
+tie zRest verify_tables
+tie zTRest verify_tables
+tie zTail verify_tables
+tie epcCall verify_tables
+tie imCall verify_tables
+tie loopCall verify_tables
+tie otrCall verify_tables
+tie porCall verify_tables
+tie pwCall verify_tables
+tie shCall verify_tables
+tie l10Body verify_tables_loop0
+tie lpPreC shared_selector_tables_loop0
+tie ssDisp shared_selector_tables
+tie pwBody0 padding_weight__L0
+tie pwBody1 padding_weight__L1
+tie pwBody padding_weight__L
+# B1/Tables files about verify_tables' body and its valuations throughout (each header read), for the declarations that name no template
+LeanVM/Guest/B1/Tables/VtC/BBc.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/BcShare.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BMain.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcRun.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AGlue.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fresh.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmTotals.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcCert.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pi.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/VerifyTables.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fw.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmClaims.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AMain.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FComplete.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZSetup.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmForms.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Shared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ABound.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZTail.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ARelIn.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AWeight.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BAll.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Base.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FWin.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Sort.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SShared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/Calls.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelFw.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SSortAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BBase.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SP2.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SPads.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SLoads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelsAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FData.lean verify_tables
+LeanVM/Guest/B1/Tables/Kids/Loop10.lean verify_tables_loop0
+LeanVM/Guest/B1/Tables/Kids/Shared.lean shared_selector_tables
+LeanVM/Guest/B1/Tables/Kids/BlockSelTab.lean block_selector_tab__L

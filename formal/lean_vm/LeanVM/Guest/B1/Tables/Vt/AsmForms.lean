@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsT3
 public import LeanVM.Guest.B1.Tables.Vt.FormsT4
 public import LeanVM.Guest.B1.Tables.Vt.FormsT5
 public import LeanVM.Guest.B1.Tables.Vt.PullSels
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The evaluations and the forms' values
@@ -115,27 +117,27 @@ include hμ
 
 /-- **The forms' values.** -/
 theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.length = 2 ^ 23)
-    {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
-    (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ} (hlm : lm ≤ 32)
+    {point : List E} (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
+    (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
+    (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt Lm.read (σ (.n 13)) weights) {t : ℕ} (ht : t < 6) :
-    ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-        [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1.getD t []).map
+    (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights) {t : ℕ} (ht : t < 6) :
+    ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
+        [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨-, -, -, -, -, -, -, -, hP, -, hC, -⟩ :=
     vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
-  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n 13)) i (weights.getD i 0) :=
+  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n (val% «verify_tables» "fp_w"))) i (weights.getD i 0) :=
     fun i hi ↦ by
       have := hW i (by omega)
       rwa [← List.getD_eq_getElem _ 0] at this
-  obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n 14)) point
-    [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-    (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+  obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n (val% «verify_tables» "beta"))) point
+    [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+    (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0"))) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]

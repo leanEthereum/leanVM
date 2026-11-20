@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.SAll
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The loads of statements `0 ..< 765`
@@ -299,8 +301,8 @@ theorem vtS_loads {bufs : List (E × ℕ)}
     (hV : ∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
     {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
-    (hdims : TbReadsAt rd (vtσ rd w args (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hord : TbReadsAt rd (vtσ rd w args (.n 37)) (vtGOrdW lm τ)) :
+    (hdims : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
+    (hord : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "group_order"))) (vtGOrdW lm τ)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 765) := by
   refine ptrRun_sound hb (fun q hq j hj v hl ↦ ?_) _ [] (by simp) hV vtS_ptr_check
   simp only [vtPwsS, List.mem_cons, List.not_mem_nil, or_false] at hq

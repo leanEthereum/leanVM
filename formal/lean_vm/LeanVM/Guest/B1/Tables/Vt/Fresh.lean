@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The bus's first stream words
@@ -33,11 +35,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The seven words, in their stream order: the memory's two values, the final memory and
 bytecode counts, the bytecode share, its first round's `c0` and `c2`. -/
 def vtFreshWords (σ : Val) : List E :=
-  [σ (.n 813), σ (.n 817), σ (.n 1303), σ (.n 1317), σ (.n 1841), σ (.n 1845), σ (.n 1849)]
+  [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2")), σ (.n (val% «verify_tables» "x@3")), σ (.n (val% «verify_tables» "x@4")), σ (.n (val% «verify_tables» "x@5")), σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))]
 
 /-- The carried sponge after them. -/
 def vtFreshFs (σ : Val) : Fs :=
-  (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorbAll (vtFreshWords σ)
+  (⟨[σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4"))], []⟩ : Fs).absorbAll (vtFreshWords σ)
     dsObserve
 
 /-- A permutation's thirteen outputs from `b`. -/
@@ -66,17 +68,17 @@ set_option maxRecDepth 10000 in
 the sponge's capacity after it (`1863 .. 1867`), and the copies of the share and the first round's
 coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    TbReadsAt rd (σ (.n 5)) (vtFreshWords σ) ∧
-      σ (.n 1855) = (vtFreshFs σ).squeeze.1 ∧
+    TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1"))) (vtFreshWords σ) ∧
+      σ (.n (val% «verify_tables» "nxt[0]@2")) = (vtFreshFs σ).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (1863 + k))) = (vtFreshFs σ).squeeze.2.cap ∧
-      σ (.n 1844) = σ (.n 1841) ∧ σ (.n 1848) = σ (.n 1845) ∧ σ (.n 1852) = σ (.n 1849) := by
-  obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n 5) 0 813) (by decide +kernel)
-  obtain ⟨_, f1⟩ := h.sliceAt 804 (fsNextT (.n 5) 1 817) (by decide +kernel)
-  obtain ⟨_, f2⟩ := h.sliceAt 1342 (fsNextT (.n 5) 2 1303) (by decide +kernel)
-  obtain ⟨_, f3⟩ := h.sliceAt 1357 (fsNextT (.n 5) 3 1317) (by decide +kernel)
-  obtain ⟨_, f4⟩ := h.sliceAt 1915 (fsNextT (.n 5) 4 1841) (by decide +kernel)
-  obtain ⟨_, f5⟩ := h.sliceAt 1919 (fsNextT (.n 5) 5 1845) (by decide +kernel)
-  obtain ⟨_, f6⟩ := h.sliceAt 1923 (fsNextT (.n 5) 6 1849) (by decide +kernel)
+      σ (.n (val% «verify_tables» "bc_msg[0]")) = σ (.n (val% «verify_tables» "x@5")) ∧ σ (.n (val% «verify_tables» "bc_msg[1]")) = σ (.n (val% «verify_tables» "x@6")) ∧ σ (.n (val% «verify_tables» "bc_msg[2]")) = σ (.n (val% «verify_tables» "x@7")) := by
+  obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n (val% «verify_tables» "cursor@1")) 0 813) (by decide +kernel)
+  obtain ⟨_, f1⟩ := h.sliceAt 804 (fsNextT (.n (val% «verify_tables» "cursor@1")) 1 817) (by decide +kernel)
+  obtain ⟨_, f2⟩ := h.sliceAt 1342 (fsNextT (.n (val% «verify_tables» "cursor@1")) 2 1303) (by decide +kernel)
+  obtain ⟨_, f3⟩ := h.sliceAt 1357 (fsNextT (.n (val% «verify_tables» "cursor@1")) 3 1317) (by decide +kernel)
+  obtain ⟨_, f4⟩ := h.sliceAt 1915 (fsNextT (.n (val% «verify_tables» "cursor@1")) 4 1841) (by decide +kernel)
+  obtain ⟨_, f5⟩ := h.sliceAt 1919 (fsNextT (.n (val% «verify_tables» "cursor@1")) 5 1845) (by decide +kernel)
+  obtain ⟨_, f6⟩ := h.sliceAt 1923 (fsNextT (.n (val% «verify_tables» "cursor@1")) 6 1849) (by decide +kernel)
   rw [holds_fsNextT] at f0 f1 f2 f3 f4 f5 f6
   obtain ⟨⟨l0, p0⟩, -⟩ := f0
   obtain ⟨⟨l1, p1⟩, -⟩ := f1
@@ -85,21 +87,21 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   obtain ⟨⟨l4, p4⟩, -⟩ := f4
   obtain ⟨⟨l5, p5⟩, -⟩ := f5
   obtain ⟨⟨l6, p6⟩, -⟩ := f6
-  have c20 := h.atomAt 0 (.copy (.n 21) (.n 0)) (by decide +kernel)
-  have c21 := h.atomAt 1 (.copy (.n 22) (.n 1)) (by decide +kernel)
-  have c22 := h.atomAt 2 (.copy (.n 23) (.n 2)) (by decide +kernel)
-  have c23 := h.atomAt 3 (.copy (.n 24) (.n 3)) (by decide +kernel)
-  have c24 := h.atomAt 4 (.copy (.n 25) (.n 4)) (by decide +kernel)
-  have k1 := h.atomAt 1914 (.keccak [.n 814, .n 815, .n 818, .n 819, .n 1304, .n 1305, .n 1318,
-    .n 1319, .n 21, .n 22, .n 23, .n 24, .n 25] (vtOuts 1828) false false) (by decide +kernel)
-  have z6 := h.atomAt 1927 (.const (.n 1853) (word 0 0)) (by decide +kernel)
-  have z7 := h.atomAt 1928 (.const (.n 1854) (word 0 0)) (by decide +kernel)
-  have k2 := h.atomAt 1929 (.keccak [.n 1842, .n 1843, .n 1846, .n 1847, .n 1850, .n 1851,
-    .n 1853, .n 1854, .n 1836, .n 1837, .n 1838, .n 1839, .n 1840] (vtOuts 1855) false false)
+  have c20 := h.atomAt 0 (.copy (.n (val% «verify_tables» "sp[0]@1")) (.n (val% «verify_tables» "fs0"))) (by decide +kernel)
+  have c21 := h.atomAt 1 (.copy (.n (val% «verify_tables» "sp[1]@1")) (.n (val% «verify_tables» "fs1"))) (by decide +kernel)
+  have c22 := h.atomAt 2 (.copy (.n (val% «verify_tables» "sp[2]@1")) (.n (val% «verify_tables» "fs2"))) (by decide +kernel)
+  have c23 := h.atomAt 3 (.copy (.n (val% «verify_tables» "sp[3]@1")) (.n (val% «verify_tables» "fs3"))) (by decide +kernel)
+  have c24 := h.atomAt 4 (.copy (.n (val% «verify_tables» "sp[4]@1")) (.n (val% «verify_tables» "fs4"))) (by decide +kernel)
+  have k1 := h.atomAt 1914 (.keccak [.n (val% «verify_tables» "rate[0]@1"), .n (val% «verify_tables» "rate[1]@1"), .n (val% «verify_tables» "rate[2]@1"), .n (val% «verify_tables» "rate[3]@1"), .n (val% «verify_tables» "rate[4]@1"), .n (val% «verify_tables» "rate[5]@1"), .n (val% «verify_tables» "rate[6]@1"),
+    .n (val% «verify_tables» "rate[7]@1"), .n (val% «verify_tables» "sp[0]@1"), .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] (vtOuts 1828) false false) (by decide +kernel)
+  have z6 := h.atomAt 1927 (.const (.n (val% «verify_tables» "rate[6]@2")) (word 0 0)) (by decide +kernel)
+  have z7 := h.atomAt 1928 (.const (.n (val% «verify_tables» "rate[7]@2")) (word 0 0)) (by decide +kernel)
+  have k2 := h.atomAt 1929 (.keccak [.n (val% «verify_tables» "rate[0]@2"), .n (val% «verify_tables» "rate[1]@2"), .n (val% «verify_tables» "rate[2]@2"), .n (val% «verify_tables» "rate[3]@2"), .n (val% «verify_tables» "rate[4]@2"), .n (val% «verify_tables» "rate[5]@2"),
+    .n (val% «verify_tables» "rate[6]@2"), .n (val% «verify_tables» "rate[7]@2"), .n (val% «verify_tables» "nxt[8]@1"), .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] (vtOuts 1855) false false)
     (by decide +kernel)
-  have d43 := h.atomAt 1918 (.copy (.n 1844) (.n 1841)) (by decide +kernel)
-  have d47 := h.atomAt 1922 (.copy (.n 1848) (.n 1845)) (by decide +kernel)
-  have d51 := h.atomAt 1926 (.copy (.n 1852) (.n 1849)) (by decide +kernel)
+  have d43 := h.atomAt 1918 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
+  have d47 := h.atomAt 1922 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
+  have d51 := h.atomAt 1926 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   obtain ⟨hP1, hC1⟩ := vt_keccak k1
   obtain ⟨hP2, hC2⟩ := vt_keccak k2
@@ -111,38 +113,38 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have e5 := fsPackT_cells p5
   have e6 := fsPackT_cells p6
   -- the four framework words, and their permutation
-  set S4 : Fs := ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(σ (.n 813), dsObserve),
-    (σ (.n 817), dsObserve), (σ (.n 1303), dsObserve), (σ (.n 1317), dsObserve)]⟩ with hS4d
-  have hS4 : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorbAll
-      [σ (.n 813), σ (.n 817), σ (.n 1303), σ (.n 1317)] dsObserve = S4 := by
+  set S4 : Fs := ⟨[σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4"))], [(σ (.n (val% «verify_tables» "x@1")), dsObserve),
+    (σ (.n (val% «verify_tables» "x@2")), dsObserve), (σ (.n (val% «verify_tables» "x@3")), dsObserve), (σ (.n (val% «verify_tables» "x@4")), dsObserve)]⟩ with hS4d
+  have hS4 : (⟨[σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4"))], []⟩ : Fs).absorbAll
+      [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2")), σ (.n (val% «verify_tables» "x@3")), σ (.n (val% «verify_tables» "x@4"))] dsObserve = S4 := by
     rw [absorbAll_short _ _ _ (by simp)]; rfl
-  have hin1 : ([.n 814, .n 815, .n 818, .n 819, .n 1304, .n 1305, .n 1318, .n 1319, .n 21,
-      .n 22, .n 23, .n 24, .n 25] : List V).map σ = rateOf S4.pend ++ S4.cap := by
+  have hin1 : ([.n (val% «verify_tables» "rate[0]@1"), .n (val% «verify_tables» "rate[1]@1"), .n (val% «verify_tables» "rate[2]@1"), .n (val% «verify_tables» "rate[3]@1"), .n (val% «verify_tables» "rate[4]@1"), .n (val% «verify_tables» "rate[5]@1"), .n (val% «verify_tables» "rate[6]@1"), .n (val% «verify_tables» "rate[7]@1"), .n (val% «verify_tables» "sp[0]@1"),
+      .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] : List V).map σ = rateOf S4.pend ++ S4.cap := by
     rw [rateOf_eq_cells _ (by simp [hS4d])]
     simp only [hS4d, List.map_cons, List.map_nil, pendCells, List.flatMap_cons, List.flatMap_nil,
       List.length_cons, List.length_nil, List.cons_append, List.nil_append, List.append_nil,
       ← e0, ← e1, ← e2, ← e3, c20, c21, c22, c23, c24]
     rfl
   rw [hin1] at hC1
-  have hcap : capOf S4.perm = [σ (.n 1836), σ (.n 1837), σ (.n 1838), σ (.n 1839), σ (.n 1840)] := by
+  have hcap : capOf S4.perm = [σ (.n (val% «verify_tables» "nxt[8]@1")), σ (.n (val% «verify_tables» "nxt[9]@1")), σ (.n (val% «verify_tables» "nxt[10]@1")), σ (.n (val% «verify_tables» "nxt[11]@1")), σ (.n (val% «verify_tables» "nxt[12]@1"))] := by
     rw [Fs.perm, ← hC1]; rfl
   -- the share and the round's coefficients, after the permutation
-  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n 1841), dsObserve), (σ (.n 1845), dsObserve),
-    (σ (.n 1849), dsObserve)]⟩ with hS7d
+  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n (val% «verify_tables» "x@5")), dsObserve), (σ (.n (val% «verify_tables» "x@6")), dsObserve),
+    (σ (.n (val% «verify_tables» "x@7")), dsObserve)]⟩ with hS7d
   have hS7 : vtFreshFs σ = S7 := by
-    have hsplit : vtFreshWords σ = [σ (.n 813), σ (.n 817), σ (.n 1303), σ (.n 1317)] ++
-        [σ (.n 1841), σ (.n 1845), σ (.n 1849)] := rfl
+    have hsplit : vtFreshWords σ = [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2")), σ (.n (val% «verify_tables» "x@3")), σ (.n (val% «verify_tables» "x@4"))] ++
+        [σ (.n (val% «verify_tables» "x@5")), σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))] := rfl
     have happ : ∀ (s : Fs) (l1 l2 : List E) (t : ℕ),
         s.absorbAll (l1 ++ l2) t = (s.absorbAll l1 t).absorbAll l2 t := by
       intro s l1 l2 t; simp [Fs.absorbAll, List.foldl_append]
-    have h1 : S4.absorb (σ (.n 1841)) dsObserve = ⟨capOf S4.perm, [(σ (.n 1841), dsObserve)]⟩ := by
+    have h1 : S4.absorb (σ (.n (val% «verify_tables» "x@5"))) dsObserve = ⟨capOf S4.perm, [(σ (.n (val% «verify_tables» "x@5")), dsObserve)]⟩ := by
       simp [Fs.absorb, hS4d, rateScalars]
     rw [vtFreshFs, hsplit, happ, hS4]
-    show (S4.absorb (σ (.n 1841)) dsObserve).absorbAll [σ (.n 1845), σ (.n 1849)] dsObserve = S7
+    show (S4.absorb (σ (.n (val% «verify_tables» "x@5"))) dsObserve).absorbAll [σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))] dsObserve = S7
     rw [h1, absorbAll_short _ _ _ (by simp)]
     rfl
-  have hin2 : ([.n 1842, .n 1843, .n 1846, .n 1847, .n 1850, .n 1851, .n 1853, .n 1854, .n 1836,
-      .n 1837, .n 1838, .n 1839, .n 1840] : List V).map σ = rateOf S7.pend ++ S7.cap := by
+  have hin2 : ([.n (val% «verify_tables» "rate[0]@2"), .n (val% «verify_tables» "rate[1]@2"), .n (val% «verify_tables» "rate[2]@2"), .n (val% «verify_tables» "rate[3]@2"), .n (val% «verify_tables» "rate[4]@2"), .n (val% «verify_tables» "rate[5]@2"), .n (val% «verify_tables» "rate[6]@2"), .n (val% «verify_tables» "rate[7]@2"), .n (val% «verify_tables» "nxt[8]@1"),
+      .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] : List V).map σ = rateOf S7.pend ++ S7.cap := by
     rw [rateOf_eq_cells _ (by simp [hS7d])]
     simp only [hS7d, hcap, List.map_cons, List.map_nil, pendCells, List.flatMap_cons,
       List.flatMap_nil, List.length_cons, List.length_nil, List.cons_append, List.nil_append,
@@ -161,7 +163,7 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     · exact l6
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n 1855) (b := 1855) rfl (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@2")) (b := 1855) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
     have e : ∀ k, 1855 + 8 + k = 1863 + k := fun k => by omega

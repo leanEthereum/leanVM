@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Tables.VtC.BBc
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
 public import LeanVM.Guest.B1.Tables.Vt.Fw
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The bus sides
@@ -98,10 +100,10 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   eoC : ∀ x < 45, vtσ rd wo args (.n (vtBoffV (108 + x))) =
     gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD x 0
   eSh : ∀ t < 6, vtσ rd wo args (.n (vtShLen t)) = gen ^ (D.point.length - vtHt D.rows t)
-  e664 : vtσ rd wo args (.n 665) = wo 665
-  e699 : vtσ rd wo args (.n 700) = wo 700
-  e701 : vtσ rd wo args (.n 702) = wo 702
-  e702 : vtσ rd wo args (.n 703) = wo 703
+  e664 : vtσ rd wo args (.n (val% «verify_tables» "idxc_tab")) = wo 665
+  e699 : vtσ rd wo args (.n (val% «verify_tables» "zeta1")) = wo 700
+  e701 : vtσ rd wo args (.n (val% «verify_tables» "shared_eq")) = wo 702
+  e702 : vtσ rd wo args (.n (val% «verify_tables» "shared_g")) = wo 703
   hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
     paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
   /-- The own buffers' words. -/
@@ -155,14 +157,14 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   hbc : D.bc.length = 2 ^ 23
 
 theorem vtB_loads_check : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
-    | .atom (.load _ p off) => decide (p = .n 1897) ||
+    | .atom (.load _ p off) => decide (p = .n (val% «verify_tables» "cursor@4")) ||
         vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
-theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1897) off) ∈ (vtPre.drop 765).take 1827 →
+theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n (val% «verify_tables» "cursor@4")) off) ∈ (vtPre.drop 765).take 1827 →
     off = 0 := by
   have h : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
-      | .atom (.load _ p off) => !decide (p = .n 1897) || decide (off = 0)
+      | .atom (.load _ p off) => !decide (p = .n (val% «verify_tables» "cursor@4")) || decide (off = 0)
       | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
   intro d off hm
   have := List.all_eq_true.mp h _ hm
@@ -170,7 +172,7 @@ theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1897) off) ∈ (vtPre.d
 
 /-- **Every load of the bus sides reads inside `vtBufsB`**, the value's read through the cursor
 after the tail rounds (`g^13` words on) included. -/
-theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1897) = σ (.n 5) * gen ^ 13) :
+theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13) :
     LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 765).take 1827) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
@@ -178,7 +180,7 @@ theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1897) = σ (.n 5) * gen ^ 13) 
   rcases this with rfl | ⟨q, hq, rfl, hoff⟩
   · have h0 := vtB_load1897 d off hm
     subst h0
-    exact ⟨(σ (.n 5), 14), by simp [vtBufsB, vtBufsBIdx], 13, h1897, by norm_num⟩
+    exact ⟨(σ (.n (val% «verify_tables» "cursor@1")), 14), by simp [vtBufsB, vtBufsBIdx], 13, h1897, by norm_num⟩
   · exact vt_inBuf_direct (List.mem_map.mpr ⟨q, hq, rfl⟩) hoff
 
 end
