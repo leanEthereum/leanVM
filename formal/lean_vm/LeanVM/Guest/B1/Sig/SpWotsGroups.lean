@@ -1,24 +1,23 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsGroups
 
-  `sp_wots`'s codeword, sound: each digit group's dispatch takes the arm of its hinted digit word,
-  and with the digits those choose each chain's tip is its chain from its start, the product is
-  `g` to the digits' sum and the encoding their base-4 number.
+  `sp_wots`'s codeword on cells: its chain step and leaf, the digits its groups' dispatches take,
+  and the arithmetic of its running product and encoding.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Sig.SpWotsCheck
+public import LeanVM.Guest.B1.Sig.SpWotsLayout
 public import LeanVM.Guest.B1.Sig.Codeword
+public import LeanVM.Guest.B1.Sig.Merkle
 
 /-!
-# `sp_wots`'s codeword, sound
+# `sp_wots`'s codeword
 
-* `spGroupT_sound`, `spGroupsT_sound`: a group's dispatch runs one arm `k < 4^n`, its selector
-  `g^k`; the 21 groups of three digits each do (`SpGroupOK`);
+* `spStepCell`, `spLeafCell`: the chain step and the one-time leaf over cells;
 * `spDigitWord σ p` (`logG`, the unique exponent below the arm count), `spDigit σ i`, `spStart σ i`:
-  the digits the dispatches take, chain `i`'s digit and the cell its start is hinted in
-  (`spStartAt`, `SpWotsLayout`);
+  the digits the dispatches take in a valuation of the template's numbering, chain `i`'s digit and
+  the cell its start is hinted in (`spStartAt`, `SpWotsLayout`);
 * `spCodeword_prod`, `spCodeword_enc`: the arithmetic: the running product is `g` to the digits'
   sum; the running encoding is the `XOR` of the digits' fields (`spX`), whose field at
   `spDigitPos i` is digit `i` (`spX_digit`).
@@ -31,68 +30,29 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+/-! ## Cells -/
 
-/-! ## Atoms -/
+/-- **`sp_wots`'s chain step on cells**: step `s` of chain `i` on `x`, the first cell of the hash
+of `pp`, `a0`, `a1 + spStepC i s` and `x` (`walk`, `lean_ethereum.py`). -/
+def spStepCell (pp a0 a1 : E) (i s : Nat) (x : E) : E :=
+  (hcell [pp, a0, a1 + lit (spStepC i s), x]).1
 
-theorem atomsOnly_iff : ∀ {L : List Stmt}, atomsOnly L = true ↔ ∀ x ∈ L, ∃ a, x = .atom a
-  | [] => by simp [atomsOnly]
-  | .atom a :: L => by
-      simp only [atomsOnly, List.mem_cons, forall_eq_or_imp, atomsOnly_iff]
-      exact ⟨fun h => ⟨⟨a, rfl⟩, h⟩, fun h => h.2⟩
-  | .ite .. :: _ | .match_ .. :: _ | .call .. :: _ | .callIf .. :: _ | .dispatch .. :: _
-  | .ret _ :: _ => by simp [atomsOnly]
+/-- **The one-time leaf over cells**: chain `i` walked from digit `d i` from `starts i` with the
+step `spStepCell pp a0 a1`, the ends hashed after `pp`, `a0` and `a1 + SP_WOTS_PK` (`T_v`). -/
+def spLeafCell (pp a0 a1 : E) (d : Nat → Nat) (starts : Nat → E) : E :=
+  (hcell (pp :: a0 :: (a1 + spPkC) :: (List.range 64).map fun i =>
+    chainT (spStepCell pp a0 a1) i (3 - d i) (d i) (starts i))).1
 
-theorem spW_atoms : StepAtoms spW := by
-  intro i s v c o
-  simp only [spW, spWp]
-  split <;> rfl
+theorem lit_zero : lit 0 = 0 := by simp [lit, word_zero]
 
-theorem spPre_atoms (fold : Bool) (B : Nat) : atomsOnly (spPre fold B) = true := by
-  cases fold <;> rfl
-
-/-! ## The groups -/
-
-/-- **A group's dispatch takes one arm**: what it sets before holds, and some `k < 4^n` is the
-selector's exponent, and arm `k`'s atoms hold, from its base. -/
-theorem spGroupT_sound {first n : Nat} {fold : Bool} {prodIn encIn : V} {B : Nat} {rest : List Stmt}
-    {next : Prop} (h : Stmt.HoldsList C rd σ ((spGroupT first n fold prodIn encIn B).1 ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧ AtomsHold rd σ (spPre fold B) ∧ ∃ k < 4 ^ n,
-      σ (.n B) = ofK (addressOfIndex k) ∧
-      AtomsHold rd σ (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 :=
-  groupD_sound spW_atoms (spPre_atoms fold B) h
-
-/-- **What group `p` establishes**: its digit word `k < 4^n` and its arm's atoms. -/
-def SpGroupOK (rd : Reader) (σ : Val) (p : Nat) : Prop :=
-  ∃ k < 4 ^ spN p, σ (.n (spState p).2.2) = ofK (addressOfIndex k) ∧
-    AtomsHold rd σ (spArmK (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k
-      (spArmB (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k)).1
+/-- `g^128`, the target sum in the exponent. -/
+theorem spTarget_eq : spTarget = gen ^ 128 := by
+  rw [Value.gen_pow_eq_ofK, spTarget, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
+  exact congrArg ofK (by decide +kernel)
 
 theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]
 
 theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
-
-/-- **The groups of three digits, sound.** -/
-theorem spGroupsT_sound {rest : List Stmt} {next : Prop} : ∀ (m p : Nat), p + m ≤ 21 →
-    Stmt.HoldsList C rd σ ((spGroupsT m p (spState p).1 (spState p).2.1 (spState p).2.2).1 ++ rest)
-      next kret →
-      Stmt.HoldsList C rd σ rest next kret ∧ (p = 0 → 0 < m → PadOK σ spPad) ∧
-        ∀ j < m, SpGroupOK rd σ (p + j)
-  | 0, p, _, h => ⟨by simpa [spGroupsT] using h, fun _ h => absurd h (by omega),
-      fun j hj => absurd hj (by omega)⟩
-  | m + 1, p, hm, h => by
-      rw [spGroupsT_succ, List.append_assoc] at h
-      obtain ⟨h1, hpre, k, hk, hx, ha⟩ := spGroupT_sound h
-      have ih := spGroupsT_sound m (p + 1) (by omega) (by rw [spState_succ]; exact h1)
-      refine ⟨ih.1, fun hp _ => ?_, fun j hj => ?_⟩
-      · subst hp
-        exact padRun_ok (P := 16 + 5) (by simpa [spPre, spState_zero] using hpre)
-      rcases j with _ | j
-      · refine ⟨k, by rw [Nat.add_zero, spN_of_lt (by omega)]; exact hk, by simpa using hx, ?_⟩
-        rw [Nat.add_zero, spN_of_lt (by omega)]
-        exact ha
-      · have := ih.2.2 j (by omega)
-        rwa [show p + 1 + j = p + (j + 1) by omega] at this
 
 /-! ## The digits and the starts -/
 
@@ -106,18 +66,15 @@ noncomputable def spDigit (σ : Val) (i : Nat) : Nat := spDigitWord σ (i / 3) /
 /-- **Chain `i`'s start**: the value its walk hints, in the arm its group's dispatch takes. -/
 noncomputable def spStart (σ : Val) (i : Nat) : V := spStartAt (spDigitWord σ) i
 
-theorem spDigitWord_eq {p k : Nat} (hk : k < 4 ^ spN p)
-    (hx : σ (.n (spState p).2.2) = ofK (addressOfIndex k)) : spDigitWord σ p = k :=
-  logG_eq hk (by unfold spN; split <;> norm_num) hx
-
 /-! ## The values -/
 
 /-- **The codeword's product**: running products folded group by group (`G` groups of three digits,
 then the last chain's) give `g` to the digits' sum. -/
 theorem spCodeword_prod {G : Nat} (hG : 0 < G) (hG21 : G ≤ 21) (K : Nat → Nat)
-    (hK : ∀ p ≤ G, K p < 4 ^ cwN G p) (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (prodV : Nat → E)
-    (hprod0 : prodV 0 = σ (.n (6 + digitSum (K 0) (cwN G 0))))
-    (hprod : ∀ p < G, prodV (p + 1) = prodV p * σ (.n (6 + digitSum (K (p + 1)) (cwN G (p + 1))))) :
+    (hK : ∀ p ≤ G, K p < 4 ^ cwN G p) (pw : Nat → E) (hpow : ∀ s < 10, pw s = gen ^ s)
+    (prodV : Nat → E)
+    (hprod0 : prodV 0 = pw (digitSum (K 0) (cwN G 0)))
+    (hprod : ∀ p < G, prodV (p + 1) = prodV p * pw (digitSum (K (p + 1)) (cwN G (p + 1)))) :
     prodV G = gen ^ (∑ i ∈ Finset.range (3 * G + 1), K (i / 3) / 4 ^ (i % 3) % 4) := by
   have hKG : K G < 4 := by simpa [cwN] using hK G le_rfl
   have hpr : ∀ p < G, prodV p = gen ^ (∑ q ∈ Finset.range (p + 1), digitSum (K q) 3) := by
@@ -283,6 +240,18 @@ theorem spCodeword_enc (K : Nat → Nat) (encV : Nat → E)
           show 3 * p + 3 = 3 * (p + 1) by ring]
   rw [hrun 21 le_rfl]
   rfl
+
+theorem spLeafCell_congr {pp a0 a1 : E} {d d' : Nat → Nat} {s s' : Nat → E}
+    (hd : ∀ i < 64, d i = d' i) (hs : ∀ i < 64, s i = s' i) :
+    spLeafCell pp a0 a1 d s = spLeafCell pp a0 a1 d' s' := by
+  unfold spLeafCell
+  rw [List.map_congr_left fun i hi => by
+    rw [hd i (List.mem_range.mp hi), hs i (List.mem_range.mp hi)]]
+
+theorem spX_congr {d d' : Nat → Nat} (hd : ∀ i < 64, d i = d' i) : spX d 64 = spX d' 64 := by
+  unfold spX
+  rw [List.map_congr_left fun i hi => show spField d i = spField d' i by
+    unfold spField; rw [hd i (List.mem_range.mp hi)]]
 
 end
 end LeanVM.Guest.B1.Sig

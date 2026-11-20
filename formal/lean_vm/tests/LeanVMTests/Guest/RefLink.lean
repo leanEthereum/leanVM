@@ -1,4 +1,6 @@
 import LeanVM.Guest.B1.Merkle.CapLinks
+import LeanVM.Guest.B1.Sig.SpWotsRef
+import LeanVM.Guest.B1.Sig.SpWotsCompleteStmt
 
 /-!
 # The link check rejects
@@ -13,6 +15,8 @@ operands, the assertion dropped or changed, a `KECCAK`'s layout flags, read cell
 wrong map, two owners of one name, a core assignment added, a value read after the join that
 defines it in one arm or block, a value not `V.n k`), a name pinned at a value that does not own
 it, the changes the check accepts, and the check in pieces with wrong cuts and boundaries.
+`sp_wots`'s meaning (`MeaningSpWots`) rejects arguments of the wrong shape and a fourth word whose
+digits do not sum to `128`, and its completeness contract's hypotheses are satisfiable.
 -/
 
 namespace LeanVMTests.Guest.RefLink
@@ -245,5 +249,45 @@ example : (infer f2 r2).body 3 ((cutAt [1] f2.body).getD 1 []) r2.body r2.rets =
   decide +kernel
 
 end Mini
+
+/-! ## `sp_wots`'s meaning is not vacuous -/
+
+namespace SpWots
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1.Sig
+open LeanVM.Protocol.Verifier
+
+example (rd : Reader) : ¬ MeaningSpWots rd [] [] := by
+  rintro ⟨_, _, _, _, _, h, -⟩
+  simp at h
+
+/-- A zero fourth word encodes digits of sum `0`, not `128`. -/
+example (rd : Reader) (pp a0 a1 l : E) : ¬ MeaningSpWots rd [pp, a0, a1, 0] [l] := by
+  rintro ⟨_, _, _, d, _, h, -, hd, hsum, -⟩
+  have h0 : (0 : E) = eOfNat128 (spX d 64) := (List.cons.inj (List.cons.inj (List.cons.inj
+    (List.cons.inj h).2).2).2).1
+  let d' : ℕ → ℕ := fun j => if j < 64 then d j else 0
+  have hd' : ∀ j, d' j < 4 := fun j => by
+    simp only [d']; split_ifs with hj; exacts [hd j hj, by norm_num]
+  have hx : spX d 64 = spX d' 64 := spX_congr fun i hi => by simp [d', hi]
+  have e := congrArg eToNat h0
+  rw [← eOfNat128_zero, eToNat_eOfNat128, eToNat_eOfNat128, hx,
+    Nat.mod_eq_of_lt (spX_lt hd' le_rfl)] at e
+  have hz : ∀ i ∈ Finset.range 64, d i = 0 := fun i hi => by
+    have hi := Finset.mem_range.mp hi
+    rw [show d i = d' i by simp [d', hi], ← spX_digit hd' hi, ← e]
+    simp
+  rw [Finset.sum_congr rfl hz] at hsum
+  simp at hsum
+
+/-- The completeness contract's hypotheses hold of the digits all `2`. -/
+example {C : CallRel} {rd : Reader} (hm : MemOK rd 64) :
+    ∃ σ : Val, σ (.n 0) = 0 ∧ σ (.n 1) = 0 ∧ σ (.n 2) = 0 ∧
+      σ (.n 3) = eOfNat128 (spX (fun _ => 2) 64) ∧
+      Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False
+        (fun rs => rs = [spLeafCell 0 0 0 (fun _ => 2) fun _ => 0]) :=
+  sp_wots_complete_cells (fun _ => by norm_num) (by simp) hm
+
+end SpWots
 
 end LeanVMTests.Guest.RefLink

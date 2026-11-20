@@ -4,8 +4,9 @@ LeanVM.Guest.B1.KeccakGkr.VkCB	20.0	20.0	5100	3700
 LeanVM.Guest.B1.KeccakGkr.VkCDK	60.0	60.0	4900	3400
 LeanVM.Guest.B1.Main.MainLocChk	70.0	60.0	7600	6200
 LeanVM.Guest.B1.Place.LqBound	20.0	20.0	5800	4300
-LeanVM.Guest.B1.Sig.SpWotsData0	70.0	50.0	2900	1700
-LeanVM.Guest.B1.Sig.SpWotsData1	70.0	50.0	3000	1700
+LeanVM.Guest.B1.Sig.SpWotsLinks0	90.0	90.0	2400	1100
+LeanVM.Guest.B1.Sig.SpWotsLinks1	110.0	110.0	2600	1300
+LeanVM.Guest.B1.Sig.SpWotsLinks2	90.0	90.0	2700	1400
 LeanVM.Guest.B1.Tables.Vt.FormsPad	70.0	60.0	3900	2200
 LeanVM.Guest.B1.Tables.VtC.Kids	20.0	20.0	4400	3000
 LeanVM.Guest.B1.VerifySub.C.Body	50.0	40.0	8200	6700
