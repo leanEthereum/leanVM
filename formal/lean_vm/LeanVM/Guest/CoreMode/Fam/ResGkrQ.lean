@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStP
 public import LeanVM.Guest.CoreMode.Fam.ResGkrS
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # `verify_bus_gkr`'s cursors
@@ -83,9 +84,6 @@ def GlQ (r : Ref) (J : Inst) : Prop :=
 end
 
 public section
-
-theorem gkr_hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
 
 /-- **`verify_sub` calls `verify_bus_gkr` only at `vbgArgsV`.** -/
 theorem vs_vbg_sites :
@@ -175,7 +173,7 @@ theorem vbgQ_step (hr : r.Ok) :
   obtain ⟨-, -, -, -, -, e5, -, -, -, e9, -⟩ := hpar
   -- its front
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
   rw [VerifySub.vs_body] at hb
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨hexp, hwin⟩ := carryQ_all hr I hI _ σI bufsI kidsI hIt _ hfI (name% «verify_sub», 4, .tab)
@@ -183,18 +181,6 @@ theorem vbgQ_step (hr : r.Ok) :
   obtain ⟨⟨F⟩, -⟩ := VerifySub.vs_front (by omega) r.img (fun _ _ _ h ↦ Res.KidRel.rel h)
     (bytecode := List.replicate (2 ^ 23) 0) List.length_replicate hexp hwin hb
   rw [e5, e9, F.h320, F.h312, mul_assoc, ← pow_add]
-
-/-- **The root's instance is `main`'s.** -/
-theorem root_main (hr : r.Ok) {J : Inst} {rest : List Inst}
-    (he : r.T.insts B2C.fs coreProgram.loop B2C.H (0, r.T.block B2C.fs coreProgram.loop) r.hdr = J :: rest)
-    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node f σ bufs kids) : f = "main" := by
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simpa only [Tree.name] using hn
 
 /-- **`verify_bus_gkr`'s cursor at every honest instance.** -/
 theorem vbgQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, VbgQ J := by
@@ -235,7 +221,7 @@ theorem glsQ_step (hr : r.Ok) :
     have hso := glcLs_sel ho hsel
     -- the body
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
     rw [vbg_body, holdsList_append, holdsList_noRet _ vbgPre_noRet] at hb
     have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
     obtain ⟨d, hd, e167, e400, e402, e169, hroot⟩ := vbg_ls (by omega) r.img hb.1
@@ -286,7 +272,7 @@ theorem glsLQ_step (hr : r.Ok) :
     obtain rfl : m = m' := gen_pow_inj (by omega) (by omega) (h0.symm.trans h0')
     exact ⟨m, n, q, h0, h1, hm', hn, h5, hsl, hq⟩
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
   rw [hp', glcPar9_eq] at hpar
   rcases gl_caller hfI hw hc (gl_callers_mem.1 o ho).2.1 hcf with h | ⟨h, hl⟩
   · -- `gkr_layers__L{o}`'s call
@@ -360,7 +346,7 @@ theorem glastQ_step (hr : r.Ok) :
     simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
     obtain ⟨p0, -, -, p3, p4, p5, -, -, p8, -⟩ := hpar
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
     rw [hbL] at hb
     obtain ⟨c11, a10, hloop, m13⟩ := gls_holds hb
     obtain ⟨n, rr0, q, h3, hn, -, -, h5, hsl, hq⟩ := glsQ_all hr I hI o ho σI bufsI kidsI hIt
@@ -413,7 +399,7 @@ theorem glQ_step (hr : r.Ok) :
     obtain ⟨m, q, h3, hm, h4, h5, hsl, hq⟩ := H
     exact ⟨m, q, h3, hm, h4, h5, hsl, by omega⟩
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
   have site : ∀ {A : ℕ → List V} {body : List Stmt}, fnI.body = body →
       Res.sitesB (fun f args _ ↦ (List.range 4).all fun p ↦ f != glName p o || args == A p) body = true →
       c.args = A p := fun {A body} hbd hsb ↦ by

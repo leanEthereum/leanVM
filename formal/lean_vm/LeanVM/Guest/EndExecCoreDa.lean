@@ -51,8 +51,7 @@ theorem daV_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
       σ (.n 2) = Protocol.Verifier.gen ^ (guest_const% DA_MAX_ROWS - n) := by
   obtain ⟨hbody, hflat, hpd, -⟩ := dv_shape
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv B1.Da.find_da_verify
   rw [B1.stmtsEqb_sound hbody, holdsList_append] at hb
   obtain ⟨hallC, -⟩ := B1.Digest.holdsList_flat B1.Da.dvP hflat _ _ hb
@@ -107,8 +106,7 @@ theorem daPadQ_step {r : Ref} (hr : r.Ok) :
   obtain ⟨-, -, h2, -⟩ := hpar
   -- `da_padding`'s return
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hfI
   rw [B1.stmtsEqb_sound hbody, holdsList_append] at hb
   obtain ⟨hallC, -⟩ := B1.Digest.holdsList_flat B1.Da.dvP hflat _ _ hb
@@ -122,17 +120,9 @@ theorem daPadQ_step {r : Ref} (hr : r.Ok) :
 
 /-- **`da_pad`'s gap at every honest instance.** -/
 theorem daPadQ_all {r : Ref} (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, DaPadQ J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (daPadQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (daPadQ_step hr) fun J hm ↦ ?_
   intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   exact absurd hn (by decide)
 
 end

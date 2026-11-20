@@ -233,7 +233,7 @@ theorem vt_inst (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
     VtH r.img.read σ ∧ ∃ pi lm weights point values,
       TablesPre pi lm weights point values r.img.read ((List.range 21).map fun k ↦ σ (.n k)) := by
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hJ hJt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv VerifySub.find_vt
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv VerifySub.find_vt
   obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) VerifySub.find_vt hb
   exact ⟨hH, vtPQ_all hr J hJ σ bufs kids hJt⟩
 

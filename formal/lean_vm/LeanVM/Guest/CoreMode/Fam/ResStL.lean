@@ -457,8 +457,7 @@ theorem layQ_step (hr : r.Ok) :
   -- `verify_keccak`'s cursors
   obtain ⟨p, τ, e5, e6, hτ9, hτ28, hroom⟩ := vkQ_all hr I hI σI bufsI kidsI hIt
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hfI
   obtain ⟨h35, h49, hcur⟩ := vk_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hτ9 hτ28 e6 vk_body hb
   have hL : (s + 1) * (84 + 2 * (τ - 3)) ≤ 12 * (84 + 2 * (τ - 3)) := Nat.mul_le_mul_right _ (by omega)
@@ -472,17 +471,9 @@ theorem layQ_step (hr : r.Ok) :
 
 /-- **A layer's cursor at every honest instance.** -/
 theorem layQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, LayQ J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (layQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (layQ_step hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt first hf hfL
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   interval_cases first <;> exact absurd hfL (by decide)
 

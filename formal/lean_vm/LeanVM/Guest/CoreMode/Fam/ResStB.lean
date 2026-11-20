@@ -99,9 +99,6 @@ section
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
 
-theorem hfs_guest : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-
 /-- **A layer's reads past its last record's cursor** lie in its stream. -/
 theorem st_lay (t : TopAt A r K i e j) (hr : r.Ok) {first : ℕ} (hf : first < 2)
     (hname : (coreOf j).name = layerName first) {c : ℕ} (hc : c < 36) :
@@ -118,7 +115,7 @@ theorem st_lay (t : TopAt A r K i e j) (hr : r.Ok) {first : ℕ} (hf : first < 2
   have hcf : coreOf (layIdx first) = fL := Option.some.inj (hfj.symm.trans hfL)
   obtain ⟨p, y, e7, hy, h9, h10, hroom⟩ := layQ_all hr e.I t.inst _ e.σ bufs kids hJ first hf rfl
   obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv hfj
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfj
   rw [hcf] at hb
   obtain ⟨hcur, -⟩ := layer_cur hf (fun _ _ _ h ↦ Res.KidRel.rel h) hy h9 h10 hbL hb
   obtain ⟨vs, hw, hF, -⟩ := t.events hr

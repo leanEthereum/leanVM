@@ -132,7 +132,7 @@ theorem glLQ_step (hr : r.Ok) :
     -- the layer's slot and its head record
     obtain ⟨m, q, h3, hm, h4, h5, hsl, hroom⟩ := glQ_all hr I hI p hp o ho σI bufsI kidsI hIt
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfI
     rw [hbL] at hb
     obtain ⟨-, -, -, hrec, -, -⟩ := gl_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hp ho hb h3 h4 h5 (by omega) hsl
     have hc0 : σI (.n (glA0 p)) = 1 := by

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResE
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # `column_selector`'s lowest digit
@@ -163,8 +164,7 @@ theorem cs_top (t : TopAt A r K i e j) (hr : r.Ok) (hC : CsQ r e.I) {x : Mode.Re
     obtain ⟨o, ho, hal, h0, hG⟩ := hH
     -- the body at the instance's valuation
     obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+    have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
     obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
     rw [hbody, holdsList_append, holdsList_noRet _ (csPre_noRet κ)] at hb
     obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0

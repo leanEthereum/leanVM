@@ -391,17 +391,9 @@ theorem carryNzQ_step (hr : r.Ok) :
 
 /-- **The carried parameters at every honest instance.** -/
 theorem carryNzQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, CarryNzQ J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (carryNzQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (carryNzQ_step hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt fn _ c hc hcf
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   have : ∀ c ∈ carriedNz, c.1 ≠ "main" := by decide
   exact absurd hcf (this c hc)

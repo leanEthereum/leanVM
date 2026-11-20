@@ -142,8 +142,7 @@ theorem loop_ctr_lt (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B
     ∃ j < n, σ (.n 0) = gen ^ j := by
   obtain ⟨rd, hH, -⟩ := hr.honest
   have hκ := logMemorySize_le_28 (e := r.exec) hr.size
-  have hfs : ∀ g, 1 ≤ B2C.fs g := fun g ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ g, 1 ≤ B2C.fs g := Res.fs_pos
   have hroot : Res.CtrOk coreProgram B2C.fs (r.T.total B2C.fs + 1) r.T := by
     intro f' σ' _ _ fn' hT' hg hl'
     have := (progOk_guest.loop f' fn' hg hl').1
@@ -233,8 +232,7 @@ theorem loopQ_step (hr : r.Ok) :
   rw [hfL] at hfn
   obtain rfl : fn = fl := Option.some.inj (hfn.symm.trans hfl)
   rw [hpl] at hpar
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   -- the counter below the bound, at the callee
   suffices H : ∃ a j n q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 17 < maxCells ∧ σ (.n 0) = gen ^ j ∧
       σ (.n 1) = gen ^ n ∧ j ≤ n ∧ n < 32 ∧
@@ -366,17 +364,9 @@ theorem loopQ_step (hr : r.Ok) :
 
 /-- **A loop's cursor at every honest instance.** -/
 theorem loopQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, LoopQ r J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (loopQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
+  refine insts_all hr (loopQ_step hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt first hf rem hfL
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
+  have hn := hm _ _ _ _ hJt
   subst hn
   interval_cases first <;> cases rem <;> exact absurd hfL (by decide)
 

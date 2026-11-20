@@ -112,8 +112,7 @@ theorem vk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
   obtain rfl : fn = fn% «verify_keccak» := Option.some.inj (hf.symm.trans find_vk)
   obtain ⟨p, τ, e5, e6, hτ9, hτ28, hroom⟩ := vkQ_all hr I hI σ bufs kids ht
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv find_vk
   have hrets := vk_rets (fun _ _ _ h ↦ Res.KidRel.rel h) hτ9 hτ28 e6 vk_body hb
   have hb' := hb

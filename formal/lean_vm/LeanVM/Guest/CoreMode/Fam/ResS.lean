@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResT
 public import LeanVM.Guest.CoreMode.Fam.SelDefs
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # The residuals by family
@@ -125,8 +126,7 @@ theorem TopAt.ctr (t : TopAt A r K i e j) (hr : r.Ok) (hl : (coreOf j).loop = tr
   rw [hn] at hfi
   simp only [Tree.name] at hfi
   rw [hc] at hl ⊢
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   have hroot : Res.CtrOk coreProgram B2C.fs (r.T.total B2C.fs + 1) r.T := by
     intro f' σ' _ _ fn' hT' hg hl'
     have := (progOk_guest.loop f' fn' hg hl').1

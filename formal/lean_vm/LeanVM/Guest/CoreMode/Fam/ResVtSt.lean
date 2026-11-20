@@ -62,7 +62,7 @@ theorem vtSt_read (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name =
     Option.some.inj (hfj.symm.trans VerifySub.find_vt)
   obtain ⟨p, n, e5, hgn, hn, hroom⟩ := vtQ_all hr e.I t.inst e.σ bufs kids hJ
   obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv hfj
+  obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfj
   obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hfj hb
   obtain ⟨-, xs, pts, cl, -, -, -, -, e2649, -⟩ := Tables.vt_zc_run hH hn hgn
   obtain ⟨vs, hw, hF, -⟩ := t.events hr

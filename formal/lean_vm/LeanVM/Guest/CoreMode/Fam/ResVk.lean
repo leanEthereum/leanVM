@@ -104,8 +104,7 @@ theorem vk_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
   have hcf : coreOf j = fn% «verify_keccak» := Option.some.inj (hfj.symm.trans find_vk)
   obtain ⟨p, τ, e5, e6, hτ9, hτ28, hroom⟩ := vkQ_all hr e.I t.inst e.σ bufs kids hJ
   obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv find_vk
   obtain ⟨h35, h49, -⟩ := vk_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hτ9 hτ28 e6 vk_body hb
   have hrets := vk_rets (fun _ _ _ h ↦ Res.KidRel.rel h) hτ9 hτ28 e6 vk_body hb

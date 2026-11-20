@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.B1.Digest.ChildMono
 public import LeanVM.Guest.CoreMode.Fam.ResT
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 
 /-!
 # `child_claim_list_mono` at its own valuation
@@ -40,9 +41,6 @@ theorem RecAt.mono {rd : Reader} {rec region entries : E} {L L' : ℕ} (h : RecA
     (hL : L ≤ L') : RecAt rd rec region entries L' :=
   let ⟨O, hO, h13, h14⟩ := h
   ⟨O, le_trans hO hL, h13, h14⟩
-
-theorem fs_pos (f : String) : 1 ≤ B2C.fs f := by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
 
 /-- A pointer loaded through is nonzero. -/
 theorem ne_zero_of_load {rd : Reader} (hm : MemOk rd) {p v : E} {o : ℕ} (h : LoadHolds rd p o v) : p ≠ 0 := by

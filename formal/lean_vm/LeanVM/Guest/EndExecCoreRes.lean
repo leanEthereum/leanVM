@@ -386,8 +386,7 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   obtain ⟨o, ho, hal, h0, hG⟩ := hH
   -- the body at the instance's valuation
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
   rw [hbody, holdsList_append, holdsList_noRet _ (B1.Tables.csPre_noRet κ)] at hb
   obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0
@@ -1053,8 +1052,7 @@ theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     obtain rfl : fn = fn% «verify_tables» := Option.some.inj (hf.symm.trans B1.VerifySub.find_vt)
     obtain ⟨p, n, e5, hgn, hn34, hroom⟩ := vtQ_all hr I hI σ bufs kids ht
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+    have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
     obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
     obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hf hb
     obtain ⟨-, xs, pts, cl, -, -, -, -, e2649, -⟩ := B1.Tables.vt_zc_run hH hn34 hgn
@@ -1361,8 +1359,7 @@ theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   obtain rfl : fn = fL := Option.some.inj (hf.symm.trans hfL)
   obtain ⟨p, y, e7, hy, h9, h10, hroom⟩ := layQ_all hr I hI _ σ bufs kids ht first hfi rfl
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
   obtain ⟨hcur, -⟩ := layer_cur hfi (fun _ _ _ h ↦ Res.KidRel.rel h) hy h9 h10 hbL hb
   refine ⟨p, y, h9, h10, hy, ?_, by omega⟩
@@ -1639,7 +1636,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hfn')
     obtain ⟨m, q, h3, hm, h4, h5, hsl, hroom⟩ := glQ_all hr I hI p hp o ho σ bufs kids ht
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hf
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hf
     rw [hb'] at hb
     obtain ⟨e21, -, -, -, e77, -⟩ :=
       B1.Tables.gl_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hp ho hb h3 h4 h5 (by omega) hsl
