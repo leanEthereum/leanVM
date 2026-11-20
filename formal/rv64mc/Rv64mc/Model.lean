@@ -7,6 +7,7 @@ public import Rv64mc.Model.Hash
 public import Rv64mc.Model.Merkle
 public import Rv64mc.Model.Sponge
 public import Rv64mc.Model.Transcript
+public import Rv64mc.Model.RingSwitch
 
 /-!
 # Mirrors of the Rust verifier
