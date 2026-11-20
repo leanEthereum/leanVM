@@ -4,9 +4,11 @@
   The WHIR family's contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index, with the
   generated link (`Gen.….link`, `tmpl_eq`, `wf`) and the stack each needs (`Gen.Needs`, a caller's bound over its
   callee's checked by `decide`), from the field's contracts (`Table.Field`) and what is not proved yet: `clmul_low`'s
-  constant (`DataRef.Words`, as in `Table.Field`), `WHIR_QUERIES` (`Spec.Whir.WhirQueries.Table`, its slice headers
-  and their arrays in the image's `env.data`), the panic chain's `assert_failed`, and the callees not proved
-  (`induced_weight`, `ring_weight`, `Placement::eq_above`, `slice_index_fail`).
+  constant (`DataRef.Words`, as in `Table.Field`), the template's tables in the image's `env.data`
+  (`DataRef.InData`: `WHIR_QUERIES`'s slice headers, each pointer the address of its row's array, a field of the
+  link, and the arrays; `whirQueriesTable` checks them against `Model.whirQueriesTable` by evaluation), the panic
+  chain's `assert_failed`, and the callees not proved (`induced_weight`, `ring_weight`, `Placement::eq_above`,
+  `slice_index_fail`).
 -/
 
 import Rv64mc.Table.Field
@@ -29,9 +31,37 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen
 
 variable (env : Env)
 
-theorem whirQueries (htab : Spec.Whir.WhirQueries.Table env Verifier.Whir.WhirQueries.link.d_c960_dba1010e.addr) :
+/-- What `whirQueriesTable` evaluates: every header's pointer not null, the header's words and its row's among the
+    template's tables' (`DataRef.pairs`), the row's words `Model.whirQueriesTable`'s. -/
+def tableCheck : Prop :=
+  ∀ r (hr : r < Model.whirQueriesTable.length) c (hc : c < (Model.whirQueriesTable[r]).length),
+    (Verifier.Whir.WhirQueries.d_c960_dba1010e_words Verifier.Whir.WhirQueries.link).getD (30 * r + 2 * c) 0 ≠ 0#64 ∧
+    (∀ k (hk : k < 2), (Verifier.Whir.WhirQueries.link.d_c960_dba1010e.addr + BitVec.ofNat 64 (240 * r + 16 * c) +
+      BitVec.ofNat 64 (8 * k),
+      [(Verifier.Whir.WhirQueries.d_c960_dba1010e_words Verifier.Whir.WhirQueries.link).getD (30 * r + 2 * c) 0,
+        BitVec.ofNat 64 (Model.whirQueriesTable[r][c]).length][k]'(by simpa using hk)) ∈
+      DataRef.pairs (Verifier.Whir.WhirQueries.tables Verifier.Whir.WhirQueries.link)) ∧
+    ∀ k (hk : k < (Model.whirQueriesTable[r][c]).length),
+      ((Verifier.Whir.WhirQueries.d_c960_dba1010e_words Verifier.Whir.WhirQueries.link).getD (30 * r + 2 * c) 0 +
+        BitVec.ofNat 64 (8 * k), BitVec.ofNat 64 (Model.whirQueriesTable[r][c][k])) ∈
+      DataRef.pairs (Verifier.Whir.WhirQueries.tables Verifier.Whir.WhirQueries.link)
+
+theorem tableCheck_true : tableCheck := by unfold tableCheck; decide +kernel
+
+/-- **`WHIR_QUERIES` and its rows are where the template's tables say**: `Spec.Whir.WhirQueries.Table` from the
+    tables in `env.data`, each header's pointer the address of its row's array (`tableCheck`). -/
+theorem whirQueriesTable (hdata : DataRef.InData env (Verifier.Whir.WhirQueries.tables Verifier.Whir.WhirQueries.link)) :
+    Spec.Whir.WhirQueries.Table env Verifier.Whir.WhirQueries.link.d_c960_dba1010e.addr := by
+  intro r c hr hc
+  obtain ⟨h0, h1, h2⟩ := tableCheck_true r hr c hc
+  refine ⟨_, h0, fun k hk => hdata.mem _ (h1 k (by simpa using hk)), fun k hk => ?_⟩
+  have hk' : k < (Model.whirQueriesTable[r][c]).length := by simpa using hk
+  simpa using hdata.mem _ (h2 k hk')
+
+theorem whirQueries (hdata : DataRef.InData env (Verifier.Whir.WhirQueries.tables Verifier.Whir.WhirQueries.link)) :
     Spec.Whir.WhirQueries.spec env (liftProg fns) Idx.Verifier.Whir.WhirQueries Needs.Verifier.Whir.WhirQueries :=
-  Proof.Whir.WhirQueries.ok env _ Idx.Verifier.Whir.WhirQueries _ Verifier.Whir.WhirQueries.tmpl_eq Verifier.Whir.WhirQueries.wf htab
+  Proof.Whir.WhirQueries.ok env _ Idx.Verifier.Whir.WhirQueries _ Verifier.Whir.WhirQueries.tmpl_eq Verifier.Whir.WhirQueries.wf
+    (whirQueriesTable env hdata)
 
 theorem frobenius8 : Spec.Whir.Frobenius8.spec env (liftProg fns) Idx.Verifier.RingSwitch.Frobenius8 Needs.Verifier.RingSwitch.Frobenius8 :=
   Proof.Whir.Frobenius8.ok env _ Idx.Verifier.RingSwitch.Frobenius8 _ Verifier.RingSwitch.Frobenius8.tmpl_eq Verifier.RingSwitch.Frobenius8.wf

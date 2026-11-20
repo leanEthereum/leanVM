@@ -46,6 +46,30 @@ theorem DataRef.Words.get0 {env : Env} {d : DataRef} {ws : List Word} {m : Machi
     (hs : env.Static m) (hk : 0 < ws.length) : m.getMem (d.hi + d.lo) = ws[0] := by
   simpa using hw m hs 0 hk
 
+/-- **Every table of `ts` is in `env.data`**, word `k` at its reference's address plus `8 k`: what the link step
+    proves of a template's `tables` (written by `scripts/gen.py` for a template whose tables hold addresses, each
+    address the term `L.<p>.hi + L.<p>.lo` of its target's field). -/
+def DataRef.InData (env : Env) (ts : List (DataRef × List Word)) : Prop :=
+  ∀ t ∈ ts, ∀ k (hk : k < t.2.length), (t.1.hi + t.1.lo + BitVec.ofNat 64 (8 * k), t.2[k]) ∈ env.data
+
+/-- A table of `ts` holds its words wherever the static data hold. -/
+theorem DataRef.InData.words {env : Env} {ts : List (DataRef × List Word)} {d : DataRef} {ws : List Word}
+    (h : DataRef.InData env ts) (hm : (d, ws) ∈ ts) : DataRef.Words env d ws :=
+  DataRef.Words.of_data fun k hk => h _ hm k hk
+
+/-- The address and word pairs of the tables `ts`. -/
+def DataRef.pairs (ts : List (DataRef × List Word)) : List (Word × Word) :=
+  ts.flatMap fun t => (List.range t.2.length).map fun k => (t.1.hi + t.1.lo + BitVec.ofNat 64 (8 * k), t.2.getD k 0)
+
+/-- Each pair of `pairs ts` is in `env.data`: a fact about the image's data checked by evaluating `pairs ts`. -/
+theorem DataRef.InData.mem {env : Env} {ts : List (DataRef × List Word)} (h : DataRef.InData env ts) :
+    ∀ q ∈ DataRef.pairs ts, q ∈ env.data := by
+  intro q hq
+  simp only [DataRef.pairs, List.mem_flatMap, List.mem_map, List.mem_range] at hq
+  obtain ⟨t, ht, k, hk, rfl⟩ := hq
+  have := h t ht k hk
+  simpa [List.getD, List.getElem?_eq_getElem hk] using this
+
 /-- The frame's three saved3 words, below `top`. -/
 def saved3 (m : MachineState) (top ra s0 s1 : Word) : MachineState :=
   ((m.setMem (top + 0xfffffffffffffff8#64) ra).setMem (top + 0xfffffffffffffff0#64) s0).setMem

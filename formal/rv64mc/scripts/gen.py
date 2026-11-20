@@ -18,9 +18,13 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
 - `Needs.lean`: per function, the stack it needs (`Needs.<M> : Nat`): its frame (the sum of its `addi sp, sp, -N`) plus
   the most any callee needs, and at least what a tail callee needs; it fails on recursion. Proofs never import it:
   a contract takes its `need` as a parameter, and the link step checks `need >= frame + callee's need` by `decide`.
-- per data reference whose object holds no address, `<field>_words`, the doublewords from the referenced address to
-  the object's end, in the template (they are part of its content key); a proof that reads the table takes
-  `DataRef.Words env L.<field> <field>_words` as a hypothesis, which the link step proves from `env.data`.
+- per data reference, `<field>_words`, the doublewords from the referenced address to the object's end, in the
+  template (they are part of its content key); a proof that reads the table takes
+  `DataRef.Words env L.<field> <field>_words` as a hypothesis, which the link step proves from `env.data`. An address
+  the object holds (a slice header's pointer) is the term `L.<p>.hi + L.<p>.lo` of a field `<p>` of its own for the
+  object it points to (`hi` its address, `lo` zero), so `<field>_words L` depends on the link and the template stays
+  relocatable; the pointee's words are emitted the same way, and `tables L` lists every table of the template with its
+  words (`DataRef.InData env (tables L)`, all of them in `env.data`).
 - `Words.lean` (machine-checked's, in this namespace), `Index.lean` (module, symbol, index, address and size of each
   function, checked against `words`), `Image.lean` (the end statement's `Rv64mc.image`, read from the ELF by
   `Rv64mc/ImageOfElf.lean` when built), the umbrellas `Tmpl.lean`, `Link.lean` and `../Gen.lean`, `hashes.tsv` (a hash
@@ -445,6 +449,25 @@ def templatize(img, i, chunks):
             fail(f"{img.key[i]}: call at instruction {k} not after an auipc: {out[k]}")
         if "Target.direct" in out[k] or "List.range" in out[k]:
             fail(f"{img.key[i]}: instruction {k}: {out[k]}")
+    # the objects the referenced data point to, each a field of its own at its address (`hi` it, `lo` zero)
+    pointed = {target for _, (_, _, target) in data}
+    k = 0
+    while k < len(data):
+        target = data[k][1][2]
+        k += 1
+        rng = obj_range(img, target)
+        if rng is None:
+            continue
+        start, size = rng
+        for o in sorted(o for o in img.data_relocs if target <= o < start + size):
+            t = img.data_relocs[o]
+            if t in pointed or t in img.entry:
+                continue
+            pointed.add(t)
+            fname, _ = img.data_key(t)
+            data_names[fname] += 1
+            d = "d_" + fname + (f"_{data_names[fname] - 1}" if data_names[fname] > 1 else "")
+            data.append((d, (t, 0, t)))
     # callee fields: the shortest suffix of the module path unique among this function's callees
     taken = {"name", "base"} | {s for s, _, _ in sites} | {d for d, _ in data}
     for j in callee_order:
@@ -509,18 +532,32 @@ def tmpl_module(img, i, tchunks, callees, sites, data, depth):
     lines += [f"  {s} : Site" for s, _, _ in sites]
     lines += [f"  {d} : DataRef" for d, _ in data]
     lines.append("")
+    fields = {target: d for d, (_, _, target) in data}
+    tables = []
     for d, (_, _, target) in data:
-        dw = data_words(img, target)
+        dw = data_words(img, target, fields)
         if dw is not None:
             ws, w32s, m, tail_zero = dw
+            tables.append((d, w32s is None))
             past = "" if m % 8 == 0 else (
                 ", the last one partial, its bytes past the object the image's" + (" (zero)" if tail_zero else " (not zero)"))
+            if w32s is None:
+                lines.append(f"/-- The doublewords at `{d}`, to the end of its object ({m} bytes){past}, each address it")
+                lines.append("    holds the address of its target's field. -/")
+                lines.append(f"def {d}_words (L : Link) : List Word := [{', '.join(ws)}]")
+                lines.append("")
+                continue
             lines.append(f"/-- The doublewords at `{d}`, to the end of its object ({m} bytes){past}. -/")
-            lines.append(f"def {d}_words : List Word := [{', '.join(w64(w) for w in ws)}]")
+            lines.append(f"def {d}_words : List Word := [{', '.join(ws)}]")
             lines.append("")
             lines.append(f"/-- The 32-bit words at `{d}`, to the end of its object. -/")
             lines.append(f"def {d}_words32 : List (BitVec 32) := [{', '.join(f'0x{w:08x}#32' for w in w32s)}]")
             lines.append("")
+    if any(sym for _, sym in tables):
+        ts = ", ".join(f"(L.{d}, {d}_words" + (" L)" if sym else ")") for d, sym in tables)
+        lines.append("/-- The template's tables, each data reference with its words: what `DataRef.InData` asks of `env.data`. -/")
+        lines.append(f"def tables (L : Link) : List (DataRef × List Word) := [{ts}]")
+        lines.append("")
     for j, c in enumerate(tchunks):
         var = "L" if any("L." in x for x in c) else "_L"
         lines.append(f"def c{j} ({var} : Link) : Lcmd (Op Reg) Reg := [")
@@ -791,21 +828,31 @@ def needs_module(img, info):
     return "\n".join(lines)
 
 
-def data_words(img, addr):
-    """The image's bytes from `addr` to the end of its object: as doublewords, the last one partial if the object ends
-    inside it (its bytes past the object the image's, zero past the section), and as 32-bit words; the length; whether
-    the bytes past the object are zero. None if the object holds an address."""
+def obj_range(img, addr):
+    """The start and length of the object `addr` lies in: its sized symbol's, else up to the next label or the end of
+    its section. None outside the image."""
     obj = [s for s in img.sized if s["value"] <= addr < s["value"] + s["size"]]
     if obj:
-        start, n = obj[0]["value"], obj[0]["size"]
-    else:
-        idx, sec = img.elf.section_at(addr)
-        if sec is None:
-            return None
-        start = addr
-        later = [a for a in img.labels[idx] if a > addr]
-        n = min(later + [sec["addr"] + sec["size"]]) - addr
-    if any(start <= o < start + n for o in img.data_relocs):
+        return obj[0]["value"], obj[0]["size"]
+    idx, sec = img.elf.section_at(addr)
+    if sec is None:
+        return None
+    later = [a for a in img.labels[idx] if a > addr]
+    return addr, min(later + [sec["addr"] + sec["size"]]) - addr
+
+
+def data_words(img, addr, fields):
+    """The image's bytes from `addr` to the end of its object: as doublewords, the last one partial if the object ends
+    inside it (its bytes past the object the image's, zero past the section), each a literal or, where the object holds
+    an address, the term `L.<p>.hi + L.<p>.lo` of the field `fields[target]`; as 32-bit words (None if it holds an
+    address); the length; whether the bytes past the object are zero. None if an address is not at a doubleword of
+    the result or its target has no field."""
+    rng = obj_range(img, addr)
+    if rng is None:
+        return None
+    start, n = rng
+    relocs = {o: t for o, t in img.data_relocs.items() if addr <= o < start + n}
+    if any((o - addr) % 8 or t not in fields for o, t in relocs.items()):
         return None
     m = start + n - addr
     k = (m + 7) // 8
@@ -815,7 +862,9 @@ def data_words(img, addr):
     avail = min(8 * k, sec["addr"] + sec["size"] - addr)
     raw = img.elf.read(addr, avail) + bytes(8 * k - avail)
     w64s = [struct.unpack_from("<Q", raw, 8 * t)[0] for t in range(k)]
-    w32s = [struct.unpack_from("<I", raw, 4 * t)[0] for t in range((m + 3) // 4)]
+    w64s = [f"L.{fields[relocs[addr + 8 * t]]}.hi + L.{fields[relocs[addr + 8 * t]]}.lo" if addr + 8 * t in relocs
+            else w64(w) for t, w in enumerate(w64s)]
+    w32s = None if relocs else [struct.unpack_from("<I", raw, 4 * t)[0] for t in range((m + 3) // 4)]
     return w64s, w32s, m, not any(raw[m:])
 
 
