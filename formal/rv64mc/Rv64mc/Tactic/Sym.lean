@@ -405,6 +405,10 @@ def neProof (a b : Expr) : MetaM (Option Expr) := do
 
 /-- A proof of `lo ≤ a` for offsets of one bounded base. -/
 def leProof (lo a : Expr) : MetaM (Option Expr) := do
+  -- numbers other than words': only the same
+  unless (← whnfR (← inferType a)).isAppOf ``BitVec do
+    if lo == a && (← whnfR (← inferType a)).isConstOf ``Nat then return some (← mkAppM ``Nat.le_refl #[a])
+    return none
   if lo == a then return some (← mkAppM ``BitVec.le_refl #[a])
   let (bl, cl) ← affine lo
   let (ba, ca) ← affine a
