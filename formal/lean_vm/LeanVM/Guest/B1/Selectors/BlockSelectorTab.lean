@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SelPartial
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«block_selector_tab__L»
 
 /-!
 # `block_selector_tab` (TRIAGE G #49)
@@ -52,15 +54,15 @@ the eq weight at `eq_tab·g^u`, the share at `g_tab·g^u`, the running products.
 def btNibT (n k : ℕ) : List Stmt :=
   let w := btW n k
   let c := btC k
-  [.atom (.load (.n c) (.n 0) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0)),
+  [.atom (.load (.n c) (.n (valf% «block_selector_tab» "digits")) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0)),
     .atom (.rangeCheck (.n c) (.n (c + 2)) (.n (c + 3)) (.n (c + 4)) (.n (c + 1))),
-    .atom (.mul (.n (c + 5)) (.n 1) (.n c)),
+    .atom (.mul (.n (c + 5)) (.n (valf% «block_selector_tab» "eq_tab")) (.n c)),
     .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ++
   if k = 0 then
-    [.atom (.mul (.n (c + 7)) (.n 2) (.n c)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * k))]
+    [.atom (.mul (.n (c + 7)) (.n (valf% «block_selector_tab» "g_tab")) (.n c)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * k))]
   else
     [.atom (.mul (.n (c + 7)) (.n (btSel (k - 1))) (.n (c + 6))),
-      .atom (.mul (.n (c + 8)) (.n 2) (.n c)), .atom (.load (.n (c + 9)) (.n (c + 8)) (16 * k)),
+      .atom (.mul (.n (c + 8)) (.n (valf% «block_selector_tab» "g_tab")) (.n c)), .atom (.load (.n (c + 9)) (.n (c + 8)) (16 * k)),
       .atom (.mul (.n (c + 10)) (.n (btRb (k - 1))) (.n (c + 9)))]
 
 /-- `block_selector_tab__L{n}`'s statements before its `ret`. -/
@@ -77,14 +79,14 @@ def btRet (n : ℕ) : List V :=
 /-- The function found by name is the template. -/
 noncomputable def btCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector_tab" n) with
-  | some fn => decide (fn.params = [.n 0, .n 1, .n 2]) &&
+  | some fn => decide (fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")]) &&
       tbStmtsEqb fn.body (btPre n ++ [.ret (btRet n)])
   | none => false
 
 theorem btCheck_all : (List.range 34).all btCheck = true := by decide +kernel
 
 theorem btFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
-    coreProgram.find? (lName "block_selector_tab" n) = some fn ∧ fn.params = [.n 0, .n 1, .n 2] ∧
+    coreProgram.find? (lName "block_selector_tab" n) = some fn ∧ fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")] ∧
       fn.body = btPre n ++ [.ret (btRet n)] := by
   have h := List.all_eq_true.mp btCheck_all n (List.mem_range.mpr hn)
   unfold btCheck at h
@@ -124,9 +126,9 @@ include hμ in
 reads, at `g^u` past the tables' offsets; the running products. -/
 theorem holds_btNib {n k : ℕ} (hk : k < btN n)
     (h : Stmt.HoldsList C Lm.read σ (btNibT n k) True kret) :
-    ∃ u < 2 ^ btW n k, LoadHolds Lm.read (σ (.n 0)) k (gen ^ u) ∧
-      ∃ xe xg, LoadHolds Lm.read (σ (.n 1)) (u + (32 * k + 2 ^ btW n k - 2)) xe ∧
-        LoadHolds Lm.read (σ (.n 2)) (u + 16 * k) xg ∧
+    ∃ u < 2 ^ btW n k, LoadHolds Lm.read (σ (.n (valf% «block_selector_tab» "digits"))) k (gen ^ u) ∧
+      ∃ xe xg, LoadHolds Lm.read (σ (.n (valf% «block_selector_tab» "eq_tab"))) (u + (32 * k + 2 ^ btW n k - 2)) xe ∧
+        LoadHolds Lm.read (σ (.n (valf% «block_selector_tab» "g_tab"))) (u + 16 * k) xg ∧
         σ (.n (btSel k)) = (if k = 0 then 1 else σ (.n (btSel (k - 1)))) * xe ∧
         σ (.n (btRb k)) = (if k = 0 then 1 else σ (.n (btRb (k - 1)))) * xg := by
   have hw1 := btW_pos hk

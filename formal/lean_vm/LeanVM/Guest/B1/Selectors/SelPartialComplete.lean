@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SelPartial
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sel_partial_nibble__L»
 
 /-!
 # `sel_partial_nibble` is complete (TRIAGE G #45-47)
@@ -144,8 +146,8 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 theorem holds_spLevel_iff {t : ℕ} :
     Stmt.HoldsList C rd σ (spLevel t) True kret ↔
-      (LoadHolds rd (σ (.n 2)) t (σ (.n (spM t - 2))) ∧
-        LoadHolds rd (σ (.n 3)) t (σ (.n (spM t - 1)))) ∧
+      (LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z"))) t (σ (.n (spM t - 2))) ∧
+        LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z1"))) t (σ (.n (spM t - 1)))) ∧
       ∀ i < 2 ^ t, σ (.n (spM t + 2 * i)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 1)) ∧
         σ (.n (spM t + 2 * i + 1)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 2)) := by
   rw [spLevel, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ (fun _ => rfl)]
@@ -153,7 +155,7 @@ theorem holds_spLevel_iff {t : ℕ} :
 
 theorem holds_spGStep_iff {w t : ℕ} :
     Stmt.HoldsList C rd σ (spGStep w t) True kret ↔
-      LoadHolds rd (σ (.n 4)) t (σ (.n (spC w + 2 ^ t + t - 1))) ∧
+      LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "gs"))) t (σ (.n (spC w + 2 ^ t + t - 1))) ∧
       ∀ i < 2 ^ t, σ (.n (spC w + 2 ^ t + t + i)) =
         σ (.n (spG w i)) * σ (.n (spC w + 2 ^ t + t - 1)) := by
   rw [spGStep, show ∀ (a : Stmt) (l : List Stmt), a :: l = [a] ++ l from fun _ _ => rfl,
@@ -168,27 +170,27 @@ theorem holds_spPad_iff {v0 : ℕ} {p : V} {e0 n : ℕ} :
 
 theorem holds_spPre_iff {w : ℕ} :
     Stmt.HoldsList C rd σ (spPre w) True kret ↔
-    ((((((((LoadHolds rd (σ (.n 3)) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n 2)) 0 (σ (.n 6))) ∧
+    ((((((((LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z1"))) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z"))) 0 (σ (.n 6))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spLevel (t + 1)) True kret)) ∧
-    (∀ e < 2 ^ (w + 1) - 2, LoadHolds rd (σ (.n 0)) e (σ (.n (spEq e))))) ∧
+    (∀ e < 2 ^ (w + 1) - 2, LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "eq_out"))) e (σ (.n (spEq e))))) ∧
     (∀ k < 8 * w - (2 ^ (w + 1) - 2), σ (.n (spP w + k)) = word 0 0 ∧
-      LoadHolds rd (σ (.n 0)) (2 ^ (w + 1) - 2 + k) (σ (.n (spP w + k))))) ∧
-    (σ (.n (spC w)) = word 1 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1))))) ∧
+      LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "eq_out"))) (2 ^ (w + 1) - 2 + k) (σ (.n (spP w + k))))) ∧
+    (σ (.n (spC w)) = word 1 0 ∧ LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "gs"))) 0 (σ (.n (spC w + 1))))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spGStep w (t + 1)) True kret)) ∧
-    (∀ u < 2 ^ w, LoadHolds rd (σ (.n 1)) u (σ (.n (spG w u))))) ∧
+    (∀ u < 2 ^ w, LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "g_out"))) u (σ (.n (spG w u))))) ∧
     (∀ k < 4 * w - 2 ^ w, σ (.n (spC w + 2 ^ w + w - 1 + k)) = word 0 0 ∧
-      LoadHolds rd (σ (.n 1)) (2 ^ w + k) (σ (.n (spC w + 2 ^ w + w - 1 + k))))) ∧
+      LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "g_out"))) (2 ^ w + k) (σ (.n (spC w + 2 ^ w + w - 1 + k))))) ∧
     σ (.n (spR w)) = word 0 0 := by
   have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => spLevel_noRet (t + 1))
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => spGStep_noRet w (t + 1))
-  have nA := tb_noRetList_mapAtoms (2 ^ (w + 1) - 2) (fun e ↦ .load (.n (spEq e)) (.n 0) e)
-  have nB := tb_noRetList_mapAtoms (2 ^ w) (fun u ↦ .load (.n (spG w u)) (.n 1) u)
-  have n0 : Stmt.noRetList [Stmt.atom (.load (.n 5) (.n 3) 0), Stmt.atom (.load (.n 6) (.n 2) 0)] =
+  have nA := tb_noRetList_mapAtoms (2 ^ (w + 1) - 2) (fun e ↦ .load (.n (spEq e)) (.n (valf% «sel_partial_nibble» "eq_out")) e)
+  have nB := tb_noRetList_mapAtoms (2 ^ w) (fun u ↦ .load (.n (spG w u)) (.n (valf% «sel_partial_nibble» "g_out")) u)
+  have n0 : Stmt.noRetList [Stmt.atom (.load (.n 5) (.n (valf% «sel_partial_nibble» "z1")) 0), Stmt.atom (.load (.n 6) (.n (valf% «sel_partial_nibble» "z")) 0)] =
     true := rfl
   have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0)),
-    Stmt.atom (.load (.n (spC w + 1)) (.n 4) 0)] = true := rfl
-  have nP := spPad_noRet (spP w) (.n 0) (2 ^ (w + 1) - 2) (8 * w - (2 ^ (w + 1) - 2))
-  have nQ := spPad_noRet (spC w + 2 ^ w + w - 1) (.n 1) (2 ^ w) (4 * w - 2 ^ w)
+    Stmt.atom (.load (.n (spC w + 1)) (.n (valf% «sel_partial_nibble» "gs")) 0)] = true := rfl
+  have nP := spPad_noRet (spP w) (.n (valf% «sel_partial_nibble» "eq_out")) (2 ^ (w + 1) - 2) (8 * w - (2 ^ (w + 1) - 2))
+  have nQ := spPad_noRet (spC w + 2 ^ w + w - 1) (.n (valf% «sel_partial_nibble» "g_out")) (2 ^ w) (4 * w - 2 ^ w)
   rw [spPre]
   rw [tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, nP, nQ, n0, n1,
       Bool.and_self]),

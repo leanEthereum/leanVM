@@ -207,3 +207,26 @@ LeanVM/Guest/B1/Digest/ChildMono.lean@monoLast_sound child_claim_list_mono_last_
 LeanVM/Guest/B1/Digest/ClaimList.lean@claimLast_sound claim_list_last__L
 LeanVM/Guest/B1/Digest/ClaimListCLast.lean@claimLast_complete claim_list_last__L
 LeanVM/Guest/B1/Digest/MonoCLasts.lean@mlc_core child_claim_list_mono_last__L
+# Selectors: each specialization family by its file
+LeanVM/Guest/B1/Selectors/BlockSelector.lean block_selector__L
+LeanVM/Guest/B1/Selectors/BlockSelectorTab.lean block_selector_tab__L
+LeanVM/Guest/B1/Selectors/ColumnSelector.lean column_selector__L
+LeanVM/Guest/B1/Selectors/IndexMle.lean index_mle__L
+LeanVM/Guest/B1/Selectors/SelPartial.lean sel_partial_nibble__L
+LeanVM/Guest/B1/Selectors/SelPartialComplete.lean sel_partial_nibble__L
+LeanVM/Guest/B1/Selectors/SelectorTables.lean selector_tables
+LeanVM/Guest/B1/Selectors/SelectorTablesAt.lean selector_tables
+LeanVM/Guest/B1/Selectors/SelectorTablesComplete.lean selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpPre shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpBody shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpCheck shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpFound shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lp_step shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssPre shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssCheck shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssFound shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@shared_selector_tables_holds shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTablesComplete.lean@lp_iter shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTotal.lean shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedVals.lean shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedWeight.lean shared_selector_tables

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.B1.Tables.Squares
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«index_mle__L»
 
 /-!
 # `index_mle` (TRIAGE G #44)
@@ -73,11 +75,11 @@ def imAcc (t : ℕ) : ℕ := 6 * t + 5
 /-- Block `t` of `index_mle`. -/
 def imBlk (t : ℕ) : List Stmt :=
   if t = 0 then
-    [.atom (.const (.n 1) (word 1 0)), .atom (.load (.n 2) (.n 0) 0),
+    [.atom (.const (.n 1) (word 1 0)), .atom (.load (.n 2) (.n (valf% «index_mle» "zeta")) 0),
       .atom (.const (.n 3) (word (imFactor 0) 0)), .atom (.mul (.n 4) (.n 2) (.n 3)),
       .atom (.add (.n 5) (.n 1) (.n 4))]
   else
-    [.atom (.const (.n (6 * t)) (word 1 0)), .atom (.load (.n (6 * t + 1)) (.n 0) t),
+    [.atom (.const (.n (6 * t)) (word 1 0)), .atom (.load (.n (6 * t + 1)) (.n (valf% «index_mle» "zeta")) t),
       .atom (.const (.n (6 * t + 2)) (word (imFactor t) 0)),
       .atom (.mul (.n (6 * t + 3)) (.n (6 * t + 1)) (.n (6 * t + 2))),
       .atom (.add (.n (6 * t + 4)) (.n (6 * t)) (.n (6 * t + 3))),
@@ -94,12 +96,12 @@ def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 /-- The function `P` finds by name is the template. -/
 noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
   match P.find? (lName "index_mle" n) with
-  | some fn => decide (fn.params = [.n 0]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
+  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
   | none => false
 
 theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
     ∃ fn : Fn, P.find? (lName "index_mle" n) = some fn ∧
-    fn.params = [.n 0] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
+    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
   have h := List.all_eq_true.mp hall n (List.mem_range.mpr hn)
   unfold imCheckP at h
   split at h
@@ -133,7 +135,7 @@ section Sem
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 theorem holds_imBlk_zero (h : Stmt.HoldsList C rd σ (imBlk 0) True kret) :
-    LoadHolds rd (σ (.n 0)) 0 (σ (.n (imLoad 0))) ∧
+    LoadHolds rd (σ (.n (valf% «index_mle» "zeta"))) 0 (σ (.n (imLoad 0))) ∧
       σ (.n (imAcc 0)) = imFactorOf (σ (.n (imLoad 0))) 0 := by
   simp only [imBlk, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
@@ -143,7 +145,7 @@ theorem holds_imBlk_zero (h : Stmt.HoldsList C rd σ (imBlk 0) True kret) :
 
 theorem holds_imBlk_succ {t : ℕ} (ht : t < 34) (h0 : t ≠ 0)
     (h : Stmt.HoldsList C rd σ (imBlk t) True kret) :
-    LoadHolds rd (σ (.n 0)) t (σ (.n (imLoad t))) ∧
+    LoadHolds rd (σ (.n (valf% «index_mle» "zeta"))) t (σ (.n (imLoad t))) ∧
       σ (.n (imAcc t)) = σ (.n (imAcc (t - 1))) * imFactorOf (σ (.n (imLoad t))) t := by
   simp only [imBlk, h0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h

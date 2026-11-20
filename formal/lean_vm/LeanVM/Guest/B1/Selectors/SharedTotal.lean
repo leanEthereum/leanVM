@@ -12,6 +12,8 @@ public import LeanVM.Guest.Budget.Kids
 public import LeanVM.Guest.Memory.SizeTotal
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 
 /-!
 # `shared_selector_tables` within its words
@@ -36,8 +38,8 @@ open LeanVM.Protocol.Verifier (gen)
 theorem ssS_straight : ssS.all Main.Stmt.straight = true := by decide
 
 theorem ssS_callS : ssS.filterMap Main.Stmt.callS =
-    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
-        .n 4], [])] := rfl
+    [(some (.n (val% «shared_selector_tables» "s8#1")), name% «shared_selector_tables_loop0», [.n (val% «shared_selector_tables» "s8#2"), .n (val% «shared_selector_tables» "q_g@4"), .n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "g_tab"),
+        .n (val% «shared_selector_tables» "gsq_hi")], [])] := rfl
 
 theorem ssS_allocSz : ssS.filterMap Main.Stmt.allocSz = [] := rfl
 
@@ -90,7 +92,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   obtain ⟨fn', hf', hpar, es, vs, hw, -, hes, -⟩ := hv'
   rw [hf, Option.some.injEq] at hf'
   subst hf'
-  have hσ5 : σ (.n 5) = gen ^ n := by
+  have hσ5 : σ (.n (val% «shared_selector_tables» "len_g")) = gen ^ n := by
     rw [← h5, ← hpar, hp]; rfl
   -- the walk: the straight statements, then the dispatch
   have hws : walk σ fn.body =
@@ -115,9 +117,9 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     (holdsList_of_atoms (C := fun _ _ _ ↦ True) ssA ssA_atoms hatoms) hn hσ5
   -- the dispatch enters `sel_partial_nibble__L{n % 4}`
   have hdisp : walk σ [ssDispV, .ret []] =
-      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53]
-        [.n 54]] [] := by
-    have hpk := LeanVM.Guest.B1.pick_eq σ (.n 20) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]
+      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n (val% «shared_selector_tables» "done~2"), .n (val% «shared_selector_tables» "done~3"), .n (val% «shared_selector_tables» "done~4"), .n (val% «shared_selector_tables» "done~5"), .n (val% «shared_selector_tables» "done~6")]
+        [.n (val% «shared_selector_tables» "done")]] [] := by
+    have hpk := LeanVM.Guest.B1.pick_eq σ (.n (val% «shared_selector_tables» "r_g")) [.n (val% «shared_selector_tables» "done~2"), .n (val% «shared_selector_tables» "done~3"), .n (val% «shared_selector_tables» "done~4"), .n (val% «shared_selector_tables» "done~5"), .n (val% «shared_selector_tables» "done~6")] [.n (val% «shared_selector_tables» "done")]
       ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2",
         "sel_partial_nibble__L3"] 0 (n % 4) (Nat.zero_le _) (by simp; omega) (by omega)
       (by rw [e20, gen_pow_eq_ofK])
@@ -125,15 +127,15 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     rw [lName_sel_partial (n % 4) (by omega)] at hpk
     simp only [ssDispV, walk, walk1, hpk, Out.seq, Out.pre, List.append_nil]
   have hes : es = ssS.flatMap (Main.slEvs σ) ++
-      [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]] := by
+      [.call (lName "sel_partial_nibble" (n % 4)) [.n (val% «shared_selector_tables» "done~2"), .n (val% «shared_selector_tables» "done~3"), .n (val% «shared_selector_tables» "done~4"), .n (val% «shared_selector_tables» "done~5"), .n (val% «shared_selector_tables» "done~6")] [.n (val% «shared_selector_tables» "done")]] := by
     rw [hws, hdisp, Out.pre, Out.ret.injEq] at hw
     exact hw.1.symm
   obtain ⟨-, i2, -, i4⟩ := Main.straight_parts σ ssS ssS_straight
   -- the calls
-  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3,
-      .n 1, .n 4], [],
-      decide (σ (.n 44) ≠ 0)⟩,
-    ⟨lName "sel_partial_nibble" (n % 4), [.n 49, .n 50, .n 51, .n 52, .n 53], [.n 54], true⟩]
+  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n (val% «shared_selector_tables» "s8#2"), .n (val% «shared_selector_tables» "q_g@4"), .n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"),
+      .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "gsq_hi")], [],
+      decide (σ (.n (val% «shared_selector_tables» "s8#1")) ≠ 0)⟩,
+    ⟨lName "sel_partial_nibble" (n % 4), [.n (val% «shared_selector_tables» "done~2"), .n (val% «shared_selector_tables» "done~3"), .n (val% «shared_selector_tables» "done~4"), .n (val% «shared_selector_tables» "done~5"), .n (val% «shared_selector_tables» "done~6")], [.n (val% «shared_selector_tables» "done")], true⟩]
   have hcalls : calls es = cs := by
     rw [hes, calls, List.filterMap_append, ← calls, i4, ssS_callS]
     rfl
@@ -157,7 +159,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   · refine htot.trans ?_
     simp only [Budget.callsT, cs, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
       lName_sel_ne (show n % 4 < 4 by omega), ↓reduceIte, add_zero]
-    have h1 : (if decide (σ (.n 44) ≠ 0) = true then n / 4 * K9 + fs
+    have h1 : (if decide (σ (.n (val% «shared_selector_tables» "s8#1")) ≠ 0) = true then n / 4 * K9 + fs
         name% «shared_selector_tables_loop0» else fs name% «shared_selector_tables_loop0») ≤
         fs name% «shared_selector_tables_loop0» + 15 * K9 := by
       split

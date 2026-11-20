@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.B1.Selectors.SelPartialComplete
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
 
 /-!
 # `shared_selector_tables` is complete (TRIAGE G #48)
@@ -211,13 +213,13 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> (rw [hF]; sv) <;> ring
     · -- the eq levels
       have nL := tb_noRetList_flatten_range (4 - 1) _
-        (fun t => nbLevel_noRet 15 (.n 13) (.n 14) (t + 1))
-      have nn : Stmt.noRetList [Stmt.atom (.load (.n 15) (.n 14) 0),
-        Stmt.atom (.load (.n (15 + 1)) (.n 13) 0)] = true := rfl
+        (fun t => nbLevel_noRet 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (t + 1))
+      have nn : Stmt.noRetList [Stmt.atom (.load (.n (val% «shared_selector_tables_loop0» "levels[0]")) (.n (val% «shared_selector_tables_loop0» "s2#3")) 0),
+        Stmt.atom (.load (.n (val% «shared_selector_tables_loop0» "levels[1]")) (.n (val% «shared_selector_tables_loop0» "s2#2")) 0)] = true := rfl
       rw [nbEq, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nn,
           Bool.and_self]),
         tb_holdsList_append_noRet nn, tb_holdsList_mapAtoms,
-        tb_holdsList_flatten_range _ _ (fun t => nbLevel_noRet 15 (.n 13) (.n 14) (t + 1))]
+        tb_holdsList_flatten_range _ _ (fun t => nbLevel_noRet 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (t + 1))]
       refine ⟨⟨?_, fun t ht ↦ ?_⟩, fun e he ↦ ?_⟩
       · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
         rw [f13, f14]
@@ -270,13 +272,13 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       refine ⟨?_, ?_⟩ <;> (rw [hF]; sv)
       ring
     · -- the `g` table
-      have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 55 (.n 54) (t + 1))
-      have nn : Stmt.noRetList [Stmt.atom (.const (.n 55) (word 1 0)),
-        Stmt.atom (.load (.n (55 + 1)) (.n 54) 0)] = true := rfl
+      have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (t + 1))
+      have nn : Stmt.noRetList [Stmt.atom (.const (.n (val% «shared_selector_tables_loop0» "vals[0]")) (word 1 0)),
+        Stmt.atom (.load (.n (val% «shared_selector_tables_loop0» "vals[1]")) (.n (val% «shared_selector_tables_loop0» "s3#1")) 0)] = true := rfl
       rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, nn,
           Bool.and_self]),
         tb_holdsList_append_noRet nn, tb_holdsList_mapAtoms,
-        tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 55 (.n 54) (t + 1))]
+        tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (t + 1))]
       have g0 : F 55 = word 1 0 := by
         have := gv 0 (by norm_num)
         simp only [nbGV, ↓reduceIte] at this
