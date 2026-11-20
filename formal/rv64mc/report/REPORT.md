@@ -26,7 +26,7 @@ ours   Rust (no_std copy, frozen inlining) → hermetic ELF (sha256 pinned)
          → link step (kernel checks, no proof search) instantiates all at the real image → rv64_sound
 ```
 
-**#738** (RV64IM: 64-bit RISC-V with multiply) is about 680k lines, 89 commits in one day by agents; every proof imports the image, so moving one function by 4 bytes renames everything after it. **Ours** treats the binary like position-independent code with a linker: each function is proved once against its template, with its callees' **contracts** (pre- and postconditions, stated with a **Lean mirror** of the Rust) as hypotheses. About 30 agent runs over roughly one day (about 20 hours wall) built both the framework and the proofs.
+**#738** (RV64IM: 64-bit RISC-V with multiply) is about 680k lines, 89 commits in one day by agents; every proof imports the image, so moving one function by 4 bytes renames everything after it. **Ours** treats the binary like position-independent code with a linker: each function is proved once against its template, with its callees' **contracts** (pre- and postconditions, stated with a **Lean mirror** of the Rust) as hypotheses. About 40 agent runs, several at a time, over about 10 hours wall built both the framework and the proofs.
 
 ## 3. What was built
 
@@ -102,7 +102,7 @@ Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean
 
 ## 5. How far the full theorem got
 
-- **Status.** 94 of 230 functions (3,161 of 20,888 instructions, 15%) are proved and linked at the image, 47 of them with no open hypothesis; 66 (47% of instructions) have a contract only, including partial proofs of `main` and `counting_sort`; 70 (38%) have nothing. 31,994 hand-written lines, standard axioms, no `sorry`, build green. The Model layer is complete.
+- **Status.** 94 of 230 functions (3,161 of 20,888 instructions, 15%) are proved and linked at the image, 47 of them with no open hypothesis; 66 (47% of instructions) have a contract only, including partial proofs of `main` and `counting_sort`; 70 (38%) have nothing. 31,331 hand-written lines, standard axioms, no `sorry`, build green. The Model layer is complete.
 - **Blockers** are mostly framework features: frames for heap blocks and for caller-owned `sret` slots (the hidden pointer through which a function returns a large value), callees whose output is not such a slot (`memcpy`), predicates for nested types, closure layouts (rustc does not report them), and arithmetic goals that exhaust memory.
 - **Two lessons.** Contracts belong to machine instances, not Rust functions: LLVM specialised `try_allocate_in` for `main` without its `init` argument, so a contract written from the Rust signature was wrong. And a contract can be unprovable as written: `Sponge::new`'s first one let its inputs lie where it writes, and was fixed by a stronger precondition.
 - **Extrapolation (estimate).** The WHIR family estimated 1.5 to 2 agent-hours per function that allocates, grows a `Vec`, loops and returns through `sret`; the largest functions (`verify_bus_balance` 899 instructions, `verify_whir` 855 with 18 loops, `walk` 762 with 16) did not fit a 3-hour time box, and `keccak_f` was estimated at 4 to 6 hours. At that rate the 136 functions left are 200 to 270 agent-hours if each cost as much (many are smaller, a few larger), after the framework features.
