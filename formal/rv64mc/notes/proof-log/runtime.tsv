@@ -1,0 +1,6 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal	11	0	44	10.1	rv_auto (with frame closed by it but for Out); left 9 goals: callee Owned/Live through ra's store, ra read back, frame with GrowOut, Grown via GrowOne.grown_of_store; cpu_s is lake env lean of the file, about 5 s of it import loading
+Alloc.Boxed.BoxNewUninit	11	0	6	6.6	rv_auto; left 2 goals (size bound by decide, Fresh through ra's store)
+Core.Ptr.DropGlueVecForm	1	0	1	6.5 (file)	rv_auto closes it
+Core.Ptr.DropGlueVecTStackWeightEE	1	0	1	(same file)	rv_auto closes it
+Core.Ptr.DropGlueLayout	23	0	1	(same file)	rv_auto closes it, callees' DropSpec by using
