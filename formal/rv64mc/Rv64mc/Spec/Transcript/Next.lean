@@ -2,9 +2,9 @@
   Rv64mc.Spec.Transcript.Next
 
   The contract of `Transcript::next(&mut self) -> Result<E, VerifierError>`: the result's slot (`sret`) in `a0`, the
-  transcript in `a1`, both in a caller's frame and apart. It is the mirror's step `Model.TM.next`: where the mirror
-  returns `v` and `t'`, the slot holds `Ok(v)` and the transcript is `t'`; where it fails, the slot holds an `Err`.
-  It writes the slot and the stream offset (`Out`).
+  transcript in `a1`, both in a caller's frame, the slot apart from the transcript and its `Proof`. It is the
+  mirror's step `Model.TM.next`: where the mirror returns `v` and `t'`, the slot holds `Ok(v)` and the transcript is
+  `t'`; where it fails, the slot holds an `Err`. It writes the slot and the stream offset (`Out`).
 -/
 
 import Rv64mc.Spec.Transcript.Repr
@@ -16,7 +16,8 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters
 def Pre (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) : Prop :=
   TranscriptAt env m (regs .x11) t ∧ InFrame (regs .x2) (regs .x11) Layouts.Transcript.byteSize ∧
     InFrame (regs .x2) (regs .x10) Layouts.ResultE.byteSize ∧
-    Apart (regs .x10) Layouts.ResultE.byteSize (regs .x11) Layouts.Transcript.byteSize
+    Apart (regs .x10) Layouts.ResultE.byteSize (regs .x11) Layouts.Transcript.byteSize ∧
+    Apart (regs .x10) Layouts.ResultE.byteSize (proofAddr m (regs .x11)) Layouts.Proof.byteSize
 
 def Post (env : Env) (t : Model.TState) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word)
     (m' : MachineState) : Prop :=

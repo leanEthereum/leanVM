@@ -9,8 +9,9 @@
     (each an `(E, u64)` slot: the `E`'s limbs, then the tag), the count, and the ground challenge (`Option<E>`).
     Slots past `n_pending` are not read, so they are left free.
   * `ProofAt env m q pf`: the `Proof` at `q` is `pf`, its stream a `Vec<E>` of `pf.stream`'s limbs and its openings
-    a `Vec<Vec<MerklePath>>` of `MerklePathRust.ofOpening`'s, every object of it allocated before (`Live`), so that
-    every call keeps it (`ProofAt.keep`).
+    a `Vec<Vec<MerklePath>>` of `MerklePathRust.ofOpening`'s, every object they point to allocated before (`Live`),
+    so that every call keeps it (`ProofAt.keep`). The `Proof` itself may be anywhere (`main` keeps it in its frame):
+    a caller says why a call keeps its `48` bytes.
   * `TranscriptAt env m a t`: the transcript at `a` is `t` (`Layouts.Transcript`): its sponge, the proof it points
     to, the two offsets and the `checked` byte. The ghost roots of `TState` are in no memory.
 
@@ -80,13 +81,19 @@ def PathAt (env : Env) (m : MachineState) (a : Word) (o : Opening) : Prop :=
 def PhaseAt (env : Env) (m : MachineState) (a : Word) (phase : List Opening) : Prop :=
   LiveVecAt env Layouts.MerklePath.byteSize (ArrayAt Layouts.MerklePath.byteSize (PathAt env)) m a phase
 
-/-- **The `Proof` at `q` is `pf`**: the struct and everything it points to allocated before. -/
+/-- **The `Proof` at `q` is `pf`**: its two vectors, everything they point to allocated before. -/
 structure ProofAt (env : Env) (m : MachineState) (q : Word) (pf : Proof) : Prop where
-  live : env.Live m q Layouts.Proof.byteSize
+  nowrap : q.toNat + Layouts.Proof.byteSize < 2 ^ 64
   stream : LiveVecAt env Layouts.E.byteSize EListAt m (q + BitVec.ofNat 64 Layouts.Proof.stream)
     (pf.stream.map Model.limbs)
   openings : LiveVecAt env Layouts.Vec.byteSize (ArrayAt Layouts.Vec.byteSize (PhaseAt env)) m
     (q + BitVec.ofNat 64 Layouts.Proof.merkle_openings) pf.openings
+
+/-- Two footprints `[a, a + n)` and `[b, b + k)` apart. -/
+def Apart (a : Word) (n : Nat) (b : Word) (k : Nat) : Prop := a.toNat + n ≤ b.toNat ∨ b.toNat + k ≤ a.toNat
+
+/-- The address of the `Proof` the transcript at `a` reads. -/
+def proofAddr (m : MachineState) (a : Word) : Word := m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)
 
 /-- The `checked` byte of a transcript. -/
 def boolByte (b : Bool) : BitVec 8 := if b then 1#8 else 0#8
@@ -98,6 +105,8 @@ structure TranscriptAt (env : Env) (m : MachineState) (a : Word) (t : Model.TSta
   opening_le : t.openingOffset ≤ t.proof.openings.length
   sponge : SpongeAt m (a + BitVec.ofNat 64 Layouts.Transcript.sponge) t.sponge
   proof : ProofAt env m (m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)) t.proof
+  proof_apart : Apart (m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)) Layouts.Proof.byteSize a
+    Layouts.Transcript.byteSize
   streamOffset : m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.stream_offset) = BitVec.ofNat 64 t.streamOffset
   openingOffset :
     m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.opening_offset) = BitVec.ofNat 64 t.openingOffset
@@ -106,9 +115,6 @@ structure TranscriptAt (env : Env) (m : MachineState) (a : Word) (t : Model.TSta
 /-- **An object of `n` bytes at `a` in a caller's frame**: at or above the callee's stack top `top`, without
     wrapping. -/
 def InFrame (top a : Word) (n : Nat) : Prop := top.toNat ≤ a.toNat ∧ a.toNat + n < 2 ^ 64
-
-/-- Two footprints `[a, a + n)` and `[b, b + k)` apart. -/
-def Apart (a : Word) (n : Nat) (b : Word) (k : Nat) : Prop := a.toNat + n ≤ b.toNat ∨ b.toNat + k ≤ a.toNat
 
 /-- **The `Result<E, VerifierError>` at `a` is the mirror's outcome**: `Ok` with the value's limbs, or an `Err`
     (`none`, whatever error it carries). -/
@@ -171,14 +177,20 @@ theorem live_sub {a : Word} {n k j : Nat} (hl : env.Live m a n) (hkj : k + j ≤
   rw [toNat_add_ofNat (by have := (env.next m).isLt; omega)]
   omega
 
+theorem LiveVecAt.keep' {α : Type} {size : Nat} {Elems : MachineState → Word → List α → Prop} {a : Word}
+    {xs : List α} (h : HeapKept env m m') (hv : LiveVecAt env size Elems m a xs)
+    (ha : a.toNat + Layouts.Vec.byteSize < 2 ^ 64) (hk : Keeps m m' a Layouts.Vec.byteSize)
+    (he : ∀ ptr, env.Live m ptr (size * xs.length) → Elems m ptr xs → Elems m' ptr xs) :
+    LiveVecAt env size Elems m' a xs := by
+  obtain ⟨ptr, cap, hv, hl⟩ := hv
+  exact ⟨ptr, cap, hv.keep ha hk (he ptr hl), h.live hl⟩
+
 theorem LiveVecAt.keep {α : Type} {size : Nat} {Elems : MachineState → Word → List α → Prop} {a : Word}
     {xs : List α} (h : HeapKept env m m') (hv : LiveVecAt env size Elems m a xs)
     (ha : env.Live m a Layouts.Vec.byteSize)
     (he : ∀ ptr, env.Live m ptr (size * xs.length) → Elems m ptr xs → Elems m' ptr xs) :
-    LiveVecAt env size Elems m' a xs := by
-  obtain ⟨ptr, cap, hv, hl⟩ := hv
-  refine ⟨ptr, cap, hv.keep ?_ (h.keeps ha) (he ptr hl), h.live hl⟩
-  have := (env.next m).isLt; unfold Env.Live at ha; omega
+    LiveVecAt env size Elems m' a xs :=
+  hv.keep' h (by have := (env.next m).isLt; unfold Env.Live at ha; omega) (h.keeps ha) he
 
 theorem keepDigest (h : HeapKept env m m') {a : Word} {d : List (BitVec 8)} (hd : DigestAt m a d)
     (hl : env.Live m a Layouts.Digest.byteSize) : DigestAt m' a d :=
@@ -196,12 +208,18 @@ theorem PhaseAt.keep (h : HeapKept env m m') {a : Word} {phase : List Opening} (
     (hl : env.Live m a Layouts.Vec.byteSize) : PhaseAt env m' a phase :=
   LiveVecAt.keep h hp hl fun _ hl' hw k hk => (hw k hk).keep h (ArrayAt.live_elem hl' hk)
 
-/-- **Every call keeps a proof**: it lies below `NEXT`. -/
-theorem ProofAt.keep (h : HeapKept env m m') {q : Word} {pf : Proof} (hp : ProofAt env m q pf) :
-    ProofAt env m' q pf := by
-  obtain ⟨hl, h1, h2⟩ := hp
-  exact ⟨h.live hl, h1.keep h (live_sub hl (by decide)) fun _ hl' he => keepEList h he hl',
-    h2.keep h (live_sub hl (by decide)) fun _ hl' hw k hk => (hw k hk).keep h (ArrayAt.live_elem hl' hk)⟩
+/-- **A call keeps a proof** that keeps its `48` bytes: what they point to lies below `NEXT`. -/
+theorem ProofAt.keep (h : HeapKept env m m') {q : Word} {pf : Proof} (hp : ProofAt env m q pf)
+    (hq : Keeps m m' q Layouts.Proof.byteSize) : ProofAt env m' q pf := by
+  obtain ⟨hn, h1, h2⟩ := hp
+  simp only [Layouts.Proof.byteSize, Layouts.Proof.stream, Layouts.Proof.merkle_openings] at hn hq h1 h2 ⊢
+  have h24 : (q + BitVec.ofNat 64 Layouts.Proof.merkle_openings).toNat = q.toNat + 24 :=
+    toNat_add_ofNat (by simp only [Layouts.Proof.merkle_openings]; omega)
+  refine ⟨hn, h1.keep' h (by simp [Layouts.Vec.byteSize]; omega) ?_ fun _ hl' he => keepEList h he hl',
+    h2.keep' h (by simp only [Layouts.Vec.byteSize]; omega) ?_
+      fun _ hl' hw k hk => (hw k hk).keep h (ArrayAt.live_elem hl' hk)⟩
+  · exact hq.mono (by simp) (by simp [Layouts.Vec.byteSize])
+  · exact hq.mono (by omega) (by simp only [Layouts.Vec.byteSize]; omega)
 
 /-- The words of a transcript's footprint, as offsets read. -/
 theorem keeps_get {a : Word} {n k : Nat} (hk : Keeps m m' a n) (ha : a.toNat + n < 2 ^ 64) (hkn : k + 8 ≤ n) :
@@ -244,31 +262,39 @@ theorem SpongeAt.keep {a : Word} {r : Model.SpongeRust} (hs : SpongeAt m a r)
       refine ⟨by rw [show a = a + BitVec.ofNat 64 0 by simp, get _ (by decide)]; simpa using hg.1,
         by rw [get _ (by decide)]; exact hg.2.1, by rw [add, get _ (by decide), ← add]; exact hg.2.2⟩
 
-/-- **A transcript is kept** by a call that keeps its footprint and the heap below `NEXT`. -/
+/-- **A transcript is kept** by a call that keeps its footprint, its proof's and the heap below `NEXT`. -/
 theorem TranscriptAt.keep {a : Word} {t : Model.TState} (ht : TranscriptAt env m a t)
     (ha : a.toNat + Layouts.Transcript.byteSize < 2 ^ 64) (hk : Keeps m m' a Layouts.Transcript.byteSize)
+    (hq : Keeps m m' (m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)) Layouts.Proof.byteSize)
     (hh : HeapKept env m m') : TranscriptAt env m' a t := by
-  obtain ⟨hb1, hb2, hs, hp, h1, h2, h3⟩ := ht
+  obtain ⟨hb1, hb2, hs, hp, hap, h1, h2, h3⟩ := ht
   simp only [Layouts.Transcript.byteSize, Layouts.Transcript.sponge, Layouts.Transcript.proof,
     Layouts.Transcript.stream_offset, Layouts.Transcript.opening_offset, Layouts.Transcript.checked] at *
   have get : ∀ k, k + 8 ≤ 360 → m'.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) :=
     fun k hkn => keeps_get hk ha hkn
-  refine ⟨hb1, hb2, hs.keep (by simpa using (by omega : a.toNat + 328 < 2 ^ 64)) ?_, ?_, by rw [get _ (by decide)]; exact h1,
-    by rw [get _ (by decide)]; exact h2, ?_⟩
+  refine ⟨hb1, hb2, hs.keep (by simpa using (by omega : a.toNat + 328 < 2 ^ 64)) ?_, ?_, ?_,
+    by rw [get _ (by decide)]; exact h1, by rw [get _ (by decide)]; exact h2, ?_⟩
   · simpa using hk.mono (a' := a) (n' := 328) (by simp) (by omega)
-  · rw [get _ (by decide)]; exact hp.keep hh
+  · rw [get _ (by decide)]; exact hp.keep hh hq
+  · rw [get _ (by decide)]; exact hap
   · rw [getByte_congr]; exact h3
     have h352 : (a + 352#64).toNat = a.toNat + 352 := toNat_add_ofNat (by omega)
     apply hk
     constructor <;> rw [toNat_alignToDword, h352] <;> omega
 
-/-- **A transcript in a caller's frame is kept by a call without `out`.** -/
+/-- **A transcript in a caller's frame is kept by a call without `out`**, its proof allocated before or in a
+    caller's frame too. -/
 theorem TranscriptAt.frameF {top a : Word} {t : Model.TState} (ht : TranscriptAt env m a t)
     (hf : env.Frame top Tactic.F m m') (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
-    (hlim : env.stackLimit.toNat ≤ top.toNat) (ha : InFrame top a Layouts.Transcript.byteSize) :
-    TranscriptAt env m' a t :=
-  ht.keep ha.2 (Env.Frame.keeps_above hf hlim ha.1 fun _ _ h => h)
-    (HeapKept.of_frame hf hnx fun _ h => h.elim)
+    (hlim : env.stackLimit.toNat ≤ top.toNat) (ha : InFrame top a Layouts.Transcript.byteSize)
+    (hq : env.Live m (m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)) Layouts.Proof.byteSize ∨
+      top.toNat ≤ (m.getMem (a + BitVec.ofNat 64 Layouts.Transcript.proof)).toNat) :
+    TranscriptAt env m' a t := by
+  have hh := HeapKept.of_frame hf hnx fun _ h => h.elim
+  refine ht.keep ha.2 (Env.Frame.keeps_above hf hlim ha.1 fun _ _ h => h) ?_ hh
+  rcases hq with hq | hq
+  · exact hh.keeps hq
+  · exact Env.Frame.keeps_above hf hlim hq fun _ _ h => h
 
 end Keep
 

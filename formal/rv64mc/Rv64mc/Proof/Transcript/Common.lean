@@ -177,16 +177,20 @@ theorem _root_.Rv64mc.Spec.Transcript.TranscriptAt.setStream {m : MachineState} 
     TranscriptAt env (m.setMem (a + BitVec.ofNat 64 Layouts.Transcript.stream_offset) (BitVec.ofNat 64 o)) a
       { t with streamOffset := o } := by
   simp only [Layouts.Transcript.byteSize] at ha
-  obtain ⟨-, hb2, hs, hp, h1, h2, h3⟩ := ht
+  obtain ⟨-, hb2, hs, hp, hap, h1, h2, h3⟩ := ht
   have h336 : (a + BitVec.ofNat 64 336).toNat = a.toNat + 336 := toNat_add_ofNat (by omega)
   have hk : Keeps m (m.setMem (a + BitVec.ofNat 64 336) (BitVec.ofNat 64 o)) (a + BitVec.ofNat 64 0) 328 :=
     Keeps.setMem fun h => by unfold InRange at h; rw [h336] at h; simp at h
-  refine ⟨ho, hb2, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  have hne := add_ne_add (n := 360) (j := 328) (k := 336) ha (by decide) (by decide) (by decide)
+  refine ⟨ho, hb2, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp only [Layouts.Transcript.sponge, Layouts.Transcript.proof, Layouts.Transcript.stream_offset,
-      Layouts.Transcript.opening_offset, Layouts.Transcript.checked] at hs hp h1 h2 h3 ⊢
+      Layouts.Transcript.opening_offset, Layouts.Transcript.checked, Layouts.Proof.byteSize,
+      Layouts.Transcript.byteSize] at hs hp hap h1 h2 h3 ⊢
   · exact hs.keep (by rw [show a + BitVec.ofNat 64 0 = a by simp]; simp only [Layouts.Sponge.byteSize]; omega) hk
-  · rw [MachineState.getMem_setMem_ne (add_ne_add (n := 360) ha (by decide) (by decide) (by decide))]
-    exact hp.keep (heapKept_stack (by omega) hnx)
+  · rw [MachineState.getMem_setMem_ne hne]
+    exact hp.keep (heapKept_stack (by omega) hnx) (Keeps.setMem fun h => by
+      unfold InRange at h; unfold Apart at hap; rw [h336] at h; simp only [Layouts.Proof.byteSize] at h; omega)
+  · rw [MachineState.getMem_setMem_ne hne]; exact hap
   · simp
   · rw [MachineState.getMem_setMem_ne (add_ne_add (n := 360) ha (by decide) (by decide) (by decide))]; exact h2
   · rw [getByte_setMem_ne]; exact h3

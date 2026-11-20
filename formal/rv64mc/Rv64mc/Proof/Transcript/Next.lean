@@ -35,10 +35,11 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   rv_auto hp
   all_goals
     rw [hpre_2] at hpre_7 hpre_9
-    simp only [Layouts.Transcript.byteSize, Layouts.ResultE.byteSize] at hpre_8 hpre_10 hpre_11
+    simp only [Layouts.Transcript.byteSize, Layouts.ResultE.byteSize, Layouts.Proof.byteSize, proofAddr,
+      Layouts.Transcript.proof] at hpre_8 hpre_10 hpre_11 hpre_12
     have hlim : env.stackLimit.toNat ≤ top.toNat := Nat.le_trans (Nat.le_add_right _ _) hpre_3
     have hT := hpre_6
-    obtain ⟨hle, -, -, hpf, hso, -, -⟩ := hpre_6
+    obtain ⟨hle, -, -, hpf, -, hso, -, -⟩ := hpre_6
     simp only [Layouts.Transcript.proof, Layouts.Transcript.stream_offset] at hpf hso
     obtain ⟨hlen, hlt⟩ := hpf.stream_len
     rw [hso, hlen] at hc
@@ -84,9 +85,13 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
       rw [show regs .x10 + 8#64 + 8#64 = regs .x10 + 16#64 by rw [BitVec.add_assoc]; rfl,
         MachineState.getMem_setMem_ne hne816, MachineState.getMem_setMem_ne hne016.symm,
         MachineState.getMem_setMem_eq, e1]
-    · refine h1.keep hpre_8 ?_ ?_
+    · refine h1.keep hpre_8 ?_ ?_ ?_
       · exact keeps_store (keeps_store (keeps_store keeps_refl (not_inRange_apart' hpre_11 hpre_10 (by decide))
           ) (not_inRange_apart0 hpre_11 (by decide))) (not_inRange_apart' hpre_11 hpre_10 (by decide))
+      · rw [MachineState.getMem_setMem_ne (add_ne_add (n := 360) (j := 328) (k := 336) hpre_8 (by decide) (by decide)
+          (by decide))]
+        exact keeps_store (keeps_store (keeps_store keeps_refl (not_inRange_apart' hpre_12 hpre_10 (by decide))
+          ) (not_inRange_apart0 hpre_12 (by decide))) (not_inRange_apart' hpre_12 hpre_10 (by decide))
       · exact heapKept_store (heapKept_store (heapKept_store heapKept_refl (Nat.le_trans hlim hpre_9)
           h16 hnx1) (Nat.le_trans hlim hpre_9) (Nat.le_refl _) hnx1)
           (Nat.le_trans hlim hpre_9) h8 hnx1

@@ -41,7 +41,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   intro t
   rv_auto hp
   all_goals
-    obtain ⟨hle, hle', -, hpf, hso, hoo, -⟩ := hpre_6
+    obtain ⟨hle, hle', -, hpf, -, hso, hoo, -⟩ := hpre_6
     simp only [Layouts.Transcript.proof, Layouts.Transcript.stream_offset, Layouts.Transcript.opening_offset]
       at hpf hso hoo
     obtain ⟨hlen, hlt⟩ := hpf.stream_len
