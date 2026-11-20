@@ -767,7 +767,8 @@ def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
     let a := ty.appFn!.appArg!
     let b := ty.appArg!
     -- `(env.next X).toNat ≤ env.heapEnd.toNat`
-    if a.isAppOfArity ``BitVec.toNat 2 && a.appArg!.isAppOfArity ``Rv64mc.Env.next 2 then
+    if a.isAppOfArity ``BitVec.toNat 2 && a.appArg!.isAppOfArity ``Rv64mc.Env.next 2 &&
+        b.isAppOfArity ``BitVec.toNat 2 && b.appArg!.isAppOf ``Rv64mc.Env.heapEnd then
       let nx := a.appArg!
       let some (h, _) ← viaFrame nx.appFn!.appArg! nx.appArg! | return none
       return some (← mkAppM ``Rv64mc.Tactic.frame_next #[h])
