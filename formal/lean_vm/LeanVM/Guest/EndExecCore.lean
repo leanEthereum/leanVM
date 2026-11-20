@@ -42,199 +42,142 @@ section Walk
 
 variable {σ : Val}
 
-theorem selGo_sound {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
+theorem sel_mono {P : Prop} {x : V} {seen seen' : List Atom} {es es' : List Ev}
+    (h : ∀ a, (a ∈ seen ∨ Ev.atom a ∈ es) → a ∈ seen' ∨ Ev.atom a ∈ es') :
+    (P ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a) →
+      P ∨ ∃ a, (a ∈ seen' ∨ Ev.atom a ∈ es') ∧ x ∈ Memory.atomUses a
+  | .inl p => .inl p
+  | .inr ⟨a, ha, hu⟩ => .inr ⟨a, h a ha, hu⟩
+
+/-- **`selGo`'s selectors**: on a path that returns, the selector `x` of each `match` and `dispatch` of the body
+is at its cell, and a dispatch's a parameter or a use of an atom seen before it or on the path. -/
+theorem selGo_sel {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
     CoreMode.selGo j ps seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
-    ∀ x arms, Stmt.match_ x arms ∈ stmtsOf ss → CoreMode.cellB j x = true ∧
-      ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a
-  | _, [], _, _, _, _, _, x, arms, hm => by simp [stmtsOf] at hm
-  | seen, .atom b :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    ∀ s ∈ stmtsOf ss, ∀ x, ((∃ arms, s = .match_ x arms) ∨ ∃ fs args rets, s = .dispatch x fs args rets) →
+      CoreMode.cellB j x = true ∧ ((∃ fs args rets, s = .dispatch x fs args rets) ∧ x ∈ ps ∨
+        ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a)
+  | _, [], _, _, _, _, _, s, hm, _, _ => by simp [stmtsOf] at hm
+  | seen, .atom b :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_atom_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, a, ha, hu⟩ := selGo_sound (b :: seen) ss h ht.2 hw' x arms hm
-    refine ⟨hc, a, ?_, hu⟩
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
+    rcases hm with rfl | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    obtain ⟨hc, hr⟩ := selGo_sel (b :: seen) ss h ht.2 hw' s hm x hs
+    refine ⟨hc, sel_mono (fun a ha ↦ ?_) hr⟩
     rcases ha with ha | ha
     · rcases List.mem_cons.mp ha with rfl | ha
       · exact Or.inr (by simp)
       · exact Or.inl ha
     · exact Or.inr (by simp [ha])
-  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, x, arms, hm => by
+  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
     obtain ⟨⟨⟨hc, ⟨a, ha, hu⟩⟩, hna⟩, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with he | hm | hm
-    · cases he
-      exact ⟨hc, a, Or.inl ha, hu⟩
-    · have := List.all_eq_true.mp hna _ hm
-      simp at this
+    rcases hm with rfl | hm | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+      exact ⟨hc, Or.inr ⟨a, Or.inl ha, hu⟩⟩
+    · rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
+      · have := List.all_eq_true.mp hna _ hm
+        simp at this
+      · have h1' := ht.1
+        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub] at h1'
+        exact absurd rfl (h1'.2 _ hm)
     · rw [walk] at hw
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', a', ha', hu'⟩ := selGo_sound seen ss h ht.2 h2 x arms hm
-        refine ⟨hc', a', ?_, hu'⟩
-        rcases ha' with ha' | ha'
-        · exact Or.inl ha'
-        · exact Or.inr (List.mem_append_right _ ha')
+      · obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 h2 s hm x hs
+        exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (List.mem_append_right _)) hr⟩
       · exact absurd h1 (CoreMode.walk1_noRetP _ (by
           have h1' := ht.1
           simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
           exact h1'.1) _ _)
-  | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, arms, hm => by
+  | seen, .ite c z n :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
     obtain ⟨⟨hz, hn⟩, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with he | (hm | hm) | hm
-    · cases he
-    · have := List.all_eq_true.mp hz _ hm
-      simp at this
-    · have := List.all_eq_true.mp hn _ hm
-      simp at this
+    rcases hm with rfl | hm | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    · rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
+      · rcases hm with hm | hm
+        · have := List.all_eq_true.mp hz _ hm
+          simp at this
+        · have := List.all_eq_true.mp hn _ hm
+          simp at this
+      · have h1' := ht.1
+        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub,
+          List.mem_append] at h1'
+        exact absurd rfl (h1'.2 _ hm)
     · rw [walk] at hw
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', a', ha', hu'⟩ := selGo_sound seen ss h ht.2 h2 x arms hm
-        refine ⟨hc', a', ?_, hu'⟩
-        rcases ha' with ha' | ha'
-        · exact Or.inl ha'
-        · exact Or.inr (List.mem_append_right _ ha')
+      · obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 h2 s hm x hs
+        exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (List.mem_append_right _)) hr⟩
       · exact absurd h1 (CoreMode.walk1_noRetP _ (by
           have h1' := ht.1
           simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
           exact h1'.1) _ _)
-  | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, arms, hm => by
+  | seen, .ret vs' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    have := List.all_eq_true.mp h.1 _ hm
-    simp at this
-  | seen, .call f args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
+    rcases hm with rfl | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
+    · have := List.all_eq_true.mp h.1 _ hm
+      simp at this
+    · have := List.all_eq_true.mp h.2 _ hm
+      simp at this
+  | seen, .call f args rets :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_call_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
-    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
-  | seen, .callIf c f args :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
+    rcases hm with rfl | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
+    exact ⟨hc, sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
+  | seen, .callIf c f args :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_callIf_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
-    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
-  | seen, .dispatch y fs args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    replace h := h.2
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, a, ha, hu⟩ := selGo_sound seen ss h ht.2 hw' x arms hm
-    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
-
-theorem selGoD_sound {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
-    CoreMode.selGo j ps seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
-    ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf ss → CoreMode.cellB j x = true ∧
-      (x ∈ ps ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a)
-  | _, [], _, _, _, _, _, x, fs, args, rets, hm => by simp [stmtsOf] at hm
-  | seen, .atom b :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo] at h
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    rw [walk_atom_cons] at hw
-    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound (b :: seen) ss h ht.2 hw' x fs args rets hm
-    · exact ⟨hc, Or.inl hp⟩
-    refine ⟨hc, Or.inr ⟨a, ?_, hu⟩⟩
-    rcases ha with ha | ha
-    · rcases List.mem_cons.mp ha with rfl | ha
-      · exact Or.inr (by simp)
-      · exact Or.inl ha
-    · exact Or.inr (by simp [ha])
-  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    replace h := h.2
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with he | hm | hm
-    · cases he
-    · have h1' := ht.1
-      simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub] at h1'
-      exact absurd rfl (h1'.2 _ hm)
-    · rw [walk] at hw
-      rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 h2 x fs args rets hm
-        · exact ⟨hc', Or.inl hp⟩
-        refine ⟨hc', Or.inr ⟨a', ?_, hu'⟩⟩
-        rcases ha' with ha' | ha'
-        · exact Or.inl ha'
-        · exact Or.inr (List.mem_append_right _ ha')
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
-  | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    replace h := h.2
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with he | hm | hm
-    · cases he
-    · have h1' := ht.1
-      simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub,
-        List.mem_append] at h1'
-      exact absurd rfl (h1'.2 _ hm)
-    · rw [walk] at hw
-      rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 h2 x fs args rets hm
-        · exact ⟨hc', Or.inl hp⟩
-        refine ⟨hc', Or.inr ⟨a', ?_, hu'⟩⟩
-        rcases ha' with ha' | ha'
-        · exact Or.inl ha'
-        · exact Or.inr (List.mem_append_right _ ha')
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
-  | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    have := List.all_eq_true.mp h.2 _ hm
-    simp at this
-  | seen, .call f args' rets' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo] at h
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    rw [walk_call_cons] at hw
-    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
-    · exact ⟨hc, Or.inl hp⟩
-    exact ⟨hc, Or.inr ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
-  | seen, .callIf c f args' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
-    simp only [CoreMode.selGo] at h
-    simp only [List.all_cons, Bool.and_eq_true] at ht
-    rw [walk_callIf_cons] at hw
-    obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append, reduceCtorEq, false_or] at hm
-    obtain ⟨hc, hp | ⟨a, ha, hu⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
-    · exact ⟨hc, Or.inl hp⟩
-    exact ⟨hc, Or.inr ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
-  | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
+    rcases hm with rfl | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
+    exact ⟨hc, sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
+  | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
     simp only [CoreMode.selGo, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
       List.any_eq_true] at h
     obtain ⟨⟨hc, hsel⟩, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with he | hm
-    · cases he
+    rcases hm with rfl | hm
+    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
       rcases hsel with hp | ⟨a, ha, hu⟩
-      · exact ⟨hc, Or.inl hp⟩
+      · exact ⟨hc, Or.inl ⟨⟨_, _, _, rfl⟩, hp⟩⟩
       · exact ⟨hc, Or.inr ⟨a, Or.inl ha, hu⟩⟩
     · obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
-      obtain ⟨hc', hp | ⟨a', ha', hu'⟩⟩ := selGoD_sound seen ss h ht.2 hw' x fs args rets hm
-      · exact ⟨hc', Or.inl hp⟩
-      exact ⟨hc', Or.inr ⟨a', ha'.imp id (fun h ↦ by simp [h]), hu'⟩⟩
+      obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
+      exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
+
+theorem selGo_sound {j : ℕ} {ps : List V} {σ : Val} (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V}
+    (h : CoreMode.selGo j ps seen ss = true) (ht : ss.all CoreMode.topOk = true) (hw : walk σ ss = .ret es vs)
+    (x : V) (arms : List (List Stmt)) (hm : Stmt.match_ x arms ∈ stmtsOf ss) : CoreMode.cellB j x = true ∧
+      ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a := by
+  obtain ⟨hc, ⟨⟨_, _, _, h'⟩, -⟩ | hr⟩ := selGo_sel seen ss h ht hw _ hm x (Or.inl ⟨arms, rfl⟩)
+  · cases h'
+  · exact ⟨hc, hr⟩
+
+theorem selGoD_sound {j : ℕ} {ps : List V} {σ : Val} (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V}
+    (h : CoreMode.selGo j ps seen ss = true) (ht : ss.all CoreMode.topOk = true) (hw : walk σ ss = .ret es vs)
+    (x : V) (fs : List String) (args rets : List V) (hm : Stmt.dispatch x fs args rets ∈ stmtsOf ss) :
+    CoreMode.cellB j x = true ∧ (x ∈ ps ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a) := by
+  obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht hw _ hm x (Or.inr ⟨fs, args, rets, rfl⟩)
+  exact ⟨hc, hr.imp (·.2) id⟩
 
 end Walk
 
