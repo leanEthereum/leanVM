@@ -222,7 +222,7 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     rwa [e544, show layOff first + 625 + 91 = layOff first + 716 by omega] at this
   -- the pack rounds' setup
   have g720 : σ (.n (layOff first + 719)) = w (layOff first + 719) :=
-    gP (.atom (.hint (.alloc (.n (layOff first + 719)) 112))) (by simp [packSetupT])
+    gP (.atom (.hint (.alloc (.n (layOff first + 719)) 77))) (by simp [packSetupT])
   have g719 : σ (.n (layOff first + 718)) = w (layOff first + 718) :=
     gP (.atom (.hint (.allocDyn (.n (layOff first + 718)) (.n 8)))) (by simp [packSetupT])
   have hrec0 : RoundRec rd (σ (.n (layOff first + 719))) 0 ((cap5 (layOff first + 539)).map σ)

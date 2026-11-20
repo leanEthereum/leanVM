@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop29Complete
 
-  `verify_bus_gkr_loop0_loop0`, completely: eight GKR rounds from the record at `head·x^8` at every
-  iteration give its relation from `1` below `half`.
+  `verify_bus_gkr_loop0_loop0`, completely: eight GKR rounds from the record at `head·x^56` at
+  every iteration give its relation from `1` below `half`.
 -/
 
 module
@@ -17,11 +17,11 @@ public import LeanVM.Guest.Data.NameStrings
 
 An iteration of `verify_bus_gkr_loop0_loop0` is B1-a's `gkBody 8` (the eight rounds between records)
 without its returned `0`, renamed (`sh6`: the record, the row and the window table to the
-iteration's, the others seven values on; `l29Body_eq`, by kernel evaluation), after the record's and
-the row's pointers `head·x^8`, `ptrow·x^8`, and before the guard and the next call. The honest
+iteration's, the others eleven values on; `l29Body_eq`, by kernel evaluation), after the record's
+and the row's pointers `head·x^56`, `ptrow·x^8`, and before the guard and the next call. The honest
 valuation of an iteration (`l29Val`) takes the eight rounds' from `gk_body_holds` (`σgk`,
 renamed), the pointers and the guard around them. `l29_complete`: when every iteration's eight
-rounds hold (`TbGkrRoundsOut 8` at `head·g^(8j)`, `ptrow·g^(8j)`), the loop holds from `1` below
+rounds hold (`TbGkrRoundsOut 8` at `head·g^(56j)`, `ptrow·g^(8j)`), the loop holds from `1` below
 `g^h`.
 -/
 
@@ -33,23 +33,25 @@ open LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- `gkBody 8`'s values in an iteration: the record `head·x^8` (`8`), the row `ptrow·x^8` (`9`),
-the window table (`4`), the others seven on. -/
+/-- `gkBody 8`'s values in an iteration: the record `head·x^56` (`12`), the row `ptrow·x^8`
+(`13`), the window table (`4`), the others eleven on. -/
 def sh6 (v : V) : V :=
-  if v.idx = 0 then .n 8 else if v.idx = 1 then .n 9 else if v.idx = 2 then .n 4
-  else .n (v.idx + 7)
+  if v.idx = 0 then .n 12 else if v.idx = 1 then .n 13 else if v.idx = 2 then .n 4
+  else .n (v.idx + 11)
 
 /-- The iteration's pointers. -/
 def l29Pre : List Stmt :=
   [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 5) (.n 5)),
-    .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 2) (.n 7)),
-    .atom (.mul (.n 9) (.n 3) (.n 7))]
+    .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 7)),
+    .atom (.mul (.n 9) (.n 8) (.n 7)), .atom (.mul (.n 10) (.n 9) (.n 9)),
+    .atom (.mul (.n 11) (.n 10) (.n 7)), .atom (.mul (.n 12) (.n 2) (.n 11)),
+    .atom (.mul (.n 13) (.n 3) (.n 7))]
 
 /-- The guard and the next call's argument. -/
 def l29Post : List Stmt :=
-  [.atom (.const (.n 331) (word 2 0)), .atom (.mul (.n 332) (.n 0) (.n 331)),
-    .atom (.add (.n 333) (.n 332) (.n 1)), .atom (.const (.n 334) (word 2 0)),
-    .atom (.mul (.n 335) (.n 0) (.n 334))]
+  [.atom (.const (.n 335) (word 2 0)), .atom (.mul (.n 336) (.n 0) (.n 335)),
+    .atom (.add (.n 337) (.n 336) (.n 1)), .atom (.const (.n 338) (word 2 0)),
+    .atom (.mul (.n 339) (.n 0) (.n 338))]
 
 /-- `gkBody 8` but its returned `0`: the eight rounds between records. -/
 def gk8Pre : List Stmt := ((gkBody 8).dropLast).dropLast
@@ -59,12 +61,12 @@ def l29A : List Stmt := l29Pre ++ Stmt.renameList sh6 gk8Pre ++ l29Post
 
 set_option maxRecDepth 100000 in
 theorem l29Body_eq' : tbStmtsEqb l29Body
-    (l29A ++ [.callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3, .n 4],
+    (l29A ++ [.callIf (.n 337) name% «verify_bus_gkr_loop0_loop0» [.n 339, .n 1, .n 2, .n 3, .n 4],
         .ret []]) = true := by
   decide +kernel
 
 theorem l29Body_eq : l29Body =
-    l29A ++ [.callIf (.n 333) name% «verify_bus_gkr_loop0_loop0» [.n 335, .n 1, .n 2, .n 3, .n 4],
+    l29A ++ [.callIf (.n 337) name% «verify_bus_gkr_loop0_loop0» [.n 339, .n 1, .n 2, .n 3, .n 4],
         .ret []] :=
   tbStmtsEqb_sound l29Body_eq'
 
@@ -111,7 +113,7 @@ theorem l29A_atoms : AllAtoms l29A := by
   simp only [l29A, List.mem_append] at hs
   rcases hs with (hs | hs) | hs
   · simp only [l29Pre, List.mem_cons, List.not_mem_nil, or_false] at hs
-    rcases hs with rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
   · obtain ⟨t, ht, rfl⟩ := mem_renameList hs
     have := List.all_eq_true.mp gk4_ok t ht
     cases t with
@@ -120,13 +122,21 @@ theorem l29A_atoms : AllAtoms l29A := by
   · simp only [l29Post, List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
+/-- `x^8` as the iteration computes it. -/
+def l29X8 (x : E) : E := x * x * (x * x) * (x * x * (x * x))
+
+/-- `x^56` as the iteration computes it. -/
+def l29X56 (x : E) : E :=
+  l29X8 x * l29X8 x * l29X8 x * (l29X8 x * l29X8 x * l29X8 x) * l29X8 x
+
 /-- **The honest valuation of an iteration** at `x`, the eight rounds' `σgk` renamed. -/
 def l29Val (x N head ptrow tabs : E) (σgk : Val) (v : V) : E :=
-  if v.idx < 10 then [x, N, head, ptrow, tabs, x * x, x * x * (x * x),
-    x * x * (x * x) * (x * x * (x * x)), head * (x * x * (x * x) * (x * x * (x * x))),
-    ptrow * (x * x * (x * x) * (x * x * (x * x)))].getD v.idx 0
-  else if v.idx ≤ 330 then σgk (.n (v.idx - 7))
-  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 331) 0
+  if v.idx < 14 then [x, N, head, ptrow, tabs, x * x, x * x * (x * x), l29X8 x,
+    l29X8 x * l29X8 x, l29X8 x * l29X8 x * l29X8 x,
+    l29X8 x * l29X8 x * l29X8 x * (l29X8 x * l29X8 x * l29X8 x), l29X56 x, head * l29X56 x,
+    ptrow * l29X8 x].getD v.idx 0
+  else if v.idx ≤ 334 then σgk (.n (v.idx - 11))
+  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 335) 0
 
 theorem gkBody4_atoms {C : CallRel} {rd : Reader} {σ : Val}
     (h : Stmt.HoldsList C rd σ (gkBody 8) False (fun rs => rs = [0])) :
@@ -143,8 +153,7 @@ theorem gkBody4_atoms {C : CallRel} {rd : Reader} {σ : Val}
 set_option maxRecDepth 10000 in
 /-- **An iteration of `verify_bus_gkr_loop0_loop0`, completely.** -/
 theorem l29_iter {rd : Reader} (x N head ptrow tabs : E)
-    (hT : TbGkrRoundsOut 8 rd (head * (x * x * (x * x) * (x * x * (x * x))))
-      (ptrow * (x * x * (x * x) * (x * x * (x * x))))) :
+    (hT : TbGkrRoundsOut 8 rd (head * l29X56 x) (ptrow * l29X8 x)) :
     AtomsBody rd [.n 0, .n 1, .n 2, .n 3, .n 4] l29A [x, N, head, ptrow, tabs] := by
   obtain ⟨σgk, hσv, h0, h1, h2, hh⟩ := gk_body_holds 8 (by norm_num) (by norm_num)
     (coreProgram.Rel rd) rd _ _ tabs ⟨rfl, hT⟩
@@ -153,7 +162,8 @@ theorem l29_iter {rd : Reader} (x N head ptrow tabs : E)
   simp only [l29A, List.mem_append] at ha
   rcases ha with (ha | ha) | ha
   · simp only [l29Pre, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-    rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, l29Val]
+    rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      simp [Atom.Holds, l29Val, l29X56, l29X8]
   · obtain ⟨t, ht, he⟩ := mem_renameList ha
     cases t with
     | atom b =>
@@ -172,8 +182,8 @@ theorem l29_iter {rd : Reader} (x N head ptrow tabs : E)
       · simp [sh6, l29Val, e1, h1]
       by_cases e2 : v.idx = 2
       · simp [sh6, l29Val, e2, h2]
-      have i1 : ¬ v.idx + 7 < 10 := by omega
-      have i2 : v.idx + 7 ≤ 330 := by omega
+      have i1 : ¬ v.idx + 11 < 14 := by omega
+      have i2 : v.idx + 11 ≤ 334 := by omega
       simp only [sh6, l29Val, e0, e1, e2, i1, i2, ↓reduceIte, Nat.add_sub_cancel]
     | _ =>
       have hok := List.all_eq_true.mp gk4_ok _ ht
@@ -182,11 +192,10 @@ theorem l29_iter {rd : Reader} (x N head ptrow tabs : E)
     rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, l29Val, tb_word_gen]
 
 set_option maxRecDepth 10000 in
-/-- **`verify_bus_gkr_loop0_loop0`, completely**: eight rounds from the record at `head·g^(8j)` at
-every iteration
-`j < h` give the loop from `1` below `g^h`. -/
+/-- **`verify_bus_gkr_loop0_loop0`, completely**: eight rounds from the record at `head·g^(56j)`
+at every iteration `j < h` give the loop from `1` below `g^h`. -/
 theorem l29_complete {rd : Reader} {head ptrow tabs : E} {h : ℕ} (hpos : 0 < h) (hhb : h < 2 ^ 62)
-    (hr : ∀ j < h, TbGkrRoundsOut 8 rd (head * gen ^ (8 * j)) (ptrow * gen ^ (8 * j))) :
+    (hr : ∀ j < h, TbGkrRoundsOut 8 rd (head * gen ^ (56 * j)) (ptrow * gen ^ (8 * j))) :
     coreProgram.Rel rd name% «verify_bus_gkr_loop0_loop0» [1, gen ^ h, head, ptrow, tabs] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := l29Found
   rw [l29Body_eq] at hb
@@ -205,18 +214,18 @@ theorem l29_complete {rd : Reader} {head ptrow tabs : E} {h : ℕ} (hpos : 0 < h
       simp only [l29A, List.mem_append]; exact Or.inr ha)
     simp only [l29Post, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,
       forall_eq_or_imp, forall_eq, Atom.Holds] at m
-    obtain ⟨c339, m340, a341, c342, m343⟩ := m
-    rw [tb_word_gen] at c339 c342
-    refine ⟨by rw [a341, m340, c339, h0, h1], ?_⟩
-    simp only [List.map_cons, List.map_nil, m343, c342, h0, h1, h2, h3, h4]
+    obtain ⟨c335, m336, a337, c338, m339⟩ := m
+    rw [tb_word_gen] at c335 c338
+    refine ⟨by rw [a337, m336, c335, h0, h1], ?_⟩
+    simp only [List.map_cons, List.map_nil, m339, c338, h0, h1, h2, h3, h4]
   rw [← pow_zero gen]
   refine (loop_iff hstep 0).mpr ⟨h, hpos, rfl, first_hit_of_lt (by unfold ordG; omega) rfl,
     fun j _ hj => ?_⟩
   rw [hp]
   apply l29_iter
   have := hr j hj
-  rwa [show gen ^ j * gen ^ j * (gen ^ j * gen ^ j) * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j)) =
-    gen ^ (8 * j) by ring]
+  rwa [show l29X56 (gen ^ j) = gen ^ (56 * j) by unfold l29X56 l29X8; ring,
+    show l29X8 (gen ^ j) = gen ^ (8 * j) by unfold l29X8; ring]
 
 end
 end LeanVM.Guest.B1.Tables

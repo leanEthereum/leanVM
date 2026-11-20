@@ -38,7 +38,7 @@ The pack rounds of a layer run in two loops (`keccak_layer__L1_loop0` .. `keccak
 `slice_weight`, `keccak_slot_lanes`) have no core function of their
 own: they are lemmas of `B1/KeccakGkr/`.
 
-**Records.** A round record (`KR_*`) holds a sponge's capacity, a cursor and a claim, its fields `KR_CAP = 16` words apart (`RoundRec`). A claim record (`KC_*`) holds a `KeccakClaim` in the guest's factored form (`ClaimRec`): its value,
+**Records.** A round record (`KR_*`) holds a sponge's capacity, a cursor and a claim, its fields `KR_CAP = 11` words apart (`RoundRec`). A claim record (`KC_*`) holds a `KeccakClaim` in the guest's factored form (`ClaimRec`): its value,
 `κ = Σ μ`, a pointer to its point, its sixteen instance weights `μ`, and its position weights as
 a lane table times a slice table, `firstWeights lanes` for the first claim (a word's bits, `x^z`)
 and `laterWeights lanes slices` after a layer (through the transpose of θ, ρ, π,
@@ -68,8 +68,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The guest's constants -/
 
-/-- `KR_CAP`: a round record's fields are `16` words apart. -/
-abbrev krCap : ℕ := 16
+/-- `KR_CAP`: a round record's fields are `11` words apart. -/
+abbrev krCap : ℕ := 11
 
 /-- `KC_SIZE = KC_MU + KECCAK_PACK`: a claim record's words. -/
 abbrev kcSize : ℕ := 22

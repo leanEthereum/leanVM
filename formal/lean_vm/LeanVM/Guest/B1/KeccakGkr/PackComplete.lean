@@ -203,9 +203,9 @@ def Pack8Hon (rd : Reader) (rec pp pt x : E) : Prop :=
 
 def pack8S : List Atom :=
   ((List.range 8).map fun q ↦ Atom.load (.n (34 + 27 * q)) (.n 14) q) ++
-  [.load (.n 231) (.n 6) 1, .load (.n 232) (.n 6) 17, .load (.n 233) (.n 6) 33,
-    .load (.n 234) (.n 6) 49, .load (.n 235) (.n 6) 65, .load (.n 244) (.n 6) 81,
-    .load (.n 242) (.n 6) 97]
+  [.load (.n 231) (.n 6) 1, .load (.n 232) (.n 6) 12, .load (.n 233) (.n 6) 23,
+    .load (.n 234) (.n 6) 34, .load (.n 235) (.n 6) 45, .load (.n 244) (.n 6) 56,
+    .load (.n 242) (.n 6) 67]
 
 theorem pack8_chk : Fwd.chk 6 pack8Pre = some 250 := by decide +kernel
 
@@ -227,7 +227,7 @@ theorem pack8Block_complete {x N rec pp pt tb : E} (hs : Pack8Hon rd rec pp pt x
     ∃ σ : Val, [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] = [x, N, rec, pp, pt, tb] ∧
       (∀ a, Stmt.atom a ∈ pack8Pre → a.Holds rd σ) ∧
       σ (.n 6) = rec * x ∧ σ (.n 10) = pp * x ^ 8 ∧ σ (.n 14) = pt * x ^ 8 ∧
-      LoadHolds rd (rec * x) 80 (σ (.n 20)) ∧ σ (.n 247) = x * gen + N ∧
+      LoadHolds rd (rec * x) 55 (σ (.n 20)) ∧ σ (.n 247) = x * gen + N ∧
       σ (.n 249) = x * gen := by
   obtain ⟨cap, cur, claim, rs, ms, chs, claim', cap', ⟨⟨hcl, hcap⟩, lcur, lclm⟩,
     hrl, hrs, hms, hch, hchs, ⟨⟨hcl', hcap'⟩, lcur', lclm'⟩⟩ := hs
@@ -267,19 +267,19 @@ theorem pack8Block_complete {x N rec pp pt tb : E} (hs : Pack8Hon rd rec pp pt x
   have v10 : σ (.n 10) = pp * x ^ 8 := by rw [e10, p3, gen_pow_eight_of _ _ _ _ e7 e8 e9, p0]
   have v14 : σ (.n 14) = pt * x ^ 8 := by rw [e14, p4, gen_pow_eight_of _ _ _ _ e11 e12 e13, p0]
   have L0 : LoadHolds rd (rec * x) 0 c0 := hcap 0 (by simp)
-  have L16 : LoadHolds rd (rec * x) 16 c1 := hcap 1 (by simp)
-  have L32 : LoadHolds rd (rec * x) 32 c2 := hcap 2 (by simp)
-  have L48 : LoadHolds rd (rec * x) 48 c3 := hcap 3 (by simp)
-  have L64 : LoadHolds rd (rec * x) 64 c4 := hcap 4 (by simp)
-  have L80 : LoadHolds rd (rec * x) 80 cur := lcur
-  have L96 : LoadHolds rd (rec * x) 96 claim := lclm
+  have L16 : LoadHolds rd (rec * x) 11 c1 := hcap 1 (by simp)
+  have L32 : LoadHolds rd (rec * x) 22 c2 := hcap 2 (by simp)
+  have L48 : LoadHolds rd (rec * x) 33 c3 := hcap 3 (by simp)
+  have L64 : LoadHolds rd (rec * x) 44 c4 := hcap 4 (by simp)
+  have L80 : LoadHolds rd (rec * x) 55 cur := lcur
+  have L96 : LoadHolds rd (rec * x) 66 claim := lclm
   have v15 : σ (.n 15) = c0 := load_val (gH (.load (.n 15) (.n 6) 0) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L0)
-  have v16 : σ (.n 16) = c1 := load_val (gH (.load (.n 16) (.n 6) 16) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L16)
-  have v17 : σ (.n 17) = c2 := load_val (gH (.load (.n 17) (.n 6) 32) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L32)
-  have v18 : σ (.n 18) = c3 := load_val (gH (.load (.n 18) (.n 6) 48) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L48)
-  have v19 : σ (.n 19) = c4 := load_val (gH (.load (.n 19) (.n 6) 64) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L64)
-  have v20 : σ (.n 20) = cur := load_val (gH (.load (.n 20) (.n 6) 80) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L80)
-  have v21 : σ (.n 21) = claim := load_val (gH (.load (.n 21) (.n 6) 96) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L96)
+  have v16 : σ (.n 16) = c1 := load_val (gH (.load (.n 16) (.n 6) 11) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L16)
+  have v17 : σ (.n 17) = c2 := load_val (gH (.load (.n 17) (.n 6) 22) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L32)
+  have v18 : σ (.n 18) = c3 := load_val (gH (.load (.n 18) (.n 6) 33) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L48)
+  have v19 : σ (.n 19) = c4 := load_val (gH (.load (.n 19) (.n 6) 44) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L64)
+  have v20 : σ (.n 20) = cur := load_val (gH (.load (.n 20) (.n 6) 55) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L80)
+  have v21 : σ (.n 21) = claim := load_val (gH (.load (.n 21) (.n 6) 66) (by simp [pk8Head])) (by decide) (by rw [v6]; exact L96)
   -- the rounds
   have hpre : ∀ k < 8, ∀ a, Stmt.atom a ∈ pkPre k → a.Holds rd σ := by
     intro k hk a ha
@@ -350,7 +350,7 @@ theorem pack8Block_complete {x N rec pp pt tb : E} (hs : Pack8Hon rd rec pp pt x
   have e288 : σ (.n 247) = σ (.n 246) + σ (.n 1) := gT (.add (.n 247) (.n 246) (.n 1)) (by simp [pk8Tail])
   have e289 : σ (.n 248) = word 2 0 := gT (.const (.n 248) (word 2 0)) (by simp [pk8Tail])
   have e290 : σ (.n 249) = σ (.n 0) * σ (.n 248) := good_mul (by decide) (gT _ (by simp [pk8Tail]))
-  have hO : ∀ j (hj : j < 5), LoadHolds rd (rec * x) (1 + j * 16) ([d0, d1, d2, d3, d4][j]'(by simpa using hj)) :=
+  have hO : ∀ j (hj : j < 5), LoadHolds rd (rec * x) (1 + j * 11) ([d0, d1, d2, d3, d4][j]'(by simpa using hj)) :=
     fun j hj ↦ hcap' j (by simpa using hj)
   refine ⟨σ, by rw [p0, p1, p2, p3, p4, p5], ?_, v6, v10, v14, by rw [v20]; exact L80,
     by rw [e288, e287, e286, p0, p1, word_gen], by rw [e290, e289, p0, word_gen]⟩
@@ -411,9 +411,9 @@ def PackRemHon (rd : Reader) (rec pp pt x : E) : Prop :=
 /-- The remainder block's head: the record and the coordinate read. -/
 def remA : List Stmt :=
   [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.mul (.n 7) (.n 3) (.n 0)),
-    .atom (.load (.n 8) (.n 7) 0), .atom (.load (.n 9) (.n 6) 0), .atom (.load (.n 10) (.n 6) 16),
-    .atom (.load (.n 11) (.n 6) 32), .atom (.load (.n 12) (.n 6) 48),
-    .atom (.load (.n 13) (.n 6) 64), .atom (.load (.n 14) (.n 6) 80)]
+    .atom (.load (.n 8) (.n 7) 0), .atom (.load (.n 9) (.n 6) 0), .atom (.load (.n 10) (.n 6) 11),
+    .atom (.load (.n 11) (.n 6) 22), .atom (.load (.n 12) (.n 6) 33),
+    .atom (.load (.n 13) (.n 6) 44), .atom (.load (.n 14) (.n 6) 55)]
 
 /-- The remainder block's constants before the permutation. -/
 def remZ : List Stmt :=
@@ -431,14 +431,14 @@ def remK : Atom :=
 def remT : List Stmt :=
   [.atom (.mul (.n 39) (.n 5) (.n 0)), .atom (.load (.n 26) (.n 39) 0),
     .atom (.add (.n 40) (.n 8) (.n 26)), .atom (.load (.n 34) (.n 6) 1),
-    .atom (.load (.n 35) (.n 6) 17), .atom (.load (.n 36) (.n 6) 33),
-    .atom (.load (.n 37) (.n 6) 49), .atom (.load (.n 38) (.n 6) 65),
+    .atom (.load (.n 35) (.n 6) 12), .atom (.load (.n 36) (.n 6) 23),
+    .atom (.load (.n 37) (.n 6) 34), .atom (.load (.n 38) (.n 6) 45),
     .atom (.const (.n 41) (word 4 0)), .atom (.mul (.n 42) (.n 14) (.n 41)),
-    .atom (.load (.n 42) (.n 6) 81), .atom (.load (.n 43) (.n 6) 96),
+    .atom (.load (.n 42) (.n 6) 56), .atom (.load (.n 43) (.n 6) 66),
     .atom (.mul (.n 44) (.n 40) (.n 15)), .atom (.add (.n 45) (.n 43) (.n 44)),
     .atom (.mul (.n 46) (.n 26) (.n 26)), .atom (.add (.n 47) (.n 8) (.n 46)),
     .atom (.mul (.n 48) (.n 47) (.n 18)), .atom (.add (.n 49) (.n 45) (.n 48)),
-    .atom (.load (.n 49) (.n 6) 97), .atom (.const (.n 50) (word 2 0)),
+    .atom (.load (.n 49) (.n 6) 67), .atom (.const (.n 50) (word 2 0)),
     .atom (.mul (.n 51) (.n 0) (.n 50)), .atom (.add (.n 52) (.n 51) (.n 1)),
     .atom (.const (.n 53) (word 2 0)), .atom (.mul (.n 54) (.n 0) (.n 53))]
 
@@ -447,9 +447,9 @@ theorem packRemPre_split : packRemPre = remA ++ fsNextT (.n 14) 0 15 ++ fsNextT 
 
 /-- The remainder block's stores. -/
 def packRemS : List Atom :=
-  [.load (.n 26) (.n 39) 0, .load (.n 34) (.n 6) 1, .load (.n 35) (.n 6) 17,
-    .load (.n 36) (.n 6) 33, .load (.n 37) (.n 6) 49, .load (.n 38) (.n 6) 65,
-    .load (.n 42) (.n 6) 81, .load (.n 49) (.n 6) 97]
+  [.load (.n 26) (.n 39) 0, .load (.n 34) (.n 6) 1, .load (.n 35) (.n 6) 12,
+    .load (.n 36) (.n 6) 23, .load (.n 37) (.n 6) 34, .load (.n 38) (.n 6) 45,
+    .load (.n 42) (.n 6) 56, .load (.n 49) (.n 6) 67]
 
 theorem packRem_chk : Fwd.chk 6 packRemPre = some 55 := by decide +kernel
 
@@ -463,7 +463,7 @@ theorem packRemBlock_complete {x N rec pp tb pt : E} (hs : PackRemHon rd rec pp 
         [x, N, rec, pp, tb, pt] ∧
       (∀ a, Stmt.atom a ∈ packRemPre → a.Holds rd σ) ∧
       σ (.n 6) = rec * x ∧ σ (.n 7) = pp * x ∧ σ (.n 39) = pt * x ∧
-      LoadHolds rd (rec * x) 80 (σ (.n 14)) ∧ σ (.n 52) = x * gen + N ∧
+      LoadHolds rd (rec * x) 55 (σ (.n 14)) ∧ σ (.n 52) = x * gen + N ∧
       σ (.n 54) = x * gen := by
   obtain ⟨cap, cur, claim, r, g1, g2, ⟨⟨hcl, hcap⟩, lcur, lclm⟩, lr, hxs, lch,
     ⟨⟨hcl', hcap'⟩, lcur', lclm'⟩⟩ := hs
@@ -501,25 +501,25 @@ theorem packRemBlock_complete {x N rec pp tb pt : E} (hs : PackRemHon rd rec pp 
   have v6 : σ (.n 6) = rec * x := by rw [e6, p2, p0]
   have v7 : σ (.n 7) = pp * x := by rw [e7, p3, p0]
   have L0 : LoadHolds rd (rec * x) 0 c0 := hcap 0 (by simp)
-  have L16 : LoadHolds rd (rec * x) 16 c1 := hcap 1 (by simp)
-  have L32 : LoadHolds rd (rec * x) 32 c2 := hcap 2 (by simp)
-  have L48 : LoadHolds rd (rec * x) 48 c3 := hcap 3 (by simp)
-  have L64 : LoadHolds rd (rec * x) 64 c4 := hcap 4 (by simp)
-  have L80 : LoadHolds rd (rec * x) 80 cur := lcur
-  have L96 : LoadHolds rd (rec * x) 96 claim := lclm
+  have L16 : LoadHolds rd (rec * x) 11 c1 := hcap 1 (by simp)
+  have L32 : LoadHolds rd (rec * x) 22 c2 := hcap 2 (by simp)
+  have L48 : LoadHolds rd (rec * x) 33 c3 := hcap 3 (by simp)
+  have L64 : LoadHolds rd (rec * x) 44 c4 := hcap 4 (by simp)
+  have L80 : LoadHolds rd (rec * x) 55 cur := lcur
+  have L96 : LoadHolds rd (rec * x) 66 claim := lclm
   have v8 : σ (.n 8) = r := load_val (gA (.load (.n 8) (.n 7) 0) (by simp [remA])) (by decide)
     (by rw [v7]; exact lr)
   have v9 : σ (.n 9) = c0 := load_val (gA (.load (.n 9) (.n 6) 0) (by simp [remA])) (by decide)
     (by rw [v6]; exact L0)
-  have v10 : σ (.n 10) = c1 := load_val (gA (.load (.n 10) (.n 6) 16) (by simp [remA])) (by decide)
+  have v10 : σ (.n 10) = c1 := load_val (gA (.load (.n 10) (.n 6) 11) (by simp [remA])) (by decide)
     (by rw [v6]; exact L16)
-  have v11 : σ (.n 11) = c2 := load_val (gA (.load (.n 11) (.n 6) 32) (by simp [remA])) (by decide)
+  have v11 : σ (.n 11) = c2 := load_val (gA (.load (.n 11) (.n 6) 22) (by simp [remA])) (by decide)
     (by rw [v6]; exact L32)
-  have v12 : σ (.n 12) = c3 := load_val (gA (.load (.n 12) (.n 6) 48) (by simp [remA])) (by decide)
+  have v12 : σ (.n 12) = c3 := load_val (gA (.load (.n 12) (.n 6) 33) (by simp [remA])) (by decide)
     (by rw [v6]; exact L48)
-  have v13 : σ (.n 13) = c4 := load_val (gA (.load (.n 13) (.n 6) 64) (by simp [remA])) (by decide)
+  have v13 : σ (.n 13) = c4 := load_val (gA (.load (.n 13) (.n 6) 44) (by simp [remA])) (by decide)
     (by rw [v6]; exact L64)
-  have v14 : σ (.n 14) = cur := load_val (gA (.load (.n 14) (.n 6) 80) (by simp [remA])) (by decide)
+  have v14 : σ (.n 14) = cur := load_val (gA (.load (.n 14) (.n 6) 55) (by simp [remA])) (by decide)
     (by rw [v6]; exact L80)
   -- the two words
   have lg1 : LoadHolds rd (σ (.n 14)) 0 g1 := by rw [v14]; exact hxs 0 (by simp)
@@ -552,7 +552,7 @@ theorem packRemBlock_complete {x N rec pp tb pt : E} (hs : PackRemHon rd rec pp 
   have e41 : σ (.n 40) = σ (.n 8) + σ (.n 26) := gT (.add (.n 40) (.n 8) (.n 26)) (by simp [remT])
   have e44 : σ (.n 41) = word 4 0 := gT (.const (.n 41) (word 4 0)) (by simp [remT])
   have e45 : σ (.n 42) = σ (.n 14) * σ (.n 41) := good_mul (by decide) (gT _ (by simp [remT]))
-  have v46 : σ (.n 43) = claim := load_val (gT (.load (.n 43) (.n 6) 96) (by simp [remT]))
+  have v46 : σ (.n 43) = claim := load_val (gT (.load (.n 43) (.n 6) 66) (by simp [remT]))
     (by decide) (by rw [v6]; exact L96)
   have e47 : σ (.n 44) = σ (.n 40) * σ (.n 15) := good_mul (by decide) (gT _ (by simp [remT]))
   have e48 : σ (.n 45) = σ (.n 43) + σ (.n 44) := gT (.add (.n 45) (.n 43) (.n 44)) (by simp [remT])
@@ -571,7 +571,7 @@ theorem packRemBlock_complete {x N rec pp tb pt : E} (hs : PackRemHon rd rec pp 
     rw [e52, e51, e50, e49, e48, e47, e41, v46, v8, v39, e15, e18, ho]
     simp only [eqRound]
   have hcl'' : o.2.2.cap.length = 5 := hcl'
-  have hO : ∀ j (hj : j < 5), LoadHolds rd (rec * x) (1 + j * 16)
+  have hO : ∀ j (hj : j < 5), LoadHolds rd (rec * x) (1 + j * 11)
       ([σ (.n 34), σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38)][j]'(by simpa using hj)) := by
     intro j hj
     have := hcap' j (by omega)

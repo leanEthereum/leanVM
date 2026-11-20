@@ -124,7 +124,7 @@ end ClaimLay
 /-! ## The layer's layout -/
 
 /-- The sizes of the layer's buffers. -/
-def layerSizes (D : LayerData) : List ℕ := [D.y, 112, 11, 25, 7]
+def layerSizes (D : LayerData) : List ℕ := [D.y, 77, 11, 25, 7]
 
 /-- The words of the layer's buffers. -/
 def layerOwn (D : LayerData) (first : ℕ) (cur : E) : List (List E) :=
@@ -138,8 +138,8 @@ def layerBufs (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) : Main.Layout :=
 
 theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
     layerBufs D first cur b = [(b, D.chs first), (b + D.y, D.recWords first cur),
-      (b + D.y + 112, D.locPt first), (b + D.y + 123, lanesOut (D.locPt first) (D.beta first).1),
-      (b + D.y + 148, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
+      (b + D.y + 77, D.locPt first), (b + D.y + 88, lanesOut (D.locPt first) (D.beta first).1),
+      (b + D.y + 113, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
         (eqKernel ((D.locPt first).take 6))))] := by
   simp [layerBufs, bufL, layerSizes, layerOwn, bases]
 
@@ -147,11 +147,11 @@ theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
 `b`), the stream at `cur`, the claim's layout, the window tables at `tbE`. -/
 noncomputable def layerLin (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
     Main.Layout :=
-  [(bout, D.outW first (ptr b) (ptr (b + D.y + 123)) (ptr (b + D.y + 112)) (ptr (b + D.y + 148))),
+  [(bout, D.outW first (ptr b) (ptr (b + D.y + 88)) (ptr (b + D.y + 77)) (ptr (b + D.y + 113))),
     (bcur, D.xs)] ++ CL.L first D.c ++ [(tbE, winTabWords)]
 
 theorem recWords_length (D : LayerData) (first : ℕ) (cur : E) :
-    (D.recWords first cur).length = 112 := by simp [LayerData.recWords]
+    (D.recWords first cur).length = 77 := by simp [LayerData.recWords]
 
 /-- **The callees, honestly and loading from the layout**: on a memory holding the caller's words
 and the buffers, the eight-round loop and the remainder loop hold. -/
@@ -181,13 +181,13 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
   have hcl := LayerData.chs_length (D := D) (first := first) hpm
   have hxl := LayerData.xs_length hpl hpm hlm
   -- record `j`'s cursor
-  have hcur : ∀ j < 16, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 80 c' →
+  have hcur : ∀ j < 11, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 55 c' →
       c' = ptr bcur * gen ^ (48 + 2 * D.recK j) := by
     intro j hj hjy c' hc'
     have := (LayerData.recWords_rec hrec hj hjy).2.1
     simp only [krCap] at this
     exact loadHolds_unique hc' this
-  have hrecR : ∀ j ≤ 14, ∀ k ∈ roundRecOffs, InR (RegionL L) (ptr (b + D.y) * gen ^ j) k := by
+  have hrecR : ∀ j ≤ 9, ∀ k ∈ roundRecOffs, InR (RegionL L) (ptr (b + D.y) * gen ^ j) k := by
     intro j hj k hk
     refine inR_entry mRec ?_
     simp only [roundRecOffs, List.mem_cons, List.not_mem_nil, or_false] at hk
