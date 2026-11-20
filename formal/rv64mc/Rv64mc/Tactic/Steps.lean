@@ -15,7 +15,7 @@
   * `callee_indirect`, `callee_direct`: a call reaches the callee a link fact names
 -/
 
-import LprogRiscV.Lsym
+import Rv64mc.Tactic.RegFile
 
 namespace Rv64mc.Tactic
 
@@ -25,18 +25,47 @@ variable {p : Lprog rvIsa.Op rvIsa.Reg} {E : Type} {c : Context rvIsa E} {G : St
   {Q : State rvIsa → Prop} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
   {fd : Lfundef rvIsa.Op rvIsa.Reg} {fn pc : Nat} {rv top : Word}
 
+/-! ## Reading registers and evaluating expressions
+
+Each by name, so that a proof of a value is a chain of instances the kernel checks by matching, never a reduction
+that may unfold the value itself. -/
+
+theorem upd_same (R : Reg → Word) (r : Reg) (v : Word) : updReg R r v r = v := by simp [updReg]
+
+theorem upd_ne (R : Reg → Word) (r r' : Reg) (v : Word) (h : decide (r' = r) = false) : updReg R r v r' = R r' := by
+  simp only [decide_eq_false_iff_not] at h; simp [updReg, h]
+
+theorem eval_reg (R : Reg → Word) (r : Reg) : Lprog.Expr.eval R (.reg r) = R r := rfl
+theorem eval_imm (R : Reg → Word) (v : Word) : Lprog.Expr.eval R (.imm v) = v := rfl
+theorem eval_bin (R : Reg → Word) (op : BinOp) (a b : Lprog.Expr Reg) :
+    Lprog.Expr.eval R (.bin op a b) = BinOp.eval op (Lprog.Expr.eval R a) (Lprog.Expr.eval R b) := rfl
+theorem eval_un (R : Reg → Word) (op : UnOp) (a : Lprog.Expr Reg) :
+    Lprog.Expr.eval R (.un op a) = UnOp.eval op (Lprog.Expr.eval R a) := rfl
+
+theorem bin_add (x y : Word) : BinOp.eval .add x y = x + y := rfl
+theorem bin_sub (x y : Word) : BinOp.eval .sub x y = x - y := rfl
+theorem bin_mul (x y : Word) : BinOp.eval .mul x y = x * y := rfl
+theorem bin_and (x y : Word) : BinOp.eval .and x y = x &&& y := rfl
+theorem bin_or (x y : Word) : BinOp.eval .or x y = x ||| y := rfl
+theorem bin_xor (x y : Word) : BinOp.eval .xor x y = x ^^^ y := rfl
+theorem bin_shl (x y : Word) : BinOp.eval .shl x y = x <<< y.toNat := rfl
+theorem bin_lshr (x y : Word) : BinOp.eval .lshr x y = x >>> y.toNat := rfl
+
+theorem opnd_reg (R : Reg → Word) (r : Reg) : operandVal R (.reg r) = some (R r) := rfl
+
 /-- A register written with the value `v` of its expression. -/
-theorem step_set {rd : Reg} {e : Lprog.Expr Reg} (v : Word) (hf : p[fn]? = some fd)
-    (hi : fd.body[pc]? = some (.Lopn (.set rd e))) (hv : e.eval regs = v)
-    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, updReg regs rd v, m⟩) :
+theorem step_set {rd : Reg} {e : Lprog.Expr Reg} (v : Word) (R' : Reg → Word) (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lopn (.set rd e))) (hv : e.eval regs = v) (hR : updReg regs rd v = R')
+    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, R', m⟩) :
     rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
-  SafeN.opn hf hi (by subst hv; rfl) h
+  SafeN.opn hf hi (by subst hv hR; rfl) h
 
 /-- A doubleword load at `x`, which reads `v`. -/
-theorem step_ld {rd : Reg} {a : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? = some fd)
+theorem step_ld {rd : Reg} {a : Lprog.Expr Reg} (x v : Word) (R' : Reg → Word) (hf : p[fn]? = some fd)
     (hi : fd.body[pc]? = some (.Lopn (.load rd .b8 false a))) (ha : a.eval regs = x) (hv : m.getMem x = v)
-    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, updReg regs rd v, m⟩) :
+    (hR : updReg regs rd v = R') (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, R', m⟩) :
     rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
+  subst hR
   refine SafeN.opn' hf hi (fun r' m' he => ?_)
   simp only [rvIsa, Isa.ofOps, Op.eval, ha] at he
   cases hl : rvMem.load .b8 x m with
@@ -109,11 +138,12 @@ def storeMem (w : Width) (m : MachineState) (x v : Word) : MachineState :=
   | .b8 => m.setMem x v
 
 /-- A load of any width at `x`, the value as the memory's accessor reads it. -/
-theorem step_loadw {rd : Reg} {w : Width} {s : Bool} {a : Lprog.Expr Reg} (x : Word) (hf : p[fn]? = some fd)
-    (hi : fd.body[pc]? = some (.Lopn (.load rd w s a))) (ha : a.eval regs = x)
-    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest,
-      updReg regs rd (if s then (UnOp.sext w).eval (loadVal w m x) else loadVal w m x), m⟩) :
+theorem step_loadw {rd : Reg} {w : Width} {s : Bool} {a : Lprog.Expr Reg} (x v : Word) (R' : Reg → Word)
+    (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lopn (.load rd w s a))) (ha : a.eval regs = x)
+    (hv : (if s then (UnOp.sext w).eval (loadVal w m x) else loadVal w m x) = v) (hR : updReg regs rd v = R')
+    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, R', m⟩) :
     rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
+  subst hR hv
   refine step_load x hf hi ha (fun v hv => ?_)
   have : v = loadVal w m x := by
     simp only [rvMem] at hv; split at hv <;> cases w <;> simp_all [loadVal]
@@ -213,6 +243,11 @@ theorem step_ret (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some .Lret) (hra :
     (hsp : regs .x2 = top) (h : rvIsa.SafeN p c G n Q ⟨rest, regs, m⟩) :
     rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   SafeN.ret hf hi hra hsp h
+
+/-- A register file as another equal to it. -/
+theorem regs_eq {st : List Frame} {R R' : Reg → Word} (e : R = R')
+    (k : rvIsa.SafeN p c G n Q ⟨st, R', m⟩) : rvIsa.SafeN p c G n Q ⟨st, R, m⟩ := by
+  subst e; exact k
 
 /-- A register file that reads `v` at `r` is the one with `r` written `v`. -/
 theorem absorb {st : List Frame} {R : Reg → Word} {r : Reg} {v : Word} (h : R r = v)

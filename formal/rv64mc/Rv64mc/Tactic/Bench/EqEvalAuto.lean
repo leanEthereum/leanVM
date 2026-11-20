@@ -136,13 +136,13 @@ theorem loop {E : Type} (c : Context rvIsa E) (p : Lprog (Op Reg) Reg) (L : Link
   | zero =>
     intro j R M hj hinv
     rv_intro hinv
-    rv_sym hp stop [28] with [hL.mul, hL.s0] using [hmul]
+    rv_sym hp with [hL.mul, hL.s0] using [hmul]
     · exact absurd ((end_iff (hlen ▸ hy.2.1) (by omega)).2 (by omega)) hc
     all_goals rw [spec_take mul (by omega) hlen, ← body_val mul hx hy (by omega) (by omega)]
   | succ k ih =>
     intro j R M hj hinv
     rv_intro hinv
-    rv_sym hp stop [28] with [hL.mul, hL.s0] using [hmul]
+    rv_sym hp with [hL.mul, hL.s0] using [hmul]
     · apply ih (j + 1) _ _ (by omega)
       rv_close
       · exact step_ptr _ _
@@ -160,7 +160,7 @@ theorem ok {E : Type} (c : Context rvIsa E) (p : Lprog (Op Reg) Reg) (L : Link) 
     (hmul : rvIsa.Contract p c L.mul.idx MulPre (MulPost mul))
     (hfail : rvIsa.Contract p c L.fail.idx (fun _ _ _ _ => True) (fun _ _ _ _ _ _ => False)) :
     rvIsa.Contract p c i (Pre xs ys) (Post mul xs ys) := by
-  rv_auto hp stop [28] with [hL.mul, hL.fail, hL.s0, hL.s1] using [hmul, hfail]
+  rv_auto hp with [hL.mul, hL.fail, hL.s0, hL.s1] using [hmul, hfail]
   all_goals have hx : Slice m top (regs .x10) xs := ⟨hpre_7, hpre_8, hpre_9⟩
   all_goals have hy : Slice m top (regs .x12) ys := ⟨hpre_10, hpre_11, hpre_12⟩
   all_goals have hlen : xs.length = ys.length := len_eq hpre_8 hpre_11 hc_1

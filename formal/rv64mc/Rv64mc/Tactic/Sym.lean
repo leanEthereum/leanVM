@@ -66,6 +66,29 @@ def regName? (e : Expr) : Option Name :=
   | .const n _ => if n.getPrefix == ``RiscvZkvm.Rv64.Reg then some n else none
   | _ => none
 
+/-- The index of the register a constructor names. -/
+def regIdx? (e : Expr) : Option Nat :=
+  match regName? e with
+  | some (.str _ s) => (s.drop 1).toString.toNat?
+  | _ => none
+
+/-- The binders `a0`..`a31` of the `rf` lemmas, given. -/
+def rfArgs (args : Array Expr) : List (Name × Expr) :=
+  (List.range 32).map fun i => (Name.mkSimple s!"a{i}", args[i]!)
+
+/-- `updReg R r v` as the register file the executor keeps: an `rf` with `r` written, and a proof of the equation
+    (`rf_set_<r>`); any other `R` stays as it is. -/
+def writeReg (R r v : Expr) : MetaM (Expr × Expr) := do
+  let R := R.consumeMData
+  let upd := mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
+    (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) R r v
+  if R.isAppOfArity ``Rv64mc.Tactic.rf 32 then
+    if let some k := regIdx? r then
+      let args := R.getAppArgs
+      return (mkAppN (mkConst ``Rv64mc.Tactic.rf) (args.set! k v),
+        ← appN (Name.mkStr `Rv64mc.Tactic s!"rf_set_x{k}") ((`w, v) :: rfArgs args))
+  return (upd, ← mkEqRefl upd)
+
 /-- A signed 64-bit literal as an integer. -/
 def toInt64 (v : Nat) : Int := if v < 2 ^ 63 then v else (v : Int) - 2 ^ 64
 
@@ -96,18 +119,46 @@ partial def readReg (R r : Expr) : Option Expr :=
       else mkApp R r
     some (go R)
 
-/-- `e` with every read of a register through a chain of writes reduced, and `Isa.sp`, `Isa.link` named: equal to
-    `e` by reduction. -/
-def normReads (e : Expr) : MetaM Expr := do
+/-- The value of register `r` in the register file `R`, and a proof of `R r = v` by `upd_same` and `upd_ne`. -/
+partial def readP (R r : Expr) : MetaM (Expr × Expr) := do
+  let R := R.consumeMData
+  if R.isAppOfArity ``Rv64mc.Tactic.rf 32 then
+    if let some k := regIdx? r then
+      let args := R.getAppArgs
+      return (args[k]!, ← appN (Name.mkStr `Rv64mc.Tactic s!"rf_get_x{k}") (rfArgs args))
+  if R.isAppOfArity ``Lprog.updReg 5 then
+    let args := R.getAppArgs
+    let (R', r', v) := (args[2]!, args[3]!, args[4]!)
+    if regName? r' == regName? r then
+      return (v, ← appN ``Rv64mc.Tactic.upd_same [(`R, R'), (`r, r), (`v, v)])
+    let (w, p) ← readP R' r
+    let p1 ← appN ``Rv64mc.Tactic.upd_ne [(`R, R'), (`r, r'), (`r', r), (`v, v),
+      (`h, ← mkEqRefl (mkConst ``Bool.false))]
+    return (w, ← mkEqTrans p1 p)
+  return (mkApp R r, ← mkEqRefl (mkApp R r))
+
+/-- A read of a register through a chain of writes, as a simproc visiting terms before their arguments; `Isa.sp`
+    and `Isa.link` named. A register file or a memory not applied to an address or a register is left as it is,
+    its values unvisited: they are what the executor wrote, already in normal form. -/
+def readStep (e : Expr) : SimpM Simp.Step := do
+  if e.isAppOfArity ``Lprog.Isa.sp 1 || e.isAppOfArity ``Lprog.Isa.link 1 then
+    let e' ← whnfR e
+    if (regName? e').isSome then return .done { expr := e' }
+  if e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg || e.isAppOf ``MachineState.setMem then
+    if let .app f a := e then
+      let f' := f.consumeMData
+      if (f'.isAppOfArity ``Lprog.updReg 5 || f'.isAppOfArity ``Rv64mc.Tactic.rf 32) && (regName? a).isSome then
+        let (v, p) ← readP f a
+        return .done { expr := v, proof? := some p }
+    return .done { expr := e }
+  return .continue
+
+/-- `e` with every read of a register through a chain of writes reduced, and a proof of `e = e'` where it changed. -/
+def normReads (e : Expr) : MetaM (Expr × Option Expr) := do
   let e ← instantiateMVars e
-  Meta.transform e (post := fun t => do
-    if t.isAppOfArity ``Lprog.Isa.sp 1 || t.isAppOfArity ``Lprog.Isa.link 1 then
-      let t' ← whnfR t
-      if (regName? t').isSome then return .done t'
-    if let .app f a := t then
-      if f.consumeMData.isAppOfArity ``Lprog.updReg 5 then
-        if let some v := readReg f a then return .visit v
-    return .continue)
+  let ctx ← Simp.mkContext (simpTheorems := #[]) (congrTheorems := ← getSimpCongrTheorems)
+  let (r, _) ← Simp.main e ctx (methods := { pre := readStep })
+  return (r.expr, r.proof?)
 
 /-! ## Values: a base and a literal offset -/
 
@@ -122,20 +173,33 @@ def affine (e : Expr) : MetaM (Option Expr × Nat) := do
 
 def mkAdd (a b : Expr) : MetaM Expr := mkAppM ``HAdd.hAdd #[a, b]
 
+/-- A closed equation the kernel decides by evaluation (`decide`). Literal arithmetic is never left to the kernel's
+    unifier, which can unfold a large literal one successor at a time. -/
+def litEq (lhs rhs : Expr) : MetaM Expr := do mkDecideProof (← mkEq lhs rhs)
+
+/-- `fun x => body x` over a variable of type `ty`. -/
+def lam (ty : Expr) (body : Expr → MetaM Expr) : MetaM Expr :=
+  withLocalDeclD `x ty fun x => do mkLambdaFVars #[x] (← body x)
+
 /-- The base plus the offset, and a proof that `a + b` is it where it is not by reduction. -/
 partial def addV (a b : Expr) : MetaM (Expr × Option Expr) := do
   let (ba, ca) ← affine a
   let (bb, cb) ← affine b
   match ba, bb with
-  | none, none => return (mkLit ((ca + cb) % 2 ^ 64), none)
+  | none, none =>
+    let v := mkLit ((ca + cb) % 2 ^ 64)
+    return (v, some (← litEq (← mkAdd a b) v))
   | some t, none =>
     if ca == 0 then
       if cb == 0 then return (t, some (← mkAppM ``BitVec.add_zero #[t]))
       return (← mkAdd t b, none)
     let c := (ca + cb) % 2 ^ 64
-    let pa ← mkAppM ``BitVec.add_assoc #[t, mkLit ca, mkLit cb]
-    if c == 0 then return (t, some (← mkEqTrans pa (← mkAppM ``BitVec.add_zero #[t])))
-    return (← mkAdd t (mkLit c), some pa)
+    let c1 := a.appArg!
+    let pa ← mkAppM ``BitVec.add_assoc #[t, c1, b]
+    let pc ← mkCongrArg (← lam word (mkAdd t ·)) (← litEq (← mkAdd c1 b) (mkLit c))
+    let p ← mkEqTrans pa pc
+    if c == 0 then return (t, some (← mkEqTrans p (← mkAppM ``BitVec.add_zero #[t])))
+    return (← mkAdd t (mkLit c), some p)
   | none, some _ =>
     -- `c + b`, as `b + c`
     let pc ← mkAppM ``BitVec.add_comm #[a, b]
@@ -143,7 +207,7 @@ partial def addV (a b : Expr) : MetaM (Expr × Option Expr) := do
     return (v, some (← transOpt pc pv))
   | some _, some _ => return (← mkAdd a b, none)
 
-/-- The literal result of a binary operation on literals the kernel folds, if it is one of those. -/
+/-- The literal result of a binary operation on literals, if it is one of those folded. -/
 def foldBin (op : Name) (x y : Nat) : Option Nat :=
   let m := 2 ^ 64
   match op with
@@ -161,25 +225,39 @@ def foldBin (op : Name) (x y : Nat) : Option Nat :=
 def binV (op : Expr) (a b : Expr) : MetaM (Expr × Option Expr) := do
   let some opn := op.consumeMData.constName? | return (mkApp3 (mkConst ``BinOp.eval) op a b, none)
   if let (some x, some y) := (← lit? a, ← lit? b) then
-    if let some v := foldBin opn x y then return (mkLit v, none)
+    if let some v := foldBin opn x y then
+      let v := mkLit v
+      return (v, some (← litEq (mkApp3 (mkConst ``BinOp.eval) op a b) v))
+  let byName (n : Name) : MetaM Expr := appN n [(`x, a), (`y, b)]
   match opn with
-  | ``BinOp.add => addV a b
+  | ``BinOp.add =>
+    let p0 ← byName ``Rv64mc.Tactic.bin_add
+    let (v, pv) ← addV a b
+    return (v, some (← transOpt p0 pv))
   | ``BinOp.sub =>
+    let p0 ← byName ``Rv64mc.Tactic.bin_sub
     if let some y ← lit? b then
-      let (v, pv) ← addV a (mkLit ((2 ^ 64 - y) % 2 ^ 64))
+      let nb := mkLit ((2 ^ 64 - y) % 2 ^ 64)
       let ps ← mkAppM ``BitVec.sub_eq_add_neg #[a, b]
-      return (v, some (← transOpt ps pv))
-    return (← mkAppM ``HSub.hSub #[a, b], none)
-  | ``BinOp.mul => return (← mkAppM ``HMul.hMul #[a, b], none)
-  | ``BinOp.and => return (← mkAppM ``HAnd.hAnd #[a, b], none)
-  | ``BinOp.or => return (← mkAppM ``HOr.hOr #[a, b], none)
-  | ``BinOp.xor => return (← mkAppM ``HXor.hXor #[a, b], none)
+      let pn ← mkCongrArg (← lam word (mkAdd a ·)) (← litEq (← mkAppM ``Neg.neg #[b]) nb)
+      let (v, pv) ← addV a nb
+      return (v, some (← transOpt (← mkEqTrans p0 (← mkEqTrans ps pn)) pv))
+    return (← mkAppM ``HSub.hSub #[a, b], some p0)
+  | ``BinOp.mul => return (← mkAppM ``HMul.hMul #[a, b], some (← byName ``Rv64mc.Tactic.bin_mul))
+  | ``BinOp.and => return (← mkAppM ``HAnd.hAnd #[a, b], some (← byName ``Rv64mc.Tactic.bin_and))
+  | ``BinOp.or => return (← mkAppM ``HOr.hOr #[a, b], some (← byName ``Rv64mc.Tactic.bin_or))
+  | ``BinOp.xor => return (← mkAppM ``HXor.hXor #[a, b], some (← byName ``Rv64mc.Tactic.bin_xor))
   | ``BinOp.shl | ``BinOp.lshr =>
-    let k ← match ← lit? b with
-      | some y => pure (mkNatLit y)
-      | none => mkAppM ``BitVec.toNat #[b]
-    let f := if opn == ``BinOp.shl then ``HShiftLeft.hShiftLeft else ``HShiftRight.hShiftRight
-    return (← mkAppM f #[a, k], none)
+    let (f, lem) := if opn == ``BinOp.shl then (``HShiftLeft.hShiftLeft, ``Rv64mc.Tactic.bin_shl)
+      else (``HShiftRight.hShiftRight, ``Rv64mc.Tactic.bin_lshr)
+    let p0 ← byName lem
+    match ← lit? b with
+    | some y =>
+      let k := mkNatLit (y % 2 ^ 64)
+      let bn ← mkAppM ``BitVec.toNat #[b]
+      let p ← mkCongrArg (← lam (mkConst ``Nat) fun k => mkAppM f #[a, k]) (← litEq bn k)
+      return (← mkAppM f #[a, k], some (← mkEqTrans p0 p))
+    | none => return (← mkAppM f #[a, ← mkAppM ``BitVec.toNat #[b]], some p0)
   | _ => return (mkApp3 (mkConst ``BinOp.eval) op a b, none)
 
 /-- `congrArg`s for a function of two arguments, either proof absent where the argument is unchanged. -/
@@ -192,36 +270,30 @@ def congr2 (f : Expr) (a a' b b' : Expr) (pa pb : Option Expr) : MetaM (Option E
     let _ := a'; let _ := b'
     return some (← mkCongr (← mkCongrArg f pa) pb)
 
-/-- The value of an expression over a register file, and a proof of `e.eval R = v` where that is not by
-    reduction. -/
-partial def evalE (R e : Expr) : MetaM (Expr × Option Expr) := do
+/-- The value of an expression over a register file, and a proof of `e.eval R = v`, every step by name. -/
+partial def evalE (R e : Expr) : MetaM (Expr × Expr) := do
   let e := e.consumeMData
   match e.getAppFn.constName?, e.getAppArgs with
   | some ``Lprog.Expr.reg, #[_, r] =>
-    match readReg R r with
-    | some v => return (v, none)
-    | none => return (mkApp R r, none)
-  | some ``Lprog.Expr.imm, #[_, v] => return (v, none)
+    let p0 ← appN ``Rv64mc.Tactic.eval_reg [(`R, R), (`r, r)]
+    if (regName? r).isNone then return (mkApp R r, p0)
+    let (v, p) ← readP R r
+    return (v, ← mkEqTrans p0 p)
+  | some ``Lprog.Expr.imm, #[_, v] => return (v, ← appN ``Rv64mc.Tactic.eval_imm [(`R, R), (`v, v)])
   | some ``Lprog.Expr.bin, #[_, op, a, b] =>
     let (va, pa) ← evalE R a
     let (vb, pb) ← evalE R b
+    let p0 ← appN ``Rv64mc.Tactic.eval_bin [(`R, R), (`op, op), (`a, a), (`b, b)]
+    let p1 ← mkCongr (← mkCongrArg (mkApp (mkConst ``BinOp.eval) op) pa) pb
     let (v, pv) ← binV op va vb
-    let ea ← mkAppM ``Lprog.Expr.eval #[R, a]
-    let eb ← mkAppM ``Lprog.Expr.eval #[R, b]
-    let pc ← congr2 (mkApp (mkConst ``BinOp.eval) op) ea va eb vb pa pb
-    let p ← match pc, pv with
-      | none, none => pure none
-      | some p, none => pure (some p)
-      | none, some q => pure (some q)
-      | some p, some q => pure (some (← mkEqTrans p q))
-    return (v, p)
+    return (v, ← transOpt (← mkEqTrans p0 p1) pv)
   | some ``Lprog.Expr.un, #[_, op, a] =>
     let (va, pa) ← evalE R a
-    let v := mkApp2 (mkConst ``UnOp.eval) op va
-    match pa with
-    | none => return (v, none)
-    | some p => return (v, some (← mkCongrArg (mkApp (mkConst ``UnOp.eval) op) p))
-  | _, _ => return (← mkAppM ``Lprog.Expr.eval #[R, e], none)
+    let p0 ← appN ``Rv64mc.Tactic.eval_un [(`R, R), (`op, op), (`a, a)]
+    return (mkApp2 (mkConst ``UnOp.eval) op va, ← mkEqTrans p0 (← mkCongrArg (mkApp (mkConst ``UnOp.eval) op) pa))
+  | _, _ =>
+    let v ← mkAppM ``Lprog.Expr.eval #[R, e]
+    return (v, ← mkEqRefl v)
 
 /-! ## Facts in the context -/
 
@@ -455,7 +527,10 @@ partial def splitFact (pf ty : Expr) : MetaM (Array (Expr × Expr)) := do
       (← splitFact (mkApp3 (mkConst ``And.right) a b pf) b)
   if ty.isConstOf ``True then return #[]
   if let some ty' ← unfoldHead? ty then return ← splitFact pf ty'
-  return #[(pf, ← normReads ty)]
+  let (ty', p) ← normReads ty
+  match p with
+  | some p => return #[(← mkEqMP p pf, ty')]
+  | none => return #[(pf, ty')]
 
 /-- The facts added to the context, under names `base_k`. -/
 def addFacts (g : MVarId) (base : Name) (facts : Array (Expr × Expr)) : MetaM (MVarId × Array FVarId) := do
@@ -472,31 +547,40 @@ def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContex
   let s ← whnfR (args[7]!)
   unless s.isAppOfArity ``Lprog.State.mk 4 do return g
   let st := s.getAppArgs[1]!
-  let R0 := s.getAppArgs[2]!
+  let R0 := (s.getAppArgs[2]!).consumeMData
   let M := s.getAppArgs[3]!
-  let mut R := R0
-  let mut steps : Array (Expr × Expr × Expr × Expr) := #[]
+  if R0.isAppOfArity ``Rv64mc.Tactic.rf 32 then return g
+  -- `R0 = rf (R0 .x0) … (R0 .x31)`, then each fact `R0 r = v` written into its place
+  let regs := (List.range 32).toArray.map fun i => mkConst (Name.mkStr `RiscvZkvm.Rv64.Reg s!"x{i}")
+  let mut vals := regs.map (mkApp R0)
+  let mut eqs : Array (Option Expr) := regs.map fun _ => none
   for h in facts do
     let ty := (← instantiateMVars (← inferType h)).consumeMData
     unless ty.isAppOfArity ``Eq 3 do continue
     let lhs := ty.appFn!.appArg!.consumeMData
     let .app f r := lhs | continue
-    unless f == R0 && (regName? r).isSome do continue
-    let v ← normReads ty.appArg!
-    steps := steps.push (R, r, v, h)
-    R := mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg) (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg)
-      R r v
-  if steps.isEmpty then return g
-  let goalT := mkAppN t.getAppFn ((args.extract 0 7).push (mkApp3 (mkApp s.getAppFn (s.getAppArgs[0]!)) st R M))
+    unless f == R0 do continue
+    let some k := regIdx? r | continue
+    if eqs[k]!.isSome then continue
+    let (v, pv) ← normReads ty.appArg!
+    vals := vals.set! k v
+    eqs := eqs.set! k (some (← transOpt h pv))
+  let p0 ← mkAppM ``Rv64mc.Tactic.rf_eta #[R0]
+  let mut fn := mkConst ``Rv64mc.Tactic.rf
+  let mut pf : Option Expr := none
+  for k in [0:32] do
+    let a := mkApp R0 (regs[k]!)
+    match eqs[k]!, pf with
+    | none, none => fn := mkApp fn a
+    | none, some p => pf := some (← mkCongrFun p a); fn := mkApp fn a
+    | some e, none => pf := some (← mkCongrArg fn e); fn := mkApp fn (vals[k]!)
+    | some e, some p => pf := some (← mkCongr p e); fn := mkApp fn (vals[k]!)
+  let R' := mkAppN (mkConst ``Rv64mc.Tactic.rf) vals
+  let e ← transOpt p0 pf
+  let goalT := mkAppN t.getAppFn ((args.extract 0 7).push (mkApp3 (mkApp s.getAppFn (s.getAppArgs[0]!)) st R' M))
   let g' ← newGoal g goalT
-  let mut pf := g'
-  for (Rk, r, v, h) in steps.reverse do
-    -- `h : base r = v` read in the chain so far, which is the base at `r` by reduction
-    let hty ← mkEq (mkApp Rk r) v
-    pf ← appN ``Rv64mc.Tactic.absorb [(`p, (args[1]!)), (`E, (args[2]!)), (`c, (args[3]!)), (`G, (args[4]!)),
-      (`n, (args[5]!)), (`Q, (args[6]!)), (`m, M), (`st, st), (`R, Rk), (`r, r), (`v, v),
-      (`h, ← mkExpectedTypeHint h hty), (`k, pf)]
-  g.assign pf
+  g.assign (← appN ``Rv64mc.Tactic.regs_eq [(`p, (args[1]!)), (`E, (args[2]!)), (`c, (args[3]!)), (`G, (args[4]!)),
+    (`n, (args[5]!)), (`Q, (args[6]!)), (`m, M), (`st, st), (`R, R0), (`R', R'), (`e, e), (`k, g')])
   return g'.mvarId!
 
 /-! ## Side goals -/
@@ -541,8 +625,10 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
   if let some ty' ← unfoldHead? ty then
     let g' ← g.replaceTargetDefEq ty'
     return ← closeSide g'
-  let ty ← normReads ty
-  let g ← g.replaceTargetDefEq ty
+  let (ty, p) ← normReads ty
+  let g ← match p with
+    | some p => g.replaceTargetEq ty p
+    | none => pure g
   if let .forallE _ _ (.forallE _ hle eq _) _ := ty then
     if hle.isAppOfArity ``LE.le 4 && eq.isAppOfArity ``Eq 3 then
       let saved ← saveState
@@ -608,6 +694,8 @@ structure Cfg where
   specs : Array (Expr × Expr)
   facts : Array (Expr × Expr)
   stops : List Nat
+  /-- The targets of backward jumps: a path stops at one, for a loop's lemma, rather than going round. -/
+  heads : List Nat
 
 /-- The instructions of the body of `fd`, a literal. -/
 partial def bodyOf (fd : Expr) : MetaM (Array Expr) := do
@@ -631,7 +719,7 @@ def factEq (cfg : Cfg) (lhs : Expr) : MetaM (Option (Expr × Expr)) := do
   for (pf, ty) in cfg.facts do
     let ty := ty.consumeMData
     if ty.isAppOfArity ``Eq 3 then
-      if ← isDefEq ty.appFn!.appArg! lhs then return some (ty.appArg!, pf)
+      if ← withReducible (isDefEq ty.appFn!.appArg! lhs) then return some (ty.appArg!, pf)
   return none
 
 /-- The proof that a call target reaches function `f`: the address of `f` and, for an indirect call, the value of
@@ -646,7 +734,7 @@ def calleeProof (cfg : Cfg) (R tgt f : Expr) : MetaM (Option Expr) := do
       let lhs := ty.appFn!.appArg!
       if lhs.isAppOfArity ``Option.map 4 then
         let g := lhs.appArg!
-        if g.isAppOf ``GetElem?.getElem? && (← isDefEq g.appArg! f) then
+        if g.isAppOf ``GetElem?.getElem? && (← withReducible (isDefEq g.appArg! f)) then
           let rhs := ty.appArg!
           if rhs.isAppOfArity ``Option.some 2 then addr := some (rhs.appArg!, pf)
   let some (entry, ha) := addr | return none
@@ -656,11 +744,8 @@ def calleeProof (cfg : Cfg) (R tgt f : Expr) : MetaM (Option Expr) := do
   let e := tgt.appFn!.appArg!
   let (v, pv) ← evalE R e
   let some (entry', hs) ← factEq cfg v | return none
-  unless ← isDefEq entry entry' do return none
-  let ev ← mkAppM ``Lprog.Expr.eval #[R, e]
-  let he ← match pv with
-    | some pv => mkEqTrans pv hs
-    | none => mkExpectedTypeHint hs (← mkEq ev entry)
+  unless ← withReducible (isDefEq entry entry') do return none
+  let he ← mkEqTrans pv hs
   return some (← mkAppOptM ``Rv64mc.Tactic.callee_indirect #[none, R, e, f, entry, ha, he])
 
 /-- The callee a target names, if it names one: the single candidate of an indirect call, or a direct call's. -/
@@ -682,7 +767,7 @@ def specFor (cfg : Cfg) (f : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
     let ty := (← instantiateMVars ty).consumeMData
     if ty.isAppOfArity ``Lprog.Isa.Contract 7 then
       let args := ty.getAppArgs
-      if ← isDefEq (args[4]!) f then
+      if ← withReducible (isDefEq (args[4]!) f) then
         let pf ← instantiateMVars (mkAppN pf xs)
         if pf.hasExprMVar then continue
         return some (pf, ← instantiateMVars (args[5]!), ← instantiateMVars (args[6]!))
@@ -742,7 +827,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
       | let gp? ← finish g
         if let some gp := gp? then left := left ++ (← closeSide gp) else left := left.push g
         continue
-    if (cfg.stops.contains a.pc && g != g0) || seen.contains a.pc then
+    if ((cfg.stops.contains a.pc || cfg.heads.contains a.pc) && g != g0) || seen.contains a.pc then
       trace[rv_sym] "left at {a.pc}: a stop or a loop's head"
       left := left.push g; continue
     let seen := a.pc :: seen
@@ -772,41 +857,42 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let oargs := op.getAppArgs
         match op.getAppFn.constName? with
         | some ``Lprog.Op.set =>
-          let (v, pv) ← evalE a.R (oargs[2]!)
-          let hv ← orRefl pv v
-          let h ← newGoal g (a.goal (a.pc + 1) (mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
-            (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (oargs[1]!) v) a.M)
+          let (v, hv) ← evalE a.R (oargs[2]!)
+          let (R', hR) ← writeReg a.R (oargs[1]!) v
+          let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
           g.assign (← appN ``Rv64mc.Tactic.step_set (base ++ [(`rd, (oargs[1]!)), (`e, (oargs[2]!)), (`v, v),
-            (`hv, hv), (`h, h)]))
+            (`R', R'), (`hv, hv), (`hR, hR), (`h, h)]))
           pure (some [h.mvarId!])
         | some ``Lprog.Op.load =>
           let w := (oargs[2]!).consumeMData
           let s := (oargs[3]!).consumeMData
-          let (x, px) ← evalE a.R (oargs[4]!)
-          let ha ← orRefl px x
+          let (x, ha) ← evalE a.R (oargs[4]!)
           if w.isConstOf ``Lprog.Width.b8 && s.isConstOf ``Bool.false then
             let (v, pv) ← readMem a.M x
             let hv ← orRefl pv v
-            let h ← newGoal g (a.goal (a.pc + 1) (mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
-              (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (oargs[1]!) v) a.M)
+            let (R', hR) ← writeReg a.R (oargs[1]!) v
+            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
             g.assign (← appN ``Rv64mc.Tactic.step_ld (base ++ [(`rd, (oargs[1]!)), (`a, (oargs[4]!)), (`x, x),
-              (`v, v), (`ha, ha), (`hv, hv), (`h, h)]))
+              (`v, v), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
             pure (some [h.mvarId!])
           else
             let lv ← whnfCore (← unfoldDefinition (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x))
             let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
               else lv
-            let h ← newGoal g (a.goal (a.pc + 1) (mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
-              (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (oargs[1]!) val) a.M)
+            let ite ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval)
+              (mkApp (mkConst ``UnOp.sext) w) (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x),
+              mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x]
+            -- the choice on a literal and the accessor by its width are reductions of constructors only
+            let hv ← mkExpectedTypeHint (← mkEqRefl val) (← mkEq ite val)
+            let (R', hR) ← writeReg a.R (oargs[1]!) val
+            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
             g.assign (← appN ``Rv64mc.Tactic.step_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
-              (`a, (oargs[4]!)), (`x, x), (`ha, ha), (`h, h)]))
+              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
             pure (some [h.mvarId!])
         | some ``Lprog.Op.store =>
           let w := (oargs[1]!).consumeMData
-          let (x, px) ← evalE a.R (oargs[2]!)
-          let (v, pv) ← evalE a.R (oargs[3]!)
-          let ha ← orRefl px x
-          let hv ← orRefl pv v
+          let (x, ha) ← evalE a.R (oargs[2]!)
+          let (v, hv) ← evalE a.R (oargs[3]!)
           if w.isConstOf ``Lprog.Width.b8 then
             let h ← newGoal g (a.goal (a.pc + 1) a.R (← mkAppM ``MachineState.setMem #[a.M, x, v]))
             g.assign (← appN ``Rv64mc.Tactic.step_sd (base ++ [(`a, (oargs[2]!)), (`e, (oargs[3]!)), (`x, x),
@@ -831,11 +917,18 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let cargs := cnd.getAppArgs
         let opnd (o : Expr) : MetaM (Option Expr) := do
           let o := o.consumeMData
-          if o.isAppOfArity ``Lprog.LOperand.reg 2 then return readReg a.R o.appArg!
+          if o.isAppOfArity ``Lprog.LOperand.reg 2 then return some (← readP a.R o.appArg!).1
           if o.isAppOfArity ``Lprog.LOperand.imm 2 then
             let some i ← getIntValue? o.appArg! | return none
             return some (mkLit (i % 2 ^ 64).toNat)
           return none
+        let opndProof (o v : Expr) : MetaM Expr := do
+          let lhs ← mkAppM ``Lprog.operandVal #[a.R, o]
+          let rhs ← mkAppM ``Option.some #[v]
+          if o.consumeMData.isAppOf ``Lprog.LOperand.imm then litEq lhs rhs else
+            let r := o.consumeMData.appArg!
+            let p0 ← appN ``Rv64mc.Tactic.opnd_reg [(`R, a.R), (`r, r)]
+            mkEqTrans p0 (← mkCongrArg (← mkAppOptM ``Option.some #[word]) (← readP a.R r).2)
         let some x ← opnd (cargs[2]!) | return none
         let some y ← opnd (cargs[3]!) | return none
         let opS := (cargs[1]!)
@@ -859,7 +952,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         g.assign (← appN ``Rv64mc.Tactic.step_cmp (base ++ [(`op, opS), (`a, (cargs[2]!)), (`b, (cargs[3]!)),
           (`l, (args[3]!)), (`j, mkNatLit j), (`x, x), (`y, y),
           (`hl, ← mkEqRefl (← mkAppM ``Option.some #[mkNatLit j])),
-          (`ha, ← mkEqRefl (← mkAppM ``Option.some #[x])), (`hb, ← mkEqRefl (← mkAppM ``Option.some #[y])),
+          (`ha, ← opndProof (cargs[2]!) x), (`hb, ← opndProof (cargs[3]!) y),
           (`hs, ← mkEqRefl tru), (`ht, gt), (`hn, gn)]))
         let (_, gt') ← gt.mvarId!.intro `hc
         let (_, gn') ← gn.mvarId!.intro `hc
@@ -873,7 +966,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
           | trace[rv_sym] "at {a.pc}: no contract for function {f}"; return none
         let some hc ← calleeProof cfg a.R tgt f
           | trace[rv_sym] "at {a.pc}: the facts given do not show that the call reaches {f}"; return none
-        let sp ← normReads (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x2))
+        let sp := mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x2)
         let R1 := mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
           (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (mkConst ``RiscvZkvm.Rv64.Reg.x1) ret
         let hpre ← newGoal g (mkApp4 Pre ret sp R1 a.M).headBeta
@@ -883,8 +976,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
               (a.goal (a.pc + 1) r' m'))
         let hk ← newGoal g kT
         g.assign (← appN ``Rv64mc.Tactic.step_call (base ++ [(`ret, ret), (`tgt, tgt), (`f, f), (`Pre, Pre),
-          (`Post, Post), (`hcon, hcon), (`hc, hc), (`hpre, ← mkExpectedTypeHint hpre
-            (mkApp4 Pre ret (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x2)) R1 a.M)), (`hk, hk)]))
+          (`Post, Post), (`hcon, hcon), (`hc, hc), (`hpre, hpre), (`hk, hk)]))
         let side ← closeSide hpre.mvarId!
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
@@ -904,7 +996,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
               (mkAppN a.head (a.pre.push (mkApp3 a.stMk a.rest r' m'))))
         let hk ← newGoal g kT
         g.assign (← appN ``Rv64mc.Tactic.step_tail (base ++ [(`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post),
-          (`hcon, hcon), (`hc, hc), (`hsp, hsp), (`hpre, ← mkExpectedTypeHint hpre (mkApp4 Pre a.rv a.top a.R a.M)),
+          (`hcon, hcon), (`hc, hc), (`hsp, hsp), (`hpre, hpre),
           (`hk, hk)]))
         let side := (← closeSide hsp.mvarId!) ++ (← closeSide hpre.mvarId!)
         let g' ← afterCall hk.mvarId! k
@@ -953,7 +1045,16 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
   let body ← bodyOf fd
   let facts ← facts.foldlM (init := #[]) fun acc h => return acc ++ (← expandFact h)
   let specs ← specs.mapM fun h => return (h, ← instantiateMVars (← inferType h))
-  return { hp, fd, body, facts, specs, stops }
+  let mut heads := []
+  for h : k in [0:body.size] do
+    let i := body[k].consumeMData
+    let l? := if i.isAppOfArity ``Lprog.LinstrR.Lgoto 3 then some i.appArg!
+      else if i.isAppOfArity ``Lprog.LinstrR.Lcond 4 then some i.appArg! else none
+    if let some l := l? then
+      if let some l ← evalNat l then
+        if let some j ← labelIdx? body l then
+          if j ≤ k then heads := j :: heads
+  return { hp, fd, body, facts, specs, stops, heads }
 
 syntax rvSymArgs := (" stop " "[" num,* "]")? (" with " "[" term,* "]")? (" using " "[" term,* "]")?
 
