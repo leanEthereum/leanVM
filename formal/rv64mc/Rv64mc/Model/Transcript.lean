@@ -81,10 +81,25 @@ def runK {α : Type} (P : VerifierProgram α) (σ : VerifierProgramState) :
     Option (α × VerifierProgramState) :=
   Id.run (run (m := Id) keccakF1600 P σ)
 
-/-- `m` runs `P`, its value related to `P`'s by `r`. -/
+/-- The roots a transcript has read (its ghost). -/
+abbrev Roots : Type := List (Digest × ℕ × ℕ)
+
+/-- `m` runs `P`, its value related to `P`'s by `r`, from the transcripts whose ghost roots
+satisfy `pre` (a fragment that opens a root it holds: `verify_whir`). -/
+def SimRoots {α β : Type} (pre : Roots → Prop) (m : TM α) (P : VerifierProgram β)
+    (r : α → β → Prop) : Prop :=
+  ∀ t a t', t.Inv → pre t.roots → m.run t = some (a, t') →
+    t'.Inv ∧ ∃ b, runK P t.toSpec = some (b, t'.toSpec) ∧ r a b
+
+/-- `m` runs `P`, its value related to `P`'s by `r`: `SimRoots` from every transcript
+(`SimR.iff_roots`), its combinators derived from `SimRoots`'. -/
 def SimR {α β : Type} (m : TM α) (P : VerifierProgram β) (r : α → β → Prop) : Prop :=
   ∀ t a t', t.Inv → m.run t = some (a, t') →
     t'.Inv ∧ ∃ b, runK P t.toSpec = some (b, t'.toSpec) ∧ r a b
+
+theorem SimR.iff_roots {α β : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop} :
+    SimR m P r ↔ SimRoots (fun _ ↦ True) m P r :=
+  ⟨fun h t a t' hi _ hm ↦ h t a t' hi hm, fun h t a t' hi hm ↦ h t a t' hi trivial hm⟩
 
 /-- `m` runs `P`, returning the same value. -/
 def Sim {α : Type} (m : TM α) (P : VerifierProgram α) : Prop := SimR m P (· = ·)
@@ -133,32 +148,60 @@ theorem VerifierProgram.bind_ret' {α : Type} (P : VerifierProgram α) :
 
 /-! ## Composing simulations -/
 
-theorem SimR.mono {α β : Type} {m : TM α} {P : VerifierProgram β} {r r' : α → β → Prop}
-    (h : SimR m P r) (hr : ∀ a b, r a b → r' a b) : SimR m P r' := by
-  intro t a t' hi hm
-  obtain ⟨hi', b, hb, hab⟩ := h t a t' hi hm
+theorem SimRoots.mono {α β : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
+    {r r' : α → β → Prop} (h : SimRoots pre m P r) (hr : ∀ a b, r a b → r' a b) :
+    SimRoots pre m P r' := by
+  intro t a t' hi hp hm
+  obtain ⟨hi', b, hb, hab⟩ := h t a t' hi hp hm
   exact ⟨hi', b, hb, hr a b hab⟩
 
-theorem SimR.pure {α β : Type} {r : α → β → Prop} {a : α} {b : β} (h : r a b) :
-    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) r := by
-  intro t a' t' hi hm
+theorem SimR.mono {α β : Type} {m : TM α} {P : VerifierProgram β} {r r' : α → β → Prop}
+    (h : SimR m P r) (hr : ∀ a b, r a b → r' a b) : SimR m P r' :=
+  SimR.iff_roots.2 (SimRoots.mono (SimR.iff_roots.1 h) hr)
+
+theorem SimRoots.weaken {α β : Type} {pre pre' : Roots → Prop} {m : TM α} {P : VerifierProgram β}
+    {r : α → β → Prop} (hp : ∀ roots, pre roots → pre' roots) (h : SimRoots pre' m P r) :
+    SimRoots pre m P r :=
+  fun t a t' hi hpr hm ↦ h t a t' hi (hp _ hpr) hm
+
+/-- A simulation from every transcript holds from any. -/
+theorem SimRoots.of {α β : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
+    {r : α → β → Prop} (h : SimR m P r) : SimRoots pre m P r :=
+  SimRoots.weaken (fun _ _ ↦ trivial) (SimR.iff_roots.1 h)
+
+theorem SimRoots.pure {α β : Type} {pre : Roots → Prop} {r : α → β → Prop} {a : α} {b : β}
+    (h : r a b) : SimRoots pre (Pure.pure a : TM α) (VerifierProgram.ret b) r := by
+  intro t a' t' hi _ hm
   simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at hm
   obtain ⟨rfl, rfl⟩ := hm
   exact ⟨hi, b, rfl, h⟩
 
-theorem SimR.bind {α β γ δ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
-    {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop} (hm : SimR m P r)
-    (hk : ∀ a b, r a b → SimR (k a) (Q b) r') : SimR (m >>= k) (P >>= Q) r' := by
-  intro t c t' hi h
+theorem SimR.pure {α β : Type} {r : α → β → Prop} {a : α} {b : β} (h : r a b) :
+    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) r :=
+  SimR.iff_roots.2 (SimRoots.pure h)
+
+/-- Sequencing, the continuation run from the roots `mid` the first step leaves. -/
+theorem SimRoots.bind {α β γ δ : Type} {pre mid : Roots → Prop} {m : TM α}
+    {P : VerifierProgram β} {r : α → β → Prop} {k : α → TM γ} {Q : β → VerifierProgram δ}
+    {r' : γ → δ → Prop} (hm : SimRoots pre m P r)
+    (hmid : ∀ t a t', t.Inv → pre t.roots → m.run t = some (a, t') → mid t'.roots)
+    (hk : ∀ a b, r a b → SimRoots mid (k a) (Q b) r') : SimRoots pre (m >>= k) (P >>= Q) r' := by
+  intro t c t' hi hp h
   rw [StateT.run_bind] at h
   cases hmt : m.run t with
   | none => rw [hmt] at h; cases h
   | some p =>
     obtain ⟨a, t₁⟩ := p
     rw [hmt] at h
-    obtain ⟨hi₁, b, hb, hab⟩ := hm t a t₁ hi hmt
+    obtain ⟨hi₁, b, hb, hab⟩ := hm t a t₁ hi hp hmt
     rw [runK_bind, hb]
-    exact hk a b hab t₁ c t' hi₁ h
+    exact hk a b hab t₁ c t' hi₁ (hmid t a t₁ hi hp hmt) h
+
+theorem SimR.bind {α β γ δ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
+    {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop} (hm : SimR m P r)
+    (hk : ∀ a b, r a b → SimR (k a) (Q b) r') : SimR (m >>= k) (P >>= Q) r' :=
+  SimR.iff_roots.2 (SimRoots.bind (SimR.iff_roots.1 hm) (fun _ _ _ _ _ _ ↦ trivial)
+    fun a b h ↦ SimR.iff_roots.1 (hk a b h))
 
 theorem Sim.pure {α : Type} (a : α) : Sim (Pure.pure a : TM α) (VerifierProgram.ret a) :=
   SimR.pure rfl
@@ -277,6 +320,228 @@ theorem SimR.streamPosition_left {γ δ : Type} {k : ℕ → TM γ} {Q : Verifie
   intro t a t' hi h
   rw [StateT.run_bind] at h
   exact hk t.streamOffset t a t' hi h
+
+/-! ## Checks, `Option` steps and roots, for the mirrors' simulations -/
+
+/-- `E * K` (`impl Mul<K> for E`): both limbs by `base_mul`. -/
+def mulKE (x : E) (k : K) : E := ofLimbsW (eMulK (limbs x) k.toBitVec)
+
+theorem mulKE_eq (x : E) (k : K) : mulKE x k = x * ofK k := by
+  rw [mulKE, eMulK_eq, ofLimbsW_limbs]
+
+/-- `if transcript.checked() { body }`. -/
+def TM.whenChecked (body : TM Unit) : TM Unit := do
+  if ← TM.checked then body else Pure.pure ()
+
+/-- A `checked()` test the Rust makes and the statement does not: the checked branch, the mode
+of every simulated transcript. -/
+theorem SimRoots.checked_bind {γ δ : Type} {pre : Roots → Prop} {k : Bool → TM γ}
+    {Q : VerifierProgram δ} {r : γ → δ → Prop} (h : SimRoots pre (k true) Q r) :
+    SimRoots pre (TM.checked >>= k) Q r := by
+  intro t a t' hi hp hm
+  have e : (TM.checked >>= k).run t = (k t.checked).run t := rfl
+  rw [e, hi.2.2.2.1] at hm
+  exact h t a t' hi hp hm
+
+theorem SimR.checked_bind {γ δ : Type} {k : Bool → TM γ} {Q : VerifierProgram δ}
+    {r : γ → δ → Prop} (h : SimR (k true) Q r) : SimR (TM.checked >>= k) Q r :=
+  SimR.iff_roots.2 (SimRoots.checked_bind (SimR.iff_roots.1 h))
+
+/-- **A `checked()` branch runs its body.** -/
+theorem SimRoots.whenChecked_bind {γ δ : Type} {pre : Roots → Prop} {body : TM Unit}
+    {k : Unit → TM γ} {Q : VerifierProgram δ} {r : γ → δ → Prop}
+    (h : SimRoots pre (body >>= k) Q r) : SimRoots pre (TM.whenChecked body >>= k) Q r := by
+  have e : TM.whenChecked body >>= k =
+      TM.checked >>= fun c ↦ (if c then body else Pure.pure ()) >>= k := by
+    simp only [TM.whenChecked, bind_assoc]
+  rw [e]
+  exact SimRoots.checked_bind h
+
+theorem SimR.whenChecked_bind {γ δ : Type} {body : TM Unit} {k : Unit → TM γ}
+    {Q : VerifierProgram δ} {r : γ → δ → Prop} (h : SimR (body >>= k) Q r) :
+    SimR (TM.whenChecked body >>= k) Q r :=
+  SimR.iff_roots.2 (SimRoots.whenChecked_bind (SimR.iff_roots.1 h))
+
+/-- A pure `Option` step of the Rust (`?` or a panic) that the statement does not make. -/
+theorem SimRoots.ofOption_bind {α γ δ : Type} {pre : Roots → Prop} {o : Option α}
+    {k : α → TM γ} {Q : VerifierProgram δ} {r : γ → δ → Prop}
+    (h : ∀ a, o = some a → SimRoots pre (k a) Q r) : SimRoots pre (TM.ofOption o >>= k) Q r := by
+  cases o with
+  | none =>
+    intro t a t' _ _ hm
+    have e : (TM.ofOption (none : Option α) >>= k).run t = none := rfl
+    rw [e] at hm
+    cases hm
+  | some a =>
+    have := h a rfl
+    simpa only [TM.ofOption, pure_bind] using this
+
+theorem SimR.ofOption_bind {α γ δ : Type} {o : Option α} {k : α → TM γ} {Q : VerifierProgram δ}
+    {r : γ → δ → Prop} (h : ∀ a, o = some a → SimR (k a) Q r) : SimR (TM.ofOption o >>= k) Q r :=
+  SimR.iff_roots.2 (SimRoots.ofOption_bind fun a ha ↦ SimR.iff_roots.1 (h a ha))
+
+/-- `require` of a condition equivalent to the statement's. -/
+theorem Sim.require_iff {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
+    Sim (TM.require c) (VerifierProgram.require c') := by
+  have : TM.require c = TM.require c' := by
+    funext t
+    by_cases hc : c
+    · simp [TM.require, hc, h.mp hc]
+    · simp [TM.require, hc, mt h.mpr hc]
+  rw [this]
+  exact Sim.require c'
+
+/-- A check the statement makes, which holds. -/
+theorem SimRoots.require_right {γ δ : Type} {pre : Roots → Prop} {c : Prop} [Decidable c]
+    (hc : c) {m : TM γ} {K : Unit → VerifierProgram δ} {r : γ → δ → Prop}
+    (h : SimRoots pre m (K ()) r) : SimRoots pre m (VerifierProgram.require c >>= K) r := by
+  have e : (VerifierProgram.require c >>= K) = K () := by
+    simp only [VerifierProgram.require, ite_eq_left hc]; rfl
+  rw [e]
+  exact h
+
+theorem SimRoots.fail {α β : Type} {pre : Roots → Prop} {P : VerifierProgram β}
+    {r : α → β → Prop} : SimRoots pre (TM.fail : TM α) P r := by
+  intro t a t' _ _ h
+  cases h
+
+/-- `mapM` of a function that returns `g` on every element. -/
+theorem mapM_eq_some_map {α β : Type} (f : α → Option β) (g : α → β) :
+    ∀ (l : List α), (∀ x ∈ l, f x = some (g x)) → l.mapM f = some (l.map g)
+  | [], _ => rfl
+  | x :: l, h => by
+    rw [List.mapM_cons, h x (by simp), mapM_eq_some_map f g l fun y hy ↦ h y (by simp [hy])]
+    rfl
+
+/-- `P` reads no commitment. -/
+def NoCommit {α : Type} : VerifierProgram α → Prop
+  | .ret _ => True
+  | .fail => True
+  | .read k => ∀ x, NoCommit (k x)
+  | .sample k => ∀ x, NoCommit (k x)
+  | .grind _ k => NoCommit k
+  | .commit _ _ _ => False
+  | .query _ _ k => ∀ rows, NoCommit (k rows)
+
+theorem NoCommit.bind {α β : Type} {P : VerifierProgram α} {Q : α → VerifierProgram β}
+    (hP : NoCommit P) (hQ : ∀ a, NoCommit (Q a)) : NoCommit (P >>= Q) := by
+  show NoCommit (P.bind Q)
+  induction P with
+  | ret a => exact hQ a
+  | fail => trivial
+  | read k ih => exact fun x ↦ ih x (hP x)
+  | sample k ih => exact fun x ↦ ih x (hP x)
+  | grind b k ih => exact ih hP
+  | commit h w k ih => exact hP.elim
+  | query i ps k ih => exact fun rows ↦ ih rows (hP rows)
+
+theorem NoCommit.readScalars : ∀ n, NoCommit (VerifierProgram.readScalars n)
+  | 0 => trivial
+  | n + 1 => NoCommit.bind (fun _ ↦ trivial) fun _ ↦
+      NoCommit.bind (NoCommit.readScalars n) fun _ ↦ trivial
+
+theorem NoCommit.sampleChallenges : ∀ n, NoCommit (VerifierProgram.sampleChallenges n)
+  | 0 => trivial
+  | n + 1 => NoCommit.bind (fun _ ↦ trivial) fun _ ↦
+      NoCommit.bind (NoCommit.sampleChallenges n) fun _ ↦ trivial
+
+theorem NoCommit.grindProofOfWork (bits : ℕ) :
+    NoCommit (VerifierProgram.grindProofOfWork bits) := by
+  unfold VerifierProgram.grindProofOfWork
+  split <;> trivial
+
+theorem NoCommit.require (c : Prop) [Decidable c] : NoCommit (VerifierProgram.require c) := by
+  unfold VerifierProgram.require
+  split <;> trivial
+
+/-- Close `NoCommit P` for a program built by `bind` from reads, samples, grinds, checks,
+openings and sumchecks; `match`es on pairs are split. -/
+macro "no_commit" : tactic => `(tactic| repeat' (first
+  | apply NoCommit.bind
+  | exact NoCommit.readScalars _
+  | exact NoCommit.sampleChallenges _
+  | exact NoCommit.grindProofOfWork _
+  | exact NoCommit.require _
+  | intro _
+  | split
+  | trivial))
+
+/-- A run of a program that reads no commitment keeps the roots. -/
+theorem NoCommit.runK_roots {α : Type} {P : VerifierProgram α} (hP : NoCommit P) :
+    ∀ {σ : VerifierProgramState} {b : α} {σ' : VerifierProgramState},
+      runK P σ = some (b, σ') → σ'.roots = σ.roots := by
+  induction P with
+  | ret a =>
+    intro σ b σ' h
+    simp only [runK, Compile.run, Id.run, pure, Option.some.injEq, Prod.mk.injEq] at h
+    rw [← h.2]
+  | fail => intro σ b σ' h; cases h
+  | read k ih =>
+    intro σ b σ' h
+    simp only [runK, Compile.run, Id.run] at h
+    split at h
+    · rename_i x xs _ _
+      exact ih x (hP x)
+        (σ := ⟨absorb (m := Id) keccakF1600 σ.sponge x dsObserve, xs, σ.openings, σ.roots⟩) h
+    · cases h
+  | sample k ih =>
+    intro σ b σ' h
+    simp only [runK, Compile.run, Id.run] at h
+    exact ih _ (hP _)
+      (σ := ⟨(squeeze (m := Id) keccakF1600 σ.sponge).2, σ.stream, σ.openings, σ.roots⟩) h
+  | grind bits k ih =>
+    intro σ b σ' h
+    simp only [runK, Compile.run, Id.run] at h
+    split at h
+    · rename_i n xs _ _
+      change (if powOk bits (absorbNonce (m := Id) keccakF1600 σ.sponge n).1 then
+        Compile.run (m := Id) keccakF1600 k
+          ⟨(absorbNonce (m := Id) keccakF1600 σ.sponge n).2, xs, σ.openings, σ.roots⟩
+        else pure none : Id _) = _ at h
+      split_ifs at h
+      exact ih hP
+        (σ := ⟨(absorbNonce (m := Id) keccakF1600 σ.sponge n).2, xs, σ.openings, σ.roots⟩) h
+    · cases h
+  | commit h w k ih => exact hP.elim
+  | query i ps k ih =>
+    intro σ b σ' h
+    simp only [runK, Compile.run, Id.run] at h
+    split at h
+    · rename_i root height width phase rest _ _
+      change (match (openPhase (m := Id) keccakF1600 root height width ps phase :
+          Option (List (List K))) with
+        | some rows => Compile.run (m := Id) keccakF1600 (k rows)
+            ⟨σ.sponge, σ.stream, rest, σ.roots⟩
+        | none => pure none : Id _) = _ at h
+      split at h
+      · exact ih _ (hP _) (σ := ⟨σ.sponge, σ.stream, rest, σ.roots⟩) h
+      · cases h
+    · cases h
+
+/-- `m` keeps the roots, from every transcript keeping `TState.Inv`. -/
+def RootsKept {α : Type} (m : TM α) : Prop :=
+  ∀ t a t', t.Inv → m.run t = some (a, t') → t'.roots = t.roots
+
+/-- **A mirror of a program that reads no commitment keeps the roots.** -/
+theorem RootsKept.ofSimR {α β : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
+    (h : SimR m P r) (hP : NoCommit P) : RootsKept m := by
+  intro t a t' hi hm
+  obtain ⟨-, b, hb, -⟩ := h t a t' hi hm
+  exact hP.runK_roots hb
+
+/-- A simulated step that reads no commitment, then the rest from the same roots. -/
+theorem SimRoots.bindR {α β γ δ : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
+    {r : α → β → Prop} {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop}
+    (hm : SimR m P r) (hP : NoCommit P) (hk : ∀ a b, r a b → SimRoots pre (k a) (Q b) r') :
+    SimRoots pre (m >>= k) (P >>= Q) r' :=
+  SimRoots.bind (SimRoots.of hm)
+    (fun t a t' hi hp hmt ↦ by rw [RootsKept.ofSimR hm hP t a t' hi hmt]; exact hp) hk
+
+theorem SimRoots.bindE {α γ δ : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram α}
+    {k : α → TM γ} {Q : α → VerifierProgram δ} {r' : γ → δ → Prop} (hm : Sim m P)
+    (hP : NoCommit P) (hk : ∀ a, SimRoots pre (k a) (Q a) r') :
+    SimRoots pre (m >>= k) (P >>= Q) r' :=
+  SimRoots.bindR hm hP fun a _ h ↦ by subst h; exact hk a
 
 /-! ## Reading and sampling -/
 
@@ -832,6 +1097,20 @@ theorem Sim.sumcheck (claim : E) {count : ℕ} (hc : 2 ≤ count) (hc' : count <
     (K := VerifierProgram.ret) (r := (· = ·)) fun p v _ ↦ Sim.pure (p, v)
   rw [bind_pure, VerifierProgram.bind_ret'] at this
   exact this
+
+theorem NoCommit.sumcheck (claim : E) (count : ℕ) (equalities : List (Option E)) :
+    NoCommit (sumcheck claim count equalities) := by
+  induction equalities generalizing claim with
+  | nil => trivial
+  | cons e es ih =>
+    rw [LeanVM.Protocol.Verifier.sumcheck]
+    refine NoCommit.bind ?_ fun _ ↦ NoCommit.bind (fun _ ↦ trivial) fun _ ↦
+      NoCommit.bind (ih _) fun _ ↦ trivial
+    cases e
+    · exact NoCommit.bind (fun _ ↦ trivial) fun _ ↦ NoCommit.bind (NoCommit.readScalars _)
+        fun _ ↦ NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ trivial
+    · exact NoCommit.bind (NoCommit.readScalars _) fun _ ↦
+        NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ trivial
 
 /-! ## `Transcript::new` and `finish` -/
 

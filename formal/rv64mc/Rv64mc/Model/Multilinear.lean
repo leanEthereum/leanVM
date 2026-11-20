@@ -92,6 +92,22 @@ theorem dotRust_eq {left right : List E} (h : left.length = right.length) :
   simp only [dotRust, h, ↓reduceIte, dot, ← List.map_uncurry_zip_eq_zipWith, List.foldl_map]
   rfl
 
+/-- `dot` is the statement's wherever its assertion holds. -/
+theorem dotRust_some {left right : List E} {d : E} (h : dotRust left right = some d) :
+    d = dot left right := by
+  by_cases hl : left.length = right.length
+  · rw [dotRust_eq hl] at h
+    exact (Option.some.inj h).symm
+  · simp [dotRust, hl] at h
+
+/-- `eq_eval` is the statement's wherever its assertion holds. -/
+theorem eqEvalRust_some {left right : List E} {v : E} (h : eqEvalRust left right = some v) :
+    v = eqEval left right := by
+  by_cases hl : left.length = right.length
+  · rw [eqEvalRust_eq hl] at h
+    exact (Option.some.inj h).symm
+  · simp [eqEvalRust, hl] at h
+
 /-- `poly_eval`: Horner over the reversed coefficients. -/
 def polyEvalRust (coefficients : List E) (point : E) : E :=
   coefficients.reverse.foldl (fun acc c ↦ acc * point + c) 0
@@ -350,7 +366,7 @@ def eqKernelRust (point : List E) : List E :=
   point.zipIdx.foldl (fun out rk ↦ eqKernelPass rk.1 rk.2 out)
     ((List.replicate (2 ^ (point.length % 64)) 0).set 0 1)
 
-private theorem eqKernel_length (point : List E) : (eqKernel point).length = 2 ^ point.length := by
+theorem eqKernel_length (point : List E) : (eqKernel point).length = 2 ^ point.length := by
   suffices ∀ (out : List E), (point.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r))
       out).length = out.length * 2 ^ point.length by
     have := this [1]

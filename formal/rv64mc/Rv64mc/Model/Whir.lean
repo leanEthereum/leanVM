@@ -653,97 +653,14 @@ def verifyWhirRust (logN logInvRate : ℕ) (target : E) (root : List (BitVec 8))
 
 /-! ## Roots -/
 
-/-- The roots a transcript has read (its ghost). -/
-abbrev Roots : Type := List (Digest × ℕ × ℕ)
-
-/-- `m` does not read a root. -/
-def RootsKept {α : Type} (m : TM α) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → t'.roots = t.roots
-
-/-- `SimR` from the transcripts whose ghost roots satisfy `pre`. -/
-def SimRoots {α β : Type} (pre : Roots → Prop) (m : TM α) (P : VerifierProgram β)
-    (r : α → β → Prop) : Prop :=
-  ∀ t a t', t.Inv → pre t.roots → m.run t = some (a, t') →
-    t'.Inv ∧ ∃ b, runK P t.toSpec = some (b, t'.toSpec) ∧ r a b
-
 section RootsLemmas
 
 variable {α β γ δ : Type}
 
-theorem RootsKept.pure (a : α) : RootsKept (Pure.pure a : TM α) := by
-  intro t b t' h
-  simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
-  rw [← h.2]
-
-theorem RootsKept.bind {m : TM α} {k : α → TM β} (hm : RootsKept m) (hk : ∀ a, RootsKept (k a)) :
-    RootsKept (m >>= k) := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    exact (hk a t₁ b t' h).trans (hm t a t₁ hmt)
-
-theorem RootsKept.nextScalar : RootsKept TM.nextScalar := by
-  intro t a t' h
-  obtain ⟨s, -, -, rfl⟩ := nextScalar_some h
-  rfl
-
-theorem RootsKept.sample : RootsKept TM.sample := by
-  intro t a t' h
-  simp only [TM.sample, StateT.run, Option.some.injEq, Prod.mk.injEq] at h
-  rw [← h.2]
-
-theorem RootsKept.nextScalars : ∀ n, RootsKept (TM.nextScalars n)
-  | 0 => RootsKept.pure _
-  | n + 1 => RootsKept.bind RootsKept.nextScalar fun _ ↦
-      RootsKept.bind (RootsKept.nextScalars n) fun _ ↦ RootsKept.pure _
-
-theorem RootsKept.samples : ∀ n, RootsKept (TM.samples n)
-  | 0 => RootsKept.pure _
-  | n + 1 => RootsKept.bind RootsKept.sample fun _ ↦
-      RootsKept.bind (RootsKept.samples n) fun _ ↦ RootsKept.pure _
-
-theorem RootsKept.grindCheck (bits : ℕ) : RootsKept (TM.grindCheck bits) := by
-  intro t a t' h
-  simp only [TM.grindCheck, StateT.run] at h
-  split_ifs at h
-  · cases h; rfl
-  · split at h
-    · split at h
-      · split_ifs at h
-        cases h; rfl
-      · cases h
-    · cases h
-
-theorem RootsKept.ofOption (o : Option α) : RootsKept (TM.ofOption o) := by
-  cases o with
-  | none => intro t a t' h; cases h
-  | some a => exact RootsKept.pure a
-
-theorem RootsKept.require (c : Prop) [Decidable c] : RootsKept (TM.require c) := by
-  intro t a t' h
-  simp only [TM.require, StateT.run] at h
-  split_ifs at h
-  cases h; rfl
-
-theorem RootsKept.checked : RootsKept TM.checked := by
-  intro t a t' h
-  cases h; rfl
-
-theorem RootsKept.whenChecked {body : TM Unit} (h : RootsKept body) :
-    RootsKept (TM.whenChecked body) :=
-  RootsKept.bind RootsKept.checked fun c ↦ by
-    cases c
-    · exact RootsKept.pure ()
-    · exact h
-
 theorem RootsKept.merkle (root : List (BitVec 8)) (blockLength : BitVec 64)
     (queries : List (BitVec 64)) (leafWords : ℕ) :
     RootsKept (TM.merkle root blockLength queries leafWords) := by
-  intro t a t' h
+  intro t a t' _ h
   simp only [TM.merkle, StateT.run] at h
   split at h
   · cases h
@@ -751,104 +668,6 @@ theorem RootsKept.merkle (root : List (BitVec 8)) (blockLength : BitVec 64)
     · cases h
     · split_ifs at h
       cases h; rfl
-
-theorem RootsKept.sumcheck (claim : E) (count : ℕ) (eqs : List (Option E)) :
-    RootsKept (TM.sumcheck claim count eqs) := by
-  have hpoly : ∀ c e, RootsKept (TM.sumcheckRoundPoly count c e) := by
-    intro c e
-    cases e with
-    | none =>
-      exact RootsKept.bind RootsKept.nextScalar fun _ ↦
-        RootsKept.bind (RootsKept.nextScalars _) fun _ ↦
-          RootsKept.bind (RootsKept.grindCheck _) fun _ ↦ RootsKept.pure _
-    | some f =>
-      exact RootsKept.bind (RootsKept.nextScalars _) fun _ ↦
-        RootsKept.bind (RootsKept.grindCheck _) fun _ ↦ RootsKept.pure _
-  suffices ∀ (eqs : List (Option E)) (acc : List E × E),
-      RootsKept (eqs.foldlM (TM.sumcheckRound count) acc) from this eqs _
-  intro eqs
-  induction eqs with
-  | nil => intro acc; exact RootsKept.pure _
-  | cons e es ih =>
-    intro acc
-    rw [List.foldlM_cons]
-    exact RootsKept.bind (RootsKept.bind (hpoly _ _) fun _ ↦
-      RootsKept.bind RootsKept.sample fun _ ↦ RootsKept.pure _) fun _ ↦ ih _
-
-theorem SimRoots.of {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
-    (h : SimR m P r) : SimRoots pre m P r :=
-  fun t a t' hi _ hm ↦ h t a t' hi hm
-
-theorem SimRoots.weaken {pre pre' : Roots → Prop} {m : TM α} {P : VerifierProgram β}
-    {r : α → β → Prop} (hp : ∀ roots, pre roots → pre' roots) (h : SimRoots pre' m P r) :
-    SimRoots pre m P r :=
-  fun t a t' hi hpr hm ↦ h t a t' hi (hp _ hpr) hm
-
-/-- A step that keeps the roots, simulated. -/
-theorem SimRoots.bindR {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
-    {r : α → β → Prop} {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop}
-    (hm : SimR m P r) (hkept : RootsKept m) (hk : ∀ a b, r a b → SimRoots pre (k a) (Q b) r') :
-    SimRoots pre (m >>= k) (P >>= Q) r' := by
-  intro t c t' hi hp h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    obtain ⟨hi₁, b, hb, hab⟩ := hm t a t₁ hi hmt
-    rw [runK_bind, hb]
-    exact hk a b hab t₁ c t' hi₁ (by rw [hkept t a t₁ hmt]; exact hp) h
-
-theorem SimRoots.bindE {pre : Roots → Prop} {m : TM α} {P : VerifierProgram α}
-    {k : α → TM γ} {Q : α → VerifierProgram δ} {r' : γ → δ → Prop} (hm : Sim m P)
-    (hkept : RootsKept m) (hk : ∀ a, SimRoots pre (k a) (Q a) r') :
-    SimRoots pre (m >>= k) (P >>= Q) r' :=
-  SimRoots.bindR hm hkept fun a _ h ↦ by subst h; exact hk a
-
-theorem SimRoots.checked_bind {pre : Roots → Prop} {k : Bool → TM γ} {Q : VerifierProgram δ}
-    {r : γ → δ → Prop} (h : SimRoots pre (k true) Q r) :
-    SimRoots pre (TM.checked >>= k) Q r := by
-  intro t a t' hi hp hm
-  have e : (TM.checked >>= k).run t = (k t.checked).run t := rfl
-  rw [e, hi.2.2.2.1] at hm
-  exact h t a t' hi hp hm
-
-theorem SimRoots.whenChecked_bind {pre : Roots → Prop} {body : TM Unit} {k : Unit → TM γ}
-    {Q : VerifierProgram δ} {r : γ → δ → Prop} (h : SimRoots pre (body >>= k) Q r) :
-    SimRoots pre (TM.whenChecked body >>= k) Q r := by
-  have e : TM.whenChecked body >>= k =
-      TM.checked >>= fun c ↦ (if c then body else Pure.pure ()) >>= k := by
-    simp only [TM.whenChecked, bind_assoc]
-  rw [e]
-  exact SimRoots.checked_bind h
-
-theorem SimRoots.ofOption_bind {pre : Roots → Prop} {o : Option α} {k : α → TM γ}
-    {Q : VerifierProgram δ} {r : γ → δ → Prop} (h : ∀ a, o = some a → SimRoots pre (k a) Q r) :
-    SimRoots pre (TM.ofOption o >>= k) Q r := by
-  cases o with
-  | none =>
-    intro t a t' _ _ hm
-    have e : (TM.ofOption (none : Option α) >>= k).run t = none := rfl
-    rw [e] at hm
-    cases hm
-  | some a =>
-    have := h a rfl
-    simpa only [TM.ofOption, pure_bind] using this
-
-/-- A check the statement makes, which holds. -/
-theorem SimRoots.require_right {pre : Roots → Prop} {c : Prop} [Decidable c] (hc : c) {m : TM γ}
-    {K : Unit → VerifierProgram δ} {r : γ → δ → Prop} (h : SimRoots pre m (K ()) r) :
-    SimRoots pre m (VerifierProgram.require c >>= K) r := by
-  have e : (VerifierProgram.require c >>= K) = K () := by
-    simp only [VerifierProgram.require, ite_eq_left hc]; rfl
-  rw [e]
-  exact h
-
-theorem SimRoots.fail {pre : Roots → Prop} {P : VerifierProgram β} {r : α → β → Prop} :
-    SimRoots pre (TM.fail : TM α) P r := by
-  intro t a t' _ _ h
-  cases h
 
 /-- **`merkle` opens the root a level holds**, the `i`-th the statement read. -/
 theorem SimRoots.merkle_bind {pre : Roots → Prop} {i : ℕ} {d : Digest} {height width : ℕ}
@@ -870,9 +689,9 @@ theorem SimRoots.merkle_bind {pre : Roots → Prop} {i : ℕ} {d : Digest} {heig
     rw [runK_bind, hrun]
     subst hrows
     exact hk rows' t₁ c t' hi₁
-      (by rw [RootsKept.merkle _ _ _ _ t _ t₁ hmt]; exact hp) h
+      (by rw [RootsKept.merkle _ _ _ _ t _ t₁ hi hmt]; exact hp) h
 
-theorem commit_roots {height width : ℕ} {t t' : TState} {root : List (BitVec 8)}
+theorem commit_roots {height width : ℕ} {t t' : TState} {root : List (BitVec 8)} (hi : t.Inv)
     (h : (TM.commit height width).run t = some (root, t')) :
     ∃ d, root = digestBits d ∧ t'.roots = t.roots ++ [(d, height, width)] := by
   simp only [TM.commit, StateT.run_bind] at h
@@ -881,7 +700,7 @@ theorem commit_roots {height width : ℕ} {t t' : TState} {root : List (BitVec 8
   | some p =>
     obtain ⟨halves, t₁⟩ := p
     rw [h2] at h
-    have hr := RootsKept.nextScalars 2 t halves t₁ h2
+    have hr := RootsKept.ofSimR (Sim.nextScalars 2) (NoCommit.readScalars 2) t halves t₁ hi h2
     simp only [Option.bind_eq_bind, Option.bind_some, TM.ghostRoot, StateT.run] at h
     obtain ⟨rfl, rfl⟩ := h
     refine ⟨KeccakHash.digestFromHalves (halves.getD 0 0, halves.getD 1 0), ?_, ?_⟩
@@ -903,7 +722,7 @@ theorem SimRoots.commit_bind {pre : Roots → Prop} {height width : ℕ}
     obtain ⟨root, t₁⟩ := p
     rw [hmt] at h
     obtain ⟨hi₁, b, hb, -⟩ := SimR.commit height width t root t₁ hi hmt
-    obtain ⟨d, rfl, hroots⟩ := commit_roots hmt
+    obtain ⟨d, rfl, hroots⟩ := commit_roots hi hmt
     rw [runK_bind, hb]
     exact hk d t₁ c t' hi₁ ⟨t.roots, hp, hroots⟩ h
 
@@ -1015,19 +834,17 @@ theorem SimR.sampleQueries {d : ℕ} (hd0 : 0 < d) (hd : d < 64) (count : ℕ) :
   have := sampleQueriesLoop_sim hd0 hd count count [] (Nat.zero_le _)
   simpa [LeanVM.Protocol.Verifier.sampleQueries] using this
 
-theorem RootsKept.sampleQueries (blockLength : BitVec 64) (count : ℕ) :
-    RootsKept (sampleQueriesRust blockLength count) := by
-  have loop : ∀ d fuel result, RootsKept (sampleQueriesLoop blockLength d count fuel result) := by
-    intro d fuel
-    induction fuel with
-    | zero => intro result; exact RootsKept.pure _
-    | succ n ih =>
-      intro result
-      simp only [sampleQueriesLoop]
-      split
-      · exact RootsKept.bind RootsKept.sample fun _ ↦ ih _
-      · exact RootsKept.pure _
-  exact RootsKept.bind (RootsKept.ofOption _) fun d ↦ loop d _ _
+theorem NoCommit.sampleQueries (d count : ℕ) : NoCommit (sampleQueries d count) := by
+  suffices ∀ fuel rem, NoCommit (sampleQueriesAux d fuel rem) from this _ _
+  intro fuel
+  induction fuel with
+  | zero => intro rem; trivial
+  | succ n ih =>
+    intro rem
+    rw [sampleQueriesAux]
+    split
+    · trivial
+    · exact NoCommit.bind (fun _ ↦ trivial) fun _ ↦ NoCommit.bind (ih _) fun _ ↦ trivial
 
 end SampleQueries
 
@@ -1087,26 +904,15 @@ theorem SimR.foldRounds : ∀ (n : ℕ) (s : WhirState),
     rw [g5, h3, List.length_append, List.length_singleton]
     omega
 
-theorem RootsKept.foldRounds : ∀ (n : ℕ) (claim : E) (alphas : List E),
-    RootsKept (foldRoundsRust n claim alphas)
-  | 0, _, _ => RootsKept.pure _
-  | n + 1, claim, alphas => by
-    rw [foldRoundsRust]
-    refine RootsKept.bind ?_ fun a ↦ RootsKept.bind (RootsKept.foldRounds n _ _) fun _ ↦
-      RootsKept.pure _
-    unfold foldRoundRust
-    exact RootsKept.bind (RootsKept.nextScalars _) fun _ ↦
-      RootsKept.bind (RootsKept.grindCheck _) fun _ ↦ RootsKept.bind RootsKept.sample fun _ ↦
-        RootsKept.bind RootsKept.sample fun _ ↦ RootsKept.pure _
+theorem NoCommit.foldRounds : ∀ (n : ℕ) (s : WhirState),
+    NoCommit (LeanVM.Protocol.Verifier.foldRounds n s)
+  | 0, _ => trivial
+  | n + 1, s => by
+    rw [LeanVM.Protocol.Verifier.foldRounds, LeanVM.Protocol.Verifier.foldRound]
+    no_commit
+    exact NoCommit.foldRounds n _
 
 /-! ## The level's pure steps against the statement -/
-
-theorem eqEvalRust_some {left right : List E} {v : E} (h : eqEvalRust left right = some v) :
-    v = eqEval left right := by
-  by_cases hl : left.length = right.length
-  · rw [eqEvalRust_eq hl] at h
-    exact (Option.some.inj h).symm
-  · simp [eqEvalRust, hl] at h
 
 theorem lanesOfRust_eq (level : ℕ) (row : List K) :
     lanesOfRust level (row.map BF64.toBitVec) =
@@ -1264,7 +1070,7 @@ theorem SimRoots.whirLevels (logN : ℕ) (ls : List Whir.Level) (hf : LadderFact
     have hal := congrArg List.length ha
     simp only [List.map_cons, whirLevelsRust, LeanVM.Protocol.Verifier.whirLevels]
     rw [hc, ha]
-    refine SimRoots.bindR (SimR.foldRounds level.fold s') (RootsKept.foldRounds _ _ _)
+    refine SimRoots.bindR (SimR.foldRounds level.fold s') (NoCommit.foldRounds _ _)
       fun a b hab ↦ ?_
     obtain ⟨claim, alphas, rounds⟩ := a
     obtain ⟨s₂, rounds'⟩ := b
@@ -1296,10 +1102,10 @@ theorem SimRoots.whirLevels (logN : ℕ) (ls : List Whir.Level) (hf : LadderFact
         | cons l ls => simpa [configOf] using h6
       subst h1
       dsimp only
-      refine SimRoots.bindE (Sim.nextScalars _) (RootsKept.nextScalars _) fun folded ↦ ?_
-      refine SimRoots.bindE (Sim.grindCheck _) (RootsKept.grindCheck _) fun _ ↦ ?_
+      refine SimRoots.bindE (Sim.nextScalars _) (NoCommit.readScalars _) fun folded ↦ ?_
+      refine SimRoots.bindE (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦ ?_
       refine SimRoots.bindR (SimR.sampleQueries (by omega) hdepth level.queries)
-        (RootsKept.sampleQueries _ _) fun qs ps hq ↦ ?_
+        (NoCommit.sampleQueries _ _) fun qs ps hq ↦ ?_
       rw [hr, one_shl_eq hdepth]
       refine SimRoots.merkle_bind (i := index)
         (height := logN - s₂.alphas.length + level.logInvRate) (fun roots hroots ↦ ?_) hdepth hq
@@ -1322,7 +1128,7 @@ theorem SimRoots.whirLevels (logN : ℕ) (ls : List Whir.Level) (hf : LadderFact
         (K := VerifierProgram.ret) (r := fun a b ↦ a = b ∧ a.1.length = logN - s₂.alphas.length)
         fun p v hp ↦ SimR.pure ⟨rfl, by simpa using hp⟩
       rw [bind_pure, VerifierProgram.bind_ret'] at hsc
-      refine SimRoots.bindR hsc (RootsKept.sumcheck _ _ _) fun x y hxy ↦ ?_
+      refine SimRoots.bindR hsc (NoCommit.sumcheck _ _ _) fun x y hxy ↦ ?_
       obtain ⟨rfl, htail⟩ := hxy
       obtain ⟨tail, c⟩ := x
       dsimp only at htail
@@ -1350,15 +1156,15 @@ theorem SimRoots.whirLevels (logN : ℕ) (ls : List Whir.Level) (hf : LadderFact
       subst h1
       simp only [levelShape]
       refine SimRoots.commit_bind fun d' ↦ ?_
-      refine SimRoots.bindE (Sim.nextScalars _) (RootsKept.nextScalars _) fun high ↦ ?_
+      refine SimRoots.bindE (Sim.nextScalars _) (NoCommit.readScalars _) fun high ↦ ?_
       simp only [readOodRust, bind_assoc, pure_bind]
-      refine SimRoots.bindE (Sim.grindCheck _) (RootsKept.grindCheck _) fun _ ↦ ?_
-      refine SimRoots.bindE (Sim.samples _) (RootsKept.samples _) fun oodPoint ↦ ?_
-      refine SimRoots.bindE Sim.nextScalar RootsKept.nextScalar fun oodValue ↦ ?_
-      refine SimRoots.bindE (Sim.grindCheck _) (RootsKept.grindCheck _) fun _ ↦ ?_
+      refine SimRoots.bindE (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦ ?_
+      refine SimRoots.bindE (Sim.samples _) (NoCommit.sampleChallenges _) fun oodPoint ↦ ?_
+      refine SimRoots.bindE Sim.nextScalar (fun _ ↦ trivial) fun oodValue ↦ ?_
+      refine SimRoots.bindE (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦ ?_
       refine SimRoots.bindR (SimR.sampleQueries (by omega) hdepth level.queries)
-        (RootsKept.sampleQueries _ _) fun qs ps hq ↦ ?_
-      refine SimRoots.bindE Sim.sample RootsKept.sample fun lam ↦ ?_
+        (NoCommit.sampleQueries _ _) fun qs ps hq ↦ ?_
+      refine SimRoots.bindE Sim.sample (fun _ ↦ trivial) fun lam ↦ ?_
       rw [hr, one_shl_eq hdepth]
       refine SimRoots.merkle_bind (i := index)
         (height := logN - s₂.alphas.length + level.logInvRate) (fun roots hroots ↦ ?_) hdepth hq
@@ -1538,8 +1344,8 @@ theorem SimRoots.verifyStackedOpening (stackLog logInvRate : ℕ) (d : Digest)
   have hlen := hc.length_eq
   unfold verifyStackedOpeningRust LeanVM.Protocol.Verifier.verifyStackedOpening
   rw [hlen]
-  refine SimRoots.bindE (Sim.require _) (RootsKept.require _) fun _ ↦ ?_
-  refine SimRoots.bindE Sim.sample RootsKept.sample fun lam ↦ ?_
+  refine SimRoots.bindE (Sim.require _) (NoCommit.require _) fun _ ↦ ?_
+  refine SimRoots.bindE Sim.sample (fun _ ↦ trivial) fun lam ↦ ?_
   have hp : (powersM (limbs lam) claims'.length).map ofLimbsW = powers lam claims'.length := by
     rw [powersM_eq, List.map_map]
     simp [Function.comp_def, ofLimbsW_limbs]

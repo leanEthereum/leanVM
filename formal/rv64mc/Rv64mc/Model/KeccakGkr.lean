@@ -1,6 +1,7 @@
 module
 
 public import Rv64mc.Model.Transcript
+import Mathlib.Data.List.GetD
 
 /-!
 # `keccak.rs`'s GKR argument as the Rust computes it
@@ -20,11 +21,8 @@ is `sumRust`, `E * K` is `mulKE`; `Claim` is the statement's `KeccakClaim` (the 
 an index is `getD`; a `usize` subtraction is `ℕ`'s, which no call of the verifier wraps. The
 mirror may return anything where the Rust panics (an `assert!`, `dot` on unequal lengths: here a
 failure) and fails only where the Rust fails. `if transcript.checked() { .. }` is
-`TM.whenChecked`, which runs its body in the checked mode every simulation is in.
-
-The section `Transcript helpers` holds the combinators the PCS mirrors share (`Model.Whir`
-builds on them): `mulKE`, `TM.whenChecked`, and the simulation lemmas for a check or a pure
-`Option` step that only the Rust makes.
+`TM.whenChecked` (`Model.Transcript`), which runs its body in the checked mode every simulation
+is in.
 -/
 
 namespace Rv64mc.Model
@@ -34,74 +32,7 @@ open Finset LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.C
 
 @[expose] public section
 
-/-! ## Transcript helpers -/
-
-/-- `E * K` (`impl Mul<K> for E`): both limbs by `base_mul`. -/
-def mulKE (x : E) (k : K) : E := ofLimbsW (eMulK (limbs x) k.toBitVec)
-
-theorem mulKE_eq (x : E) (k : K) : mulKE x k = x * ofK k := by
-  rw [mulKE, eMulK_eq, ofLimbsW_limbs]
-
-/-- `if transcript.checked() { body }`. -/
-def TM.whenChecked (body : TM Unit) : TM Unit := do
-  if ← TM.checked then body else Pure.pure ()
-
-/-- A `checked()` test the Rust makes and the statement does not: the checked branch. -/
-theorem SimR.checked_bind {γ δ : Type} {k : Bool → TM γ} {Q : VerifierProgram δ}
-    {r : γ → δ → Prop} (h : SimR (k true) Q r) : SimR (TM.checked >>= k) Q r := by
-  intro t a t' hi hm
-  have e : (TM.checked >>= k).run t = (k t.checked).run t := rfl
-  rw [e, hi.2.2.2.1] at hm
-  exact h t a t' hi hm
-
-/-- **A `checked()` branch runs its body**: every simulated transcript is in checked mode. -/
-theorem SimR.whenChecked_bind {γ δ : Type} {body : TM Unit} {k : Unit → TM γ}
-    {Q : VerifierProgram δ} {r : γ → δ → Prop} (h : SimR (body >>= k) Q r) :
-    SimR (TM.whenChecked body >>= k) Q r := by
-  have e : TM.whenChecked body >>= k =
-      TM.checked >>= fun c ↦ (if c then body else Pure.pure ()) >>= k := by
-    simp only [TM.whenChecked, bind_assoc]
-  rw [e]
-  exact SimR.checked_bind h
-
-/-- A pure `Option` step of the Rust (`?` or a panic) that the statement does not make. -/
-theorem SimR.ofOption_bind {α γ δ : Type} {o : Option α} {k : α → TM γ} {Q : VerifierProgram δ}
-    {r : γ → δ → Prop} (h : ∀ a, o = some a → SimR (k a) Q r) : SimR (TM.ofOption o >>= k) Q r := by
-  cases o with
-  | none =>
-    intro t a t' _ hm
-    have e : (TM.ofOption (none : Option α) >>= k).run t = none := rfl
-    rw [e] at hm
-    cases hm
-  | some a =>
-    have := h a rfl
-    simpa only [TM.ofOption, pure_bind] using this
-
-/-- `require` of a condition equivalent to the statement's. -/
-theorem Sim.require_iff {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
-    Sim (TM.require c) (VerifierProgram.require c') := by
-  have : TM.require c = TM.require c' := by
-    funext t
-    by_cases hc : c
-    · simp [TM.require, hc, h.mp hc]
-    · simp [TM.require, hc, mt h.mpr hc]
-  rw [this]
-  exact Sim.require c'
-
-/-- A sequence of simulations, each continuation given what its predecessor returned. -/
-theorem SimR.bindRel {α β γ δ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
-    {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop} (hm : SimR m P r)
-    (hk : ∀ a b, r a b → SimR (k a) (Q b) r') : SimR (m >>= k) (P >>= Q) r' :=
-  SimR.bind hm hk
-
 section Helpers
-
-theorem dotRust_some {left right : List E} {d : E} (h : dotRust left right = some d) :
-    d = dot left right := by
-  by_cases hl : left.length = right.length
-  · rw [dotRust_eq hl] at h
-    exact (Option.some.inj h).symm
-  · simp [dotRust, hl] at h
 
 private theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
   unfold sumE
@@ -254,21 +185,6 @@ private theorem eqAt_append : ∀ (a b : List E) (w : ℕ),
     rw [List.cons_append, eqAt_cons, eqAt_cons, eqAt_append a b, List.length_cons, pow_succ,
       Nat.div_div_eq_div_mul, mul_comm (2 ^ a.length) 2, mul_assoc]
 
-private theorem getD_append_l {α : Type} {l₁ : List α} (l₂ : List α) {j : ℕ} (d : α)
-    (h : j < l₁.length) : (l₁ ++ l₂).getD j d = l₁.getD j d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left h]
-
-private theorem getD_append_r {α : Type} {l₁ : List α} (l₂ : List α) {j : ℕ} (d : α)
-    (h : l₁.length ≤ j) : (l₁ ++ l₂).getD j d = l₂.getD (j - l₁.length) d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_right h]
-
-private theorem eqKernel_len (point : List E) : (eqKernel point).length = 2 ^ point.length := by
-  induction point using List.reverseRecOn with
-  | nil => rfl
-  | append_singleton pt r ih =>
-    simp only [eqKernel, List.foldl_append, List.foldl_cons, List.foldl_nil] at ih ⊢
-    simp [ih, pow_succ, mul_two]
-
 private theorem eqKernel_snoc (pt : List E) (r : E) :
     eqKernel (pt ++ [r]) = (eqKernel pt).map (· * (1 + r)) ++ (eqKernel pt).map (· * r) := by
   unfold eqKernel
@@ -290,13 +206,13 @@ private theorem eqKernel_getD : ∀ (pt : List E) (w : ℕ),
     · simp [eqKernel, List.getD_eq_getElem?_getD]
   | append_singleton pt r ih =>
     intro w
-    have hlen := eqKernel_len pt
+    have hlen := eqKernel_length pt
     rw [eqKernel_snoc, List.length_append, List.length_singleton, eqAt_append]
     by_cases hw : w < 2 ^ pt.length
-    · rw [getD_append_l _ _ (by simpa [hlen] using hw), getD_map_mul, ih,
+    · rw [List.getD_append _ _ _ _ (by simpa [hlen] using hw), getD_map_mul, ih,
         ite_eq_left hw, ite_eq_left (by rw [pow_succ]; omega), Nat.div_eq_of_lt hw]
       simp [eqAt]
-    · rw [getD_append_r _ _ (by simp [hlen]; omega), List.length_map, hlen,
+    · rw [List.getD_append_right _ _ _ _ (by simp [hlen]; omega), List.length_map, hlen,
         getD_map_mul, ih]
       by_cases hw2 : w < 2 ^ (pt.length + 1)
       · have hw2' : w < 2 ^ pt.length + 2 ^ pt.length := by rw [pow_succ] at hw2; omega
@@ -326,7 +242,7 @@ private theorem dot_eq : ∀ (a b : List E), a.length = b.length →
 
 private theorem dot_eqKernel (pt w : List E) (hn : w.length ≤ 2 ^ pt.length) :
     dot ((eqKernel pt).take w.length) w = ∑ j ∈ range w.length, eqAt pt j * w.getD j 0 := by
-  rw [dot_eq _ _ (by simp [eqKernel_len, hn]), List.length_take, eqKernel_len,
+  rw [dot_eq _ _ (by simp [eqKernel_length, hn]), List.length_take, eqKernel_length,
     min_eq_left hn]
   refine Finset.sum_congr rfl fun j hj ↦ ?_
   have hj' := Finset.mem_range.1 hj
@@ -340,11 +256,6 @@ private theorem eqAt_split (pt : List E) (hl : pt.length = 11) (j : ℕ) :
   conv_lhs => rw [← List.take_append_drop 6 pt]
   rw [eqAt_append, h6, eqAt_mod (pt.take 6) j, h6]
   rfl
-
-private theorem getD_map_zero {α β : Type} (f : α → β) (l : List α) (i : ℕ) (d : α) (e : β)
-    (he : f d = e) : (l.map f).getD i e = f (l.getD i d) := by
-  rw [← he, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
-  cases l[i]? <;> rfl
 
 end Helpers
 
@@ -463,7 +374,8 @@ theorem projectedRust_eq (mu product : List E) :
   rw [sumE_zip_filterMap (fun mask ↦ mask.testBit c), sumE_filter_map_range,
     ← rmfeProjectRust_eq, List.length_map, show rmfeProjectRust.length = 16 from rfl]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
-  rw [getD_map_zero BitVec.toNat rmfeProjectRust i 0#64 0 rfl, bit64_eq]
+  rw [show (0 : ℕ) = BitVec.toNat 0#64 from rfl, List.getD_map, bit64_eq]
+  rfl
 
 private theorem iota_fold (l : List E) (f : ℕ → E) :
     ((l.zipIdx).take 2).foldl (fun acc (ws : E × ℕ) ↦ acc + ws.1 * f ws.2) 0 =
@@ -493,7 +405,7 @@ theorem iotaRust_eq (logSteps step : ℕ) (claim : KeccakClaim)
     refine Finset.sum_congr rfl fun z _ ↦ ?_
     rw [bit64_eq]; rfl
   have hrc : ∀ i, keccakRCRust.getD i 0#64 = (keccakRC.getD i 0).toBitVec := fun i ↦ by
-    rw [keccakRCRust_eq]; exact getD_map_zero _ _ _ _ _ rfl
+    rw [keccakRCRust_eq, show (0#64 : BitVec 64) = UInt64.toBitVec 0 from rfl, List.getD_map]
   unfold iotaRust
   simp only [KeccakShape.packBits, hrc, hinner, eqKernelRust_eq _ hp, segments_twelve,
     keccakSegments_eq, show keccakDepth = 12 from rfl]
@@ -600,13 +512,6 @@ private theorem chunk_getD (w : List E) {lane z : ℕ} (hz : z < 64) :
     ((w.drop (64 * lane)).take 64).getD z 0 = w.getD (64 * lane + z) 0 := by
   simp [List.getD_eq_getElem?_getD, hz, List.getElem?_drop]
 
-private theorem mapM_some {α : Type} (f : α → Option E) (g : α → E) :
-    ∀ (l : List α), (∀ x ∈ l, f x = some (g x)) → l.mapM f = some (l.map g)
-  | [], _ => rfl
-  | x :: l, h => by
-    rw [List.mapM_cons, h x (by simp), mapM_some f g l fun y hy ↦ h y (by simp [hy])]
-    rfl
-
 /-- **Step 4's split kernel is the statement's one kernel**, on `1600` position weights and the
 `11` coordinates of the local point. -/
 theorem atLocalRust_eq (w localPt : List E) (hw : w.length = 1600) (hl : localPt.length = 11) :
@@ -615,11 +520,11 @@ theorem atLocalRust_eq (w localPt : List E) (hw : w.length = 1600) (hl : localPt
   have h6 : (localPt.take 6).length = 6 := by simp [hl]
   have h5 : (localPt.drop 6).length = 5 := by simp [hl]
   rw [eqKernelRust_eq _ (by omega), eqKernelRust_eq _ (by omega), atLocalRust, chunks_eq w hw,
-    zip_range_map _ _ (by rw [eqKernel_len, h5]; norm_num)]
-  rw [mapM_some _ (fun (le : List E × E) ↦ le.2 * dot (eqKernel (localPt.take 6)) le.1) _
+    zip_range_map _ _ (by rw [eqKernel_length, h5]; norm_num)]
+  rw [mapM_eq_some_map _ (fun (le : List E × E) ↦ le.2 * dot (eqKernel (localPt.take 6)) le.1) _
     (fun le hle ↦ by
       obtain ⟨lane, hlane, rfl⟩ := List.mem_map.1 hle
-      rw [dotRust_eq (by rw [eqKernel_len, h6, chunk_length w hw (List.mem_range.1 hlane)]; rfl)]
+      rw [dotRust_eq (by rw [eqKernel_length, h6, chunk_length w hw (List.mem_range.1 hlane)]; rfl)]
       rfl)]
   simp only [Option.pure_def, Option.bind_eq_bind, Option.bind_some, Option.some.injEq]
   rw [sumRust_eq, List.map_map, sumE_eq_sum, list_sum_range,
@@ -628,8 +533,8 @@ theorem atLocalRust_eq (w localPt : List E) (hw : w.length = 1600) (hl : localPt
   refine Finset.sum_congr rfl fun lane hlane ↦ ?_
   have hlane' := Finset.mem_range.1 hlane
   simp only [Function.comp_apply]
-  rw [dot_eq _ _ (by rw [eqKernel_len, h6, chunk_length w hw hlane']; rfl),
-    eqKernel_len, h6, eqKernel_getD_lt _ (by rw [h5]; norm_num; omega), Finset.mul_sum]
+  rw [dot_eq _ _ (by rw [eqKernel_length, h6, chunk_length w hw hlane']; rfl),
+    eqKernel_length, h6, eqKernel_getD_lt _ (by rw [h5]; norm_num; omega), Finset.mul_sum]
   refine Finset.sum_congr rfl fun z hz ↦ ?_
   have hz' := Finset.mem_range.1 hz
   rw [eqKernel_getD_lt _ (by rw [h6]; norm_num; omega), chunk_getD w hz', eqAt_split localPt hl,
@@ -822,11 +727,11 @@ private theorem flatMap_getD (F : ℕ → ℕ → E) (m : ℕ) :
       simp [List.length_flatMap, List.sum_replicate]
     rw [List.range_succ, List.flatMap_append]
     by_cases hxn : x < n
-    · rw [getD_append_l _ _ (by rw [hlen]; nlinarith)]
+    · rw [List.getD_append _ _ _ _ (by rw [hlen]; nlinarith)]
       exact flatMap_getD F m n x z hxn hz
     · have : x = n := by omega
       subst this
-      rw [getD_append_r _ _ (by rw [hlen]; nlinarith), hlen]
+      rw [List.getD_append_right _ _ _ _ (by rw [hlen]; nlinarith), hlen]
       simp [Nat.mul_comm, hz, List.getD_eq_getElem?_getD]
 
 private theorem flatMap_length (F : ℕ → ℕ → E) (m n : ℕ) :
