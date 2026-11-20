@@ -6,7 +6,7 @@
   callee's checked by `decide`), from the field's contracts (`Table.Field`) and what is not proved yet: `clmul_low`'s
   constant (`DataRef.Words`, as in `Table.Field`), `WHIR_QUERIES` (`Spec.Whir.WhirQueries.Table`, its slice headers
   and their arrays in the image's `env.data`), the panic chain's `assert_failed`, and the callees not proved
-  (`induced_weight`, `ring_weight`).
+  (`induced_weight`, `ring_weight`, `Placement::eq_above`, `slice_index_fail`).
 -/
 
 import Rv64mc.Table.Field
@@ -15,11 +15,13 @@ import Rv64mc.Proof.Whir.Frobenius8
 import Rv64mc.Proof.Whir.RingPsi
 import Rv64mc.Proof.Whir.GluedWeightEvaluate
 import Rv64mc.Proof.Whir.RingWeightEvaluate
+import Rv64mc.Proof.Whir.StackWeightEvaluate
 import Rv64mc.Gen.Link.Verifier.Whir.WhirQueries
 import Rv64mc.Gen.Link.Verifier.RingSwitch.Frobenius8
 import Rv64mc.Gen.Link.Verifier.RingSwitch.RingPsi
 import Rv64mc.Gen.Link.Verifier.Whir.GluedWeight.Evaluate
 import Rv64mc.Gen.Link.Verifier.RingSwitch.RingWeight.Evaluate
+import Rv64mc.Gen.Link.Verifier.StackWeight.Evaluate
 
 namespace Rv64mc.Table.Whir
 
@@ -55,8 +57,23 @@ theorem ringWeightEvaluate
   Proof.Whir.RingWeightEvaluate.ok env _ 100 _ Verifier.RingSwitch.RingWeight.Evaluate.tmpl_eq
     Verifier.RingSwitch.RingWeight.Evaluate.wf (by decide) hrw
 
+theorem stackWeightEvaluate
+    (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words)
+    (hfail : Spec.Runtime.NoReturn env (liftProg fns) 14 Needs.Core.Panicking.AssertFailedUsizeUsize)
+    (hslice : Spec.Runtime.NoReturn env (liftProg fns) 15 Needs.Core.Slice.Index.SliceIndexFail)
+    (hrw : Spec.Whir.RingWeight.spec env (liftProg fns) 103 Needs.Verifier.RingSwitch.RingWeight)
+    (hea : Spec.Multilinear.EqAbove.spec env (liftProg fns) 101 Needs.Verifier.Multilinear.Placement.EqAbove) :
+    Spec.Whir.StackWeight.spec env (liftProg fns) 99 Needs.Verifier.StackWeight.Evaluate :=
+  Proof.Whir.StackWeightEvaluate.ok env _ 99 _ Verifier.StackWeight.Evaluate.tmpl_eq Verifier.StackWeight.Evaluate.wf
+    (by decide) (by decide) (by decide) (by decide) (by decide) (ringWeightEvaluate env hrw)
+    (Table.Field.eqEval env hd hfail) hea (Table.Field.eMul env hd) hslice
+
 end Rv64mc.Table.Whir
 
 /-- info: 'Rv64mc.Table.Whir.gluedWeightEvaluate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.Whir.gluedWeightEvaluate
+
+/-- info: 'Rv64mc.Table.Whir.stackWeightEvaluate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.Whir.stackWeightEvaluate
