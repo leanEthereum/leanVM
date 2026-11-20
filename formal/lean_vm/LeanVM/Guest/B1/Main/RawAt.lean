@@ -191,9 +191,9 @@ theorem l2Post_holds {C : CallRel} {rd : Reader} {i nrx X cv tb s : ℕ} (hnrx :
   have ht : List.map (l2σ rd i nrx X cv tb s) (List.map (fun j => V.n (j + 1)) (List.range 55)) =
       [gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords := by
     rw [List.map_map]; exact l2σ_tail rd i nrx X cv tb s
-  simp only [Sig.l2Post, Sig.cst, Sig.mulS, Sig.addS, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+  simp only [Sig.l2Post, Sig.xEnd, Sig.cst, Sig.mulS, Sig.addS, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     List.map_cons, List.map_nil, l2σ]
-  simp only [Nat.reduceLT, Nat.reduceLeDiff, Nat.reduceSub, ite_false, ite_true,
+  simp only [Nat.reduceAdd, Nat.reduceLT, Nat.reduceLeDiff, Nat.reduceSub, ite_false, ite_true,
     List.getD_cons_zero, List.getD_cons_succ, le_refl, true_and, and_true]
   refine ⟨by rw [word_gen, gen_pow_mul_gen]; exact gen_pow_add_isInK _ _, fun hne => ?_⟩
   have hne' := of_decide_eq_true ((guard_taken hnrx (by omega)).symm.trans (decide_eq_true hne))
@@ -223,7 +223,7 @@ theorem l2_loads {Lin : Layout} {σ : Val} {c p : ℕ} (h62 : σ (.n 62) = gen ^
       ∃ k, A = addressOfIndex k ∧ RegionL Lin k := by
   rw [Sig.loop2_split, walk_append', walk_append']
   refine Out.all_seq (Out.all_seq ?_ ?_) ?_
-  · simp only [Sig.l2Post, Sig.cst, Sig.mulS, Sig.addS, walk, walk1, Out.seq, Out.pre]
+  · simp only [Sig.l2Post, Sig.xEnd, Sig.cst, Sig.mulS, Sig.addS, walk, walk1, Out.seq, Out.pre]
     split_ifs <;> simp [Out.All, Ev.loadAddr?]
   · have hw := Lift.walk_leafOk (σ := σ) Sig.xSeg Lift.xSeg_leafOk
     have hP : ∀ e, Lift.EvLeafOk Lift.segLoad e → ∀ A, e.loadAddr? σ = some A →
@@ -312,6 +312,7 @@ theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} 
     refine (hext v fun k h1 h2 e => ?_).symm
     subst e
     simp only [Bool.or_eq_true, decide_eq_true_eq] at this
+    simp only [Sig.xEnd] at h1 h2
     omega
   have hpar : (fn% «main_loop2»).params.map σ' = l2ArgsAt i nrx X cv tb := by
     rw [← l2σ_params rd i nrx X cv tb (D.slot i), show (fn% «main_loop2»).params = l2Fn.params from
