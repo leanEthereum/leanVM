@@ -11,6 +11,8 @@ usage (from formal/lean_vm): python3 -I scripts/core-mode/pows.py [--check]
 import sys, os, re, glob
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compiled as C  # noqa: E402
 
 LV = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GUEST = os.path.join(LV, 'LeanVM', 'Guest')
@@ -39,14 +41,10 @@ def tree(pairs):
 def main(check=False):
     G = global_pows()
     consts, home = {}, {}
-    for p in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean'))):
-        base = os.path.basename(p)
-        for m in NS.finditer(open(p, encoding='utf-8').read()):
-            if base.startswith('Core'):
-                # the function's pack: the one holding its core, as `heap.pack_of`
-                home.setdefault(m.group(1), os.path.basename(os.path.dirname(p)))
-            ks = consts.setdefault(m.group(1), set())
-            ks.update(int(x) for x in WORD.findall(m.group(2)))
+    for k, bs in C.bridge_data().core_blocks().items():
+        # the function's pack: the one holding its core, as `heap.pack_of`
+        home[k] = bs[0][0]
+        consts[k] = {int(x) for _, _, text in bs for x in WORD.findall(text)}
     packs = {}
     for k, pack in home.items():
         packs.setdefault(pack, {})[k] = consts[k]

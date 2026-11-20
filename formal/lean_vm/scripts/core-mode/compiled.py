@@ -9,30 +9,36 @@ ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
 STATEMENT = os.path.normpath(os.path.join(LEAN_VM, '..', 'Statement'))
 
 
+def bridge_data():
+    """`scripts/bridge-cert/data.py`, the packs' one reader, one instance a process."""
+    import sys, importlib.util
+    if 'bridge_data' not in sys.modules:
+        spec = importlib.util.spec_from_file_location('bridge_data', os.path.join(HERE, '..', 'bridge-cert', 'data.py'))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        sys.modules['bridge_data'] = m
+    return sys.modules['bridge_data']
+
+
 def load():
     ins_re=re.compile(r'\(\.(\w+) ([^()]*)\)')
     fns={}
-    for b in sorted(glob.glob(ROOT+'/Pack/*/Bundle.lean')):
-        pack=b.split('/')[-2]
-        t=open(b).read()
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            name=blk.split('\n',1)[0].strip().strip('«»')
-            chunks={}
-            for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
-                body=m.group(2)
-                L=[]
-                for im in ins_re.finditer(body):
-                    op=im.group(1); args=im.group(2).split()
-                    L.append((op,args))
-                chunks[m.group(1)]=L
-            cm=re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)", (\d+), (\d+), \[([^\]]*)\]⟩', blk)
-            nm,entry,cnt,cl=cm.group(1),int(cm.group(2)),int(cm.group(3)),cm.group(4)
-            code=[]
-            for c in cl.split(','):
-                c=c.strip()
-                if c: code+=chunks[c]
-            assert len(code)==cnt,(nm,len(code),cnt)
-            fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
+    BD = bridge_data()
+    for name, (pack, blk) in BD.bundle_blocks().items():
+        chunks={}
+        for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
+            body=m.group(2)
+            L=[]
+            for im in ins_re.finditer(body):
+                op=im.group(1); args=im.group(2).split()
+                L.append((op,args))
+            chunks[m.group(1)]=L
+        nm,entry,cnt,cl=BD.code_of(blk)
+        code=[]
+        for c in cl:
+            code+=chunks[c]
+        assert len(code)==cnt,(nm,len(code),cnt)
+        fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
     for b in sorted(glob.glob(ROOT+'/Pack/*/Sig.lean')):
         s=open(b).read()
         for m in re.finditer(r'def sig : Check.Sig :=\s*⟨"([^"]*)", (\d+|Fn\.«[^»]+»\.entry), (\d+), (\d+),',s):
@@ -89,13 +95,7 @@ def _jt_lo():
     return int(re.search(r'abbrev mainCells : ℕ := (\d+)', t).group(1))
 
 
-def _halt():
-    """The halting pc, the program's last (`Statement/Data/Bytecode.lean`'s `logSize`)."""
-    t = open(os.path.join(STATEMENT, 'Data', 'Bytecode.lean')).read()
-    return 2 ** int(re.search(r'def logSize : ℕ := (\d+)', t).group(1)) - 1
-
-
-JT_LO, HALT = _jt_lo(), _halt()
+JT_LO, HALT = _jt_lo(), bridge_data().HALT
 
 
 def conv(op, a):

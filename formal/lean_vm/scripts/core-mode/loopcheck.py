@@ -10,6 +10,8 @@ import sys, os, re, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
+sys.path.insert(0, HERE)
+import compiled as C  # noqa: E402
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # a range's core IR, at most this many bytes (the kernel's memory grows with it)
@@ -31,29 +33,27 @@ def names():
 def sizes():
     """Each function's bytes of core IR; a function whose body a pack of its own splits over
     `Core*.lean`, all of them."""
+    BD = C.bridge_data()
     sz = {}
-    for p in glob.glob(os.path.join(ROOT, 'Pack', '*', 'Core*.lean')):
-        t = open(p).read()
+    for p in BD.core_paths():
+        t = BD.read_text(p)
         for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
             m = re.search(r'name := "([^"]+)"', blk)
             if m: sz[m.group(1)] = sz.get(m.group(1), 0) + len(blk)
-    for d in glob.glob(os.path.join(ROOT, 'Pack', '*')):
-        c = os.path.join(d, 'Core.lean')
-        if re.fullmatch(r'P\d+', os.path.basename(d)) or not os.path.exists(c): continue
-        m = re.search(r'name := "([^"]+)"', open(c).read())
-        sz[m.group(1)] = sum(len(open(f).read()) for f in glob.glob(os.path.join(d, 'Core*.lean')))
+    for key in BD.own_packs():
+        c = os.path.join(ROOT, 'Pack', key, 'Core.lean')
+        if not os.path.exists(c): continue
+        m = re.search(r'name := "([^"]+)"', BD.read_text(c))
+        sz[m.group(1)] = sum(len(BD.read_text(f)) for f in glob.glob(os.path.join(ROOT, 'Pack', key, 'Core*.lean')))
     return sz
 
 
 def alone():
     """The functions with a pack of their own (the heavy ones), each checked as a range of its own."""
-    out = set()
-    for d in glob.glob(os.path.join(ROOT, 'Pack', '*')):
-        if re.fullmatch(r'P\d+', os.path.basename(d)): continue
-        c = os.path.join(d, 'Bundle.lean')
-        m = re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)"', open(c).read()) if os.path.exists(c) else None
-        if m: out.add(m.group(1))
-    return out
+    BD = C.bridge_data()
+    blocks = BD.bundle_blocks()
+    # a pack of its own holding its bundle too
+    return {BD.code_of(blocks[key][1])[0] for key in BD.own_packs() if key in blocks and blocks[key][0] == key}
 
 
 def splits():

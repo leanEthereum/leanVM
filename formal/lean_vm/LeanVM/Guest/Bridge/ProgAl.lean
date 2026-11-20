@@ -53,7 +53,7 @@ theorem alignA_ent {f g : String} {t : ℕ} (h : (alignA f).X.entOk t g = true) 
   · cases h
 
 theorem alignA_halt : regs alignHalt 0 = Registers.final guestProgram := by
-  simp only [regs, Registers.final, LeanIsaProgram.pcFinal, guest_logSize, Exec.gpow_zero', alignHalt]
+  simp only [regs, Registers.final, LeanIsaProgram.pcFinal, guest_logSize, Exec.gpow_zero', alignHalt, CoreMode.haltPc]
   rfl
 
 private theorem idxOf_main : B2C.idxOf "main" = some 1 := by decide +kernel

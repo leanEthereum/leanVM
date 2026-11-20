@@ -15,6 +15,8 @@ usage (from formal/lean_vm): python3 -I scripts/core-mode/glue.py [--check]
 import sys, os, re, glob
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import compiled as C  # noqa: E402
 
 LV = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GUEST = os.path.join(LV, 'LeanVM', 'Guest')
@@ -52,21 +54,16 @@ def main(check=False):
     tied = lambda j: j in link and j in plumb and j in tab
     # each function in the pack holding its core (as `heap.pack_of`), its code in its bundle's pack
     home, bpack = {}, {}
-    for f in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean'))):
-        for k in NSRE.findall(open(f, encoding='utf-8').read()):
-            home.setdefault(k, os.path.basename(os.path.dirname(f)))
+    home = {k: bs[0][0] for k, bs in C.bridge_data().core_blocks().items()}
     # each function's first jump-table slot: its plumbing's table jumps' least (`armsOf`'s)
     jt0 = {}
-    for f in sorted(glob.glob(os.path.join(GUEST, 'Pack', '*', 'Bundle*.lean'))):
-        t = open(f, encoding='utf-8').read()
-        for k in NSRE.findall(t):
-            bpack[k] = os.path.basename(os.path.dirname(f))
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
-            bs = [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, (\d+)\)', (re.findall(r'^  arms := (.*)$', blk, re.M) or [''])[0])]
-            bs += [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, \[[^\]]*\], \d+, (\d+)\)',
-                                                        (re.findall(r'^  chains := (.*)$', blk, re.M) or [''])[0])]
-            if bs:
-                jt0[blk.split('»', 1)[0]] = min(bs)
+    for k, (pack, blk) in C.bridge_data().bundle_blocks().items():
+        bpack[k] = pack
+        bs = [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, (\d+)\)', (re.findall(r'^  arms := (.*)$', blk, re.M) or [''])[0])]
+        bs += [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, \[[^\]]*\], \d+, (\d+)\)',
+                                                    (re.findall(r'^  chains := (.*)$', blk, re.M) or [''])[0])]
+        if bs:
+            jt0[k] = min(bs)
     packs = {}
     for k, pack in home.items():
         if name.get(k) in adv and k in bpack:

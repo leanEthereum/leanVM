@@ -71,7 +71,7 @@ theorem entry_le_of_mem : ∀ {s e : ℕ} {fns : List CompiledFunction}, LeanVM.
 /-- A guest function's entry is a key of the tries. -/
 theorem entry_key {c : ℕ} (hc : c < nFns) : (fnOf c).entryPc + 1 < 2 ^ Exec.indexDepth := by
   have h1 := entry_le_of_mem functions_consecutive (B2C.fnOf_memC hc)
-  have h2 : Data.codeLen < 524287 := codeLen_lt
+  have h2 : Data.codeLen < 2 ^ 19 - 1 := codeLen_lt
   have h3 : (2 : ℕ) ^ Exec.indexDepth = 1048576 := by norm_num [Exec.indexDepth]
   omega
 

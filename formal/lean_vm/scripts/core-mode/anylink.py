@@ -54,7 +54,7 @@ def atoms(ss, out):
 def link():
     """The callees `(stable name, kE, kL)`, the bound quotient `w` and the constant `c`."""
     stable, _ = names()
-    params, body, _ = coreir._fn(coreir.BD.core_texts()[ORIGIN])
+    params, body, _ = coreir.BD.core_fn(coreir.BD.core_texts()[ORIGIN])
     uE, uL = params[UE], params[UL]
     (w, c), = {(a[2], a[3]) for a in atoms(body, []) if a[0] == 'mul' and a[1] == uL}
     by = {}

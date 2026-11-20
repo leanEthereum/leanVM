@@ -332,19 +332,12 @@ module
 def pack_of():
     """Each function's pack and the module of it that defines its `core` (`Pack/<pack>/Core*.lean`: a split body's
     parts come first, in no order), `(pack, module)`."""
-    import re, glob
+    import re
     out = {}
-    for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
-        pack = os.path.basename(os.path.dirname(p))
-        text = open(p, encoding='utf-8').read()
-        ms = list(re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', text, re.M))
-        for i, m in enumerate(ms):
-            end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
-            has = re.search(r'^noncomputable def core : Core\.Fn', text[m.end():end], re.M) is not None
-            prev = out.get(m.group(1))
-            if prev is None or has and not prev[2]:
-                out[m.group(1)] = (pack, os.path.basename(p)[:-5], has)
-    return {k: v[:2] for k, v in out.items()}
+    for k, bs in coreir.BD.core_blocks().items():
+        has = [(pack, mod) for pack, mod, text in bs if re.search(r'^noncomputable def core : Core\.Fn', text, re.M)]
+        out[k] = has[0] if has else bs[0][:2]
+    return out
 
 
 def lean_cell(c):

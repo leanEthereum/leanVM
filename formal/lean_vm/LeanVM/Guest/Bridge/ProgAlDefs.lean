@@ -9,11 +9,12 @@ module
 public import LeanVM.Guest.Bridge.StepRule
 public import LeanVM.Guest.Bridge.ProgAlData
 public import LeanVM.Guest.B2C.Defs
+public import LeanVM.Guest.CoreMode.GlueG
 
 /-!
 # The deployed guest's alignment
 
-`alignA f` is `fnAl j` for the compiled index `j` of `f` (`idxOf`), `fnAl 0` (`__jump_tables`, whose check nothing reads) for a name not in the program. `fnAl j`: the check's context `ctxOf j`, the body `(coreOf j).body`, the code `(fnOf j).code` and the advice `Data.adviceFn{j}` (`alignAdvice`). `ctxOf j` is `AlignCtx.ofData` of the function's own data: its certificate's cells (`certOf j`), its hint-only cells (`extraOf j`, the generated `alignExtras`; the tables are tries, read in a few steps), its entry, whether it is `main` (`j = 1`), its plumbing (`plumbOf j`), the program's powers of `g` and jump table, its callees with their entries (`entsOf j`: the generated `alignCallees`, by index), the halting pc `2^19 - 1` and its length. The generated checks (`Bridge/Align*/`) state each function's context by its pack's data; `fnAlOk_of` equates the two.
+`alignA f` is `fnAl j` for the compiled index `j` of `f` (`idxOf`), `fnAl 0` (`__jump_tables`, whose check nothing reads) for a name not in the program. `fnAl j`: the check's context `ctxOf j`, the body `(coreOf j).body`, the code `(fnOf j).code` and the advice `Data.adviceFn{j}` (`alignAdvice`). `ctxOf j` is `AlignCtx.ofData` of the function's own data: its certificate's cells (`certOf j`), its hint-only cells (`extraOf j`, the generated `alignExtras`; the tables are tries, read in a few steps), its entry, whether it is `main` (`j = 1`), its plumbing (`plumbOf j`), the program's powers of `g` and jump table, its callees with their entries (`entsOf j`: the generated `alignCallees`, by index), the halting pc (`CoreMode.haltPc`) and its length. The generated checks (`Bridge/Align*/`) state each function's context by its pack's data; `fnAlOk_of` equates the two.
 
 `FnAlOk j`: function `j` passes its check; `ProgAl/All.lean` proves it of every function.
 -/
@@ -24,8 +25,8 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- The halting pc, the last slot. -/
-def alignHalt : ℕ := 524287
+/-- The halting pc, the last slot (`CoreMode.haltPc`). -/
+def alignHalt : ℕ := CoreMode.haltPc
 
 /-- The hint-only cells of compiled function `j`. -/
 noncomputable def extraOf (j : ℕ) : List (ℕ × ℕ) := (Check.getF alignExtras j).getD []

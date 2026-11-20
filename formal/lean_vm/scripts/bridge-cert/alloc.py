@@ -495,9 +495,8 @@ def run(check):
     n = max(lk) + 1
     fns, adv, cores, bund = align.functions(), data.advice(), data.core_texts(), data.bundles()
     fss = {}
-    for b in glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Bundle.lean')):
-        for blk in open(b, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            fss[blk.split('\n', 1)[0].strip().strip('«»')] = int(re.search(r'^def fs : ℕ := (\d+)$', blk, re.M).group(1))
+    for key, (_, blk) in data.bundle_blocks().items():
+        fss[key] = int(re.search(r'^def fs : ℕ := (\d+)$', blk, re.M).group(1))
     pows = align.pow_table()
     jt = align.jump_table(pows)
     passed, failed = {}, {}

@@ -9,6 +9,15 @@ ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
 STATEMENT_DATA = os.path.join(LEAN_VM, '..', 'Statement', 'Data')
 
 
+def _halt():
+    """The halting pc, the program's last: `2^logSize - 1` (`Statement/Data/Bytecode.lean`)."""
+    t = open(os.path.join(STATEMENT_DATA, 'Bytecode.lean'), encoding='utf-8').read()
+    return 2 ** int(re.search(r'def logSize : ℕ := (\d+)', t).group(1)) - 1
+
+
+HALT = _halt()
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
@@ -195,24 +204,110 @@ def core_hint(e, env):
     raise ValueError(h)
 
 
-def stmt(e, env):
-    """A statement: `('atom', kind, hint)`, `('ite', zero, nonzero)`, `('match', arms)`, or
-    `('ctl', kind)` for calls and returns."""
+# ---- the core IR, parsed once: `core_fn`, `core_body`
+
+def _bool(e):
+    return e == ('id', 'true')
+
+
+def _word(e):
+    h, a = head(e)
+    assert h == 'word', e
+    return (a[0], a[1])
+
+
+def core_atom(e, env):
+    """An atom as `Core.Atom`, values by number: `('const', x, word)`, `('add'|'mul', x, a, b)`, `('copy', x, a)`,
+    `('load', p, o, w)`, `('assertEq', a, b)`, `('assertNe', a, b, c)`, `('rangeCheck', ...)`, `('assertInK', a, b)`,
+    `('keccak', ins, outs, b, b)`, `('frameAddr', x, xs)`, `('hint', core_hint)`, `('touch', p, o)`."""
+    h, a = head(e)
+    k = h[1:]
+    if k == 'const':
+        return ('const', val(a[0]), _word(a[1]))
+    if k in ('add', 'mul'):
+        return (k, val(a[0]), val(a[1]), val(a[2]))
+    if k == 'copy':
+        return ('copy', val(a[0]), val(a[1]))
+    if k == 'load':
+        return ('load', val(a[0]), val(a[1]), a[2])
+    if k == 'assertEq':
+        return ('assertEq', val(a[0]), val(a[1]))
+    if k == 'assertNe':
+        return ('assertNe', val(a[0]), val(a[1]), val(a[2]))
+    if k == 'rangeCheck':
+        return ('rangeCheck',) + tuple(val(x) for x in a[:5])
+    if k == 'assertInK':
+        return ('assertInK', val(a[0]), val(a[1]))
+    if k == 'keccak':
+        return ('keccak', vals(a[0], env), vals(a[1], env), _bool(a[2]), _bool(a[3]))
+    if k == 'frameAddr':
+        return ('frameAddr', val(a[0]), vals(a[1], env))
+    if k == 'hint':
+        return ('hint', core_hint(a[0], env))
+    if k == 'touch':
+        return ('touch', val(a[0]), val(a[1]))
+    raise ValueError(k)
+
+
+def core_stmt(e, env):
+    """A statement: `('a', atom)`, `('ite', c, zero, nonzero)`, `('match', x, arms)`, `('call', f, args, rets)`,
+    `('callIf', c, f, args)`, `('dispatch', x, fs, args, rets)`, `('ret', vs)`."""
     h, a = head(e)
     if h == '.atom':
-        ah, aa = head(a[0])
-        if ah == '.hint':
-            return ('atom', 'hint', core_hint(aa[0], env))
-        return ('atom', ah[1:], None)
+        return ('a', core_atom(a[0], env))
     if h == '.ite':
-        return ('ite', block(a[1], env), block(a[2], env))
+        return ('ite', val(a[0]), core_block(a[1], env), core_block(a[2], env))
     if h == '.match_':
-        return ('match', [block(x, env) for x in as_list(a[1], env)])
-    return ('ctl', h[1:])
+        return ('match', val(a[0]), [core_block(x, env) for x in as_list(a[1], env)])
+    if h == '.call':
+        return ('call', a[0][1], vals(a[1], env), vals(a[2], env))
+    if h == '.callIf':
+        return ('callIf', val(a[0]), a[1][1], vals(a[2], env))
+    if h == '.dispatch':
+        return ('dispatch', val(a[0]), [x[1] for x in as_list(a[1], env)], vals(a[2], env), vals(a[3], env))
+    if h == '.ret':
+        return ('ret', vals(a[0], env))
+    raise ValueError(h)
 
 
-def block(e, env):
-    return [stmt(x, env) for x in as_list(e, env)]
+def core_block(e, env):
+    return [core_stmt(x, env) for x in as_list(e, env)]
+
+
+def core_fn(text):
+    """A function's core text (`core_texts`) parsed: its parameters, body and compiled name."""
+    i = text.index('namespace core')
+    ds = defs(text[i:])
+    cache = {}
+
+    def env(n):
+        if n not in cache:
+            cache[n] = parse(ds[n])
+        return cache[n]
+    params = vals(parse(re.search(r'params := (.*)', text).group(1)), env)
+    name = re.search(r'name := "([^"]*)"', text).group(1)
+    return params, core_block(env('body'), env), name
+
+
+def core_body(text):
+    """A function's body, parsed (`core_stmt`)."""
+    return core_fn(text)[1]
+
+
+def outline(body):
+    """The body as the hint bridge's checks read it: `('atom', kind, hint)`, `('ite', zero, nonzero)`,
+    `('match', arms)`, `('ctl', kind)` for calls and returns."""
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            out.append(('atom', s[1][0], s[1][1] if s[1][0] == 'hint' else None))
+        elif s[0] == 'ite':
+            out.append(('ite', outline(s[2]), outline(s[3])))
+        elif s[0] == 'match':
+            out.append(('match', [outline(x) for x in s[2]]))
+        else:
+            out.append(('ctl', s[0]))
+    return out
 
 
 DEF = re.compile(r'^(?:noncomputable )?def (\w+) : ([^\n]*?) :=', re.M)
@@ -230,35 +325,96 @@ def defs(text):
     return out
 
 
-def core_texts():
-    """Each function's core text, by stable name."""
+# ---- the generated packs, read once: `core_blocks`, `bundle_blocks`
+
+_TEXTS = {}
+
+
+def read_text(p):
+    if p not in _TEXTS:
+        with open(p, encoding='utf-8') as fh:
+            _TEXTS[p] = fh.read()
+    return _TEXTS[p]
+
+
+def core_paths():
+    """The packs' core modules, by pack and module number (`Core`, `Core1`, `Core2`, ...)."""
+    return sorted(glob.glob(ROOT + '/Pack/*/Core*.lean'),
+                  key=lambda p: (p.split('/')[-2], int(os.path.basename(p)[4:-5] or 0)))
+
+
+CORE_NS = re.compile(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»\n(.*?)^end LeanVM\.Guest\.Fn\.«\1»$', re.M | re.S)
+
+
+def core_blocks():
+    """Each function's namespace blocks in the packs' core modules, by stable name: `[(pack, module, text)]`, in
+    module order."""
     out = {}
-    for p in sorted(glob.glob(ROOT + '/Pack/P[0-9]*/Core.lean')):
-        t = open(p, encoding='utf-8').read()
-        for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»\n(.*?)^end LeanVM\.Guest\.Fn\.«\1»$', t,
-                             re.M | re.S):
-            out[m.group(1)] = m.group(2)
-    for d in sorted(glob.glob(ROOT + '/Pack/*/')):
-        key = os.path.basename(os.path.dirname(d))
-        if re.fullmatch(r'P\d+', key):
-            continue
-        files = sorted(glob.glob(d + 'Core*.lean'), key=lambda p: int(os.path.basename(p)[4:-5] or 0))
-        if files:
-            out[key] = ''.join(open(p, encoding='utf-8').read() for p in files)
+    for p in core_paths():
+        pack, mod = p.split('/')[-2], os.path.basename(p)[:-5]
+        for m in CORE_NS.finditer(read_text(p)):
+            out.setdefault(m.group(1), []).append((pack, mod, m.group(2)))
     return out
 
 
-def body_of(text):
-    """A core function's body, parsed."""
-    i = text.index('namespace core')
-    ds = defs(text[i:])
+def own_packs():
+    """The functions with a pack of their own (`Pack/<key>/`), their core over its `Core*.lean`."""
+    return {os.path.basename(os.path.dirname(d)) for d in glob.glob(ROOT + '/Pack/*/')
+            if not re.fullmatch(r'P\d+', os.path.basename(os.path.dirname(d)))}
+
+
+def core_texts():
+    """Each function's core text, by stable name: its block of its pack's `Core.lean`, or, with a pack of its own,
+    all its pack's core modules."""
+    out = {}
+    own = own_packs()
+    paths = core_paths()
+    for p in paths:
+        if p.split('/')[-2] not in own and os.path.basename(p) == 'Core.lean':
+            for m in CORE_NS.finditer(read_text(p)):
+                out[m.group(1)] = m.group(2)
+    for p in paths:
+        pack = p.split('/')[-2]
+        if pack in own:
+            out[pack] = out.get(pack, '') + read_text(p)
+    return out
+
+
+def bundle_blocks():
+    """Each compiled function's part of its pack's `Bundle.lean`, from its name to the next function, by stable
+    name: `(pack, text)`."""
+    out = {}
+    for b in sorted(glob.glob(ROOT + '/Pack/*/Bundle.lean')):
+        pack = b.split('/')[-2]
+        for blk in read_text(b).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+            out[blk.split('\n', 1)[0].strip().strip('«»')] = (pack, blk)
+    return out
+
+
+CODE = re.compile(r'def code : CompiledFunction :=\s*⟨"([^"]*)", (\d+), (\d+), \[([^\]]*)\]⟩')
+
+
+def code_of(blk):
+    """A bundle block's `code`: its compiled name, entry pc, instruction count and chunks' names."""
+    m = CODE.search(blk)
+    return m.group(1), int(m.group(2)), int(m.group(3)), [c.strip() for c in m.group(4).split(',') if c.strip()]
+
+
+def chunks_of(blk):
+    """A bundle block's code chunks, each a list of its instructions `(op, operands)` (`head`)."""
+    ds = defs(blk)
     cache = {}
 
     def env(n):
         if n not in cache:
             cache[n] = parse(ds[n])
         return cache[n]
-    return block(env('body'), env)
+    return [[head(x) for x in as_list(env(c), env)] for c in code_of(blk)[3]]
+
+
+def body_of(text):
+    """A core function's body as the hint bridge's checks read it (`outline`)."""
+    return outline(core_body(text))
 
 
 def bundles():
@@ -267,48 +423,39 @@ def bundles():
     cells_texts = {}
     for p in glob.glob(ROOT + '/Pack/*/Cells*.lean'):
         key = os.path.basename(os.path.dirname(p))
-        cells_texts.setdefault(key, []).append(open(p, encoding='utf-8').read())
-    for b in sorted(glob.glob(ROOT + '/Pack/*/Bundle.lean')):
-        pack = b.split('/')[-2]
-        t = open(b, encoding='utf-8').read()
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            key = blk.split('\n', 1)[0].strip().strip('«»')
-            text = blk + ''.join(cells_texts.get(key, []))
-            ds = defs(text)
-            cache = {}
+        cells_texts.setdefault(key, []).append(read_text(p))
+    for key, (pack, blk) in bundle_blocks().items():
+        text = blk + ''.join(cells_texts.get(key, []))
+        ds = defs(text)
+        cache = {}
 
-            def env(n, ds=ds, cache=cache):
-                if n not in cache:
-                    cache[n] = parse(ds[n])
-                return cache[n]
-            cm = re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)", (\d+), (\d+), \[([^\]]*)\]⟩', blk)
-            entry, cnt = int(cm.group(2)), int(cm.group(3))
-            code = []
-            for c in cm.group(4).split(','):
-                c = c.strip()
-                if c:
-                    code += [head(x)[0] for x in as_list(env(c), env)]
-            assert len(code) == cnt, (key, len(code), cnt)
-            cert = re.search(r'noncomputable def cert : Check\.Cert where\n(.*?)\n(?:/--|\Z)', blk, re.S).group(1)
-            cl = re.search(r'^  cells := (.*)$', cert, re.M).group(1)
-            locs = []
-            for w in as_list(parse(cl), env):
-                locs += as_list(w, env)
-            pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
-            plumb = set()
-            if pl:
-                pt = pl.group(1)
-                st = re.search(r'^  stat := (.*)$', pt, re.M)
-                if st:
-                    plumb |= set(int(x) for x in re.findall(r'\((\d+), \(\.', st.group(1)))
-                si = re.search(r'^  sites := (.*)$', pt, re.M)
-                if si:
-                    for m in re.finditer(r'⟨\[[^\]]*\], \[[^\]]*\], (\d+), (\d+), (\d+)⟩', si.group(1)):
-                        plumb |= {int(m.group(1)), int(m.group(3))}
-                ar = re.search(r'^  arms := (.*)$', pt, re.M)
-                if ar:
-                    plumb |= set(int(m.group(2)) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1)))
-            out[key] = dict(key=key, pack=pack, entry=entry, count=cnt, code=code, locs=locs, plumb=plumb)
+        def env(n, ds=ds, cache=cache):
+            if n not in cache:
+                cache[n] = parse(ds[n])
+            return cache[n]
+        _, entry, cnt, _ = code_of(blk)
+        code = [i[0] for ch in chunks_of(blk) for i in ch]
+        assert len(code) == cnt, (key, len(code), cnt)
+        cert = re.search(r'noncomputable def cert : Check\.Cert where\n(.*?)\n(?:/--|\Z)', blk, re.S).group(1)
+        cl = re.search(r'^  cells := (.*)$', cert, re.M).group(1)
+        locs = []
+        for w in as_list(parse(cl), env):
+            locs += as_list(w, env)
+        pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
+        plumb = set()
+        if pl:
+            pt = pl.group(1)
+            st = re.search(r'^  stat := (.*)$', pt, re.M)
+            if st:
+                plumb |= set(int(x) for x in re.findall(r'\((\d+), \(\.', st.group(1)))
+            si = re.search(r'^  sites := (.*)$', pt, re.M)
+            if si:
+                for m in re.finditer(r'⟨\[[^\]]*\], \[[^\]]*\], (\d+), (\d+), (\d+)⟩', si.group(1)):
+                    plumb |= {int(m.group(1)), int(m.group(3))}
+            ar = re.search(r'^  arms := (.*)$', pt, re.M)
+            if ar:
+                plumb |= set(int(m.group(2)) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1)))
+        out[key] = dict(key=key, pack=pack, entry=entry, count=cnt, code=code, locs=locs, plumb=plumb)
     return out
 
 
